@@ -1,0 +1,315 @@
+Alta Capital Suite — Architecture Audit
+======================================
+
+Read-only review of the codebase as it stands today (mock UI, no backend).
+Generated from architecture audit session.
+
+
+1. CURRENT ARCHITECTURE
+-----------------------
+
+High-level shape
+----------------
+
+The app is a TanStack Start (Vite + file-based routing) React 19 SPA with SSR
+support, organized around four product surfaces plus legacy entry points:
+
+  src/
+  ├── routes/           # File-based pages (TanStack Router)
+  ├── components/       # Domain UI (bank/, exchange/, terminal/) + shared shell
+  ├── lib/              # Mock data + Exchange service layer
+  ├── hooks/            # Minimal (use-mobile)
+  └── components/ui/    # shadcn/Radix primitives (mostly unused in product pages)
+
+Product domains
+---------------
+
+  Domain            Routes                              Components              Data
+  ----------------  ----------------------------------  ----------------------  ---------------------------------
+  Alta Bank         /bank/* (11 flat routes)            components/bank/        lib/mock-bank-data.ts
+  Alta Exchange     /exchange/* + nested                components/exchange/    lib/exchange/* + deprecated shim
+                    /company/$ticker/*
+  Alta Terminal     /terminal/* (layout + 8 pages)      components/terminal/    lib/mock-terminal-data.ts +
+                                                                                mock-data.ts
+  Governance /      /, /governance                      site-nav, landing       mock-data.ts
+  Marketing
+
+  Legacy            /dashboard, /markets                inline in routes        mock-data.ts directly
+
+Shared presentation layer
+-------------------------
+
+  - PageShell / Section / Card (components/page-shell.tsx)
+    Alta's real design system (gold/navy, institutional typography, light/dark
+    via CSS vars).
+
+  - SiteNav / SiteFooter — global chrome; "Enter Platform" still points at
+    legacy /dashboard.
+
+  - Formatters — florin, compact, pct, makeSeries live in lib/mock-data.ts
+    and are reused everywhere.
+
+Routing patterns (inconsistent)
+-------------------------------
+
+  - Exchange & Terminal use parent route.tsx + <Outlet /> (required for nested
+    paths).
+
+  - Bank uses flat files only (/bank/dashboard, etc.) — no layout route.
+
+  - Company profiles use $ticker/route.tsx → index.tsx + owner.tsx.
+
+Exchange API layer (best current pattern)
+-----------------------------------------
+
+  UI routes/components
+         ↓
+  lib/exchange/api.ts  (facade)
+         ↓
+  companies | indices | ipos | filings | market-stats | announcements
+         ↓
+  mock-data.ts (stocks, formatters, series)
+
+Functions like getCompanies(), getCompany(), getAnnouncements() are synchronous
+mock implementations with documented future REST mappings. Separate mock auth
+modules exist for API keys (api-access.ts) and issuer portal (issuer-access.ts).
+
+Terminal ↔ Exchange relationship
+--------------------------------
+
+Terminal partially consumes Exchange API (getIPOs, getFilings) but still reads
+holdings, orders, stocks, and portfolio data directly from mock-data.ts /
+mock-terminal-data.ts. Architecturally Terminal is intended to be a client of
+Exchange market data — that split is only half-done.
+
+
+2. PROBLEMS
+-----------
+
+Folder & domain structure
+-------------------------
+
+  - No lib/bank/ or lib/terminal/ service layers — Bank and Terminal routes
+    import mock blobs directly; Exchange is ahead of the other products.
+
+  - mock-exchange-data.ts is a deprecated shim — still re-exports at module
+    load time; adds confusion about the canonical import path.
+
+  - Legacy routes coexist with product routes — /dashboard and /markets
+    duplicate Terminal/Exchange concerns and remain linked from SiteNav
+    ("Dashboard", "Markets", "Enter Platform").
+
+  - Large unused shadcn surface — ~40 components/ui/* files; product pages
+    mostly use custom page-shell Card instead of components/ui/card.
+
+Component duplication
+---------------------
+
+  Pattern              Copies                                              Notes
+  -------------------  --------------------------------------------------  ---------------------------
+  Stat cards           BankStatCard, TerminalStatCard, ExchangeStatCard  Identical implementations
+  Sub-nav              BankSubNav, ExchangeSubNav, TerminalSubNav        Same markup/logic
+  Preview/greyed       listing-application-form, api-access-gate,        Same fieldClass, upload
+  forms                issuer-portal                                       placeholders, disabled buttons
+  Document cards       FilingCard, ResearchCard                            ResearchCard is a subset
+  Ranking tables       RankingTable, LeaderboardTable                      Same table shell
+  Recharts area        6+ route files                                      Repeated gradient/tooltip setup
+  charts
+  Preview access       API + Issuer + (implicit) listing                   Same localStorage + preview UX
+  gates
+
+Styling duplication
+-------------------
+
+  - Typography tokens repeated inline — font-mono text-[10px] uppercase
+    tracking-[0.18em] appears dozens of times instead of shared utility classes
+    or components (Eyebrow, Label, MonoCaption).
+
+  - Preview field styles defined 3× — previewFieldClass / fieldClass /
+    previewPrimaryButtonClass are copy-pasted, not shared.
+
+  - Two card systems — page-shell Card vs shadcn Card; no single source for
+    bordered surfaces.
+
+Mock data organization
+--------------------
+
+  - mock-data.ts is a god file — stocks (source of truth for tickers),
+    portfolio, transactions, legacy indices (AEX-*), homepage series, and
+    formatters all mixed together.
+
+  - Data inconsistency across layers:
+      * Homepage / /markets use AEX indices; Exchange uses NSX indices.
+      * PRTH is "Porthaven Maritime" in mock-data.ts but "Port Haven Maritime"
+        in Exchange companies.
+
+  - Terminal re-exports from mock-data — mock-terminal-data.ts re-exports
+    holdings/orders/stocks, blurring Terminal domain vs shared market boundaries.
+
+  - getAnnouncements() exists but is not in api-docs.ts — API documentation
+    page doesn't reflect the newest endpoint.
+
+Routing & navigation
+--------------------
+
+  - Layout route convention is undocumented in practice — Bank works without
+    layout; Exchange/Terminal require it; easy to reintroduce 404s when adding
+    nested routes.
+
+  - Bank admin routes (/bank/admin/*) exist but are hidden from subnav — fine
+    for preview, but no shared admin layout.
+
+  - No shared "product layout" — every page manually mounts PageShell + domain
+    SubNav (30+ repetitions).
+
+Future API readiness
+--------------------
+
+Strengths (Exchange)
+  - Clear module split (companies.ts, filings.ts, etc.).
+  - Typed interfaces in exchange/types.ts.
+  - exchangeApi facade ready to swap for HTTP client.
+  - Terminal already imports some Exchange functions.
+
+Gaps
+  - React Query is wired in __root.tsx but never used — no query keys, hooks,
+    or loading/error states anywhere in product code.
+
+  - No async boundary — all get*() are sync; migrating to fetch will require
+    signature and UI changes across routes.
+
+  - Auth patterns are ad hoc — api-access.ts and issuer-access.ts use
+    localStorage directly; no shared lib/auth/preview-session.ts abstraction.
+
+  - Terminal/Bank have no documented API contract — backend teams can't mirror
+    Exchange's endpoint map.
+
+  - SSR/hydration — gated pages (api, owner) read localStorage in useEffect;
+    fine for mock, but pattern doesn't scale to cookie/session auth without
+    rework.
+
+Dependencies vs usage
+---------------------
+
+  - react-hook-form, zod, @hookform/resolvers — installed; forms are read-only
+    preview.
+
+  - Most Radix/shadcn components — unused in product surfaces.
+
+  - framer-motion — used only in PageShell hero animation.
+
+
+3. RECOMMENDED IMPROVEMENTS
+---------------------------
+
+A. Establish shared primitives (low risk, high payoff)
+  1. components/alta/stat-card.tsx — replace three stat card copies.
+  2. components/alta/sub-nav.tsx — generic tab nav accepting { to, label, exact? }[].
+  3. components/alta/preview-form.tsx — shared PreviewField, PreviewSelect,
+     PreviewUpload, PreviewButton, PreviewNotice.
+  4. components/alta/document-card.tsx — unify FilingCard / ResearchCard.
+  5. components/alta/data-table.tsx — base ranked table; Exchange/Terminal pass column config.
+  6. components/alta/area-chart.tsx — gold-gradient area chart wrapper used on
+     Exchange overview, company profile, portfolio, bank dashboard.
+
+B. Normalize mock data & service layers
+  1. lib/market/formatters.ts — move florin, compact, pct, makeSeries out of mock-data.ts.
+  2. lib/market/stocks.ts — single stock universe; Exchange getCompanies() derives from here.
+  3. Align naming — pick NSX or AEX globally; fix PRTH and any other ticker/name drift.
+  4. Delete mock-exchange-data.ts once all imports use @/lib/exchange/api.
+  5. Add lib/terminal/api.ts — portfolio, watchlist, orders, trade (mock today; REST later).
+  6. Add lib/bank/api.ts — accounts, transfers, lending (same pattern).
+  7. Terminal market data — route watchlist/trade/holdings price lookups through Exchange API.
+
+C. Routing & layout
+  1. Add routes/bank/route.tsx with <Outlet /> for consistency and future bank-wide context.
+  2. Optional ProductLayout — wrapper that accepts subNav + children to DRY PageShell + SubNav boilerplate.
+  3. Resolve legacy routes — redirect /dashboard → /terminal, /markets → /exchange (or remove from nav).
+  4. Document routing rules in routes/README.md — when layout routes are required, nested folder pattern.
+
+D. API readiness (when backend starts)
+  1. Make service functions async — export async function getCompanies(): Promise<ListedCompany[]>.
+  2. Introduce React Query hooks — useCompanies(), useCompany(ticker), etc., wrapping the service layer.
+  3. HTTP client module — lib/exchange/client.ts with base URL, auth header injection, error typing.
+  4. Extend api-docs.ts — include getAnnouncements, issuer endpoints, future write APIs.
+  5. Unified preview auth module — one pattern for API key gate, issuer gate, and future real auth.
+
+
+4. TECHNICAL DEBT LEVEL
+-----------------------
+
+  MEDIUM
+
+Why not Low:
+  Significant copy-paste across three products, legacy routes, dual index naming
+  (AEX/NSX), and uneven service-layer adoption.
+
+Why not High:
+  The codebase is still small (~150 source files), domains are logically
+  separated, Exchange API layer is a solid template, and the mock-only scope
+  keeps complexity bounded. Debt is structural, not chaotic — fixable
+  incrementally without a rewrite.
+
+Debt becomes HIGH if backend integration starts before consolidating data access
+and shared components.
+
+
+5. REFACTORING PRIORITIES
+-------------------------
+
+  Priority  Item                                                    Impact                          Effort
+  --------  ------------------------------------------------------  ------------------------------  ------
+  P0        Consolidate stat cards, sub-navs, preview form styles   Removes largest duplication       Low
+  P0        Fix data consistency (NSX/AEX, ticker names, stock src) Prevents user-facing contradictions Low
+  P1        Migrate all Exchange UI to @/lib/exchange/api;          Clear data boundary             Low
+            remove mock-exchange-data.ts
+  P1        Terminal market features consume Exchange API           Matches target architecture     Medium
+  P1        Retire or redirect /dashboard and /markets;             Removes parallel surfaces       Low
+            update SiteNav
+  P2        Add lib/terminal/api.ts and lib/bank/api.ts             Backend-ready per product       Medium
+            mirroring Exchange
+  P2        Shared chart/table/document components                  Cuts route file size            Medium
+  P2        Bank layout route + optional product layout wrapper     Routing consistency             Low
+  P3        React Query hooks when APIs go async                    Loading/error states, caching   Medium
+  P3        Unified preview auth module (API + issuer gates)        Less gate duplication           Low
+  P3        Trim unused shadcn or commit to one card/input system   Smaller bundle, less confusion  Medium
+  P4        Update Exchange API docs for announcements/issuer       Documentation completeness      Low
+
+
+TARGET ARCHITECTURE (diagram)
+-----------------------------
+
+  Clients:
+    - Alta Terminal UI
+    - Alta Exchange UI
+    - Alta Bank UI
+    - Third-party brokerages
+
+  Service Layer (mock today, HTTP later):
+    - lib/terminal/api
+    - lib/exchange/api
+    - lib/bank/api
+
+  Data:
+    - lib/market — stocks, formatters
+    - Mock stores / future DB
+
+  Flow:
+    Terminal UI      → Terminal API + Exchange API
+    Exchange UI      → Exchange API
+    Bank UI          → Bank API
+    Third-party      → Exchange API
+
+    Terminal API     → Mock stores
+    Exchange API     → lib/market (stocks, formatters) → Mock stores
+    Bank API         → Mock stores
+
+
+BOTTOM LINE
+-----------
+
+The project has a clear product vision and a good Exchange service-layer
+prototype, but Bank and Terminal still behave like parallel mock apps. The
+highest-leverage next step is shared UI primitives plus extending the Exchange
+API pattern to Terminal (market data) and Bank (accounts), while cleaning up
+legacy routes and data inconsistencies before any real backend work.

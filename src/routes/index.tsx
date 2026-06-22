@@ -1,0 +1,411 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
+import { SiteNav, SiteFooter } from "@/components/site-nav";
+import { AnimatedNumber } from "@/components/animated-number";
+import { compact, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
+import { getIndices } from "@/lib/exchange/api";
+import { ArrowUpRight } from "lucide-react";
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Alta Group — Live Like the 1%" },
+      { name: "description", content: "The financial infrastructure company of Newport. Alta Bank, Alta Terminal, Alta Exchange, and Newport Clearing Corporation." },
+      { property: "og:title", content: "Alta Group — Live Like the 1%" },
+      { property: "og:description", content: "The financial infrastructure company of Newport." },
+    ],
+  }),
+  component: Landing,
+});
+
+function Landing() {
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteNav />
+      <Hero />
+      <Marquee />
+      <Divisions />
+      <Capabilities />
+      <ClosingCTA />
+      <SiteFooter />
+    </div>
+  );
+}
+
+function Hero() {
+  const nsx100 = getIndices()[0];
+  return (
+    <section className="relative overflow-hidden">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "var(--gradient-hero)" }}
+      />
+      <div className="pointer-events-none absolute inset-0 hero-grid" />
+      <div className="relative mx-auto max-w-[1400px] px-6 pt-32 pb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center text-center"
+        >
+          <AltaLogo className="h-16 w-16 text-foreground" />
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+            Alta Exchange Open · NSX-100 {nsx100.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </div>
+          <h1 className="mt-8 max-w-[20ch] text-[clamp(3.25rem,8vw,7rem)] font-semibold leading-[0.96] tracking-[-0.022em]">
+            Live Like the 1%
+          </h1>
+          <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
+            The financial infrastructure company of Newport.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/terminal"
+              className="group inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-[13px] font-medium tracking-wide text-background transition-transform hover:-translate-y-px"
+            >
+              Enter Platform
+              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
+            <Link
+              to="/exchange"
+              className="inline-flex items-center gap-2 rounded-md border border-border-strong bg-surface-1/60 px-5 py-3 text-[13px] font-medium tracking-wide text-foreground transition-colors hover:bg-surface-2"
+            >
+              Explore Markets
+            </Link>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mx-auto mt-20 max-w-[1180px]"
+        >
+          <div
+            className="rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
+          >
+            <DashboardMockup />
+          </div>
+          <div
+            className="pointer-events-none absolute -inset-x-20 -bottom-20 -z-10 h-60"
+            style={{ background: "var(--shadow-glow)" }}
+          />
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function DashboardMockup() {
+  return (
+    <div className="rounded-xl bg-background p-5">
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <div className="flex items-center gap-3">
+          <AltaLogo className="h-4 w-4" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Alta Portfolio · Snapshot
+          </span>
+        </div>
+        <div className="hidden gap-1 md:flex">
+          {["1D", "1W", "1M", "3M", "1Y", "ALL"].map((t, i) => (
+            <span
+              key={t}
+              className={`rounded px-2 py-0.5 font-mono text-[10px] ${i === 3 ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-5 pt-5 lg:grid-cols-[1.6fr_1fr]">
+        <div>
+          <div className="flex items-baseline gap-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Net Worth
+              </div>
+              <div className="tabular mt-1 text-3xl font-semibold tracking-tight">
+                ƒ8,412,209.40
+              </div>
+            </div>
+            <div className="ticker-up tabular font-mono text-xs">
+              +ƒ142,802.10 · +1.72%
+            </div>
+          </div>
+          <div className="mt-4 h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={indexSeries}>
+                <defs>
+                  <linearGradient id="heroFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
+                <XAxis hide dataKey="t" />
+                <YAxis hide domain={["dataMin", "dataMax"]} />
+                <Tooltip
+                  contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border-strong)", borderRadius: 8, fontSize: 11 }}
+                  labelStyle={{ display: "none" }}
+                  formatter={(v) => [Number(v).toFixed(2), "Value"]}
+                />
+                <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#heroFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { l: "Florin Balance", v: "ƒ1,240,500" },
+            { l: "Portfolio", v: "ƒ1,885,285" },
+            { l: "Today's P&L", v: "+ƒ24,810", up: true },
+            { l: "Exposure", v: "62.4%" },
+          ].map((k) => (
+            <div key={k.l} className="rounded-lg border border-border bg-surface-1 p-3">
+              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                {k.l}
+              </div>
+              <div className={`tabular mt-1.5 text-base font-semibold ${k.up ? "text-[var(--success)]" : ""}`}>
+                {k.v}
+              </div>
+            </div>
+          ))}
+          <div className="col-span-2 rounded-lg border border-border bg-surface-1 p-3">
+            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+              Top Movers
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {stocks.slice(0, 4).map((s) => (
+                <div key={s.symbol} className="flex items-center justify-between text-[12px]">
+                  <span className="font-mono">{s.symbol}</span>
+                  <span className={`tabular ${s.change >= 0 ? "ticker-up" : "ticker-down"}`}>
+                    {pct(s.change)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Marquee() {
+  const indexItems = getIndices().slice(0, 4).map((i) => ({
+    symbol: i.symbol,
+    name: i.name,
+    value: i.value,
+    change: i.change,
+  }));
+  const items = [...indexItems, ...stocks.slice(0, 6).map((s) => ({ symbol: s.symbol, name: s.name, value: s.price, change: s.change }))];
+  return (
+    <div className="border-y border-border bg-surface-1/50">
+      <div className="mx-auto flex max-w-[1400px] gap-10 overflow-hidden px-6 py-3 font-mono text-[11px]">
+        <div className="flex animate-[scroll_60s_linear_infinite] gap-10 whitespace-nowrap">
+          {[...items, ...items].map((it, i) => (
+            <span key={i} className="inline-flex items-center gap-2">
+              <span className="text-muted-foreground">{it.symbol}</span>
+              <span className="tabular text-foreground">{it.value.toLocaleString()}</span>
+              <span className={it.change >= 0 ? "ticker-up" : "ticker-down"}>{pct(it.change)}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
+    </div>
+  );
+}
+
+function Divisions() {
+  const divs = [
+    {
+      to: "/bank",
+      name: "Alta Bank",
+      headline: "Bank Like the 1%",
+      tag: "01 · Banking",
+      desc: "Personal banking, business accounts, deposits, lending, and treasury for Newport citizens, builders, and institutions.",
+      services: ["Deposits", "Business Banking", "Lending", "Treasury Services"],
+      metric: "ƒ62B deposits · 12,480 accounts",
+    },
+    {
+      to: "/terminal",
+      name: "Alta Terminal",
+      headline: "Invest Like the 1%",
+      tag: "02 · Terminal",
+      desc: "Portfolio access, market data, watchlists, analytics, and order entry in one interface.",
+      services: ["Portfolio Dashboard", "Market Data", "Watchlists", "Order Entry"],
+      metric: "8,240 active users",
+    },
+    {
+      to: "/exchange",
+      name: "Alta Exchange",
+      headline: "National Market Infrastructure",
+      tag: "03 · Exchange",
+      desc: "Listings, price discovery, trade execution, and market data for the Republic.",
+      services: ["Listings", "Price Discovery", "Trade Execution", "Market Infrastructure"],
+      metric: "184 listed companies",
+    },
+    {
+      to: "/governance",
+      name: "NCC",
+      headline: "Clearing & Settlement Infrastructure",
+      tag: "04 · Clearing",
+      desc: "Planned settlement network for routing, wires, payment rails, account registry, and securities clearing.",
+      services: ["Interbank Settlement", "Securities Clearing", "Account Registry", "Payment Network"],
+      metric: "Planned · Future infrastructure",
+    },
+  ];
+  return (
+    <section className="mx-auto max-w-[1400px] px-6 py-32">
+      <div className="grid items-end gap-8 md:grid-cols-[1fr_auto] mb-16">
+        <div>
+          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+            01 — Structure
+          </div>
+            <h2 className="mt-4 text-[clamp(2.25rem,4.4vw,3.75rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
+              Four divisions. <br />
+              <span className="text-muted-foreground">One financial architecture.</span>
+          </h2>
+        </div>
+        <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+          Banking, terminal, exchange, and clearing — operated as a single
+          institution under unified governance.
+        </p>
+      </div>
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-4">
+        {divs.map((d, i) => (
+          <Link
+            key={d.name}
+            to={d.to}
+            className="group relative flex flex-col bg-surface-1 p-7 transition-colors duration-300 hover:bg-surface-2"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="flex h-full flex-col"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  {d.tag}
+                </span>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-gold" />
+              </div>
+              <h3 className="mt-10 text-[26px] font-semibold tracking-tight">{d.headline ?? d.name}</h3>
+              <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">{d.desc}</p>
+              <ul className="mt-6 space-y-1.5">
+                {d.services.map((s) => (
+                  <li key={s} className="flex items-center gap-2 text-[12.5px] text-foreground/85">
+                    <span className="h-px w-3 bg-gold/70" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-auto pt-8 font-mono text-[10.5px] uppercase tracking-[0.18em] text-gold">
+                {d.metric}
+              </div>
+            </motion.div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Capabilities() {
+  const items = [
+    { k: "ƒ62B", l: "Assets administered" },
+    { k: "142", l: "Listed companies" },
+    { k: "T+0", l: "Settlement cycle" },
+    { k: "99.99%", l: "Platform uptime" },
+  ];
+  return (
+    <section className="border-y border-border bg-surface-1/40">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px bg-border md:grid-cols-4">
+        {items.map((it) => (
+          <div key={it.l} className="bg-surface-1/50 px-6 py-12 text-center md:py-16">
+            <div className="text-[clamp(2rem,3.5vw,3.5rem)] font-semibold tracking-tight">
+              {it.k}
+            </div>
+            <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              {it.l}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ClosingCTA() {
+  const topMover = movers.gainers[0];
+  const nsxIndex = getIndices()[0];
+
+  return (
+    <section className="mx-auto max-w-[1400px] px-6 py-32">
+      <div className="relative overflow-hidden rounded-2xl border border-border-strong bg-surface-1 p-12 md:p-20">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(circle at 80% 20%, oklch(0.32 0.072 264 / 0.4), transparent 60%)" }}
+        />
+        <div className="relative grid gap-10 md:grid-cols-[1.4fr_1fr] md:items-end">
+          <div>
+            <AltaWordmark />
+            <h2 className="mt-8 text-[clamp(2.25rem,4.8vw,4.25rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
+              Access the platform <br />
+              <em className="not-italic text-gradient-gold">trusted by the Republic.</em>
+            </h2>
+          </div>
+          <div className="flex flex-col items-start gap-3">
+            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              Live market snapshot
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="tabular text-2xl font-semibold tracking-tight text-foreground">
+                NSX-100{" "}
+                <AnimatedNumber
+                  value={nsxIndex.value}
+                  format={(n) =>
+                    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  }
+                  className="text-[var(--success)]"
+                />
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2.5 py-0.5 font-mono text-[11px] font-medium text-[var(--success)]">
+                ↗ {pct(nsxIndex.change)}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
+              <span>
+                {compact(topMover.marketCap)} top mover · {topMover.symbol}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2.5 py-0.5 font-medium text-[var(--success)]">
+                ↗ {pct(topMover.change)}
+              </span>
+            </div>
+            <Link
+              to="/terminal"
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-[13px] font-medium tracking-wide text-background transition-transform hover:-translate-y-px"
+            >
+              Enter Platform
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

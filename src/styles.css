@@ -1,0 +1,335 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Alta palette — LIGHT (default). Editorial ivory, navy ink, muted gold. */
+  --background: oklch(0.972 0.012 85);          /* #F7F3EA warm ivory */
+  --foreground: oklch(0.18 0.022 256);          /* #06111F deep ink */
+  --surface-1: oklch(1 0 0);                    /* #FFFFFF */
+  --surface-2: oklch(0.955 0.012 85);           /* #F1EEE7 muted surface */
+  --card: var(--surface-1);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--foreground);
+
+  /* Deep navy primary (matches Alta mark) */
+  --primary: oklch(0.24 0.05 260);
+  --primary-foreground: oklch(0.98 0 0);
+  --primary-glow: oklch(0.38 0.08 264);
+
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.94 0.01 85);
+  --muted-foreground: oklch(0.48 0.022 250);    /* #526071 */
+
+  /* Muted gold secondary accent */
+  --accent: oklch(0.72 0.1 78);                 /* #C9A45C */
+  --accent-foreground: oklch(0.18 0.012 250);
+  --gold: oklch(0.72 0.1 78);
+  --gold-soft: oklch(0.82 0.08 80);
+
+  --destructive: oklch(0.5 0.2 25);             /* #B91C1C */
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.5 0.13 162);               /* #047857 */
+  --danger: oklch(0.5 0.2 25);
+
+  --border: oklch(0.18 0.022 256 / 10%);        /* #DDD6C8-ish on ivory */
+  --border-strong: oklch(0.18 0.022 256 / 18%);
+  --input: oklch(0.18 0.022 256 / 12%);
+  --ring: oklch(0.38 0.08 264);
+
+  --chart-1: oklch(0.5 0.13 162);
+  --chart-2: oklch(0.72 0.1 78);
+  --chart-3: oklch(0.38 0.08 264);
+  --chart-4: oklch(0.5 0.2 25);
+  --chart-5: oklch(0.48 0.022 250);
+
+  --sidebar: var(--surface-1);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  --gradient-hero: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.72 0.1 78 / 0.18), transparent 70%);
+  --gradient-gold: linear-gradient(135deg, oklch(0.72 0.1 78), oklch(0.82 0.08 80));
+  --gradient-surface: linear-gradient(180deg, oklch(1 0 0), oklch(0.972 0.012 85));
+  --shadow-elegant: 0 1px 0 0 oklch(0.18 0.022 256 / 0.03), 0 12px 32px -16px oklch(0.18 0.022 256 / 0.12);
+  --shadow-glow: 0 0 40px -10px oklch(0.72 0.1 78 / 0.35);
+  --shadow-card: 0 1px 0 0 oklch(1 0 0 / 0.6) inset, 0 1px 2px 0 oklch(0.18 0.022 256 / 0.04), 0 8px 24px -12px oklch(0.18 0.022 256 / 0.10);
+  --shadow-elevated: 0 1px 0 0 oklch(1 0 0 / 0.7) inset, 0 2px 4px 0 oklch(0.18 0.022 256 / 0.05), 0 20px 48px -20px oklch(0.18 0.022 256 / 0.18);
+
+  --font-display: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.dark {
+  --background: oklch(0.13 0.012 250);
+  --foreground: oklch(1 0 0);
+  --surface-1: oklch(0.17 0.014 252);
+  --surface-2: oklch(0.22 0.018 256);
+  --card: var(--surface-1);
+  --card-foreground: oklch(1 0 0);
+  --popover: var(--surface-2);
+  --popover-foreground: oklch(1 0 0);
+
+  --primary: oklch(0.32 0.072 264);
+  --primary-foreground: oklch(0.98 0 0);
+  --primary-glow: oklch(0.42 0.09 264);
+
+  --secondary: var(--surface-2);
+  --secondary-foreground: oklch(0.92 0.005 250);
+
+  --muted: oklch(0.22 0.012 250);
+  --muted-foreground: oklch(0.7 0.018 250);
+
+  --accent: oklch(0.78 0.11 85);
+  --accent-foreground: oklch(0.18 0.012 250);
+  --gold: oklch(0.78 0.11 85);
+  --gold-soft: oklch(0.86 0.08 85);
+
+  --destructive: oklch(0.62 0.21 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.72 0.16 155);
+  --danger: oklch(0.65 0.22 25);
+
+  --border: oklch(1 0 0 / 8%);
+  --border-strong: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.42 0.09 264);
+
+  --chart-1: oklch(0.72 0.16 155);
+  --chart-2: oklch(0.78 0.11 85);
+  --chart-3: oklch(0.62 0.12 264);
+  --chart-4: oklch(0.65 0.22 25);
+  --chart-5: oklch(0.7 0.018 250);
+
+  --sidebar-foreground: oklch(0.92 0.005 250);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+
+  --gradient-hero: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.32 0.072 264 / 0.5), transparent 70%);
+  --gradient-surface: linear-gradient(180deg, oklch(0.17 0.014 252), oklch(0.14 0.012 250));
+  --shadow-elegant: 0 30px 80px -30px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(1 0 0 / 0.04);
+  --shadow-glow: 0 0 60px -10px oklch(0.42 0.09 264 / 0.5);
+  --shadow-card: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 24px 48px -24px oklch(0 0 0 / 0.5);
+  --shadow-elevated: 0 1px 0 0 oklch(1 0 0 / 0.06) inset, 0 32px 80px -32px oklch(0 0 0 / 0.7);
+}
+
+@theme inline {
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-border-strong: var(--border-strong);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-display);
+    font-feature-settings: "ss01", "cv11", "tnum";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+
+  .font-mono, .tabular { font-family: var(--font-mono); font-feature-settings: "tnum"; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .glass {
+    background: linear-gradient(180deg, oklch(1 0 0 / 0.6), oklch(1 0 0 / 0.4));
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--border);
+  }
+  .dark .glass {
+    background: linear-gradient(180deg, oklch(1 0 0 / 0.04), oklch(1 0 0 / 0.01));
+  }
+
+  .text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Subtle paper texture for light-mode hero/elevated surfaces. */
+  .paper-grain {
+    position: relative;
+  }
+  .paper-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: radial-gradient(oklch(0.18 0.022 256 / 0.05) 1px, transparent 1px);
+    background-size: 3px 3px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 75%);
+  }
+  .dark .paper-grain::after { opacity: 0; }
+
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(oklch(0.18 0.022 256 / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.18 0.022 256 / 0.06) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black 30%, transparent 80%);
+  }
+  .dark .hero-grid {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+  }
+
+  .ticker-up { color: var(--success); }
+  .ticker-down { color: var(--danger); }
+
+  /* Global focus ring — institutional, subtle. */
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 3px var(--gold);
+    border-radius: 6px;
+  }
+
+  /* Financial data table rows — quiet hover, tabular columns. */
+  .alta-table tbody tr {
+    transition: background-color 200ms ease;
+  }
+  .alta-table tbody tr:hover {
+    background-color: color-mix(in oklab, var(--surface-2) 60%, transparent);
+  }
+  .alta-table tbody tr + tr {
+    border-top: 1px solid var(--border);
+  }
+  .alta-table td, .alta-table th {
+    padding: 12px 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .alta-table th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Skeleton — institutional shimmer. */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: color-mix(in oklab, var(--surface-2) 70%, transparent);
+    border-radius: 6px;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 4%, transparent), transparent);
+    animation: alta-shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes alta-shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Safari: native selects need explicit appearance reset when styled. */
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--surface-2);
+    color: var(--foreground);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23526071' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1rem;
+    padding-right: 2.25rem;
+  }
+  .dark select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8b0bc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+}
