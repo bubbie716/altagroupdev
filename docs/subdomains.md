@@ -153,6 +153,33 @@ All four hostnames must resolve to the **same application**. No separate deploym
 4. Set environment variables in Vercel (**Settings → Environment Variables**) matching `.env.example`.
 5. Deploy once — all domains serve the same build.
 
+### Vercel 404 troubleshooting
+
+This app is **TanStack Start + Nitro**, not a static SPA. Vercel needs the Nitro build output (`.vercel/output`), not just `dist/client`.
+
+**Required in `vite.config.ts`:**
+
+```ts
+nitro: { preset: "vercel" },
+```
+
+Without this, builds outside Lovable skip Nitro and every route returns **404 NOT_FOUND**.
+
+**Vercel project settings:**
+
+| Setting | Value |
+| ------- | ----- |
+| Framework Preset | **TanStack Start** (or auto-detect) |
+| Build Command | `npm run build` |
+| Output Directory | **Leave empty** — do not set `dist` or `.output` |
+| Install Command | `npm install` |
+
+**Do not** add a `vercel.json` with a custom `outputDirectory` unless you know what you're doing — it often causes 404s.
+
+After fixing config, **redeploy with cache cleared** (Deployments → ⋮ → Redeploy → uncheck "Use existing Build Cache").
+
+Successful builds log: `Generated .vercel/output/nitro.json`
+
 No monorepo, no separate Vercel projects, and no path rewrites are required for the initial subdomain rollout.
 
 ---

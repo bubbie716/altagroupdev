@@ -1,0 +1,93 @@
+import { n as florin, t as compact } from "./mock-data-BOQymobG.mjs";
+import { t as getCompanies } from "./companies-D1cM1agJ.mjs";
+import { t as getIndices } from "./indices-fmWAdCD4.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/market-stats-C3ED_Sdd.js
+var exchangeDescription = "Listings, price discovery, trade execution, and market data for the Republic.";
+var exchangeStats = [
+	{
+		label: "Total Listed",
+		value: "184"
+	},
+	{
+		label: "Market Cap",
+		value: "ƒ428.2B"
+	},
+	{
+		label: "Daily Turnover",
+		value: "ƒ12.4B"
+	},
+	{
+		label: "Advancers",
+		value: "84"
+	},
+	{
+		label: "Decliners",
+		value: "47"
+	},
+	{
+		label: "Unchanged",
+		value: "11"
+	},
+	{
+		label: "52w High",
+		value: "19,021.74"
+	},
+	{
+		label: "52w Low",
+		value: "14,802.10"
+	}
+];
+function buildMarketRankings() {
+	const listedCompanies = getCompanies();
+	return {
+		gainers: listedCompanies.slice().sort((a, b) => b.change - a.change).slice(0, 5).map((c, i) => ({
+			rank: i + 1,
+			ticker: c.symbol,
+			company: c.name,
+			value: florin(c.price),
+			change: c.change
+		})),
+		losers: listedCompanies.slice().sort((a, b) => a.change - b.change).slice(0, 5).map((c, i) => ({
+			rank: i + 1,
+			ticker: c.symbol,
+			company: c.name,
+			value: florin(c.price),
+			change: c.change
+		})),
+		mostActive: listedCompanies.slice().sort((a, b) => b.volume - a.volume).slice(0, 5).map((c, i) => ({
+			rank: i + 1,
+			ticker: c.symbol,
+			company: c.name,
+			value: compact(c.volume)
+		})),
+		largest: listedCompanies.slice().sort((a, b) => b.marketCap - a.marketCap).slice(0, 5).map((c, i) => ({
+			rank: i + 1,
+			ticker: c.symbol,
+			company: c.name,
+			value: `ƒ${compact(c.marketCap)}`
+		})),
+		highestVolume: listedCompanies.slice().sort((a, b) => b.volume - a.volume).slice(0, 5).map((c, i) => ({
+			rank: i + 1,
+			ticker: c.symbol,
+			company: c.name,
+			value: compact(c.volume)
+		}))
+	};
+}
+/** GET /v1/market/stats */
+function getMarketStats() {
+	return {
+		description: exchangeDescription,
+		stats: exchangeStats,
+		snapshot: {
+			index: getIndices()[0],
+			status: "Open",
+			time: "10:34 NPT",
+			turnover: "ƒ12.4B",
+			listed: 184
+		},
+		rankings: buildMarketRankings()
+	};
+}
+//#endregion
+export { getMarketStats as t };

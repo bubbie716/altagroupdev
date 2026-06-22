@@ -7,6 +7,9 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Required for Vercel (and other self-hosted deploys outside Lovable sandbox).
+  // Without this, `vite build` skips Nitro and Vercel serves static files only → 404 on routes.
+  nitro: { preset: "vercel" },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
