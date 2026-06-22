@@ -1,46 +1,82 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { AltaWordmark } from "./alta-logo";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme";
 import { Sun, Moon } from "lucide-react";
+import { getProductNavUrl } from "@/lib/domain";
+import type { ProductDomain } from "@/lib/domain";
 
-const links = [
-  { to: "/", label: "Overview" },
-  { to: "/bank/dashboard", label: "Alta Bank", match: "/bank" },
-  { to: "/terminal", label: "Alta Terminal" },
-  { to: "/exchange", label: "Alta Exchange" },
-  { to: "/governance", label: "About" },
-] as const;
+const links: Array<{
+  id: string;
+  product: ProductDomain;
+  path: string;
+  label: string;
+  match?: string;
+}> = [
+  { id: "overview", product: "main", path: "/", label: "Overview" },
+  { id: "bank", product: "bank", path: "/bank/dashboard", label: "Alta Bank", match: "/bank" },
+  { id: "terminal", product: "terminal", path: "/terminal", label: "Alta Terminal", match: "/terminal" },
+  { id: "exchange", product: "exchange", path: "/exchange", label: "Alta Exchange", match: "/exchange" },
+  { id: "about", product: "main", path: "/governance", label: "About", match: "/governance" },
+];
+
+function NavItem({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  const className = cn(
+    "relative rounded-md px-3 py-1.5 text-[13px] tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
+    active &&
+      "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
+  );
+
+  if (href.startsWith("http")) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export function SiteNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
+  const homeHref = getProductNavUrl("main", "/");
+  const terminalHref = getProductNavUrl("terminal", "/terminal");
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-6">
-        <Link to="/" className="flex items-center">
-          <AltaWordmark />
-        </Link>
+        {homeHref.startsWith("http") ? (
+          <a href={homeHref} className="flex items-center">
+            <AltaWordmark />
+          </a>
+        ) : (
+          <Link to="/" className="flex items-center">
+            <AltaWordmark />
+          </Link>
+        )}
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((l) => {
-            const active =
-              l.to === "/"
-                ? pathname === "/"
-                : "match" in l
-                  ? pathname.startsWith(l.match)
-                  : pathname.startsWith(l.to);
+            const href = getProductNavUrl(l.product, l.path);
+            const active = l.match ? pathname.startsWith(l.match) : pathname === l.path;
             return (
-              <Link
-                key={l.to}
-                to={l.to}
-                className={cn(
-                  "relative rounded-md px-3 py-1.5 text-[13px] tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
-                  active &&
-                    "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
-                )}
-              >
+              <NavItem key={l.id} href={href} active={active}>
                 {l.label}
-              </Link>
+              </NavItem>
             );
           })}
         </nav>
@@ -56,12 +92,21 @@ export function SiteNav() {
           >
             {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
           </button>
-          <Link
-            to="/terminal"
-            className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
-          >
-            Enter Platform
-          </Link>
+          {terminalHref.startsWith("http") ? (
+            <a
+              href={terminalHref}
+              className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
+            >
+              Enter Platform
+            </a>
+          ) : (
+            <Link
+              to="/terminal"
+              className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
+            >
+              Enter Platform
+            </Link>
+          )}
         </div>
       </div>
     </header>

@@ -39,6 +39,17 @@ export function isLocalDevHostname(hostname: string): boolean {
   return host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
 }
 
+/** Apex and www variants of the configured main domain. */
+export function getMainHostVariants(mainDomain: string): string[] {
+  const main = mainDomain.toLowerCase();
+  const www = `www.${main}`;
+  return main.startsWith("www.") ? [main] : [main, www];
+}
+
+export function isMainHost(hostname: string, mainDomain: string): boolean {
+  return getMainHostVariants(mainDomain).includes(hostname.toLowerCase());
+}
+
 /** Resolve configured hostnames for the current environment. */
 export function getDomainHosts(hostname: string) {
   return isLocalDevHostname(hostname) ? developmentDomains : productionDomains;

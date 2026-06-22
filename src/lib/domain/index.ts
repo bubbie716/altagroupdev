@@ -1,7 +1,9 @@
 export {
   developmentDomains,
   getDomainHosts,
+  getMainHostVariants,
   isLocalDevHostname,
+  isMainHost,
   productHomePaths,
   productionDomains,
   type ProductDomain,
@@ -21,8 +23,10 @@ export {
   getBankUrl,
   getExchangeUrl,
   getMainSiteUrl,
+  getProductNavUrl,
   getTerminalUrl,
   isOnProductSubdomain,
+  useAbsoluteProductNav,
 } from "./urls";
 
-export { getSubdomainRootRedirect } from "./redirect";
+export { resolveSubdomainRedirect, getSubdomainRootRedirect, type SubdomainRedirect } from "./redirect";

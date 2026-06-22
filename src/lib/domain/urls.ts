@@ -1,6 +1,7 @@
 import {
   getDomainHosts,
   isLocalDevHostname,
+  isMainHost,
   productHomePaths,
   type ProductDomain,
 } from "./config";
@@ -54,7 +55,9 @@ function buildProductUrl(
   const resolvedPath = normalizePath(path ?? productHomePaths[product]);
 
   const onMainHost =
-    hostname === hosts.main || hostname === "localhost" || hostname === "127.0.0.1";
+    isMainHost(hostname, hosts.main) ||
+    hostname === "localhost" ||
+    hostname === "127.0.0.1";
 
   if (!options.absolute && onMainHost) {
     return resolvedPath;
@@ -90,6 +93,27 @@ export function getExchangeUrl(
 }
 
 /** Whether the current host is serving a product-specific subdomain. */
+export function useAbsoluteProductNav(hostname = getHostname()): boolean {
+  return import.meta.env.PROD && !isLocalDevHostname(hostname);
+}
+
+const productUrlGetters = {
+  main: getMainSiteUrl,
+  bank: getBankUrl,
+  terminal: getTerminalUrl,
+  exchange: getExchangeUrl,
+} as const;
+
+/** Nav href: relative paths on localhost, product subdomain URLs in production. */
+export function getProductNavUrl(
+  product: ProductDomain,
+  path?: string,
+  hostname = getHostname(),
+): string {
+  const getter = productUrlGetters[product];
+  return getter(path, { absolute: useAbsoluteProductNav(hostname) });
+}
+
 export function isOnProductSubdomain(): boolean {
   const subdomain = getCurrentSubdomain();
   return subdomain !== null && subdomain !== "main";

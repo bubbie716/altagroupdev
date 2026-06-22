@@ -144,16 +144,64 @@ All four hostnames must resolve to the **same application**. No separate deploym
 ## Vercel setup (future)
 
 1. Add the project once in Vercel.
-2. Under **Project → Settings → Domains**, add all four hostnames:
+2. Under **Project → Settings → Domains**, add **all five** hostnames to the **same project**:
    - `altagroup.dev`
+   - `www.altagroup.dev` ← required if Vercel redirects apex → www
    - `bank.altagroup.dev`
    - `terminal.altagroup.dev`
    - `exchange.altagroup.dev`
-3. Configure DNS at your registrar per Vercel’s instructions (typically CNAME to `cname.vercel-dns.com` or Vercel nameservers).
-4. Set environment variables in Vercel (**Settings → Environment Variables**) matching `.env.example`.
-5. Deploy once — all domains serve the same build.
+3. Wait until each domain shows **Valid Configuration** (green check) in Vercel — not just "Pending".
+4. Configure DNS at your registrar per Vercel’s instructions (typically CNAME to `cname.vercel-dns.com` or Vercel nameservers).
+5. Set environment variables in Vercel (**Settings → Environment Variables**) matching `.env.example`, then **redeploy** (VITE_* vars are baked in at build time).
+6. Deploy once — all domains serve the same build.
 
-### Vercel 404 troubleshooting
+### Subdomain not loading?
+
+If `altagroup.dev` works but `bank.altagroup.dev` does not:
+
+1. **Vercel Domains** — confirm the subdomain is listed on the project (not only at your DNS registrar).
+2. **DNS** — each subdomain needs its own record. Example at your registrar:
+   - `bank` → CNAME → `cname.vercel-dns.com`
+   - `terminal` → CNAME → `cname.vercel-dns.com`
+   - `exchange` → CNAME → `cname.vercel-dns.com`
+3. **Propagation** — can take up to 48 hours; use [dnschecker.org](https://dnschecker.org) to verify.
+4. **Test directly** — `https://bank.altagroup.dev/` should redirect to `/bank/dashboard` and return 200.
+
+### Main domain (`altagroup.dev`) not loading?
+
+Subdomains work but the homepage does not — this is almost always a **www DNS mismatch**.
+
+Vercel redirects `altagroup.dev` → `www.altagroup.dev`. If `www` is not pointed at Vercel, the homepage breaks while `bank.*`, `terminal.*`, and `exchange.*` still work.
+
+**Fix (choose one):**
+
+**Option A — Fix www (recommended if you want www as canonical)**
+
+1. In **Vercel → Domains**, add `www.altagroup.dev` to the same project.
+2. At your registrar, set `www` → CNAME → `cname.vercel-dns.com` (use the exact value Vercel shows).
+3. Wait for **Valid Configuration** on both apex and www.
+
+**Option B — Use apex only (no www redirect)**
+
+1. In **Vercel → Domains**, open `altagroup.dev` settings.
+2. Disable **Redirect to www** (or set `altagroup.dev` as primary without www redirect).
+3. Ensure apex DNS points to Vercel only.
+
+**Verify:** `https://altagroup.dev/` and `https://www.altagroup.dev/` should both return **200** (not SSL errors or parking pages).
+
+### Subdomain path isolation
+
+On product subdomains, routes outside that product redirect to the correct host:
+
+| Request on `bank.*` | Redirects to |
+| ------------------- | ------------ |
+| `/` | `/bank/dashboard` (same host) |
+| `/bank/*` | allowed |
+| `/terminal/*` | `terminal.altagroup.dev/terminal/*` |
+| `/exchange/*` | `exchange.altagroup.dev/exchange/*` |
+| `/governance` | `altagroup.dev/governance` |
+
+The main domain (`altagroup.dev` / `www`) continues to serve all routes.
 
 This app is **TanStack Start + Nitro**, not a static SPA. Vercel needs the Nitro build output (`.vercel/output`), not just `dist/client`.
 

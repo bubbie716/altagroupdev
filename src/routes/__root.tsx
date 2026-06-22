@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { getSubdomainRootRedirect } from "../lib/domain/redirect";
+import { resolveSubdomainRedirect } from "../lib/domain/redirect";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
 
 function NotFoundComponent() {
@@ -77,10 +77,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: ({ location }) => {
-    const target = getSubdomainRootRedirect(location.pathname);
-    if (target) {
-      throw redirect({ to: target });
+    const target = resolveSubdomainRedirect(location.pathname);
+    if (!target) return;
+    if (target.type === "external") {
+      throw redirect({ href: target.href });
     }
+    throw redirect({ to: target.to });
   },
   head: () => ({
     meta: [

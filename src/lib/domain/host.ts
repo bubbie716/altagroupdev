@@ -4,6 +4,7 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   getDomainHosts,
   isLocalDevHostname,
+  isMainHost,
   productHomePaths,
   type ProductDomain,
 } from "./config";
@@ -27,14 +28,14 @@ export function getCurrentSubdomain(hostname = getHostname()): ProductDomain | n
   if (hostname === hosts.bank) return "bank";
   if (hostname === hosts.terminal) return "terminal";
   if (hostname === hosts.exchange) return "exchange";
-  if (hostname === hosts.main || isLocalDevHostname(hostname)) return "main";
+  if (isMainHost(hostname, hosts.main) || isLocalDevHostname(hostname)) return "main";
 
   return null;
 }
 
 export function isMainDomain(hostname = getHostname()): boolean {
   const hosts = getDomainHosts(hostname);
-  return hostname === hosts.main || isLocalDevHostname(hostname);
+  return isMainHost(hostname, hosts.main) || isLocalDevHostname(hostname);
 }
 
 export function isBankDomain(hostname = getHostname()): boolean {

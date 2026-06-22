@@ -1,26 +1,65 @@
-import { productHomePaths } from "./config";
-import { isBankDomain, isExchangeDomain, isTerminalDomain } from "./host";
+import { productHomePaths, type ProductDomain } from "./config";
+import { getCurrentSubdomain } from "./host";
+import { getBankUrl, getExchangeUrl, getMainSiteUrl, getTerminalUrl } from "./urls";
+
+export type SubdomainRedirect =
+  | { type: "internal"; to: string }
+  | { type: "external"; href: string };
+
+function getProductForPath(pathname: string): ProductDomain {
+  if (pathname.startsWith("/bank")) return "bank";
+  if (pathname.startsWith("/terminal")) return "terminal";
+  if (pathname.startsWith("/exchange")) return "exchange";
+  return "main";
+}
+
+const productUrlGetters = {
+  bank: getBankUrl,
+  terminal: getTerminalUrl,
+  exchange: getExchangeUrl,
+} as const;
 
 /**
- * When a product subdomain serves `/`, redirect to that product's in-app home.
- * All other paths pass through unchanged so route-based access keeps working.
+ * Resolve subdomain-aware redirects.
+ *
+ * On product subdomains (bank.*, terminal.*, exchange.*):
+ * - `/` → product home (internal)
+ * - paths outside that product → correct subdomain (external)
+ *
+ * On the main domain, all routes remain accessible.
  */
-export function getSubdomainRootRedirect(pathname: string): string | null {
-  if (pathname !== "/") {
+export function resolveSubdomainRedirect(pathname: string): SubdomainRedirect | null {
+  const current = getCurrentSubdomain();
+
+  if (!current || current === "main") {
     return null;
   }
 
-  if (isBankDomain()) {
-    return productHomePaths.bank;
+  if (pathname === "/") {
+    return { type: "internal", to: productHomePaths[current] };
   }
 
-  if (isTerminalDomain()) {
-    return productHomePaths.terminal;
+  const pathProduct = getProductForPath(pathname);
+
+  if (pathProduct === current) {
+    return null;
   }
 
-  if (isExchangeDomain()) {
-    return productHomePaths.exchange;
+  if (pathProduct === "main") {
+    return {
+      type: "external",
+      href: getMainSiteUrl(pathname, { absolute: true }),
+    };
   }
 
-  return null;
+  return {
+    type: "external",
+    href: productUrlGetters[pathProduct](pathname, { absolute: true }),
+  };
+}
+
+/** @deprecated Use resolveSubdomainRedirect */
+export function getSubdomainRootRedirect(pathname: string): string | null {
+  const result = resolveSubdomainRedirect(pathname);
+  return result?.type === "internal" ? result.to : null;
 }
