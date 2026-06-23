@@ -828,3 +828,21 @@ export async function freezeBankAccount(adminId: string, accountId: string, revi
 
   void adminId;
 }
+
+export async function unfreezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
+  const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
+  if (!account) notFound();
+  if (account.status !== "FROZEN") badRequest("Account is not frozen");
+
+  await prisma.bankAccount.update({
+    where: { id: accountId },
+    data: {
+      status: "ACTIVE",
+      openingNotes: reviewNote?.trim()
+        ? [account.openingNotes, `Unfrozen: ${reviewNote.trim()}`].filter(Boolean).join("\n")
+        : account.openingNotes,
+    },
+  });
+
+  void adminId;
+}

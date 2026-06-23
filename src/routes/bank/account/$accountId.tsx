@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
@@ -48,13 +48,6 @@ function BankAccountDetailPage() {
       description={`${account.accountTypeLabel} · ${account.accountNumber}`}
     >
       <BankSubNav />
-
-      <Link
-        to="/bank"
-        className="mb-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← Back to dashboard
-      </Link>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <StatusBadge status={account.statusLabel} />

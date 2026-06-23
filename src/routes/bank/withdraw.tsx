@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankWithdrawForm } from "@/components/bank/bank-withdraw-form";
@@ -30,12 +30,6 @@ function BankWithdrawPage() {
       description="Submit a Florin withdrawal request. Balances are not reduced until an operator approves the request."
     >
       <BankSubNav />
-      <Link
-        to="/bank"
-        className="mb-8 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← Back to dashboard
-      </Link>
       <BankWithdrawForm accounts={accounts} defaultAccountId={accountId} />
     </PageShell>
   );

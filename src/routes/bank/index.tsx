@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
 import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
-import { AccountCard } from "@/components/bank/account-card";
+import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
@@ -69,27 +68,6 @@ function BankDashboardLiveContent({
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap gap-3">
-        <Link
-          to="/bank/open"
-          className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background"
-        >
-          Open account
-        </Link>
-        <Link
-          to="/bank/deposit"
-          className="rounded-md border border-border px-4 py-2 text-[12px] font-medium"
-        >
-          Deposit
-        </Link>
-        <Link
-          to="/bank/withdraw"
-          className="rounded-md border border-border px-4 py-2 text-[12px] font-medium"
-        >
-          Withdraw
-        </Link>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <BankStatCard
           label="Total Relationship Value"
@@ -110,6 +88,7 @@ function BankDashboardLiveContent({
 
       <Section title="Account Overview" className="mt-10">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <OpenAccountCard />
           {accounts.map((a) => (
             <AccountCard
               key={a.id}

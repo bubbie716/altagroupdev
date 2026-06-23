@@ -125,12 +125,6 @@ export function BankAccountOpenForm() {
             >
               View account
             </Link>
-            <Link
-              to="/bank"
-              className="font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-            >
-              Dashboard
-            </Link>
           </div>
         </Card>
       </div>

@@ -1,11 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { TransferFormPreview } from "@/components/bank/transfer-form-preview";
+import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin, getTransferHistory } from "@/lib/bank/api";
+import { fetchTransferContacts } from "@/lib/bank/bank.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 export const Route = createFileRoute("/bank/transfers/interbank")({
+  loader: async () => {
+    if (isUserFinancialMockDataEnabled()) return null;
+    const contacts = await fetchTransferContacts({ data: "interbank" });
+    return { contacts };
+  },
   head: () => ({
     meta: [{ title: "Interbank Transfers — Alta Bank" }],
   }),
@@ -14,6 +22,7 @@ export const Route = createFileRoute("/bank/transfers/interbank")({
 
 function BankInterbankTransfers() {
   const showMockData = isUserFinancialMockDataEnabled();
+  const data = Route.useLoaderData();
 
   return (
     <PageShell
@@ -23,21 +32,31 @@ function BankInterbankTransfers() {
     >
       <BankSubNav />
 
-      <Link
-        to="/bank/transfers"
-        className="mb-8 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← All transfer types
-      </Link>
-
-      <Section title="Wire transfer · NCC-Net">
-        <TransferFormPreview disabled={!showMockData} />
-      </Section>
-
-      {showMockData && (
-        <Section title="Wire history" className="mt-10">
-          <InterbankTransferHistoryMock />
-        </Section>
+      {showMockData ? (
+        <>
+          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <Section>
+            <TransferFormPreview disabled={!showMockData} />
+          </Section>
+          <Section title="Wire history" className="mt-10">
+            <InterbankTransferHistoryMock />
+          </Section>
+        </>
+      ) : !data ? (
+        <>
+          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <EmptyBankState
+          title="Unable to load wire transfer page."
+          description="Sign in and try again."
+        />
+        </>
+      ) : (
+        <>
+          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <Section>
+            <TransferFormPreview disabled contacts={data.contacts} />
+          </Section>
+        </>
       )}
     </PageShell>
   );

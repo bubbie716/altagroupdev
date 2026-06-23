@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankDepositForm } from "@/components/bank/bank-deposit-form";
@@ -30,12 +30,6 @@ function BankDepositPage() {
       description="Request a Florin deposit with screenshot proof. Deposits remain pending until manually reviewed."
     >
       <BankSubNav />
-      <Link
-        to="/bank"
-        className="mb-8 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← Back to dashboard
-      </Link>
       <BankDepositForm accounts={accounts} defaultAccountId={accountId} />
     </PageShell>
   );

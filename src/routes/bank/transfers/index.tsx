@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Building2, Landmark } from "lucide-react";
+import { ArrowRight, Building2, Landmark, Users } from "lucide-react";
 import { PageShell, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
@@ -26,7 +26,7 @@ function BankTransfersHub() {
     >
       <BankSubNav />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <TransferTypeCard
           to="/bank/transfers/intrabank"
           icon={Building2}
@@ -40,6 +40,13 @@ function BankTransfersHub() {
           title="Interbank"
           description="Outbound wires to external institutions and recipients via NCC-Net settlement."
           detail={showMockData ? "Preview interface" : "Coming soon"}
+        />
+        <TransferTypeCard
+          to="/bank/transfers/contacts"
+          icon={Users}
+          title="Contacts"
+          description="Saved intrabank recipients and external wire beneficiaries."
+          detail="Use in transfers"
         />
       </div>
     </PageShell>

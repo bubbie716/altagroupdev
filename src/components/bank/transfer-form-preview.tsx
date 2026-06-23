@@ -1,4 +1,7 @@
 import { Card } from "@/components/page-shell";
+import type { TransferContact } from "@/lib/bank/backend-types";
+
+const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
 const fields = [
   { label: "From account", placeholder: "Alta Checking ••1187" },
@@ -11,7 +14,13 @@ const fields = [
   { label: "Memo", placeholder: "Operating disbursement" },
 ];
 
-export function TransferFormPreview({ disabled = false }: { disabled?: boolean }) {
+export function TransferFormPreview({
+  disabled = false,
+  contacts = [],
+}: {
+  disabled?: boolean;
+  contacts?: TransferContact[];
+}) {
   return (
     <Card>
       <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -21,12 +30,33 @@ export function TransferFormPreview({ disabled = false }: { disabled?: boolean }
         Outbound wires route through NCC-Net settlement infrastructure — planned clearing network for
         Newport interbank transfers.
       </p>
+
+      {contacts.length > 0 && (
+        <div className="mt-6">
+          <span className={fieldLabel}>Saved contacts</span>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {contacts.map((contact) => (
+              <div
+                key={contact.id}
+                className="rounded-md border border-border bg-surface-2/40 px-3 py-1.5 text-[12px] text-muted-foreground"
+              >
+                <span className="font-medium text-foreground">{contact.label}</span>
+                <span className="mt-0.5 block font-mono text-[10px]">
+                  {contact.recipientInstitution} · {contact.routingNumber}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Contacts will prefill this form when wires launch.
+          </p>
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {fields.map((f) => (
           <label key={f.label} className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              {f.label}
-            </span>
+            <span className={fieldLabel}>{f.label}</span>
             <input
               type="text"
               readOnly
@@ -40,7 +70,7 @@ export function TransferFormPreview({ disabled = false }: { disabled?: boolean }
       </div>
       {disabled ? (
         <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-          Transfers will become available after your Alta Bank account is opened.
+          Wire transfers are not available yet. Manage wire recipients on the Contacts page.
         </div>
       ) : (
         <div className="mt-6 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">

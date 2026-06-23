@@ -13,6 +13,7 @@ import {
   denyBankWithdrawal,
   fetchInternalBankOps,
   freezeBankAccountRecord,
+  unfreezeBankAccountRecord,
 } from "@/lib/bank/bank.functions";
 import type { InternalBankAccountRow, InternalBankTransactionRow } from "@/lib/bank/backend-types";
 import { MockActionButton } from "@/components/internal/mock-action-button";
@@ -118,6 +119,15 @@ function InternalBank() {
                       variant="danger"
                       onAction={async () => {
                         await freezeBankAccountRecord({ data: { accountId: a.id } });
+                      }}
+                    />
+                  )}
+                  {a.status === "Frozen" && (
+                    <BankReviewButton
+                      label="Unfreeze"
+                      variant="primary"
+                      onAction={async () => {
+                        await unfreezeBankAccountRecord({ data: { accountId: a.id } });
                       }}
                     />
                   )}

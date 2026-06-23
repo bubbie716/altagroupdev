@@ -10,7 +10,7 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 - User account opening (`/bank/accounts/open`)
 - Deposit requests with screenshot proof placeholder (`/bank/deposit`)
 - Withdrawal requests (`/bank/withdraw`)
-- Admin review in `/internal/bank` (approve/deny deposits & withdrawals, approve/freeze accounts)
+- Admin review in `/internal/bank` (approve/deny deposits & withdrawals, approve/freeze/unfreeze accounts)
 - Real balances on `/bank`, `/bank/accounts`, and `/profile`
 
 **Not included (future)**
@@ -87,7 +87,7 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 1. User submits → `BankAccount` created
 2. Instant types → `ACTIVE`
 3. Review types → `PENDING` until admin approves → `ACTIVE`
-4. Admin can `FROZEN` active accounts
+4. Admin can freeze active accounts or unfreeze frozen accounts
 
 **Rule:** Balances only change when a `BankTransaction` is approved. Account status changes do not move money.
 

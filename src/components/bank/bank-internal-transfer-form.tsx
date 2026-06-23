@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { submitBankInternalTransfer } from "@/lib/bank/bank.functions";
-import type { SubmitInternalTransferInput, UserBankAccount } from "@/lib/bank/backend-types";
+import type { SubmitInternalTransferInput, TransferContact, UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
+import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 const inputClass =
@@ -27,9 +28,11 @@ function accountLabel(account: UserBankAccount) {
 
 export function BankInternalTransferForm({
   accounts,
+  contacts = [],
   onSuccess,
 }: {
   accounts: UserBankAccount[];
+  contacts?: TransferContact[];
   onSuccess?: () => void;
 }) {
   const canTransferOwn = accounts.length >= 2;
@@ -202,8 +205,10 @@ export function BankInternalTransferForm({
           </Card>
         )
       ) : (
-        <label className="block">
-          <span className={fieldLabel}>Recipient account number</span>
+        <>
+          <TransferContactPicker contacts={contacts} onSelect={setToAccountNumber} />
+          <label className="block">
+            <span className={fieldLabel}>Recipient account number</span>
           <input
             type="text"
             required
@@ -218,6 +223,7 @@ export function BankInternalTransferForm({
             </p>
           )}
         </label>
+        </>
       )}
 
       <label className="block">

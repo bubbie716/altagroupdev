@@ -78,6 +78,7 @@ model User {
   companyMemberships CompanyMembership[]
   sessions           Session[]
   bankAccounts       BankAccount[]
+  transferContacts   TransferContact[]
   reviewedBankTransactions BankTransaction[] @relation("BankTransactionReviewer")
   sentCompanyInvitations     CompanyInvitation[] @relation("SentCompanyInvitations")
   receivedCompanyInvitations CompanyInvitation[] @relation("ReceivedCompanyInvitations")
@@ -202,6 +203,41 @@ enum BankTransactionStatus {
   CANCELLED
 }
 
+enum TransferContactScope {
+  INTRABANK
+  INTERBANK
+}
+
+enum IntrabankContactKind {
+  OWN_ACCOUNT
+  PLAYER_ACCOUNT
+}
+
+model TransferContact {
+  id        String               @id @default(cuid())
+  userId    String
+  scope     TransferContactScope
+  label     String
+
+  intrabankKind IntrabankContactKind?
+  bankAccountId String?
+  accountNumber String?
+  resolvedName  String?
+
+  recipientInstitution String?
+  recipientName        String?
+  routingNumber        String?
+  wireAccountNumber    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scope])
+}
+
 model BankAccount {
   id            String            @id @default(cuid())
   userId        String
@@ -219,6 +255,7 @@ model BankAccount {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
   transactions BankTransaction[]
+  transferContacts TransferContact[]
 
   @@index([userId])
   @@index([companyId])

@@ -92,6 +92,45 @@ export const fetchUserInternalTransfers = createServerFn({ method: "GET" })
     return listUserInternalTransfers(userId, limit);
   });
 
+export const fetchAllTransferContacts = createServerFn({ method: "GET" }).handler(async () => {
+  const { listTransferContacts } = await import("@/server/transfer-contact.service");
+  const userId = await actorId();
+  return listTransferContacts(userId);
+});
+
+export const fetchTransferContacts = createServerFn({ method: "GET" })
+  .validator((scope: "intrabank" | "interbank") => scope)
+  .handler(async ({ data: scope }) => {
+    const { listTransferContacts } = await import("@/server/transfer-contact.service");
+    const userId = await actorId();
+    return listTransferContacts(userId, scope);
+  });
+
+export const createIntrabankContactRecord = createServerFn({ method: "POST" })
+  .validator((input: import("@/lib/bank/backend-types").CreateIntrabankTransferContactInput) => input)
+  .handler(async ({ data }) => {
+    const { createIntrabankTransferContact } = await import("@/server/transfer-contact.service");
+    const userId = await actorId();
+    return createIntrabankTransferContact(userId, data);
+  });
+
+export const createInterbankContactRecord = createServerFn({ method: "POST" })
+  .validator((input: import("@/lib/bank/backend-types").CreateInterbankTransferContactInput) => input)
+  .handler(async ({ data }) => {
+    const { createInterbankTransferContact } = await import("@/server/transfer-contact.service");
+    const userId = await actorId();
+    return createInterbankTransferContact(userId, data);
+  });
+
+export const deleteTransferContactRecord = createServerFn({ method: "POST" })
+  .validator((contactId: string) => contactId)
+  .handler(async ({ data: contactId }) => {
+    const { deleteTransferContact } = await import("@/server/transfer-contact.service");
+    const userId = await actorId();
+    await deleteTransferContact(userId, contactId);
+    return { ok: true as const };
+  });
+
 export const fetchInternalBankOps = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOperator } = await import("@/server/permissions.service");
   const {
@@ -168,5 +207,15 @@ export const freezeBankAccountRecord = createServerFn({ method: "POST" })
     const { freezeBankAccount } = await import("@/server/bank.service");
     const admin = await requireOperator();
     await freezeBankAccount(admin.id, data.accountId, data.reviewNote);
+    return { ok: true as const };
+  });
+
+export const unfreezeBankAccountRecord = createServerFn({ method: "POST" })
+  .validator((input: { accountId: string; reviewNote?: string }) => input)
+  .handler(async ({ data }) => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { unfreezeBankAccount } = await import("@/server/bank.service");
+    const admin = await requireOperator();
+    await unfreezeBankAccount(admin.id, data.accountId, data.reviewNote);
     return { ok: true as const };
   });

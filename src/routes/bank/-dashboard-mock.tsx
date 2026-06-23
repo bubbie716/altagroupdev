@@ -1,7 +1,7 @@
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { Section } from "@/components/page-shell";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
-import { AccountCard } from "@/components/bank/account-card";
+import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
 
@@ -54,6 +54,7 @@ export function BankDashboardMockContent() {
 
       <Section title="Account Overview" className="mt-10">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <OpenAccountCard />
           {bankAccounts.map((a) => (
             <AccountCard key={a.id} footer="view" account={a} />
           ))}

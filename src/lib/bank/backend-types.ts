@@ -139,6 +139,37 @@ export interface UserBankTransfer {
   direction: "sent" | "received";
 }
 
+export type TransferContactScopeCode = "intrabank" | "interbank";
+export type IntrabankContactKindCode = "own_account" | "player_account";
+
+export interface TransferContact {
+  id: string;
+  scope: TransferContactScopeCode;
+  label: string;
+  intrabankKind: IntrabankContactKindCode | null;
+  bankAccountId: string | null;
+  accountNumber: string | null;
+  resolvedName: string | null;
+  recipientInstitution: string | null;
+  recipientName: string | null;
+  routingNumber: string | null;
+  wireAccountNumber: string | null;
+  createdAt: string;
+}
+
+export interface CreateIntrabankTransferContactInput {
+  label: string;
+  accountNumber: string;
+}
+
+export interface CreateInterbankTransferContactInput {
+  label: string;
+  recipientInstitution: string;
+  recipientName: string;
+  routingNumber: string;
+  wireAccountNumber: string;
+}
+
 export interface InternalBankAccountRow {
   id: string;
   accountNumber: string;

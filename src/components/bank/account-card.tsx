@@ -32,7 +32,7 @@ export function AccountCard({
           : account.status;
 
   return (
-    <Card className="group flex flex-col !p-6">
+    <Card className="group flex h-full flex-col !p-6">
       <div className="flex items-start justify-between">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {account.product}
@@ -57,7 +57,7 @@ export function AccountCard({
         <Link
           to="/bank/account/$accountId"
           params={{ accountId: account.id }}
-          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
+          className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
         >
           View account
           <ArrowUpRight className="size-3.5" />
@@ -81,6 +81,27 @@ export function AccountCard({
           )}
         </>
       )}
+    </Card>
+  );
+}
+
+export function OpenAccountCard() {
+  return (
+    <Card className="flex h-full flex-col !p-6">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        Alta Bank
+      </div>
+      <div className="mt-5 text-base font-medium tracking-tight">Open an account</div>
+      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+        Personal, savings, business, and private banking products.
+      </p>
+      <Link
+        to="/bank/open"
+        className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background transition-opacity hover:opacity-90"
+      >
+        Open account
+        <ArrowUpRight className="size-3.5" />
+      </Link>
     </Card>
   );
 }

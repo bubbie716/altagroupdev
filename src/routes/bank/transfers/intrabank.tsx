@@ -1,21 +1,23 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankInternalTransferForm } from "@/components/bank/bank-internal-transfer-form";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
-import { fetchActiveBankAccounts, fetchUserInternalTransfers } from "@/lib/bank/bank.functions";
+import { fetchActiveBankAccounts, fetchTransferContacts, fetchUserInternalTransfers } from "@/lib/bank/bank.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import type { UserBankTransfer } from "@/lib/bank/backend-types";
 
 export const Route = createFileRoute("/bank/transfers/intrabank")({
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const [accounts, transfers] = await Promise.all([
+    const [accounts, transfers, contacts] = await Promise.all([
       fetchActiveBankAccounts(),
       fetchUserInternalTransfers({ data: 20 }),
+      fetchTransferContacts({ data: "intrabank" }),
     ]);
-    return { accounts, transfers };
+    return { accounts, transfers, contacts };
   },
   head: () => ({
     meta: [{ title: "Intrabank Transfers — Alta Bank" }],
@@ -36,31 +38,32 @@ function BankIntrabankTransfers() {
     >
       <BankSubNav />
 
-      <Link
-        to="/bank/transfers"
-        className="mb-8 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← All transfer types
-      </Link>
-
       {showMockData ? (
-        <Card className="!p-6">
+        <>
+          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <Card className="!p-6">
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             Intrabank transfers between Alta Checking, Savings, Reserve, and Business accounts are
             simulated in this preview.
           </p>
         </Card>
+        </>
       ) : !data || data.accounts.length === 0 ? (
-        <EmptyBankState
+        <>
+          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <EmptyBankState
           title="No active Alta Bank accounts yet."
           description="Open Alta Bank accounts to transfer between your positions or send to another player."
         />
+        </>
       ) : (
         <>
-          <Section title="Transfer funds">
+          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <Section>
             <Card className="mx-auto max-w-2xl !p-6">
               <BankInternalTransferForm
                 accounts={data.accounts}
+                contacts={data.contacts}
                 onSuccess={() => void router.invalidate()}
               />
             </Card>
