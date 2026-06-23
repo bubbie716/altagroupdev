@@ -1,0 +1,978 @@
+=== Alta Capital Suite — Feature Audit
+
+Generated: 2026-06-22  
+Scope: Full codebase inspection (read-only audit)  
+Methodology: Pessimistic — UI-only = Partial; mock-only data = Partial; not present = Missing
+
+---
+
+=== Platform Overview
+
+--- Project purpose
+
+Alta Capital Suite is a TanStack Start (Vite + React 19 + SSR) web application for the fictional Alta Group financial infrastructure in the Newport roleplay economy. It presents four product divisions — Alta Bank, Alta Terminal, Alta Exchange, and NCC (Newport Clearing Corporation) — plus a corporate marketing site, Discord authentication, and an internal admin ops portal.
+
+Status: Partial — Strong marketing/preview UI across products; real persistence exists only for auth identity (users, sessions, company registry, tags). All financial/trading/banking operations are simulated.
+
+--- Major divisions
+
+| Division | Route prefix | Status |
+|----------|--------------|--------|
+| Alta Group (marketing) | `/`, `/governance` | Partial — static/marketing UI |
+| Alta Bank | `/bank/*` | Partial — mock banking UI |
+| Alta Terminal | `/terminal/*` | Partial — mock brokerage UI |
+| Alta Exchange | `/exchange/*` | Partial — mock market UI + docs |
+| NCC | No dedicated routes | Missing — described only on `/governance` and in copy |
+| Internal admin | `/internal/*` | Partial — real admin auth, mock ops data |
+| Auth & profile | `/login`, `/profile` | Partial — real OAuth + DB sessions |
+
+--- Routing structure
+
+Framework: TanStack Router file-based routes (`src/routes/`), auto-generated `routeTree.gen.ts`.
+
+Layout patterns:
+- Exchange & Terminal: parent `route.tsx` + `<Outlet />` for nested pages
+- Bank: flat route files (no `/bank/route.tsx` layout)
+- Internal: parent `/internal/route.tsx` with admin guard
+- Company profiles: `/exchange/company/$ticker/route.tsx` → `index.tsx` + `owner.tsx`
+
+Legacy redirects:
+- `/dashboard` → `/terminal`
+- `/markets` → `/exchange`
+- `/bank/admin/*` → `/internal/*` (clients → users, loans/private → bank)
+
+Total route files: ~54 `.tsx` route components + 2 API auth routes.
+
+--- Authentication system
+
+Status: Partial (identity + sessions real; permissions minimal)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Discord OAuth (`identify` scope) | Complete | `/api/auth/discord`, `/api/auth/discord/callback` |
+| Postgres user upsert | Complete | `src/server/user.service.ts` |
+| DB session cookie (`alta_session`) | Complete | 7-day expiry, HttpOnly |
+| Route guards (`authBeforeLoad`, `internalBeforeLoad`) | Partial | Login + admin tag only; no per-product permissions |
+| Backend tags (`admin`, `private_client`) | Partial | Stored in `UserTagAssignment`; not enforced on bank/private pages |
+| Company membership permissions | Missing | DB model exists; not enforced on routes |
+| Dev mock user overrides | Partial | `src/config/mock-users.ts` for fake Discord IDs |
+
+--- Database status
+
+Prisma: Installed and configured (`@prisma/client` ^6.19.3, migrations in `prisma/migrations/`).
+
+Real data: Users, sessions, tags, companies (seed), company memberships (manual/seed/dev sync).
+
+Not in DB: Bank accounts, balances, transfers, trades, orders, listings (beyond seed companies), IPO applications, API keys, compliance cases, market data.
+
+--- Mock data vs real data
+
+| Domain | Data source |
+|--------|-------------|
+| Auth (users, sessions, tags) | Postgres |
+| Company registry (seed) | Postgres (5 demo companies in seed) |
+| Bank, Terminal, Exchange UI | In-memory mock (`src/lib/*/data.ts`, `src/lib/mock-data.ts`) |
+| Internal admin portal | In-memory mock (`src/lib/internal/data.ts`) |
+| Exchange API keys / issuer sessions | localStorage (client-only preview) |
+| Homepage portfolio snapshot | Hardcoded + mock series (blurred when logged out) |
+
+---
+
+=== Global Features
+
+| Feature | Status | Files involved | Notes |
+|---------|--------|----------------|-------|
+| Discord authentication | Complete | `src/routes/api/auth/discord.ts`, `callback.ts`, `src/server/discord.ts`, `user.service.ts` | Requires `DATABASE_URL`, `DISCORD_*`, `SESSION_SECRET` |
+| Session management | Complete | `src/server/session.ts`, `session.service.ts`, `auth.service.ts` | Opaque token in cookie → `Session` row |
+| User accounts | Partial | `prisma/schema.prisma`, `profile.tsx`, `user-mapper.ts` | Identity only; no bank/trading account linkage |
+| Company accounts (entities) | Partial | `Company`, `CompanyMembership` models; seed + mock internal data | Not linked to live bank/exchange operations |
+| Admin portal | Partial | `src/routes/internal/*`, `src/lib/internal/*` | Real `admin` tag gate; all ops data mock; actions disabled |
+| Tag system (admin, private_client) | Partial | `UserTagAssignment`, `src/lib/auth/tags.ts`, `prisma/grant-tag.ts` | Backend-only; `private_client` tag not enforced on `/bank/private` |
+| Dark mode | Complete | `src/components/theme.tsx`, `site-nav.tsx` | CSS vars + `localStorage`; toggle in nav |
+| Notifications (toast) | Missing | `src/components/ui/sonner.tsx` exists | Not mounted in `__root.tsx`; never used in app |
+| Search (global) | Missing | `src/components/command-palette.tsx` exists | Not mounted in app tree; Cmd+K palette unused |
+| Exchange public API | Partial | `src/lib/exchange/api.ts`, `api-docs.ts`, `/exchange/api` | Mock sync functions + docs UI; no HTTP server |
+| Bank API layer | Partial | `src/lib/bank/api.ts`, `data.ts` | Mock only; documents future REST paths |
+| Terminal API layer | Partial | `src/lib/terminal/api.ts`, `data.ts` | Mock only |
+| Settings (user) | Missing | — | No user settings page |
+| Settings (system/admin) | Partial | `/internal/settings` | Read-only mock flags |
+| Profile management | Partial | `/profile` | Read-only view of Discord identity, account status, memberships |
+| Protected routes | Partial | `src/lib/auth/guards.ts` | See Auth section; many sensitive pages public |
+| Error reporting (Lovable) | Partial | `src/lib/lovable-error-reporting.ts`, `__root.tsx` | Platform integration only |
+| React Query | Partial | `__root.tsx` provider | Wired but unused in product pages |
+| Theme / design system | Complete | `src/styles.css`, `page-shell.tsx`, `components/ui/*` | Custom PageShell primary; shadcn mostly unused |
+| Footer / nav | Partial | `site-nav.tsx` | Footer links (Press, Careers, etc.) are non-functional labels |
+| SEO / meta tags | Partial | Route `head()` exports | Per-route titles; no sitemap/robots |
+
+---
+
+=== Alta Group Website
+
+--- Pages
+
+... `/` — Homepage (`src/routes/index.tsx`)
+
+| | |
+|---|---|
+| Purpose | Marketing landing: hero, portfolio snapshot, divisions, capabilities, CTA |
+| Current functionality | Animated hero; locked/blurred portfolio snapshot when logged out; division grid; stat strip; closing CTA with live NSX-100 mock ticker |
+| Missing | Real user portfolio when logged in (still shows hardcoded mock); Press/Careers pages; legal links; CMS-driven content |
+
+Components: `SiteNav`, `SiteFooter`, `PortfolioDashboard`, `AnimatedNumber`, `AltaLogo`, `AltaWordmark`
+
+---
+
+... `/governance` — About / Governance (`src/routes/governance.tsx`)
+
+| | |
+|---|---|
+| Purpose | Corporate structure, holding company hierarchy, NCC as planned entity |
+| Current functionality | Static hierarchy diagram; division cards (Bank, Terminal, Exchange, NCC); institutional footprint stats; simulation disclaimer |
+| Missing | Board/governance documents; regulatory filings; NCC product pages; downloadable reports |
+
+---
+
+... `/login` (`src/routes/login.tsx`)
+
+| | |
+|---|---|
+| Purpose | Discord OAuth entry |
+| Current functionality | Auth gate UI; error messages for OAuth failures; redirect param; already-signed-in state |
+| Missing | MFA; alternate identity providers; account recovery |
+
+---
+
+... `/profile` (`src/routes/profile.tsx`) — Protected
+
+| | |
+|---|---|
+| Purpose | Authenticated user identity view |
+| Current functionality | Discord profile fields; account status; developer/API status; company membership table |
+| Missing | Edit profile; Minecraft linking workflow; notification preferences; security/sessions list; tag visibility for user |
+
+---
+
+... `/access-restricted` (`src/routes/access-restricted.tsx`)
+
+| | |
+|---|---|
+| Purpose | Shown when user lacks admin tag for `/internal/*` |
+| Current functionality | Centered portal layout; sign-in message or logged-in denial |
+| Missing | Request-access workflow |
+
+---
+
+... Legacy redirects
+
+| Route | Behavior |
+|-------|----------|
+| `/dashboard` | Redirect → `/terminal` |
+| `/markets` | Redirect → `/exchange` |
+
+---
+
+--- Shared website components
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| `site-nav.tsx` | Global header, division links, theme toggle, account menu | Complete |
+| `site-footer.tsx` | Footer columns | Partial — dead links |
+| `page-shell.tsx` | PageShell, Section, Card | Complete |
+| `alta-logo.tsx` | Brand marks | Complete |
+| `auth/user-menu.tsx` | Account dropdown, Internal link (admin only) | Complete |
+| `auth/auth-gate.tsx` | Login portal, Discord button | Complete |
+| `account/portfolio-dashboard.tsx` | Reusable portfolio snapshot card | Complete |
+| `animated-number.tsx` | Animated stat display | Complete |
+| `command-palette.tsx` | Cmd+K navigation | Missing (not integrated) |
+
+---
+
+=== Alta Bank
+
+Overall status: Partial — Marketing and read-only dashboard UI; no real banking backend.
+
+Data: All pages use `@/lib/bank/api` → `src/lib/bank/data.ts` (synchronous mock).
+
+Sub-nav: Dashboard, Accounts, Transfers, Deposits, Lending, Business, Private (`bank-sub-nav.tsx`). Overview `/bank/` not in sub-nav.
+
+---
+
+--- Overview — `/bank/` (`bank/index.tsx`)
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Complete (marketing) | Missing | Yes | Account opening flow; authenticated overview |
+
+Public marketing hub with product grid and CTAs.
+
+---
+
+--- Dashboard — `/bank/dashboard` — Login required
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Partial | Missing | Yes | User-specific balances; real transactions; MTD stat is hardcoded |
+
+Stat cards, balance chart, account preview (3 of N), recent activity table. Same mock for all users.
+
+---
+
+--- Accounts — `/bank/accounts` — Login required
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Partial | Missing | Yes | Account detail; statements; open/close account; search/filter |
+
+Read-only account cards and table.
+
+---
+
+--- Transfers — `/bank/transfers` — Login required
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Partial | Missing | Yes (history only) | Working wire/internal transfer forms; NCC settlement; scheduling CRUD |
+
+`TransferFormPreview` is read-only/disabled.
+
+---
+
+--- Deposits — `/bank/deposits`
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Complete (catalog) | Missing | Yes | Apply/open product; calculators; user deposit positions |
+
+Public product catalog.
+
+---
+
+--- Lending — `/bank/lending`
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Complete (catalog) | Missing | Yes | Loan applications; credit line management; payments |
+
+Public product showcase.
+
+---
+
+--- Business — `/bank/business`
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Complete (marketing) | Missing | Yes | Business portal; payroll; multi-entity treasury; onboarding |
+
+Institutional marketing page.
+
+---
+
+--- Private — `/bank/private`
+
+| UI | Backend | Mock data | Missing |
+|----|---------|-----------|---------|
+| Partial | Missing | Yes | `private_client` tag not enforced; invitation workflow; concierge |
+
+Public page shows full private banking mock content to anyone.
+
+---
+
+--- Admin — `/bank/admin/*`
+
+| Route | Behavior |
+|-------|----------|
+| `/bank/admin/clients` | Redirect → `/internal/users` |
+| `/bank/admin/loans` | Redirect → `/internal/bank` |
+| `/bank/admin/private` | Redirect → `/internal/bank` |
+
+Status: Missing as bank-local admin — consolidated into `/internal/*`.
+
+Unused mock API: `getAdminClients()`, `getAdminPrivateQueue()`, `getAdminLoanQueue()` in bank API (never rendered on bank routes).
+
+---
+
+=== Alta Terminal
+
+Overall status: Partial — Rich preview UI; no order execution, no live market data, no user-specific portfolio in DB.
+
+Data: `@/lib/terminal/api` → `data.ts` + `@/lib/mock-data.ts`; IPO/filings partially from Exchange API.
+
+Sub-nav: Overview, Portfolio, Watchlist, Trade, Research, IPO Access, News, Leaderboard.
+
+---
+
+--- Overview — `/terminal/` — Login required
+
+| Current state | Missing |
+|---------------|---------|
+| Dashboard: net worth, P&L, chart, orders, watchlist preview, movers, IPO preview, news, holdings snapshot | Live quotes; cancel/modify orders; user-specific data from DB |
+
+---
+
+--- Portfolio — `/terminal/portfolio` — Login required
+
+| Current state | Missing |
+|---------------|---------|
+| Summary stats, performance chart, sector pie, holdings table, transaction history | Export; tax lots; date ranges; trade from holdings |
+
+---
+
+--- Watchlist — `/terminal/watchlist` — Login required
+
+| Current state | Missing |
+|---------------|---------|
+| Multiple watchlist groups; price alert display on one group | Add/remove symbols; edit groups; alert configuration; live prices |
+
+"Add to Watchlist" button disabled.
+
+---
+
+--- Trade — `/terminal/trade` — Login required
+
+| Current state | Missing |
+|---------------|---------|
+| Read-only trade ticket; recent orders table | Editable order entry; submit/cancel; order types; symbol search |
+
+All inputs `readOnly`; buttons disabled.
+
+---
+
+--- Research — `/terminal/research` — Public
+
+| Current state | Missing |
+|---------------|---------|
+| Research card grid from Exchange filings + hardcoded items | Working filters; search; document viewer |
+
+Filter buttons and search are non-functional/disabled.
+
+---
+
+--- IPO Access — `/terminal/ipo` — Public
+
+| Current state | Missing |
+|---------------|---------|
+| Open/upcoming/recent IPO cards with allocation preview | Subscription workflow; prospectus links; eligibility |
+
+"Indicate Interest" disabled.
+
+---
+
+--- News — `/terminal/news` — Public
+
+| Current state | Missing |
+|---------------|---------|
+| Categorized news lists (static) | Article detail; links; search; deduplicated filter UX |
+
+---
+
+--- Leaderboard — `/terminal/leaderboard` — Public
+
+| Current state | Missing |
+|---------------|---------|
+| Six ranking tables (portfolios, performance, activity, private clients, winners/losers) | Auth consideration; live updates; privacy controls |
+
+Shows simulated client names/portfolio sizes without login.
+
+---
+
+--- Terminal components (selected)
+
+| Component | Status |
+|-----------|--------|
+| `trade-ticket.tsx` | Partial — preview only |
+| `holdings-table.tsx` | Complete (display) |
+| `watchlist-table.tsx` | Complete (display) |
+| `portfolio-chart.tsx` | Complete (display) |
+| `news-feed.tsx` | Complete (display) |
+| `leaderboard-table.tsx` | Complete (display) |
+
+---
+
+=== Alta Exchange
+
+Overall status: Partial — Most complete service layer (`lib/exchange/api`); all data mock/sync; no trading engine.
+
+Sub-nav: Overview, Listings, IPO Center, List a Company, Corporate Actions, Indices, Research, Rankings, API.
+
+---
+
+--- Market overview — `/exchange/`
+
+| Current state | Missing |
+|---------------|---------|
+| NSX index snapshot, stats table, preview tables (listings, indices, IPOs, actions, filings) | Live session data; authenticated tiers |
+
+---
+
+--- Listings — `/exchange/listings`
+
+| Current state | Missing |
+|---------------|---------|
+| Full `CompanyTable` of listed companies | Search, sort, filters, pagination |
+
+---
+
+--- Company profile — `/exchange/company/$ticker/`
+
+| Current state | Missing |
+|---------------|---------|
+| Price chart, stats, announcements, shareholders, actions, filings, news; 404 for unknown ticker | Live quotes; order book; trading |
+
+---
+
+--- IPO Center — `/exchange/ipo`
+
+| Current state | Missing |
+|---------------|---------|
+| Open/upcoming/recent IPO cards | Bookbuilding; subscriptions; settlement |
+
+---
+
+--- List a Company — `/exchange/apply`
+
+| Current state | Missing |
+|---------------|---------|
+| Multi-section listing application form (read-only fields) | File upload; submit; review pipeline integration |
+
+---
+
+--- Corporate Actions — `/exchange/actions`
+
+| Current state | Missing |
+|---------------|---------|
+| Actions grouped by type (dividends, splits, etc.) | Detail pages; issuer-initiated updates |
+
+---
+
+--- Indices — `/exchange/indices`
+
+| Current state | Missing |
+|---------------|---------|
+| Index card grid | Constituents; methodology; historical data pages |
+
+---
+
+--- Research — `/exchange/research`
+
+| Current state | Missing |
+|---------------|---------|
+| Filing cards by section | Document download/viewer; search |
+
+---
+
+--- Rankings — `/exchange/rankings`
+
+| Current state | Missing |
+|---------------|---------|
+| Five ranking tables from market stats | Time period selectors; refresh |
+
+---
+
+--- API — `/exchange/api`
+
+| Current state | Missing |
+|---------------|---------|
+| API access gate (localStorage session); docs panel with 7 documented GET endpoints; preview key generation | Real API key sign-in; HTTP API server; rate limits; write endpoints |
+
+`validateApiKey()` exported but unused in UI.
+
+---
+
+--- Issuer portal — `/exchange/company/$ticker/owner`
+
+| Current state | Missing |
+|---------------|---------|
+| Issuer gate (localStorage); announcement + financial upload forms (disabled) | Credential verification; publish to announcements; file storage |
+
+Preview bypass via `createPreviewIssuerSession()`.
+
+---
+
+--- Exchange API surface (documented, mock only)
+
+| Endpoint | mockFn | Status |
+|----------|--------|--------|
+| `GET /companies` | `getCompanies()` | Partial |
+| `GET /companies/:ticker` | `getCompany()` | Partial |
+| `GET /indices` | `getIndices()` | Partial |
+| `GET /indices/:symbol` | `getIndex()` | Partial |
+| `GET /ipos` | `getIPOs()` | Partial |
+| `GET /filings` | `getFilings()` | Partial |
+| `GET /corporate-actions` | `getCorporateActions()` | Partial |
+| `GET /market/stats` | `getMarketStats()` | Partial |
+| `GET /announcements` | `getAnnouncements()` | Partial — not listed in api-docs.ts |
+
+Missing APIs: Order entry, order status, trades, quotes/stream, account/portfolio (brokerage), auth/token issuance server-side.
+
+---
+
+=== NCC (Newport Clearing Corporation)
+
+Overall status: Missing as a product surface.
+
+--- Pages
+
+| Route | Status |
+|-------|--------|
+| Dedicated NCC routes | Missing — no `/ncc/*` |
+| `/governance` | Partial — NCC listed as "Planned" division with NCC-Net copy |
+| `/bank/transfers` | Partial — mentions NCC-Net in copy only |
+| `/internal/*` | Partial — "NCC Clearing" in system status widget (mock "Degraded") |
+
+--- Features
+
+| Feature | Status |
+|---------|--------|
+| Interbank settlement UI | Missing |
+| Securities clearing UI | Missing |
+| Account registry | Missing |
+| Payment network (NCC-Net) | Missing |
+| Wire routing | Missing (transfer form preview only) |
+
+--- Missing features (all)
+
+- NCC marketing/product pages
+- Settlement dashboard
+- Payment rail configuration
+- Clearing member onboarding
+- Integration with bank transfers and exchange settlement
+- Real-time settlement status
+
+---
+
+=== Authentication & Accounts
+
+--- Discord OAuth
+
+| Item | Status |
+|------|--------|
+| OAuth authorize redirect | Complete |
+| State cookie (signed) | Complete |
+| Token exchange | Complete |
+| Profile fetch (`identify`) | Complete |
+| Error handling + login errors | Complete |
+
+--- Session persistence
+
+| Item | Status |
+|------|--------|
+| Session row in Postgres | Complete |
+| HttpOnly cookie | Complete |
+| Logout (DB delete + clear cookie) | Complete |
+| Session refresh/extension | Missing |
+| Multi-device session management | Missing |
+| Session revocation UI | Missing |
+
+--- User creation
+
+| Item | Status |
+|------|--------|
+| Upsert on Discord login | Complete |
+| Default account status ACTIVE | Complete |
+| Dev mock overrides on create | Partial |
+| Email collection | Missing (`identify` scope only; email field nullable) |
+
+--- Protected routes
+
+Login required (`authBeforeLoad`):
+- `/profile`
+- `/bank/dashboard`, `/bank/accounts`, `/bank/transfers`
+- `/terminal/` (index), `/terminal/portfolio`, `/terminal/trade`, `/terminal/watchlist`
+
+Admin tag required (`internalBeforeLoad`):
+- `/internal/*`
+
+Not protected (notable gaps):
+- `/bank/private` — shows private banking mock to all visitors
+- `/terminal/leaderboard` — exposes simulated client rankings
+- `/exchange/api` — client-side localStorage gate only
+- `/exchange/company/$ticker/owner` — client-side localStorage gate only
+- Most exchange and bank marketing pages — intentionally public
+
+--- Account page
+
+| Item | Status |
+|------|--------|
+| `/account` route | Missing (removed; profile replaces it) |
+| `/profile` | Partial — read-only |
+
+--- Company accounts
+
+| Item | Status |
+|------|--------|
+| `Company` model in Postgres | Complete (seed data) |
+| `CompanyMembership` model | Complete |
+| UI shows memberships on profile | Complete |
+| Company-scoped permissions | Missing |
+| Company login (entities don't auth) | N/A by design |
+
+--- Permissions & tags
+
+| Item | Status |
+|------|--------|
+| `admin` tag → internal portal | Complete |
+| `private_client` tag | Partial — stored, not enforced on routes |
+| `developerAccessStatus` | Partial — displayed on profile; not gated on API docs |
+| Company roles (owner, executive, etc.) | Partial — display only |
+| Resource-level authorization | Missing |
+
+--- Still needs to be built
+
+1. Enforce `private_client` tag on Alta Private surfaces
+2. Enforce `developerAccessStatus` / API approval on Exchange API docs
+3. Company membership-based route permissions (issuer portal, company bank accounts)
+4. User settings and session management UI
+5. Minecraft username linking
+6. Email scope / contact verification
+7. Auth audit log
+8. Server-side API key and issuer credential systems (replace localStorage)
+9. Account page for financial summary (when real balances exist)
+10. Admin UI for tag/membership management (replace `grant-tag` CLI)
+
+---
+
+=== Database Audit
+
+--- Prisma installed?
+
+Yes — `prisma` + `@prisma/client` in dependencies; `postinstall` runs `prisma generate`.
+
+--- Schema status
+
+Applied migrations:
+- `20250622000000_init` — initial User, Company, CompanyMembership, Session
+- `20250623000000_user_tags` — UserTagAssignment; removed `globalRole`, `privateClientStatus`
+
+--- Current models
+
+| Model | Purpose |
+|-------|---------|
+| `User` | Discord identity, account status, developer access status |
+| `UserTagAssignment` | Tags: `ADMIN`, `PRIVATE_CLIENT` |
+| `Company` | Registered entities (seed registry) |
+| `CompanyMembership` | User ↔ company with `CompanyRole` |
+| `Session` | Server-side session tokens |
+
+--- Enums
+
+`UserTag`, `AccountStatus`, `DeveloperAccessStatus`, `CompanyType`, `CompanyStatus`, `VerificationStatus`, `CompanyRole`
+
+--- Missing models (recommended future)
+
+Banking
+- `BankAccount`, `BankAccountBalance`, `LedgerEntry`, `Transfer`, `Wire`, `DepositProduct`, `Loan`, `LoanApplication`
+
+Trading / Terminal
+- `BrokerageAccount`, `Holding`, `Order`, `Trade`, `Watchlist`, `WatchlistItem`, `PriceAlert`
+
+Exchange
+- `Listing`, `ListingApplication`, `IpoOffering`, `IpoSubscription`, `CorporateAction`, `Filing`, `MarketSession`, `Index`, `IndexConstituent`
+
+API & access
+- `ApiApplication`, `ApiKey`, `ApiUsageLog`, `IssuerCredential`
+
+Compliance & ops
+- `ComplianceCase`, `AdminActivityLog`, `SystemSetting`, `FeatureFlag`
+
+NCC
+- `ClearingMember`, `SettlementBatch`, `PaymentRail`, `AccountRegistryEntry`
+
+Platform
+- `Notification`, `UserPreference`, `AuditLog`, `Document`
+
+---
+
+=== API Audit
+
+--- Existing APIs (HTTP)
+
+| Route | Method | Status |
+|-------|--------|--------|
+| `/api/auth/discord` | GET | Complete — starts OAuth |
+| `/api/auth/discord/callback` | GET | Complete — completes OAuth |
+
+No other HTTP API routes exist.
+
+--- Server functions (TanStack Start)
+
+| Function | Status |
+|----------|--------|
+| `fetchCurrentUser` | Complete |
+| `logoutUser` | Complete |
+| `verifyInternalAccess` | Complete |
+
+--- Mock service layers (in-process)
+
+| Layer | File | Endpoints / functions |
+|-------|------|----------------------|
+| Exchange | `lib/exchange/api.ts` | 8+ getters (companies, indices, IPOs, filings, actions, stats, announcements) |
+| Bank | `lib/bank/api.ts` | 14 getters (dashboard, accounts, transfers, products, admin queues, etc.) |
+| Terminal | `lib/terminal/api.ts` | 15 getters (portfolio, watchlist, orders, trade, news, etc.) |
+| Internal | `lib/internal/api.ts` | 20+ getters (users, companies, bank ops, compliance, settings, etc.) |
+
+All synchronous; no network.
+
+--- Planned APIs (documented in code comments)
+
+- `GET /v1/bank/*` — mapped in `lib/bank/api.ts` comments
+- `GET /v1/terminal/*` — mapped in `lib/terminal/api.ts` comments
+- `GET https://api.alta.exchange/v1/*` — documented in `lib/exchange/api-docs.ts`
+
+--- Missing APIs
+
+| API | Status |
+|-----|--------|
+| Alta Exchange HTTP API | Missing |
+| Market Data streaming API | Missing |
+| Brokerage / order routing API | Missing |
+| Bank core API (accounts, transfers) | Missing |
+| NCC settlement API | Missing |
+| Internal admin mutation API | Missing |
+| Webhooks | Missing |
+| API key validation (server) | Missing |
+
+---
+
+=== Admin Portal Audit
+
+Route prefix: `/internal/*`  
+Access: Login + `admin` tag in Postgres  
+Data: 100% mock (`src/lib/internal/data.ts`)  
+Actions: All buttons use disabled `MockActionButton`
+
+--- Implemented (read-only mock UI)
+
+| Page | Route | Features |
+|------|-------|----------|
+| Overview | `/internal/` | Cross-division metrics, system status, admin activity feed |
+| Users | `/internal/users` | User table with tags, memberships, account status |
+| Companies | `/internal/companies` | Company registry table |
+| Company detail | `/internal/companies/$companyId` | Profile, reps, documents, bank accounts |
+| Bank Ops | `/internal/bank` | Accounts, loans, transfers, deposit/withdraw queues |
+| Exchange Ops | `/internal/exchange` | Trading status, market notices |
+| IPO Applications | `/internal/ipos` | IPO review queue |
+| API Applications | `/internal/api-applications` | API access review queue |
+| Listings | `/internal/listings` | Post-listing management |
+| Terminal Activity | `/internal/terminal` | Usage stats, mock orders, watchlist trends |
+| Compliance | `/internal/compliance` | Compliance case queue |
+| Settings | `/internal/settings` | Read-only config + feature flags |
+
+--- Missing
+
+| Feature | Status |
+|---------|--------|
+| Working admin mutations (approve, freeze, publish, etc.) | Missing |
+| Search / filter / pagination on tables | Missing |
+| Real data from Postgres or ops backend | Missing |
+| Admin UI for tag assignment | Missing (CLI only: `npm run db:grant-tag`) |
+| Admin UI for company membership management | Missing |
+| Market halt controls (functional) | Missing |
+| Audit trail persistence | Missing |
+| Role-based admin permissions (beyond admin tag) | Missing |
+| NCC ops console | Missing |
+| Notification to users on admin actions | Missing |
+
+---
+
+=== Documents & Legal Audit
+
+--- Legal documents currently present
+
+None. No dedicated legal, terms, privacy, cookie, or regulatory document pages or files were found in the repository.
+
+Incidental disclosures only:
+- `/governance` — "All figures simulated for the Newport roleplay economy. Florin-denominated. Not a real-money venue."
+- `site-footer.tsx` — "Simulated Newport financial infrastructure."
+- Various product pages — "simulated preview" banners
+- `src/routes/bank/lending.tsx` — lending disclaimer copy
+
+Public assets: `public/favicon.svg` only — no PDF legal docs.
+
+Footer references without routes: Press, Careers, Research, API (footer Platform column) — non-linked text.
+
+---
+
+--- Required Documents Not Yet Created
+
+... Alta Group
+- Terms of Service / Platform Use Agreement
+- Privacy Policy
+- Cookie Policy
+- Acceptable Use Policy
+- Corporate governance charter / board policies
+- Investor relations disclosures
+- Simulation / roleplay disclaimer (standalone legal page)
+- Press kit / media policy
+
+... Alta Bank
+- Deposit account terms and conditions
+- Fee schedule
+- Privacy notice (GLBA-style, even if fictional)
+- Lending disclosures and credit terms
+- Alta Private invitation terms
+- Business banking agreement
+- Electronic funds transfer disclosure
+- Truth-in-savings / product summaries
+
+... Alta Terminal
+- Brokerage account agreement
+- Order execution policy
+- Risk disclosures (market risk)
+- Best execution statement
+- Margin / trading permissions disclosure (if applicable)
+- Market data licensing terms
+- IPO participation terms
+
+... Alta Exchange
+- Exchange rulebook
+- Listing standards / continuing obligations
+- IPO prospectus template guidance
+- Market data redistribution agreement
+- API terms of use / developer agreement
+- Issuer portal terms
+- Corporate actions policy
+- Trading halts / market integrity policy
+
+... NCC
+- Clearing membership agreement
+- Settlement procedures
+- Payment network rules (NCC-Net)
+- Participant default procedures
+- Securities clearing terms
+- Interbank settlement policy
+
+---
+
+=== Technical Debt
+
+--- Mock data in production views
+
+- All bank dashboard/account/transfer views show mock balances to any logged-in user
+- Terminal portfolio/holdings/orders — static persona data
+- Exchange market data — static; no live feed
+- Internal admin — aggregate stats (e.g. "2,847 users") don't match table row counts
+- Homepage portfolio — hardcoded net worth even when logged in (only blur added when logged out)
+- Homepage marquee — live ticker from mock stocks/indices
+
+--- Temporary implementations
+
+- `src/config/mock-users.ts` — dev overrides by Discord ID
+- `prisma/grant-tag.ts` — CLI for admin tag assignment
+- Exchange API access — `localStorage` session (`api-access.ts`)
+- Issuer portal — `localStorage` session (`issuer-access.ts`)
+- `MockActionButton` — disabled admin actions throughout internal portal
+- Preview forms — read-only inputs with disabled submit across apply/API/issuer/trade
+
+--- Placeholder pages
+
+- `/bank/admin/*` — redirect stubs only
+- Footer links (Press, Careers, etc.) — no routes
+- `/exchange/apply` — form UI without submission
+- Transfer wire form — preview component only
+
+--- Duplicate components
+
+- Three stat card components (Bank, Terminal, Exchange)
+- Three sub-nav components (same pattern)
+- FilingCard vs ResearchCard overlap
+- RankingTable vs LeaderboardTable overlap
+- Preview form styles duplicated (API gate, issuer portal, listing form)
+- Recharts area chart setup repeated in 6+ routes
+- Two card systems: `page-shell` Card vs shadcn `ui/card`
+
+--- Lovable-generated leftovers
+
+- `@lovable.dev/vite-tanstack-config` in `vite.config.ts`
+- `src/lib/lovable-error-reporting.ts` + `reportLovableError` in root error boundary
+- `AGENTS.md` Lovable git history warning
+- `.vercel/output/` build artifacts in workspace
+
+--- Data inconsistencies
+
+- Homepage uses legacy index series; Exchange uses NSX indices (architecture-audit noted AEX vs NSX drift)
+- Company name drift (e.g. PRTH naming across mock files)
+- IPO company IDs in internal mock don't all match company registry
+
+--- Code that should be refactored
+
+- `lib/mock-data.ts` — god file (stocks, formatters, series, legacy indices)
+- `mock-exchange-data.ts` — deprecated shim (if still present)
+- React Query provider without hooks
+- `CommandProvider` / `Toaster` — built but not integrated
+- Bank routes lack layout route pattern
+- Sync mock getters → will need async + loading states for real APIs
+- Internal portal should share components with bank admin mock data or unify data layer
+
+---
+
+=== Build Roadmap
+
+--- 1. Critical Next Steps
+
+1. Define real data boundaries — Decide which entities move from mock to Postgres first (likely user-linked bank account + holdings).
+2. Enforce access tags — Gate `/bank/private` on `private_client` tag; gate API docs on `developerAccessStatus` or API approval.
+3. Remove or secure sensitive mock exposure — Leaderboard and private banking pages visible without appropriate auth.
+4. Legal baseline — Publish simulation disclaimer + Terms + Privacy pages (even minimal) before wider access.
+5. Admin mutation path — At least one real admin action (e.g. grant tag, freeze user) persisted to DB.
+6. Unify market data source — Single stock/index universe (fix NSX/AEX/PRTH inconsistencies).
+
+--- 2. Before Beta Launch
+
+1. Postgres models for bank accounts, holdings, orders (read path minimum).
+2. Replace mock dashboard data with user-scoped queries for Bank + Terminal.
+3. Working transfer submission (even if simulated settlement backend).
+4. Exchange listing application persistence + internal review workflow.
+5. Server-side API key storage (replace localStorage).
+6. Issuer portal authentication (server-side, tied to company membership).
+7. Internal admin: search, pagination, functional approve/reject for one queue (IPO or API).
+8. Email or notification on application status changes.
+9. Session management page (view/revoke sessions).
+10. Error/loading states (React Query hooks when APIs go async).
+
+--- 3. Before First Real Users
+
+1. Full auth audit trail (login, logout, tag changes, admin actions).
+2. Bank ledger with immutable entries; transfer idempotency.
+3. Terminal order entry with validation and audit (paper trading mode acceptable).
+4. Exchange market data API (HTTP) with documented rate limits.
+5. Real IPO subscription flow with allocations.
+6. Company membership enforcement on issuer and company-scoped bank features.
+7. Compliance case linkage to real users/transactions.
+8. NCC minimum viable: transfer settlement status visibility.
+9. Production monitoring, backup, and migration strategy.
+10. Remove dev mock overrides from production builds.
+
+--- 4. Nice-to-Have Features
+
+1. Global Cmd+K command palette (component already exists).
+2. Toast notifications (Sonner already installed).
+3. Unified stat card / sub-nav / chart primitives.
+4. Mobile-optimized nav (hamburger menu — nav hidden on small screens today).
+5. Press, Careers, Research public pages.
+6. Minecraft account linking.
+7. Portfolio PDF export / statements.
+8. Watchlist price alerts (real).
+9. Terminal social/leaderboard opt-in privacy.
+10. NCC full clearing dashboard.
+11. Multi-language support.
+12. Webhook integrations for brokerages.
+
+---
+
+=== Appendix: File Inventory Summary
+
+| Area | Key paths |
+|------|-----------|
+| Routes | `src/routes/` (54 pages) |
+| Auth | `src/lib/auth/`, `src/server/auth.service.ts`, `src/routes/api/auth/` |
+| Bank lib | `src/lib/bank/` |
+| Terminal lib | `src/lib/terminal/` |
+| Exchange lib | `src/lib/exchange/` |
+| Internal lib | `src/lib/internal/` |
+| Shared mock | `src/lib/mock-data.ts`, `mock-bank-data.ts`, `mock-terminal-data.ts` |
+| DB | `prisma/schema.prisma`, `prisma/seed.ts`, `prisma/grant-tag.ts` |
+| Docs | `docs/auth.md`, `docs/database.md`, `docs/architecture-audit.txt` |
+
+---
+
+*End of feature audit.*

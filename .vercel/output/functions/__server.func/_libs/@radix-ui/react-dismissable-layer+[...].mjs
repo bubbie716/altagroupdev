@@ -1,18 +1,10 @@
 import { o as __toESM } from "../../_runtime.mjs";
 import { u as require_react } from "../@floating-ui/react-dom+[...].mjs";
-import { a as useComposedRefs, n as Primitive, o as require_jsx_runtime, r as dispatchDiscreteCustomEvent } from "./react-arrow+[...].mjs";
+import { n as Primitive, o as useComposedRefs, r as dispatchDiscreteCustomEvent, s as require_jsx_runtime } from "./react-arrow+[...].mjs";
+import { a as useCallbackRef } from "./react-avatar+[...].mjs";
 import { t as composeEventHandlers } from "../radix-ui__primitive.mjs";
-//#region node_modules/@radix-ui/react-use-callback-ref/dist/index.mjs
-var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
-function useCallbackRef(callback) {
-	const callbackRef = import_react.useRef(callback);
-	import_react.useEffect(() => {
-		callbackRef.current = callback;
-	});
-	return import_react.useMemo(() => ((...args) => callbackRef.current?.(...args)), []);
-}
-//#endregion
 //#region node_modules/@radix-ui/react-use-escape-keydown/dist/index.mjs
+var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 function useEscapeKeydown(onEscapeKeyDownProp, ownerDocument = globalThis?.document) {
 	const onEscapeKeyDown = useCallbackRef(onEscapeKeyDownProp);
 	import_react.useEffect(() => {
@@ -265,4 +257,4 @@ function handleAndDispatchCustomEvent(name, handler, detail, { discrete }) {
 	else target.dispatchEvent(event);
 }
 //#endregion
-export { useCallbackRef as n, DismissableLayer as t };
+export { DismissableLayer as t };

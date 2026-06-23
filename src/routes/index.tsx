@@ -1,19 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
 import { SiteNav, SiteFooter } from "@/components/site-nav";
 import { AnimatedNumber } from "@/components/animated-number";
 import { compact, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
 import { getIndices } from "@/lib/exchange/api";
+import { PortfolioDashboard } from "@/components/account/portfolio-dashboard";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -43,7 +36,17 @@ function Landing() {
 }
 
 function Hero() {
+  const user = useCurrentUser();
   const nsx100 = getIndices()[0];
+  const portfolioLocked = !user;
+
+  const valueProps = [
+    { title: "Private Banking", desc: "Institutional-grade accounts and treasury." },
+    { title: "Invest with Confidence", desc: "Unified portfolio and market access." },
+    { title: "Global Markets", desc: "Republic-wide listings and execution." },
+    { title: "Built for Privacy", desc: "Your data stays yours until you sign in." },
+  ];
+
   return (
     <section className="relative overflow-hidden">
       <div
@@ -95,8 +98,35 @@ function Hero() {
           <div
             className="rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
           >
-            <DashboardMockup />
+            <PortfolioDashboard
+              locked={portfolioLocked}
+              signInRedirect="/"
+              gradientId="heroFill"
+              netWorth="ƒ8,412,209.40"
+              changeLabel="+ƒ142,802.10 · +1.72%"
+              chartData={indexSeries}
+              stats={[
+                { label: "Florin Balance", value: "ƒ1,240,500" },
+                { label: "Portfolio", value: "ƒ1,885,285" },
+                { label: "Today's P&L", value: "+ƒ24,810", up: true },
+                { label: "Exposure", value: "62.4%" },
+              ]}
+              movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
+            />
           </div>
+          {portfolioLocked && (
+            <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+              {valueProps.map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-lg border border-border/80 bg-surface-1/50 px-4 py-3 text-left backdrop-blur-sm"
+                >
+                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold">{item.title}</div>
+                  <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <div
             className="pointer-events-none absolute -inset-x-20 -bottom-20 -z-10 h-60"
             style={{ background: "var(--shadow-glow)" }}
@@ -104,101 +134,6 @@ function Hero() {
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function DashboardMockup() {
-  return (
-    <div className="rounded-xl bg-background p-5">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <div className="flex items-center gap-3">
-          <AltaLogo className="h-4 w-4" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            Alta Portfolio · Snapshot
-          </span>
-        </div>
-        <div className="hidden gap-1 md:flex">
-          {["1D", "1W", "1M", "3M", "1Y", "ALL"].map((t, i) => (
-            <span
-              key={t}
-              className={`rounded px-2 py-0.5 font-mono text-[10px] ${i === 3 ? "bg-surface-2 text-foreground" : "text-muted-foreground"}`}
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="grid gap-5 pt-5 lg:grid-cols-[1.6fr_1fr]">
-        <div>
-          <div className="flex items-baseline gap-4">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                Net Worth
-              </div>
-              <div className="tabular mt-1 text-3xl font-semibold tracking-tight">
-                ƒ8,412,209.40
-              </div>
-            </div>
-            <div className="ticker-up tabular font-mono text-xs">
-              +ƒ142,802.10 · +1.72%
-            </div>
-          </div>
-          <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={indexSeries}>
-                <defs>
-                  <linearGradient id="heroFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                <XAxis hide dataKey="t" />
-                <YAxis hide domain={["dataMin", "dataMax"]} />
-                <Tooltip
-                  contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border-strong)", borderRadius: 8, fontSize: 11 }}
-                  labelStyle={{ display: "none" }}
-                  formatter={(v) => [Number(v).toFixed(2), "Value"]}
-                />
-                <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#heroFill)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { l: "Florin Balance", v: "ƒ1,240,500" },
-            { l: "Portfolio", v: "ƒ1,885,285" },
-            { l: "Today's P&L", v: "+ƒ24,810", up: true },
-            { l: "Exposure", v: "62.4%" },
-          ].map((k) => (
-            <div key={k.l} className="rounded-lg border border-border bg-surface-1 p-3">
-              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-                {k.l}
-              </div>
-              <div className={`tabular mt-1.5 text-base font-semibold ${k.up ? "text-[var(--success)]" : ""}`}>
-                {k.v}
-              </div>
-            </div>
-          ))}
-          <div className="col-span-2 rounded-lg border border-border bg-surface-1 p-3">
-            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
-              Top Movers
-            </div>
-            <div className="mt-2 space-y-1.5">
-              {stocks.slice(0, 4).map((s) => (
-                <div key={s.symbol} className="flex items-center justify-between text-[12px]">
-                  <span className="font-mono">{s.symbol}</span>
-                  <span className={`tabular ${s.change >= 0 ? "ticker-up" : "ticker-down"}`}>
-                    {pct(s.change)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

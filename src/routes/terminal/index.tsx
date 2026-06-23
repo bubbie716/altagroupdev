@@ -19,8 +19,10 @@ import {
   getWatchlistGroups,
   pct,
 } from "@/lib/terminal/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [
       { title: "Alta Terminal — Invest Like the 1%" },

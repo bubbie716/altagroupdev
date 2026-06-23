@@ -3,8 +3,10 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
 import { TradeTicket } from "@/components/terminal/trade-ticket";
 import { getOrders } from "@/lib/terminal/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/trade")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Trade — Alta Terminal" }],
   }),

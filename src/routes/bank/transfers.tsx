@@ -3,8 +3,10 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { TransferFormPreview } from "@/components/bank/transfer-form-preview";
 import { florin, getTransferHistory } from "@/lib/bank/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/transfers")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Alta Bank Transfers — Alta Group" }],
   }),

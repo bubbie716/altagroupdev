@@ -3375,6 +3375,42 @@ var getDefaultConfig = () => {
 		]
 	};
 };
+/**
+* @param baseConfig Config where other config will be merged into. This object will be mutated.
+* @param configExtension Partial config to merge into the `baseConfig`.
+*/
+var mergeConfigs = (baseConfig, { cacheSize, prefix, experimentalParseClassName, extend = {}, override = {} }) => {
+	overrideProperty(baseConfig, "cacheSize", cacheSize);
+	overrideProperty(baseConfig, "prefix", prefix);
+	overrideProperty(baseConfig, "experimentalParseClassName", experimentalParseClassName);
+	overrideConfigProperties(baseConfig.theme, override.theme);
+	overrideConfigProperties(baseConfig.classGroups, override.classGroups);
+	overrideConfigProperties(baseConfig.conflictingClassGroups, override.conflictingClassGroups);
+	overrideConfigProperties(baseConfig.conflictingClassGroupModifiers, override.conflictingClassGroupModifiers);
+	overrideProperty(baseConfig, "postfixLookupClassGroups", override.postfixLookupClassGroups);
+	overrideProperty(baseConfig, "orderSensitiveModifiers", override.orderSensitiveModifiers);
+	mergeConfigProperties(baseConfig.theme, extend.theme);
+	mergeConfigProperties(baseConfig.classGroups, extend.classGroups);
+	mergeConfigProperties(baseConfig.conflictingClassGroups, extend.conflictingClassGroups);
+	mergeConfigProperties(baseConfig.conflictingClassGroupModifiers, extend.conflictingClassGroupModifiers);
+	mergeArrayProperties(baseConfig, extend, "postfixLookupClassGroups");
+	mergeArrayProperties(baseConfig, extend, "orderSensitiveModifiers");
+	return baseConfig;
+};
+var overrideProperty = (baseObject, overrideKey, overrideValue) => {
+	if (overrideValue !== void 0) baseObject[overrideKey] = overrideValue;
+};
+var overrideConfigProperties = (baseObject, overrideObject) => {
+	if (overrideObject) for (const key in overrideObject) overrideProperty(baseObject, key, overrideObject[key]);
+};
+var mergeConfigProperties = (baseObject, mergeObject) => {
+	if (mergeObject) for (const key in mergeObject) mergeArrayProperties(baseObject, mergeObject, key);
+};
+var mergeArrayProperties = (baseObject, mergeObject, key) => {
+	const mergeValue = mergeObject[key];
+	if (mergeValue !== void 0) baseObject[key] = baseObject[key] ? baseObject[key].concat(mergeValue) : mergeValue;
+};
+var extendTailwindMerge = (configExtension, ...createConfig) => typeof configExtension === "function" ? createTailwindMerge(getDefaultConfig, configExtension, ...createConfig) : createTailwindMerge(() => mergeConfigs(getDefaultConfig(), configExtension), ...createConfig);
 var twMerge = /*#__PURE__*/ createTailwindMerge(getDefaultConfig);
 //#endregion
-export { twMerge as t };
+export { twMerge as n, extendTailwindMerge as t };

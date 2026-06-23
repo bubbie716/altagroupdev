@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
+import { fetchCurrentUser } from "@/lib/auth/auth.functions";
+import type { AltaUser } from "@/lib/auth/types";
+import "@/lib/auth/router-context";
 
 function NotFoundComponent() {
   return (
@@ -73,7 +76,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null }>()({
+  beforeLoad: async () => {
+    const user = await fetchCurrentUser();
+    return { user };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

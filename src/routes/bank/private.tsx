@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { privateClientBeforeLoad } from "@/lib/auth/guards";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { PrivateTierCard } from "@/components/bank/private-tier-card";
-import { PrivateMetalCardMock } from "@/components/bank/private-metal-card-mock";
+import CreditCard from "@/components/shared-assets/credit-card/credit-card";
 import { getPrivateBanking, getPrivateMetrics } from "@/lib/bank/api";
 
 export const Route = createFileRoute("/bank/private")({
+  beforeLoad: privateClientBeforeLoad,
   head: () => ({
     meta: [{ title: "Alta Private — Alta Bank" }],
   }),
@@ -43,7 +45,14 @@ function BankPrivate() {
             Applications closed — access extended by invitation only
           </div>
         </Card>
-        <PrivateMetalCardMock />
+        <CreditCard
+          type="gray-dark"
+          width={340}
+          company="Alta Private"
+          cardNumber="4921 ···· ···· 8842"
+          cardHolder="Whitford Family Office"
+          cardExpiration="09/29"
+        />
       </div>
 
       <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

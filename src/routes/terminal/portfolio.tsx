@@ -13,8 +13,10 @@ import {
   getPortfolioTransactions,
   getSectorAllocation,
 } from "@/lib/terminal/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/portfolio")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Portfolio — Alta Terminal" }],
   }),

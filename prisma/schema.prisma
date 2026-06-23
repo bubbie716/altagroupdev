@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserTag {
+  ADMIN
+  OPERATOR
+  PRIVATE_CLIENT
+  DEVELOPER
+  ISSUER
+}
+
+enum AccountStatus {
+  ACTIVE
+  RESTRICTED
+  FROZEN
+  PENDING_REVIEW
+}
+
+enum DeveloperAccessStatus {
+  NONE
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum CompanyType {
+  PRIVATE_COMPANY
+  LISTED_COMPANY
+  BANK
+  BROKERAGE
+  ISSUER
+  INSTITUTION
+}
+
+enum CompanyStatus {
+  PENDING
+  ACTIVE
+  LISTED
+  SUSPENDED
+  REJECTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CompanyRole {
+  OWNER
+  EXECUTIVE
+  FINANCE_MANAGER
+  COMPLIANCE_CONTACT
+  VIEWER
+}
+
+model User {
+  id                    String                @id @default(cuid())
+  discordId             String                @unique
+  discordUsername       String
+  discordAvatar         String?
+  email                 String?
+  minecraftUsername     String?
+  accountStatus         AccountStatus         @default(ACTIVE)
+  developerAccessStatus DeveloperAccessStatus @default(NONE)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  lastLoginAt           DateTime              @default(now())
+
+  tags               UserTagAssignment[]
+  companyMemberships CompanyMembership[]
+  sessions           Session[]
+}
+
+model UserTagAssignment {
+  userId    String
+  tag       UserTag
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, tag])
+  @@index([tag])
+}
+
+model Company {
+  id                            String             @id @default(cuid())
+  name                          String
+  type                          CompanyType
+  ticker                        String?
+  desiredTicker                 String?
+  sector                        String?
+  description                   String?
+  headquarters                  String?
+  primaryContactDiscordUsername String?
+  intendedUses                  String[]           @default([])
+  status                        CompanyStatus      @default(PENDING)
+  verificationStatus            VerificationStatus @default(UNVERIFIED)
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime           @updatedAt
+
+  memberships CompanyMembership[]
+}
+
+model CompanyMembership {
+  id        String      @id @default(cuid())
+  userId    String
+  companyId String
+  role      CompanyRole
+  createdAt DateTime    @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

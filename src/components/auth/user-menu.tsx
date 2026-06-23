@@ -1,0 +1,86 @@
+import { Link, useRouter } from "@tanstack/react-router";
+import { Building2, LogOut, User, Shield } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { canAccessInternal } from "@/lib/auth/tags";
+import { logoutUser } from "@/lib/auth/auth.functions";
+import { useServerFn } from "@tanstack/react-start";
+
+export function AuthUserMenu() {
+  const user = useCurrentUser();
+  const router = useRouter();
+  const logout = useServerFn(logoutUser);
+
+  if (!user) {
+    return (
+      <Link
+        to="/login"
+        className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  const initials = user.discordUsername.slice(0, 2).toUpperCase();
+  const showInternal = canAccessInternal(user);
+
+  async function handleLogout() {
+    await logout();
+    await router.invalidate();
+    await router.navigate({ to: "/" });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className="flex items-center gap-2 rounded-md border border-border bg-surface-2/60 py-1 pl-3 pr-1 text-[12px] font-medium tracking-wide text-foreground outline-none ring-offset-background transition-colors hover:border-border-strong focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        Account
+        <Avatar className="size-7 border border-border/60">
+          {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.discordUsername} /> : null}
+          <AvatarFallback className="bg-surface-2 text-[10px] font-medium">{initials}</AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel className="font-normal">
+          <div className="truncate text-sm font-medium">{user.discordUsername}</div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/profile" className="cursor-pointer">
+            <User className="mr-2 size-3.5" />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/companies" className="cursor-pointer">
+            <Building2 className="mr-2 size-3.5" />
+            Companies
+          </Link>
+        </DropdownMenuItem>
+        {showInternal && (
+          <DropdownMenuItem asChild>
+            <Link to="/internal" className="cursor-pointer">
+              <Shield className="mr-2 size-3.5" />
+              Internal
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+          <LogOut className="mr-2 size-3.5" />
+          Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

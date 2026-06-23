@@ -6,8 +6,10 @@ import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { AccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/dashboard")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Financial Position — Alta Bank" }],
   }),

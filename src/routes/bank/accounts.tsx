@@ -3,8 +3,10 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AccountCard } from "@/components/bank/account-card";
 import { florin, getBankAccounts } from "@/lib/bank/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/accounts")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Alta Bank Accounts — Alta Group" }],
   }),

@@ -1,5 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
   { to: "/bank/dashboard", label: "Dashboard" },
@@ -8,15 +10,19 @@ const links = [
   { to: "/bank/deposits", label: "Deposits" },
   { to: "/bank/lending", label: "Lending" },
   { to: "/bank/business", label: "Business" },
-  { to: "/bank/private", label: "Private" },
+  { to: "/bank/private", label: "Private", privateOnly: true },
 ] as const;
 
 export function BankSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const user = useCurrentUser();
+  const visibleLinks = links.filter(
+    (l) => !("privateOnly" in l && l.privateOnly) || (user !== null && isPrivateClient(user)),
+  );
 
   return (
     <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
-      {links.map((l) => {
+      {visibleLinks.map((l) => {
         const active = l.exact ? pathname === l.to : pathname.startsWith(l.to);
         return (
           <Link

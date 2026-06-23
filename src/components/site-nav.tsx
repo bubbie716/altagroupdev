@@ -1,16 +1,26 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AltaWordmark } from "./alta-logo";
+import { AuthUserMenu } from "@/components/auth/user-menu";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme";
 import { Sun, Moon } from "lucide-react";
 
 const links = [
-  { to: "/", label: "Overview" },
+  { to: "/", label: "Home", exact: true },
   { to: "/bank/dashboard", label: "Alta Bank", match: "/bank" },
   { to: "/terminal", label: "Alta Terminal" },
   { to: "/exchange", label: "Alta Exchange" },
   { to: "/governance", label: "About" },
 ] as const;
+
+function isNavLinkActive(
+  pathname: string,
+  link: (typeof links)[number],
+): boolean {
+  if ("exact" in link && link.exact) return pathname === link.to;
+  if ("match" in link) return pathname.startsWith(link.match);
+  return pathname.startsWith(link.to);
+}
 
 export function SiteNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -23,12 +33,7 @@ export function SiteNav() {
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((l) => {
-            const active =
-              l.to === "/"
-                ? pathname === "/"
-                : "match" in l
-                  ? pathname.startsWith(l.match)
-                  : pathname.startsWith(l.to);
+            const active = isNavLinkActive(pathname, l);
             return (
               <Link
                 key={l.to}
@@ -45,10 +50,6 @@ export function SiteNav() {
           })}
         </nav>
         <div className="flex items-center gap-2">
-          <span className="hidden items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground lg:inline-flex">
-            <span className="inline-block size-1.5 rounded-full bg-[var(--success)] shadow-[0_0_8px_var(--success)]" />
-            Alta Exchange • Open
-          </span>
           <button
             onClick={toggle}
             aria-label="Toggle theme"
@@ -56,12 +57,7 @@ export function SiteNav() {
           >
             {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
           </button>
-          <Link
-            to="/terminal"
-            className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
-          >
-            Enter Platform
-          </Link>
+          <AuthUserMenu />
         </div>
       </div>
     </header>

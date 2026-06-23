@@ -3,8 +3,10 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
 import { WatchlistTable } from "@/components/terminal/watchlist-table";
 import { getWatchlistGroups } from "@/lib/terminal/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/watchlist")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
     meta: [{ title: "Watchlist — Alta Terminal" }],
   }),
