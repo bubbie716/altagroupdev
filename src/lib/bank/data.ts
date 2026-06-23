@@ -293,6 +293,6 @@ export const bankMarketingSections: BankMarketingSection[] = [
   { title: "Deposit Products", desc: "Florin-denominated deposits from Access through Private Negotiated CDs.", to: "/bank/deposits" },
   { title: "Lending", desc: "Personal, business, and secured credit for Newport's leading clients.", to: "/bank/lending" },
   { title: "Transfers & Wires", desc: "Internal transfers and NCC-Net wire settlement — planned clearing infrastructure.", to: "/bank/transfers" },
-  { title: "Financial Position", desc: "Balances, credit access, private status, and activity across your Alta Bank relationship.", to: "/bank/dashboard" },
+  { title: "Bank Like the 1%", desc: "Balances, credit access, private status, and activity across your Alta Bank relationship.", to: "/bank" },
   { title: "Alta Private", desc: "Invitation-only private banking — reserved for Newport's most influential clients.", to: "/bank/private" },
 ];

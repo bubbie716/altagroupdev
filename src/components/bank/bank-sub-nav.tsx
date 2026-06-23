@@ -4,7 +4,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
-  { to: "/bank/dashboard", label: "Dashboard" },
+  { to: "/bank", label: "Dashboard", exact: true },
   { to: "/bank/accounts", label: "Accounts" },
   { to: "/bank/transfers", label: "Transfers" },
   { to: "/bank/deposits", label: "Deposits" },
@@ -23,7 +23,12 @@ export function BankSubNav() {
   return (
     <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
       {visibleLinks.map((l) => {
-        const active = l.exact ? pathname === l.to : pathname.startsWith(l.to);
+        const normalizedPath = pathname.replace(/\/$/, "") || "/";
+        const normalizedTo = l.to.replace(/\/$/, "") || "/";
+        const active =
+          "exact" in l && l.exact
+            ? normalizedPath === normalizedTo
+            : pathname.startsWith(l.to);
         return (
           <Link
             key={l.to}

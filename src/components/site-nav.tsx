@@ -7,7 +7,7 @@ import { Sun, Moon } from "lucide-react";
 
 const links = [
   { to: "/", label: "Home", exact: true },
-  { to: "/bank/dashboard", label: "Alta Bank", match: "/bank" },
+  { to: "/bank", label: "Alta Bank", match: "/bank" },
   { to: "/terminal", label: "Alta Terminal" },
   { to: "/exchange", label: "Alta Exchange" },
   { to: "/governance", label: "About" },

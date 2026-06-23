@@ -1,80 +1,84 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
-import { PageShell, Section, Card } from "@/components/page-shell";
+import { createFileRoute } from "@tanstack/react-router";
+import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { getBankDescription, getMarketingSections } from "@/lib/bank/api";
+import { BankStatCard } from "@/components/bank/bank-stat-card";
+import { AccountCard } from "@/components/bank/account-card";
+import { TransactionTable } from "@/components/bank/transaction-table";
+import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
+import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/")({
+  beforeLoad: authBeforeLoad,
   head: () => ({
-    meta: [
-      { title: "Alta Bank — Bank Like the 1%" },
-      { name: "description", content: getBankDescription() },
-    ],
+    meta: [{ title: "Bank Like the 1% — Alta Bank" }],
   }),
-  component: BankHome,
+  component: BankDashboard,
 });
 
-function BankHome() {
-  const bankDescription = getBankDescription();
-  const bankMarketingSections = getMarketingSections();
+function BankDashboard() {
+  const d = getBankDashboard();
+  const bankAccounts = getBankAccounts();
+  const bankRecentActivity = getRecentActivity();
 
   return (
-    <PageShell eyebrow="Alta Bank" title="Bank Like the 1%" description={bankDescription}>
+    <PageShell
+      eyebrow="Alta Bank · Client"
+      title="Bank Like the 1%"
+      description="Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
+    >
       <BankSubNav />
 
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
-        {bankMarketingSections.map((s, i) => (
-          <Link
-            key={s.title}
-            to={s.to}
-            className="group flex flex-col bg-surface-1 p-7 transition-colors hover:bg-surface-2"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.06 }}
-              className="flex h-full flex-col"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Alta Bank
-                </span>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all group-hover:text-gold" />
-              </div>
-              <h3 className="mt-8 text-xl font-semibold tracking-tight">{s.title}</h3>
-              <p className="mt-3 flex-1 text-[13.5px] leading-relaxed text-muted-foreground">{s.desc}</p>
-            </motion.div>
-          </Link>
-        ))}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <BankStatCard label="Total Relationship Value" value={florin(d.totalRelationshipValue)} className="md:col-span-2 lg:col-span-2" />
+        <BankStatCard label="Credit Available" value={florin(d.creditAvailable)} />
+        <BankStatCard label="Private Status" value={d.privateStatus} sub="Alta Private member" />
+        <BankStatCard label="Checking Balance" value={florin(d.checkingBalance)} />
+        <BankStatCard label="Savings Balance" value={florin(d.savingsBalance)} />
+        <BankStatCard label="Reserve Balance" value={florin(d.reserveBalance)} />
+        <BankStatCard label="MTD Change" value="+2.14%" accent sub="Relationship assets" />
       </div>
 
-      <Section title="Open an Account" className="mt-16">
-        <Card className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-lg font-semibold tracking-tight">New to Newport? Start with Alta Access.</div>
-            <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
-              Alta Bank is Newport's full-service financial institution — open to citizens, businesses,
-              and institutions. New citizens begin with Alta Access; established clients upgrade to
-              Alta Checking, Reserve, and beyond.
-            </p>
+      <Section title="Balance Trend" className="mt-10">
+        <div className="rounded-xl border border-border bg-surface-1/80 p-5 shadow-card">
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={d.balanceTrend}>
+                <defs>
+                  <linearGradient id="bankTrend" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
+                <XAxis hide dataKey="t" />
+                <YAxis hide domain={["dataMin", "dataMax"]} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border-strong)",
+                    borderRadius: 8,
+                    fontSize: 11,
+                  }}
+                  formatter={(v) => [florin(Number(v)), "Value"]}
+                />
+                <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#bankTrend)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <Link
-              to="/bank/deposits"
-              className="rounded-md border border-border px-5 py-3 text-center text-[13px] font-medium tracking-wide"
-            >
-              View Deposits
-            </Link>
-            <Link
-              to="/bank/dashboard"
-              className="rounded-md bg-foreground px-5 py-3 text-center text-[13px] font-medium tracking-wide text-background"
-            >
-              Financial Position
-            </Link>
-          </div>
-        </Card>
+        </div>
+      </Section>
+
+      <Section title="Account Overview" className="mt-10">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {bankAccounts.slice(0, 3).map((a) => (
+            <AccountCard key={a.id} account={a} />
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Recent Activity" className="mt-10">
+        <TransactionTable rows={bankRecentActivity} title="" />
       </Section>
     </PageShell>
   );

@@ -1,1 +1,0 @@
-var e={owner:`Owner`,executive:`Executive`,finance_manager:`Finance Manager`,compliance_contact:`Compliance Contact`,viewer:`Viewer`};function t(t){return e[t]}export{t};
