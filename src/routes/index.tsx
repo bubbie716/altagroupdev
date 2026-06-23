@@ -6,7 +6,10 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { compact, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
 import { getIndices } from "@/lib/exchange/api";
 import { PortfolioDashboard } from "@/components/account/portfolio-dashboard";
+import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
+import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -39,6 +42,8 @@ function Hero() {
   const user = useCurrentUser();
   const nsx100 = getIndices()[0];
   const portfolioLocked = !user;
+  const showUserFinancialMock = isUserFinancialMockDataEnabled();
+  const showMarketPreview = isPublicSimulatedMarketDataEnabled();
 
   const valueProps = [
     { title: "Private Banking", desc: "Institutional-grade accounts and treasury." },
@@ -98,21 +103,50 @@ function Hero() {
           <div
             className="rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
           >
-            <PortfolioDashboard
-              locked={portfolioLocked}
-              signInRedirect="/"
-              gradientId="heroFill"
-              netWorth="ƒ8,412,209.40"
-              changeLabel="+ƒ142,802.10 · +1.72%"
-              chartData={indexSeries}
-              stats={[
-                { label: "Florin Balance", value: "ƒ1,240,500" },
-                { label: "Portfolio", value: "ƒ1,885,285" },
-                { label: "Today's P&L", value: "+ƒ24,810", up: true },
-                { label: "Exposure", value: "62.4%" },
-              ]}
-              movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
-            />
+            {portfolioLocked ? (
+              <PortfolioDashboard
+                locked
+                signInRedirect="/"
+                gradientId="heroFill"
+                netWorth="ƒ8,412,209.40"
+                changeLabel="+ƒ142,802.10 · +1.72%"
+                chartData={indexSeries}
+                stats={[
+                  { label: "Florin Balance", value: "ƒ1,240,500" },
+                  { label: "Portfolio", value: "ƒ1,885,285" },
+                  { label: "Today's P&L", value: "+ƒ24,810", up: true },
+                  { label: "Exposure", value: "62.4%" },
+                ]}
+                movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
+              />
+            ) : showUserFinancialMock ? (
+              <PortfolioDashboard
+                signInRedirect="/"
+                gradientId="heroFill"
+                netWorth="ƒ8,412,209.40"
+                changeLabel="+ƒ142,802.10 · +1.72%"
+                chartData={indexSeries}
+                stats={[
+                  { label: "Florin Balance", value: "ƒ1,240,500" },
+                  { label: "Portfolio", value: "ƒ1,885,285" },
+                  { label: "Today's P&L", value: "+ƒ24,810", up: true },
+                  { label: "Exposure", value: "62.4%" },
+                ]}
+                movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
+                headerLabel={`Alta Portfolio · ${user.discordUsername}`}
+              />
+            ) : (
+              <div className="rounded-xl bg-background p-5">
+                <div className="border-b border-border pb-3">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Alta Portfolio · {user.discordUsername}
+                  </div>
+                </div>
+                <div className="pt-5">
+                  <EmptyPortfolioState compact />
+                </div>
+              </div>
+            )}
           </div>
           {portfolioLocked && (
             <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -147,6 +181,11 @@ function Marquee() {
   const items = [...indexItems, ...stocks.slice(0, 6).map((s) => ({ symbol: s.symbol, name: s.name, value: s.price, change: s.change }))];
   return (
     <div className="border-y border-border bg-surface-1/50">
+      {isPublicSimulatedMarketDataEnabled() && (
+        <div className="mx-auto max-w-[1400px] px-6 pt-2">
+          <MockDataNotice className="text-center" />
+        </div>
+      )}
       <div className="mx-auto flex max-w-[1400px] gap-10 overflow-hidden px-6 py-3 font-mono text-[11px]">
         <div className="flex animate-[scroll_60s_linear_infinite] gap-10 whitespace-nowrap">
           {[...items, ...items].map((it, i) => (
@@ -308,6 +347,9 @@ function ClosingCTA() {
             <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
               Live market snapshot
             </div>
+            {isPublicSimulatedMarketDataEnabled() && (
+              <MockDataNotice className="max-w-sm" />
+            )}
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="tabular text-2xl font-semibold tracking-tight text-foreground">
                 NSX-100{" "}

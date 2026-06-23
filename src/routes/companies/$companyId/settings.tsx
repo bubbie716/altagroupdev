@@ -2,16 +2,22 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { CompanySubNav } from "@/components/companies/company-sub-nav";
 import { CompanySettingsForm } from "@/components/companies/company-settings-form";
+import { fetchCompanyDetail } from "@/lib/company/company.functions";
 import { Route as CompanyRoute } from "@/routes/companies/$companyId/route";
 
 export const Route = createFileRoute("/companies/$companyId/settings")({
-  beforeLoad: ({ context, params }) => {
-    const membership = context.user?.companyMemberships.find((m) => m.companyId === params.companyId);
-    if (!membership || membership.role !== "owner") {
-      throw redirect({
-        to: "/companies/$companyId",
-        params: { companyId: params.companyId },
-      });
+  beforeLoad: async ({ params }) => {
+    try {
+      const company = await fetchCompanyDetail({ data: params.companyId });
+      if (!company.canEditSettings) {
+        throw redirect({
+          to: "/companies/$companyId",
+          params: { companyId: params.companyId },
+        });
+      }
+    } catch (error) {
+      if (error && typeof error === "object" && "to" in error) throw error;
+      throw redirect({ to: "/access-restricted" });
     }
   },
   head: () => ({ meta: [{ title: "Company Settings — Alta Group" }] }),

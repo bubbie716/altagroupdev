@@ -1,4 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { MockDataNotice } from "@/components/data/mock-data-notice";
+import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -17,7 +19,9 @@ export function ExchangeSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
+    <div className="mb-10">
+      {isPublicSimulatedMarketDataEnabled() && <MockDataNotice className="mb-4" />}
+      <nav className="flex flex-wrap gap-1 border-b border-border/60 pb-4">
       {links.map((l) => {
         const active = l.exact
           ? pathname === l.to
@@ -38,5 +42,6 @@ export function ExchangeSubNav() {
         );
       })}
     </nav>
+    </div>
   );
 }

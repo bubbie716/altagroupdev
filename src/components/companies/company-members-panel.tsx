@@ -12,32 +12,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  addCompanyMemberByDiscord,
   removeCompanyMember,
+  sendCompanyInvitationRecord,
   updateCompanyMemberRole,
 } from "@/lib/company/company.functions";
 import type { CompanyDetail } from "@/lib/company/types";
 import { MEMBER_ROLE_OPTIONS, OWNER_ROLE_OPTION } from "@/lib/company/types";
 import type { CompanyRole } from "@/lib/auth/types";
 import { formatCompanyRole } from "@/lib/auth/tags";
+import {
+  canAssignCompanyRole,
+  canManageCompanyMember,
+} from "@/lib/auth/permissions";
+
+function assignableRoleOptions(actorRole: CompanyRole) {
+  const options =
+    actorRole === "owner" ? [OWNER_ROLE_OPTION, ...MEMBER_ROLE_OPTIONS] : MEMBER_ROLE_OPTIONS;
+  return options.filter((option) => canAssignCompanyRole(actorRole, option.value));
+}
 
 export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
   const router = useRouter();
   const updateRole = useServerFn(updateCompanyMemberRole);
   const removeMember = useServerFn(removeCompanyMember);
-  const addMember = useServerFn(addCompanyMemberByDiscord);
+  const sendInvitation = useServerFn(sendCompanyInvitationRecord);
 
   const [inviteIdentifier, setInviteIdentifier] = useState("");
   const [inviteRole, setInviteRole] = useState<CompanyRole>("viewer");
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
-  const [inviteSimulated, setInviteSimulated] = useState(false);
+  const [inviteIsInfo, setInviteIsInfo] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
-  const roleOptions =
-    company.currentUserRole === "owner"
-      ? [OWNER_ROLE_OPTION, ...MEMBER_ROLE_OPTIONS]
-      : MEMBER_ROLE_OPTIONS;
+  const inviteRoleOptions = assignableRoleOptions(company.currentUserRole);
 
   async function refresh() {
     await router.invalidate();
@@ -50,7 +58,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
       await updateRole({ data: { companyId: company.id, membershipId, role } });
       await refresh();
     } catch {
-      setActionError("Unable to update role. Executives cannot modify owners.");
+      setActionError("Unable to update role. You cannot modify members at or above your role.");
     } finally {
       setBusyId(null);
     }
@@ -63,40 +71,46 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
       await removeMember({ data: { companyId: company.id, membershipId } });
       await refresh();
     } catch {
-      setActionError("Unable to remove member. At least one owner must remain.");
+      setActionError("Unable to remove member. You cannot remove members at or above your role.");
     } finally {
       setBusyId(null);
     }
   }
 
-  async function handleAddExisting() {
+  async function handleSendInvitation(e: React.FormEvent) {
+    e.preventDefault();
     setActionError(null);
     setInviteNotice(null);
-    setInviteSimulated(false);
+    setInviteIsInfo(false);
     if (!inviteIdentifier.trim()) return;
 
+    setSending(true);
     try {
-      const result = await addMember({ data: {
-        companyId: company.id,
-        discordIdentifier: inviteIdentifier.trim(),
-        role: inviteRole,
-      }});
-      setInviteNotice(`Added ${result.username} as ${formatCompanyRole(inviteRole)}.`);
-      setInviteIdentifier("");
-      await refresh();
-    } catch {
-      setInviteSimulated(true);
+      await sendInvitation({
+        data: {
+          companyId: company.id,
+          discordIdentifier: inviteIdentifier.trim(),
+          role: inviteRole,
+        },
+      });
+      setInviteIsInfo(true);
       setInviteNotice(
-        "No Alta account found for that Discord user. Invitation queued for preview — Discord invitation delivery is planned for the future bot integration.",
+        `Invitation sent to ${inviteIdentifier.trim()}. They can accept it from their Companies page. Discord notification delivery is planned for the future bot integration.`,
       );
+      setInviteIdentifier("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("ALREADY_MEMBER")) {
+        setInviteNotice("That user is already a member of this company.");
+      } else if (message.includes("INVITATION_ALREADY_SENT")) {
+        setInviteIsInfo(true);
+        setInviteNotice("An invitation is already pending for that user.");
+      } else {
+        setInviteNotice("Unable to send invitation.");
+      }
+    } finally {
+      setSending(false);
     }
-  }
-
-  function handleSendInvitation() {
-    setInviteSimulated(true);
-    setInviteNotice(
-      "Invitation prepared (preview). Discord invitation delivery is planned for the future bot integration — DMs, admin channel logs, acceptance links, and role confirmation will be handled by the Alta bot.",
-    );
   }
 
   return (
@@ -114,14 +128,18 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
             </tr>
           </thead>
           <tbody>
-            {company.members.map((m) => (
+            {company.members.map((m) => {
+              const canEditMember = canManageCompanyMember(company.currentUserRole, m.role);
+              const memberRoleOptions = assignableRoleOptions(company.currentUserRole);
+
+              return (
               <tr key={m.membershipId} className="border-b border-border/50 last:border-0">
                 <td className="px-4 py-3 font-mono text-[12px]">{m.discordUsername}</td>
                 <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
                   {m.minecraftUsername ?? "—"}
                 </td>
                 <td className="px-4 py-3">
-                  {company.canManageMembers ? (
+                  {company.canManageMembers && canEditMember ? (
                     <Select
                       value={m.role}
                       disabled={busyId === m.membershipId}
@@ -131,7 +149,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {roleOptions.map((o) => (
+                        {memberRoleOptions.map((o) => (
                           <SelectItem key={o.value} value={o.value}>
                             {o.label}
                           </SelectItem>
@@ -150,18 +168,25 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
                 </td>
                 {company.canManageMembers && (
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      disabled={busyId === m.membershipId}
-                      onClick={() => handleRemove(m.membershipId)}
-                      className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
+                    {canEditMember ? (
+                      <button
+                        type="button"
+                        disabled={busyId === m.membershipId}
+                        onClick={() => handleRemove(m.membershipId)}
+                        className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        —
+                      </span>
+                    )}
                   </td>
                 )}
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </Card>
@@ -173,63 +198,57 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
           <div>
             <h3 className="font-medium tracking-tight">Invite authorized representative</h3>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              Add an existing Alta user by Discord username or ID. Users without an Alta account
-              receive a preview invitation state until the Discord bot integration ships.
+              Send an invitation for them to accept on their Companies page. Works whether or not
+              they already have an Alta account.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                Discord username or ID
-              </span>
-              <Input
-                className="mt-2 font-mono"
-                value={inviteIdentifier}
-                onChange={(e) => setInviteIdentifier(e.target.value)}
-                placeholder="username or 18-digit ID"
-              />
-            </label>
-            <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                Role
-              </span>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as CompanyRole)}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEMBER_ROLE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
+          <form onSubmit={handleSendInvitation} className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Discord username or ID
+                </span>
+                <Input
+                  className="mt-2 font-mono"
+                  value={inviteIdentifier}
+                  onChange={(e) => setInviteIdentifier(e.target.value)}
+                  placeholder="username or 18-digit ID"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Role
+                </span>
+                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as CompanyRole)}>
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inviteRoleOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
 
-          <div className="flex flex-wrap gap-3">
             <button
-              type="button"
-              onClick={handleAddExisting}
-              className="rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background"
+              type="submit"
+              disabled={sending}
+              className="rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background disabled:opacity-60"
             >
-              Add existing user
+              {sending ? "Sending…" : "Send invitation"}
             </button>
-            <button
-              type="button"
-              onClick={handleSendInvitation}
-              className="rounded-md border border-border px-4 py-2 text-[13px] font-medium"
-            >
-              Send invitation
-            </button>
-          </div>
+          </form>
 
           {inviteNotice && (
             <Card
               className={
-                inviteSimulated
+                inviteIsInfo
                   ? "border-gold/30 bg-gold/5 !p-4 text-[13px] leading-relaxed text-muted-foreground"
                   : "!p-4 text-[13px] text-foreground"
               }

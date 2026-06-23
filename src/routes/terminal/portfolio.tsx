@@ -5,6 +5,7 @@ import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
 import { TerminalStatCard } from "@/components/terminal/terminal-stat-card";
 import { HoldingsTable } from "@/components/terminal/holdings-table";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
+import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
 import {
   florin,
   getHoldings,
@@ -13,6 +14,7 @@ import {
   getPortfolioTransactions,
   getSectorAllocation,
 } from "@/lib/terminal/api";
+import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/portfolio")({
@@ -26,6 +28,28 @@ export const Route = createFileRoute("/terminal/portfolio")({
 const allocColors = ["var(--gold)", "var(--primary-glow)", "var(--success)", "#94A3B8", "#475569", "#7C5E2A"];
 
 function TerminalPortfolio() {
+  const showMockData = isUserFinancialMockDataEnabled();
+
+  return (
+    <PageShell
+      eyebrow="Alta Terminal · Portfolio"
+      title="Portfolio"
+      description={
+        showMockData
+          ? "Holdings, allocation, performance, and transaction history — simulated preview data."
+          : "Holdings, allocation, performance, and transaction history."
+      }
+    >
+      <TerminalSubNav />
+
+      {showMockData ? <TerminalPortfolioMockContent /> : (
+        <EmptyPortfolioState title="You do not have any holdings yet." />
+      )}
+    </PageShell>
+  );
+}
+
+function TerminalPortfolioMockContent() {
   const s = getPortfolioSummary();
   const holdings = getHoldings();
   const portfolioSeries = getPortfolioSeries();
@@ -34,13 +58,7 @@ function TerminalPortfolio() {
   const allocationData = holdings.map((h) => ({ name: h.symbol, value: h.value }));
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Portfolio"
-      title="Portfolio"
-      description="Holdings, allocation, performance, and transaction history — simulated preview data."
-    >
-      <TerminalSubNav />
-
+    <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <TerminalStatCard label="Cash Balance" value={florin(s.cashBalance)} />
         <TerminalStatCard label="Unrealized Gain" value={`+${florin(s.unrealizedGain)}`} accent />
@@ -133,6 +151,6 @@ function TerminalPortfolio() {
           </table>
         </Card>
       </Section>
-    </PageShell>
+    </>
   );
 }

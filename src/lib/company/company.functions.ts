@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import type {
-  AddMemberInput,
   CreateCompanyInput,
   RemoveMemberInput,
+  SendInvitationInput,
   UpdateCompanySettingsInput,
   UpdateMemberRoleInput,
 } from "@/lib/company/types";
@@ -17,6 +17,13 @@ export const fetchUserCompanies = createServerFn({ method: "GET" }).handler(asyn
   const { listUserCompanies } = await import("@/server/company.service");
   const userId = await actorId();
   return listUserCompanies(userId);
+});
+
+export const fetchCompaniesDashboard = createServerFn({ method: "GET" }).handler(async () => {
+  const { getCompaniesDashboard } = await import("@/server/company.service");
+  const { requireAuth } = await import("@/server/auth.service");
+  const user = await requireAuth();
+  return getCompaniesDashboard(user.id, user.discordId, user.discordUsername);
 });
 
 export const fetchCompanyDetail = createServerFn({ method: "GET" })
@@ -61,12 +68,29 @@ export const removeCompanyMember = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export const addCompanyMemberByDiscord = createServerFn({ method: "POST" })
-  .validator((input: AddMemberInput) => input)
+export const sendCompanyInvitationRecord = createServerFn({ method: "POST" })
+  .validator((input: SendInvitationInput) => input)
   .handler(async ({ data }) => {
-    const { addMemberByDiscord } = await import("@/server/company.service");
+    const { sendCompanyInvitation } = await import("@/server/company.service");
     const userId = await actorId();
-    return addMemberByDiscord(userId, data);
+    return sendCompanyInvitation(userId, data);
+  });
+
+export const acceptCompanyInvitationRecord = createServerFn({ method: "POST" })
+  .validator((invitationId: string) => invitationId)
+  .handler(async ({ data: invitationId }) => {
+    const { acceptCompanyInvitation } = await import("@/server/company.service");
+    const userId = await actorId();
+    return acceptCompanyInvitation(userId, invitationId);
+  });
+
+export const declineCompanyInvitationRecord = createServerFn({ method: "POST" })
+  .validator((invitationId: string) => invitationId)
+  .handler(async ({ data: invitationId }) => {
+    const { declineCompanyInvitation } = await import("@/server/company.service");
+    const userId = await actorId();
+    await declineCompanyInvitation(userId, invitationId);
+    return { ok: true as const };
   });
 
 export const fetchInternalCompaniesFromDb = createServerFn({ method: "GET" }).handler(async () => {
@@ -90,4 +114,24 @@ export const fetchInternalCompanyFromDb = createServerFn({ method: "GET" })
       company.memberships.find((m) => m.role === "OWNER") ?? company.memberships[0];
     const role = ownerMembership ? fromDbCompanyRole(ownerMembership.role) : "viewer";
     return mapCompanyDetail(company, ownerMembership?.userId ?? "", role);
+  });
+
+export const verifyCompanyRecord = createServerFn({ method: "POST" })
+  .validator((input: { companyId: string }) => input)
+  .handler(async ({ data }) => {
+    const { verifyCompany } = await import("@/server/company.service");
+    const { requireOperator } = await import("@/server/permissions.service");
+    await requireOperator();
+    await verifyCompany(data.companyId);
+    return { ok: true as const };
+  });
+
+export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" })
+  .validator((input: { companyId: string }) => input)
+  .handler(async ({ data }) => {
+    const { rejectCompanyVerification } = await import("@/server/company.service");
+    const { requireOperator } = await import("@/server/permissions.service");
+    await requireOperator();
+    await rejectCompanyVerification(data.companyId);
+    return { ok: true as const };
   });

@@ -6,17 +6,24 @@ export interface BankAccount {
   product: string;
   type: string;
   accountNumber: string;
+  routingNumber?: string;
   balance: number;
   status: BankAccountStatus;
   recentActivity: string;
 }
 
+export type BankProductCategory = "Retail Banking" | "Business Banking" | "Alta Private";
+
 export interface BankProduct {
   name: string;
+  category: BankProductCategory;
+  positioning: string;
   minimumBalance: string;
   bestFor: string;
   benefits: string[];
   availability: string;
+  /** Alta Private products — invitation-only visual treatment */
+  isPrivate?: boolean;
 }
 
 export interface LendingProduct {

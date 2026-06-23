@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -7,50 +9,85 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { createCompanyRecord } from "@/lib/company/company.functions";
 import {
   COMPANY_TYPE_OPTIONS,
   INTENDED_USE_OPTIONS,
+  type CompanyTypeValue,
+  type CreateCompanyInput,
+  type IntendedUseValue,
 } from "@/lib/company/types";
 
 const fieldLabel =
   "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
-
-const previewFieldClass =
-  "mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground shadow-none placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-0";
-
-function PreviewSelect({
-  label,
-  placeholder,
-  options,
-}: {
-  label: string;
-  placeholder: string;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label className="block">
-      <span className={fieldLabel}>{label}</span>
-      <Select disabled>
-        <SelectTrigger
-          className={`${previewFieldClass} h-auto min-h-10 disabled:cursor-not-allowed disabled:opacity-100 [&>svg]:text-muted-foreground [&>svg]:opacity-50`}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </label>
-  );
-}
+const inputClass =
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
 export function CompanyCreateForm() {
+  const router = useRouter();
+  const user = useCurrentUser();
+
+  const [name, setName] = useState("");
+  const [type, setType] = useState<CompanyTypeValue>("private_company");
+  const [sector, setSector] = useState("");
+  const [desiredTicker, setDesiredTicker] = useState("");
+  const [description, setDescription] = useState("");
+  const [headquarters, setHeadquarters] = useState("");
+  const [intendedUses, setIntendedUses] = useState<IntendedUseValue[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function toggleIntendedUse(use: IntendedUseValue) {
+    setIntendedUses((prev) =>
+      prev.includes(use) ? prev.filter((u) => u !== use) : [...prev, use],
+    );
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!name.trim() || !sector.trim() || !description.trim()) {
+      setError("Company name, sector, and description are required.");
+      return;
+    }
+    if (intendedUses.length === 0) {
+      setError("Select at least one intended use.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const input: CreateCompanyInput = {
+        name: name.trim(),
+        type,
+        sector: sector.trim(),
+        desiredTicker: desiredTicker.trim() || undefined,
+        description: description.trim(),
+        headquarters: headquarters.trim() || undefined,
+        primaryContactDiscordUsername: user?.discordUsername ?? "",
+        intendedUses,
+      };
+
+      const result = await createCompanyRecord({ data: input });
+      await router.navigate({
+        to: "/companies/$companyId",
+        params: { companyId: result.companyId },
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "")
+          : "Unable to register company.";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
       <Card className="space-y-6 !p-6">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
           Register a company or institution on Alta. You will be assigned as the primary owner and
@@ -62,30 +99,50 @@ export function CompanyCreateForm() {
           <span className={fieldLabel}>Company name</span>
           <input
             type="text"
-            readOnly
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Harbor Logistics Group"
-            className={previewFieldClass}
+            className={inputClass}
           />
         </label>
 
-        <PreviewSelect
-          label="Company type"
-          placeholder="Select company type"
-          options={COMPANY_TYPE_OPTIONS}
-        />
+        <label className="block">
+          <span className={fieldLabel}>Company type</span>
+          <Select value={type} onValueChange={(v) => setType(v as CompanyTypeValue)}>
+            <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+              <SelectValue placeholder="Select company type" />
+            </SelectTrigger>
+            <SelectContent>
+              {COMPANY_TYPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
 
         <label className="block">
           <span className={fieldLabel}>Sector</span>
-          <input type="text" readOnly placeholder="Industrials" className={previewFieldClass} />
+          <input
+            type="text"
+            required
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            placeholder="Industrials"
+            className={inputClass}
+          />
         </label>
 
         <label className="block">
           <span className={fieldLabel}>Desired ticker (optional)</span>
           <input
             type="text"
-            readOnly
+            value={desiredTicker}
+            onChange={(e) => setDesiredTicker(e.target.value.toUpperCase())}
             placeholder="HLOG"
-            className={`${previewFieldClass} font-mono uppercase`}
+            className={`${inputClass} font-mono uppercase`}
           />
         </label>
 
@@ -93,9 +150,11 @@ export function CompanyCreateForm() {
           <span className={fieldLabel}>Description</span>
           <Textarea
             autoResize
-            readOnly
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Brief description of the business, operations, and market position…"
-            className={`${previewFieldClass} min-h-[120px]`}
+            className={`${inputClass} min-h-[120px]`}
           />
         </label>
 
@@ -103,34 +162,23 @@ export function CompanyCreateForm() {
           <span className={fieldLabel}>Headquarters (optional)</span>
           <input
             type="text"
-            readOnly
+            value={headquarters}
+            onChange={(e) => setHeadquarters(e.target.value)}
             placeholder="Newport, Republic of Alta"
-            className={previewFieldClass}
+            className={inputClass}
           />
         </label>
 
-        <label className="block">
-          <span className={fieldLabel}>Primary contact Discord username</span>
-          <input
-            type="text"
-            readOnly
-            placeholder="username"
-            className={`${previewFieldClass} font-mono`}
-          />
-        </label>
-
-        <fieldset disabled className="opacity-100">
+        <fieldset>
           <legend className={fieldLabel}>Intended use</legend>
           <div className="mt-3 space-y-2">
             {INTENDED_USE_OPTIONS.map((o) => (
-              <label
-                key={o.value}
-                className="flex cursor-not-allowed items-center gap-3 text-[13px] text-muted-foreground"
-              >
+              <label key={o.value} className="flex items-center gap-3 text-[13px]">
                 <input
                   type="checkbox"
-                  disabled
-                  className="size-4 cursor-not-allowed rounded border-border bg-surface-2/50"
+                  checked={intendedUses.includes(o.value)}
+                  onChange={() => toggleIntendedUse(o.value)}
+                  className="size-4 rounded border-border"
                 />
                 {o.label}
               </label>
@@ -139,20 +187,19 @@ export function CompanyCreateForm() {
         </fieldset>
       </Card>
 
-      <Card className="border-gold/30 bg-gold/5 !p-4">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Self-service company registration is in preview. Fields are read-only until Alta enables
-          live submissions. Contact Alta operations to register entities in the interim.
-        </p>
-      </Card>
+      {error && (
+        <Card className="border-destructive/40 bg-destructive/5 !p-4">
+          <p className="text-[13px] text-destructive">{error}</p>
+        </Card>
+      )}
 
       <button
-        type="button"
-        disabled
-        className="w-full cursor-not-allowed rounded-md bg-foreground/40 px-5 py-3 text-[13px] font-medium tracking-wide text-background/70"
+        type="submit"
+        disabled={submitting}
+        className="w-full rounded-md bg-foreground px-5 py-3 text-[13px] font-medium tracking-wide text-background disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Register company (preview only)
+        {submitting ? "Registering…" : "Register company"}
       </button>
-    </div>
+    </form>
   );
 }

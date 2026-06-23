@@ -77,6 +77,10 @@ model User {
   tags               UserTagAssignment[]
   companyMemberships CompanyMembership[]
   sessions           Session[]
+  bankAccounts       BankAccount[]
+  reviewedBankTransactions BankTransaction[] @relation("BankTransactionReviewer")
+  sentCompanyInvitations     CompanyInvitation[] @relation("SentCompanyInvitations")
+  receivedCompanyInvitations CompanyInvitation[] @relation("ReceivedCompanyInvitations")
 }
 
 model UserTagAssignment {
@@ -107,6 +111,8 @@ model Company {
   updatedAt                     DateTime           @updatedAt
 
   memberships CompanyMembership[]
+  bankAccounts BankAccount[]
+  invitations CompanyInvitation[]
 }
 
 model CompanyMembership {
@@ -123,6 +129,37 @@ model CompanyMembership {
   @@index([companyId])
 }
 
+enum CompanyInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
+}
+
+model CompanyInvitation {
+  id                     String                  @id @default(cuid())
+  companyId              String
+  invitedByUserId        String
+  invitedUserId          String?
+  invitedDiscordId       String?
+  invitedDiscordUsername String?
+  role                   CompanyRole
+  status                 CompanyInvitationStatus @default(PENDING)
+  expiresAt              DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  respondedAt            DateTime?
+
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedBy   User    @relation("SentCompanyInvitations", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  invitedUser User?   @relation("ReceivedCompanyInvitations", fields: [invitedUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([invitedUserId, status])
+  @@index([invitedDiscordId, status])
+}
+
 model Session {
   id           String   @id @default(cuid())
   userId       String
@@ -134,4 +171,80 @@ model Session {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+enum BankAccountType {
+  ALTA_ACCESS
+  CHECKING
+  SAVINGS
+  RESERVE
+  BUSINESS_OPERATING
+  PRIVATE
+}
+
+enum BankAccountStatus {
+  PENDING
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum BankTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+enum BankTransactionStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+model BankAccount {
+  id            String            @id @default(cuid())
+  userId        String
+  companyId     String?
+  accountType   BankAccountType
+  accountName   String
+  accountNumber String            @unique
+  status        BankAccountStatus @default(PENDING)
+  balance       Decimal           @default(0) @db.Decimal(18, 2)
+  currency      String            @default("FLR")
+  openingNotes  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  transactions BankTransaction[]
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([status])
+}
+
+model BankTransaction {
+  id            String                @id @default(cuid())
+  bankAccountId String
+  type          BankTransactionType
+  amount        Decimal               @db.Decimal(18, 2)
+  status        BankTransactionStatus @default(PENDING)
+  description   String
+  memo          String?
+  referenceCode String                @unique
+  proofImageUrl String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNote    String?
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reviewedBy  User?       @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([bankAccountId])
+  @@index([status])
+  @@index([type])
 }

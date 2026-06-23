@@ -107,7 +107,7 @@ Access is granted only when the signed-in user has the `admin` tag in Postgres. 
 ### Public (no login)
 
 - `/`, `/governance`, `/login`
-- `/bank`, `/bank/deposits`, `/bank/lending`, `/bank/business`, `/bank/private`
+- `/bank`, `/bank/products`, `/bank/lending`, `/bank/business`, `/bank/private`
 - `/exchange`, `/exchange/listings`, `/exchange/company/*`, `/exchange/ipo`, `/exchange/apply`, `/exchange/research`
 - `/terminal/news`, `/terminal/research`, `/terminal/ipo`, `/terminal/leaderboard` (marketing/preview pages)
 

@@ -1,16 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { CompanyDashboardCard } from "@/components/companies/company-dashboard-card";
-import { fetchUserCompanies } from "@/lib/company/company.functions";
+import { CompanyInvitationsPanel } from "@/components/companies/company-invitations-panel";
+import { fetchCompaniesDashboard } from "@/lib/company/company.functions";
 
 export const Route = createFileRoute("/companies/")({
-  loader: () => fetchUserCompanies(),
+  loader: () => fetchCompaniesDashboard(),
   head: () => ({ meta: [{ title: "Companies — Alta Group" }] }),
   component: CompaniesDashboard,
 });
 
 function CompaniesDashboard() {
-  const companies = Route.useLoaderData();
+  const { companies, invitations } = Route.useLoaderData();
+  const hasInvitations = invitations.length > 0;
+  const hasCompanies = companies.length > 0;
 
   return (
     <PageShell
@@ -27,7 +30,9 @@ function CompaniesDashboard() {
         </Link>
       </div>
 
-      {companies.length === 0 ? (
+      {hasInvitations && <CompanyInvitationsPanel invitations={invitations} />}
+
+      {!hasCompanies && !hasInvitations ? (
         <Card className="mx-auto max-w-lg !p-10 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">No memberships</p>
           <h2 className="mt-4 text-xl font-semibold tracking-tight">
@@ -44,7 +49,7 @@ function CompaniesDashboard() {
             Create company
           </Link>
         </Card>
-      ) : (
+      ) : hasCompanies ? (
         <Section title="Your companies">
           <div className="grid gap-4 md:grid-cols-2">
             {companies.map((company) => (
@@ -52,6 +57,12 @@ function CompaniesDashboard() {
             ))}
           </div>
         </Section>
+      ) : (
+        <Card className="mx-auto max-w-lg !p-8 text-center">
+          <p className="text-[14px] leading-relaxed text-muted-foreground">
+            Accept an invitation above to join a company, or register a new entity.
+          </p>
+        </Card>
       )}
     </PageShell>
   );

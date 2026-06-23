@@ -1,0 +1,543 @@
+# Alta Platform — Product Readiness Audit
+
+**Audit date:** June 22, 2026  
+**Scope:** Entire Alta Capital Suite codebase  
+**Type:** Product, architecture, and launch-readiness (not code quality, not security)  
+**Methodology:** Full route/service/schema/doc inspection; pessimistic grading  
+
+**Grading key**
+
+| Grade | Meaning |
+|-------|---------|
+| **Works** | End-to-end with real Postgres persistence; operable today |
+| **PARTIAL** | UI exists, mock data, disabled submit, manual CLI-only path, or incomplete workflow |
+| **MISSING** | Not implemented or no meaningful user-facing surface |
+
+**Default runtime config** (`src/lib/config/data-mode.ts`):
+- `SHOW_USER_FINANCIAL_MOCK_DATA = false` — user bank/portfolio data must not masquerade as real
+- `SHOW_PUBLIC_SIMULATED_MARKET_DATA = true` — Exchange/Terminal marketing may show simulated market content
+
+---
+
+## SECTION 1 — EXECUTIVE SUMMARY
+
+### Completion estimates (pessimistic)
+
+| Area | Completion | Reasoning |
+|------|------------|-----------|
+| **Overall project** | **~38%** | Strong auth + companies + manual bank core; Exchange, Terminal, and most Internal ops are preview shells |
+| **Alta Group** | **~35%** | Marketing homepage and division CTAs work; governance page is static fiction; no unified relationship dashboard |
+| **Alta Bank** | **~52%** | Manual-review V1 bank is operable (accounts, deposits, withdrawals, intrabank transfers, internal ops); wires, lending, private relationship, statements, and proof storage are absent |
+| **Alta Terminal** | **~12%** | Auth-gated navigation and empty states only; no portfolio, orders, watchlists, or market connectivity in DB |
+| **Alta Exchange** | **~14%** | Polished simulated market UI; zero listing/IPO/API/issuer persistence; all application forms disabled |
+| **Companies** | **~72%** | Create, members, invitations, settings, verification are live; workspace modules (IPO, issuer, API) are preview cards only |
+| **Auth** | **~82%** | Discord OAuth + sessions + tags work; tag admin is CLI-only; Minecraft link placeholder; no self-service access requests |
+| **Internal** | **~28%** | Bank transaction review + company verification are live; users, exchange, IPO, API, compliance, listings, settings are mock |
+
+### Platform verdict (one sentence)
+
+Alta is a **credible manual-review bank and company registry** sitting on top of a **simulated capital-markets storefront** — not yet an operable exchange, brokerage, or full internal command center.
+
+---
+
+## SECTION 2 — CURRENT USER JOURNEYS
+
+| # | Journey | Status | Why |
+|---|---------|--------|-----|
+| 1 | **Sign up** | **Works** | No separate signup; first Discord OAuth login creates `User` via `upsertUserFromDiscord` |
+| 2 | **Log in** | **Works** | Discord OAuth → Postgres `Session` → HttpOnly cookie; logout deletes session |
+| 3 | **View profile** | **Works** | Real identity, tags, company memberships, bank summary from DB; Minecraft username is placeholder |
+| 4 | **Create company** | **Works** | `/companies/create` → `Company` + owner `CompanyMembership` in Postgres |
+| 5 | **Manage company** | **Works** | Members, invitations, owner settings; role hierarchy enforced server-side |
+| 6 | **Apply for IPO** | **PARTIAL** | `/exchange/apply` and `/terminal/ipo` are UI/marketing only; submit disabled; no backend |
+| 7 | **Open bank account** | **Works** | Personal instant-open products; business requires verified company; reserve/private require tag + review |
+| 8 | **Deposit funds** | **Works** | Creates PENDING `BankTransaction`; balance updates only after internal approval; proof file not stored |
+| 9 | **Withdraw funds** | **Works** | PENDING withdrawal with balance reservation logic; operator approve/deny in `/internal/bank` |
+| 10 | **Trade securities** | **MISSING** | Trade ticket always disabled; no order model, no routing, no custody |
+| 11 | **Access Alta Private** | **PARTIAL** | Route gated by `private_client` tag; live users see empty state (no relationship DB model) |
+| 12 | **Access Exchange API** | **PARTIAL** | Route gated by `developer` tag; docs and fake key shown; no real API server or key issuance |
+| 13 | **Access Internal** | **Works** (operators) | `admin` or `operator` tag required; bank ops + company verification functional; rest is mock |
+
+---
+
+## SECTION 3 — AUTH & PERMISSIONS
+
+### Discord auth — **Works**
+- OAuth scope: `identify`
+- Routes: `/api/auth/discord`, `/api/auth/discord/callback`
+- Session stored in `Session` model; read on every request via root loader
+- Account status `FROZEN` / `RESTRICTED` enforced in `requireAuth()` (server-side only)
+
+### Sessions — **Works**
+- DB-backed tokens with expiry; expired sessions deleted on read
+- Logout clears cookie and DB row
+
+### Tags — **PARTIAL**
+| Tag | Enforced | Grant mechanism |
+|-----|----------|-----------------|
+| `admin` | Internal routes | CLI: `npm run db:grant-tag` |
+| `operator` | Internal routes | CLI only |
+| `private_client` | `/bank/private`, private account types | CLI only |
+| `developer` | `/exchange/api` (+ legacy `developerAccessStatus`) | CLI only |
+| `issuer` | **Not enforced anywhere** | CLI only; helper exists but unused |
+
+**Gaps:** No internal UI to grant/revoke tags; `/internal/users` is 100% mock; `requireAdmin()` defined but unused (operators = admins on live tools); no user-facing access-request workflow.
+
+### Company permissions — **Works**
+- Five roles with rank-based management (`owner` → `viewer`)
+- Server-enforced: invite, accept/decline, role change, remove, settings edit
+- Last owner cannot be demoted/removed
+- Member-only route access via loader checks
+
+### Issuer permissions — **PARTIAL**
+- **Company-scoped:** `canAccessIssuerPortal` checks membership + role for ticker match → guards `/exchange/company/$ticker/owner`
+- **Global `issuer` tag:** documented but not wired to listing application
+- Issuer portal page uses **mock exchange data**; publish/upload disabled
+
+### Developer permissions — **PARTIAL**
+- Gate works on `/exchange/api`
+- API key shown is derived from user ID (`alta_dev_${userId}`), not persisted
+- No application review backend despite internal mock queue
+
+### Alta Private permissions — **PARTIAL**
+- Tag gate on `/bank/private` and private/reserve account opening rules
+- No DB model for private relationship, banker, tier, or card
+
+### Internal permissions — **PARTIAL**
+- Route guard: `admin` OR `operator`
+- Live server enforcement on bank ops and company verification only
+- No admin-only split for destructive actions
+
+---
+
+## SECTION 4 — COMPANIES
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Company creation** | **Works** | Name, type, sector, description, HQ, desired ticker, intended uses |
+| **Memberships** | **Works** | Unique user+company; roles persisted |
+| **Roles** | **Works** | OWNER, EXECUTIVE, FINANCE_MANAGER, COMPLIANCE_CONTACT, VIEWER |
+| **Verification** | **Works** | Internal verify/reject; verified → business accounts open instantly |
+| **Invitations** | **Works** | By Discord ID/username; 30-day expiry; accept/decline on dashboard |
+| **Ownership** | **Works** | Creator is OWNER; ownership transfer not implemented |
+| **Company settings** | **Works** | Owner can edit profile fields |
+
+### Missing workflows
+- Discord bot notifications for invitations (`TODO(bot)` in service)
+- Direct member add without invitation (`addMember` exists but not exposed via RPC)
+- Ticker assignment linking DB company → Exchange listing (manual ops gap)
+- Company workspace modules: Business Banking, IPO Center, Issuer Portal, API — all **Preview** cards with no deep links to live flows
+- Listed company status promotion (`CompanyStatus.LISTED`) — enum exists, no workflow
+- Company suspension/rejection user-facing flows beyond verification reject
+
+---
+
+## SECTION 5 — ALTA BANK
+
+### Feature matrix
+
+| Feature | UI | Backend | DB | Status |
+|---------|-----|---------|-----|--------|
+| **Products catalog** | Marketing cards | Mock `lib/bank/data.ts` | None | **PARTIAL** |
+| **Accounts (list/dashboard)** | Live | `listUserBankAccounts` | `BankAccount` | **Works** |
+| **Account opening** | Live form | `openBankAccount` | `BankAccount` | **Works** |
+| **Account detail pages** | Live | `getUserBankAccountDetail` | `BankAccount`, `BankTransaction` | **Works** (statements/notices placeholder) |
+| **Account numbering** | Displayed | `generateAccountNumber` | Unique constraint | **Works** (`AB-[PRODUCT]-[UNIQUE]`) |
+| **Routing numbers** | Displayed | Static `011000001` | None | **Works** (constant, not NCC) |
+| **Deposits** | Live form | `submitDepositRequest` | PENDING tx | **Works** (proof = `pending-upload://` placeholder) |
+| **Withdrawals** | Live form | `submitWithdrawalRequest` | PENDING tx | **Works** |
+| **Intrabank transfers (own accounts)** | Live form | `submitInternalTransfer` | Instant TRF paired txns | **Works** |
+| **Intrabank transfers (other players)** | Live form | Same service, account number lookup | Instant TRF paired txns | **Works** |
+| **Interbank wires (NCC-Net)** | Preview form | None | None | **PARTIAL** (UI only) |
+| **Business banking marketing** | Page | Mock | None | **PARTIAL** |
+| **Business operating accounts** | Via open form | Verified company gate | `BankAccount` + `companyId` | **Works** |
+| **Private banking portal** | Gated page | Tag check only | None | **PARTIAL** (empty unless mock flag) |
+| **Private/reserve account types** | Open form | Tag + PENDING review | `BankAccount` | **PARTIAL** |
+| **Lending** | Marketing page | None | None | **PARTIAL** |
+| **Internal bank operations** | Live console | Approve/deny/freeze | Live queues | **Works** (loans/wires sections mock) |
+| **Dashboard stat cards** | Live | Aggregated balances | `BankAccount` | **Works** |
+| **Account statements** | Placeholder text | None | None | **MISSING** |
+| **Deposit proof file storage** | Filename field | Placeholder URL | None | **MISSING** |
+
+### Can Alta Bank realistically launch as a manual-review bank today?
+
+**Yes — with explicit constraints.**
+
+What works for a first real customer:
+- Open personal checking/savings/access accounts
+- Submit deposit/withdrawal requests
+- Operators approve/deny in `/internal/bank`
+- Instant intrabank transfers (own accounts + other players by account number)
+- Verified companies can open business operating accounts
+- Real balances on dashboard and account detail
+
+What must be communicated to customers (limitations):
+- Deposits require manual operator review (not instant)
+- Withdrawals require manual operator review
+- Deposit proof screenshots are **not actually uploaded/stored** — operators review on trust + Discord follow-up
+- No wire transfers to external banks
+- No lending products
+- Alta Private is tag-gated marketing shell unless mock mode enabled
+- No Minecraft economy integration
+- No automated statements or tax documents
+
+**Launch readiness for manual-review bank: ~70% operationally** (core ledger works; proof storage and operator runbooks are the main gaps).
+
+---
+
+## SECTION 6 — ALTA EXCHANGE
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Listings** | **PARTIAL** | Full browse UI; all data from `lib/exchange/companies.ts` |
+| **Company profiles** | **PARTIAL** | `/exchange/company/$ticker`; static mock profiles |
+| **IPO center** | **PARTIAL** | Calendar UI; simulated; no subscriptions |
+| **Listing applications** | **PARTIAL** | Form UI; all fields disabled; no submit |
+| **Issuer portal** | **PARTIAL** | Auth gate works; mock data; publish/upload disabled |
+| **Corporate actions** | **PARTIAL** | Static table from mock data |
+| **Research / filings** | **PARTIAL** | Static content; download buttons disabled |
+| **Indices** | **PARTIAL** | Simulated index performance |
+| **Rankings** | **PARTIAL** | Simulated leaderboard |
+| **API docs** | **PARTIAL** | Developer gate; documents mock endpoints; no live API |
+
+**No Prisma models:** Listing, Security, Order, Trade, Filing, CorporateAction, IPOApplication, ApiKey, MarketData.
+
+### Can Alta Exchange support its first listed company today?
+
+**No.**
+
+A listed company would need:
+1. Persisted listing record tied to verified `Company.ticker`
+2. Issuer portal backed by DB (announcements, filings, financial updates)
+3. Internal listing approval workflow (currently mock)
+4. At minimum one real price/quote source (even manual admin entry)
+5. Corporate actions pipeline
+
+Today the Exchange is a **high-fidelity prototype** suitable for demos, not operations.
+
+---
+
+## SECTION 7 — ALTA TERMINAL
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Portfolio** | **PARTIAL** | Empty state live; mock only with flag; no holdings model |
+| **Trading** | **MISSING** | `TradeTicket` always disabled; no order submission ever |
+| **Watchlists** | **PARTIAL** | Empty user list; labeled sample watchlist from mock; add disabled |
+| **Research** | **PARTIAL** | Public mock library; search disabled |
+| **News** | **PARTIAL** | Static mock feed |
+| **Leaderboard** | **PARTIAL** | Static mock rankings |
+| **IPO access** | **PARTIAL** | Mock cards; no subscription processing |
+
+**No Prisma models:** Portfolio, Holding, Order, Watchlist, WatchlistItem.
+
+### Can Alta Terminal function as a brokerage today?
+
+**No.**
+
+There is no custody, no order entry, no fill reporting, no account linking to Exchange listings, and no persisted user portfolio. Terminal is an **authenticated empty shell** with optional simulated marketing content.
+
+---
+
+## SECTION 8 — DATABASE AUDIT
+
+### Prisma models
+
+| Model | Purpose | Usage |
+|-------|---------|-------|
+| **User** | Alta identity (Discord-linked) | **Used** — auth, profile, bank account owner |
+| **UserTagAssignment** | Access tags (admin, operator, etc.) | **Used** — route guards, bank private gate |
+| **Session** | Login sessions | **Used** — full auth flow |
+| **Company** | Registered organizations | **Used** — companies module, bank business link |
+| **CompanyMembership** | User ↔ company roles | **Used** — workspace access, issuer portal check |
+| **CompanyInvitation** | Pending member invites | **Used** — invite/accept/decline flow |
+| **BankAccount** | Bank accounts + balances | **Used** — full bank V1 |
+| **BankTransaction** | Deposits, withdrawals, transfers | **Used** — full bank V1 |
+
+**All 8 models are actively used.** None are dead schema.
+
+### Critical missing models
+
+| Missing model | Needed for |
+|---------------|------------|
+| **Listing / Security** | Exchange listings, tickers, company link |
+| **IPOApplication** | IPO pipeline |
+| **ListingApplication** | Exchange apply workflow |
+| **Filing / Announcement** | Issuer portal, research |
+| **CorporateAction** | Exchange actions |
+| **Portfolio / Holding** | Terminal portfolio |
+| **Order / Trade** | Terminal trading |
+| **Watchlist / WatchlistItem** | Terminal watchlists |
+| **ApiKey / ApiApplication** | Developer API |
+| **PrivateBankingRelationship** | Alta Private tier, banker, card |
+| **WireTransfer** | Interbank/NCC-Net (or extend BankTransaction types) |
+| **LoanApplication / Loan** | Bank lending |
+| **ComplianceCase** | Internal compliance |
+| **AuditLog** | Cross-division operator actions |
+| **FileUpload / Document** | Deposit proofs, issuer filings |
+| **MarketDataSnapshot** | Even manual price entry for listings |
+
+---
+
+## SECTION 9 — ADMIN OPERATIONS
+
+| Function | Status | Notes |
+|----------|--------|-------|
+| **User management** | **PARTIAL** | `/internal/users` mock table; `MockActionButton` only; tags via CLI |
+| **Company management** | **Works** | Live list + detail; verify/reject verification |
+| **Bank operations** | **Works** | Pending accounts, deposits, withdrawals; approve/deny/freeze |
+| **Exchange operations** | **PARTIAL** | Mock stats, notices, listing table; no live actions |
+| **Compliance** | **PARTIAL** | Mock case queue |
+| **IPO review** | **PARTIAL** | Mock application queue |
+| **API review** | **PARTIAL** | Mock approve/issue/revoke buttons |
+| **Listing management** | **PARTIAL** | Mock table |
+| **Terminal operations** | **PARTIAL** | Mock order flow |
+| **Platform settings** | **PARTIAL** | All controls disabled |
+| **Overview dashboard** | **PARTIAL** | Mock metrics and activity feed |
+
+### Can Internal actually operate the ecosystem?
+
+**Partially.**
+
+Operators can today:
+- Approve/deny bank deposits and withdrawals
+- Approve pending account openings and freeze accounts
+- Verify or reject company verification
+
+Operators **cannot** today:
+- Manage user tags or account status from UI
+- Approve listings, IPOs, or API applications
+- Halt securities or publish exchange notices (mock buttons)
+- Review compliance cases
+- Configure platform settings
+- See accurate cross-division operational metrics
+
+Internal is a **bank ops + company verification console** wearing the uniform of a full ops platform.
+
+---
+
+## SECTION 10 — DOCUMENTS
+
+### Existing documents (`docs/`)
+
+| Document | Area |
+|----------|------|
+| `auth.md` | Auth |
+| `permissions.md` | Auth / permissions |
+| `database.md` | Infrastructure |
+| `companies.md` | Companies |
+| `bank-backend.md` | Alta Bank |
+| `bank-products.md` | Alta Bank |
+| `account-numbering.md` | Alta Bank |
+| `mock-data-policy.md` | Cross-platform |
+| `architecture-audit.txt` | Cross-platform |
+
+### Required documents still missing
+
+#### Alta Group
+- [ ] Platform overview / division map (single source of truth)
+- [ ] User onboarding runbook (Discord → bank → company → exchange)
+- [ ] Brand/product naming glossary (Intrabank vs Interbank vs NCC-Net)
+
+#### Alta Bank
+- [ ] Operator runbook (deposit/withdrawal review SLAs, proof verification process)
+- [ ] Account opening policy (product eligibility, private banking criteria)
+- [ ] Transfer policy (intrabank limits, player-to-player rules)
+- [ ] Interbank wire specification (when built)
+- [ ] Customer-facing terms / account agreement template
+- [ ] Deposit proof storage spec (S3/blob integration)
+
+#### Alta Exchange
+- [ ] Listing standards and application requirements
+- [ ] IPO process document
+- [ ] Issuer obligations post-listing
+- [ ] Market data policy (simulated vs live)
+- [ ] Corporate actions workflow
+- [ ] Exchange rulebook (even draft)
+
+#### Alta Terminal
+- [ ] Brokerage account model (relationship to bank custody)
+- [ ] Order types and trading hours spec
+- [ ] Portfolio accounting spec
+
+#### NCC (National Clearing Corporation)
+- [ ] NCC-Net settlement architecture
+- [ ] Routing number registry plan
+- [ ] Wire format specification
+- [ ] Interbank vs intrabank definitions (product terminology)
+
+#### Internal / Operations
+- [ ] Tag grant/revoke policy and audit requirements
+- [ ] Admin vs operator permission matrix (currently undocumented split)
+- [ ] Incident response / account freeze procedures
+
+---
+
+## SECTION 11 — TECHNICAL DEBT (Product-facing)
+
+### Critical
+| Item | Impact |
+|------|--------|
+| Deposit proof not stored (`pending-upload://` only) | Operators cannot verify deposits from platform; trust-based process breaks at scale |
+| No tag management UI | Every access grant requires CLI + DB access; blocks self-service private/developer onboarding |
+| Exchange entirely mock while presented as product | User/issuer confusion; demo data may be mistaken for live market |
+| Trade ticket permanently disabled with no path to orders | Terminal cannot evolve without new models + major build |
+| Internal overview shows mock metrics | Operators may make decisions on fictional system status |
+
+### High
+| Item | Impact |
+|------|--------|
+| `SHOW_PUBLIC_SIMULATED_MARKET_DATA = true` by default | Exchange/Terminal marketing simulates live market without persistent disclaimer on every widget |
+| Issuer portal uses mock exchange data, not `Company` DB | Ticker mismatch between company registry and exchange breaks issuer workflow |
+| `/internal/users` non-functional | No user freeze/tag/restrict from admin UI despite server supporting account status |
+| Company workspace "Preview" modules | Users expect IPO/banking/API from company page; dead ends |
+| `issuer` tag unused | Permission model incomplete for listing pipeline |
+| Mock fallback on internal company routes | Errors silently show mock data (`TODO: remove mock fallback`) |
+
+### Medium
+| Item | Impact |
+|------|--------|
+| Many redirect routes (`/bank/accounts`, `/bank/deposits`, etc.) | Navigation/history confusion; Lovable-era paths |
+| Duplicate mock layers (`lib/bank/data.ts`, `lib/terminal/data.ts`, `lib/internal/data.ts`, `lib/exchange/*`) | Policy drift risk; hard to know what's live |
+| Account detail statements/notices placeholders | Incomplete account experience |
+| `developerAccessStatus` legacy field alongside tags | Two paths for developer access |
+| React Query wired but unused (`architecture-audit.txt`) | Missed cache/invalidation patterns for live data |
+| Bank marketing pages (`/bank/lending`, `/bank/business`) imply available products | Product expectation mismatch |
+
+### Low
+| Item | Impact |
+|------|--------|
+| Lovable `AGENTS.md` git history warning | Dev process, not user-facing |
+| Governance page static institutional figures | Marketing fiction |
+| Minecraft username placeholder on profile | Incomplete game integration |
+| `-dashboard-mock.tsx` retained | Only used when mock flag on |
+| `MockActionButton` / `PreviewDataBanner` patterns | Good honesty labels; should remain until backends exist |
+
+---
+
+## SECTION 12 — WHAT SHOULD BE BUILT NEXT
+
+### TOP 10 NEXT FEATURES (ranked by impact → dependency → launch readiness)
+
+| Rank | Feature | Impact | Dependency | Why |
+|------|---------|--------|------------|-----|
+| **1** | **Deposit proof file storage** | Critical for bank ops | S3/blob + `FileUpload` model | Without this, manual bank cannot scale; operators blind |
+| **2** | **Internal user/tag management** | Unblocks all gated products | None (User/Tag exist) | Private, developer, operator onboarding stuck on CLI |
+| **3** | **Listing + Company.ticker linkage** | Foundation for Exchange | Company verification (exists) | First real listing requires DB ticker → profile |
+| **4** | **Listing application backend** | First issuer workflow | #3 | `/exchange/apply` disabled; no path to list |
+| **5** | **Internal listing approval console** | Operators can list companies | #3, #4 | Mock queue today |
+| **6** | **Issuer portal persistence** | Listed companies can communicate | #3 | Publish/filing currently fake |
+| **7** | **Portfolio + holdings model** | Terminal becomes real | Bank custody link (design) | Empty portfolio blocks brokerage story |
+| **8** | **Order entry + internal order review** | Trading becomes possible | #7 | Even manual-fill orders beat disabled ticket |
+| **9** | **Alta Private relationship model** | Private banking becomes real | Tag management (#2) | Tag alone insufficient; need tier, banker, accounts |
+| **10** | **Operator runbook docs + in-app deposit review UX** | Launch readiness | #1 | Human process must match software |
+
+**Explicitly not recommended next:** cosmetic homepage polish, more mock exchange listings, leaderboard animations, governance page copy — none make the ecosystem operable.
+
+---
+
+## SECTION 13 — FIRST REAL LAUNCH CHECKLIST
+
+### 1. First real bank customer
+
+**Minimum work:**
+- [x] Account opening (personal products)
+- [x] Deposit/withdrawal request flow
+- [x] Operator approve/deny console
+- [x] Intrabank transfers
+- [ ] **Deposit proof upload to durable storage**
+- [ ] **Written operator runbook** (review SLA, Discord escalation, denial reasons)
+- [ ] **Customer-facing explanation** of manual review timelines
+- [ ] **Production env** (DATABASE_URL, Discord OAuth, HTTPS cookies)
+- [ ] **At least one operator tag granted**
+
+**Honest estimate:** 1–2 weeks of focused work after proof storage (mostly ops/process).
+
+---
+
+### 2. First verified company
+
+**Minimum work:**
+- [x] Company registration
+- [x] Internal verification actions
+- [x] Verified → business account instant open
+- [ ] **Clear verification criteria document** (what ops checks before Verify)
+- [ ] **Notification to company owner** on verify/reject (today: no bot/email)
+- [ ] **Company dashboard messaging** post-verification (what's unlocked)
+
+**Honest estimate:** Can happen **today** if operator manually verifies; lacks polish and notifications.
+
+---
+
+### 3. First IPO
+
+**Minimum work:**
+- [ ] IPO application model + submit flow
+- [ ] Internal IPO review (`/internal/ipos` wired to DB)
+- [ ] IPO terms, pricing, and allocation workflow (even manual)
+- [ ] Terminal/Exchange IPO pages fed from DB, not mock
+- [ ] Subscription/payment mechanism (likely bank escrow)
+
+**Honest estimate:** **Months** — no backend exists; IPO is 100% simulated.
+
+---
+
+### 4. First listed company
+
+**Minimum work:**
+- [ ] Listing application backend (#4 above)
+- [ ] Assign `Company.ticker` on approval
+- [ ] Listing/Security model powering `/exchange/company/$ticker`
+- [ ] Issuer portal persistence
+- [ ] Internal listing management live
+- [ ] At least manual price/quote entry
+
+**Honest estimate:** **6–10 weeks** minimum after listing schema + approval pipeline; depends on issuer portal scope.
+
+---
+
+### 5. First third-party brokerage using Alta Exchange API
+
+**Minimum work:**
+- [ ] Real HTTP API server (not mock docs)
+- [ ] API key issuance, rotation, revocation (DB-backed)
+- [ ] Internal API application review wired to DB
+- [ ] Market data endpoints (even read-only delayed quotes)
+- [ ] Order routing API (requires Terminal order infrastructure)
+- [ ] Rate limits, auth, audit logging
+- [ ] Legal/developer agreement
+
+**Honest estimate:** **Not achievable short-term.** Requires Exchange + Terminal backends, order book or manual market maker, and API infrastructure. **6+ months** pessimistically.
+
+---
+
+## APPENDIX A — Route inventory summary
+
+**~74 route files** across:
+- `/` — Alta Group homepage
+- `/login`, `/profile`, `/access-restricted`, `/governance`
+- `/bank/*` — 15+ routes (live core + marketing + redirects)
+- `/terminal/*` — 7 routes (mostly mock/empty)
+- `/exchange/*` — 11 routes (all mock/preview)
+- `/companies/*` — 5 routes (live)
+- `/internal/*` — 12 routes (mostly mock; bank + companies live)
+- `/api/auth/*` — OAuth (live)
+
+---
+
+## APPENDIX B — What is genuinely live in Postgres today
+
+1. Discord authentication and sessions  
+2. User tags (CLI-granted)  
+3. Company lifecycle (create, members, invitations, settings, verification)  
+4. Bank accounts and balances  
+5. Manual-review deposits and withdrawals  
+6. Instant intrabank transfers (own + other players)  
+7. Internal bank ops (approve/deny/freeze)  
+8. Internal company verification  
+
+**Everything else is UI, mock data, or disabled preview.**
+
+---
+
+*End of audit.*

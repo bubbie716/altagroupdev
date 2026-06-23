@@ -6,11 +6,17 @@ import { CompanySubNav } from "@/components/companies/company-sub-nav";
 import { CompanyFutureModules } from "@/components/companies/company-future-modules";
 import { formatCompanyRole } from "@/lib/auth/tags";
 import { formatIntendedUse } from "@/lib/company/types";
+import type { CompanyDetail } from "@/lib/company/types";
+import { Route as CompanyRoute } from "@/routes/companies/$companyId/route";
 
 export const Route = createFileRoute("/companies/$companyId/")({
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.name ?? "Company"} — Alta Group` }],
-  }),
+  head: ({ matches }) => {
+    const companyMatch = matches.find((m) => m.routeId === "/companies/$companyId");
+    const company = companyMatch?.loaderData as CompanyDetail | undefined;
+    return {
+      meta: [{ title: `${company?.name ?? "Company"} — Alta Group` }],
+    };
+  },
   component: CompanyDetailPage,
 });
 
@@ -24,7 +30,7 @@ function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function CompanyDetailPage() {
-  const company = Route.useLoaderData();
+  const company = CompanyRoute.useLoaderData();
 
   return (
     <PageShell

@@ -78,8 +78,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null }>()({
   beforeLoad: async () => {
-    const user = await fetchCurrentUser();
-    return { user };
+    try {
+      const user = await fetchCurrentUser();
+      return { user };
+    } catch (error) {
+      console.error("[auth] Failed to load current user", error);
+      return { user: null };
+    }
   },
   head: () => ({
     meta: [

@@ -6,19 +6,29 @@ export function CompanySubNav({ companyId }: { companyId: string }) {
   const base = `/companies/${companyId}`;
 
   const links = [
-    { to: base, label: "Overview", exact: true },
-    { to: `${base}/members`, label: "Members" },
-    { to: `${base}/settings`, label: "Settings" },
+    { to: "/companies/$companyId" as const, label: "Overview", exact: true },
+    { to: "/companies/$companyId/members" as const, label: "Members" },
+    { to: "/companies/$companyId/settings" as const, label: "Settings" },
   ] as const;
 
   return (
     <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
       {links.map((l) => {
-        const active = l.exact ? pathname === l.to : pathname.startsWith(l.to);
+        const href =
+          l.to === "/companies/$companyId"
+            ? base
+            : l.to === "/companies/$companyId/members"
+              ? `${base}/members`
+              : `${base}/settings`;
+        const active = l.exact
+          ? pathname === base || pathname === `${base}/`
+          : pathname.startsWith(href);
+
         return (
           <Link
             key={l.to}
             to={l.to}
+            params={{ companyId }}
             className={cn(
               "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
               active

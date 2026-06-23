@@ -38,7 +38,7 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
               <td className="px-5 py-3">{t.desc}</td>
               <td className="px-5 py-3 text-muted-foreground">{t.category}</td>
               <td
-                className={`tabular px-5 py-3 text-right font-medium ${t.amount >= 0 ? "ticker-up" : ""}`}
+                className={`tabular px-5 py-3 text-right font-medium ${t.amount >= 0 ? "ticker-up" : "ticker-down"}`}
               >
                 {t.amount >= 0 ? "+" : ""}
                 {florin(t.amount)}

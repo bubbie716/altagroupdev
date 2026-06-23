@@ -16,7 +16,8 @@ import {
   fromDbCompanyRole,
   toDbCompanyRole,
 } from "@/server/enum-map";
-import type { Company, CompanyMembership, User } from "@prisma/client";
+import type { Company, CompanyInvitation, CompanyMembership, User } from "@prisma/client";
+import type { CompanyInvitationSummary } from "@/lib/company/types";
 
 type CompanyWithMembers = Company & {
   memberships: (CompanyMembership & { user: User })[];
@@ -147,4 +148,23 @@ export function mapInternalCompanyRow(
 
 export function toDbMemberRole(role: AppCompanyRole): CompanyRole {
   return toDbCompanyRole(role);
+}
+
+type InvitationWithRelations = CompanyInvitation & {
+  company: Company;
+  invitedBy: User;
+};
+
+export function mapCompanyInvitation(invitation: InvitationWithRelations): CompanyInvitationSummary {
+  return {
+    id: invitation.id,
+    companyId: invitation.companyId,
+    companyName: invitation.company.name,
+    companyType: formatDbCompanyType(invitation.company.type),
+    role: fromDbCompanyRole(invitation.role),
+    invitedByUsername: invitation.invitedBy.discordUsername,
+    status: invitation.status.charAt(0) + invitation.status.slice(1).toLowerCase(),
+    createdAt: invitation.createdAt.toISOString(),
+    expiresAt: invitation.expiresAt?.toISOString() ?? null,
+  };
 }

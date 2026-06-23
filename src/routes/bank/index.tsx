@@ -1,15 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { Link } from "@tanstack/react-router";
 import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { AccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
-import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
+import { EmptyBankState } from "@/components/data/empty-bank-state";
+import { florin } from "@/lib/bank/api";
+import {
+  fetchUserBankAccounts,
+  fetchUserBankDashboard,
+  fetchUserBankTransactions,
+} from "@/lib/bank/bank.functions";
+import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { BankDashboardMockContent } from "@/routes/bank/-dashboard-mock";
 
 export const Route = createFileRoute("/bank/")({
   beforeLoad: authBeforeLoad,
+  loader: async () => {
+    if (isUserFinancialMockDataEnabled()) return null;
+    const [dashboard, accounts, transactions] = await Promise.all([
+      fetchUserBankDashboard(),
+      fetchUserBankAccounts(),
+      fetchUserBankTransactions({ data: 10 }),
+    ]);
+    return { dashboard, accounts, transactions };
+  },
   head: () => ({
     meta: [{ title: "Bank Like the 1% — Alta Bank" }],
   }),
@@ -17,69 +34,115 @@ export const Route = createFileRoute("/bank/")({
 });
 
 function BankDashboard() {
-  const d = getBankDashboard();
-  const bankAccounts = getBankAccounts();
-  const bankRecentActivity = getRecentActivity();
+  const showMockData = isUserFinancialMockDataEnabled();
+  const data = Route.useLoaderData();
 
   return (
     <PageShell
       eyebrow="Alta Bank · Client"
       title="Bank Like the 1%"
-      description="Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
+      description={
+        showMockData
+          ? "Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
+          : "Your Alta Bank relationship overview."
+      }
     >
       <BankSubNav />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <BankStatCard label="Total Relationship Value" value={florin(d.totalRelationshipValue)} className="md:col-span-2 lg:col-span-2" />
-        <BankStatCard label="Credit Available" value={florin(d.creditAvailable)} />
-        <BankStatCard label="Private Status" value={d.privateStatus} sub="Alta Private member" />
-        <BankStatCard label="Checking Balance" value={florin(d.checkingBalance)} />
-        <BankStatCard label="Savings Balance" value={florin(d.savingsBalance)} />
-        <BankStatCard label="Reserve Balance" value={florin(d.reserveBalance)} />
-        <BankStatCard label="MTD Change" value="+2.14%" accent sub="Relationship assets" />
+      {showMockData ? (
+        <BankDashboardMockContent />
+      ) : !data || data.accounts.length === 0 ? (
+        <EmptyBankState />
+      ) : (
+        <BankDashboardLiveContent data={data} />
+      )}
+    </PageShell>
+  );
+}
+
+function BankDashboardLiveContent({
+  data,
+}: {
+  data: NonNullable<Awaited<ReturnType<typeof Route.useLoaderData>>>;
+}) {
+  const { dashboard, accounts, transactions } = data;
+
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap gap-3">
+        <Link
+          to="/bank/open"
+          className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background"
+        >
+          Open account
+        </Link>
+        <Link
+          to="/bank/deposit"
+          className="rounded-md border border-border px-4 py-2 text-[12px] font-medium"
+        >
+          Deposit
+        </Link>
+        <Link
+          to="/bank/withdraw"
+          className="rounded-md border border-border px-4 py-2 text-[12px] font-medium"
+        >
+          Withdraw
+        </Link>
       </div>
 
-      <Section title="Balance Trend" className="mt-10">
-        <div className="rounded-xl border border-border bg-surface-1/80 p-5 shadow-card">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={d.balanceTrend}>
-                <defs>
-                  <linearGradient id="bankTrend" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                <XAxis hide dataKey="t" />
-                <YAxis hide domain={["dataMin", "dataMax"]} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border-strong)",
-                    borderRadius: 8,
-                    fontSize: 11,
-                  }}
-                  formatter={(v) => [florin(Number(v)), "Value"]}
-                />
-                <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#bankTrend)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </Section>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <BankStatCard
+          label="Total Relationship Value"
+          value={florin(dashboard.totalRelationshipValue)}
+          className="md:col-span-2 lg:col-span-2"
+        />
+        <BankStatCard label="Private Status" value={dashboard.privateStatus} />
+        <BankStatCard label="Checking Balance" value={florin(dashboard.checkingBalance)} />
+        <BankStatCard label="Savings Balance" value={florin(dashboard.savingsBalance)} />
+        <BankStatCard label="Reserve Balance" value={florin(dashboard.reserveBalance)} />
+        <BankStatCard label="Business Balance" value={florin(dashboard.businessBalance)} />
+        <BankStatCard
+          label="Pending Reviews"
+          value={String(dashboard.pendingDeposits + dashboard.pendingWithdrawals)}
+          sub="Deposits + withdrawals"
+        />
+      </div>
 
       <Section title="Account Overview" className="mt-10">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {bankAccounts.slice(0, 3).map((a) => (
-            <AccountCard key={a.id} account={a} />
+          {accounts.map((a) => (
+            <AccountCard
+              key={a.id}
+              footer="view"
+              account={{
+                id: a.id,
+                name: a.name,
+                product: a.product,
+                accountNumber: a.accountNumber,
+                balance: a.balance,
+                status: a.statusLabel,
+              }}
+            />
           ))}
         </div>
       </Section>
 
       <Section title="Recent Activity" className="mt-10">
-        <TransactionTable rows={bankRecentActivity} title="" />
+        {transactions.length === 0 ? (
+          <p className="text-[14px] text-muted-foreground">No transactions yet.</p>
+        ) : (
+          <TransactionTable
+            rows={transactions.map((t) => ({
+              id: t.referenceCode,
+              date: t.createdAt.slice(0, 10),
+              desc: t.description,
+              category: t.typeLabel,
+              amount: t.type === "withdrawal" ? -t.amount : t.amount,
+            }))}
+            title=""
+          />
+        )}
       </Section>
-    </PageShell>
+    </>
   );
 }

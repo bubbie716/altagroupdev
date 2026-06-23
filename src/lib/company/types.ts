@@ -69,7 +69,7 @@ export interface CreateCompanyInput {
   desiredTicker?: string;
   description: string;
   headquarters?: string;
-  primaryContactDiscordUsername: string;
+  primaryContactDiscordUsername?: string;
   intendedUses: IntendedUseValue[];
 }
 
@@ -93,10 +93,27 @@ export interface RemoveMemberInput {
   membershipId: string;
 }
 
-export interface AddMemberInput {
+export interface SendInvitationInput {
   companyId: string;
   discordIdentifier: string;
   role: CompanyRole;
+}
+
+export interface CompanyInvitationSummary {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyType: string;
+  role: CompanyRole;
+  invitedByUsername: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+export interface CompaniesDashboardData {
+  companies: CompanySummary[];
+  invitations: CompanyInvitationSummary[];
 }
 
 export interface InternalCompanyRow {

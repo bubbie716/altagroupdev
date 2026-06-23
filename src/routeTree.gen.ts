@@ -50,22 +50,32 @@ import { Route as ExchangeApplyRouteImport } from './routes/exchange/apply'
 import { Route as ExchangeApiRouteImport } from './routes/exchange/api'
 import { Route as ExchangeActionsRouteImport } from './routes/exchange/actions'
 import { Route as CompaniesCreateRouteImport } from './routes/companies/create'
-import { Route as BankTransfersRouteImport } from './routes/bank/transfers'
+import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
+import { Route as BankProductsRouteImport } from './routes/bank/products'
 import { Route as BankPrivateRouteImport } from './routes/bank/private'
+import { Route as BankOpenRouteImport } from './routes/bank/open'
 import { Route as BankLendingRouteImport } from './routes/bank/lending'
 import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
+import { Route as BankDepositRouteImport } from './routes/bank/deposit'
 import { Route as BankDashboardRouteImport } from './routes/bank/dashboard'
 import { Route as BankBusinessRouteImport } from './routes/bank/business'
 import { Route as BankAccountsRouteImport } from './routes/bank/accounts'
 import { Route as CompaniesCompanyIdRouteRouteImport } from './routes/companies/$companyId/route'
+import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/route'
 import { Route as InternalCompaniesIndexRouteImport } from './routes/internal/companies/index'
 import { Route as CompaniesCompanyIdIndexRouteImport } from './routes/companies/$companyId/index'
+import { Route as BankTransfersIndexRouteImport } from './routes/bank/transfers/index'
 import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/internal/companies/$companyId'
 import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies/$companyId/settings'
 import { Route as CompaniesCompanyIdMembersRouteImport } from './routes/companies/$companyId/members'
+import { Route as BankTransfersIntrabankRouteImport } from './routes/bank/transfers/intrabank'
+import { Route as BankTransfersInterbankRouteImport } from './routes/bank/transfers/interbank'
 import { Route as BankAdminPrivateRouteImport } from './routes/bank/admin/private'
 import { Route as BankAdminLoansRouteImport } from './routes/bank/admin/loans'
 import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/clients'
+import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
+import { Route as BankAccountsAccountIdRouteImport } from './routes/bank/accounts/$accountId'
+import { Route as BankAccountAccountIdRouteImport } from './routes/bank/account/$accountId'
 import { Route as ApiAuthDiscordRouteImport } from './routes/api/auth/discord'
 import { Route as ExchangeCompanyTickerRouteRouteImport } from './routes/exchange/company/$ticker/route'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
@@ -277,14 +287,24 @@ const CompaniesCreateRoute = CompaniesCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => CompaniesRouteRoute,
 } as any)
-const BankTransfersRoute = BankTransfersRouteImport.update({
-  id: '/bank/transfers',
-  path: '/bank/transfers',
+const BankWithdrawRoute = BankWithdrawRouteImport.update({
+  id: '/bank/withdraw',
+  path: '/bank/withdraw',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankProductsRoute = BankProductsRouteImport.update({
+  id: '/bank/products',
+  path: '/bank/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BankPrivateRoute = BankPrivateRouteImport.update({
   id: '/bank/private',
   path: '/bank/private',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankOpenRoute = BankOpenRouteImport.update({
+  id: '/bank/open',
+  path: '/bank/open',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BankLendingRoute = BankLendingRouteImport.update({
@@ -295,6 +315,11 @@ const BankLendingRoute = BankLendingRouteImport.update({
 const BankDepositsRoute = BankDepositsRouteImport.update({
   id: '/bank/deposits',
   path: '/bank/deposits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankDepositRoute = BankDepositRouteImport.update({
+  id: '/bank/deposit',
+  path: '/bank/deposit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BankDashboardRoute = BankDashboardRouteImport.update({
@@ -317,6 +342,11 @@ const CompaniesCompanyIdRouteRoute = CompaniesCompanyIdRouteRouteImport.update({
   path: '/$companyId',
   getParentRoute: () => CompaniesRouteRoute,
 } as any)
+const BankTransfersRouteRoute = BankTransfersRouteRouteImport.update({
+  id: '/bank/transfers',
+  path: '/bank/transfers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InternalCompaniesIndexRoute = InternalCompaniesIndexRouteImport.update({
   id: '/companies/',
   path: '/companies/',
@@ -326,6 +356,11 @@ const CompaniesCompanyIdIndexRoute = CompaniesCompanyIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CompaniesCompanyIdRouteRoute,
+} as any)
+const BankTransfersIndexRoute = BankTransfersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BankTransfersRouteRoute,
 } as any)
 const InternalCompaniesCompanyIdRoute =
   InternalCompaniesCompanyIdRouteImport.update({
@@ -345,6 +380,16 @@ const CompaniesCompanyIdMembersRoute =
     path: '/members',
     getParentRoute: () => CompaniesCompanyIdRouteRoute,
   } as any)
+const BankTransfersIntrabankRoute = BankTransfersIntrabankRouteImport.update({
+  id: '/intrabank',
+  path: '/intrabank',
+  getParentRoute: () => BankTransfersRouteRoute,
+} as any)
+const BankTransfersInterbankRoute = BankTransfersInterbankRouteImport.update({
+  id: '/interbank',
+  path: '/interbank',
+  getParentRoute: () => BankTransfersRouteRoute,
+} as any)
 const BankAdminPrivateRoute = BankAdminPrivateRouteImport.update({
   id: '/bank/admin/private',
   path: '/bank/admin/private',
@@ -358,6 +403,21 @@ const BankAdminLoansRoute = BankAdminLoansRouteImport.update({
 const BankAdminClientsRoute = BankAdminClientsRouteImport.update({
   id: '/bank/admin/clients',
   path: '/bank/admin/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankAccountsOpenRoute = BankAccountsOpenRouteImport.update({
+  id: '/open',
+  path: '/open',
+  getParentRoute: () => BankAccountsRoute,
+} as any)
+const BankAccountsAccountIdRoute = BankAccountsAccountIdRouteImport.update({
+  id: '/$accountId',
+  path: '/$accountId',
+  getParentRoute: () => BankAccountsRoute,
+} as any)
+const BankAccountAccountIdRoute = BankAccountAccountIdRouteImport.update({
+  id: '/bank/account/$accountId',
+  path: '/bank/account/$accountId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthDiscordRoute = ApiAuthDiscordRouteImport.update({
@@ -401,14 +461,18 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
+  '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
-  '/bank/accounts': typeof BankAccountsRoute
+  '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
+  '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
+  '/bank/open': typeof BankOpenRoute
   '/bank/private': typeof BankPrivateRoute
-  '/bank/transfers': typeof BankTransfersRoute
+  '/bank/products': typeof BankProductsRoute
+  '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
@@ -441,12 +505,18 @@ export interface FileRoutesByFullPath {
   '/terminal/': typeof TerminalIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
+  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
+  '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -461,13 +531,16 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
-  '/bank/accounts': typeof BankAccountsRoute
+  '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
+  '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
+  '/bank/open': typeof BankOpenRoute
   '/bank/private': typeof BankPrivateRoute
-  '/bank/transfers': typeof BankTransfersRoute
+  '/bank/products': typeof BankProductsRoute
+  '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
@@ -499,12 +572,18 @@ export interface FileRoutesByTo {
   '/internal': typeof InternalIndexRoute
   '/terminal': typeof TerminalIndexRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
+  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
+  '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/bank/transfers': typeof BankTransfersIndexRoute
   '/companies/$companyId': typeof CompaniesCompanyIdIndexRoute
   '/internal/companies': typeof InternalCompaniesIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -524,14 +603,18 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
+  '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
-  '/bank/accounts': typeof BankAccountsRoute
+  '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
+  '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
+  '/bank/open': typeof BankOpenRoute
   '/bank/private': typeof BankPrivateRoute
-  '/bank/transfers': typeof BankTransfersRoute
+  '/bank/products': typeof BankProductsRoute
+  '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
@@ -564,12 +647,18 @@ export interface FileRoutesById {
   '/terminal/': typeof TerminalIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
+  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
+  '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -590,14 +679,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/markets'
     | '/profile'
+    | '/bank/transfers'
     | '/companies/$companyId'
     | '/bank/accounts'
     | '/bank/business'
     | '/bank/dashboard'
+    | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
+    | '/bank/open'
     | '/bank/private'
-    | '/bank/transfers'
+    | '/bank/products'
+    | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
     | '/exchange/api'
@@ -630,12 +723,18 @@ export interface FileRouteTypes {
     | '/terminal/'
     | '/exchange/company/$ticker'
     | '/api/auth/discord'
+    | '/bank/account/$accountId'
+    | '/bank/accounts/$accountId'
+    | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/transfers/interbank'
+    | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/internal/companies/$companyId'
+    | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/internal/companies/'
     | '/api/auth/discord/callback'
@@ -653,10 +752,13 @@ export interface FileRouteTypes {
     | '/bank/accounts'
     | '/bank/business'
     | '/bank/dashboard'
+    | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
+    | '/bank/open'
     | '/bank/private'
-    | '/bank/transfers'
+    | '/bank/products'
+    | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
     | '/exchange/api'
@@ -688,12 +790,18 @@ export interface FileRouteTypes {
     | '/internal'
     | '/terminal'
     | '/api/auth/discord'
+    | '/bank/account/$accountId'
+    | '/bank/accounts/$accountId'
+    | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/transfers/interbank'
+    | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/internal/companies/$companyId'
+    | '/bank/transfers'
     | '/companies/$companyId'
     | '/internal/companies'
     | '/api/auth/discord/callback'
@@ -712,14 +820,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/markets'
     | '/profile'
+    | '/bank/transfers'
     | '/companies/$companyId'
     | '/bank/accounts'
     | '/bank/business'
     | '/bank/dashboard'
+    | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
+    | '/bank/open'
     | '/bank/private'
-    | '/bank/transfers'
+    | '/bank/products'
+    | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
     | '/exchange/api'
@@ -752,12 +864,18 @@ export interface FileRouteTypes {
     | '/terminal/'
     | '/exchange/company/$ticker'
     | '/api/auth/discord'
+    | '/bank/account/$accountId'
+    | '/bank/accounts/$accountId'
+    | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/transfers/interbank'
+    | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/internal/companies/$companyId'
+    | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/internal/companies/'
     | '/api/auth/discord/callback'
@@ -777,15 +895,20 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRoute
   ProfileRoute: typeof ProfileRoute
-  BankAccountsRoute: typeof BankAccountsRoute
+  BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
+  BankAccountsRoute: typeof BankAccountsRouteWithChildren
   BankBusinessRoute: typeof BankBusinessRoute
   BankDashboardRoute: typeof BankDashboardRoute
+  BankDepositRoute: typeof BankDepositRoute
   BankDepositsRoute: typeof BankDepositsRoute
   BankLendingRoute: typeof BankLendingRoute
+  BankOpenRoute: typeof BankOpenRoute
   BankPrivateRoute: typeof BankPrivateRoute
-  BankTransfersRoute: typeof BankTransfersRoute
+  BankProductsRoute: typeof BankProductsRoute
+  BankWithdrawRoute: typeof BankWithdrawRoute
   BankIndexRoute: typeof BankIndexRoute
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
+  BankAccountAccountIdRoute: typeof BankAccountAccountIdRoute
   BankAdminClientsRoute: typeof BankAdminClientsRoute
   BankAdminLoansRoute: typeof BankAdminLoansRoute
   BankAdminPrivateRoute: typeof BankAdminPrivateRoute
@@ -1080,11 +1203,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCreateRouteImport
       parentRoute: typeof CompaniesRouteRoute
     }
-    '/bank/transfers': {
-      id: '/bank/transfers'
-      path: '/bank/transfers'
-      fullPath: '/bank/transfers'
-      preLoaderRoute: typeof BankTransfersRouteImport
+    '/bank/withdraw': {
+      id: '/bank/withdraw'
+      path: '/bank/withdraw'
+      fullPath: '/bank/withdraw'
+      preLoaderRoute: typeof BankWithdrawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/products': {
+      id: '/bank/products'
+      path: '/bank/products'
+      fullPath: '/bank/products'
+      preLoaderRoute: typeof BankProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bank/private': {
@@ -1092,6 +1222,13 @@ declare module '@tanstack/react-router' {
       path: '/bank/private'
       fullPath: '/bank/private'
       preLoaderRoute: typeof BankPrivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/open': {
+      id: '/bank/open'
+      path: '/bank/open'
+      fullPath: '/bank/open'
+      preLoaderRoute: typeof BankOpenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bank/lending': {
@@ -1106,6 +1243,13 @@ declare module '@tanstack/react-router' {
       path: '/bank/deposits'
       fullPath: '/bank/deposits'
       preLoaderRoute: typeof BankDepositsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/deposit': {
+      id: '/bank/deposit'
+      path: '/bank/deposit'
+      fullPath: '/bank/deposit'
+      preLoaderRoute: typeof BankDepositRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bank/dashboard': {
@@ -1136,6 +1280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdRouteRouteImport
       parentRoute: typeof CompaniesRouteRoute
     }
+    '/bank/transfers': {
+      id: '/bank/transfers'
+      path: '/bank/transfers'
+      fullPath: '/bank/transfers'
+      preLoaderRoute: typeof BankTransfersRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/internal/companies/': {
       id: '/internal/companies/'
       path: '/companies'
@@ -1149,6 +1300,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/companies/$companyId/'
       preLoaderRoute: typeof CompaniesCompanyIdIndexRouteImport
       parentRoute: typeof CompaniesCompanyIdRouteRoute
+    }
+    '/bank/transfers/': {
+      id: '/bank/transfers/'
+      path: '/'
+      fullPath: '/bank/transfers/'
+      preLoaderRoute: typeof BankTransfersIndexRouteImport
+      parentRoute: typeof BankTransfersRouteRoute
     }
     '/internal/companies/$companyId': {
       id: '/internal/companies/$companyId'
@@ -1171,6 +1329,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesCompanyIdMembersRouteImport
       parentRoute: typeof CompaniesCompanyIdRouteRoute
     }
+    '/bank/transfers/intrabank': {
+      id: '/bank/transfers/intrabank'
+      path: '/intrabank'
+      fullPath: '/bank/transfers/intrabank'
+      preLoaderRoute: typeof BankTransfersIntrabankRouteImport
+      parentRoute: typeof BankTransfersRouteRoute
+    }
+    '/bank/transfers/interbank': {
+      id: '/bank/transfers/interbank'
+      path: '/interbank'
+      fullPath: '/bank/transfers/interbank'
+      preLoaderRoute: typeof BankTransfersInterbankRouteImport
+      parentRoute: typeof BankTransfersRouteRoute
+    }
     '/bank/admin/private': {
       id: '/bank/admin/private'
       path: '/bank/admin/private'
@@ -1190,6 +1362,27 @@ declare module '@tanstack/react-router' {
       path: '/bank/admin/clients'
       fullPath: '/bank/admin/clients'
       preLoaderRoute: typeof BankAdminClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/accounts/open': {
+      id: '/bank/accounts/open'
+      path: '/open'
+      fullPath: '/bank/accounts/open'
+      preLoaderRoute: typeof BankAccountsOpenRouteImport
+      parentRoute: typeof BankAccountsRoute
+    }
+    '/bank/accounts/$accountId': {
+      id: '/bank/accounts/$accountId'
+      path: '/$accountId'
+      fullPath: '/bank/accounts/$accountId'
+      preLoaderRoute: typeof BankAccountsAccountIdRouteImport
+      parentRoute: typeof BankAccountsRoute
+    }
+    '/bank/account/$accountId': {
+      id: '/bank/account/$accountId'
+      path: '/bank/account/$accountId'
+      fullPath: '/bank/account/$accountId'
+      preLoaderRoute: typeof BankAccountAccountIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/discord': {
@@ -1370,6 +1563,35 @@ const TerminalRouteRouteWithChildren = TerminalRouteRoute._addFileChildren(
   TerminalRouteRouteChildren,
 )
 
+interface BankTransfersRouteRouteChildren {
+  BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
+  BankTransfersIntrabankRoute: typeof BankTransfersIntrabankRoute
+  BankTransfersIndexRoute: typeof BankTransfersIndexRoute
+}
+
+const BankTransfersRouteRouteChildren: BankTransfersRouteRouteChildren = {
+  BankTransfersInterbankRoute: BankTransfersInterbankRoute,
+  BankTransfersIntrabankRoute: BankTransfersIntrabankRoute,
+  BankTransfersIndexRoute: BankTransfersIndexRoute,
+}
+
+const BankTransfersRouteRouteWithChildren =
+  BankTransfersRouteRoute._addFileChildren(BankTransfersRouteRouteChildren)
+
+interface BankAccountsRouteChildren {
+  BankAccountsAccountIdRoute: typeof BankAccountsAccountIdRoute
+  BankAccountsOpenRoute: typeof BankAccountsOpenRoute
+}
+
+const BankAccountsRouteChildren: BankAccountsRouteChildren = {
+  BankAccountsAccountIdRoute: BankAccountsAccountIdRoute,
+  BankAccountsOpenRoute: BankAccountsOpenRoute,
+}
+
+const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
+  BankAccountsRouteChildren,
+)
+
 interface ApiAuthDiscordRouteChildren {
   ApiAuthDiscordCallbackRoute: typeof ApiAuthDiscordCallbackRoute
 }
@@ -1394,15 +1616,20 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRoute,
   ProfileRoute: ProfileRoute,
-  BankAccountsRoute: BankAccountsRoute,
+  BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
+  BankAccountsRoute: BankAccountsRouteWithChildren,
   BankBusinessRoute: BankBusinessRoute,
   BankDashboardRoute: BankDashboardRoute,
+  BankDepositRoute: BankDepositRoute,
   BankDepositsRoute: BankDepositsRoute,
   BankLendingRoute: BankLendingRoute,
+  BankOpenRoute: BankOpenRoute,
   BankPrivateRoute: BankPrivateRoute,
-  BankTransfersRoute: BankTransfersRoute,
+  BankProductsRoute: BankProductsRoute,
+  BankWithdrawRoute: BankWithdrawRoute,
   BankIndexRoute: BankIndexRoute,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
+  BankAccountAccountIdRoute: BankAccountAccountIdRoute,
   BankAdminClientsRoute: BankAdminClientsRoute,
   BankAdminLoansRoute: BankAdminLoansRoute,
   BankAdminPrivateRoute: BankAdminPrivateRoute,

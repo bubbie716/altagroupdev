@@ -21,6 +21,7 @@ import {
   bankRecentActivity,
   businessMetrics,
   businessServices,
+  bankProducts,
   depositProducts,
   lendingProducts,
   privateBanking,
@@ -43,7 +44,12 @@ export function getBankAccounts() {
   return bankAccounts;
 }
 
-/** GET /v1/bank/deposits */
+/** GET /v1/bank/products */
+export function getBankProducts() {
+  return bankProducts;
+}
+
+/** @deprecated Use getBankProducts() */
 export function getDepositProducts() {
   return depositProducts;
 }
@@ -107,6 +113,7 @@ export const bankApi = {
   getBankDescription,
   getBankDashboard,
   getBankAccounts,
+  getBankProducts,
   getDepositProducts,
   getLendingProducts,
   getTransferHistory,

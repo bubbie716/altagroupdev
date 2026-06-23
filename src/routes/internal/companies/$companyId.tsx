@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Section, Card } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
-import { MockActionButton } from "@/components/internal/mock-action-button";
+import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
 import { formatCompanyRole } from "@/lib/internal/format";
 import { fetchInternalCompanyFromDb } from "@/lib/company/company.functions";
 import { getCompanyById } from "@/lib/internal/api";
@@ -78,10 +78,11 @@ function InternalCompanyDetail() {
           </Card>
         </Section>
 
-        <div className="mt-8 flex flex-wrap gap-2">
-          <MockActionButton label="Verify" variant="primary" />
-          <MockActionButton label="Suspend" variant="danger" />
-          <MockActionButton label="Add representative" />
+        <div className="mt-8">
+          <CompanyVerificationActions
+            companyId={company.id}
+            verificationStatus={company.verificationStatus}
+          />
         </div>
       </InternalPageShell>
     );

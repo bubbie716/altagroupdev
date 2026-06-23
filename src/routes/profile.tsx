@@ -1,13 +1,16 @@
-import type { ReactNode } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { formatAccountStatus, formatCompanyRole, formatUserTag } from "@/lib/auth/tags";
 import { useRequireCurrentUser } from "@/hooks/use-current-user";
+import { fetchUserBankSummary } from "@/lib/bank/bank.functions";
+import { florin } from "@/lib/bank/api";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: authBeforeLoad,
+  loader: () => fetchUserBankSummary(),
   head: () => ({ meta: [{ title: "Profile — Alta Group" }] }),
   component: ProfilePage,
 });
@@ -23,6 +26,7 @@ function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
 
 function ProfilePage() {
   const user = useRequireCurrentUser();
+  const bankSummary = Route.useLoaderData();
 
   return (
     <PageShell
@@ -89,6 +93,30 @@ function ProfilePage() {
           </Card>
         </Section>
       </div>
+
+      <Section title="Alta Bank" className="mt-10">
+        <Card className="!p-5">
+          {bankSummary.activeAccountCount === 0 ? (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">No Alta Bank accounts connected yet.</p>
+              <Link to="/bank/open" className="text-gold hover:underline">
+                Open an account →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <ProfileRow label="Total Balance" value={<span className="tabular font-medium">{florin(bankSummary.totalBalance)}</span>} />
+              <ProfileRow label="Active Accounts" value={String(bankSummary.activeAccountCount)} />
+              <ProfileRow label="Pending Accounts" value={String(bankSummary.pendingAccountCount)} />
+              <ProfileRow label="Pending Deposits" value={String(bankSummary.pendingDepositCount)} />
+              <ProfileRow label="Pending Withdrawals" value={String(bankSummary.pendingWithdrawalCount)} />
+              <Link to="/bank" className="mt-4 inline-block text-[12px] text-gold hover:underline">
+                View bank dashboard →
+              </Link>
+            </>
+          )}
+        </Card>
+      </Section>
 
       <Section title="Linked Companies" className="mt-10">
         <Card className="!p-0">

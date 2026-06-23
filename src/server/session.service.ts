@@ -20,23 +20,28 @@ export async function createUserSession(userId: string): Promise<string | null> 
 }
 
 export async function loadUserBySessionToken(token: string): Promise<AltaUser | null> {
-  const session = await prisma.session.findUnique({
-    where: { sessionToken: token },
-    include: {
-      user: {
-        include: userWithMembershipsInclude,
+  try {
+    const session = await prisma.session.findUnique({
+      where: { sessionToken: token },
+      include: {
+        user: {
+          include: userWithMembershipsInclude,
+        },
       },
-    },
-  });
+    });
 
-  if (!session) return null;
+    if (!session) return null;
 
-  if (session.expiresAt.getTime() < Date.now()) {
-    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    if (session.expiresAt.getTime() < Date.now()) {
+      await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+      return null;
+    }
+
+    return mapDbUserToAltaUser(session.user);
+  } catch (error) {
+    console.error("[session] Failed to load session", error);
     return null;
   }
-
-  return mapDbUserToAltaUser(session.user);
 }
 
 export async function deleteSessionByToken(token: string): Promise<void> {

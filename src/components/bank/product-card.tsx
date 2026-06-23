@@ -1,10 +1,22 @@
 import { Card } from "@/components/page-shell";
 import type { BankProduct } from "@/lib/bank/api";
+import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: BankProduct }) {
+  const isPrivate = product.isPrivate ?? product.category === "Alta Private";
+
   return (
-    <Card>
+    <Card className={cn(isPrivate && "border-gold/25 bg-surface-1")}>
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">{product.name}</div>
+      {isPrivate && (
+        <span className="mt-2 inline-flex rounded-full border border-gold/30 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-gold">
+          Invitation only
+        </span>
+      )}
+      <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        {product.category}
+      </div>
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{product.positioning}</p>
       <div className="mt-4 grid gap-3 text-sm">
         <div>
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -25,7 +37,7 @@ export function ProductCard({ product }: { product: BankProduct }) {
           ))}
         </ul>
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {product.availability}
+          Availability · {product.availability}
         </div>
       </div>
     </Card>

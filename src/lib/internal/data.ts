@@ -21,7 +21,7 @@ import type {
 } from "./types";
 
 export const internalPreviewNotice =
-  "Internal ops portal — requires admin tag. Financial actions remain simulated.";
+  "Internal preview data — not connected to live operations.";
 
 export const overviewMetrics: InternalOverviewMetrics = {
   totalUsers: 2847,
@@ -313,7 +313,7 @@ export const bankOpsSummary: BankOpsSummary = {
 export const bankOpsAccounts: BankOpsAccount[] = [
   { id: "ALT-CHK-88421", holder: "vaultseeker", product: "Alta Checking", balance: "ƒ284,220", status: "Active" },
   { id: "ALT-PRV-00291", holder: "harborline", product: "Alta Private", balance: "ƒ4.2M", status: "Active" },
-  { id: "ALT-OPS-44102", holder: "frozen_case", product: "Alta Reserve", balance: "ƒ88,410", status: "Frozen" },
+  { id: "ALT-OPS-44102", holder: "frozen_case", product: "Reserve Account by Alta Private", balance: "ƒ88,410", status: "Frozen" },
   { id: "ALT-CHK-77219", holder: "meridian_founder", product: "Alta Checking", balance: "ƒ1.1M", status: "Active" },
 ];
 

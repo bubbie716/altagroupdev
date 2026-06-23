@@ -56,27 +56,35 @@ Permission helpers: `canManageCompany`, `canAccessIssuerPortal`, `isCompanyOwner
 ### Member management rules (implemented)
 
 - **Owner** may change roles and remove members, except cannot remove the sole owner.
-- **Executive** may manage non-owner members; cannot assign or modify **Owner**.
-- **Add existing user** looks up Alta accounts by Discord username or ID.
+- **Executive** may manage members only below executive rank (not owners or other executives).
+- New members are added only via **Send invitation** — no direct add flow.
 - At least one **Owner** must remain on every company.
 
-## Invitation system (preview)
+## Invitation system
 
-The members page includes invite UI:
+Company invitations are stored in `CompanyInvitation` and appear on the invitee's **`/companies`** dashboard.
 
-- **Add existing user** — functional when the Discord user already has an Alta account.
-- **Send invitation** — **preview only**. No Discord DM, no email, no acceptance link yet.
+### Sending invitations
+
+From **Members → Invite authorized representative**, **Send invitation** creates a pending `CompanyInvitation` (30-day expiry). The invitee must accept on their Companies page — there is no direct add flow.
+
+### Accepting invitations
+
+Pending invitations appear at the top of `/companies` with **Accept** and **Decline** actions. Accepting creates a `CompanyMembership` with the invited role.
+
+Invitations match the logged-in user by:
+
+- `invitedUserId`
+- `invitedDiscordId`
+- `invitedDiscordUsername` (case-insensitive)
 
 ### Future Discord bot integration
 
-When the Alta Discord bot ships, invitations should trigger:
+When the Alta Discord bot ships, invitations should also trigger:
 
-1. **Discord DM** to the invitee with company name, role, and acceptance link.
+1. **Discord DM** to the invitee with company name, role, and link to `/companies`.
 2. **Admin channel log** in the Alta operations Discord server.
-3. **Acceptance flow** — user signs in with Discord, confirms membership.
-4. **Role assignment confirmation** — create `CompanyMembership` and notify owner.
-
-Suggested future model: `CompanyInvitation` with `companyId`, `invitedDiscordId`, `role`, `status`, `expiresAt`, `invitedByUserId`.
+3. **Acceptance confirmation** — notify the inviting owner after membership is created.
 
 ```typescript
 // TODO(bot): dispatch invitation after CompanyInvitation insert
@@ -96,12 +104,17 @@ IPO applications and issuer portal access depend on:
 
 `/internal/companies` loads **real Prisma `Company` records** when the database is available. Detail pages use DB data with mock fallback for legacy seed IDs.
 
+Operators can **Verify** or **Reject verification** from the companies list or company detail page. Verification sets `verificationStatus: VERIFIED` and promotes `status` from `PENDING` to `ACTIVE` when applicable.
+
+Verified companies can open **Business Operating Accounts** immediately — no manual bank review queue.
+
 ## Code map
 
 | Path | Purpose |
 |------|---------|
 | `src/lib/company/types.ts` | Shared types and form options |
 | `src/lib/company/company.functions.ts` | Server functions (RPC) |
+| `src/lib/companies/api.ts` | Server-side API + permission helpers |
 | `src/server/company.service.ts` | Business logic |
 | `src/server/company-mapper.ts` | Prisma → app types |
 | `src/routes/companies/**` | User-facing company UI |

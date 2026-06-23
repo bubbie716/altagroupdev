@@ -12,6 +12,34 @@ export const ISSUER_PORTAL_ROLES: readonly CompanyRole[] = [
 /** Roles that may manage company settings and representatives. */
 export const COMPANY_MANAGEMENT_ROLES: readonly CompanyRole[] = ["owner", "executive"] as const;
 
+const COMPANY_ROLE_RANK: Record<CompanyRole, number> = {
+  owner: 5,
+  executive: 4,
+  finance_manager: 3,
+  compliance_contact: 2,
+  viewer: 1,
+};
+
+export function companyRoleRank(role: CompanyRole): number {
+  return COMPANY_ROLE_RANK[role];
+}
+
+export function isCompanyRoleAbove(above: CompanyRole, below: CompanyRole): boolean {
+  return COMPANY_ROLE_RANK[above] > COMPANY_ROLE_RANK[below];
+}
+
+/** Whether an actor may change or remove a member who currently holds `targetRole`. */
+export function canManageCompanyMember(actorRole: CompanyRole, targetRole: CompanyRole): boolean {
+  if (actorRole === "owner") return true;
+  return isCompanyRoleAbove(actorRole, targetRole);
+}
+
+/** Whether an actor may assign or invite someone to `assignRole`. */
+export function canAssignCompanyRole(actorRole: CompanyRole, assignRole: CompanyRole): boolean {
+  if (actorRole === "owner") return true;
+  return isCompanyRoleAbove(actorRole, assignRole);
+}
+
 export type CompanyScope = {
   companyId?: string;
   ticker?: string;

@@ -11,7 +11,7 @@ const fields = [
   { label: "Memo", placeholder: "Operating disbursement" },
 ];
 
-export function TransferFormPreview() {
+export function TransferFormPreview({ disabled = false }: { disabled?: boolean }) {
   return (
     <Card>
       <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -30,22 +30,29 @@ export function TransferFormPreview() {
             <input
               type="text"
               readOnly
-              value={f.value}
-              placeholder={f.placeholder}
+              disabled={disabled}
+              value={disabled ? undefined : f.value}
+              placeholder={disabled ? "—" : f.placeholder}
               className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground"
             />
           </label>
         ))}
       </div>
-      <div className="mt-6 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        Wire execution is simulated in this preview. NCC-Net settlement is planned infrastructure.
-      </div>
+      {disabled ? (
+        <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+          Transfers will become available after your Alta Bank account is opened.
+        </div>
+      ) : (
+        <div className="mt-6 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+          Wire execution is simulated in this preview. NCC-Net settlement is planned infrastructure.
+        </div>
+      )}
       <button
         type="button"
         disabled
         className="mt-4 cursor-not-allowed rounded-md border border-border bg-surface-2 px-5 py-2.5 text-[13px] font-medium text-muted-foreground"
       >
-        Submit wire (preview only)
+        {disabled ? "Submit wire (unavailable)" : "Submit wire (preview only)"}
       </button>
     </Card>
   );

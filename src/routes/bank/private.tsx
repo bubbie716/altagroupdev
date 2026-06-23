@@ -4,8 +4,10 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { PrivateTierCard } from "@/components/bank/private-tier-card";
+import { EmptyBankState } from "@/components/data/empty-bank-state";
 import CreditCard from "@/components/shared-assets/credit-card/credit-card";
 import { getPrivateBanking, getPrivateMetrics } from "@/lib/bank/api";
+import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 export const Route = createFileRoute("/bank/private")({
   beforeLoad: privateClientBeforeLoad,
@@ -16,8 +18,7 @@ export const Route = createFileRoute("/bank/private")({
 });
 
 function BankPrivate() {
-  const p = getPrivateBanking();
-  const privateMetrics = getPrivateMetrics();
+  const showMockData = isUserFinancialMockDataEnabled();
 
   return (
     <PageShell
@@ -27,6 +28,47 @@ function BankPrivate() {
     >
       <BankSubNav />
 
+      {showMockData ? <BankPrivateMockContent /> : <BankPrivateLockedContent />}
+    </PageShell>
+  );
+}
+
+function BankPrivateLockedContent() {
+  return (
+    <>
+      <EmptyBankState
+        title="No Alta Private relationship on file."
+        description="Your private banking profile, dedicated banker, and account status will appear here once your Alta Private relationship is established."
+        ctaLabel="View Bank Products"
+        ctaTo="/bank/products"
+      />
+
+      <Section title="Private Benefits" className="mt-12">
+        <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
+          {[
+            "Dedicated private banker",
+            "Same-day NCC-Net wire priority",
+            "Reserve Account by Alta Private",
+            "Summit Money Market by Alta Private",
+            "Concierge settlement support",
+            "Integrated Alta Terminal access",
+          ].map((item) => (
+            <div key={item} className="bg-surface-1 px-6 py-4 text-[14px]">
+              {item}
+            </div>
+          ))}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function BankPrivateMockContent() {
+  const p = getPrivateBanking();
+  const privateMetrics = getPrivateMetrics();
+
+  return (
+    <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {privateMetrics.map((m) => (
           <BankStatCard key={m.label} label={m.label} value={m.value} />
@@ -60,7 +102,11 @@ function BankPrivate() {
         <PrivateTierCard label="Relationship Tier" value={p.tier} />
         <PrivateTierCard label="Private Card" value={p.card} detail={p.cardLimit} />
         <PrivateTierCard label="Priority Lending" value={p.lending} />
-        <PrivateTierCard label="Private Negotiated CDs" value="Active placements" detail={p.cds} />
+        <PrivateTierCard
+          label="Summit Money Market"
+          value="Active relationship"
+          detail={p.summitMoneyMarket}
+        />
         <PrivateTierCard label="Liquidity Line" value={p.liquidityLine} />
         <PrivateTierCard label="Invitation-Only Access" value="By referral" detail="Not open for public application" />
       </div>
@@ -70,8 +116,8 @@ function BankPrivate() {
           {[
             "Dedicated private banker",
             "Same-day NCC-Net wire priority",
-            "Negotiated deposit terms",
-            "Standby liquidity facilities",
+            "Reserve Account by Alta Private",
+            "Summit Money Market by Alta Private",
             "Concierge settlement support",
             "Integrated Alta Terminal access",
           ].map((item) => (
@@ -81,6 +127,6 @@ function BankPrivate() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }

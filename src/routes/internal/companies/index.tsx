@@ -3,7 +3,7 @@ import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
-import { MockActionButton } from "@/components/internal/mock-action-button";
+import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
 import { fetchInternalCompaniesFromDb } from "@/lib/company/company.functions";
 import type { InternalCompanyRow } from "@/lib/company/types";
 
@@ -76,14 +76,11 @@ function InternalCompanies() {
             {
               key: "actions",
               header: "Actions",
-              cell: () => (
-                <div className="flex flex-wrap gap-1">
-                  <MockActionButton label="View" />
-                  <MockActionButton label="Verify" variant="primary" />
-                  <MockActionButton label="Suspend" variant="danger" />
-                  <MockActionButton label="Add rep" />
-                  <MockActionButton label="Request docs" />
-                </div>
+              cell: (c: InternalCompanyRow) => (
+                <CompanyVerificationActions
+                  companyId={c.id}
+                  verificationStatus={c.verificationStatus}
+                />
               ),
             },
           ]}

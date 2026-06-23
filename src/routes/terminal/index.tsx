@@ -7,6 +7,8 @@ import { WatchlistTable } from "@/components/terminal/watchlist-table";
 import { NewsFeed } from "@/components/terminal/news-feed";
 import { IPOAccessCard } from "@/components/terminal/ipo-access-card";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
+import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
+import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { movers } from "@/lib/mock-data";
 import {
   florin,
@@ -19,6 +21,7 @@ import {
   getWatchlistGroups,
   pct,
 } from "@/lib/terminal/api";
+import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/terminal/")({
@@ -33,13 +36,9 @@ export const Route = createFileRoute("/terminal/")({
 });
 
 function TerminalHome() {
-  const d = getTerminalDashboard();
+  const showMockData = isUserFinancialMockDataEnabled();
+  const showMarketPreview = isPublicSimulatedMarketDataEnabled();
   const terminalDescription = getTerminalDescription();
-  const watchlistGroups = getWatchlistGroups();
-  const terminalIpoAccess = getTerminalIpoAccess();
-  const terminalNews = getTerminalNews();
-  const holdings = getHoldings();
-  const orders = getOrders();
 
   return (
     <PageShell
@@ -49,6 +48,28 @@ function TerminalHome() {
     >
       <TerminalSubNav />
 
+      {showMockData ? (
+        <TerminalHomeMockContent />
+      ) : (
+        <>
+          <EmptyPortfolioState />
+          {showMarketPreview && <TerminalMarketPreviewSections />}
+        </>
+      )}
+    </PageShell>
+  );
+}
+
+function TerminalHomeMockContent() {
+  const d = getTerminalDashboard();
+  const watchlistGroups = getWatchlistGroups();
+  const terminalIpoAccess = getTerminalIpoAccess();
+  const terminalNews = getTerminalNews();
+  const holdings = getHoldings();
+  const orders = getOrders();
+
+  return (
+    <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <TerminalStatCard label="Total Net Worth" value={florin(d.totalNetWorth)} className="lg:col-span-1" />
         <TerminalStatCard label="Portfolio Value" value={florin(d.portfolioValue)} />
@@ -174,6 +195,79 @@ function TerminalHome() {
       <Section title="Holdings Snapshot" className="mt-10">
         <HoldingsTable rows={holdings.slice(0, 4)} />
       </Section>
-    </PageShell>
+    </>
+  );
+}
+
+function TerminalMarketPreviewSections() {
+  const terminalIpoAccess = getTerminalIpoAccess();
+  const terminalNews = getTerminalNews();
+
+  return (
+    <>
+      <MockDataNotice className="mt-10" />
+
+      <Section title="Market Movers" className="mt-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Gainers</div>
+            <ul className="mt-4 space-y-3">
+              {movers.gainers.slice(0, 5).map((s) => (
+                <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+                  <span className="font-mono">{s.symbol}</span>
+                  <span className="ticker-up font-mono text-[12px]">{pct(s.change)}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Losers</div>
+            <ul className="mt-4 space-y-3">
+              {movers.losers.slice(0, 5).map((s) => (
+                <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
+                  <span className="font-mono">{s.symbol}</span>
+                  <span className="ticker-down font-mono text-[12px]">{pct(s.change)}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </Section>
+
+      <Section
+        title="IPO Access Preview"
+        className="mt-10"
+        action={
+          <Link to="/terminal/ipo" className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold hover:underline">
+            IPO Access →
+          </Link>
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          {terminalIpoAccess.map((ipo) => (
+            <IPOAccessCard
+              key={ipo.ticker}
+              company={ipo.company}
+              ticker={ipo.ticker}
+              status={ipo.status}
+              allocationStatus={ipo.allocationStatus}
+              detail={ipo.offeringPrice ?? ipo.expectedPrice ?? ipo.listingPrice}
+            />
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        title="Market News"
+        className="mt-10"
+        action={
+          <Link to="/terminal/news" className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold hover:underline">
+            All news →
+          </Link>
+        }
+      >
+        <NewsFeed items={terminalNews.slice(0, 4)} />
+      </Section>
+    </>
   );
 }

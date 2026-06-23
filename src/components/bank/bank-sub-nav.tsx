@@ -5,13 +5,30 @@ import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
   { to: "/bank", label: "Dashboard", exact: true },
-  { to: "/bank/accounts", label: "Accounts" },
-  { to: "/bank/transfers", label: "Transfers" },
-  { to: "/bank/deposits", label: "Deposits" },
+  { to: "/bank/deposit", label: "Deposit" },
+  { to: "/bank/withdraw", label: "Withdraw" },
+  { to: "/bank/transfers", label: "Transfers", activePaths: ["/bank/transfers"] },
+  { to: "/bank/products", label: "Products", activePaths: ["/bank/products", "/bank/deposits"] },
   { to: "/bank/lending", label: "Lending" },
   { to: "/bank/business", label: "Business" },
   { to: "/bank/private", label: "Private", privateOnly: true },
 ] as const;
+
+function isNavLinkActive(
+  pathname: string,
+  link: (typeof links)[number],
+): boolean {
+  const path = pathname.replace(/\/$/, "") || "/";
+  if ("activePaths" in link && link.activePaths) {
+    return link.activePaths.some((target) => {
+      const normalized = target.replace(/\/$/, "") || "/";
+      return path === normalized || path.startsWith(`${normalized}/`);
+    });
+  }
+  const target = link.to.replace(/\/$/, "") || "/";
+  if ("exact" in link && link.exact) return path === target;
+  return path === target || path.startsWith(`${target}/`);
+}
 
 export function BankSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -23,12 +40,7 @@ export function BankSubNav() {
   return (
     <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
       {visibleLinks.map((l) => {
-        const normalizedPath = pathname.replace(/\/$/, "") || "/";
-        const normalizedTo = l.to.replace(/\/$/, "") || "/";
-        const active =
-          "exact" in l && l.exact
-            ? normalizedPath === normalizedTo
-            : pathname.startsWith(l.to);
+        const active = isNavLinkActive(pathname, l);
         return (
           <Link
             key={l.to}
