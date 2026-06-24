@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
-import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
 import { AltaPayReceivedPanel } from "@/components/bank/alta-pay-received-panel";
 import { fetchBusinessAccountContextForModule } from "@/lib/bank/business-account.functions";
 import { fetchCompanyAltaPayReceived } from "@/lib/bank/alta-pay.functions";
@@ -38,7 +37,6 @@ function BusinessAccountPaymentsPage() {
 
   return (
     <>
-      <BusinessFutureNotice variant="intrabank" />
       {showAltaPayReceived ? (
         <Section title="Alta Pay received">
           <AltaPayReceivedPanel summary={altaPayReceived} />

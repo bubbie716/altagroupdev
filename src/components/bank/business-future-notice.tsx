@@ -1,10 +1,10 @@
 import { Info } from "lucide-react";
-import { FUTURE_EXECUTION_NOTICE, INTRABANK_EXECUTION_NOTICE } from "@/lib/bank/business-banking-types";
+import { FUTURE_EXECUTION_NOTICE, INTERBANK_EXECUTION_NOTICE } from "@/lib/bank/business-banking-types";
 
-export function BusinessFutureNotice({ variant = "default" }: { variant?: "default" | "intrabank" }) {
+export function BusinessFutureNotice({ variant = "default" }: { variant?: "default" | "interbank" }) {
   const message =
-    variant === "intrabank"
-      ? INTRABANK_EXECUTION_NOTICE
+    variant === "interbank"
+      ? INTERBANK_EXECUTION_NOTICE
       : `${FUTURE_EXECUTION_NOTICE} All submissions enter manual review until execution is enabled.`;
 
   return (

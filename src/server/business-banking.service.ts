@@ -14,6 +14,7 @@ import type {
   PayrollRunRow,
   ScheduledPaymentRow,
 } from "@/lib/bank/business-banking-types";
+import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 import {
   mapPayrollEmployee,
@@ -150,15 +151,19 @@ export async function createScheduledPayment(
     badRequest("Label and recipient name are required.");
   }
 
-  const scheduledDate = input.scheduledDate ? new Date(input.scheduledDate) : null;
+  const scheduledDate = resolveScheduledInputDateTime(input.scheduledDate, input.scheduledTime);
   if (input.paymentType === "one_time" || input.paymentType === "scheduled") {
-    if (!scheduledDate || Number.isNaN(scheduledDate.getTime())) {
-      badRequest("Scheduled date is required.");
+    if (!scheduledDate) {
+      badRequest("Scheduled date and time are required.");
     }
   }
 
   if (input.paymentType === "recurring" && !input.frequency) {
     badRequest("Frequency is required for recurring payments.");
+  }
+
+  if (input.paymentType === "recurring" && !scheduledDate) {
+    badRequest("First run date and time are required.");
   }
 
   const row = await prisma.scheduledPayment.create({

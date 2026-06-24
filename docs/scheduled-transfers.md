@@ -27,7 +27,7 @@ Intrabank transfers are **auto-approved on creation**. Interbank scheduled trans
 2. `executeDueScheduledTransfers()` finds `ScheduledPayment` rows where:
    - `transferScope = INTRABANK`
    - `status = APPROVED`
-   - `nextRunDate` or `scheduledDate` is due (≤ now)
+   - `nextRunDate` or `scheduledDate` is due (≤ now, stored as UTC instants)
 3. For each due transfer:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
@@ -48,6 +48,15 @@ Each run is keyed by **`scheduledPaymentId + scheduledRunAt`** with a unique dat
 | 3 consecutive failures | Scheduled transfer status → `PAUSED` with message “Paused after repeated failures.” |
 
 Recurring transfers advance `nextRunDate` even after a failure so the next cycle can retry.
+
+## Scheduled date & time (Eastern)
+
+Users pick a **date** and **time (Eastern)** when scheduling. The server stores the exact instant in UTC via `src/lib/scheduled-datetime.ts` (`America/New_York`).
+
+- **One-time / scheduled:** runs at the chosen Eastern date and time.
+- **Recurring:** first run at that date/time; later runs keep the same clock time (e.g. every month at 9:00 AM ET).
+- **Default time** if omitted on API: 9:00 AM Eastern.
+- **Actual execution** still depends on cron-job.org polling (within ~1–15 minutes after the due instant).
 
 ## Environment
 

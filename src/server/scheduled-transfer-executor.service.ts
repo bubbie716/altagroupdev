@@ -23,24 +23,7 @@ export interface ExecuteDueScheduledTransfersResult {
   skippedCount: number;
 }
 
-export function calculateNextRunDate(frequency: PaymentFrequency, from: Date): Date {
-  const next = new Date(from);
-  switch (frequency) {
-    case "WEEKLY":
-      next.setDate(next.getDate() + 7);
-      break;
-    case "BIWEEKLY":
-      next.setDate(next.getDate() + 14);
-      break;
-    case "MONTHLY":
-      next.setMonth(next.getMonth() + 1);
-      break;
-    case "QUARTERLY":
-      next.setMonth(next.getMonth() + 3);
-      break;
-  }
-  return next;
-}
+import { calculateNextRunDate as calculateNextRunDateInBankTz } from "@/lib/scheduled-datetime";
 
 export function resolveScheduledRunAt(payment: Pick<ScheduledPayment, "paymentType" | "scheduledDate" | "nextRunDate">): Date | null {
   if (payment.paymentType === "RECURRING") {
@@ -196,7 +179,7 @@ async function executeSinglePayment(
       };
 
       if (payment.paymentType === "RECURRING" && payment.frequency) {
-        paymentUpdate.nextRunDate = calculateNextRunDate(payment.frequency, scheduledRunAt);
+        paymentUpdate.nextRunDate = calculateNextRunDateInBankTz(payment.frequency, scheduledRunAt);
         paymentUpdate.status = "APPROVED";
       } else {
         paymentUpdate.status = "EXECUTED";
@@ -244,7 +227,7 @@ async function recordFailure(
     };
 
     if (payment.paymentType === "RECURRING" && payment.frequency) {
-      paymentUpdate.nextRunDate = calculateNextRunDate(payment.frequency, scheduledRunAt);
+      paymentUpdate.nextRunDate = calculateNextRunDateInBankTz(payment.frequency, scheduledRunAt);
       paymentUpdate.status = shouldPause ? "PAUSED" : "APPROVED";
       if (shouldPause) {
         paymentUpdate.lastFailureReason = "Paused after repeated failures.";

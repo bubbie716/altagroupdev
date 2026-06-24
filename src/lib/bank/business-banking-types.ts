@@ -129,6 +129,8 @@ export interface CreateScheduledPaymentInput {
   amount: number;
   frequency?: PaymentFrequencyCode;
   scheduledDate?: string;
+  /** 24-hour time in America/New_York, e.g. `09:30` */
+  scheduledTime?: string;
   memo?: string;
 }
 
@@ -145,6 +147,8 @@ export interface CreateUserScheduledTransferInput {
   amount: number;
   frequency?: PaymentFrequencyCode;
   scheduledDate?: string;
+  /** 24-hour time in America/New_York, e.g. `09:30` */
+  scheduledTime?: string;
   memo?: string;
 }
 
@@ -174,8 +178,8 @@ export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
   viewer: "Viewer",
 };
 
-export const INTRABANK_EXECUTION_NOTICE =
-  "Approved intrabank scheduled transfers run automatically. Interbank and wire transfers still require manual review.";
+export const INTERBANK_EXECUTION_NOTICE =
+  "Interbank scheduled transfers require operator review before execution.";
 
 export const FUTURE_EXECUTION_NOTICE =
   "Automatic payment execution coming in a future release.";

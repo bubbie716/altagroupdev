@@ -43,6 +43,7 @@ export function BusinessAccountPaymentsCenter({
             recipientAccountNumber: input.recipientAccountNumber,
             amount: input.amount,
             scheduledDate: input.scheduledDate,
+            scheduledTime: input.scheduledTime,
             frequency: input.frequency,
             memo: input.memo,
           },

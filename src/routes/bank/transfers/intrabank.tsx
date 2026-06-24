@@ -3,7 +3,6 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankInternalTransferForm } from "@/components/bank/bank-internal-transfer-form";
-import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
@@ -92,7 +91,6 @@ function BankIntrabankTransfers() {
 
           {data.sourceAccounts.length > 0 && (
             <Section title="Scheduled & recurring transfers" className="mt-10">
-              <BusinessFutureNotice variant="intrabank" />
               <IntrabankScheduledTransfers data={data} defaultSourceAccountId={accountId} />
             </Section>
           )}

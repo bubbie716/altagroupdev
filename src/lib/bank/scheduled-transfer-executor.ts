@@ -4,10 +4,11 @@ export type {
 } from "@/server/scheduled-transfer-executor.service";
 
 export {
-  calculateNextRunDate,
   executeDueScheduledTransfers,
   executeScheduledTransferNow,
   mapExecutionStatusLabel,
   resolveScheduledRunAt,
   toFriendlyFailureReason,
 } from "@/server/scheduled-transfer-executor.service";
+
+export { calculateNextRunDate } from "@/lib/scheduled-datetime";

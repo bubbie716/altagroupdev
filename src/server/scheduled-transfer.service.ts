@@ -11,6 +11,7 @@ import {
   toDbPaymentType,
   toDbTransferScope,
 } from "@/server/business-banking-mapper";
+import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 
 function notFound(): never {
@@ -48,15 +49,19 @@ function validateScheduledTransferInput(input: CreateUserScheduledTransferInput)
     }
   }
 
-  const scheduledDate = input.scheduledDate ? new Date(input.scheduledDate) : null;
+  const scheduledDate = resolveScheduledInputDateTime(input.scheduledDate, input.scheduledTime);
   if (input.paymentType === "one_time" || input.paymentType === "scheduled") {
-    if (!scheduledDate || Number.isNaN(scheduledDate.getTime())) {
-      badRequest("Scheduled date is required.");
+    if (!scheduledDate) {
+      badRequest("Scheduled date and time are required.");
     }
   }
 
   if (input.paymentType === "recurring" && !input.frequency) {
     badRequest("Frequency is required for recurring transfers.");
+  }
+
+  if (input.paymentType === "recurring" && !scheduledDate) {
+    badRequest("First run date and time are required.");
   }
 
   return scheduledDate;

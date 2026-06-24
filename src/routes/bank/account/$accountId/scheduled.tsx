@@ -1,6 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
 import { BusinessAccountPaymentsCenter } from "@/components/bank/business-account-payments-center";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { fetchBusinessAccountContextForModule } from "@/lib/bank/business-account.functions";
@@ -46,10 +45,7 @@ function AccountScheduledPage() {
 
   if (isBusinessOperating && businessContext) {
     return (
-      <>
-        <BusinessFutureNotice variant="intrabank" />
-        <BusinessAccountPaymentsCenter company={businessContext.treasury} payments={payments} />
-      </>
+      <BusinessAccountPaymentsCenter company={businessContext.treasury} payments={payments} />
     );
   }
 

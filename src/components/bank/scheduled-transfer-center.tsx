@@ -13,6 +13,7 @@ import type {
   ScheduledTransferScopeCode,
 } from "@/lib/bank/business-banking-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -157,6 +158,7 @@ function ScheduledTransferForm({
   const [wireAccountNumber, setWireAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState(DEFAULT_SCHEDULED_TIME_ET);
   const [frequency, setFrequency] = useState<PaymentFrequencyCode>("monthly");
   const [memo, setMemo] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +196,7 @@ function ScheduledTransferForm({
         wireAccountNumber: wireAccountNumber || undefined,
         amount: Number(amount),
         scheduledDate: scheduledDate || undefined,
+        scheduledTime: scheduledTime || undefined,
         frequency: paymentType === "recurring" ? frequency : undefined,
         memo: memo || undefined,
       });
@@ -207,6 +210,7 @@ function ScheduledTransferForm({
       setWireAccountNumber("");
       setAmount("");
       setScheduledDate("");
+      setScheduledTime(DEFAULT_SCHEDULED_TIME_ET);
       setMemo("");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Submission failed.");
@@ -324,16 +328,28 @@ function ScheduledTransferForm({
       </label>
 
       {paymentType !== "recurring" && (
-        <label className="block text-sm">
-          Scheduled date
-          <input
-            className={fieldClass}
-            type="date"
-            value={scheduledDate}
-            onChange={(e) => setScheduledDate(e.target.value)}
-            required
-          />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm">
+            Scheduled date
+            <input
+              className={fieldClass}
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              required
+            />
+          </label>
+          <label className="block text-sm">
+            Time (Eastern)
+            <input
+              className={fieldClass}
+              type="time"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              required
+            />
+          </label>
+        </div>
       )}
 
       {paymentType === "recurring" && (
@@ -351,16 +367,31 @@ function ScheduledTransferForm({
               <option value="quarterly">Quarterly</option>
             </select>
           </label>
-          <label className="block text-sm">
-            First run date
-            <input
-              className={fieldClass}
-              type="date"
-              value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
-              required
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              First run date
+              <input
+                className={fieldClass}
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                required
+              />
+            </label>
+            <label className="block text-sm">
+              Time (Eastern)
+              <input
+                className={fieldClass}
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+          <p className="text-[12px] text-muted-foreground">
+            Recurring transfers repeat at the same Eastern Time on each scheduled interval.
+          </p>
         </>
       )}
 
@@ -379,7 +410,11 @@ function ScheduledTransferForm({
         disabled={pending || !bankAccountId}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Submitting…" : "Submit for review"}
+        {pending
+          ? "Submitting…"
+          : transferScope === "intrabank"
+            ? "Schedule transfer"
+            : "Submit for review"}
       </button>
     </form>
   );

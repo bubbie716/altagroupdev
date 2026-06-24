@@ -91,7 +91,7 @@ function BankInterbankTransfers() {
           </Section>
 
           <Section title="Scheduled & recurring wires" className="mt-10">
-            <BusinessFutureNotice />
+            <BusinessFutureNotice variant="interbank" />
             <InterbankScheduledTransfers data={data} defaultSourceAccountId={accountId} />
           </Section>
         </>
