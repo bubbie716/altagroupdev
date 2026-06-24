@@ -106,7 +106,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-[3px] font-mono text-[10px] font-medium uppercase leading-none tracking-[0.16em] whitespace-nowrap",
         s.wrap,
         className,
       )}
