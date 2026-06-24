@@ -102,6 +102,7 @@ import { Route as ApiBankDepositRequestRouteImport } from './routes/api/bank/dep
 import { Route as ApiAuthDiscordRouteImport } from './routes/api/auth/discord'
 import { Route as ExchangeCompanyTickerRouteRouteImport } from './routes/exchange/company/$ticker/route'
 import { Route as BankLendingLoansRouteRouteImport } from './routes/bank/lending/loans/route'
+import { Route as BankLendingDealRoomsRouteRouteImport } from './routes/bank/lending/deal-rooms/route'
 import { Route as BankAccountsAccountIdRouteRouteImport } from './routes/bank/accounts/$accountId/route'
 import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/account/$accountId/route'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
@@ -602,6 +603,12 @@ const BankLendingLoansRouteRoute = BankLendingLoansRouteRouteImport.update({
   path: '/bank/lending/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BankLendingDealRoomsRouteRoute =
+  BankLendingDealRoomsRouteRouteImport.update({
+    id: '/bank/lending/deal-rooms',
+    path: '/bank/lending/deal-rooms',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BankAccountsAccountIdRouteRoute =
   BankAccountsAccountIdRouteRouteImport.update({
     id: '/$accountId',
@@ -627,9 +634,9 @@ const BankLendingLoansIndexRoute = BankLendingLoansIndexRouteImport.update({
 } as any)
 const BankLendingDealRoomsIndexRoute =
   BankLendingDealRoomsIndexRouteImport.update({
-    id: '/bank/lending/deal-rooms/',
-    path: '/bank/lending/deal-rooms/',
-    getParentRoute: () => rootRouteImport,
+    id: '/',
+    path: '/',
+    getParentRoute: () => BankLendingDealRoomsRouteRoute,
   } as any)
 const BankAccountsAccountIdIndexRoute =
   BankAccountsAccountIdIndexRouteImport.update({
@@ -651,9 +658,9 @@ const ExchangeCompanyTickerOwnerRoute =
   } as any)
 const BankLendingDealRoomsDealRoomIdRoute =
   BankLendingDealRoomsDealRoomIdRouteImport.update({
-    id: '/bank/lending/deal-rooms/$dealRoomId',
-    path: '/bank/lending/deal-rooms/$dealRoomId',
-    getParentRoute: () => rootRouteImport,
+    id: '/$dealRoomId',
+    path: '/$dealRoomId',
+    getParentRoute: () => BankLendingDealRoomsRouteRoute,
   } as any)
 const BankAccountsAccountIdStatementsRoute =
   BankAccountsAccountIdStatementsRouteImport.update({
@@ -810,6 +817,7 @@ export interface FileRoutesByFullPath {
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
+  '/bank/lending/deal-rooms': typeof BankLendingDealRoomsRouteRouteWithChildren
   '/bank/lending/loans': typeof BankLendingLoansRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
@@ -1039,6 +1047,7 @@ export interface FileRoutesById {
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
+  '/bank/lending/deal-rooms': typeof BankLendingDealRoomsRouteRouteWithChildren
   '/bank/lending/loans': typeof BankLendingLoansRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
@@ -1161,6 +1170,7 @@ export interface FileRouteTypes {
     | '/terminal/'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
+    | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/api/auth/discord'
@@ -1389,6 +1399,7 @@ export interface FileRouteTypes {
     | '/terminal/'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
+    | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/api/auth/discord'
@@ -1475,6 +1486,7 @@ export interface RootRouteChildren {
   BankWithdrawRoute: typeof BankWithdrawRoute
   BankIndexRoute: typeof BankIndexRoute
   BankAccountAccountIdRouteRoute: typeof BankAccountAccountIdRouteRouteWithChildren
+  BankLendingDealRoomsRouteRoute: typeof BankLendingDealRoomsRouteRouteWithChildren
   BankLendingLoansRouteRoute: typeof BankLendingLoansRouteRouteWithChildren
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
   ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
@@ -1490,8 +1502,6 @@ export interface RootRouteChildren {
   BankLendingIndexRoute: typeof BankLendingIndexRoute
   BankStatementsIndexRoute: typeof BankStatementsIndexRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
-  BankLendingDealRoomsDealRoomIdRoute: typeof BankLendingDealRoomsDealRoomIdRoute
-  BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2147,6 +2157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankLendingLoansRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank/lending/deal-rooms': {
+      id: '/bank/lending/deal-rooms'
+      path: '/bank/lending/deal-rooms'
+      fullPath: '/bank/lending/deal-rooms'
+      preLoaderRoute: typeof BankLendingDealRoomsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/accounts/$accountId': {
       id: '/bank/accounts/$accountId'
       path: '/$accountId'
@@ -2177,10 +2194,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/lending/deal-rooms/': {
       id: '/bank/lending/deal-rooms/'
-      path: '/bank/lending/deal-rooms'
+      path: '/'
       fullPath: '/bank/lending/deal-rooms/'
       preLoaderRoute: typeof BankLendingDealRoomsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankLendingDealRoomsRouteRoute
     }
     '/bank/accounts/$accountId/': {
       id: '/bank/accounts/$accountId/'
@@ -2205,10 +2222,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/lending/deal-rooms/$dealRoomId': {
       id: '/bank/lending/deal-rooms/$dealRoomId'
-      path: '/bank/lending/deal-rooms/$dealRoomId'
+      path: '/$dealRoomId'
       fullPath: '/bank/lending/deal-rooms/$dealRoomId'
       preLoaderRoute: typeof BankLendingDealRoomsDealRoomIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankLendingDealRoomsRouteRoute
     }
     '/bank/accounts/$accountId/statements': {
       id: '/bank/accounts/$accountId/statements'
@@ -2623,6 +2640,22 @@ const BankAccountAccountIdRouteRouteWithChildren =
     BankAccountAccountIdRouteRouteChildren,
   )
 
+interface BankLendingDealRoomsRouteRouteChildren {
+  BankLendingDealRoomsDealRoomIdRoute: typeof BankLendingDealRoomsDealRoomIdRoute
+  BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
+}
+
+const BankLendingDealRoomsRouteRouteChildren: BankLendingDealRoomsRouteRouteChildren =
+  {
+    BankLendingDealRoomsDealRoomIdRoute: BankLendingDealRoomsDealRoomIdRoute,
+    BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
+  }
+
+const BankLendingDealRoomsRouteRouteWithChildren =
+  BankLendingDealRoomsRouteRoute._addFileChildren(
+    BankLendingDealRoomsRouteRouteChildren,
+  )
+
 interface BankLendingLoansRouteRouteChildren {
   BankLendingLoansIndexRoute: typeof BankLendingLoansIndexRoute
 }
@@ -2673,6 +2706,7 @@ const rootRouteChildren: RootRouteChildren = {
   BankWithdrawRoute: BankWithdrawRoute,
   BankIndexRoute: BankIndexRoute,
   BankAccountAccountIdRouteRoute: BankAccountAccountIdRouteRouteWithChildren,
+  BankLendingDealRoomsRouteRoute: BankLendingDealRoomsRouteRouteWithChildren,
   BankLendingLoansRouteRoute: BankLendingLoansRouteRouteWithChildren,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
   ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,
@@ -2688,8 +2722,6 @@ const rootRouteChildren: RootRouteChildren = {
   BankLendingIndexRoute: BankLendingIndexRoute,
   BankStatementsIndexRoute: BankStatementsIndexRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
-  BankLendingDealRoomsDealRoomIdRoute: BankLendingDealRoomsDealRoomIdRoute,
-  BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
