@@ -6,7 +6,7 @@ export function CorporateActionTable({ actions }: { actions: CorporateAction[] }
     <Card className="!p-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Ticker</th>
             <th className="px-5 py-3">Company</th>
             <th className="px-5 py-3">Action</th>

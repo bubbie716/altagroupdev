@@ -27,13 +27,13 @@ export function TradeTicket({ disabled = false }: { disabled?: boolean }) {
 
   return (
     <Card>
-      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-section-title">
         Order Ticket
       </div>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {fields.map((f) => (
           <label key={f.label} className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="type-meta">
               {f.label}
             </span>
             <input

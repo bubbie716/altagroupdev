@@ -59,7 +59,7 @@ function InternalCompanyDetail() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">User</th>
                   <th className="px-4 py-3">Role</th>
                   <th className="px-4 py-3">Since</th>

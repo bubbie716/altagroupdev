@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Landmark, Users } from "lucide-react";
 import { PageShell, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { RouteButton } from "@/components/bank/route-button";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 type BankTransfersHubSearch = {
@@ -84,7 +85,7 @@ function TransferTypeCard({
       : undefined;
 
   return (
-    <Link to={to} search={search} className="group block h-full">
+    <RouteButton to={to} search={search} className="group block h-full w-full text-left">
       <Card className="flex h-full flex-col !p-6 transition-colors hover:border-border-strong hover:bg-surface-2/30">
         <div className="flex items-start justify-between gap-4">
           <div className="rounded-md border border-border bg-surface-2/60 p-2.5 text-muted-foreground transition-colors group-hover:text-foreground">
@@ -94,8 +95,8 @@ function TransferTypeCard({
         </div>
         <h2 className="mt-5 text-lg font-semibold tracking-tight">{title}</h2>
         <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
-        <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{detail}</p>
+        <p className="mt-5 type-meta">{detail}</p>
       </Card>
-    </Link>
+    </RouteButton>
   );
 }

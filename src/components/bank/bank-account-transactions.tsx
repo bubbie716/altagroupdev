@@ -1,8 +1,9 @@
-import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
+import { RouteButton } from "@/components/bank/route-button";
 
 export function BankAccountTransactions({
   transactions,
@@ -12,12 +13,13 @@ export function BankAccountTransactions({
   if (transactions.length === 0) {
     return (
       <Card className="!p-10 text-center">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <p className="type-meta">
           No activity
         </p>
         <h3 className="mt-3 text-lg font-semibold tracking-tight">No transactions yet</h3>
         <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-          Deposits, withdrawals, and adjustments will appear here once account activity begins.
+          Deposits, withdrawals, loan payments, and adjustments will appear here once account activity
+          begins.
         </p>
       </Card>
     );
@@ -25,39 +27,38 @@ export function BankAccountTransactions({
 
   return (
     <Card className="!p-0">
-      <table className="w-full text-sm">
+      <table className="alta-table w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <th className="px-5 py-3">Date & time</th>
-            <th className="px-5 py-3">Reference</th>
-            <th className="px-5 py-3">Description</th>
-            <th className="px-5 py-3">Type</th>
-            <th className="px-5 py-3">Status</th>
-            <th className="px-5 py-3 text-right">Amount</th>
-            <th className="px-5 py-3">Proof</th>
+          <tr>
+            <th>Date & time</th>
+            <th>Reference</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th className="text-right">Amount</th>
+            <th>Proof</th>
           </tr>
         </thead>
         <tbody>
           {transactions.map((tx) => {
-            const signedAmount =
-              tx.type === "withdrawal" ? -Math.abs(tx.amount) : Math.abs(tx.amount);
+            const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
 
             return (
               <tr
                 key={tx.id}
                 className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40"
               >
-                <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
+                <td className="type-finance-sm text-muted-foreground">
                   {formatActivityDateTime(tx.createdAt)}
                 </td>
-                <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
+                <td className="type-finance-sm text-muted-foreground">
                   {tx.referenceCode}
                 </td>
-                <td className="px-5 py-3">{tx.description}</td>
-                <td className="px-5 py-3 text-muted-foreground">{tx.typeLabel}</td>
-                <td className="px-5 py-3 font-mono text-[11px]">{tx.statusLabel}</td>
+                <td>{tx.description}</td>
+                <td className="text-muted-foreground">{tx.typeLabel}</td>
+                <td className="type-finance-sm">{tx.statusLabel}</td>
                 <td
-                  className={`tabular px-5 py-3 text-right font-medium ${
+                  className={`type-finance-md text-right font-medium ${
                     signedAmount >= 0 ? "ticker-up" : "ticker-down"
                   }`}
                 >
@@ -66,14 +67,13 @@ export function BankAccountTransactions({
                 </td>
                 <td className="px-5 py-3 text-[12px]">
                   {tx.hasProof && tx.proofImageUrl ? (
-                    <a
-                      href={tx.proofImageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => window.open(tx.proofImageUrl!, "_blank", "noopener,noreferrer")}
+                      className="rounded border border-gold/30 bg-gold/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
                     >
                       View
-                    </a>
+                    </button>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
@@ -104,13 +104,13 @@ export function BankAccountActionCard({
     <Card className="flex flex-col !p-6">
       <h3 className="font-medium tracking-tight">{title}</h3>
       <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
-      <Link
+      <RouteButton
         to={to}
         search={search}
         className="mt-5 inline-flex w-full items-center justify-center rounded-md border border-border bg-surface-2/40 px-4 py-2.5 text-[13px] font-medium tracking-wide text-foreground transition-colors hover:bg-surface-2"
       >
         {label}
-      </Link>
+      </RouteButton>
     </Card>
   );
 }

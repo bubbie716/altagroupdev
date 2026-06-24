@@ -26,7 +26,8 @@ Intrabank transfers and payroll batches are **auto-approved on creation**. Inter
 1. A scheduler (cron-job.org, manual operator, etc.) calls `GET /api/cron/scheduled-transfers`.
 2. `executeDueScheduledTransfers()` finds due `ScheduledPayment` rows (intrabank, approved).
 3. `executeDuePayrollRuns()` finds due `PayrollRun` rows (`status = APPROVED`, `payDate` due).
-4. For each due transfer or payroll line:
+4. `accrueInterestForDueLoans()` then `executeDueLoanAutoPayments()` run loan interest accrual and auto-pay (in that order).
+5. For each due transfer or payroll line:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
    - Executes via `submitInternalTransfer` using the original creator’s permissions.

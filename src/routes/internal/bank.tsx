@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
@@ -21,12 +21,8 @@ import type { InternalBankAccountRow, InternalBankTransactionRow } from "@/lib/b
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 import { InternalStatementBatchButton } from "@/components/bank/internal-statement-ops";
 import { RunDueTransfersButton } from "@/components/bank/internal-scheduled-transfers-panel";
-import { Link } from "@tanstack/react-router";
 import { MockActionButton } from "@/components/internal/mock-action-button";
-import {
-  getBankOpsLoanApplications,
-  getBankOpsTransfers,
-} from "@/lib/internal/api";
+import { getBankOpsTransfers } from "@/lib/internal/api";
 
 export const Route = createFileRoute("/internal/bank")({
   loader: async () => {
@@ -49,7 +45,6 @@ function InternalBank() {
     pendingWithdrawals,
     statementOps,
   } = Route.useLoaderData();
-  const loans = getBankOpsLoanApplications();
   const transfers = getBankOpsTransfers();
 
   return (
@@ -68,8 +63,22 @@ function InternalBank() {
           value={summary.altaPayCountThisMonth.toLocaleString()}
           sub={`ƒ${summary.altaPayVolumeThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} volume`}
         />
-        <InternalStatCard label="Loan Applications (mock)" value={String(summary.lendingQueue)} />
+        <InternalStatCard label="Loan Applications Pending" value={String(summary.lendingQueue)} alert={summary.lendingQueue > 0} />
       </div>
+
+      <Section title="Lending" className="mt-10">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[13px] text-muted-foreground">
+            Review personal, business, and private liquidity line applications.
+          </p>
+          <Link
+            to="/internal/lending"
+            className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold hover:underline"
+          >
+            Open lending queue →
+          </Link>
+        </div>
+      </Section>
 
       <Section title="Scheduled Transfers" className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -199,7 +208,7 @@ function InternalBank() {
             { key: "id", header: "Account", cell: (a: InternalBankAccountRow) => <span className="font-mono text-[12px]">{a.accountNumber}</span> },
             { key: "holder", header: "Holder", cell: (a: InternalBankAccountRow) => a.holder },
             { key: "product", header: "Product", cell: (a: InternalBankAccountRow) => a.product },
-            { key: "balance", header: "Balance", cell: (a: InternalBankAccountRow) => <span className="tabular font-mono">{a.balance}</span> },
+            { key: "balance", header: "Balance", cell: (a: InternalBankAccountRow) => <span className="type-finance">{a.balance}</span> },
             { key: "status", header: "Status", cell: (a: InternalBankAccountRow) => <StatusBadge status={a.status} /> },
             {
               key: "actions",
@@ -242,31 +251,13 @@ function InternalBank() {
         />
       </Section>
 
-      <Section title="Loan Applications (mock preview)" className="mt-10">
-        <AdminDataTable
-          columns={[
-            { key: "id", header: "Ref", cell: (l) => <span className="font-mono text-[11px]">{l.id}</span> },
-            { key: "applicant", header: "Applicant", cell: (l) => <span className="font-mono text-[11px]">{l.applicant}</span> },
-            { key: "amount", header: "Amount", cell: (l) => <span className="tabular font-mono">{l.amount}</span> },
-            { key: "status", header: "Status", cell: (l) => <StatusBadge status={l.status} /> },
-            {
-              key: "actions",
-              header: "Actions",
-              cell: () => <MockActionButton label="Review (mock)" />,
-            },
-          ]}
-          rows={loans}
-          rowKey={(l) => l.id}
-        />
-      </Section>
-
       <Section title="Interbank Transfers (mock preview)" className="mt-10">
         <AdminDataTable
           columns={[
             { key: "id", header: "Ref", cell: (t) => <span className="font-mono text-[11px]">{t.id}</span> },
             { key: "from", header: "From", cell: (t) => <span className="font-mono text-[11px]">{t.from}</span> },
             { key: "to", header: "To", cell: (t) => <span className="font-mono text-[11px]">{t.to}</span> },
-            { key: "amount", header: "Amount", cell: (t) => <span className="tabular font-mono">{t.amount}</span> },
+            { key: "amount", header: "Amount", cell: (t) => <span className="type-finance">{t.amount}</span> },
             { key: "status", header: "Status", cell: (t) => <StatusBadge status={t.status} /> },
             {
               key: "actions",
@@ -287,7 +278,7 @@ function depositWithdrawColumns(kind: "deposit" | "withdrawal") {
     { key: "ref", header: "Ref", cell: (r: InternalBankTransactionRow) => <span className="font-mono text-[11px]">{r.referenceCode}</span> },
     { key: "account", header: "Account", cell: (r: InternalBankTransactionRow) => <span className="font-mono text-[11px]">{r.account}</span> },
     { key: "holder", header: "Holder", cell: (r: InternalBankTransactionRow) => <span className="font-mono text-[11px]">{r.holder}</span> },
-    { key: "amount", header: "Amount", cell: (r: InternalBankTransactionRow) => <span className="tabular font-mono">{r.amount}</span> },
+    { key: "amount", header: "Amount", cell: (r: InternalBankTransactionRow) => <span className="type-finance">{r.amount}</span> },
     { key: "method", header: "Details", cell: (r: InternalBankTransactionRow) => <span className="text-[12px]">{r.method}</span> },
     {
       key: "proof",

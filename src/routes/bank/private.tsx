@@ -77,13 +77,13 @@ function BankPrivateMockContent() {
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
         <Card className="border-gold/20 bg-surface-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">Alta Private</div>
+          <div className="type-eyebrow">Alta Private</div>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             Alta Private is invitation-only private banking within Alta Bank, reserved for Newport's most
             influential individuals, founders, institutions, and high-balance clients. Membership is
             extended by referral — not open for public application.
           </p>
-          <div className="mt-6 inline-flex rounded-full border border-border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="mt-6 inline-flex rounded-full border border-border px-3 py-1 type-meta">
             Applications closed — access extended by invitation only
           </div>
         </Card>

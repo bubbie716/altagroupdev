@@ -20,7 +20,7 @@ export function IPOAccessCard({
           <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">{ticker}</div>
           <h3 className="mt-2 text-lg font-semibold tracking-tight">{company}</h3>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="type-meta">
           {status}
         </span>
       </div>
@@ -32,14 +32,14 @@ export function IPOAccessCard({
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           Indicate Interest
         </button>
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           View Prospectus
         </button>

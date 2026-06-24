@@ -17,7 +17,7 @@ export function ApiEndpointCard({ endpoint, baseUrl }: { endpoint: ApiEndpoint; 
         <p className="text-[14px] leading-relaxed text-muted-foreground">{endpoint.summary}</p>
         {endpoint.params && (
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="type-meta">
               Parameters
             </div>
             <p className="mt-1 font-mono text-[12px] text-foreground/80">{endpoint.params}</p>
@@ -25,13 +25,13 @@ export function ApiEndpointCard({ endpoint, baseUrl }: { endpoint: ApiEndpoint; 
         )}
         <div className="flex flex-wrap gap-6 border-t border-border/40 pt-3">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="type-meta">
               Mock function
             </div>
             <code className="mt-1 block font-mono text-[12px] text-gold">{endpoint.mockFn}</code>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="type-meta">
               Response
             </div>
             <code className="mt-1 block font-mono text-[12px] text-foreground/80">{endpoint.response}</code>

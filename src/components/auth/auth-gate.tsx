@@ -125,7 +125,7 @@ export function AuthGate({
 export function LoginPortalFooter() {
   return (
     <footer className="relative z-10 pb-8 pt-2 text-center">
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">
+      <p className="type-meta/80">
         Individual accounts · Authorized company representatives
       </p>
     </footer>

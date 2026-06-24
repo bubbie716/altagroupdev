@@ -29,7 +29,7 @@ function PreviewSelect({
 }) {
   return (
     <div className="block">
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="type-meta">
         {label}
       </span>
       <Select disabled>
@@ -53,7 +53,7 @@ function PreviewSelect({
 function FormField({ field }: { field: Field }) {
   return (
     <label className={field.span === 2 ? "block md:col-span-2" : "block"}>
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="type-meta">
         {field.label}
       </span>
       {field.type === "textarea" ? (
@@ -77,7 +77,7 @@ function FormField({ field }: { field: Field }) {
 function FormSection({ title, fields }: { title: string; fields: Field[] }) {
   return (
     <Card>
-      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{title}</div>
+      <div className="type-section-title">{title}</div>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {fields.map((f) =>
           f.type === "select" && f.options ? (
@@ -94,12 +94,12 @@ function FormSection({ title, fields }: { title: string; fields: Field[] }) {
 function UploadPlaceholder({ label }: { label: string }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-surface-2/30 px-4 py-8 text-center">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className="type-meta">{label}</div>
       <p className="mt-2 text-[12px] text-muted-foreground">Drag and drop or browse — preview only</p>
       <button
         type="button"
         disabled
-        className="mt-4 cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+        className="mt-4 cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
       >
         Choose file
       </button>
@@ -188,7 +188,7 @@ export function ListingApplicationForm() {
       <FormSection title="Listing Details" fields={listingFields} />
 
       <Card>
-        <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Documents</div>
+        <div className="type-section-title">Documents</div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <UploadPlaceholder label="Prospectus" />
           <UploadPlaceholder label="Financial statement" />

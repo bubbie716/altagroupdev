@@ -3,6 +3,7 @@ import type {
   CreatePayrollEmployeeInput,
   CreatePayrollRunInput,
   CreateScheduledPaymentInput,
+  UpdatePayrollEmployeeInput,
 } from "@/lib/bank/business-banking-types";
 
 async function actor() {
@@ -56,6 +57,14 @@ export const createPayrollEmployeeRecord = createServerFn({ method: "POST" })
     const { createPayrollEmployee } = await import("@/server/business-banking.service");
     const user = await actor();
     return createPayrollEmployee(user, data);
+  });
+
+export const updatePayrollEmployeeRecord = createServerFn({ method: "POST" })
+  .validator((input: UpdatePayrollEmployeeInput) => input)
+  .handler(async ({ data }) => {
+    const { updatePayrollEmployee } = await import("@/server/business-banking.service");
+    const user = await actor();
+    return updatePayrollEmployee(user, data);
   });
 
 export const deactivatePayrollEmployeeRecord = createServerFn({ method: "POST" })

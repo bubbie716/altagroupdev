@@ -31,7 +31,7 @@ function GovernanceLeadership() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="border-b border-border/60 pb-12"
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+        <div className="type-eyebrow">
           Governance
         </div>
         <h1 className="mt-5 text-[clamp(3.25rem,6vw,5rem)] font-semibold leading-[0.96] tracking-[-0.02em]">

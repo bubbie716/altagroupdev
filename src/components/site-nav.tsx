@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { AltaWordmark } from "./alta-logo";
 import { AuthUserMenu } from "@/components/auth/user-menu";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
 import { useTheme } from "./theme";
 import { Sun, Moon } from "lucide-react";
 
@@ -38,7 +39,7 @@ export function SiteNav() {
                 key={l.to}
                 to={l.to}
                 className={cn(
-                  "relative rounded-md px-3 py-1.5 text-[13px] tracking-wide text-muted-foreground transition-colors duration-200 hover:text-foreground",
+                  "type-nav relative rounded-md px-3 py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
                   active &&
                     "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
                 )}

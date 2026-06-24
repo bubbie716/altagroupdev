@@ -84,6 +84,11 @@ model User {
   receivedCompanyInvitations CompanyInvitation[] @relation("ReceivedCompanyInvitations")
   scheduledPaymentsCreated   ScheduledPayment[]  @relation("ScheduledPaymentCreator")
   payrollRunsCreated         PayrollRun[]        @relation("PayrollRunCreator")
+  loanApplicationsSubmitted  LoanApplication[]   @relation("LoanApplicationApplicant")
+  loanApplicationsReviewed LoanApplication[]   @relation("LoanApplicationReviewer")
+  loansBorrowed              Loan[]              @relation("LoanBorrower")
+  loansApproved              Loan[]              @relation("LoanApprover")
+  loanLedgerEntriesCreated   LoanLedgerEntry[]   @relation("LoanLedgerCreator")
 }
 
 model UserTagAssignment {
@@ -119,6 +124,8 @@ model Company {
   scheduledPayments ScheduledPayment[]
   payrollEmployees  PayrollEmployee[]
   payrollRuns       PayrollRun[]
+  loanApplications  LoanApplication[]
+  loans             Loan[]
 }
 
 model CompanyMembership {
@@ -199,6 +206,8 @@ enum BankTransactionType {
   DEPOSIT
   WITHDRAWAL
   ADJUSTMENT
+  LOAN_PAYMENT
+  INTEREST_CHARGE
 }
 
 enum BankTransactionStatus {
@@ -264,6 +273,10 @@ model BankAccount {
   scheduledPayments ScheduledPayment[]
   payrollRuns       PayrollRun[]
   statements        BankStatement[]
+  loanApplications  LoanApplication[]
+  loansLinked       Loan[]            @relation("LoanLinkedAccount")
+  loansAutoPaySource Loan[]           @relation("LoanAutoPaySource")
+  loanPaymentsFrom  LoanPayment[]
 
   @@index([userId])
   @@index([companyId])
@@ -497,6 +510,8 @@ model BankTransaction {
   reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   scheduledTransferExecution ScheduledTransferExecution[]
   payrollRunLineExecution    PayrollRunLineExecution[]
+  loanPayment                LoanPayment?
+  loanLedgerEntries          LoanLedgerEntry[]
 
   @@index([bankAccountId])
   @@index([status])
@@ -531,4 +546,186 @@ model BankStatement {
   @@index([bankAccountId])
   @@index([status])
   @@index([periodStart, periodEnd])
+}
+
+enum LoanProductType {
+  PERSONAL_CREDIT_LINE
+  BUSINESS_CREDIT_LINE
+  PRIVATE_LIQUIDITY_LINE
+}
+
+enum LoanApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+enum LoanStatus {
+  ACTIVE
+  PAID_OFF
+  DEFAULTED
+  CANCELLED
+  FROZEN
+}
+
+enum LoanInterestRateType {
+  ANNUAL_PERCENT
+  MONTHLY_PERCENT
+}
+
+enum LoanLedgerEntryType {
+  DISBURSEMENT
+  PAYMENT
+  INTEREST_CHARGE
+  ADJUSTMENT
+  STATUS_CHANGE
+}
+
+enum LoanPaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LoanScheduleInstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  FAILED
+}
+
+model LoanApplication {
+  id                    String                @id @default(cuid())
+  applicantUserId       String
+  companyId             String?
+  productType           LoanProductType
+  requestedAmount       Decimal               @db.Decimal(18, 2)
+  termMonths            Int
+  purpose               String
+  repaymentPlan         String
+  collateralDescription String?
+  notes                 String?
+  linkedBankAccountId   String?
+  status                LoanApplicationStatus @default(PENDING)
+  reviewNote            String?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  applicantUser     User         @relation("LoanApplicationApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company           Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  linkedBankAccount BankAccount? @relation(fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
+  reviewedBy        User?        @relation("LoanApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  loan              Loan?
+
+  @@index([applicantUserId])
+  @@index([companyId])
+  @@index([status])
+  @@index([productType])
+  @@index([createdAt])
+}
+
+model Loan {
+  id                  String               @id @default(cuid())
+  loanApplicationId   String               @unique
+  borrowerUserId      String?
+  companyId           String?
+  productType         LoanProductType
+  principalAmount     Decimal              @db.Decimal(18, 2)
+  termMonths          Int?
+  outstandingBalance  Decimal              @db.Decimal(18, 2)
+  interestRate        Decimal              @db.Decimal(8, 4)
+  interestRateType    LoanInterestRateType @default(MONTHLY_PERCENT)
+  lastInterestAccruedAt DateTime?
+  nextInterestAccrualAt DateTime?
+  status              LoanStatus           @default(ACTIVE)
+  linkedBankAccountId String?
+  autoPayEnabled      Boolean              @default(false)
+  autoPaySourceBankAccountId String?
+  approvedById        String
+  approvedAt          DateTime
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  borrowerUser      User?           @relation("LoanBorrower", fields: [borrowerUserId], references: [id], onDelete: SetNull)
+  company           Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  linkedBankAccount BankAccount?    @relation("LoanLinkedAccount", fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
+  autoPaySourceBankAccount BankAccount? @relation("LoanAutoPaySource", fields: [autoPaySourceBankAccountId], references: [id], onDelete: SetNull)
+  approvedBy        User            @relation("LoanApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  payments          LoanPayment[]
+  ledgerEntries     LoanLedgerEntry[]
+  paymentSchedule   LoanPaymentScheduleItem[]
+
+  @@index([borrowerUserId])
+  @@index([companyId])
+  @@index([status])
+  @@index([productType])
+  @@index([nextInterestAccrualAt])
+}
+
+model LoanPayment {
+  id                  String            @id @default(cuid())
+  loanId              String
+  amount              Decimal           @db.Decimal(18, 2)
+  paymentDate         DateTime
+  sourceBankAccountId String?
+  bankTransactionId   String?           @unique
+  scheduleItemId      String?           @unique
+  memo                String?
+  status              LoanPaymentStatus @default(PENDING)
+  createdAt           DateTime          @default(now())
+
+  loan              Loan                      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  sourceBankAccount BankAccount?              @relation(fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
+  bankTransaction   BankTransaction?          @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  scheduleItem      LoanPaymentScheduleItem?  @relation(fields: [scheduleItemId], references: [id], onDelete: SetNull)
+
+  @@index([loanId])
+  @@index([status])
+}
+
+model LoanPaymentScheduleItem {
+  id                   String                        @id @default(cuid())
+  loanId               String
+  installmentNumber    Int
+  dueDate              DateTime
+  scheduledAmount      Decimal                       @db.Decimal(18, 2)
+  status               LoanScheduleInstallmentStatus @default(PENDING)
+  paidAt               DateTime?
+  autoPayAttemptedAt   DateTime?
+  autoPayFailureReason String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  loan        Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  loanPayment LoanPayment?
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([status, dueDate])
+}
+
+model LoanLedgerEntry {
+  id                String              @id @default(cuid())
+  loanId            String
+  type              LoanLedgerEntryType
+  amount            Decimal             @db.Decimal(18, 2)
+  balanceAfter      Decimal             @db.Decimal(18, 2)
+  description       String
+  bankTransactionId String?
+  createdById       String?
+  createdAt         DateTime            @default(now())
+
+  loan            Loan             @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  bankTransaction BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  createdBy       User?            @relation("LoanLedgerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([loanId])
+  @@index([type])
+  @@index([createdAt])
 }

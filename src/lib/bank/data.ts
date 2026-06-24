@@ -94,9 +94,7 @@ export const bankProducts: BankProduct[] = [
     category: "Retail Banking",
     positioning: "Starter banking for new Newport citizens.",
     bestFor: "New citizens and first-time account holders.",
-    minimumBalance: "None",
     benefits: [
-      "No minimum balance",
       "Basic checking access",
       "Starter transfers",
       "Upgrade path to Alta Checking",
@@ -108,7 +106,6 @@ export const bankProducts: BankProduct[] = [
     category: "Retail Banking",
     positioning: "Everyday banking for active Newport citizens.",
     bestFor: "Daily spending, transfers, and account activity.",
-    minimumBalance: "ƒ500",
     benefits: [
       "Everyday transaction account",
       "Standard deposits and withdrawals",
@@ -122,7 +119,6 @@ export const bankProducts: BankProduct[] = [
     category: "Retail Banking",
     positioning: "A simple savings account for building Florin reserves.",
     bestFor: "Citizens building cash reserves.",
-    minimumBalance: "ƒ1,000",
     benefits: [
       "Savings-focused account",
       "Monthly yield placeholder",
@@ -136,7 +132,6 @@ export const bankProducts: BankProduct[] = [
     category: "Retail Banking",
     positioning: "Higher-balance savings for serious depositors.",
     bestFor: "Larger balances and yield-focused depositors.",
-    minimumBalance: "ƒ7,500",
     benefits: [
       "Premium savings product",
       "Higher-balance account structure",
@@ -150,7 +145,6 @@ export const bankProducts: BankProduct[] = [
     category: "Business Banking",
     positioning: "Operating account for companies, shops, and institutions.",
     bestFor: "Company treasury, payroll, merchant activity, and business deposits.",
-    minimumBalance: "ƒ2,500",
     benefits: [
       "Company account structure",
       "Business deposits and withdrawals",
@@ -164,7 +158,6 @@ export const bankProducts: BankProduct[] = [
     category: "Alta Private",
     positioning: "Ultra-secure reserve account for invited private banking clients.",
     bestFor: "High-balance clients prioritizing safety and priority service.",
-    minimumBalance: "ƒ50,000",
     benefits: [
       "100% reserve-backed positioning",
       "Priority handling",
@@ -179,7 +172,6 @@ export const bankProducts: BankProduct[] = [
     category: "Alta Private",
     positioning: "Alta Private's yield-focused account for elite depositors.",
     bestFor: "Private clients seeking premium money market access.",
-    minimumBalance: "ƒ100,000",
     benefits: [
       "Highest-tier money market positioning",
       "Private banking access",
@@ -198,37 +190,26 @@ export const lendingProducts: LendingProduct[] = [
   {
     name: "Personal Credit Line",
     limit: "Up to ƒ1.5M",
-    rate: "SOFR + 2.40%",
-    summary: "Unsecured revolving credit for established Alta Bank personal clients.",
-    status: "Available",
+    rate: "7.5% monthly",
+    repayment: "6 months maximum",
+    summary: "Revolving credit for established Alta Bank personal clients. Manual underwriting required.",
+    status: "Apply",
   },
   {
-    name: "Business Credit",
+    name: "Business Credit Line",
     limit: "Up to ƒ10M",
-    rate: "SOFR + 1.85%",
-    summary: "Operating lines for Newport companies with verified institutional cash flow.",
-    status: "Available",
+    rate: "6% monthly",
+    repayment: "8 months maximum",
+    summary: "Operating credit lines for verified Newport companies with institutional cash flow.",
+    status: "Apply",
   },
   {
     name: "Private Liquidity Line",
     limit: "Up to ƒ25M",
-    rate: "Negotiated",
-    summary: "Standby liquidity for Alta Private clients — inspired by institutional standby facilities, simplified for relationship banking.",
-    status: "By invitation",
-  },
-  {
-    name: "Secured Lending",
-    limit: "Portfolio-based",
-    rate: "L + 1.10%",
-    summary: "Lending against eligible securities held via Alta Exchange Terminal.",
-    status: "Available",
-  },
-  {
-    name: "Short-Term Capital",
-    limit: "ƒ500K – ƒ5M",
-    rate: "Fixed term",
-    summary: "Bridge financing for acquisitions, settlements, and capital events.",
-    status: "Under review",
+    rate: "Negotiated monthly",
+    repayment: "Custom terms",
+    summary: "Standby liquidity for Alta Private clients — relationship-based facilities subject to manual approval.",
+    status: "Alta Private",
   },
 ];
 
@@ -350,7 +331,7 @@ export const adminLoanQueue: AdminLoanRequest[] = [
 export const bankRecentActivity = transactions.slice(0, 6);
 
 export const bankMarketingSections: BankMarketingSection[] = [
-  { title: "Alta Access", desc: "Starter banking for new Newport citizens — no minimum balance.", to: "/bank/products" },
+  { title: "Alta Access", desc: "Starter banking for new Newport citizens.", to: "/bank/products" },
   { title: "Alta Checking", desc: "Everyday banking for active Newport citizens.", to: "/bank/products" },
   { title: "Business Banking", desc: "Operating accounts, payroll, and treasury for Newport institutions.", to: "/bank/business" },
   { title: "Bank Products", desc: "Retail, business, and Alta Private deposit products for Newport.", to: "/bank/products" },

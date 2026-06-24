@@ -17,7 +17,7 @@ export function PreviewDataBanner({
         className,
       )}
     >
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Preview mode</span>
+      <span className="type-meta-accent">Preview mode</span>
       <p className="mt-1">{message}</p>
     </div>
   );

@@ -21,7 +21,7 @@ import {
 import type { PayableCompany, SubmitAltaPayResult } from "@/lib/bank/alta-pay-types";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 
-const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
@@ -171,7 +171,7 @@ export function AltaPayForm({
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">Amount</span>
-            <span className="font-mono tabular-nums">{florin(Number(amount))}</span>
+            <span className="type-finance-nums">{florin(Number(amount))}</span>
           </div>
           {memo.trim() && (
             <div className="flex justify-between gap-4">
@@ -321,7 +321,7 @@ export function AltaPayForm({
         <label className="block">
           <span className={fieldLabel}>Memo (optional)</span>
           <Textarea
-            className="mt-2 min-h-[4rem] resize-none"
+            className="mt-2 min-h-[4rem]"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="Invoice #, order reference, or note to the business"

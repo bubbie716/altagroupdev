@@ -32,14 +32,13 @@ export function BankProofStatus({
           {formatActivityDateTime(proofUploadedAt)}
         </p>
       ) : null}
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+      <button
+        type="button"
+        onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+        className="inline-block rounded border border-gold/30 bg-gold/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
       >
         View proof
-      </a>
+      </button>
     </div>
   );
 }

@@ -59,7 +59,7 @@ export function PortfolioDashboard({
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-3">
           <AltaLogo className="h-4 w-4" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="type-meta">
             {headerLabel}
           </span>
         </div>
@@ -87,7 +87,7 @@ export function PortfolioDashboard({
         <div>
           <div className="flex items-baseline gap-4">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <div className="type-meta">
                 Net Worth
               </div>
               <div
@@ -101,7 +101,7 @@ export function PortfolioDashboard({
             </div>
             <div
               className={cn(
-                "tabular font-mono text-xs",
+                "type-finance text-xs",
                 changePositive ? "ticker-up" : "ticker-down",
                 locked && LOCKED_BLUR,
               )}
@@ -147,7 +147,7 @@ export function PortfolioDashboard({
         <div className="grid grid-cols-2 gap-3">
           {stats.map((k) => (
             <div key={k.label} className="rounded-lg border border-border bg-surface-1 p-3">
-              <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="type-meta-sm">
                 {k.label}
               </div>
               <div
@@ -162,7 +162,7 @@ export function PortfolioDashboard({
             </div>
           ))}
           <div className="col-span-2 rounded-lg border border-border bg-surface-1 p-3">
-            <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <div className="type-meta-sm">
               Top Movers
             </div>
             <div className="mt-2 space-y-1.5">

@@ -17,13 +17,13 @@ export function BusinessCompanyPicker({
     return (
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border/60 bg-surface-1 px-4 py-3">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="type-meta">
             Treasury entity
           </div>
           <div className="mt-1 text-sm font-medium">{selected.companyName}</div>
         </div>
         <div className="text-right">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="type-meta">
             Operating account
           </div>
           <div className="mt-1 font-mono text-sm tabular-nums">
@@ -37,7 +37,7 @@ export function BusinessCompanyPicker({
   return (
     <div className="mb-8 flex flex-wrap items-end gap-3">
       <label className="block">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="type-meta">
           Treasury entity
         </span>
         <select
@@ -59,7 +59,7 @@ export function BusinessCompanyPicker({
       </label>
       {selected && (
         <div className="rounded-md border border-border/60 bg-surface-1 px-4 py-2">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="type-meta">
             Operating balance
           </div>
           <div className="mt-0.5 font-mono text-sm tabular-nums">{florin(selected.operatingAccount.balance)}</div>
@@ -76,7 +76,7 @@ export function BusinessPermissionBadge({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2">
-      <span className="rounded-full border border-border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="rounded-full border border-border px-2.5 py-0.5 type-meta">
         {permissions.roleLabel}
       </span>
       {permissions.viewOnly && (

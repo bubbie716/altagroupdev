@@ -17,6 +17,7 @@ import type {
 import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
 import { hasStoredProof, getProofFileUrl } from "@/lib/storage/proof-upload.constants";
 import { getRoutingNumber } from "@/lib/bank/routing";
+import { formatBankTransactionTypeLabel } from "@/lib/bank/transaction-display";
 
 const ACCOUNT_TYPE_TO_DB: Record<BankAccountTypeCode, DbBankAccountType> = {
   alta_access: "ALTA_ACCESS",
@@ -47,6 +48,8 @@ const TRANSACTION_TYPE_FROM_DB: Record<DbBankTransactionType, BankTransactionTyp
   DEPOSIT: "deposit",
   WITHDRAWAL: "withdrawal",
   ADJUSTMENT: "adjustment",
+  LOAN_PAYMENT: "loan_payment",
+  INTEREST_CHARGE: "interest_charge",
 };
 
 const TRANSACTION_STATUS_FROM_DB: Record<DbBankTransactionStatus, BankTransactionStatusCode> = {
@@ -88,7 +91,7 @@ function formatTransactionStatusLabel(status: BankTransactionStatusCode): string
 }
 
 function formatTransactionTypeLabel(type: BankTransactionTypeCode): string {
-  return type.charAt(0).toUpperCase() + type.slice(1);
+  return formatBankTransactionTypeLabel(type);
 }
 
 function decimalToNumber(value: { toNumber(): number } | number): number {
@@ -119,7 +122,16 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
 
   let recentActivity = "No activity yet";
   if (latest) {
-    const prefix = latest.type === "DEPOSIT" ? "Deposit" : latest.type === "WITHDRAWAL" ? "Withdrawal" : "Adjustment";
+    const prefix =
+      latest.type === "DEPOSIT"
+        ? "Deposit"
+        : latest.type === "WITHDRAWAL"
+          ? "Withdrawal"
+          : latest.type === "LOAN_PAYMENT"
+            ? "Loan payment"
+            : latest.type === "INTEREST_CHARGE"
+              ? "Interest charge"
+              : "Adjustment";
     recentActivity = `${prefix} · ${latest.description}`;
   }
 

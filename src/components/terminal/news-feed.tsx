@@ -8,7 +8,7 @@ export function NewsFeed({ items }: { items: TerminalNewsItem[] }) {
         {items.map((n) => (
           <li key={n.headline} className="border-b border-border/50 px-5 py-4 last:border-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">
+              <span className="type-meta-accent">
                 {n.category}
               </span>
               <span className="font-mono text-[11px] text-muted-foreground">{n.date}</span>

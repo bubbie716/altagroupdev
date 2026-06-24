@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
 
-const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 

@@ -131,7 +131,7 @@ function CompanyProfilePage() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-5 py-3">Holder</th>
                   <th className="px-5 py-3 text-right">Ownership</th>
                 </tr>

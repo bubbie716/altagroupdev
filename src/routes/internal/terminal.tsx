@@ -37,7 +37,7 @@ function InternalTerminal() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Symbol</th>
                   <th className="px-4 py-3 text-right">Views</th>
                 </tr>
@@ -58,7 +58,7 @@ function InternalTerminal() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Symbol</th>
                   <th className="px-4 py-3">Adds</th>
                   <th className="px-4 py-3">Note</th>

@@ -13,7 +13,7 @@ import type {
 } from "@/lib/bank/backend-types";
 import { getRoutingNumber } from "@/lib/bank/routing";
 
-const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 

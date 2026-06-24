@@ -1,5 +1,6 @@
 import { Card } from "@/components/page-shell";
 import type { ReactNode } from "react";
+import { type } from "@/lib/typography";
 
 export type AdminTableColumn<T> = {
   key: string;
@@ -19,11 +20,11 @@ export function AdminDataTable<T extends { id?: string }>({
 }) {
   return (
     <Card className="!p-0 overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="alta-table w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <tr>
             {columns.map((col) => (
-              <th key={col.key} className={`px-4 py-3 ${col.className ?? ""}`}>
+              <th key={col.key} className={col.className}>
                 {col.header}
               </th>
             ))}
@@ -31,12 +32,9 @@ export function AdminDataTable<T extends { id?: string }>({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr
-              key={rowKey?.(row, i) ?? row.id ?? i}
-              className="border-b border-border/50 last:border-0 hover:bg-surface-2/40"
-            >
+            <tr key={rowKey?.(row, i) ?? row.id ?? i}>
               {columns.map((col) => (
-                <td key={col.key} className={`px-4 py-3 ${col.className ?? ""}`}>
+                <td key={col.key} className={col.className}>
                   {col.cell(row)}
                 </td>
               ))}

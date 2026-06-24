@@ -50,7 +50,7 @@ function InternalExchange() {
             { key: "ticker", header: "Ticker", cell: (r: ExchangeListingRow) => <span className="font-mono">{r.ticker}</span> },
             { key: "company", header: "Company", cell: (r: ExchangeListingRow) => r.company },
             { key: "sector", header: "Sector", cell: (r: ExchangeListingRow) => r.sector },
-            { key: "price", header: "Last", cell: (r: ExchangeListingRow) => <span className="tabular font-mono">{r.lastPrice}</span> },
+            { key: "price", header: "Last", cell: (r: ExchangeListingRow) => <span className="type-finance">{r.lastPrice}</span> },
             { key: "status", header: "Trading", cell: (r: ExchangeListingRow) => <StatusBadge status={r.tradingStatus} /> },
             {
               key: "actions",

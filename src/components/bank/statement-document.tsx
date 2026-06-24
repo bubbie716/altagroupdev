@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Download, Loader2, Printer } from "lucide-react";
 import type { BankStatementDetail } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { AltaWordmark } from "@/components/alta-logo";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
+import { RouteButton } from "@/components/bank/route-button";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -67,14 +68,14 @@ export function StatementDocument({
           </div>
           {exportError ? <p className="mt-2 text-[12px] text-destructive">{exportError}</p> : null}
         </div>
-        <Link
+        <RouteButton
           to={backTo.to}
           params={backTo.params}
           search={backTo.search}
-          className="shrink-0 font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
+          className="shrink-0 rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground"
         >
           ← Back to account
-        </Link>
+        </RouteButton>
       </div>
 
       <article
@@ -90,7 +91,7 @@ export function StatementDocument({
               </p>
             </div>
             <div className="text-right">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground print:text-neutral-600">
+              <div className="type-meta print:text-neutral-600">
                 Account statement
               </div>
               <div className="mt-1 font-mono text-[13px] print:text-black">{statement.statementNumber}</div>
@@ -103,14 +104,14 @@ export function StatementDocument({
 
         <section className="mt-8 grid gap-8 border-b border-border/60 pb-8 print:border-neutral-300 md:grid-cols-2">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold print:text-neutral-700">
+            <div className="type-meta-accent print:text-neutral-700">
               Account holder
             </div>
             <p className="mt-2 text-[15px] font-medium print:text-black">{statement.ownerLabel}</p>
             <p className="mt-1 text-[13px] text-muted-foreground print:text-neutral-600">{statement.accountName}</p>
           </div>
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold print:text-neutral-700">
+            <div className="type-meta-accent print:text-neutral-700">
               Account identifiers
             </div>
             <div className="mt-3 space-y-1 font-mono text-[12px] print:text-black">
@@ -121,7 +122,7 @@ export function StatementDocument({
         </section>
 
         <section className="mt-8 border-b border-border/60 pb-8 print:border-neutral-300">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold print:text-neutral-700">
+          <div className="type-meta-accent print:text-neutral-700">
             Statement period
           </div>
           <p className="mt-2 text-[15px] print:text-black">
@@ -150,7 +151,7 @@ export function StatementDocument({
               key={label}
               className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-3 print:border-neutral-300 print:bg-transparent"
             >
-              <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground print:text-neutral-600">
+              <div className="type-meta-sm print:text-neutral-600">
                 {label}
               </div>
               <div className="mt-1 font-mono text-[14px] tabular-nums print:text-black">{value}</div>
@@ -186,19 +187,22 @@ export function StatementDocument({
                   </tr>
                 </thead>
                 <tbody>
-                  {statement.transactions.map((tx) => (
+                  {statement.transactions.map((tx) => {
+                    const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
+                    return (
                     <tr key={tx.id} className="statement-document__row border-b border-border/40 print:border-neutral-200">
                       <td className="py-2.5 text-muted-foreground print:text-neutral-600">
                         {formatActivityDateTime(tx.createdAt)}
                       </td>
                       <td className="py-2.5 print:text-black">{tx.description}</td>
                       <td className="py-2.5 font-mono text-[10px] print:text-black">{tx.referenceCode}</td>
-                      <td className="py-2.5 text-right font-mono tabular-nums print:text-black">
-                        {tx.type === "withdrawal" ? "−" : "+"}
-                        {florin(tx.amount)}
+                      <td className="py-2.5 text-right type-finance-nums print:text-black">
+                        {signedAmount >= 0 ? "+" : "−"}
+                        {florin(Math.abs(signedAmount))}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

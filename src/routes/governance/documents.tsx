@@ -25,7 +25,7 @@ function GovernanceDocuments() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="border-b border-border/60 pb-12"
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+        <div className="type-eyebrow">
           Governance
         </div>
         <h1 className="mt-5 text-[clamp(3.25rem,6vw,5rem)] font-semibold leading-[0.96] tracking-[-0.02em]">
@@ -41,14 +41,14 @@ function GovernanceDocuments() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {governanceDocuments.map((doc) => (
               <Card key={doc.title} className="flex h-full flex-col">
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="type-meta">
                   Policy
                 </div>
                 <div className="mt-4 text-lg font-semibold tracking-tight">{doc.title}</div>
                 <p className="mt-3 flex-1 text-[13px] leading-relaxed text-muted-foreground">
                   {doc.description}
                 </p>
-                <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-gold">
+                <div className="mt-6 type-meta-accent">
                   Coming Soon
                 </div>
               </Card>

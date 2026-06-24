@@ -72,7 +72,7 @@ function InternalApiApplications() {
               key: "keys",
               header: "Keys",
               cell: (a: ApiApplicationRecord) => (
-                <span className="tabular font-mono text-[11px]">{a.keysIssued > 0 ? a.keysIssued : "—"}</span>
+                <span className="type-finance text-[11px]">{a.keysIssued > 0 ? a.keysIssued : "—"}</span>
               ),
             },
             {

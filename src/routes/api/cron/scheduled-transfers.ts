@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  accrueInterestForDueLoans,
+  executeDueLoanAutoPayments,
+} from "@/server/loan.service";
 import { executeDuePayrollRuns } from "@/server/payroll-executor.service";
 import { executeDueScheduledTransfers } from "@/server/scheduled-transfer-executor.service";
 
@@ -29,12 +33,19 @@ function cronResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+async function executeLoanServicing() {
+  const interest = await accrueInterestForDueLoans();
+  const autoPay = await executeDueLoanAutoPayments();
+  return { interest, autoPay };
+}
+
 async function runExecutor() {
-  const [scheduledTransfers, payroll] = await Promise.all([
+  const [scheduledTransfers, payroll, loanServicing] = await Promise.all([
     executeDueScheduledTransfers(),
     executeDuePayrollRuns(),
+    executeLoanServicing(),
   ]);
-  return cronResponse({ ok: true, scheduledTransfers, payroll });
+  return cronResponse({ ok: true, scheduledTransfers, payroll, loanServicing });
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({
@@ -48,7 +59,7 @@ export const Route = createFileRoute("/api/cron/scheduled-transfers")({
         try {
           return await runExecutor();
         } catch {
-          return cronResponse({ ok: false, message: "Scheduled transfer execution failed." }, 500);
+          return cronResponse({ ok: false, message: "Cron execution failed." }, 500);
         }
       },
       POST: async ({ request }) => {
@@ -59,7 +70,7 @@ export const Route = createFileRoute("/api/cron/scheduled-transfers")({
         try {
           return await runExecutor();
         } catch {
-          return cronResponse({ ok: false, message: "Scheduled transfer execution failed." }, 500);
+          return cronResponse({ ok: false, message: "Cron execution failed." }, 500);
         }
       },
     },

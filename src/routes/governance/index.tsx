@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Section, Card } from "@/components/page-shell";
+import { type } from "@/lib/typography";
 import { GroupHierarchy } from "@/components/governance/group-hierarchy";
 import { EntityOverview } from "@/components/governance/entity-overview";
 import { GovernanceMetricsGrid } from "@/components/governance/governance-metrics-grid";
@@ -40,19 +41,15 @@ function GovernanceStructure() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="border-b border-border/60 pb-12"
       >
-        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
-          Governance
-        </div>
-        <h1 className="mt-5 text-[clamp(3.25rem,8vw,6.5rem)] font-semibold uppercase leading-[0.92] tracking-[-0.02em]">
-          Alta Group
-        </h1>
+        <div className={type.eyebrow}>Governance</div>
+        <h1 className={cn(type.displayGovernance, "mt-5")}>Alta Group</h1>
         <p className="mt-4 text-[clamp(1.125rem,1.4vw,1.5rem)] font-medium tracking-tight text-foreground">
           Live Like the 1%
         </p>
         <p className="mt-2 text-[clamp(1.125rem,1.4vw,1.5rem)] font-medium tracking-tight text-muted-foreground">
           Corporate Structure &amp; Governance
         </p>
-        <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+        <p className={cn(type.body, "mt-6 max-w-2xl text-muted-foreground")}>
           A single parent holding company — Alta Group N.V. — operating banking, exchange, and future
           clearing infrastructure for the Republic of Newport.
         </p>
@@ -61,7 +58,7 @@ function GovernanceStructure() {
       <main className="py-12">
         <div className="mb-12 grid gap-6 lg:grid-cols-3">
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-meta">
               Entity
             </div>
             <div className="mt-2 text-2xl font-semibold tracking-tight">Alta Group N.V.</div>
@@ -73,7 +70,7 @@ function GovernanceStructure() {
             </div>
           </Card>
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-meta">
               Mandate
             </div>
             <div className="mt-2 text-sm leading-relaxed">
@@ -82,7 +79,7 @@ function GovernanceStructure() {
             </div>
           </Card>
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-meta">
               Disclosures
             </div>
             <div className="mt-2 text-xs leading-relaxed text-muted-foreground">

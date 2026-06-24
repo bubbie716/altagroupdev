@@ -93,7 +93,7 @@ function TerminalHomeMockContent() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-5 py-3">Order</th>
                   <th className="px-5 py-3">Side</th>
                   <th className="px-5 py-3">Symbol</th>
@@ -133,7 +133,7 @@ function TerminalHomeMockContent() {
       <Section title="Market Movers" className="mt-10">
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Gainers</div>
+            <div className="type-meta">Top Gainers</div>
             <ul className="mt-4 space-y-3">
               {movers.gainers.slice(0, 5).map((s) => (
                 <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
@@ -144,7 +144,7 @@ function TerminalHomeMockContent() {
             </ul>
           </Card>
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Losers</div>
+            <div className="type-meta">Top Losers</div>
             <ul className="mt-4 space-y-3">
               {movers.losers.slice(0, 5).map((s) => (
                 <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
@@ -210,7 +210,7 @@ function TerminalMarketPreviewSections() {
       <Section title="Market Movers" className="mt-6">
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Gainers</div>
+            <div className="type-meta">Top Gainers</div>
             <ul className="mt-4 space-y-3">
               {movers.gainers.slice(0, 5).map((s) => (
                 <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">
@@ -221,7 +221,7 @@ function TerminalMarketPreviewSections() {
             </ul>
           </Card>
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Top Losers</div>
+            <div className="type-meta">Top Losers</div>
             <ul className="mt-4 space-y-3">
               {movers.losers.slice(0, 5).map((s) => (
                 <li key={s.symbol} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0">

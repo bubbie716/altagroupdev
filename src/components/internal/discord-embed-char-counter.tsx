@@ -32,7 +32,7 @@ export function EmbedFieldLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="type-meta">
         {label}
       </span>
       {counter && <EmbedCharCounter current={counter.current} max={counter.max} />}

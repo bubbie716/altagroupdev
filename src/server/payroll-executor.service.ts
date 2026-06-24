@@ -335,10 +335,22 @@ async function createAutoPayrollRunsForDueEmployees(now: Date): Promise<void> {
       where: {
         autoEmployeeId: employee.id,
         payDate: employee.nextPayDate,
-        status: { in: ["APPROVED", "EXECUTED"] },
+        status: { notIn: ["CANCELLED", "REJECTED"] },
       },
     });
-    if (existing) continue;
+    if (existing) {
+      if (existing.status === "FAILED") {
+        await prisma.payrollRun.update({
+          where: { id: existing.id },
+          data: {
+            status: "APPROVED",
+            consecutiveFailures: 0,
+            lastFailureReason: null,
+          },
+        });
+      }
+      continue;
+    }
 
     const operatingAccount = await prisma.bankAccount.findFirst({
       where: {

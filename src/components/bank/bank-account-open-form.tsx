@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { RouteButton } from "@/components/bank/route-button";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -21,7 +21,7 @@ import {
   type OpenBankAccountResult,
 } from "@/lib/bank/backend-types";
 
-const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
@@ -90,7 +90,7 @@ export function BankAccountOpenForm() {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-6 !p-8 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="type-meta">
             Account created
           </p>
           <h2 className="text-2xl font-semibold tracking-tight">{createdAccount.accountName}</h2>
@@ -118,13 +118,13 @@ export function BankAccountOpenForm() {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Link
+            <RouteButton
               to="/bank/account/$accountId"
               params={{ accountId: createdAccount.accountId }}
               className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background"
             >
               View account
-            </Link>
+            </RouteButton>
           </div>
         </Card>
       </div>

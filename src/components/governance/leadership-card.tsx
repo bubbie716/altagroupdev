@@ -7,7 +7,7 @@ export function LeadershipRoleCard({ role }: { role: LeadershipCard }) {
 
   return (
     <Card className="flex h-full flex-col">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-meta">
         {role.title}
       </div>
       <div className="mt-4 text-xl font-semibold tracking-tight">

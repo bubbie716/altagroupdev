@@ -22,7 +22,7 @@ export function EmptyPortfolioState({
   if (compact) {
     return (
       <div className="rounded-xl border border-border bg-surface-1 p-8 text-center">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Alta Portfolio</p>
+        <p className="type-meta">Alta Portfolio</p>
         <h3 className="mt-3 text-lg font-semibold tracking-tight">{title}</h3>
         <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{description}</p>
         {children}

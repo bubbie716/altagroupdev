@@ -8,7 +8,12 @@ export type BankAccountTypeCode =
 
 export type BankAccountStatusCode = "pending" | "active" | "frozen" | "closed";
 
-export type BankTransactionTypeCode = "deposit" | "withdrawal" | "adjustment";
+export type BankTransactionTypeCode =
+  | "deposit"
+  | "withdrawal"
+  | "adjustment"
+  | "loan_payment"
+  | "interest_charge";
 
 export type BankTransactionStatusCode = "pending" | "approved" | "denied" | "cancelled";
 

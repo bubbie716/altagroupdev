@@ -16,7 +16,7 @@ export function HoldingsTable({ rows }: { rows: Holding[] }) {
     <Card className="!p-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Symbol</th>
             <th className="px-5 py-3 text-right">Shares</th>
             <th className="px-5 py-3 text-right">Avg Cost</th>

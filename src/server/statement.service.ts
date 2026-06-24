@@ -130,14 +130,16 @@ async function calculateOpeningBalance(accountId: string, periodStart: Date): Pr
   return prior.reduce((balance, tx) => {
     const amount = decimalToNumber(tx.amount);
     if (tx.type === "DEPOSIT" || tx.type === "ADJUSTMENT") return balance + amount;
-    if (tx.type === "WITHDRAWAL") return balance - amount;
+    if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
+      return balance - amount;
+    }
     return balance;
   }, 0);
 }
 
 function summarizePeriodTransactions(
   transactions: {
-    type: "DEPOSIT" | "WITHDRAWAL" | "ADJUSTMENT";
+    type: "DEPOSIT" | "WITHDRAWAL" | "ADJUSTMENT" | "LOAN_PAYMENT" | "INTEREST_CHARGE";
     amount: { toString(): string };
     referenceCode: string;
   }[],
@@ -152,9 +154,11 @@ function summarizePeriodTransactions(
     if (tx.type === "DEPOSIT") {
       totalDeposits += amount;
       if (isTransferReference(tx.referenceCode, "DEPOSIT")) totalTransfersIn += amount;
-    } else if (tx.type === "WITHDRAWAL") {
+    } else if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
       totalWithdrawals += amount;
-      if (isTransferReference(tx.referenceCode, "WITHDRAWAL")) totalTransfersOut += amount;
+      if (tx.type === "WITHDRAWAL" && isTransferReference(tx.referenceCode, "WITHDRAWAL")) {
+        totalTransfersOut += amount;
+      }
     } else if (tx.type === "ADJUSTMENT") {
       totalDeposits += amount;
     }

@@ -15,6 +15,7 @@ import type {
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
+import { Textarea } from "@/components/ui/textarea";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -114,7 +115,7 @@ export function ScheduledTransferCenter({
 
       {tab === "history" ? (
         <Card className="!p-6">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="type-meta">
             Transfer history
           </div>
           <TransferHistoryTable
@@ -147,7 +148,7 @@ export function ScheduledTransferCenter({
             </Card>
           )}
           <Card className="!p-6">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-meta">
               {tab.charAt(0).toUpperCase() + tab.slice(1)} queue
             </div>
             <TransferHistoryTable
@@ -415,8 +416,8 @@ function ScheduledTransferForm({
 
       <label className="block text-sm">
         Memo (optional)
-        <textarea
-          className={`${fieldClass} min-h-[4rem] resize-none`}
+        <Textarea
+          className={`${fieldClass} min-h-[4rem]`}
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
         />
@@ -518,7 +519,7 @@ function TransferHistoryTable({
                 (p.status === "pending_review" || p.status === "approved" || p.status === "paused") ? (
                   <button
                     type="button"
-                    className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline"
+                    className="mt-1 rounded border border-destructive/30 bg-destructive/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
                     onClick={async () => {
                       await onCancel(p.id);
                       await router.invalidate();
@@ -545,7 +546,7 @@ function TransferHistoryTable({
                   {p.status === "pending_review" || p.status === "approved" || p.status === "paused" ? (
                     <button
                       type="button"
-                      className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline"
+                      className="rounded border border-destructive/30 bg-destructive/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
                       onClick={async () => {
                         await onCancel(p.id);
                         await router.invalidate();

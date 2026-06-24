@@ -18,7 +18,7 @@ function EntityCardHeader({ entity }: { entity: EntityOverviewItem }) {
           <Icon className="size-4" />
         </div>
         <div className="text-right">
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="type-meta">
             {entity.code}
           </span>
           <div
@@ -38,7 +38,7 @@ function EntityCardHeader({ entity }: { entity: EntityOverviewItem }) {
 function EntityServicesList({ services }: { services: string[] }) {
   return (
     <div className="mt-6 border-t border-border/60 pt-5">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-meta">
         Services
       </div>
       <ul className="mt-3 space-y-2">
@@ -56,7 +56,7 @@ function EntityServicesList({ services }: { services: string[] }) {
 function EntityProductsSection({ products }: { products: EntityProduct[] }) {
   return (
     <>
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-meta">
         Products
       </div>
       {products.map((product) => (
@@ -70,7 +70,7 @@ function EntityProductsSection({ products }: { products: EntityProduct[] }) {
               Exchange product
             </span>
           </div>
-          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="mt-1 type-meta">
             {product.subtitle}
           </div>
           <p className="mt-2 text-[13px] font-medium tracking-tight text-foreground">

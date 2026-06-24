@@ -60,7 +60,7 @@ export function CompanyInvitationsPanel({
   return (
     <div className="mb-10 space-y-4">
       <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">
+        <p className="type-meta-accent">
           Pending invitations
         </p>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
@@ -74,7 +74,7 @@ export function CompanyInvitationsPanel({
           <Card key={invitation.id} className="flex flex-col !p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <div className="type-meta">
                   {invitation.companyType}
                 </div>
                 <h3 className="mt-2 text-lg font-semibold tracking-tight">{invitation.companyName}</h3>

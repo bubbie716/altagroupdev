@@ -166,6 +166,17 @@ export interface CreatePayrollEmployeeInput {
   payDay: string;
 }
 
+export interface UpdatePayrollEmployeeInput {
+  companyId: string;
+  employeeId: string;
+  displayName: string;
+  title?: string;
+  accountNumber: string;
+  payAmount: number;
+  payFrequency: PaymentFrequencyCode;
+  payDay: string;
+}
+
 export interface CreatePayrollRunInput {
   companyId: string;
   bankAccountId: string;

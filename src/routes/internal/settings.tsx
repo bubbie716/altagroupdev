@@ -17,25 +17,25 @@ function InternalSettingsPage() {
       <Section title="System Configuration">
         <Card className="grid gap-4 md:grid-cols-2 !p-5">
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Maintenance mode</span>
+            <span className="type-meta">Maintenance mode</span>
             <select disabled className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground">
               <option>{s.maintenanceMode ? "Enabled" : "Disabled"}</option>
             </select>
           </label>
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Market status</span>
+            <span className="type-meta">Market status</span>
             <select disabled className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground">
               <option>{s.marketStatus}</option>
             </select>
           </label>
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Bank transfers</span>
+            <span className="type-meta">Bank transfers</span>
             <select disabled className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground">
               <option>{s.bankTransfers}</option>
             </select>
           </label>
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">IPO applications</span>
+            <span className="type-meta">IPO applications</span>
             <select disabled className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground">
               <option>{s.ipoApplications}</option>
             </select>
@@ -47,7 +47,7 @@ function InternalSettingsPage() {
         <Card className="!p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <tr className="border-b border-border text-left type-meta">
                 <th className="px-4 py-3">Flag</th>
                 <th className="px-4 py-3">Key</th>
                 <th className="px-4 py-3">Status</th>

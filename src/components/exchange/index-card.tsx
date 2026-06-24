@@ -14,7 +14,7 @@ export function IndexCard({ index }: { index: ExchangeIndex }) {
             {index.symbol}
           </div>
           <div className="mt-1 text-[13px]">{index.name}</div>
-          <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="mt-2 type-meta">
             {index.category} · {index.constituents} constituents
           </div>
         </div>

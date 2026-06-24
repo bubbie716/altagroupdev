@@ -39,7 +39,7 @@ function InternalIpos() {
             },
             { key: "ticker", header: "Ticker", cell: (a: IpoApplication) => <span className="font-mono">{a.ticker}</span> },
             { key: "sector", header: "Sector", cell: (a: IpoApplication) => a.sector },
-            { key: "raise", header: "Raise", cell: (a: IpoApplication) => <span className="tabular font-mono">{a.raiseSize}</span> },
+            { key: "raise", header: "Raise", cell: (a: IpoApplication) => <span className="type-finance">{a.raiseSize}</span> },
             { key: "status", header: "App Status", cell: (a: IpoApplication) => <StatusBadge status={a.status} /> },
             { key: "verification", header: "Co. Verification", cell: (a: IpoApplication) => <StatusBadge status={a.companyVerificationStatus} /> },
             { key: "rep", header: "Authorized Rep.", cell: (a: IpoApplication) => <span className="font-mono text-[11px]">{a.authorizedRepresentative}</span> },

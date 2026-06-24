@@ -107,7 +107,7 @@ function TerminalPortfolioMockContent() {
               <div key={sec.sector}>
                 <div className="flex justify-between text-[13px]">
                   <span>{sec.sector}</span>
-                  <span className="tabular font-mono">{sec.weight.toFixed(1)}%</span>
+                  <span className="type-finance">{sec.weight.toFixed(1)}%</span>
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
                   <div className="h-full rounded-full bg-gold/70" style={{ width: `${sec.weight}%` }} />
@@ -126,7 +126,7 @@ function TerminalPortfolioMockContent() {
         <Card className="!p-0">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <tr className="border-b border-border text-left type-meta">
                 <th className="px-5 py-3">Date</th>
                 <th className="px-5 py-3">Description</th>
                 <th className="px-5 py-3">Category</th>

@@ -1,4 +1,5 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { RouteButton } from "@/components/bank/route-button";
 import {
   Select,
   SelectContent,
@@ -53,15 +54,15 @@ export function AccountPageToolbar({
 
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <Link
+      <RouteButton
         to="/bank"
         className="inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
       >
         Back to dashboard
-      </Link>
+      </RouteButton>
 
       <div className="min-w-0 sm:ml-auto sm:max-w-lg">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="mb-2 type-meta">
           Account
         </div>
         <Select value={currentAccountId} onValueChange={handleAccountChange}>

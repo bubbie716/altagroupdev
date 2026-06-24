@@ -5,7 +5,7 @@ export function FilingCard({ doc }: { doc: ResearchDocument }) {
   return (
     <Card>
       <div className="flex items-start justify-between gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="type-meta">
           {doc.category}
         </div>
         <span className="font-mono text-[10px] text-muted-foreground">{doc.date}</span>
@@ -16,21 +16,21 @@ export function FilingCard({ doc }: { doc: ResearchDocument }) {
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           View
         </button>
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           Download
         </button>
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           Open Filing
         </button>

@@ -1,5 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
+import { RouteButton } from "@/components/bank/route-button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
@@ -44,18 +46,18 @@ export function BankSubNav({ className }: { className?: string }) {
       {visibleLinks.map((l) => {
         const active = isNavLinkActive(pathname, l);
         return (
-          <Link
+          <RouteButton
             key={l.to}
             to={l.to}
             className={cn(
-              "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+              "type-subnav rounded-md px-3 py-1.5 transition-colors",
               active
                 ? "bg-surface-2 text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {l.label}
-          </Link>
+          </RouteButton>
         );
       })}
     </nav>

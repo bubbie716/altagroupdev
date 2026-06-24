@@ -20,12 +20,12 @@ export function AdminQueueTable({
 }) {
   return (
     <Card className="!p-0">
-      <div className="border-b border-border px-5 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="border-b border-border px-5 py-3 type-meta">
         {title}
       </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">ID</th>
             <th className="px-5 py-3">Client</th>
             <th className="px-5 py-3">Detail</th>

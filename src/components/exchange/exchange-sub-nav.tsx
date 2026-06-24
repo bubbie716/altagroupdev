@@ -1,8 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { SquareArrowOutUpRight } from "lucide-react";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
+import { RouteButton } from "@/components/bank/route-button";
 
 const links = [
   { to: "/exchange", label: "Overview", exact: true },
@@ -31,11 +33,11 @@ export function ExchangeSubNav() {
         {links.map((l) => {
           const active = isActive(pathname, l);
           return (
-            <Link
+            <RouteButton
               key={l.to}
               to={l.to}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+                "type-subnav inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
                 active
                   ? "bg-surface-2 text-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -45,7 +47,7 @@ export function ExchangeSubNav() {
               {"separate" in l && l.separate ? (
                 <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
               ) : null}
-            </Link>
+            </RouteButton>
           );
         })}
       </nav>

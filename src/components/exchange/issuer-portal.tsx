@@ -32,14 +32,14 @@ const monthOptions = [
 function UploadPlaceholder({ label }: { label: string }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-surface-2/30 px-4 py-8 text-center">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="type-meta">
         {label}
       </div>
       <p className="mt-2 text-[12px] text-muted-foreground">Drag and drop or browse — preview only</p>
       <button
         type="button"
         disabled
-        className="mt-4 cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+        className="mt-4 cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
       >
         Choose file
       </button>
@@ -70,13 +70,13 @@ export function IssuerAccessGate({
       <Card>
         <div className="space-y-5">
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="type-meta">
               Issuer email
             </span>
             <input type="text" readOnly placeholder="issuer@company.republic" className={fieldClass} />
           </label>
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="type-meta">
               Access code
             </span>
             <input type="text" readOnly placeholder="••••••••••••" className={cn(fieldClass, "font-mono")} />
@@ -123,7 +123,7 @@ export function IssuerPortalPanel({
     <div className="mx-auto w-full max-w-2xl">
       <Card className="mb-8 flex flex-wrap items-center justify-between gap-4 border-gold/30 bg-gold/5">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="type-meta">
             Issuer portal · {company.symbol}
           </div>
           <div className="mt-1 font-medium">{session.organization}</div>
@@ -173,7 +173,7 @@ export function IssuerPortalPanel({
         <Card>
           <div className="space-y-5">
             <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="type-meta">
                 Announcement title
               </span>
               <input
@@ -184,13 +184,13 @@ export function IssuerPortalPanel({
               />
             </label>
             <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="type-meta">
                 Announcement body
               </span>
               <Textarea
                 readOnly
                 placeholder="Full announcement text for investors and market participants…"
-                className={cn(fieldClass, "min-h-[6rem] resize-none focus-visible:ring-0")}
+                className={cn(fieldClass, "min-h-[6rem] focus-visible:ring-0")}
               />
             </label>
             <UploadPlaceholder label="Supporting document (optional)" />
@@ -209,7 +209,7 @@ export function IssuerPortalPanel({
         <Card>
           <div className="space-y-5">
             <div className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="type-meta">
                 Reporting period
               </span>
               <Select disabled>
@@ -232,13 +232,13 @@ export function IssuerPortalPanel({
             </div>
             <UploadPlaceholder label="Monthly financial update (PDF)" />
             <label className="block">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <span className="type-meta">
                 Summary note
               </span>
               <Textarea
                 readOnly
                 placeholder="Brief summary accompanying the monthly financial update…"
-                className={cn(fieldClass, "min-h-[4.5rem] resize-none focus-visible:ring-0")}
+                className={cn(fieldClass, "min-h-[4.5rem] focus-visible:ring-0")}
               />
             </label>
             <Card className="border-gold/30 bg-gold/5 !p-4">

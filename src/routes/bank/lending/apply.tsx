@@ -1,0 +1,49 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PageShell } from "@/components/page-shell";
+import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { LendingSubNav } from "@/components/bank/lending-sub-nav";
+import { LendingApplyForm } from "@/components/bank/lending-apply-form";
+import { authBeforeLoad } from "@/lib/auth/guards";
+import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
+import type { LoanProductTypeCode } from "@/lib/bank/lending-types";
+
+type ApplySearch = {
+  product?: LoanProductTypeCode;
+};
+
+export const Route = createFileRoute("/bank/lending/apply")({
+  beforeLoad: authBeforeLoad,
+  validateSearch: (search: Record<string, unknown>): ApplySearch => {
+    const product = search.product;
+    if (
+      product === "personal_credit_line" ||
+      product === "business_credit_line" ||
+      product === "private_liquidity_line"
+    ) {
+      return { product };
+    }
+    return {};
+  },
+  loader: async () => fetchLendingFormContext(),
+  head: () => ({
+    meta: [{ title: "Apply for Credit — Alta Bank Lending" }],
+  }),
+  component: BankLendingApply,
+});
+
+function BankLendingApply() {
+  const { product } = Route.useSearch();
+  const { accounts, companies } = Route.useLoaderData();
+
+  return (
+    <PageShell
+      eyebrow="Alta Bank · Lending"
+      title="Apply for credit"
+      description="Submit a facility request for manual review by Alta Bank credit operations."
+    >
+      <BankSubNav />
+      <LendingSubNav />
+      <LendingApplyForm accounts={accounts} companies={companies} initialProduct={product} />
+    </PageShell>
+  );
+}

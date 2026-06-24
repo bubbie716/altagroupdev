@@ -19,7 +19,7 @@ export function BusinessRepresentativesPanel({
   return (
     <div className="space-y-8">
       <Card className="!p-6">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="type-meta">
           Authorized representatives
         </div>
         <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
@@ -62,7 +62,7 @@ export function BusinessRepresentativesPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {(["owner", "executive", "finance_manager", "compliance_contact"] as const).map((role) => (
           <Card key={role} className="!p-5">
-            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-gold">
+            <div className="type-meta-accent">
               {role.replace(/_/g, " ")}
             </div>
             <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">

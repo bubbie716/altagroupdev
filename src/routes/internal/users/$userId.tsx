@@ -85,13 +85,13 @@ function InternalUserDetailPage() {
               <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 Companies
               </dt>
-              <dd className="mt-1 tabular font-mono">{user.companyCount}</dd>
+              <dd className="mt-1 type-finance">{user.companyCount}</dd>
             </div>
             <div>
               <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 Bank accounts
               </dt>
-              <dd className="mt-1 tabular font-mono">{user.bankAccountCount}</dd>
+              <dd className="mt-1 type-finance">{user.bankAccountCount}</dd>
             </div>
           </dl>
         </div>
@@ -118,7 +118,7 @@ function InternalUserDetailPage() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Company</th>
                   <th className="px-4 py-3">Role</th>
                 </tr>
@@ -151,7 +151,7 @@ function InternalUserDetailPage() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Account</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Status</th>
@@ -186,7 +186,7 @@ function InternalUserDetailPage() {
           <Card className="!p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Date & time</th>
                   <th className="px-4 py-3">Account</th>
                   <th className="px-4 py-3">Type</th>

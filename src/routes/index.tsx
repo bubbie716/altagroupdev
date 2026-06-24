@@ -72,7 +72,7 @@ function Hero() {
           className="flex flex-col items-center text-center"
         >
           <AltaLogo className="h-16 w-16 text-foreground" />
-          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 type-meta">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
             Alta Exchange Open · NSX-100 {nsx100.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
@@ -143,7 +143,7 @@ function Hero() {
             ) : (
               <div className="rounded-xl bg-background p-5">
                 <div className="border-b border-border pb-3">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  <div className="type-meta">
                     Alta Portfolio · {user.discordUsername}
                   </div>
                 </div>
@@ -241,7 +241,7 @@ function Divisions() {
     <section className="mx-auto max-w-[1400px] px-6 py-32">
       <div className="grid items-end gap-8 md:grid-cols-[1fr_auto] mb-16">
         <div>
-          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+          <div className="type-eyebrow">
             01 — Structure
           </div>
             <h2 className="mt-4 text-[clamp(2.25rem,4.4vw,3.75rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
@@ -268,7 +268,7 @@ function Divisions() {
               className="flex h-full flex-col"
             >
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <span className="type-meta">
                   {d.tag}
                 </span>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-gold" />
@@ -300,7 +300,7 @@ function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPla
   return (
     <section className="border-y border-border bg-surface-1/40">
       <div className="mx-auto max-w-[1400px] px-6 py-8">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="type-meta">
           Live platform records
         </p>
       </div>
@@ -310,7 +310,7 @@ function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPla
             <div className="text-[clamp(1.75rem,3vw,2.75rem)] font-semibold tracking-tight tabular">
               {it.value}
             </div>
-            <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="mt-3 type-section-title">
               {it.label}
             </div>
             {it.sourceLabel ? (
@@ -345,7 +345,7 @@ function ClosingCTA() {
             </h2>
           </div>
           <div className="flex flex-col items-start gap-3">
-            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-section-title">
               Live market snapshot
             </div>
             {isPublicSimulatedMarketDataEnabled() && (

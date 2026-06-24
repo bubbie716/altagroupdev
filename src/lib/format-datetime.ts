@@ -20,6 +20,18 @@ function formatCalendarDateInNewYork(year: number, month: number, day: number): 
   }).format(new Date(Date.UTC(year, month - 1, day, 12, 0, 0)));
 }
 
+/** Calendar due date in America/New_York. */
+export function formatDueDate(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: NY_TIMEZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 /** Activity tables: date and time in America/New_York (ET/EDT). */
 export function formatActivityDateTime(value: string | Date): string {
   if (typeof value === "string") {

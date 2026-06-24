@@ -18,7 +18,7 @@ export const Route = createFileRoute("/profile")({
 function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-1 border-b border-border/50 py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+      <span className="type-meta">{label}</span>
       <span className="text-sm">{value}</span>
     </div>
   );
@@ -127,7 +127,7 @@ function ProfilePage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Company</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Ticker</th>

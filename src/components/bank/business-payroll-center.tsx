@@ -8,15 +8,18 @@ import { florin } from "@/lib/bank/api";
 import {
   createPayrollEmployeeRecord,
   deactivatePayrollEmployeeRecord,
+  updatePayrollEmployeeRecord,
 } from "@/lib/bank/business-banking.functions";
 import type {
   BusinessTreasuryCompany,
+  PaymentFrequencyCode,
   PayrollEmployeeRow,
   PayrollRunRow,
 } from "@/lib/bank/business-banking-types";
 import {
   getDefaultPayDay,
   getPayDayOptions,
+  isValidPayDay,
   type PayDayCode,
 } from "@/lib/bank/payroll-pay-day";
 
@@ -35,6 +38,7 @@ export function BusinessPayrollCenter({
   runs: PayrollRunRow[];
 }) {
   const [tab, setTab] = useState<Tab>("registry");
+  const [editingEmployee, setEditingEmployee] = useState<PayrollEmployeeRow | null>(null);
   const canManage = company.permissions.canManage;
 
   return (
@@ -66,9 +70,14 @@ export function BusinessPayrollCenter({
           {canManage ? (
             <Card className="!p-6">
               <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-                Add employee
+                {editingEmployee ? "Edit employee" : "Add employee"}
               </div>
-              <EmployeeForm companyId={company.companyId} />
+              <EmployeeForm
+                companyId={company.companyId}
+                employee={editingEmployee}
+                onCancelEdit={() => setEditingEmployee(null)}
+                onSaved={() => setEditingEmployee(null)}
+              />
             </Card>
           ) : (
             <Card className="!p-6">
@@ -78,17 +87,22 @@ export function BusinessPayrollCenter({
             </Card>
           )}
           <Card className="!p-6">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-meta">
               Employee registry
             </div>
-            <EmployeeTable employees={employees} company={company} />
+            <EmployeeTable
+              employees={employees}
+              company={company}
+              editingEmployeeId={editingEmployee?.id ?? null}
+              onEdit={setEditingEmployee}
+            />
           </Card>
         </div>
       )}
 
       {tab === "history" && (
         <Card className="!p-6">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="type-meta">
             Payroll history
           </div>
           <PayrollHistoryTable runs={runs} />
@@ -98,19 +112,56 @@ export function BusinessPayrollCenter({
   );
 }
 
-function EmployeeForm({ companyId }: { companyId: string }) {
+function EmployeeForm({
+  companyId,
+  employee = null,
+  onCancelEdit,
+  onSaved,
+}: {
+  companyId: string;
+  employee?: PayrollEmployeeRow | null;
+  onCancelEdit?: () => void;
+  onSaved?: () => void;
+}) {
   const router = useRouter();
   const createEmployee = useServerFn(createPayrollEmployeeRecord);
+  const updateEmployee = useServerFn(updatePayrollEmployeeRecord);
   const [displayName, setDisplayName] = useState("");
   const [title, setTitle] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [payAmount, setPayAmount] = useState("");
-  const [payFrequency, setPayFrequency] = useState<"weekly" | "biweekly" | "monthly" | "quarterly">("monthly");
+  const [payFrequency, setPayFrequency] = useState<PaymentFrequencyCode>("monthly");
   const [payDay, setPayDay] = useState<PayDayCode>(getDefaultPayDay("monthly"));
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const payDayOptions = getPayDayOptions(payFrequency);
+  const isEditing = employee !== null;
+
+  useEffect(() => {
+    if (!employee) {
+      setDisplayName("");
+      setTitle("");
+      setAccountNumber("");
+      setPayAmount("");
+      setPayFrequency("monthly");
+      setPayDay(getDefaultPayDay("monthly"));
+      setError(null);
+      return;
+    }
+
+    setDisplayName(employee.displayName);
+    setTitle(employee.title ?? "");
+    setAccountNumber(employee.accountNumber);
+    setPayAmount(String(employee.payAmount));
+    setPayFrequency(employee.payFrequency);
+    setPayDay(
+      isValidPayDay(employee.payFrequency, employee.payDay)
+        ? (employee.payDay as PayDayCode)
+        : getDefaultPayDay(employee.payFrequency),
+    );
+    setError(null);
+  }, [employee]);
 
   useEffect(() => {
     const options = getPayDayOptions(payFrequency);
@@ -124,26 +175,42 @@ function EmployeeForm({ companyId }: { companyId: string }) {
     setError(null);
     setPending(true);
     try {
-      await createEmployee({
-        data: {
-          companyId,
-          displayName,
-          title: title || undefined,
-          accountNumber,
-          payAmount: Number(payAmount),
-          payFrequency,
-          payDay,
-        },
-      });
+      const payload = {
+        companyId,
+        displayName,
+        title: title || undefined,
+        accountNumber,
+        payAmount: Number(payAmount),
+        payFrequency,
+        payDay,
+      };
+
+      if (isEditing && employee) {
+        await updateEmployee({
+          data: {
+            ...payload,
+            employeeId: employee.id,
+          },
+        });
+        onSaved?.();
+      } else {
+        await createEmployee({ data: payload });
+        setDisplayName("");
+        setTitle("");
+        setAccountNumber("");
+        setPayAmount("");
+        setPayFrequency("monthly");
+        setPayDay(getDefaultPayDay("monthly"));
+      }
       await router.invalidate();
-      setDisplayName("");
-      setTitle("");
-      setAccountNumber("");
-      setPayAmount("");
-      setPayFrequency("monthly");
-      setPayDay(getDefaultPayDay("monthly"));
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Failed to add employee.");
+      setError(
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "")
+          : isEditing
+            ? "Failed to update employee."
+            : "Failed to add employee.",
+      );
     } finally {
       setPending(false);
     }
@@ -213,13 +280,25 @@ function EmployeeForm({ companyId }: { companyId: string }) {
         Salary is sent automatically at 9:00 AM Eastern on the chosen schedule.
       </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
-      >
-        {pending ? "Saving…" : "Add employee"}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
+        >
+          {pending ? "Saving…" : isEditing ? "Save changes" : "Add employee"}
+        </button>
+        {isEditing ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onCancelEdit}
+            className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-2/60 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -227,9 +306,13 @@ function EmployeeForm({ companyId }: { companyId: string }) {
 function EmployeeTable({
   employees,
   company,
+  editingEmployeeId,
+  onEdit,
 }: {
   employees: PayrollEmployeeRow[];
   company: BusinessTreasuryCompany;
+  editingEmployeeId: string | null;
+  onEdit: (employee: PayrollEmployeeRow) => void;
 }) {
   const router = useRouter();
   const deactivate = useServerFn(deactivatePayrollEmployeeRecord);
@@ -237,6 +320,9 @@ function EmployeeTable({
   if (employees.length === 0) {
     return <p className="mt-4 text-[13px] text-muted-foreground">No employees registered yet.</p>;
   }
+
+  const actionButtonClass =
+    "rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] disabled:opacity-50";
 
   return (
     <div className="mt-4 overflow-x-auto">
@@ -253,7 +339,10 @@ function EmployeeTable({
         </thead>
         <tbody>
           {employees.map((e) => (
-            <tr key={e.id}>
+            <tr
+              key={e.id}
+              className={editingEmployeeId === e.id ? "bg-surface-2/40" : undefined}
+            >
               <td>{e.displayName}</td>
               <td>{e.title ?? "—"}</td>
               <td className="tabular-nums">{florin(e.payAmount)}</td>
@@ -261,18 +350,29 @@ function EmployeeTable({
                 {e.payFrequencyLabel} · {e.payDayLabel}
               </td>
               <td>{e.statusLabel}</td>
-              {company.permissions.canManage && e.status === "active" && (
+              {company.permissions.canManage && (
                 <td>
-                  <button
-                    type="button"
-                    className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline"
-                    onClick={async () => {
-                      await deactivate({ data: { companyId: company.companyId, employeeId: e.id } });
-                      await router.invalidate();
-                    }}
-                  >
-                    Deactivate
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-3">
+                    <button
+                      type="button"
+                      className={`${actionButtonClass} text-foreground`}
+                      onClick={() => onEdit(e)}
+                    >
+                      Edit
+                    </button>
+                    {e.status === "active" ? (
+                      <button
+                        type="button"
+                        className={`${actionButtonClass} text-destructive`}
+                        onClick={async () => {
+                          await deactivate({ data: { companyId: company.companyId, employeeId: e.id } });
+                          await router.invalidate();
+                        }}
+                      >
+                        Deactivate
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               )}
             </tr>
@@ -308,7 +408,7 @@ function PayrollHistoryTable({ runs }: { runs: PayrollRunRow[] }) {
             {run.lineItems.map((line) => (
               <li key={line.employeeId} className="flex justify-between gap-4">
                 <span>{line.displayName}</span>
-                <span className="font-mono tabular-nums">{florin(line.amount)}</span>
+                <span className="type-finance-nums">{florin(line.amount)}</span>
               </li>
             ))}
           </ul>

@@ -20,6 +20,16 @@ export type ApiSession = {
 const KEYS_STORAGE = "alta-exchange-api-keys";
 const SESSION_STORAGE = "alta-exchange-api-session";
 
+/** Built-in preview key for mock API documentation access. */
+export const DEMO_API_KEY = "ax_live_alta_demo_documentation";
+
+const DEMO_KEY_RECORD: StoredApiKey = {
+  key: DEMO_API_KEY,
+  organization: "Alta Demo Consumer",
+  useCase: "Terminal integration",
+  issuedAt: "2026-01-01",
+};
+
 function readKeys(): StoredApiKey[] {
   if (typeof window === "undefined") return [];
   try {
@@ -48,6 +58,7 @@ export function readApiSession(): ApiSession | null {
 
 function findKeyRecord(key: string): StoredApiKey | undefined {
   const trimmed = key.trim();
+  if (trimmed === DEMO_API_KEY) return DEMO_KEY_RECORD;
   return readKeys().find((k) => k.key === trimmed);
 }
 

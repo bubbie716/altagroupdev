@@ -14,7 +14,7 @@ function mergeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
 const Textarea = React.forwardRef<
   HTMLTextAreaElement,
   React.ComponentProps<"textarea"> & { autoResize?: boolean }
->(({ className, autoResize, onInput, rows, ...props }, ref) => {
+>(({ className, autoResize = true, onInput, onChange, rows, ...props }, ref) => {
   const innerRef = React.useRef<HTMLTextAreaElement>(null);
 
   const resize = React.useCallback(() => {
@@ -37,8 +37,8 @@ const Textarea = React.forwardRef<
   return (
     <textarea
       className={cn(
-        "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        autoResize && "resize-none overflow-hidden",
+        "flex min-h-[60px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        autoResize && "overflow-hidden",
         className,
       )}
       ref={mergeRefs(ref, innerRef)}
@@ -46,6 +46,10 @@ const Textarea = React.forwardRef<
       onInput={(e) => {
         if (autoResize) resize();
         onInput?.(e);
+      }}
+      onChange={(e) => {
+        onChange?.(e);
+        if (autoResize) resize();
       }}
       {...props}
     />

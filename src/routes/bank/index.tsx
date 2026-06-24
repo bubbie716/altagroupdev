@@ -7,6 +7,7 @@ import { TransactionTable } from "@/components/bank/transaction-table";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
+import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { BankDashboardMockContent } from "@/routes/bank/-dashboard-mock";
@@ -107,7 +108,7 @@ function BankDashboardLiveContent({
               date: t.createdAt,
               desc: t.description,
               category: t.typeLabel,
-              amount: t.type === "withdrawal" ? -t.amount : t.amount,
+              amount: getSignedBankTransactionAmount(t.type, t.amount),
             }))}
             title=""
           />

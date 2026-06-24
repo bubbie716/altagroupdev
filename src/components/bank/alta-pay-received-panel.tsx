@@ -47,7 +47,7 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
                 {summary.recentPayments.map((p) => (
                   <tr key={p.id}>
                     <td>{p.payerLabel}</td>
-                    <td className="font-mono tabular-nums">{florin(p.amount)}</td>
+                    <td className="type-finance-nums">{florin(p.amount)}</td>
                     <td className="font-mono text-[11px]">{p.referenceCode}</td>
                     <td className="text-muted-foreground">{p.memo ?? "—"}</td>
                     <td className="text-muted-foreground">{formatActivityDateTime(p.createdAt)}</td>
@@ -85,7 +85,7 @@ export function AltaPayHistoryTable({ payments }: { payments: AltaPayPaymentRow[
             <tr key={p.id}>
               <td>{p.payeeLabel}</td>
               <td className="text-muted-foreground">{p.sourceAccountName ?? "—"}</td>
-              <td className="font-mono tabular-nums">{florin(p.amount)}</td>
+              <td className="type-finance-nums">{florin(p.amount)}</td>
               <td className="font-mono text-[11px]">{p.referenceCode}</td>
               <td className="text-muted-foreground">{p.memo ?? "—"}</td>
               <td className="text-muted-foreground">{formatActivityDateTime(p.createdAt)}</td>

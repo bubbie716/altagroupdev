@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/page-shell";
+import { RouteButton } from "@/components/bank/route-button";
 
 const actions = [
   {
@@ -38,14 +38,14 @@ export function AccountQuickActions({
           <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
             {action.description}
           </p>
-          <Link
+          <RouteButton
             to={action.to}
             search={{ accountId }}
             className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
           >
             {action.buttonLabel}
             <ArrowUpRight className="size-3.5" />
-          </Link>
+          </RouteButton>
         </Card>
       ))}
     </div>

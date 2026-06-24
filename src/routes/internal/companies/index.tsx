@@ -68,7 +68,7 @@ function InternalCompanies() {
             {
               key: "reps",
               header: "Representatives",
-              cell: (c: InternalCompanyRow) => <span className="tabular font-mono">{c.representativeCount}</span>,
+              cell: (c: InternalCompanyRow) => <span className="type-finance">{c.representativeCount}</span>,
             },
             { key: "contact", header: "Primary Contact", cell: (c: InternalCompanyRow) => <span className="font-mono text-[12px]">{c.primaryContact}</span> },
             { key: "verification", header: "Verification", cell: (c: InternalCompanyRow) => <StatusBadge status={c.verificationStatus} /> },

@@ -118,7 +118,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
       <Card className="!p-0">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <tr className="border-b border-border text-left type-meta">
               <th className="px-4 py-3">User</th>
               <th className="px-4 py-3">Minecraft</th>
               <th className="px-4 py-3">Role</th>
@@ -206,7 +206,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
           <form onSubmit={handleSendInvitation} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="type-meta">
                   Discord username or ID
                 </span>
                 <Input
@@ -218,7 +218,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
                 />
               </label>
               <label className="block">
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="type-meta">
                   Role
                 </span>
                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as CompanyRole)}>

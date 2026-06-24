@@ -87,7 +87,7 @@ function ScheduledTransferActions({ row }: { row: InternalScheduledTransferRow }
         <button
           type="button"
           disabled={pending}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] hover:underline disabled:opacity-50"
+          className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] disabled:opacity-50"
           onClick={() => act(() => pauseInternalScheduledTransferRecord({ data: row.id }))}
         >
           Pause
@@ -97,7 +97,7 @@ function ScheduledTransferActions({ row }: { row: InternalScheduledTransferRow }
         <button
           type="button"
           disabled={pending}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] hover:underline disabled:opacity-50"
+          className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] disabled:opacity-50"
           onClick={() => act(() => resumeInternalScheduledTransferRecord({ data: row.id }))}
         >
           Resume
@@ -107,7 +107,7 @@ function ScheduledTransferActions({ row }: { row: InternalScheduledTransferRow }
         <button
           type="button"
           disabled={pending}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline disabled:opacity-50"
+          className="rounded border border-gold/30 bg-gold/5 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
           onClick={() => act(() => runInternalScheduledTransferNowRecord({ data: row.id }))}
         >
           Run now
@@ -117,7 +117,7 @@ function ScheduledTransferActions({ row }: { row: InternalScheduledTransferRow }
         <button
           type="button"
           disabled={pending}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline disabled:opacity-50"
+          className="rounded border border-destructive/30 bg-destructive/5 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive disabled:opacity-50"
           onClick={() => act(() => cancelInternalScheduledTransferRecord({ data: row.id }))}
         >
           Cancel

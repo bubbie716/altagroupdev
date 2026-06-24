@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { EmbedFieldLabel } from "@/components/internal/discord-embed-char-counter";
 import { DiscordEmbedPreview } from "@/components/internal/discord-embed-preview";
@@ -83,7 +84,7 @@ export function DiscordEmbedBuilder({
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Card className="!p-5">
         <div className="mb-5 border-b border-border/60 pb-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          <h2 className="type-section-title">
             Embed Editor
           </h2>
           <p className="mt-2 text-[13px] text-muted-foreground">
@@ -184,11 +185,10 @@ export function DiscordEmbedBuilder({
             </label>
             <label className="mt-3 block">
               <EmbedFieldLabel label="Description" counter={{ current: draft.description.length, max: DISCORD_EMBED_LIMITS.description }} />
-              <textarea
+              <Textarea
                 value={draft.description}
                 onChange={(e) => updateDraft({ description: e.target.value })}
-                rows={5}
-                className={`${inputClass} min-h-[120px] resize-y`}
+                className={`${inputClass} min-h-[120px]`}
               />
             </label>
             <label className="mt-3 block">
@@ -236,7 +236,7 @@ export function DiscordEmbedBuilder({
                 {draft.fields.map((field, index) => (
                   <div key={field.id} className="rounded-lg border border-border/70 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      <span className="type-meta">
                         Field {index + 1}
                       </span>
                       <button
@@ -265,7 +265,7 @@ export function DiscordEmbedBuilder({
                     </label>
                     <label className="mt-3 block">
                       <EmbedFieldLabel label="Value" counter={{ current: field.value.length, max: DISCORD_EMBED_LIMITS.fieldValue }} />
-                      <textarea
+                      <Textarea
                         value={field.value}
                         onChange={(e) =>
                           updateDraft({
@@ -274,12 +274,11 @@ export function DiscordEmbedBuilder({
                             ),
                           })
                         }
-                        rows={2}
-                        className={`${inputClass} min-h-[72px] resize-y`}
+                        className={`${inputClass} min-h-[72px]`}
                       />
                     </label>
                     <label className="mt-3 flex items-center justify-between">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      <span className="type-meta">
                         Inline
                       </span>
                       <Switch
@@ -347,7 +346,7 @@ export function DiscordEmbedBuilder({
                 {draft.buttons.map((button, index) => (
                   <div key={button.id} className="rounded-lg border border-border/70 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      <span className="type-meta">
                         Button {index + 1}
                       </span>
                       <button
@@ -401,7 +400,7 @@ export function DiscordEmbedBuilder({
         <Card className="!p-5">
           <div className="mb-4 flex items-start justify-between gap-4 border-b border-border/60 pb-4">
             <div>
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+              <h2 className="type-section-title">
                 Live Preview
               </h2>
               <p className="mt-2 text-[13px] text-muted-foreground">
@@ -418,7 +417,7 @@ export function DiscordEmbedBuilder({
         </Card>
 
         <Card className="!p-5">
-          <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          <h3 className="type-section-title">
             Validation
           </h3>
           <ul className="mt-3 space-y-1 text-[12px] text-muted-foreground">
@@ -498,7 +497,7 @@ function EditorSection({
   return (
     <section className="rounded-lg border border-border/60 bg-surface-2/20 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{title}</h3>
+        <h3 className="type-meta">{title}</h3>
         {action}
       </div>
       {children}

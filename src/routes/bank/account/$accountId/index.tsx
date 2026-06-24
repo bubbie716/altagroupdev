@@ -1,8 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Section, Card } from "@/components/page-shell";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { BankAccountTransactions } from "@/components/bank/bank-account-transactions";
 import { AccountQuickActions } from "@/components/bank/account-quick-actions";
+import { RouteButton } from "@/components/bank/route-button";
 import { florin } from "@/lib/bank/api";
 import type { BankAccountStatusCode } from "@/lib/bank/backend-types";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,7 @@ function ProfileRow({
 }) {
   return (
     <div className="flex flex-1 flex-col justify-center gap-1 px-5 sm:flex-row sm:items-center sm:justify-between">
-      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="type-meta">
         {label}
       </span>
       <span className={cn("font-mono text-[12px] sm:max-w-md sm:text-right", valueClassName)}>
@@ -99,13 +100,13 @@ function AccountOverviewPage() {
 
       <Section title="Recent activity" className="mt-10">
         <BankAccountTransactions transactions={account.recentTransactions} />
-        <Link
+        <RouteButton
           to="/bank/account/$accountId/activity"
           params={{ accountId: account.id }}
-          className="mt-4 inline-flex font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
+          className="mt-4 inline-flex rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground"
         >
-          View all activity →
-        </Link>
+          View all activity
+        </RouteButton>
       </Section>
     </>
   );

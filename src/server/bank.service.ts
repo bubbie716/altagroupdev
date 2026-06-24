@@ -188,7 +188,7 @@ export async function getUserBankAccountDetail(
       status: { not: "PENDING" },
     },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 100,
     include: {
       bankAccount: {
         include: {
@@ -212,7 +212,9 @@ export async function getUserBankAccountDetail(
   for (const tx of monthTransactions) {
     const amount = decimalToNumber(tx.amount);
     if (tx.type === "DEPOSIT") depositsThisMonth += amount;
-    if (tx.type === "WITHDRAWAL") withdrawalsThisMonth += amount;
+    if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
+      withdrawalsThisMonth += amount;
+    }
   }
 
   const balance = decimalToNumber(account.balance);
@@ -658,6 +660,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     pendingDeposits,
     pendingWithdrawals,
     frozenAccounts,
+    lendingQueue,
     altaPayVolume,
   ] = await Promise.all([
     prisma.bankAccount.count(),
@@ -665,6 +668,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     prisma.bankTransaction.count({ where: { type: "DEPOSIT", status: "PENDING" } }),
     prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
     prisma.bankAccount.count({ where: { status: "FROZEN" } }),
+    import("@/server/lending.service").then((m) => m.countPendingLoanApplications()),
     import("@/server/alta-pay.service").then((m) => m.getAltaPayVolumeSummary()),
   ]);
 
@@ -674,7 +678,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     pendingDeposits,
     pendingWithdrawals,
     frozenAccounts,
-    lendingQueue: 0,
+    lendingQueue,
     transfersInReview: 0,
     privateInvitesPending: 0,
     altaPayCountThisMonth: altaPayVolume.countThisMonth,

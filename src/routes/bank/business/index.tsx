@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { RouteButton } from "@/components/bank/route-button";
 
 export const Route = createFileRoute("/bank/business/")({
   head: () => ({ meta: [{ title: "Business Banking — Alta Bank" }] }),
@@ -35,30 +36,26 @@ function BusinessBankingMarketingPage() {
         </Card>
 
         <Card className="!p-8">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="type-meta">
             Get started
           </div>
           <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">
             Register and verify your company, then open a Business Operating Account. Once active,
-            manage treasury from your{" "}
-            <Link to="/bank" className="text-gold hover:underline">
-              bank dashboard
-            </Link>
-            .
+            manage treasury from your bank dashboard.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
+            <RouteButton
               to="/bank/open"
               className="inline-flex rounded-md bg-foreground px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background transition-opacity hover:opacity-90"
             >
               Open Business Operating Account
-            </Link>
-            <Link
+            </RouteButton>
+            <RouteButton
               to="/bank"
               className="inline-flex rounded-md border border-border px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors hover:bg-surface-2"
             >
               Go to dashboard
-            </Link>
+            </RouteButton>
           </div>
         </Card>
       </div>

@@ -10,7 +10,7 @@ export function CompanyDashboardCard({ company }: { company: CompanySummary }) {
     <Card className="flex flex-col !p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="type-meta">
             {company.type}
           </div>
           <h3 className="mt-2 text-lg font-semibold tracking-tight">{company.name}</h3>

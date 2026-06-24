@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
 import { SiteNav, SiteFooter } from "./site-nav";
 
 export function PageShell({
@@ -34,16 +35,10 @@ export function PageShell({
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className={cn("page-shell-hero border-b border-border/60 pb-10", printDocument && "print:hidden")}
         >
-          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
-            {eyebrow}
-          </div>
-          <h1 className="mt-4 text-[clamp(2.75rem,5.5vw,4.5rem)] font-semibold leading-[1.0] tracking-[-0.015em]">
-            {title}
-          </h1>
+          <div className={type.eyebrow}>{eyebrow}</div>
+          <h1 className={cn(type.display, "mt-4")}>{title}</h1>
           {description && (
-            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              {description}
-            </p>
+            <p className={cn(type.body, "mt-4 max-w-2xl text-muted-foreground")}>{description}</p>
           )}
         </motion.div>
         <main className={cn("py-12", printDocument && "print:py-0")}>{children}</main>
@@ -68,9 +63,7 @@ export function Section({
     <section className={className}>
       {title && (
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-            {title}
-          </h2>
+          <h2 className={type.sectionTitle}>{title}</h2>
           {action}
         </div>
       )}

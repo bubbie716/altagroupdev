@@ -1,5 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
+import { RouteButton } from "@/components/bank/route-button";
 
 const links = [
   { to: "/bank/business", label: "Overview", exact: true },
@@ -21,19 +23,19 @@ export function BusinessSubNav({ companyId }: { companyId?: string }) {
   return (
     <nav className="mb-8 flex flex-wrap gap-1 border-b border-border/60 pb-4">
       {links.map((l) => (
-        <Link
+        <RouteButton
           key={l.to}
           to={l.to}
           search={search}
           className={cn(
-            "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+            "type-subnav rounded-md px-3 py-1.5 transition-colors",
             isActive(pathname, l)
               ? "bg-surface-2 text-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
           {l.label}
-        </Link>
+        </RouteButton>
       ))}
     </nav>
   );

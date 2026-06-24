@@ -101,14 +101,14 @@ function InternalUsers() {
       key: "companies",
       header: "Companies",
       cell: (u: InternalUserListRow) => (
-        <span className="tabular font-mono text-[12px]">{u.companyCount}</span>
+        <span className="type-finance text-[12px]">{u.companyCount}</span>
       ),
     },
     {
       key: "accounts",
       header: "Bank accounts",
       cell: (u: InternalUserListRow) => (
-        <span className="tabular font-mono text-[12px]">{u.bankAccountCount}</span>
+        <span className="type-finance text-[12px]">{u.bankAccountCount}</span>
       ),
     },
     {

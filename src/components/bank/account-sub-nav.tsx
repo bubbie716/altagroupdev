@@ -1,5 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
+import { RouteButton } from "@/components/bank/route-button";
 import {
   BUSINESS_ACCOUNT_MODULES,
   canAccessBusinessModule,
@@ -59,19 +61,19 @@ export function BusinessAccountSubNav({
             : pathname.startsWith(path);
 
         return (
-          <Link
+          <RouteButton
             key={mod}
             to={to}
             params={{ accountId }}
             className={cn(
-              "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+              "type-subnav rounded-md px-3 py-1.5 transition-colors",
               active
                 ? "bg-surface-2 text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {MODULE_LABELS[mod]}
-          </Link>
+          </RouteButton>
         );
       })}
     </nav>
@@ -98,27 +100,23 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
             ? pathname === base || pathname === `${base}/`
             : pathname.startsWith(path);
         return (
-          <Link
+          <RouteButton
             key={l.suffix}
             to={
               (l.suffix === ""
                 ? "/bank/account/$accountId"
-                : `/bank/account/$accountId${l.suffix}`) as
-                | "/bank/account/$accountId"
-                | "/bank/account/$accountId/activity"
-                | "/bank/account/$accountId/statements"
-                | "/bank/account/$accountId/settings"
+                : `/bank/account/$accountId${l.suffix}`) as string
             }
             params={{ accountId }}
             className={cn(
-              "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+              "type-subnav rounded-md px-3 py-1.5 transition-colors",
               active
                 ? "bg-surface-2 text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {l.label}
-          </Link>
+          </RouteButton>
         );
       })}
     </nav>

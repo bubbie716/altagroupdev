@@ -13,6 +13,7 @@ import type {
   PayrollEmployeeRow,
   PayrollRunRow,
   ScheduledPaymentRow,
+  UpdatePayrollEmployeeInput,
 } from "@/lib/bank/business-banking-types";
 import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import {
@@ -264,6 +265,67 @@ export async function createPayrollEmployee(
       nextPayDate,
       status: "ACTIVE",
     },
+  });
+  return mapPayrollEmployee(row);
+}
+
+export async function updatePayrollEmployee(
+  user: AltaUser,
+  input: UpdatePayrollEmployeeInput,
+): Promise<PayrollEmployeeRow> {
+  await requireTreasuryManage(user, input.companyId);
+
+  const existing = await prisma.payrollEmployee.findFirst({
+    where: { id: input.employeeId, companyId: input.companyId },
+  });
+  if (!existing) notFound();
+
+  if (!input.displayName.trim()) badRequest("Employee name is required.");
+  if (input.payAmount <= 0) badRequest("Pay amount must be greater than zero.");
+  const accountNumber = input.accountNumber.trim();
+  if (!accountNumber) badRequest("Employee Alta account number is required.");
+  if (!isValidAltaAccountNumber(accountNumber)) {
+    badRequest("Enter a valid Alta Bank account number (AB-####-######).");
+  }
+  if (!isValidPayDay(input.payFrequency, input.payDay)) {
+    badRequest("Select a valid pay day for this frequency.");
+  }
+
+  const payFrequency = toDbPaymentFrequency(input.payFrequency);
+  const scheduleChanged =
+    payFrequency !== existing.payFrequency || input.payDay !== existing.payDay;
+
+  const updateData: {
+    displayName: string;
+    title: string | null;
+    accountNumber: string;
+    payAmount: number;
+    payFrequency: typeof payFrequency;
+    payDay: string;
+    nextPayDate?: Date;
+  } = {
+    displayName: input.displayName.trim(),
+    title: input.title?.trim() || null,
+    accountNumber,
+    payAmount: input.payAmount,
+    payFrequency,
+    payDay: input.payDay,
+  };
+
+  if (scheduleChanged || !existing.nextPayDate) {
+    const now = new Date();
+    updateData.nextPayDate = computeNextPayDate(
+      input.payFrequency,
+      input.payDay,
+      now,
+      Boolean(existing.lastPaidAt),
+      existing.lastPaidAt ?? existing.createdAt,
+    );
+  }
+
+  const row = await prisma.payrollEmployee.update({
+    where: { id: input.employeeId },
+    data: updateData,
   });
   return mapPayrollEmployee(row);
 }

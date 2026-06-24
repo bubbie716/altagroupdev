@@ -18,7 +18,7 @@ export function ApiDocsPanel({
     <>
       <Card className="mb-10 flex flex-wrap items-center justify-between gap-4 border-gold/30 bg-gold/5">
         <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="type-meta">
             Authenticated
           </div>
           <div className="mt-1 font-medium">{session.organization}</div>
@@ -62,13 +62,13 @@ export function ApiDocsPanel({
 
         <Section title="Base URL">
           <Card>
-            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="type-meta">
               Production (planned)
             </div>
             <code className="mt-2 block break-all font-mono text-[14px] text-gold">
               {exchangeApiBaseUrl}
             </code>
-            <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="mt-6 type-meta">
               Your credentials
             </div>
             <div className="mt-2 rounded-md border border-border/60 bg-surface-2 px-3 py-2 font-mono text-[11px] text-foreground/90">
@@ -107,7 +107,7 @@ export function ApiDocsPanel({
 
       <Section title="SDK Import (Preview)" className="mt-12">
         <Card>
-          <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="type-meta">
             TypeScript — mock service layer
           </div>
           <pre className="mt-3 overflow-x-auto rounded-md border border-border/60 bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-foreground/90">

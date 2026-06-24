@@ -35,7 +35,7 @@ export function PlatformStatusGrid({ items }: { items: PlatformStatusItem[] }) {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <Card key={item.name} className="flex flex-col justify-between">
-          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="type-meta">
             Platform
           </div>
           <div className="mt-3 text-lg font-semibold tracking-tight">{item.name}</div>

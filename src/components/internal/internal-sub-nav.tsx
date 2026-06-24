@@ -1,11 +1,14 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { type } from "@/lib/typography";
+import { RouteButton } from "@/components/bank/route-button";
 
 const links = [
   { to: "/internal", label: "Overview", exact: true },
   { to: "/internal/users", label: "Users", match: "/internal/users" },
   { to: "/internal/companies", label: "Companies", match: "/internal/companies" },
   { to: "/internal/bank", label: "Bank Ops" },
+  { to: "/internal/lending", label: "Lending" },
   { to: "/internal/exchange", label: "Exchange Ops" },
   { to: "/internal/ipos", label: "IPO Applications" },
   { to: "/internal/api-applications", label: "API Applications" },
@@ -29,16 +32,16 @@ export function InternalSubNav() {
               ? pathname.startsWith(l.match)
               : pathname.startsWith(l.to);
         return (
-          <Link
+          <RouteButton
             key={l.to}
             to={l.to}
             className={cn(
-              "rounded-md px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
+              "type-subnav-mono rounded-md px-3 py-1.5 transition-colors",
               active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {l.label}
-          </Link>
+          </RouteButton>
         );
       })}
     </nav>

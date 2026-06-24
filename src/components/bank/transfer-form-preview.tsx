@@ -1,7 +1,7 @@
 import { Card } from "@/components/page-shell";
 import type { TransferContact } from "@/lib/bank/backend-types";
 
-const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+const fieldLabel = "type-meta";
 
 const fields = [
   { key: "fromAccount", label: "From account", placeholder: "Alta Checking ••1187" },
@@ -29,7 +29,7 @@ export function TransferFormPreview({
 
   return (
     <Card>
-      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-section-title">
         Wire Transfer · NCC-Net
       </div>
       <p className="mt-2 text-[13px] text-muted-foreground">

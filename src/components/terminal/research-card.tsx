@@ -14,7 +14,7 @@ export function ResearchCard({
   return (
     <Card>
       <div className="flex items-start justify-between gap-4">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="type-meta">
           {category}
         </span>
         <span className="font-mono text-[10px] text-muted-foreground">{date}</span>
@@ -24,7 +24,7 @@ export function ResearchCard({
       <button
         type="button"
         disabled
-        className="mt-5 cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+        className="mt-5 cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
       >
         View
       </button>

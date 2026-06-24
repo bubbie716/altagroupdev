@@ -18,7 +18,6 @@ export interface BankProduct {
   name: string;
   category: BankProductCategory;
   positioning: string;
-  minimumBalance: string;
   bestFor: string;
   benefits: string[];
   availability: string;
@@ -30,8 +29,9 @@ export interface LendingProduct {
   name: string;
   limit: string;
   rate: string;
+  repayment: string;
   summary: string;
-  status: "Available" | "By invitation" | "Under review";
+  status: "Available" | "By invitation" | "Under review" | "Apply" | "Alta Private";
 }
 
 export interface TransferRecord {

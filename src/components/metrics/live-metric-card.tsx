@@ -1,4 +1,5 @@
 import { Card } from "@/components/page-shell";
+import { type } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
 export function LiveMetricCard({
@@ -16,19 +17,13 @@ export function LiveMetricCard({
 }) {
   return (
     <Card className={cn("flex h-full flex-col justify-between", className)}>
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-3 text-[clamp(1.35rem,2.2vw,1.75rem)] font-semibold tracking-tight tabular">
-        {value}
-      </div>
+      <div className={type.meta}>{label}</div>
+      <div className={cn(type.financeHero, "mt-3")}>{value}</div>
       {helper ? (
-        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{helper}</p>
+        <p className={cn(type.bodySm, "mt-2 text-muted-foreground")}>{helper}</p>
       ) : null}
       {sourceLabel ? (
-        <div className="mt-4 font-mono text-[9px] uppercase tracking-[0.18em] text-gold/90">
-          {sourceLabel}
-        </div>
+        <div className={cn(type.metaAccent, "mt-4 opacity-90")}>{sourceLabel}</div>
       ) : null}
     </Card>
   );

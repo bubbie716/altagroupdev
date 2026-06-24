@@ -5,7 +5,7 @@ export function KeyStatsGrid({ stats }: { stats: { label: string; value: string 
     <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
       {stats.map((s) => (
         <div key={s.label} className="bg-surface-1 px-5 py-4">
-          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="type-meta-sm">
             {s.label}
           </div>
           <div className="tabular mt-1 text-[15px] font-medium">{s.value}</div>
@@ -25,7 +25,7 @@ export function CompanyMetaGrid({
       <dl className="grid gap-4 sm:grid-cols-2">
         {items.map((item) => (
           <div key={item.label}>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               {item.label}
             </dt>
             <dd className="mt-1 text-[14px]">{item.value}</dd>

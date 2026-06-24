@@ -69,7 +69,7 @@ function ExchangeOverview() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="type-meta">
                   Status
                 </div>
                 <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--success)]/30 px-2.5 py-1 text-[11px]">
@@ -100,14 +100,14 @@ function ExchangeOverview() {
           </Card>
 
           <Card>
-            <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            <div className="type-section-title">
               Exchange Statistics
             </div>
             <dl className="mt-4 divide-y divide-border/60 text-sm">
               {market.stats.map((s) => (
                 <div key={s.label} className="flex items-center justify-between py-2.5">
                   <dt className="text-muted-foreground">{s.label}</dt>
-                  <dd className="tabular font-mono text-[12px]">{s.value}</dd>
+                  <dd className="type-finance text-[12px]">{s.value}</dd>
                 </div>
               ))}
             </dl>

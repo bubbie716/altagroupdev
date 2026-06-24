@@ -150,7 +150,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
     <Card className="!p-0">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Date & time</th>
             <th className="px-5 py-3">Direction</th>
             <th className="px-5 py-3">From</th>

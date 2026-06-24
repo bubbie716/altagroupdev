@@ -54,21 +54,21 @@ export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
           <h3 className="font-medium tracking-tight">Company profile</h3>
 
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="type-meta">
               Company name
             </span>
             <Input className="mt-2" value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
 
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="type-meta">
               Sector
             </span>
             <Input className="mt-2" value={sector} onChange={(e) => setSector(e.target.value)} required />
           </label>
 
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="type-meta">
               Description
             </span>
             <Textarea
@@ -80,14 +80,14 @@ export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
           </label>
 
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="type-meta">
               Headquarters
             </span>
             <Input className="mt-2" value={headquarters} onChange={(e) => setHeadquarters(e.target.value)} />
           </label>
 
           <label className="block">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="type-meta">
               Desired ticker
             </span>
             <Input

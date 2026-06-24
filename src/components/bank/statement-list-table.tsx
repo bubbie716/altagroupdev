@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { StatusBadge } from "@/components/internal/status-badge";
+import { RouteButton } from "@/components/bank/route-button";
 
 function formatPeriod(start: string, end: string): string {
   const s = new Date(start);
@@ -43,18 +43,18 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
               </td>
               <td className="font-mono text-[11px]">{s.accountNumber}</td>
               <td className="text-muted-foreground">{formatPeriod(s.periodStart, s.periodEnd)}</td>
-              <td className="font-mono tabular-nums">{florin(s.closingBalance)}</td>
+              <td className="type-finance-nums">{florin(s.closingBalance)}</td>
               <td>
                 <StatusBadge status={s.statusLabel} />
               </td>
               <td>
-                <Link
+                <RouteButton
                   to="/bank/statements/$statementId"
                   params={{ statementId: s.id }}
-                  className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+                  className="rounded border border-gold/30 bg-gold/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
                 >
                   View
-                </Link>
+                </RouteButton>
               </td>
             </tr>
           ))}

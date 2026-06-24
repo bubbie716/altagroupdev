@@ -6,7 +6,7 @@ export function CompanyProfileHeader({ company }: { company: CompanyProfile }) {
     <div className="rounded-xl border border-border bg-surface-1 p-6 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+          <div className="type-eyebrow">
             {company.symbol} · {company.exchange}
           </div>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">{company.name}</h2>

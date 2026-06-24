@@ -23,7 +23,7 @@ function InternalListings() {
             { key: "ticker", header: "Ticker", cell: (l: ListingRecord) => <span className="font-mono">{l.ticker}</span> },
             { key: "company", header: "Company", cell: (l: ListingRecord) => l.company },
             { key: "sector", header: "Sector", cell: (l: ListingRecord) => l.sector },
-            { key: "mcap", header: "Market Cap", cell: (l: ListingRecord) => <span className="tabular font-mono">{l.marketCap}</span> },
+            { key: "mcap", header: "Market Cap", cell: (l: ListingRecord) => <span className="type-finance">{l.marketCap}</span> },
             { key: "status", header: "Status", cell: (l: ListingRecord) => <StatusBadge status={l.status} /> },
             { key: "filing", header: "Last Filing", cell: (l: ListingRecord) => <span className="font-mono text-[11px] text-muted-foreground">{l.lastFiling}</span> },
             { key: "compliance", header: "Compliance", cell: (l: ListingRecord) => <StatusBadge status={l.complianceStatus} /> },

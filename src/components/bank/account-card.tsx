@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
+import { RouteButton } from "@/components/bank/route-button";
 
 type AccountCardData = {
   id?: string;
@@ -34,7 +34,7 @@ export function AccountCard({
   return (
     <Card className="group flex h-full flex-col !p-6">
       <div className="flex items-start justify-between">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="type-meta">
           {account.product}
         </div>
         <span
@@ -54,14 +54,14 @@ export function AccountCard({
       )}
       <div className="tabular mt-4 text-2xl font-semibold tracking-tight">{florin(account.balance)}</div>
       {footer === "view" && account.id ? (
-        <Link
+        <RouteButton
           to="/bank/account/$accountId"
           params={{ accountId: account.id }}
           className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
         >
           View account
           <ArrowUpRight className="size-3.5" />
-        </Link>
+        </RouteButton>
       ) : (
         <>
           {account.recentActivity && (
@@ -70,14 +70,14 @@ export function AccountCard({
             </div>
           )}
           {account.id && (
-            <Link
+            <RouteButton
               to="/bank/account/$accountId"
               params={{ accountId: account.id }}
-              className="mt-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
+              className="mt-5 inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
             >
               View account
               <ArrowUpRight className="size-3.5" />
-            </Link>
+            </RouteButton>
           )}
         </>
       )}
@@ -88,20 +88,20 @@ export function AccountCard({
 export function OpenAccountCard() {
   return (
     <Card className="flex h-full flex-col !p-6">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="type-meta">
         Alta Bank
       </div>
       <div className="mt-5 text-base font-medium tracking-tight">Open an account</div>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
         Personal, savings, business, and private banking products.
       </p>
-      <Link
+      <RouteButton
         to="/bank/open"
         className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background transition-opacity hover:opacity-90"
       >
         Open account
         <ArrowUpRight className="size-3.5" />
-      </Link>
+      </RouteButton>
     </Card>
   );
 }

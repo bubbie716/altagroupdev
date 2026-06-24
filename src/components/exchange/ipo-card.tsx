@@ -9,14 +9,14 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
           <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">{ipo.ticker}</div>
           <h3 className="mt-2 text-lg font-semibold tracking-tight">{ipo.company}</h3>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="type-meta">
           {ipo.status}
         </span>
       </div>
       <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
         {ipo.offeringPrice && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Offering Price
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.offeringPrice}</dd>
@@ -24,7 +24,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.expectedPrice && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Expected Price
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.expectedPrice}</dd>
@@ -32,7 +32,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.sharesOffered && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Shares Offered
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.sharesOffered}</dd>
@@ -40,7 +40,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.raiseSize && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Raise Size
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.raiseSize}</dd>
@@ -48,7 +48,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.listingPrice && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Listing Price
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.listingPrice}</dd>
@@ -56,7 +56,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.currentPrice && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Current Price
             </dt>
             <dd className="tabular mt-1 font-medium">{ipo.currentPrice}</dd>
@@ -64,7 +64,7 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         )}
         {ipo.returnSinceListing && (
           <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+            <dt className="type-meta-sm">
               Return Since Listing
             </dt>
             <dd className="tabular mt-1 font-medium ticker-up">{ipo.returnSinceListing}</dd>
@@ -75,21 +75,21 @@ export function IPOCard({ ipo }: { ipo: IPOListing }) {
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           View Prospectus
         </button>
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           Indicate Interest
         </button>
         <button
           type="button"
           disabled
-          className="cursor-not-allowed rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+          className="cursor-not-allowed rounded border border-border px-3 py-1.5 type-meta"
         >
           View Listing
         </button>
