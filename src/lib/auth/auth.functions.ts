@@ -32,7 +32,7 @@ export const verifyDeveloperAccess = createServerFn({ method: "GET" }).handler(a
 
 /** True when the session user may access the issuer portal for the given ticker. */
 export const verifyIssuerPortalAccess = createServerFn({ method: "GET" })
-  .validator((input: { ticker: string }) => input)
+  .inputValidator((input: { ticker: string }) => input)
   .handler(async ({ data }) => {
     const { readCurrentUser } = await import("@/server/auth.service");
     const { canAccessIssuerPortal } = await import("@/lib/auth/permissions");
