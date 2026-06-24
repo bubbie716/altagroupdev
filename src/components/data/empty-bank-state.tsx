@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { Card } from "@/components/page-shell";
+import { EmptyState } from "@/components/data/empty-state";
 
 type EmptyBankStateProps = {
   title?: string;
@@ -18,17 +17,13 @@ export function EmptyBankState({
   children,
 }: EmptyBankStateProps) {
   return (
-    <Card className="mx-auto max-w-lg !p-10 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">Alta Bank</p>
-      <h2 className="mt-4 text-xl font-semibold tracking-tight">{title}</h2>
-      <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-muted-foreground">{description}</p>
+    <EmptyState
+      eyebrow="Alta Bank"
+      title={title}
+      description={description}
+      actions={[{ label: ctaLabel, to: ctaTo }]}
+    >
       {children}
-      <Link
-        to={ctaTo}
-        className="mt-8 inline-block rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background"
-      >
-        {ctaLabel}
-      </Link>
-    </Card>
+    </EmptyState>
   );
 }
