@@ -6,7 +6,7 @@ import { DealRoomCard } from "@/components/bank/deal-room/deal-room-bits";
 import { EmptyState } from "@/components/shared/empty-state";
 import { MOCK_DEAL_ROOMS } from "@/lib/bank/deal-rooms-mock";
 
-export const Route = createFileRoute("/bank/lending/deal-rooms/")({
+export const Route = createFileRoute("/bank/lending/deal-rooms/")({ 
   head: () => ({
     meta: [
       { title: "Secure Deal Rooms — Alta Bank" },
