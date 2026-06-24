@@ -24,7 +24,7 @@ export type PortfolioDashboardMover = {
   change: number;
 };
 
-type ChartPoint = { t: string; v: number };
+type ChartPoint = { t: string | number; v: number };
 
 const LOCKED_BLUR = "blur-[6px]";
 
