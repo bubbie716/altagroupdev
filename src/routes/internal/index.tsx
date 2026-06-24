@@ -9,6 +9,7 @@ import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
 import { fetchInternalAccessMetrics } from "@/lib/internal/user-management.functions";
 import { fetchInternalBankOps } from "@/lib/bank/bank.functions";
 import { fetchInternalScheduledTransfers } from "@/lib/bank/scheduled-transfer-admin.functions";
+import type { InternalScheduledTransferRow } from "@/lib/bank/scheduled-transfer-admin-types";
 import { getRecentAdminActivity, getSystemStatus } from "@/lib/internal/api";
 import { internalPreviewNotice } from "@/lib/internal/data";
 
@@ -32,8 +33,8 @@ function InternalOverview() {
   const systems = getSystemStatus();
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const scheduledDueToday = scheduled.filter(
-    (s) => s.status === "APPROVED" && s.nextRunDate && s.nextRunDate.slice(0, 10) <= todayIso,
+  const scheduledDueToday = (scheduled as InternalScheduledTransferRow[]).filter(
+    (s) => s.status === "APPROVED" && !!s.nextRunAt && s.nextRunAt.slice(0, 10) <= todayIso,
   ).length;
 
   const totalActionItems =
@@ -50,8 +51,7 @@ function InternalOverview() {
       description="Pending action queues, live platform vitals, and recent operator activity."
     >
       <Section
-        title="Action queues"
-        eyebrow={`${totalActionItems} open item${totalActionItems === 1 ? "" : "s"}`}
+        title={`Action queues · ${totalActionItems} open`}
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <OpsQueueCard
