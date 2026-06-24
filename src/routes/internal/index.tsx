@@ -34,7 +34,7 @@ function InternalOverview() {
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const scheduledDueToday = (scheduled as InternalScheduledTransferRow[]).filter(
-    (s) => s.status === "APPROVED" && !!s.nextRunAt && s.nextRunAt.slice(0, 10) <= todayIso,
+    (s) => s.status === "approved" && !!s.nextRunAt && s.nextRunAt.slice(0, 10) <= todayIso,
   ).length;
 
   const totalActionItems =
