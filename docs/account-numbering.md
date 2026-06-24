@@ -100,3 +100,5 @@ When Alta Bank connects to external institutions or subsidiary charters:
 - Institution routing tables would map `(routing, accountNumber)` → settlement endpoint
 
 The current `AB-[CODE]-[UNIQUE]` format is designed to extend without breaking existing accounts.
+
+d
