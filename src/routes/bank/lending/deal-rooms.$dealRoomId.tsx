@@ -129,7 +129,7 @@ function DealRoomDetailPage() {
               />
             ) : (
               <div className="space-y-3">
-                {room.activity.map((event) => (
+                {room.activity.map((event: typeof room.activity[number]) => (
                   <ActivityItem key={event.id} event={event} />
                 ))}
               </div>

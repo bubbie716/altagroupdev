@@ -109,6 +109,7 @@ import { Route as BankLendingDealRoomsIndexRouteImport } from './routes/bank/len
 import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
+import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms.$dealRoomId'
 import { Route as BankAccountsAccountIdStatementsRouteImport } from './routes/bank/accounts/$accountId/statements'
 import { Route as BankAccountsAccountIdSettingsRouteImport } from './routes/bank/accounts/$accountId/settings'
 import { Route as BankAccountsAccountIdScheduledRouteImport } from './routes/bank/accounts/$accountId/scheduled'
@@ -641,6 +642,12 @@ const ExchangeCompanyTickerOwnerRoute =
     path: '/owner',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
   } as any)
+const BankLendingDealRoomsDealRoomIdRoute =
+  BankLendingDealRoomsDealRoomIdRouteImport.update({
+    id: '/bank/lending/deal-rooms/$dealRoomId',
+    path: '/bank/lending/deal-rooms/$dealRoomId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BankAccountsAccountIdStatementsRoute =
   BankAccountsAccountIdStatementsRouteImport.update({
     id: '/statements',
@@ -847,6 +854,7 @@ export interface FileRoutesByFullPath {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
+  '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
@@ -953,6 +961,7 @@ export interface FileRoutesByTo {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
+  '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
@@ -1072,6 +1081,7 @@ export interface FileRoutesById {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
+  '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
@@ -1192,6 +1202,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
+    | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
@@ -1298,6 +1309,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
+    | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
@@ -1416,6 +1428,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
+    | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
@@ -1464,6 +1477,7 @@ export interface RootRouteChildren {
   BankLendingIndexRoute: typeof BankLendingIndexRoute
   BankStatementsIndexRoute: typeof BankStatementsIndexRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
+  BankLendingDealRoomsDealRoomIdRoute: typeof BankLendingDealRoomsDealRoomIdRoute
   BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
 }
 
@@ -2169,6 +2183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExchangeCompanyTickerOwnerRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
     }
+    '/bank/lending/deal-rooms/$dealRoomId': {
+      id: '/bank/lending/deal-rooms/$dealRoomId'
+      path: '/bank/lending/deal-rooms/$dealRoomId'
+      fullPath: '/bank/lending/deal-rooms/$dealRoomId'
+      preLoaderRoute: typeof BankLendingDealRoomsDealRoomIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/accounts/$accountId/statements': {
       id: '/bank/accounts/$accountId/statements'
       path: '/statements'
@@ -2635,6 +2656,7 @@ const rootRouteChildren: RootRouteChildren = {
   BankLendingIndexRoute: BankLendingIndexRoute,
   BankStatementsIndexRoute: BankStatementsIndexRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
+  BankLendingDealRoomsDealRoomIdRoute: BankLendingDealRoomsDealRoomIdRoute,
   BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
 }
 export const routeTree = rootRouteImport
