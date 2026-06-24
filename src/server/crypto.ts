@@ -45,7 +45,7 @@ export async function verifySignedValue(payload: string, signature: string): Pro
     return crypto.subtle.verify(
       "HMAC",
       key,
-      fromBase64Url(signature),
+      fromBase64Url(signature) as BufferSource,
       new TextEncoder().encode(payload),
     );
   } catch {
