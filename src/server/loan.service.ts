@@ -719,7 +719,7 @@ export async function accrueInterestForLoan(
       amount: interestAmount,
       balanceAfter: newBalance,
       description: `Monthly interest · ${rateType === "MONTHLY_PERCENT" ? `${annualRate.toFixed(2)}% monthly` : `${annualRate.toFixed(2)}% APR`}`,
-      createdById: createdById ?? null,
+      createdById: createdById ?? undefined,
     });
   });
 

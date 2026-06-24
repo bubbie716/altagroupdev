@@ -28,7 +28,7 @@ export const runDueScheduledTransfersManual = createServerFn({ method: "POST" })
 );
 
 export const pauseInternalScheduledTransferRecord = createServerFn({ method: "POST" })
-  .validator((paymentId: string) => paymentId)
+  .inputValidator((paymentId: string) => paymentId)
   .handler(async ({ data: paymentId }) => {
     await requireOperator();
     const { pauseInternalScheduledTransfer } = await import("@/server/scheduled-transfer-admin.service");
@@ -37,7 +37,7 @@ export const pauseInternalScheduledTransferRecord = createServerFn({ method: "PO
   });
 
 export const resumeInternalScheduledTransferRecord = createServerFn({ method: "POST" })
-  .validator((paymentId: string) => paymentId)
+  .inputValidator((paymentId: string) => paymentId)
   .handler(async ({ data: paymentId }) => {
     await requireOperator();
     const { resumeInternalScheduledTransfer } = await import("@/server/scheduled-transfer-admin.service");
@@ -46,7 +46,7 @@ export const resumeInternalScheduledTransferRecord = createServerFn({ method: "P
   });
 
 export const cancelInternalScheduledTransferRecord = createServerFn({ method: "POST" })
-  .validator((paymentId: string) => paymentId)
+  .inputValidator((paymentId: string) => paymentId)
   .handler(async ({ data: paymentId }) => {
     await requireOperator();
     const { cancelInternalScheduledTransfer } = await import("@/server/scheduled-transfer-admin.service");
@@ -55,7 +55,7 @@ export const cancelInternalScheduledTransferRecord = createServerFn({ method: "P
   });
 
 export const runInternalScheduledTransferNowRecord = createServerFn({ method: "POST" })
-  .validator((paymentId: string) => paymentId)
+  .inputValidator((paymentId: string) => paymentId)
   .handler(async ({ data: paymentId }): Promise<ExecuteDueScheduledTransfersResult> => {
     await requireOperator();
     const { runInternalScheduledTransferNow } = await import("@/server/scheduled-transfer-admin.service");

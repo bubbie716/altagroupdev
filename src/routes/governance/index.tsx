@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Section, Card } from "@/components/page-shell";
 import { type } from "@/lib/typography";
+import { cn } from "@/lib/utils";
 import { GroupHierarchy } from "@/components/governance/group-hierarchy";
 import { EntityOverview } from "@/components/governance/entity-overview";
 import { GovernanceMetricsGrid } from "@/components/governance/governance-metrics-grid";

@@ -27,7 +27,7 @@ export const fetchCompaniesDashboard = createServerFn({ method: "GET" }).handler
 });
 
 export const fetchCompanyDetail = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { getCompanyDetailForUser } = await import("@/server/company.service");
     const userId = await actorId();
@@ -35,7 +35,7 @@ export const fetchCompanyDetail = createServerFn({ method: "GET" })
   });
 
 export const createCompanyRecord = createServerFn({ method: "POST" })
-  .validator((input: CreateCompanyInput) => input)
+  .inputValidator((input: CreateCompanyInput) => input)
   .handler(async ({ data }) => {
     const { createCompany } = await import("@/server/company.service");
     const userId = await actorId();
@@ -43,7 +43,7 @@ export const createCompanyRecord = createServerFn({ method: "POST" })
   });
 
 export const updateCompanySettingsRecord = createServerFn({ method: "POST" })
-  .validator((input: UpdateCompanySettingsInput) => input)
+  .inputValidator((input: UpdateCompanySettingsInput) => input)
   .handler(async ({ data }) => {
     const { updateCompanySettings } = await import("@/server/company.service");
     const userId = await actorId();
@@ -51,7 +51,7 @@ export const updateCompanySettingsRecord = createServerFn({ method: "POST" })
   });
 
 export const updateCompanyMemberRole = createServerFn({ method: "POST" })
-  .validator((input: UpdateMemberRoleInput) => input)
+  .inputValidator((input: UpdateMemberRoleInput) => input)
   .handler(async ({ data }) => {
     const { updateMemberRole } = await import("@/server/company.service");
     const userId = await actorId();
@@ -60,7 +60,7 @@ export const updateCompanyMemberRole = createServerFn({ method: "POST" })
   });
 
 export const removeCompanyMember = createServerFn({ method: "POST" })
-  .validator((input: RemoveMemberInput) => input)
+  .inputValidator((input: RemoveMemberInput) => input)
   .handler(async ({ data }) => {
     const { removeMember } = await import("@/server/company.service");
     const userId = await actorId();
@@ -69,7 +69,7 @@ export const removeCompanyMember = createServerFn({ method: "POST" })
   });
 
 export const sendCompanyInvitationRecord = createServerFn({ method: "POST" })
-  .validator((input: SendInvitationInput) => input)
+  .inputValidator((input: SendInvitationInput) => input)
   .handler(async ({ data }) => {
     const { sendCompanyInvitation } = await import("@/server/company.service");
     const userId = await actorId();
@@ -77,7 +77,7 @@ export const sendCompanyInvitationRecord = createServerFn({ method: "POST" })
   });
 
 export const acceptCompanyInvitationRecord = createServerFn({ method: "POST" })
-  .validator((invitationId: string) => invitationId)
+  .inputValidator((invitationId: string) => invitationId)
   .handler(async ({ data: invitationId }) => {
     const { acceptCompanyInvitation } = await import("@/server/company.service");
     const userId = await actorId();
@@ -85,7 +85,7 @@ export const acceptCompanyInvitationRecord = createServerFn({ method: "POST" })
   });
 
 export const declineCompanyInvitationRecord = createServerFn({ method: "POST" })
-  .validator((invitationId: string) => invitationId)
+  .inputValidator((invitationId: string) => invitationId)
   .handler(async ({ data: invitationId }) => {
     const { declineCompanyInvitation } = await import("@/server/company.service");
     const userId = await actorId();
@@ -101,7 +101,7 @@ export const fetchInternalCompaniesFromDb = createServerFn({ method: "GET" }).ha
 });
 
 export const fetchInternalCompanyFromDb = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { getInternalCompanyDetail } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
@@ -117,7 +117,7 @@ export const fetchInternalCompanyFromDb = createServerFn({ method: "GET" })
   });
 
 export const verifyCompanyRecord = createServerFn({ method: "POST" })
-  .validator((input: { companyId: string }) => input)
+  .inputValidator((input: { companyId: string }) => input)
   .handler(async ({ data }) => {
     const { verifyCompany } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
@@ -127,7 +127,7 @@ export const verifyCompanyRecord = createServerFn({ method: "POST" })
   });
 
 export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" })
-  .validator((input: { companyId: string }) => input)
+  .inputValidator((input: { companyId: string }) => input)
   .handler(async ({ data }) => {
     const { rejectCompanyVerification } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");

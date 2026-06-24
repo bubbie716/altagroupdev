@@ -118,7 +118,7 @@ function IntrabankScheduledTransfers({
     <ScheduledTransferCenter
       transferScope="intrabank"
       defaultSourceAccountId={defaultSourceAccountId}
-      sourceAccounts={data.sourceAccounts.map((account) => ({
+      sourceAccounts={data.sourceAccounts.map((account: any) => ({
         id: account.id,
         accountName: account.accountName,
         accountNumber: account.accountNumber,

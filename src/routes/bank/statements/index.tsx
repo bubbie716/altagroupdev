@@ -16,8 +16,8 @@ export const Route = createFileRoute("/bank/statements/")({
 
 function BankStatementsPage() {
   const statements = Route.useLoaderData();
-  const personal = statements.filter((s) => !s.isCompanyAccount);
-  const business = statements.filter((s) => s.isCompanyAccount);
+  const personal = statements.filter((s: any) => !s.isCompanyAccount);
+  const business = statements.filter((s: any) => s.isCompanyAccount);
 
   return (
     <PageShell

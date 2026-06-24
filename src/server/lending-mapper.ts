@@ -133,7 +133,8 @@ function formatPaymentStatusLabel(status: LoanPaymentStatusCode): string {
   return labels[status];
 }
 
-function decimalToNumber(value: { toNumber(): number }): number {
+function decimalToNumber(value: { toNumber(): number } | number): number {
+  if (typeof value === "number") return value;
   return value.toNumber();
 }
 

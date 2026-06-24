@@ -17,14 +17,14 @@ export const fetchStatementCenterStatements = createServerFn({ method: "GET" }).
 });
 
 export const fetchAccountStatements = createServerFn({ method: "GET" })
-  .validator((accountId: string) => accountId)
+  .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
     const { listAccountStatements } = await import("@/server/statement.service");
     return listAccountStatements(await actorId(), accountId);
   });
 
 export const fetchBusinessStatements = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listBusinessStatements } = await import("@/server/statement.service");
     const { requireAuth } = await import("@/server/auth.service");
@@ -33,14 +33,14 @@ export const fetchBusinessStatements = createServerFn({ method: "GET" })
   });
 
 export const fetchStatementDetail = createServerFn({ method: "GET" })
-  .validator((statementId: string) => statementId)
+  .inputValidator((statementId: string) => statementId)
   .handler(async ({ data: statementId }) => {
     const { getStatementDetail } = await import("@/server/statement.service");
     return getStatementDetail(await actorId(), statementId);
   });
 
 export const generateAccountStatement = createServerFn({ method: "POST" })
-  .validator((input: GenerateStatementInput) => input)
+  .inputValidator((input: GenerateStatementInput) => input)
   .handler(async ({ data }) => {
     const { generateStatementForUser } = await import("@/server/statement.service");
     return generateStatementForUser(await actorId(), data);

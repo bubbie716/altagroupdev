@@ -45,7 +45,7 @@ function InternalExchange() {
       </Section>
 
       <Section title="Listed Companies — Trading Status" className="mt-10">
-        <AdminDataTable
+        <AdminDataTable<ExchangeListingRow>
           columns={[
             { key: "ticker", header: "Ticker", cell: (r: ExchangeListingRow) => <span className="font-mono">{r.ticker}</span> },
             { key: "company", header: "Company", cell: (r: ExchangeListingRow) => r.company },

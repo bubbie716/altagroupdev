@@ -13,21 +13,21 @@ export const fetchInternalAccessMetrics = createServerFn({ method: "GET" }).hand
 });
 
 export const fetchInternalUsers = createServerFn({ method: "GET" })
-  .validator((filters: InternalUserListFilters | undefined) => filters ?? {})
+  .inputValidator((filters: InternalUserListFilters | undefined) => filters ?? {})
   .handler(async ({ data }) => {
     const { listInternalUsers } = await import("@/server/internal-user-management.service");
     return listInternalUsers(data);
   });
 
 export const fetchInternalUserDetail = createServerFn({ method: "GET" })
-  .validator((userId: string) => userId)
+  .inputValidator((userId: string) => userId)
   .handler(async ({ data: userId }) => {
     const { getInternalUserDetail } = await import("@/server/internal-user-management.service");
     return getInternalUserDetail(userId);
   });
 
 export const grantInternalUserTagRecord = createServerFn({ method: "POST" })
-  .validator((input: { userId: string; tag: UserTag }) => input)
+  .inputValidator((input: { userId: string; tag: UserTag }) => input)
   .handler(async ({ data }) => {
     const { grantInternalUserTag } = await import("@/server/internal-user-management.service");
     const id = await actorId();
@@ -35,7 +35,7 @@ export const grantInternalUserTagRecord = createServerFn({ method: "POST" })
   });
 
 export const revokeInternalUserTagRecord = createServerFn({ method: "POST" })
-  .validator((input: { userId: string; tag: UserTag }) => input)
+  .inputValidator((input: { userId: string; tag: UserTag }) => input)
   .handler(async ({ data }) => {
     const { revokeInternalUserTag } = await import("@/server/internal-user-management.service");
     const id = await actorId();
@@ -43,7 +43,7 @@ export const revokeInternalUserTagRecord = createServerFn({ method: "POST" })
   });
 
 export const updateInternalUserAccountStatusRecord = createServerFn({ method: "POST" })
-  .validator((input: { userId: string; accountStatus: AccountStatus }) => input)
+  .inputValidator((input: { userId: string; accountStatus: AccountStatus }) => input)
   .handler(async ({ data }) => {
     const { updateInternalUserAccountStatus } = await import("@/server/internal-user-management.service");
     const id = await actorId();

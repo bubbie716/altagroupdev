@@ -20,7 +20,7 @@ export const fetchLendingFormContext = createServerFn({ method: "GET" }).handler
 });
 
 export const submitLoanApplication = createServerFn({ method: "POST" })
-  .validator((input: CreateLoanApplicationInput) => input)
+  .inputValidator((input: CreateLoanApplicationInput) => input)
   .handler(async ({ data }) => {
     const { createLoanApplication } = await import("@/server/lending.service");
     const userId = await actorId();
@@ -40,7 +40,7 @@ export const fetchUserLoans = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const fetchLoanPaymentContext = createServerFn({ method: "GET" })
-  .validator((loanId: string) => loanId)
+  .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
     const { getLoanPaymentContext } = await import("@/server/loan.service");
     const userId = await actorId();
@@ -48,7 +48,7 @@ export const fetchLoanPaymentContext = createServerFn({ method: "GET" })
   });
 
 export const submitLoanPayment = createServerFn({ method: "POST" })
-  .validator((input: MakeLoanPaymentInput) => input)
+  .inputValidator((input: MakeLoanPaymentInput) => input)
   .handler(async ({ data }) => {
     const { makeLoanPayment } = await import("@/server/loan.service");
     const userId = await actorId();
@@ -57,7 +57,7 @@ export const submitLoanPayment = createServerFn({ method: "POST" })
   });
 
 export const setLoanAutoPayRecord = createServerFn({ method: "POST" })
-  .validator((input: import("@/lib/bank/lending-types").SetLoanAutoPayInput) => input)
+  .inputValidator((input: import("@/lib/bank/lending-types").SetLoanAutoPayInput) => input)
   .handler(async ({ data }) => {
     const { setLoanAutoPay } = await import("@/server/loan.service");
     const userId = await actorId();
@@ -87,7 +87,7 @@ export const fetchInternalLendingOps = createServerFn({ method: "GET" }).handler
 });
 
 export const markLoanApplicationUnderReviewRecord = createServerFn({ method: "POST" })
-  .validator((input: { applicationId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { applicationId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { markLoanApplicationUnderReview } = await import("@/server/lending.service");
@@ -97,7 +97,7 @@ export const markLoanApplicationUnderReviewRecord = createServerFn({ method: "PO
   });
 
 export const approveLoanApplicationRecord = createServerFn({ method: "POST" })
-  .validator((input: ApproveLoanApplicationInput) => input)
+  .inputValidator((input: ApproveLoanApplicationInput) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveLoanApplication } = await import("@/server/loan.service");
@@ -107,7 +107,7 @@ export const approveLoanApplicationRecord = createServerFn({ method: "POST" })
   });
 
 export const denyLoanApplicationRecord = createServerFn({ method: "POST" })
-  .validator((input: DenyLoanApplicationInput) => input)
+  .inputValidator((input: DenyLoanApplicationInput) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyLoanApplication } = await import("@/server/loan.service");
@@ -117,7 +117,7 @@ export const denyLoanApplicationRecord = createServerFn({ method: "POST" })
   });
 
 export const accrueLoanInterestRecord = createServerFn({ method: "POST" })
-  .validator((loanId: string) => loanId)
+  .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { accrueInterestForLoan } = await import("@/server/loan.service");
@@ -140,7 +140,7 @@ export const backfillLegacyLoanInterestRecord = createServerFn({ method: "POST" 
 });
 
 export const freezeLoanRecord = createServerFn({ method: "POST" })
-  .validator((loanId: string) => loanId)
+  .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { freezeLoan } = await import("@/server/loan.service");
@@ -150,7 +150,7 @@ export const freezeLoanRecord = createServerFn({ method: "POST" })
   });
 
 export const unfreezeLoanRecord = createServerFn({ method: "POST" })
-  .validator((loanId: string) => loanId)
+  .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { unfreezeLoan } = await import("@/server/loan.service");
@@ -160,7 +160,7 @@ export const unfreezeLoanRecord = createServerFn({ method: "POST" })
   });
 
 export const markLoanPaidOffRecord = createServerFn({ method: "POST" })
-  .validator((loanId: string) => loanId)
+  .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { markLoanPaidOff } = await import("@/server/loan.service");
@@ -170,7 +170,7 @@ export const markLoanPaidOffRecord = createServerFn({ method: "POST" })
   });
 
 export const adminAdjustLoanRecord = createServerFn({ method: "POST" })
-  .validator((input: AdminAdjustLoanInput) => input)
+  .inputValidator((input: AdminAdjustLoanInput) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { adminAdjustLoanBalance } = await import("@/server/loan.service");

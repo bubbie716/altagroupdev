@@ -6,10 +6,10 @@ export function CompanySubNav({ companyId }: { companyId: string }) {
   const base = `/companies/${companyId}`;
 
   const links = [
-    { to: "/companies/$companyId" as const, label: "Overview", exact: true },
-    { to: "/companies/$companyId/members" as const, label: "Members" },
-    { to: "/companies/$companyId/settings" as const, label: "Settings" },
-  ] as const;
+    { to: "/companies/$companyId" as const, label: "Overview", exact: true as boolean },
+    { to: "/companies/$companyId/members" as const, label: "Members", exact: false as boolean },
+    { to: "/companies/$companyId/settings" as const, label: "Settings", exact: false as boolean },
+  ];
 
   return (
     <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">

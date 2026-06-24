@@ -66,7 +66,7 @@ function InternalCompanyDetail() {
                 </tr>
               </thead>
               <tbody>
-                {company.members.map((m) => (
+                {company.members.map((m: any) => (
                   <tr key={m.membershipId} className="border-b border-border/50 last:border-0">
                     <td className="px-4 py-3 font-mono text-[12px]">{m.discordUsername}</td>
                     <td className="px-4 py-3">{formatCompanyRole(m.role)}</td>
@@ -109,7 +109,7 @@ function InternalCompanyDetail() {
         <Card className="!p-0">
           <table className="w-full text-sm">
             <tbody>
-              {company.representatives.map((r) => (
+              {company.representatives.map((r: any) => (
                 <tr key={r.userId} className="border-b border-border/50 last:border-0">
                   <td className="px-4 py-3 font-mono">{r.username}</td>
                   <td className="px-4 py-3">{formatCompanyRole(r.role)}</td>
