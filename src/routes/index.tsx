@@ -81,7 +81,7 @@ function Hero() {
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
             Alta Exchange Open · NSX-100 {nsx100.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </div>
-          <h1 className="mt-8 max-w-[20ch] text-[clamp(3.25rem,8vw,7rem)] font-semibold leading-[0.96] tracking-[-0.022em]">
+          <h1 className="mt-10 max-w-[20ch] font-serif text-[clamp(3.5rem,8.5vw,7.5rem)] font-normal leading-[0.94] tracking-[-0.035em]">
             Live Like the 1%
           </h1>
           <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
@@ -111,7 +111,7 @@ function Hero() {
           className="relative mx-auto mt-20 max-w-[1180px]"
         >
           <div
-            className="rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
+            className="grain-dark animate-rise rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
           >
             {portfolioLocked ? (
               <PortfolioDashboard
