@@ -1,14 +1,17 @@
 const NY_TIMEZONE = "America/New_York";
 
-const ACTIVITY_FORMAT: Intl.DateTimeFormatOptions = {
+const ACTIVITY_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   timeZone: NY_TIMEZONE,
   month: "short",
   day: "numeric",
   year: "numeric",
+};
+
+const ACTIVITY_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  timeZone: NY_TIMEZONE,
   hour: "numeric",
   minute: "2-digit",
   hour12: true,
-  timeZoneName: "short",
 };
 
 function formatCalendarDateInNewYork(year: number, month: number, day: number): string {
@@ -55,5 +58,7 @@ export function formatActivityDateTime(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return typeof value === "string" ? value : "—";
 
-  return new Intl.DateTimeFormat("en-US", ACTIVITY_FORMAT).format(date);
+  const datePart = new Intl.DateTimeFormat("en-US", ACTIVITY_DATE_FORMAT).format(date);
+  const timePart = new Intl.DateTimeFormat("en-US", ACTIVITY_TIME_FORMAT).format(date);
+  return `${datePart}, ${timePart} ET`;
 }
