@@ -9,7 +9,7 @@ export type AdminTableColumn<T> = {
   className?: string;
 };
 
-export function AdminDataTable<T extends { id?: string }>({
+export function AdminDataTable<T extends Record<string, unknown> | object>({
   columns,
   rows,
   rowKey,
@@ -32,7 +32,7 @@ export function AdminDataTable<T extends { id?: string }>({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={rowKey?.(row, i) ?? row.id ?? i}>
+            <tr key={rowKey?.(row, i) ?? (row as { id?: string }).id ?? i}>
               {columns.map((col) => (
                 <td key={col.key} className={col.className}>
                   {col.cell(row)}
