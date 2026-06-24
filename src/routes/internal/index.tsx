@@ -103,7 +103,7 @@ function InternalOverview() {
       </Section>
 
       <Section title="Platform vitals" className="mt-10">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           <VitalCard label="Users" value={m.totalUsers.toLocaleString()} />
           <VitalCard
             label="Companies"

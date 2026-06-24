@@ -20,8 +20,9 @@ Individual Discord User
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications).
 2. **New Application** → name it (e.g. `Alta Group Dev`).
 3. Open **OAuth2**:
-   - Add redirect URI:
+   - Add redirect URIs (each must match exactly):
      - Local: `http://localhost:3000/api/auth/discord/callback`
+     - LAN dev (optional): `http://YOUR_LAN_IP:3000/api/auth/discord/callback` — e.g. `http://192.168.1.10:3000/api/auth/discord/callback`
      - Production: `https://your-domain.com/api/auth/discord/callback`
    - Copy **Client ID** and **Client Secret**.
 4. Under **OAuth2 → General**, scopes used by Alta:
@@ -36,7 +37,7 @@ Copy `.env.example` to `.env` and fill in:
 | `DATABASE_URL` | PostgreSQL connection string (required) |
 | `DISCORD_CLIENT_ID` | OAuth2 client ID (public in authorize URL only) |
 | `DISCORD_CLIENT_SECRET` | Server-only — never bundled to the client |
-| `DISCORD_REDIRECT_URI` | Must exactly match a URI in Discord portal |
+| `DISCORD_REDIRECT_URI` | Must exactly match Discord portal. Comma-separate multiple dev callbacks. In development the app uses the host you browse from (localhost or LAN). |
 | `SESSION_SECRET` | Min 32 chars; signs OAuth state cookie |
 
 Generate a session secret:

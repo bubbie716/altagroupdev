@@ -8,7 +8,6 @@ const links = [
   { to: "/bank/lending/apply", label: "Apply" },
   { to: "/bank/lending/applications", label: "Applications" },
   { to: "/bank/lending/loans", label: "Loans" },
-  { to: "/bank/lending/deal-rooms", label: "Deal Rooms" },
 ] as const;
 
 export function LendingSubNav({ className }: { className?: string }) {
