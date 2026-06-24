@@ -3,7 +3,7 @@ import type { GovernanceMetricItem } from "@/lib/metrics/governance-metrics";
 
 export function GovernanceMetricsGrid({ items }: { items: GovernanceMetricItem[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <LiveMetricCard
           key={item.label}

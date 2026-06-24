@@ -5,7 +5,7 @@ import {
   oauthStateMaxAgeSec,
 } from "@/server/session";
 import { randomToken, sealJson } from "@/server/crypto";
-import { buildDiscordAuthorizeUrl, getDiscordConfig, resolveDiscordRedirectUri } from "@/server/discord";
+import { buildDiscordAuthorizeUrl, getDiscordConfig } from "@/server/discord";
 
 export const Route = createFileRoute("/api/auth/discord")({
   server: {
@@ -24,11 +24,7 @@ export const Route = createFileRoute("/api/auth/discord")({
           return new Response("SESSION_SECRET is not configured.", { status: 503 });
         }
         const oauthCookie = buildSetCookie(getOAuthStateCookieName(), statePayload, oauthStateMaxAgeSec());
-        const redirectUri = resolveDiscordRedirectUri(request);
-        if (!redirectUri) {
-          return new Response("Discord OAuth is not configured.", { status: 503 });
-        }
-        const authorizeUrl = buildDiscordAuthorizeUrl(state, redirectUri, config.clientId);
+        const authorizeUrl = buildDiscordAuthorizeUrl(state, config.redirectUri, config.clientId);
 
         return new Response(null, {
           status: 302,

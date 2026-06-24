@@ -1,5 +1,4 @@
 import { Card } from "@/components/page-shell";
-import { MetricValue } from "@/components/metrics/metric-value";
 import { type } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +16,9 @@ export function LiveMetricCard({
   className?: string;
 }) {
   return (
-    <Card className={cn("flex h-full min-w-0 flex-col justify-between", className)}>
-      <div className={cn(type.meta)}>{label}</div>
-      <MetricValue className="mt-3">{value}</MetricValue>
+    <Card className={cn("flex h-full flex-col justify-between", className)}>
+      <div className={type.meta}>{label}</div>
+      <div className={cn(type.financeHero, "mt-3")}>{value}</div>
       {helper ? (
         <p className={cn(type.bodySm, "mt-2 text-muted-foreground")}>{helper}</p>
       ) : null}

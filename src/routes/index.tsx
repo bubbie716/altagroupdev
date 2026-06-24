@@ -12,7 +12,6 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
 import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
-import { MetricValue } from "@/components/metrics/metric-value";
 import { ArrowUpRight } from "lucide-react";
 import heroMarbleUrl from "@/assets/hero-marble.jpg";
 
@@ -312,10 +311,12 @@ function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPla
           <span className="text-muted-foreground">Drawn directly from the ledger.</span>
         </h2>
       </div>
-      <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px bg-border md:grid-cols-4 [&>*]:min-w-0">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px bg-border md:grid-cols-4">
         {items.map((it) => (
           <div key={it.label} className="bg-surface-1/50 px-6 py-12 text-center md:py-16">
-            <MetricValue size="hero">{it.value}</MetricValue>
+            <div className="text-[clamp(1.75rem,3vw,2.75rem)] font-semibold tracking-tight tabular">
+              {it.value}
+            </div>
             <div className="mt-3 type-section-title">
               {it.label}
             </div>

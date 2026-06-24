@@ -14,7 +14,6 @@ import {
   exchangeDiscordCode,
   fetchDiscordProfile,
   getDiscordConfig,
-  resolveDiscordRedirectUri,
 } from "@/server/discord";
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
@@ -52,12 +51,7 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           return loginErrorRedirect(request, "invalid_state");
         }
 
-        const redirectUri = resolveDiscordRedirectUri(request);
-        if (!redirectUri) {
-          return loginErrorRedirect(request, "oauth_not_configured");
-        }
-
-        const tokenRes = await exchangeDiscordCode(code, redirectUri);
+        const tokenRes = await exchangeDiscordCode(code);
         if (!tokenRes) {
           return loginErrorRedirect(request, "token_exchange_failed");
         }
@@ -77,7 +71,7 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
             ? parsed.returnTo
             : "/profile";
 
-        return redirectWithSetCookies(new URL(safeReturn, request.url).toString(), [
+        return redirectWithSetCookies(safeReturn, [
           buildSetCookie(getSessionCookieName(), auth.sessionToken, sessionMaxAgeSec()),
           buildClearCookie(getOAuthStateCookieName()),
         ]);
