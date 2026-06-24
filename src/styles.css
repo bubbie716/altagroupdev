@@ -551,7 +551,7 @@
     header[class*="sticky"],
     nav,
     footer,
-    .print\\:hidden,
+    [class~="print:hidden"],
     .page-shell-hero {
       display: none !important;
     }
