@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/cron/scheduled-transfers",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  "installCommand": "npm install"
 }

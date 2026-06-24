@@ -1,6 +1,8 @@
 # Scheduled transfer automatic execution
 
-Alta Capital Suite runs **approved intrabank (Alta-to-Alta) scheduled transfers** automatically via a cron job. The executor reuses the existing internal transfer service (`submitInternalTransfer`) — it does not rebuild the transfer system.
+Alta Capital Suite runs **approved intrabank (Alta-to-Alta) scheduled transfers** automatically when something calls the executor HTTP endpoint. The executor reuses the existing internal transfer service (`submitInternalTransfer`) — it does not rebuild the transfer system.
+
+**Recommended scheduler:** [cron-job.org](https://cron-job.org) (free, supports intervals down to **once per minute**). Vercel native cron is optional and requires Pro for sub-daily schedules on most setups.
 
 ## Supported transfer types
 
@@ -8,7 +10,7 @@ Alta Capital Suite runs **approved intrabank (Alta-to-Alta) scheduled transfers*
 - Business scheduled transfers (company operating account → Alta recipient)
 - Recurring intrabank transfers (weekly, biweekly, monthly, quarterly)
 
-Intrabank transfers are **auto-approved on creation**. Interbank scheduled transfers remain `PENDING_REVIEW` and are never executed by the cron job.
+Intrabank transfers are **auto-approved on creation**. Interbank scheduled transfers remain `PENDING_REVIEW` and are never executed automatically.
 
 ## Unsupported (never auto-executed)
 
@@ -21,7 +23,7 @@ Intrabank transfers are **auto-approved on creation**. Interbank scheduled trans
 
 ## How execution works
 
-1. Cron (or internal operator) calls `GET /api/cron/scheduled-transfers`.
+1. A scheduler (cron-job.org, manual operator, etc.) calls `GET /api/cron/scheduled-transfers`.
 2. `executeDueScheduledTransfers()` finds `ScheduledPayment` rows where:
    - `transferScope = INTRABANK`
    - `status = APPROVED`
@@ -34,7 +36,7 @@ Intrabank transfers are **auto-approved on creation**. Interbank scheduled trans
 
 ## Idempotency
 
-Each run is keyed by **`scheduledPaymentId + scheduledRunAt`** with a unique database constraint. If the cron endpoint runs twice for the same due window, the second run **skips** transfers that already have an execution record.
+Each run is keyed by **`scheduledPaymentId + scheduledRunAt`** with a unique database constraint. If the endpoint runs twice for the same due window, the second run **skips** transfers that already have an execution record.
 
 ## Failure handling
 
@@ -61,6 +63,8 @@ Generate with:
 openssl rand -base64 32
 ```
 
+Set the same value in **Vercel → Project → Environment Variables**.
+
 ## Cron endpoint
 
 **URL:** `/api/cron/scheduled-transfers`  
@@ -79,9 +83,65 @@ openssl rand -base64 32
 }
 ```
 
-## Vercel Cron setup
+## cron-job.org setup (recommended)
 
-Add to `vercel.json`:
+[cron-job.org](https://cron-job.org) is **free** and allows each job to run **up to once per minute** (60 times per hour). That is more than enough for scheduled transfers.
+
+### 1. Create an account
+
+Sign up at [console.cron-job.org](https://console.cron-job.org).
+
+### 2. Create a cron job
+
+| Field | Value |
+|-------|--------|
+| **Title** | Alta scheduled transfers |
+| **URL** | `https://YOUR_DOMAIN.vercel.app/api/cron/scheduled-transfers` |
+| **Schedule** | Every **15 minutes** (or every minute if you want faster pickup) |
+| **Request method** | `GET` or `POST` |
+| **Enabled** | Yes |
+
+### 3. Add authentication (required)
+
+Under **Advanced** → **Request headers**, add:
+
+| Header | Value |
+|--------|--------|
+| `Authorization` | `Bearer YOUR_CRON_SECRET` |
+
+Use the same `CRON_SECRET` as in Vercel env vars. **Do not** put the secret only in the URL if you can use a header — headers are less likely to appear in access logs.
+
+If your plan/UI cannot set headers, use:
+
+```
+https://YOUR_DOMAIN.vercel.app/api/cron/scheduled-transfers?secret=YOUR_CRON_SECRET
+```
+
+### 4. Test the job
+
+Use **Run now** in the cron-job.org console. Expect HTTP **200** and JSON with `ok: true`.
+
+Check **Execution history** — failed runs show status codes and response bodies.
+
+### 5. Limits (free tier)
+
+- **Minimum interval:** once per minute per job
+- **Request timeout:** 30 seconds (plenty for typical transfer batches)
+- **Fair use:** unlimited jobs per account under normal use
+
+### Example schedule choices
+
+| Goal | cron-job.org setting |
+|------|----------------------|
+| Check every 15 minutes | Every 15 minutes |
+| Check every 5 minutes | Custom / every 5 minutes (if UI allows; still under 60/hour) |
+| Maximum responsiveness | Every 1 minute |
+
+## Vercel Cron (optional alternative)
+
+`vercel.json` in this repo **does not** include Vercel Cron — it blocked Hobby-plan deploys when using sub-daily schedules.
+
+If you upgrade to **Vercel Pro**, you can add native cron instead of cron-job.org:
 
 ```json
 {
@@ -94,18 +154,9 @@ Add to `vercel.json`:
 }
 ```
 
-Set `CRON_SECRET` in the Vercel project environment. Vercel Cron sends requests without a custom header by default — use the query parameter in the cron path if needed:
+Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is set in project env.
 
-```json
-{
-  "path": "/api/cron/scheduled-transfers?secret=YOUR_CRON_SECRET",
-  "schedule": "*/15 * * * *"
-}
-```
-
-Prefer configuring Vercel to send `Authorization: Bearer …` when available.
-
-## Manual testing (before enabling Vercel Cron)
+## Manual testing (before enabling cron-job.org)
 
 1. Internal → **Bank Operations** → **Run Due Scheduled Transfers**, or open **/internal/bank/scheduled**.
 2. Create an intrabank scheduled transfer due now (personal or business).
@@ -114,6 +165,7 @@ Prefer configuring Vercel to send `Authorization: Bearer …` when available.
 5. Test insufficient funds → friendly failure message, no balance change.
 6. Test frozen source account → failed execution, no balance change.
 7. Trigger 3 consecutive failures → transfer status `PAUSED`.
+8. Configure cron-job.org and use **Run now**; confirm the same behavior.
 
 ## Key files
 
@@ -121,6 +173,6 @@ Prefer configuring Vercel to send `Authorization: Bearer …` when available.
 |------|---------|
 | `src/server/scheduled-transfer-executor.service.ts` | Core executor |
 | `src/lib/bank/scheduled-transfer-executor.ts` | Public export |
-| `src/routes/api/cron/scheduled-transfers.ts` | Cron HTTP endpoint |
+| `src/routes/api/cron/scheduled-transfers.ts` | HTTP endpoint (cron-job.org hits this) |
 | `src/server/scheduled-transfer-admin.service.ts` | Internal admin actions |
 | `prisma/schema.prisma` | `ScheduledTransferExecution` model |
