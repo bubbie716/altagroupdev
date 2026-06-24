@@ -35,7 +35,7 @@ function InternalOverview() {
       title="Operations Overview"
       description="Live platform records and labeled preview modules for Alta Group staff."
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
         <LiveMetricCard
           label="Total Users"
           value={m.totalUsers.toLocaleString()}
@@ -99,7 +99,7 @@ function InternalOverview() {
       </div>
 
       <Section title="Access & identity" className="mt-10">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           <LiveMetricCard label="Admins" value={access.admins.toLocaleString()} sourceLabel="UserTagAssignment" />
           <LiveMetricCard label="Operators" value={access.operators.toLocaleString()} sourceLabel="UserTagAssignment" />
           <LiveMetricCard
@@ -128,7 +128,7 @@ function InternalOverview() {
 
       <Section title="Preview modules" className="mt-10">
         <p className="mb-4 text-[13px] text-muted-foreground">{internalPreviewNotice}</p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           <InternalStatCard label="Pending IPO Applications" value="—" sub="Preview" />
           <InternalStatCard label="Listed Companies (Exchange)" value="—" sub="Simulated market" />
           <InternalStatCard label="Open Compliance Flags" value="—" sub="Preview" />

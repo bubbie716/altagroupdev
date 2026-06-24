@@ -55,24 +55,22 @@ function ExchangeOverview() {
 
       <Section title="Market Snapshot">
         <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-          <Card>
-            <div className="flex items-center justify-between">
-              <div>
+          <Card className="overflow-hidden">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">
                   {snap.index.symbol}
                 </div>
-                <div className="tabular mt-2 text-4xl font-semibold tracking-tight">
+                <div className="tabular mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
                   {snap.index.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </div>
                 <div className="ticker-up mt-1 font-mono text-[12px]">
                   +114.62 · {pct(snap.index.change)}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="type-meta">
-                  Status
-                </div>
-                <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--success)]/30 px-2.5 py-1 text-[11px]">
+              <div className="shrink-0 sm:text-right">
+                <div className="type-meta hidden sm:block">Status</div>
+                <div className="mt-0 inline-flex items-center gap-2 rounded-full border border-[var(--success)]/30 px-2.5 py-1 text-[11px] sm:mt-1">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--success)]" />
                   <span className="font-mono uppercase tracking-wide text-[var(--success)]">
                     {snap.status} · {snap.time}
@@ -80,9 +78,12 @@ function ExchangeOverview() {
                 </div>
               </div>
             </div>
-            <div className="mt-6 h-[280px]">
+            <div className="mt-6 h-[240px] sm:h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={indexSeries}>
+                <AreaChart
+                  data={indexSeries}
+                  margin={{ top: 8, right: 4, left: -8, bottom: 4 }}
+                >
                   <defs>
                     <linearGradient id="nsxFill" x1="0" x2="0" y1="0" y2="1">
                       <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.3} />
@@ -90,8 +91,26 @@ function ExchangeOverview() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                  <XAxis dataKey="t" tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={10} />
-                  <YAxis tickLine={false} axisLine={false} stroke="var(--muted-foreground)" fontSize={10} />
+                  <XAxis
+                    dataKey="t"
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    fontSize={10}
+                    minTickGap={56}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    fontSize={10}
+                    width={48}
+                    tickMargin={4}
+                    tickFormatter={(value: number) =>
+                      value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
+                    }
+                  />
                   <Tooltip contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border-strong)", borderRadius: 8, fontSize: 11 }} />
                   <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#nsxFill)" />
                 </AreaChart>

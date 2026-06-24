@@ -534,6 +534,27 @@
     font-feature-settings: "tnum";
   }
 
+  .metric-value-cell {
+    container-type: inline-size;
+    min-width: 0;
+    --metric-value-max: 1.75rem;
+  }
+
+  .metric-value-cell--hero {
+    --metric-value-max: 2.75rem;
+  }
+
+  .metric-value-fit {
+    max-width: 100%;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    line-height: 1.1;
+    font-size: clamp(0.875rem, calc(100cqw / 11), var(--metric-value-max));
+  }
+
   /* Skeleton — institutional shimmer. */
   .skeleton {
     position: relative;
