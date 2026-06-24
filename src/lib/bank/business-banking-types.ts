@@ -17,7 +17,8 @@ export type PayrollRunStatusCode =
   | "approved"
   | "rejected"
   | "executed"
-  | "cancelled";
+  | "cancelled"
+  | "failed";
 
 export interface BusinessTreasuryPermissions {
   canView: boolean;
@@ -83,10 +84,13 @@ export interface PayrollEmployeeRow {
   id: string;
   displayName: string;
   title: string | null;
-  accountNumber: string | null;
+  accountNumber: string;
   payAmount: number;
   payFrequency: PaymentFrequencyCode;
   payFrequencyLabel: string;
+  payDay: string;
+  payDayLabel: string;
+  nextPayDate: string | null;
   status: PayrollEmployeeStatusCode;
   statusLabel: string;
   createdAt: string;
@@ -96,6 +100,7 @@ export interface PayrollRunLineItem {
   employeeId: string;
   displayName: string;
   amount: number;
+  accountNumber: string;
 }
 
 export interface PayrollRunRow {
@@ -107,6 +112,7 @@ export interface PayrollRunRow {
   payDate: string;
   lineItems: PayrollRunLineItem[];
   memo: string | null;
+  lastFailureReason: string | null;
   createdAt: string;
 }
 
@@ -154,9 +160,10 @@ export interface CreatePayrollEmployeeInput {
   companyId: string;
   displayName: string;
   title?: string;
-  accountNumber?: string;
+  accountNumber: string;
   payAmount: number;
   payFrequency: PaymentFrequencyCode;
+  payDay: string;
 }
 
 export interface CreatePayrollRunInput {

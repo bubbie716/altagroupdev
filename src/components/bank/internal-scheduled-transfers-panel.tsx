@@ -6,6 +6,7 @@ import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { florin } from "@/lib/bank/api";
 import type { ExecuteDueScheduledTransfersResult } from "@/lib/bank/scheduled-transfer-executor";
+import type { ExecuteDuePayrollRunsResult } from "@/lib/bank/payroll-executor";
 import type { InternalScheduledTransferRow } from "@/lib/bank/scheduled-transfer-admin-types";
 import {
   cancelInternalScheduledTransferRecord,
@@ -24,7 +25,10 @@ function formatRunAt(value: string | null): string {
 function RunDueTransfersButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [result, setResult] = useState<ExecuteDueScheduledTransfersResult | null>(null);
+  const [result, setResult] = useState<{
+    scheduledTransfers: ExecuteDueScheduledTransfersResult;
+    payroll: ExecuteDuePayrollRunsResult;
+  } | null>(null);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -43,11 +47,15 @@ function RunDueTransfersButton() {
           }
         }}
       >
-        {pending ? "Running…" : "Run Due Scheduled Transfers"}
+        {pending ? "Running…" : "Run Due Transfers & Payroll"}
       </button>
       {result ? (
         <p className="text-[12px] text-muted-foreground">
-          Executed {result.executedCount} · Failed {result.failedCount} · Skipped {result.skippedCount}
+          Transfers: executed {result.scheduledTransfers.executedCount} · failed{" "}
+          {result.scheduledTransfers.failedCount} · skipped {result.scheduledTransfers.skippedCount}
+          {" · "}
+          Payroll: executed {result.payroll.executedCount} · failed {result.payroll.failedCount} · skipped{" "}
+          {result.payroll.skippedCount}
         </p>
       ) : null}
     </div>

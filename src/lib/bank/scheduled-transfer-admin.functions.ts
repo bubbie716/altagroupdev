@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { ExecuteDueScheduledTransfersResult } from "@/lib/bank/scheduled-transfer-executor";
+import type { ExecuteDuePayrollRunsResult } from "@/lib/bank/payroll-executor";
 import type { InternalScheduledTransferRow } from "@/lib/bank/scheduled-transfer-admin-types";
 
 async function requireOperator() {
@@ -16,10 +17,12 @@ export const fetchInternalScheduledTransfers = createServerFn({ method: "GET" })
 );
 
 export const runDueScheduledTransfersManual = createServerFn({ method: "POST" }).handler(
-  async (): Promise<ExecuteDueScheduledTransfersResult> => {
-    await requireOperator();
-    const { runDueInternalScheduledTransfers } = await import("@/server/scheduled-transfer-admin.service");
+  async (): Promise<{
+    scheduledTransfers: ExecuteDueScheduledTransfersResult;
+    payroll: ExecuteDuePayrollRunsResult;
+  }> => {
     const user = await requireOperator();
+    const { runDueInternalScheduledTransfers } = await import("@/server/scheduled-transfer-admin.service");
     return runDueInternalScheduledTransfers(user);
   },
 );

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import {
   createPayrollEmployeeRecord,
-  createPayrollRunRecord,
   deactivatePayrollEmployeeRecord,
 } from "@/lib/bank/business-banking.functions";
 import type {
@@ -15,11 +14,16 @@ import type {
   PayrollEmployeeRow,
   PayrollRunRow,
 } from "@/lib/bank/business-banking-types";
+import {
+  getDefaultPayDay,
+  getPayDayOptions,
+  type PayDayCode,
+} from "@/lib/bank/payroll-pay-day";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
-type Tab = "registry" | "run" | "history";
+type Tab = "registry" | "history";
 
 export function BusinessPayrollCenter({
   company,
@@ -32,7 +36,6 @@ export function BusinessPayrollCenter({
 }) {
   const [tab, setTab] = useState<Tab>("registry");
   const canManage = company.permissions.canManage;
-  const activeEmployees = employees.filter((e) => e.status === "active");
 
   return (
     <div className="space-y-8">
@@ -40,7 +43,6 @@ export function BusinessPayrollCenter({
         {(
           [
             ["registry", "Employee registry"],
-            ["run", "Run payroll"],
             ["history", "Payroll history"],
           ] as const
         ).map(([id, label]) => (
@@ -84,31 +86,6 @@ export function BusinessPayrollCenter({
         </div>
       )}
 
-      {tab === "run" && (
-        <div className="grid gap-8 lg:grid-cols-2">
-          {canManage ? (
-            <Card className="!p-6">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-                Payroll batch
-              </div>
-              <PayrollRunForm company={company} employees={activeEmployees} />
-            </Card>
-          ) : (
-            <Card className="!p-6">
-              <p className="text-[13px] text-muted-foreground">
-                View-only access. Running payroll requires treasury management permissions.
-              </p>
-            </Card>
-          )}
-          <Card className="!p-6">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              Active employees ({activeEmployees.length})
-            </div>
-            <EmployeeTable employees={activeEmployees} company={company} compact />
-          </Card>
-        </div>
-      )}
-
       {tab === "history" && (
         <Card className="!p-6">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -129,8 +106,18 @@ function EmployeeForm({ companyId }: { companyId: string }) {
   const [accountNumber, setAccountNumber] = useState("");
   const [payAmount, setPayAmount] = useState("");
   const [payFrequency, setPayFrequency] = useState<"weekly" | "biweekly" | "monthly" | "quarterly">("monthly");
+  const [payDay, setPayDay] = useState<PayDayCode>(getDefaultPayDay("monthly"));
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  const payDayOptions = getPayDayOptions(payFrequency);
+
+  useEffect(() => {
+    const options = getPayDayOptions(payFrequency);
+    setPayDay((current) =>
+      options.some((option) => option.value === current) ? current : getDefaultPayDay(payFrequency),
+    );
+  }, [payFrequency]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,9 +129,10 @@ function EmployeeForm({ companyId }: { companyId: string }) {
           companyId,
           displayName,
           title: title || undefined,
-          accountNumber: accountNumber || undefined,
+          accountNumber,
           payAmount: Number(payAmount),
           payFrequency,
+          payDay,
         },
       });
       await router.invalidate();
@@ -152,6 +140,8 @@ function EmployeeForm({ companyId }: { companyId: string }) {
       setTitle("");
       setAccountNumber("");
       setPayAmount("");
+      setPayFrequency("monthly");
+      setPayDay(getDefaultPayDay("monthly"));
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Failed to add employee.");
     } finally {
@@ -170,8 +160,14 @@ function EmployeeForm({ companyId }: { companyId: string }) {
         <input className={fieldClass} value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <label className="block text-sm">
-        Deposit account (optional)
-        <input className={fieldClass} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} />
+        Deposit account
+        <input
+          className={fieldClass}
+          value={accountNumber}
+          onChange={(e) => setAccountNumber(e.target.value)}
+          placeholder="AB-0000-000000"
+          required
+        />
       </label>
       <label className="block text-sm">
         Pay amount (FLR)
@@ -198,6 +194,24 @@ function EmployeeForm({ companyId }: { companyId: string }) {
           <option value="quarterly">Quarterly</option>
         </select>
       </label>
+      <label className="block text-sm">
+        Pay day
+        <select
+          className={fieldClass}
+          value={payDay}
+          onChange={(e) => setPayDay(e.target.value as PayDayCode)}
+          required
+        >
+          {payDayOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="text-[12px] text-muted-foreground">
+        Salary is sent automatically at 9:00 AM Eastern on the chosen schedule.
+      </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <button
         type="submit"
@@ -213,11 +227,9 @@ function EmployeeForm({ companyId }: { companyId: string }) {
 function EmployeeTable({
   employees,
   company,
-  compact = false,
 }: {
   employees: PayrollEmployeeRow[];
   company: BusinessTreasuryCompany;
-  compact?: boolean;
 }) {
   const router = useRouter();
   const deactivate = useServerFn(deactivatePayrollEmployeeRecord);
@@ -232,22 +244,24 @@ function EmployeeTable({
         <thead>
           <tr>
             <th>Name</th>
-            {!compact && <th>Title</th>}
+            <th>Title</th>
             <th>Pay</th>
-            {!compact && <th>Frequency</th>}
+            <th>Schedule</th>
             <th>Status</th>
-            {company.permissions.canManage && !compact && <th />}
+            {company.permissions.canManage && <th />}
           </tr>
         </thead>
         <tbody>
           {employees.map((e) => (
             <tr key={e.id}>
               <td>{e.displayName}</td>
-              {!compact && <td>{e.title ?? "—"}</td>}
+              <td>{e.title ?? "—"}</td>
               <td className="tabular-nums">{florin(e.payAmount)}</td>
-              {!compact && <td>{e.payFrequencyLabel}</td>}
+              <td>
+                {e.payFrequencyLabel} · {e.payDayLabel}
+              </td>
               <td>{e.statusLabel}</td>
-              {company.permissions.canManage && !compact && e.status === "active" && (
+              {company.permissions.canManage && e.status === "active" && (
                 <td>
                   <button
                     type="button"
@@ -269,118 +283,6 @@ function EmployeeTable({
   );
 }
 
-function PayrollRunForm({
-  company,
-  employees,
-}: {
-  company: BusinessTreasuryCompany;
-  employees: PayrollEmployeeRow[];
-}) {
-  const router = useRouter();
-  const createRun = useServerFn(createPayrollRunRecord);
-  const [label, setLabel] = useState("");
-  const [payDate, setPayDate] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [memo, setMemo] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  const total = employees
-    .filter((e) => selected.includes(e.id))
-    .reduce((sum, e) => sum + e.payAmount, 0);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setPending(true);
-    try {
-      await createRun({
-        data: {
-          companyId: company.companyId,
-          bankAccountId: company.operatingAccount.id,
-          label,
-          payDate,
-          employeeIds: selected,
-          memo: memo || undefined,
-        },
-      });
-      await router.invalidate();
-      setLabel("");
-      setPayDate("");
-      setSelected([]);
-      setMemo("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Payroll submission failed.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (employees.length === 0) {
-    return (
-      <p className="mt-6 text-[13px] text-muted-foreground">
-        Add active employees before running payroll.
-      </p>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-      <label className="block text-sm">
-        Batch label
-        <input className={fieldClass} value={label} onChange={(e) => setLabel(e.target.value)} required />
-      </label>
-      <label className="block text-sm">
-        Pay date
-        <input
-          className={fieldClass}
-          type="date"
-          value={payDate}
-          onChange={(e) => setPayDate(e.target.value)}
-          required
-        />
-      </label>
-      <fieldset>
-        <legend className="text-sm font-medium">Employees</legend>
-        <div className="mt-2 space-y-2">
-          {employees.map((e) => (
-            <label key={e.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={selected.includes(e.id)}
-                onChange={(ev) => {
-                  setSelected((prev) =>
-                    ev.target.checked ? [...prev, e.id] : prev.filter((id) => id !== e.id),
-                  );
-                }}
-              />
-              <span>{e.displayName}</span>
-              <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                {florin(e.payAmount)}
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <div className="rounded-md border border-border/60 bg-surface-2/50 px-3 py-2 text-sm">
-        Batch total: <span className="font-mono tabular-nums">{florin(total)}</span>
-      </div>
-      <label className="block text-sm">
-        Memo (optional)
-        <textarea className={`${fieldClass} min-h-[4rem] resize-none`} value={memo} onChange={(e) => setMemo(e.target.value)} />
-      </label>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending || selected.length === 0}
-        className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
-      >
-        {pending ? "Submitting…" : "Submit payroll for review"}
-      </button>
-    </form>
-  );
-}
-
 function PayrollHistoryTable({ runs }: { runs: PayrollRunRow[] }) {
   if (runs.length === 0) {
     return <p className="mt-6 text-[13px] text-muted-foreground">No payroll batches yet.</p>;
@@ -399,6 +301,9 @@ function PayrollHistoryTable({ runs }: { runs: PayrollRunRow[] }) {
             <span>Pay date {new Date(run.payDate).toLocaleDateString()}</span>
             <span>{run.lineItems.length} employees</span>
           </div>
+          {run.lastFailureReason && run.status !== "executed" && (
+            <p className="mt-2 text-[12px] text-destructive">{run.lastFailureReason}</p>
+          )}
           <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
             {run.lineItems.map((line) => (
               <li key={line.employeeId} className="flex justify-between gap-4">

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
 import { BusinessPayrollCenter } from "@/components/bank/business-payroll-center";
 import { fetchBusinessAccountContextForModule } from "@/lib/bank/business-account.functions";
 import {
@@ -32,13 +31,10 @@ function BusinessAccountPayrollPage() {
   }
 
   return (
-    <>
-      <BusinessFutureNotice />
-      <BusinessPayrollCenter
-        company={businessContext.treasury}
-        employees={employees}
-        runs={runs}
-      />
-    </>
+    <BusinessPayrollCenter
+      company={businessContext.treasury}
+      employees={employees}
+      runs={runs}
+    />
   );
 }

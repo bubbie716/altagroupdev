@@ -11,6 +11,7 @@ import type {
   ScheduledTransferScope,
 } from "@prisma/client";
 import type { CompanyRole } from "@/lib/auth/types";
+import { formatPayDayLabel } from "@/lib/bank/payroll-pay-day";
 import { fromDbCompanyRole } from "@/server/enum-map";
 import type {
   BusinessRepresentativeRow,
@@ -103,14 +104,16 @@ const PAYROLL_STATUS_FROM_DB: Record<PayrollRunStatus, PayrollRunStatusCode> = {
   REJECTED: "rejected",
   EXECUTED: "executed",
   CANCELLED: "cancelled",
+  FAILED: "failed",
 };
 
 const PAYROLL_STATUS_LABELS: Record<PayrollRunStatusCode, string> = {
   pending_review: "Pending review",
-  approved: "Approved",
+  approved: "Scheduled",
   rejected: "Rejected",
   executed: "Executed",
   cancelled: "Cancelled",
+  failed: "Failed",
 };
 
 const EXECUTION_STATUS_FROM_DB: Record<
@@ -218,13 +221,16 @@ export function mapPayrollEmployee(row: PayrollEmployee): PayrollEmployeeRow {
     payAmount: decimalToNumber(row.payAmount),
     payFrequency,
     payFrequencyLabel: FREQUENCY_LABELS[payFrequency],
+    payDay: row.payDay,
+    payDayLabel: formatPayDayLabel(row.payDay, payFrequency),
+    nextPayDate: row.nextPayDate?.toISOString() ?? null,
     status,
     statusLabel: EMPLOYEE_STATUS_LABELS[status],
     createdAt: row.createdAt.toISOString(),
   };
 }
 
-function parseLineItems(raw: unknown): PayrollRunLineItem[] {
+export function parsePayrollLineItems(raw: unknown): PayrollRunLineItem[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((item): item is PayrollRunLineItem => {
@@ -233,14 +239,21 @@ function parseLineItems(raw: unknown): PayrollRunLineItem[] {
         item !== null &&
         typeof (item as PayrollRunLineItem).employeeId === "string" &&
         typeof (item as PayrollRunLineItem).displayName === "string" &&
-        typeof (item as PayrollRunLineItem).amount === "number"
+        typeof (item as PayrollRunLineItem).amount === "number" &&
+        typeof (item as PayrollRunLineItem).accountNumber === "string" &&
+        (item as PayrollRunLineItem).accountNumber.trim().length > 0
       );
     })
     .map((item) => ({
       employeeId: item.employeeId,
       displayName: item.displayName,
       amount: item.amount,
+      accountNumber: item.accountNumber.trim(),
     }));
+}
+
+function parseLineItems(raw: unknown): PayrollRunLineItem[] {
+  return parsePayrollLineItems(raw);
 }
 
 export function mapPayrollRun(row: PayrollRun): PayrollRunRow {
@@ -255,6 +268,7 @@ export function mapPayrollRun(row: PayrollRun): PayrollRunRow {
     payDate: row.payDate.toISOString(),
     lineItems: parseLineItems(row.lineItems),
     memo: row.memo,
+    lastFailureReason: row.lastFailureReason,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -290,6 +304,10 @@ export function toDbPaymentFrequency(freq: PaymentFrequencyCode): PaymentFrequen
     quarterly: "QUARTERLY",
   };
   return map[freq];
+}
+
+export function paymentFrequencyFromDb(freq: PaymentFrequency): PaymentFrequencyCode {
+  return FREQUENCY_FROM_DB[freq];
 }
 
 export function toDbTransferScope(scope: ScheduledTransferScopeCode): ScheduledTransferScope {

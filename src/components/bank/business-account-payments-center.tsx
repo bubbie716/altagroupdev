@@ -7,16 +7,22 @@ import {
 } from "@/lib/bank/business-banking.functions";
 import type { BusinessTreasuryCompany, ScheduledPaymentRow } from "@/lib/bank/business-banking-types";
 import type { TransferContact } from "@/lib/bank/backend-types";
-import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
+import { ScheduledTransferCenter, type ScheduledTransferTab } from "@/components/bank/scheduled-transfer-center";
 
 export function BusinessAccountPaymentsCenter({
   company,
   payments,
   contacts = [],
+  activeTab,
+  onTabChange,
+  onChanged,
 }: {
   company: BusinessTreasuryCompany;
   payments: ScheduledPaymentRow[];
   contacts?: TransferContact[];
+  activeTab?: ScheduledTransferTab;
+  onTabChange?: (tab: ScheduledTransferTab) => void;
+  onChanged?: () => void | Promise<void>;
 }) {
   const createPayment = useServerFn(createScheduledPaymentRecord);
   const cancelPayment = useServerFn(cancelScheduledPaymentRecord);
@@ -24,6 +30,8 @@ export function BusinessAccountPaymentsCenter({
   return (
     <ScheduledTransferCenter
       transferScope="intrabank"
+      activeTab={activeTab}
+      onTabChange={onTabChange}
       sourceAccounts={[
         {
           id: company.operatingAccount.id,
@@ -51,9 +59,11 @@ export function BusinessAccountPaymentsCenter({
             memo: input.memo,
           },
         });
+        await onChanged?.();
       }}
       onCancel={async (paymentId) => {
         await cancelPayment({ data: { companyId: company.companyId, paymentId } });
+        await onChanged?.();
       }}
     />
   );

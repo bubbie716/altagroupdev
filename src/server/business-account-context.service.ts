@@ -60,7 +60,6 @@ export async function resolveBusinessAccountContext(
     "activity",
     "payments",
     "payroll",
-    "scheduled",
     "statements",
     "representatives",
     "settings",

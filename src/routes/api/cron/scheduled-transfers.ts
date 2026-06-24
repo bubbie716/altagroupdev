@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { executeDuePayrollRuns } from "@/server/payroll-executor.service";
 import { executeDueScheduledTransfers } from "@/server/scheduled-transfer-executor.service";
 
 function validateCronSecret(request: Request): boolean {
@@ -29,8 +30,11 @@ function cronResponse(body: Record<string, unknown>, status = 200) {
 }
 
 async function runExecutor() {
-  const summary = await executeDueScheduledTransfers();
-  return cronResponse({ ok: true, ...summary });
+  const [scheduledTransfers, payroll] = await Promise.all([
+    executeDueScheduledTransfers(),
+    executeDuePayrollRuns(),
+  ]);
+  return cronResponse({ ok: true, scheduledTransfers, payroll });
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({

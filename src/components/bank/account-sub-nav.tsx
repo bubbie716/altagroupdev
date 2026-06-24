@@ -12,7 +12,6 @@ const MODULE_LABELS: Record<BusinessAccountModule, string> = {
   activity: "Activity",
   payments: "Payments",
   payroll: "Payroll",
-  scheduled: "Scheduled",
   statements: "Statements",
   representatives: "Representatives",
   settings: "Settings",
@@ -23,7 +22,6 @@ const MODULE_PATHS: Record<BusinessAccountModule, string> = {
   activity: "/activity",
   payments: "/payments",
   payroll: "/payroll",
-  scheduled: "/scheduled",
   statements: "/statements",
   representatives: "/representatives",
   settings: "/settings",
@@ -51,7 +49,6 @@ export function BusinessAccountSubNav({
           | "/bank/account/$accountId/activity"
           | "/bank/account/$accountId/payments"
           | "/bank/account/$accountId/payroll"
-          | "/bank/account/$accountId/scheduled"
           | "/bank/account/$accountId/statements"
           | "/bank/account/$accountId/representatives"
           | "/bank/account/$accountId/settings";
@@ -88,7 +85,6 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
   const links = [
     { suffix: "", label: "Overview", mod: "overview" },
     { suffix: "/activity", label: "Activity", mod: "activity" },
-    { suffix: "/scheduled", label: "Scheduled", mod: "scheduled" },
     { suffix: "/statements", label: "Statements", mod: "statements" },
     { suffix: "/settings", label: "Settings", mod: "settings" },
   ] as const;
@@ -110,7 +106,6 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
                 : `/bank/account/$accountId${l.suffix}`) as
                 | "/bank/account/$accountId"
                 | "/bank/account/$accountId/activity"
-                | "/bank/account/$accountId/scheduled"
                 | "/bank/account/$accountId/statements"
                 | "/bank/account/$accountId/settings"
             }

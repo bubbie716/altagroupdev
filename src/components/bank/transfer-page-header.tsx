@@ -9,7 +9,7 @@ export function TransfersBackLink({ accountId }: { accountId?: string }) {
       className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:border-border-strong hover:bg-surface-2"
     >
       <ArrowLeft className="size-3.5" />
-      All transfers
+      All options
     </Link>
   );
 }

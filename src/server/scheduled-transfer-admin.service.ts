@@ -156,5 +156,9 @@ export async function runInternalScheduledTransferNow(_user: AltaUser, paymentId
 }
 
 export async function runDueInternalScheduledTransfers(_user: AltaUser) {
-  return executeDueScheduledTransfers();
+  const [scheduledTransfers, payroll] = await Promise.all([
+    executeDueScheduledTransfers(),
+    (await import("@/server/payroll-executor.service")).executeDuePayrollRuns(),
+  ]);
+  return { scheduledTransfers, payroll };
 }

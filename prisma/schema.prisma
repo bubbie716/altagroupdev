@@ -316,6 +316,7 @@ enum PayrollRunStatus {
   REJECTED
   EXECUTED
   CANCELLED
+  FAILED
 }
 
 model ScheduledPayment {
@@ -384,39 +385,91 @@ model PayrollEmployee {
   companyId     String
   displayName   String
   title         String?
-  accountNumber String?
+  accountNumber String
   payAmount     Decimal               @db.Decimal(18, 2)
   payFrequency  PaymentFrequency      @default(MONTHLY)
+  payDay        String
+  nextPayDate   DateTime?
+  lastPaidAt    DateTime?
   status        PayrollEmployeeStatus @default(ACTIVE)
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  autoPayrollRuns PayrollRun[] @relation("AutoPayrollEmployee")
 
   @@index([companyId])
   @@index([status])
+  @@index([nextPayDate])
 }
 
 model PayrollRun {
-  id              String           @id @default(cuid())
-  companyId       String
-  bankAccountId   String
-  createdByUserId String
-  label           String
-  totalAmount     Decimal          @db.Decimal(18, 2)
-  status          PayrollRunStatus @default(PENDING_REVIEW)
-  payDate         DateTime
-  lineItems       Json
-  memo            String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                  String           @id @default(cuid())
+  companyId           String
+  bankAccountId       String
+  createdByUserId     String
+  label               String
+  totalAmount         Decimal          @db.Decimal(18, 2)
+  status              PayrollRunStatus @default(PENDING_REVIEW)
+  payDate             DateTime
+  lineItems           Json
+  memo                String?
+  consecutiveFailures Int              @default(0)
+  lastFailureReason   String?
+  lastRunAt           DateTime?
+  autoEmployeeId      String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  createdBy   User        @relation("PayrollRunCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  company       Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount   BankAccount      @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy     User             @relation("PayrollRunCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  autoEmployee  PayrollEmployee? @relation("AutoPayrollEmployee", fields: [autoEmployeeId], references: [id], onDelete: SetNull)
+  executions    PayrollRunExecution[]
 
   @@index([companyId])
   @@index([bankAccountId])
+  @@index([status])
+  @@index([payDate])
+  @@index([autoEmployeeId])
+}
+
+model PayrollRunExecution {
+  id             String                           @id @default(cuid())
+  payrollRunId   String
+  scheduledRunAt DateTime
+  status         ScheduledTransferExecutionStatus @default(PENDING)
+  failureReason  String?
+  executedAt     DateTime?
+  createdAt      DateTime                         @default(now())
+
+  payrollRun     PayrollRun                @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  lineExecutions PayrollRunLineExecution[]
+
+  @@unique([payrollRunId, scheduledRunAt])
+  @@index([payrollRunId])
+  @@index([status])
+  @@index([scheduledRunAt])
+}
+
+model PayrollRunLineExecution {
+  id                    String                           @id @default(cuid())
+  payrollRunExecutionId String
+  employeeId            String
+  displayName           String
+  accountNumber         String
+  amount                Decimal                          @db.Decimal(18, 2)
+  status                ScheduledTransferExecutionStatus @default(PENDING)
+  bankTransactionId     String?
+  failureReason         String?
+  executedAt            DateTime?
+  createdAt             DateTime                         @default(now())
+
+  payrollRunExecution PayrollRunExecution @relation(fields: [payrollRunExecutionId], references: [id], onDelete: Cascade)
+  bankTransaction     BankTransaction?    @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+
+  @@unique([payrollRunExecutionId, employeeId])
+  @@index([payrollRunExecutionId])
   @@index([status])
 }
 
@@ -443,6 +496,7 @@ model BankTransaction {
   bankAccount                BankAccount                  @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
   reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   scheduledTransferExecution ScheduledTransferExecution[]
+  payrollRunLineExecution    PayrollRunLineExecution[]
 
   @@index([bankAccountId])
   @@index([status])

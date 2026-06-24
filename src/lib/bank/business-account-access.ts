@@ -5,7 +5,6 @@ export type BusinessAccountModule =
   | "activity"
   | "payments"
   | "payroll"
-  | "scheduled"
   | "statements"
   | "representatives"
   | "settings";
@@ -18,7 +17,6 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     activity: "manage",
     payments: "manage",
     payroll: "manage",
-    scheduled: "manage",
     statements: "manage",
     representatives: "manage",
     settings: "manage",
@@ -28,7 +26,6 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     activity: "manage",
     payments: "manage",
     payroll: "manage",
-    scheduled: "manage",
     statements: "manage",
     representatives: "manage",
     settings: "view",
@@ -38,7 +35,6 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     activity: "view",
     payments: "manage",
     payroll: "manage",
-    scheduled: "manage",
     statements: "manage",
     representatives: "view",
     settings: "none",
@@ -48,7 +44,6 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     activity: "view",
     payments: "none",
     payroll: "none",
-    scheduled: "none",
     statements: "view",
     representatives: "view",
     settings: "none",
@@ -58,7 +53,6 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     activity: "view",
     payments: "none",
     payroll: "none",
-    scheduled: "none",
     statements: "none",
     representatives: "none",
     settings: "none",
@@ -85,7 +79,6 @@ export const BUSINESS_ACCOUNT_MODULES: BusinessAccountModule[] = [
   "activity",
   "payments",
   "payroll",
-  "scheduled",
   "statements",
   "representatives",
   "settings",

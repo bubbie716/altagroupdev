@@ -9,8 +9,9 @@ Alta Capital Suite runs **approved intrabank (Alta-to-Alta) scheduled transfers*
 - Personal scheduled transfers (`transferScope: INTRABANK`, status `APPROVED`)
 - Business scheduled transfers (company operating account → Alta recipient)
 - Recurring intrabank transfers (weekly, biweekly, monthly, quarterly)
+- **Business payroll batches** (`PayrollRun` status `APPROVED`, pay date due)
 
-Intrabank transfers are **auto-approved on creation**. Interbank scheduled transfers remain `PENDING_REVIEW` and are never executed automatically.
+Intrabank transfers and payroll batches are **auto-approved on creation**. Interbank scheduled transfers remain `PENDING_REVIEW` and are never executed automatically.
 
 ## Unsupported (never auto-executed)
 
@@ -18,17 +19,14 @@ Intrabank transfers are **auto-approved on creation**. Interbank scheduled trans
 - External wires / interbank scheduled transfers
 - NCC transfers
 - Deposit requests
-- Payroll runs (separate review queue)
 - Any transfer requiring manual review
 
 ## How execution works
 
 1. A scheduler (cron-job.org, manual operator, etc.) calls `GET /api/cron/scheduled-transfers`.
-2. `executeDueScheduledTransfers()` finds `ScheduledPayment` rows where:
-   - `transferScope = INTRABANK`
-   - `status = APPROVED`
-   - `nextRunDate` or `scheduledDate` is due (≤ now, stored as UTC instants)
-3. For each due transfer:
+2. `executeDueScheduledTransfers()` finds due `ScheduledPayment` rows (intrabank, approved).
+3. `executeDuePayrollRuns()` finds due `PayrollRun` rows (`status = APPROVED`, `payDate` due).
+4. For each due transfer or payroll line:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
    - Executes via `submitInternalTransfer` using the original creator’s permissions.
@@ -85,10 +83,18 @@ Set the same value in **Vercel → Project → Environment Variables**.
 ```json
 {
   "ok": true,
-  "dueCount": 2,
-  "executedCount": 1,
-  "failedCount": 1,
-  "skippedCount": 0
+  "scheduledTransfers": {
+    "dueCount": 2,
+    "executedCount": 1,
+    "failedCount": 1,
+    "skippedCount": 0
+  },
+  "payroll": {
+    "dueCount": 1,
+    "executedCount": 1,
+    "failedCount": 0,
+    "skippedCount": 0
+  }
 }
 ```
 
@@ -180,8 +186,10 @@ Vercel sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is set in 
 
 | File | Purpose |
 |------|---------|
-| `src/server/scheduled-transfer-executor.service.ts` | Core executor |
+| `src/server/scheduled-transfer-executor.service.ts` | Scheduled transfer executor |
+| `src/server/payroll-executor.service.ts` | Payroll batch executor |
 | `src/lib/bank/scheduled-transfer-executor.ts` | Public export |
+| `src/lib/bank/payroll-executor.ts` | Public export |
 | `src/routes/api/cron/scheduled-transfers.ts` | HTTP endpoint (cron-job.org hits this) |
 | `src/server/scheduled-transfer-admin.service.ts` | Internal admin actions |
 | `prisma/schema.prisma` | `ScheduledTransferExecution` model |

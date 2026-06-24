@@ -6,7 +6,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { findCompanyMembership } from "@/lib/auth/permissions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
+import { resolveAccountSwitchSuffix } from "@/lib/bank/account-switch-path";
 import { florin } from "@/lib/bank/api";
 
 function accountOptionLabel(account: UserBankAccount): string {
@@ -22,12 +25,25 @@ export function AccountPageToolbar({
 }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const user = useCurrentUser();
 
   function handleAccountChange(nextAccountId: string) {
     if (nextAccountId === currentAccountId) return;
 
-    const base = `/bank/account/${currentAccountId}`;
-    const suffix = pathname.startsWith(base) ? pathname.slice(base.length) : "";
+    const nextAccount = accounts.find((account) => account.id === nextAccountId);
+    if (!nextAccount) return;
+
+    const companyRole =
+      nextAccount.companyId && user
+        ? findCompanyMembership(user, { companyId: nextAccount.companyId })?.role
+        : undefined;
+
+    const suffix = resolveAccountSwitchSuffix(
+      pathname,
+      currentAccountId,
+      nextAccount,
+      companyRole,
+    );
 
     navigate({
       to: `/bank/account/$accountId${suffix}` as "/bank/account/$accountId",

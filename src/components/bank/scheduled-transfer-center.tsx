@@ -28,6 +28,21 @@ export interface ScheduledTransferSourceAccount {
 
 type Tab = "scheduled" | "recurring" | "history";
 
+export type ScheduledTransferTab = Tab;
+
+function isActiveQueuePayment(payment: ScheduledPaymentRow): boolean {
+  return payment.status !== "executed" && payment.status !== "cancelled";
+}
+
+function isHistoryPayment(payment: ScheduledPaymentRow): boolean {
+  return (
+    payment.status === "executed" ||
+    payment.status === "cancelled" ||
+    payment.status === "failed" ||
+    payment.status === "rejected"
+  );
+}
+
 export function ScheduledTransferCenter({
   transferScope,
   sourceAccounts,
@@ -39,6 +54,8 @@ export function ScheduledTransferCenter({
   onCancel,
   showScopeColumn = false,
   defaultSourceAccountId,
+  activeTab,
+  onTabChange,
 }: {
   transferScope: ScheduledTransferScopeCode;
   sourceAccounts: ScheduledTransferSourceAccount[];
@@ -50,13 +67,25 @@ export function ScheduledTransferCenter({
   onCancel: (paymentId: string) => Promise<void>;
   showScopeColumn?: boolean;
   defaultSourceAccountId?: string;
+  activeTab?: Tab;
+  onTabChange?: (tab: Tab) => void;
 }) {
-  const [tab, setTab] = useState<Tab>("scheduled");
+  const [internalTab, setInternalTab] = useState<Tab>("scheduled");
+  const tab = activeTab ?? internalTab;
+
+  function selectTab(next: Tab) {
+    if (onTabChange) onTabChange(next);
+    else setInternalTab(next);
+  }
 
   const scheduled = payments.filter(
-    (p) => p.paymentType === "scheduled" || p.paymentType === "one_time",
+    (p) =>
+      isActiveQueuePayment(p) && (p.paymentType === "scheduled" || p.paymentType === "one_time"),
   );
-  const recurring = payments.filter((p) => p.paymentType === "recurring");
+  const recurring = payments.filter(
+    (p) => isActiveQueuePayment(p) && p.paymentType === "recurring",
+  );
+  const history = payments.filter(isHistoryPayment);
 
   return (
     <div className="space-y-8">
@@ -71,7 +100,7 @@ export function ScheduledTransferCenter({
           <button
             key={id}
             type="button"
-            onClick={() => setTab(id)}
+            onClick={() => selectTab(id)}
             className={`rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors ${
               tab === id
                 ? "bg-surface-2 text-foreground"
@@ -84,12 +113,18 @@ export function ScheduledTransferCenter({
       </div>
 
       {tab === "history" ? (
-        <TransferHistoryTable
-          payments={payments}
-          canManage={canManage}
-          onCancel={onCancel}
-          showScopeColumn={showScopeColumn}
-        />
+        <Card className="!p-6">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Transfer history
+          </div>
+          <TransferHistoryTable
+            payments={history}
+            canManage={canManage}
+            onCancel={onCancel}
+            showScopeColumn={showScopeColumn}
+            emptyMessage="history"
+          />
+        </Card>
       ) : (
         <div className="grid gap-8 lg:grid-cols-2">
           {canManage ? (
@@ -419,19 +454,23 @@ function TransferHistoryTable({
   onCancel,
   compact = false,
   showScopeColumn = false,
+  emptyMessage = "queue",
 }: {
   payments: ScheduledPaymentRow[];
   canManage: boolean;
   onCancel: (paymentId: string) => Promise<void>;
   compact?: boolean;
   showScopeColumn?: boolean;
+  emptyMessage?: "queue" | "history";
 }) {
   const router = useRouter();
 
   if (payments.length === 0) {
     return (
       <p className={`${compact ? "mt-4" : "mt-6"} text-[13px] text-muted-foreground`}>
-        No transfers in this queue yet.
+        {emptyMessage === "history"
+          ? "No completed or cancelled transfers yet."
+          : "No transfers in this queue yet."}
       </p>
     );
   }

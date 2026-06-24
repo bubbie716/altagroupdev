@@ -15,6 +15,11 @@ import type {
   ScheduledPaymentRow,
 } from "@/lib/bank/business-banking-types";
 import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
+import {
+  computeNextPayDate,
+  getDefaultPayDay,
+  isValidPayDay,
+} from "@/lib/bank/payroll-pay-day";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 import {
@@ -235,15 +240,28 @@ export async function createPayrollEmployee(
   await requireTreasuryManage(user, input.companyId);
   if (!input.displayName.trim()) badRequest("Employee name is required.");
   if (input.payAmount <= 0) badRequest("Pay amount must be greater than zero.");
+  const accountNumber = input.accountNumber?.trim();
+  if (!accountNumber) badRequest("Employee Alta account number is required.");
+  if (!isValidAltaAccountNumber(accountNumber)) {
+    badRequest("Enter a valid Alta Bank account number (AB-####-######).");
+  }
+  if (!isValidPayDay(input.payFrequency, input.payDay)) {
+    badRequest("Select a valid pay day for this frequency.");
+  }
+
+  const now = new Date();
+  const nextPayDate = computeNextPayDate(input.payFrequency, input.payDay, now, false, now);
 
   const row = await prisma.payrollEmployee.create({
     data: {
       companyId: input.companyId,
       displayName: input.displayName.trim(),
       title: input.title?.trim() || null,
-      accountNumber: input.accountNumber?.trim() || null,
+      accountNumber,
       payAmount: input.payAmount,
       payFrequency: toDbPaymentFrequency(input.payFrequency),
+      payDay: input.payDay,
+      nextPayDate,
       status: "ACTIVE",
     },
   });
@@ -290,8 +308,8 @@ export async function createPayrollRun(
   if (!input.label.trim()) badRequest("Batch label is required.");
   if (input.employeeIds.length === 0) badRequest("Select at least one employee.");
 
-  const payDate = new Date(input.payDate);
-  if (Number.isNaN(payDate.getTime())) badRequest("Valid pay date is required.");
+  const payDate = resolveScheduledInputDateTime(input.payDate);
+  if (!payDate) badRequest("Valid pay date is required.");
 
   const employees = await prisma.payrollEmployee.findMany({
     where: {
@@ -304,10 +322,18 @@ export async function createPayrollRun(
     badRequest("One or more selected employees are invalid or inactive.");
   }
 
+  for (const employee of employees) {
+    const accountNumber = employee.accountNumber?.trim();
+    if (!accountNumber || !isValidAltaAccountNumber(accountNumber)) {
+      badRequest(`${employee.displayName} needs a valid Alta account number before payroll can run.`);
+    }
+  }
+
   const lineItems = employees.map((e) => ({
     employeeId: e.id,
     displayName: e.displayName,
     amount: Number(e.payAmount.toString()),
+    accountNumber: e.accountNumber!.trim(),
   }));
   const totalAmount = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
@@ -321,7 +347,7 @@ export async function createPayrollRun(
       payDate,
       lineItems,
       memo: input.memo?.trim() || null,
-      status: "PENDING_REVIEW",
+      status: "APPROVED",
     },
   });
 
