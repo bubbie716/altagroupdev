@@ -4,6 +4,7 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
 import { RouteButton } from "@/components/bank/route-button";
+import { EmptyState } from "@/components/data/empty-state";
 
 export function BankAccountTransactions({
   transactions,
@@ -12,16 +13,12 @@ export function BankAccountTransactions({
 }) {
   if (transactions.length === 0) {
     return (
-      <Card className="!p-10 text-center">
-        <p className="type-meta">
-          No activity
-        </p>
-        <h3 className="mt-3 text-lg font-semibold tracking-tight">No transactions yet</h3>
-        <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-          Deposits, withdrawals, loan payments, and adjustments will appear here once account activity
-          begins.
-        </p>
-      </Card>
+      <EmptyState
+        eyebrow="Alta Bank · Activity"
+        title="No transactions yet"
+        description="Deposits, withdrawals, loan payments, and adjustments will appear here once account activity begins."
+        compact
+      />
     );
   }
 
