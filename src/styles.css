@@ -191,6 +191,7 @@
   --color-danger: var(--danger);
   --color-border-strong: var(--border-strong);
   --font-display: var(--font-display);
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
 }
 
