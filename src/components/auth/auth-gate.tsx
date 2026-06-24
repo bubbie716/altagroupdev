@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Card } from "@/components/page-shell";
 import { SiteNav } from "@/components/site-nav";
 import { cn } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
@@ -37,23 +36,65 @@ export function DiscordSignInButton({
   );
 }
 
-function LoginPortalBackground() {
+function LoginBrandPanel() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+    <aside className="relative hidden w-[46%] shrink-0 flex-col justify-between overflow-hidden border-r border-border bg-surface-2/40 px-10 py-12 lg:flex xl:w-[50%] xl:px-16">
       <div
-        className="absolute inset-0 opacity-[0.28] dark:opacity-[0.18]"
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
-          backgroundImage: `
-            linear-gradient(to right, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px),
-            linear-gradient(to bottom, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px)
-          `,
+          backgroundImage: `linear-gradient(to right, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px)`,
           backgroundSize: "56px 56px",
         }}
+        aria-hidden
       />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
-      <div className="absolute -top-32 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-gold/[0.04] blur-3xl" />
-      <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-[#1e3a5f]/[0.06] blur-3xl dark:bg-[#1e3a5f]/[0.12]" />
-      <div className="absolute -bottom-32 -left-32 h-72 w-72 rounded-full bg-gold/[0.03] blur-3xl" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-gold/[0.05] blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-gold/40 to-transparent" aria-hidden />
+
+      <div className="relative">
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
+          Alta Group · Member Access
+        </div>
+      </div>
+
+      <div className="relative max-w-[34rem]">
+        <h1 className="font-serif text-4xl leading-[1.04] tracking-tight sm:text-5xl xl:text-[3.5rem]">
+          The financial infrastructure of Newport, opened only to its members.
+        </h1>
+        <p className="mt-6 font-serif text-lg leading-relaxed tracking-tight text-muted-foreground">
+          Alta Bank, Alta Exchange, and Newport Clearing Corporation —
+          a single relationship across the Republic's institutional financial fabric.
+        </p>
+      </div>
+
+      <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span className="inline-flex items-center gap-2 text-gold">
+          <span className="size-1 rounded-full bg-gold" aria-hidden />
+          Invitation Only
+        </span>
+        <span>Est. 2026</span>
+        <span>Membership extended by referral</span>
+      </div>
+    </aside>
+  );
+}
+
+function LoginEditorialLayout({
+  children,
+  footer,
+}: {
+  children: ReactNode;
+  footer?: ReactNode;
+}) {
+  return (
+    <div className="relative flex min-h-screen flex-col bg-background">
+      <SiteNav />
+      <main className="relative z-10 flex flex-1">
+        <LoginBrandPanel />
+        <section className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
+          {children}
+        </section>
+      </main>
+      {footer}
     </div>
   );
 }
@@ -65,16 +106,7 @@ export function LoginPortalShell({
   children: ReactNode;
   footer?: ReactNode;
 }) {
-  return (
-    <div className="relative flex min-h-screen flex-col bg-background">
-      <LoginPortalBackground />
-      <SiteNav />
-      <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-10">
-        {children}
-      </main>
-      {footer}
-    </div>
-  );
+  return <LoginEditorialLayout footer={footer}>{children}</LoginEditorialLayout>;
 }
 
 export function AuthGate({
@@ -87,36 +119,45 @@ export function AuthGate({
   const target = redirectTo ?? "/";
 
   return (
-    <div className="flex w-full max-w-md flex-col items-center text-center">
-      <header className="mb-8 space-y-3">
-        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">Alta Group</p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
+    <div className="flex w-full max-w-md flex-col">
+      <header className="space-y-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
+          Member sign-in
+        </p>
+        <h2 className="font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
           Sign in to Alta
-        </h1>
-        <p className="mx-auto max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-          Access your accounts, portfolios, and platform features.
+        </h2>
+        <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+          Authentication is provided through your Discord account. Alta does not maintain a separate password.
         </p>
       </header>
 
-      <div className="w-full">
-        {errorMessage && (
-          <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-left text-sm text-destructive">
-            {errorMessage}
-          </div>
-        )}
+      {errorMessage && (
+        <div className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-left text-sm text-destructive">
+          {errorMessage}
+        </div>
+      )}
 
-        <Card className="border-border/80 bg-card/95 !p-8 shadow-sm backdrop-blur-sm">
-          <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full border border-border bg-surface-2/60">
-            <ShieldCheck className="size-[18px] text-foreground" strokeWidth={1.75} />
+      <div className="mt-8 rounded-lg border border-border bg-surface-1 p-7">
+        <div className="flex items-center gap-3">
+          <div className="grid size-9 place-items-center rounded-md border border-border bg-surface-2/60">
+            <ShieldCheck className="size-[16px] text-foreground" strokeWidth={1.5} />
           </div>
-          <h2 className="text-lg font-semibold tracking-tight">Alta Platform Access</h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            Access to this area requires an Alta account.
-          </p>
-          <div className="mt-7">
-            <DiscordSignInButton redirectTo={target} />
+          <div>
+            <div className="font-serif text-base leading-tight">Alta Platform Access</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Single sign-on · Discord OAuth
+            </div>
           </div>
-        </Card>
+        </div>
+
+        <div className="mt-6">
+          <DiscordSignInButton redirectTo={target} />
+        </div>
+
+        <div className="mt-6 border-t border-border/70 pt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          Individual accounts · Authorized company representatives
+        </div>
       </div>
     </div>
   );
@@ -124,10 +165,11 @@ export function AuthGate({
 
 export function LoginPortalFooter() {
   return (
-    <footer className="relative z-10 pb-8 pt-2 text-center">
-      <p className="type-meta/80">
-        Individual accounts · Authorized company representatives
-      </p>
+    <footer className="relative z-10 border-t border-border/60 px-6 py-5 sm:px-10">
+      <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span>© Alta Group · Newport Clearing Corporation</span>
+        <span>Discretion assured · Relationship managed</span>
+      </div>
     </footer>
   );
 }
