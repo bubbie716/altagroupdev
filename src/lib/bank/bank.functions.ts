@@ -29,7 +29,7 @@ export const fetchBankDashboardBundle = createServerFn({ method: "GET" }).handle
 });
 
 export const fetchAccountPageBundle = createServerFn({ method: "GET" })
-  .validator((accountId: string) => accountId)
+  .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
     const { getUserBankAccountDetail, listUserBankAccounts } = await import("@/server/bank.service");
     const { resolveBusinessAccountContext } = await import(
@@ -59,7 +59,7 @@ export const fetchUserBankAccounts = createServerFn({ method: "GET" }).handler(a
 });
 
 export const fetchUserBankAccountDetail = createServerFn({ method: "GET" })
-  .validator((accountId: string) => accountId)
+  .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
     const { getUserBankAccountDetail } = await import("@/server/bank.service");
     const userId = await actorId();
@@ -85,7 +85,7 @@ export const fetchUserBankSummary = createServerFn({ method: "GET" }).handler(as
 });
 
 export const fetchUserBankTransactions = createServerFn({ method: "GET" })
-  .validator((limit: number | undefined) => limit ?? 10)
+  .inputValidator((limit: number | undefined) => limit ?? 10)
   .handler(async ({ data: limit }) => {
     const { listUserRecentTransactions } = await import("@/server/bank.service");
     const userId = await actorId();
@@ -93,7 +93,7 @@ export const fetchUserBankTransactions = createServerFn({ method: "GET" })
   });
 
 export const openBankAccountRecord = createServerFn({ method: "POST" })
-  .validator((input: OpenBankAccountInput) => input)
+  .inputValidator((input: OpenBankAccountInput) => input)
   .handler(async ({ data }) => {
     const { openBankAccount } = await import("@/server/bank.service");
     const userId = await actorId();
@@ -102,7 +102,7 @@ export const openBankAccountRecord = createServerFn({ method: "POST" })
 
 
 export const submitBankInternalTransfer = createServerFn({ method: "POST" })
-  .validator((input: SubmitInternalTransferInput) => input)
+  .inputValidator((input: SubmitInternalTransferInput) => input)
   .handler(async ({ data }) => {
     const { submitInternalTransfer } = await import("@/server/bank.service");
     const userId = await actorId();
@@ -110,7 +110,7 @@ export const submitBankInternalTransfer = createServerFn({ method: "POST" })
   });
 
 export const fetchUserInternalTransfers = createServerFn({ method: "GET" })
-  .validator((limit: number | undefined) => limit ?? 20)
+  .inputValidator((limit: number | undefined) => limit ?? 20)
   .handler(async ({ data: limit }) => {
     const { listUserInternalTransfers } = await import("@/server/bank.service");
     const userId = await actorId();
@@ -124,7 +124,7 @@ export const fetchAllTransferContacts = createServerFn({ method: "GET" }).handle
 });
 
 export const fetchTransferContacts = createServerFn({ method: "GET" })
-  .validator((scope: "intrabank" | "interbank") => scope)
+  .inputValidator((scope: "intrabank" | "interbank") => scope)
   .handler(async ({ data: scope }) => {
     const { listTransferContacts } = await import("@/server/transfer-contact.service");
     const userId = await actorId();
@@ -132,7 +132,7 @@ export const fetchTransferContacts = createServerFn({ method: "GET" })
   });
 
 export const createIntrabankContactRecord = createServerFn({ method: "POST" })
-  .validator((input: import("@/lib/bank/backend-types").CreateIntrabankTransferContactInput) => input)
+  .inputValidator((input: import("@/lib/bank/backend-types").CreateIntrabankTransferContactInput) => input)
   .handler(async ({ data }) => {
     const { createIntrabankTransferContact } = await import("@/server/transfer-contact.service");
     const userId = await actorId();
@@ -140,7 +140,7 @@ export const createIntrabankContactRecord = createServerFn({ method: "POST" })
   });
 
 export const createInterbankContactRecord = createServerFn({ method: "POST" })
-  .validator((input: import("@/lib/bank/backend-types").CreateInterbankTransferContactInput) => input)
+  .inputValidator((input: import("@/lib/bank/backend-types").CreateInterbankTransferContactInput) => input)
   .handler(async ({ data }) => {
     const { createInterbankTransferContact } = await import("@/server/transfer-contact.service");
     const userId = await actorId();
@@ -148,7 +148,7 @@ export const createInterbankContactRecord = createServerFn({ method: "POST" })
   });
 
 export const deleteTransferContactRecord = createServerFn({ method: "POST" })
-  .validator((contactId: string) => contactId)
+  .inputValidator((contactId: string) => contactId)
   .handler(async ({ data: contactId }) => {
     const { deleteTransferContact } = await import("@/server/transfer-contact.service");
     const userId = await actorId();
@@ -176,7 +176,7 @@ export const fetchInternalBankOps = createServerFn({ method: "GET" }).handler(as
 });
 
 export const approveBankDeposit = createServerFn({ method: "POST" })
-  .validator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveDeposit } = await import("@/server/bank.service");
@@ -186,7 +186,7 @@ export const approveBankDeposit = createServerFn({ method: "POST" })
   });
 
 export const denyBankDeposit = createServerFn({ method: "POST" })
-  .validator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyDeposit } = await import("@/server/bank.service");
@@ -196,7 +196,7 @@ export const denyBankDeposit = createServerFn({ method: "POST" })
   });
 
 export const approveBankWithdrawal = createServerFn({ method: "POST" })
-  .validator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveWithdrawal } = await import("@/server/bank.service");
@@ -206,7 +206,7 @@ export const approveBankWithdrawal = createServerFn({ method: "POST" })
   });
 
 export const denyBankWithdrawal = createServerFn({ method: "POST" })
-  .validator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyWithdrawal } = await import("@/server/bank.service");
@@ -216,7 +216,7 @@ export const denyBankWithdrawal = createServerFn({ method: "POST" })
   });
 
 export const approveBankAccountOpening = createServerFn({ method: "POST" })
-  .validator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveBankAccount } = await import("@/server/bank.service");
@@ -226,7 +226,7 @@ export const approveBankAccountOpening = createServerFn({ method: "POST" })
   });
 
 export const freezeBankAccountRecord = createServerFn({ method: "POST" })
-  .validator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { freezeBankAccount } = await import("@/server/bank.service");
@@ -236,7 +236,7 @@ export const freezeBankAccountRecord = createServerFn({ method: "POST" })
   });
 
 export const unfreezeBankAccountRecord = createServerFn({ method: "POST" })
-  .validator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { unfreezeBankAccount } = await import("@/server/bank.service");

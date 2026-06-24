@@ -12,7 +12,7 @@ async function actor() {
 }
 
 export const fetchBusinessBankingOverview = createServerFn({ method: "GET" })
-  .validator((companyId: string | undefined) => companyId)
+  .inputValidator((companyId: string | undefined) => companyId)
   .handler(async ({ data: companyId }) => {
     const { getBusinessBankingOverview } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -20,7 +20,7 @@ export const fetchBusinessBankingOverview = createServerFn({ method: "GET" })
   });
 
 export const fetchScheduledPayments = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listScheduledPayments } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -28,7 +28,7 @@ export const fetchScheduledPayments = createServerFn({ method: "GET" })
   });
 
 export const createScheduledPaymentRecord = createServerFn({ method: "POST" })
-  .validator((input: CreateScheduledPaymentInput) => input)
+  .inputValidator((input: CreateScheduledPaymentInput) => input)
   .handler(async ({ data }) => {
     const { createScheduledPayment } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -36,7 +36,7 @@ export const createScheduledPaymentRecord = createServerFn({ method: "POST" })
   });
 
 export const cancelScheduledPaymentRecord = createServerFn({ method: "POST" })
-  .validator((input: { companyId: string; paymentId: string }) => input)
+  .inputValidator((input: { companyId: string; paymentId: string }) => input)
   .handler(async ({ data }) => {
     const { cancelScheduledPayment } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -44,7 +44,7 @@ export const cancelScheduledPaymentRecord = createServerFn({ method: "POST" })
   });
 
 export const fetchPayrollEmployees = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listPayrollEmployees } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -52,7 +52,7 @@ export const fetchPayrollEmployees = createServerFn({ method: "GET" })
   });
 
 export const createPayrollEmployeeRecord = createServerFn({ method: "POST" })
-  .validator((input: CreatePayrollEmployeeInput) => input)
+  .inputValidator((input: CreatePayrollEmployeeInput) => input)
   .handler(async ({ data }) => {
     const { createPayrollEmployee } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -60,7 +60,7 @@ export const createPayrollEmployeeRecord = createServerFn({ method: "POST" })
   });
 
 export const updatePayrollEmployeeRecord = createServerFn({ method: "POST" })
-  .validator((input: UpdatePayrollEmployeeInput) => input)
+  .inputValidator((input: UpdatePayrollEmployeeInput) => input)
   .handler(async ({ data }) => {
     const { updatePayrollEmployee } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -68,7 +68,7 @@ export const updatePayrollEmployeeRecord = createServerFn({ method: "POST" })
   });
 
 export const deactivatePayrollEmployeeRecord = createServerFn({ method: "POST" })
-  .validator((input: { companyId: string; employeeId: string }) => input)
+  .inputValidator((input: { companyId: string; employeeId: string }) => input)
   .handler(async ({ data }) => {
     const { deactivatePayrollEmployee } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -76,7 +76,7 @@ export const deactivatePayrollEmployeeRecord = createServerFn({ method: "POST" }
   });
 
 export const fetchPayrollRuns = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listPayrollRuns } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -84,7 +84,7 @@ export const fetchPayrollRuns = createServerFn({ method: "GET" })
   });
 
 export const createPayrollRunRecord = createServerFn({ method: "POST" })
-  .validator((input: CreatePayrollRunInput) => input)
+  .inputValidator((input: CreatePayrollRunInput) => input)
   .handler(async ({ data }) => {
     const { createPayrollRun } = await import("@/server/business-banking.service");
     const user = await actor();
@@ -92,7 +92,7 @@ export const createPayrollRunRecord = createServerFn({ method: "POST" })
   });
 
 export const fetchBusinessRepresentatives = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listBusinessRepresentatives } = await import("@/server/business-banking.service");
     const user = await actor();

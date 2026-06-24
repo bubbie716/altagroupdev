@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { DiscordEmbedDraft, SendDiscordEmbedResult } from "@/lib/discord/embed-types";
 
 export const sendDiscordEmbedRecord = createServerFn({ method: "POST" })
-  .validator((input: DiscordEmbedDraft) => input)
+  .inputValidator((input: DiscordEmbedDraft) => input)
   .handler(async ({ data }): Promise<SendDiscordEmbedResult> => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { sendDiscordEmbed } = await import("@/server/discord-embed.service");

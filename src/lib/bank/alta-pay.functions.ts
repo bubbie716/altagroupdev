@@ -11,14 +11,14 @@ export const fetchPaySourceAccounts = createServerFn({ method: "GET" }).handler(
 export const fetchPersonalPaySourceAccounts = fetchPaySourceAccounts;
 
 export const searchPayableCompaniesForPay = createServerFn({ method: "GET" })
-  .validator((query: string) => query)
+  .inputValidator((query: string) => query)
   .handler(async ({ data: query }) => {
     const { searchPayableCompanies } = await import("@/server/alta-pay.service");
     return searchPayableCompanies(query);
   });
 
 export const submitAltaPay = createServerFn({ method: "POST" })
-  .validator((input: SubmitAltaPayInput) => input)
+  .inputValidator((input: SubmitAltaPayInput) => input)
   .handler(async ({ data }) => {
     const { submitAltaPayPayment } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
@@ -26,7 +26,7 @@ export const submitAltaPay = createServerFn({ method: "POST" })
   });
 
 export const fetchUserAltaPayHistory = createServerFn({ method: "GET" })
-  .validator((limit: number | undefined) => limit ?? 25)
+  .inputValidator((limit: number | undefined) => limit ?? 25)
   .handler(async ({ data: limit }) => {
     const { listUserAltaPaySent } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
@@ -34,7 +34,7 @@ export const fetchUserAltaPayHistory = createServerFn({ method: "GET" })
   });
 
 export const fetchCompanyAltaPayReceived = createServerFn({ method: "GET" })
-  .validator((companyId: string) => companyId)
+  .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
     const { listCompanyAltaPayReceived } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
