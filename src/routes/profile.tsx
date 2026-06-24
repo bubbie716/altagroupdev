@@ -125,7 +125,7 @@ function ProfilePage() {
               No company memberships. Authorized representatives will appear here once assigned.
             </p>
           ) : (
-            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Company</th>

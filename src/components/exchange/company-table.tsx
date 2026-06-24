@@ -8,7 +8,7 @@ export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
   return (
     <Card className="!p-0">
       <div className="overflow-x-auto">
-      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full min-w-[920px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[920px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Ticker</th>
