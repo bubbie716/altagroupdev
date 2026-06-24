@@ -11,7 +11,8 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 - Deposit requests with screenshot proof placeholder (`/bank/deposit`)
 - Withdrawal requests (`/bank/withdraw`)
 - Admin review in `/internal/bank` (approve/deny deposits & withdrawals, approve/freeze/unfreeze accounts)
-- Real balances on `/bank`, `/bank/accounts`, and `/profile`
+- Real balances on `/bank`, and `/profile`
+- Business Operating Accounts with treasury features on `/bank/account/[accountId]` (see [business-banking.md](./business-banking.md))
 
 **Not included (future)**
 

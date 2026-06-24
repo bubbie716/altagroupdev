@@ -51,7 +51,7 @@ function BankPrivateLockedContent() {
             "Reserve Account by Alta Private",
             "Summit Money Market by Alta Private",
             "Concierge settlement support",
-            "Integrated Alta Terminal access",
+            "Integrated Alta Exchange Terminal access",
           ].map((item) => (
             <div key={item} className="bg-surface-1 px-6 py-4 text-[14px]">
               {item}
@@ -119,7 +119,7 @@ function BankPrivateMockContent() {
             "Reserve Account by Alta Private",
             "Summit Money Market by Alta Private",
             "Concierge settlement support",
-            "Integrated Alta Terminal access",
+            "Integrated Alta Exchange Terminal access",
           ].map((item) => (
             <div key={item} className="bg-surface-1 px-6 py-4 text-[14px]">
               {item}

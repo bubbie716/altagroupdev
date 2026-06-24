@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
 
 export function BankAccountTransactions({
@@ -27,12 +28,13 @@ export function BankAccountTransactions({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <th className="px-5 py-3">Date</th>
+            <th className="px-5 py-3">Date & time</th>
             <th className="px-5 py-3">Reference</th>
             <th className="px-5 py-3">Description</th>
             <th className="px-5 py-3">Type</th>
             <th className="px-5 py-3">Status</th>
             <th className="px-5 py-3 text-right">Amount</th>
+            <th className="px-5 py-3">Proof</th>
           </tr>
         </thead>
         <tbody>
@@ -46,7 +48,7 @@ export function BankAccountTransactions({
                 className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40"
               >
                 <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
-                  {tx.createdAt.slice(0, 10)}
+                  {formatActivityDateTime(tx.createdAt)}
                 </td>
                 <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
                   {tx.referenceCode}
@@ -61,6 +63,20 @@ export function BankAccountTransactions({
                 >
                   {signedAmount >= 0 ? "+" : ""}
                   {florin(signedAmount)}
+                </td>
+                <td className="px-5 py-3 text-[12px]">
+                  {tx.hasProof && tx.proofImageUrl ? (
+                    <a
+                      href={tx.proofImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold hover:underline"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
             );

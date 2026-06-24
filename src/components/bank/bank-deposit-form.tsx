@@ -8,13 +8,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { submitBankDepositRequest } from "@/lib/bank/bank.functions";
-import type { SubmitDepositInput, UserBankAccount } from "@/lib/bank/backend-types";
+import { MAX_PROOF_BYTES, ACCEPTED_PROOF_INPUT } from "@/lib/storage/proof-upload.constants";
+import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+
+const ACCEPTED_PROOF_TYPES = ACCEPTED_PROOF_INPUT;
 
 function resolveInitialAccountId(accounts: UserBankAccount[], preferredAccountId?: string) {
   if (preferredAccountId && accounts.some((account) => account.id === preferredAccountId)) {
@@ -35,7 +37,7 @@ export function BankDepositForm({
   );
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [proofFilename, setProofFilename] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -44,22 +46,51 @@ export function BankDepositForm({
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (!proofFile) {
+      setError("Screenshot proof is required.");
+      return;
+    }
+
+    if (proofFile.size > MAX_PROOF_BYTES) {
+      setError("Proof file must be 8MB or smaller.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const input: SubmitDepositInput = {
-        bankAccountId,
-        amount: Number(amount),
-        memo,
-        proofFilename,
+      const formData = new FormData();
+      formData.append("bankAccountId", bankAccountId);
+      formData.append("amount", amount);
+      formData.append("memo", memo);
+      formData.append("proof", proofFile);
+
+      const response = await fetch("/api/bank/deposit-request", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        referenceCode?: string;
       };
-      const result = await submitBankDepositRequest({ data: input });
-      setSuccess(`Deposit pending manual review. Reference: ${result.referenceCode}`);
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message ?? "Proof upload failed. Please try again.");
+      }
+
+      setSuccess(
+        `Deposit request submitted. Proof uploaded and pending operator review. Reference: ${payload.referenceCode ?? "—"}`,
+      );
       setAmount("");
       setMemo("");
-      setProofFilename("");
+      setProofFile(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unable to submit deposit.";
+      const message =
+        err instanceof Error ? err.message : "Proof upload failed. Please try again.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -116,13 +147,13 @@ export function BankDepositForm({
           <span className={fieldLabel}>Screenshot proof</span>
           <input
             type="file"
-            accept="image/*"
+            accept={ACCEPTED_PROOF_TYPES}
             required
-            onChange={(e) => setProofFilename(e.target.files?.[0]?.name ?? "")}
+            onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
             className="mt-2 block w-full text-[13px] text-muted-foreground file:mr-4 file:rounded-md file:border file:border-border file:bg-surface-2 file:px-3 file:py-2 file:text-[12px] file:font-medium"
           />
           <p className="mt-2 text-[12px] text-muted-foreground">
-            Upload UI placeholder — file is not stored yet. Filename is saved for review. TODO: Vercel Blob / S3.
+            PNG, JPG, or WebP up to 8MB. Your screenshot is stored securely for operator review.
           </p>
         </label>
 
@@ -150,7 +181,7 @@ export function BankDepositForm({
 
         <button
           type="submit"
-          disabled={submitting || !proofFilename}
+          disabled={submitting || !proofFile}
           className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Submitting…" : "Submit deposit request"}

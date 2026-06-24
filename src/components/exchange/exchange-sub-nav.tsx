@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { SquareArrowOutUpRight } from "lucide-react";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
@@ -7,13 +8,18 @@ const links = [
   { to: "/exchange", label: "Overview", exact: true },
   { to: "/exchange/listings", label: "Listings" },
   { to: "/exchange/ipo", label: "IPO Center" },
-  { to: "/exchange/apply", label: "List a Company" },
-  { to: "/exchange/actions", label: "Corporate Actions" },
-  { to: "/exchange/indices", label: "Indices" },
   { to: "/exchange/research", label: "Research" },
-  { to: "/exchange/rankings", label: "Rankings" },
   { to: "/exchange/api", label: "API" },
+  { to: "/terminal", label: "Terminal", separate: true },
 ] as const;
+
+function isActive(pathname: string, link: (typeof links)[number]): boolean {
+  if ("separate" in link && link.separate) return false;
+  if ("exact" in link && link.exact) {
+    return pathname === link.to || pathname === `${link.to}/`;
+  }
+  return pathname === link.to || pathname.startsWith(`${link.to}/`);
+}
 
 export function ExchangeSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -22,26 +28,27 @@ export function ExchangeSubNav() {
     <div className="mb-10">
       {isPublicSimulatedMarketDataEnabled() && <MockDataNotice className="mb-4" />}
       <nav className="flex flex-wrap gap-1 border-b border-border/60 pb-4">
-      {links.map((l) => {
-        const active = l.exact
-          ? pathname === l.to
-          : pathname === l.to || pathname.startsWith(`${l.to}/`);
-        return (
-          <Link
-            key={l.to}
-            to={l.to}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
-              active
-                ? "bg-surface-2 text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {l.label}
-          </Link>
-        );
-      })}
-    </nav>
+        {links.map((l) => {
+          const active = isActive(pathname, l);
+          return (
+            <Link
+              key={l.to}
+              to={l.to}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] tracking-wide transition-colors",
+                active
+                  ? "bg-surface-2 text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {l.label}
+              {"separate" in l && l.separate ? (
+                <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

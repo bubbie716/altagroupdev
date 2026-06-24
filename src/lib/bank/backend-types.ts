@@ -68,6 +68,9 @@ export interface UserBankTransaction {
   description: string;
   memo: string | null;
   proofImageUrl: string | null;
+  proofFileName: string | null;
+  proofUploadedAt: string | null;
+  hasProof: boolean;
   createdAt: string;
   reviewedAt: string | null;
   reviewNote: string | null;
@@ -106,7 +109,14 @@ export interface SubmitDepositInput {
   bankAccountId: string;
   amount: number;
   memo?: string;
-  proofFilename?: string;
+}
+
+export interface BankProofInput {
+  proofImageUrl: string;
+  proofFileName: string;
+  proofMimeType: string;
+  proofSizeBytes: number;
+  proofUploadedAt: Date;
 }
 
 export interface SubmitWithdrawalInput {
@@ -114,6 +124,7 @@ export interface SubmitWithdrawalInput {
   amount: number;
   destinationInstructions: string;
   memo?: string;
+  proof?: BankProofInput;
 }
 
 export interface SubmitInternalTransferInput {
@@ -193,6 +204,9 @@ export interface InternalBankTransactionRow {
   status: string;
   submitted: string;
   proofImageUrl: string | null;
+  proofFileName: string | null;
+  proofUploadedAt: string | null;
+  hasProof: boolean;
   description: string;
   memo: string | null;
 }
@@ -206,6 +220,8 @@ export interface InternalBankOpsSummary {
   lendingQueue: number;
   transfersInReview: number;
   privateInvitesPending: number;
+  altaPayCountThisMonth: number;
+  altaPayVolumeThisMonth: number;
 }
 
 export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountTypeCode; label: string; description: string }[] = [

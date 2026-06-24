@@ -24,26 +24,27 @@ export const internalPreviewNotice =
   "Internal preview data — not connected to live operations.";
 
 export const overviewMetrics: InternalOverviewMetrics = {
-  totalUsers: 2847,
-  activeBankAccounts: 1924,
-  pendingIpoApplications: 7,
-  listedCompanies: 24,
-  openComplianceFlags: 12,
-  settlementVolume: "ƒ482.6M",
-  registeredCompanies: 186,
-  verifiedInstitutions: 42,
-  authorizedRepresentatives: 318,
-  pendingCompanyReviews: 11,
-  pendingApiApplications: 5,
-  activeApiKeys: 18,
+  /** @deprecated Use fetchPlatformMetrics() for live internal overview stats. */
+  totalUsers: 0,
+  activeBankAccounts: 0,
+  pendingIpoApplications: 0,
+  listedCompanies: 0,
+  openComplianceFlags: 0,
+  settlementVolume: "—",
+  registeredCompanies: 0,
+  verifiedInstitutions: 0,
+  authorizedRepresentatives: 0,
+  pendingCompanyReviews: 0,
+  pendingApiApplications: 0,
+  activeApiKeys: 0,
 };
 
 export const systemStatus: SystemStatusItem[] = [
-  { service: "Alta Bank Core", status: "Operational", detail: "Settlement T+0 nominal" },
-  { service: "Alta Exchange", status: "Operational", detail: "NSX session open" },
-  { service: "Alta Terminal", status: "Operational", detail: "Order entry simulated" },
-  { service: "NCC Clearing", status: "Degraded", detail: "Batch reconcile 14m delayed" },
-  { service: "Issuer Portal", status: "Operational", detail: "Upload queue nominal" },
+  { service: "Alta Bank Core", status: "Operational", detail: "Live bank accounts and treasury records" },
+  { service: "Alta Exchange", status: "Operational", detail: "Simulated market preview — listings and prices for testing" },
+  { service: "Alta Terminal (Exchange product)", status: "Operational", detail: "Order entry simulated · market data preview" },
+  { service: "NCC Clearing", status: "Maintenance", detail: "Planned · not yet active" },
+  { service: "Issuer Portal", status: "Operational", detail: "Company registry and verification" },
 ];
 
 export const recentAdminActivity: AdminActivityItem[] = [
@@ -53,7 +54,7 @@ export const recentAdminActivity: AdminActivityItem[] = [
   { id: "ACT-8839", timestamp: "2026-06-22 20:31", actor: "compliance.lee", action: "Escalated transfer flag", target: "TXN-44102", division: "Compliance" },
   { id: "ACT-8838", timestamp: "2026-06-22 19:48", actor: "exchange.admin", action: "Published market notice", target: "NSX-100 rebalance", division: "Exchange" },
   { id: "ACT-8837", timestamp: "2026-06-22 19:02", actor: "ops.martinez", action: "Froze account", target: "user: vaultseeker", division: "Bank" },
-  { id: "ACT-8836", timestamp: "2026-06-22 18:44", actor: "terminal.ops", action: "Reviewed order cluster", target: "ORD batch #218", division: "Terminal" },
+  { id: "ACT-8836", timestamp: "2026-06-22 18:44", actor: "terminal.ops", action: "Reviewed order cluster", target: "ORD batch #218", division: "Exchange" },
 ];
 
 export const internalUsers: InternalUser[] = [
@@ -300,14 +301,15 @@ export const companyAccounts: CompanyAccount[] = [
   },
 ];
 
+/** @deprecated Use fetchInternalBankOps() — live DB-backed bank operations summary. */
 export const bankOpsSummary: BankOpsSummary = {
-  totalAccounts: 1924,
-  pendingDeposits: 9,
-  pendingWithdrawals: 5,
-  transfersInReview: 9,
-  lendingQueue: 6,
-  privateInvitesPending: 4,
-  frozenAccounts: 3,
+  totalAccounts: 0,
+  pendingDeposits: 0,
+  pendingWithdrawals: 0,
+  transfersInReview: 0,
+  lendingQueue: 0,
+  privateInvitesPending: 0,
+  frozenAccounts: 0,
 };
 
 export const bankOpsAccounts: BankOpsAccount[] = [

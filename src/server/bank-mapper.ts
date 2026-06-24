@@ -15,6 +15,7 @@ import type {
   UserBankTransaction,
 } from "@/lib/bank/backend-types";
 import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
+import { hasStoredProof, getProofFileUrl } from "@/lib/storage/proof-upload.constants";
 import { getRoutingNumber } from "@/lib/bank/routing";
 
 const ACCOUNT_TYPE_TO_DB: Record<BankAccountTypeCode, DbBankAccountType> = {
@@ -155,6 +156,8 @@ type BankTransactionRecord = {
   description: string;
   memo: string | null;
   proofImageUrl: string | null;
+  proofFileName: string | null;
+  proofUploadedAt: Date | null;
   createdAt: Date;
   reviewedAt: Date | null;
   reviewNote: string | null;
@@ -183,7 +186,10 @@ export function mapUserBankTransaction(tx: BankTransactionRecord): UserBankTrans
     statusLabel: formatTransactionStatusLabel(status),
     description: tx.description,
     memo: tx.memo,
-    proofImageUrl: tx.proofImageUrl,
+    proofImageUrl: getProofFileUrl(tx.proofImageUrl),
+    proofFileName: tx.proofFileName,
+    proofUploadedAt: tx.proofUploadedAt?.toISOString() ?? null,
+    hasProof: hasStoredProof(tx.proofImageUrl),
     createdAt: tx.createdAt.toISOString(),
     reviewedAt: tx.reviewedAt?.toISOString() ?? null,
     reviewNote: tx.reviewNote,
@@ -229,7 +235,10 @@ export function mapInternalBankTransactionRow(tx: BankTransactionRecord): Intern
     method: tx.description,
     status: formatTransactionStatusLabel(status),
     submitted: tx.createdAt.toISOString().slice(0, 10),
-    proofImageUrl: tx.proofImageUrl,
+    proofImageUrl: getProofFileUrl(tx.proofImageUrl),
+    proofFileName: tx.proofFileName,
+    proofUploadedAt: tx.proofUploadedAt?.toISOString() ?? null,
+    hasProof: hasStoredProof(tx.proofImageUrl),
     description: tx.description,
     memo: tx.memo,
   };

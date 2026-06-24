@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { IPOAccessCard } from "@/components/terminal/ipo-access-card";
 import { getTerminalIpoAccess } from "@/lib/terminal/api";
 
@@ -18,12 +18,10 @@ function TerminalIPO() {
   const recent = terminalIpoAccess.filter((i) => i.stage === "recent");
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · IPO Access"
+    <TerminalPageShell
       title="IPO Access"
       description="Track open offerings, upcoming listings, and allocation status on Alta Exchange — simulated preview."
     >
-      <TerminalSubNav />
 
       <Card className="mb-10 border-gold/30 bg-gold/5">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -75,6 +73,6 @@ function TerminalIPO() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </TerminalPageShell>
   );
 }

@@ -20,28 +20,43 @@ export async function createUserSession(userId: string): Promise<string | null> 
 }
 
 export async function loadUserBySessionToken(token: string): Promise<AltaUser | null> {
-  try {
-    const session = await prisma.session.findUnique({
-      where: { sessionToken: token },
-      include: {
-        user: {
-          include: userWithMembershipsInclude,
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const session = await prisma.session.findUnique({
+        where: { sessionToken: token },
+        include: {
+          user: {
+            include: userWithMembershipsInclude,
+          },
         },
-      },
-    });
+      });
 
-    if (!session) return null;
+      if (!session) return null;
 
-    if (session.expiresAt.getTime() < Date.now()) {
-      await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+      if (session.expiresAt.getTime() < Date.now()) {
+        await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+        return null;
+      }
+
+      return mapDbUserToAltaUser(session.user);
+    } catch (error) {
+      const isTransient =
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: string }).code === "P1001" &&
+        attempt === 0;
+
+      if (isTransient) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        continue;
+      }
+
+      console.error("[session] Failed to load session", error);
       return null;
     }
-
-    return mapDbUserToAltaUser(session.user);
-  } catch (error) {
-    console.error("[session] Failed to load session", error);
-    return null;
   }
+
+  return null;
 }
 
 export async function deleteSessionByToken(token: string): Promise<void> {

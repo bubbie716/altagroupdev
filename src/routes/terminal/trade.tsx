@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { TradeTicket } from "@/components/terminal/trade-ticket";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { getOrders } from "@/lib/terminal/api";
@@ -19,8 +19,7 @@ function TerminalTrade() {
   const showMockData = isUserFinancialMockDataEnabled();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Trade"
+    <TerminalPageShell
       title="Trade Ticket"
       description={
         showMockData
@@ -28,7 +27,6 @@ function TerminalTrade() {
           : "Prepare buy and sell orders on Alta Exchange."
       }
     >
-      <TerminalSubNav />
 
       <MockDataNotice message="Trading will become available after account and exchange access are enabled." />
 
@@ -37,7 +35,7 @@ function TerminalTrade() {
       </div>
 
       {showMockData && <TerminalTradeMockOrders />}
-    </PageShell>
+    </TerminalPageShell>
   );
 }
 

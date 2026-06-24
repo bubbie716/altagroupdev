@@ -15,7 +15,7 @@ import type { TerminalNewsItem, TerminalResearchItem } from "./types";
 export { compact, florin, pct, holdings, orders, stocks, portfolioSeries, movers, transactions };
 
 export const terminalDescription =
-  "Market intelligence, portfolios, watchlists, analytics, and order entry in one institutional terminal.";
+  "An Alta Exchange Product. Market intelligence, portfolios, watchlists, analytics, and order entry in one institutional terminal.";
 
 export const terminalDashboard = {
   totalNetWorth: 8_412_209.4,

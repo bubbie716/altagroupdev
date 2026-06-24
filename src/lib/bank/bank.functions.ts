@@ -1,9 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type {
   OpenBankAccountInput,
-  SubmitDepositInput,
   SubmitInternalTransferInput,
-  SubmitWithdrawalInput,
 } from "@/lib/bank/backend-types";
 
 async function actorId(): Promise<string> {
@@ -11,6 +9,48 @@ async function actorId(): Promise<string> {
   const user = await requireAuth();
   return user.id;
 }
+
+async function actor() {
+  const { requireAuth } = await import("@/server/auth.service");
+  return requireAuth();
+}
+
+export const fetchBankDashboardBundle = createServerFn({ method: "GET" }).handler(async () => {
+  const { getUserBankDashboard, listUserBankAccounts, listUserRecentTransactions } = await import(
+    "@/server/bank.service"
+  );
+  const userId = await actorId();
+  const [dashboard, accounts, transactions] = await Promise.all([
+    getUserBankDashboard(userId),
+    listUserBankAccounts(userId),
+    listUserRecentTransactions(userId, 10),
+  ]);
+  return { dashboard, accounts, transactions };
+});
+
+export const fetchAccountPageBundle = createServerFn({ method: "GET" })
+  .validator((accountId: string) => accountId)
+  .handler(async ({ data: accountId }) => {
+    const { getUserBankAccountDetail, listUserBankAccounts } = await import("@/server/bank.service");
+    const { resolveBusinessAccountContext } = await import(
+      "@/server/business-account-context.service"
+    );
+    const user = await actor();
+    const [account, accounts] = await Promise.all([
+      getUserBankAccountDetail(user.id, accountId),
+      listUserBankAccounts(user.id),
+    ]);
+    const isBusinessOperating = account.accountType === "business_operating";
+    let businessContext = null;
+    if (isBusinessOperating) {
+      try {
+        businessContext = await resolveBusinessAccountContext(user, accountId);
+      } catch {
+        businessContext = null;
+      }
+    }
+    return { account, accounts, businessContext, isBusinessOperating };
+  });
 
 export const fetchUserBankAccounts = createServerFn({ method: "GET" }).handler(async () => {
   const { listUserBankAccounts } = await import("@/server/bank.service");
@@ -60,21 +100,6 @@ export const openBankAccountRecord = createServerFn({ method: "POST" })
     return openBankAccount(userId, data);
   });
 
-export const submitBankDepositRequest = createServerFn({ method: "POST" })
-  .validator((input: SubmitDepositInput) => input)
-  .handler(async ({ data }) => {
-    const { submitDepositRequest } = await import("@/server/bank.service");
-    const userId = await actorId();
-    return submitDepositRequest(userId, data);
-  });
-
-export const submitBankWithdrawalRequest = createServerFn({ method: "POST" })
-  .validator((input: SubmitWithdrawalInput) => input)
-  .handler(async ({ data }) => {
-    const { submitWithdrawalRequest } = await import("@/server/bank.service");
-    const userId = await actorId();
-    return submitWithdrawalRequest(userId, data);
-  });
 
 export const submitBankInternalTransfer = createServerFn({ method: "POST" })
   .validator((input: SubmitInternalTransferInput) => input)

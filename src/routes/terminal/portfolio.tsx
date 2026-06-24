@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { TerminalStatCard } from "@/components/terminal/terminal-stat-card";
 import { HoldingsTable } from "@/components/terminal/holdings-table";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
@@ -31,8 +31,7 @@ function TerminalPortfolio() {
   const showMockData = isUserFinancialMockDataEnabled();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Portfolio"
+    <TerminalPageShell
       title="Portfolio"
       description={
         showMockData
@@ -40,12 +39,11 @@ function TerminalPortfolio() {
           : "Holdings, allocation, performance, and transaction history."
       }
     >
-      <TerminalSubNav />
 
       {showMockData ? <TerminalPortfolioMockContent /> : (
         <EmptyPortfolioState title="You do not have any holdings yet." />
       )}
-    </PageShell>
+    </TerminalPageShell>
   );
 }
 

@@ -4,7 +4,14 @@ import { PageShell, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
+type BankTransfersHubSearch = {
+  accountId?: string;
+};
+
 export const Route = createFileRoute("/bank/transfers/")({
+  validateSearch: (search: Record<string, unknown>): BankTransfersHubSearch => ({
+    accountId: typeof search.accountId === "string" ? search.accountId : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Transfers — Alta Bank" }],
   }),
@@ -13,6 +20,7 @@ export const Route = createFileRoute("/bank/transfers/")({
 
 function BankTransfersHub() {
   const showMockData = isUserFinancialMockDataEnabled();
+  const { accountId } = Route.useSearch();
 
   return (
     <PageShell
@@ -29,17 +37,19 @@ function BankTransfersHub() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <TransferTypeCard
           to="/bank/transfers/intrabank"
+          accountId={accountId}
           icon={Building2}
           title="Intrabank"
-          description="Instant transfers within Alta Bank — between your accounts or to another player."
-          detail="Settles immediately within Alta Bank"
+          description="Instant, scheduled, and recurring transfers within Alta Bank — between your accounts or to another player."
+          detail="Instant settlement · scheduled & recurring"
         />
         <TransferTypeCard
           to="/bank/transfers/interbank"
+          accountId={accountId}
           icon={Landmark}
           title="Interbank"
-          description="Outbound wires to external institutions and recipients via NCC-Net settlement."
-          detail={showMockData ? "Preview interface" : "Coming soon"}
+          description="Outbound wires to external institutions — schedule future-dated or recurring wires via NCC-Net."
+          detail={showMockData ? "Preview interface" : "Scheduled & recurring wires"}
         />
         <TransferTypeCard
           to="/bank/transfers/contacts"
@@ -55,19 +65,26 @@ function BankTransfersHub() {
 
 function TransferTypeCard({
   to,
+  accountId,
   icon: Icon,
   title,
   description,
   detail,
 }: {
-  to: string;
+  to: "/bank/transfers/intrabank" | "/bank/transfers/interbank" | "/bank/transfers/contacts";
+  accountId?: string;
   icon: typeof Building2;
   title: string;
   description: string;
   detail: string;
 }) {
+  const search =
+    accountId && (to === "/bank/transfers/intrabank" || to === "/bank/transfers/interbank")
+      ? { accountId }
+      : undefined;
+
   return (
-    <Link to={to} className="group block h-full">
+    <Link to={to} search={search} className="group block h-full">
       <Card className="flex h-full flex-col !p-6 transition-colors hover:border-border-strong hover:bg-surface-2/30">
         <div className="flex items-start justify-between gap-4">
           <div className="rounded-md border border-border bg-surface-2/60 p-2.5 text-muted-foreground transition-colors group-hover:text-foreground">

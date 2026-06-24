@@ -66,8 +66,8 @@ The routing number is **not** stored per account in the database. It is resolved
 
 **Displayed on**
 
-- Account list cards and table (`/bank/accounts`)
-- Account detail page (`/bank/accounts/[accountId]`)
+- Account list cards on `/bank` (dashboard)
+- Account detail page (`/bank/account/[accountId]`)
 - Account opening confirmation
 - Future transfer and wire pages
 

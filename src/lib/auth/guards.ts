@@ -1,8 +1,9 @@
 import { redirect } from "@tanstack/react-router";
 import type { AltaUser } from "@/lib/auth/types";
+import { canAccessInternal } from "@/lib/auth/permissions";
 import {
+  fetchCurrentUser,
   verifyDeveloperAccess,
-  verifyInternalAccess,
   verifyIssuerPortalAccess,
   verifyPrivateClientAccess,
 } from "@/lib/auth/auth.functions";
@@ -41,7 +42,16 @@ async function requireAccess(
 }
 
 export async function internalBeforeLoad(context: GuardContext) {
-  await requireAccess(context, verifyInternalAccess);
+  const user = context.user ?? (await fetchCurrentUser());
+  if (!user) {
+    throw redirect({
+      to: "/login",
+      search: { redirect: context.location.pathname },
+    });
+  }
+  if (!canAccessInternal(user)) {
+    throw redirect({ to: "/access-restricted" });
+  }
 }
 
 export async function privateClientBeforeLoad(context: GuardContext) {

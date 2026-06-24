@@ -3,12 +3,18 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function resolveDatabaseUrl(): string | undefined {
-  const url = process.env.DATABASE_URL?.trim();
+  let url = process.env.DATABASE_URL?.trim();
   if (!url) return undefined;
+
+  url = url
+    .replace(/([?&])channel_binding=require&?/g, "$1")
+    .replace(/\?&/, "?")
+    .replace(/[?&]$/, "");
+
   if (url.includes("connection_limit=")) return url;
 
   const joiner = url.includes("?") ? "&" : "?";
-  return `${url}${joiner}connection_limit=5&pool_timeout=20`;
+  return `${url}${joiner}connection_limit=5&pool_timeout=20&connect_timeout=30`;
 }
 
 const databaseUrl = resolveDatabaseUrl();

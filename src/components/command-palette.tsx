@@ -66,6 +66,9 @@ export function CommandProvider({ children }: { children: ReactNode }) {
             <CommandItem onSelect={() => go("/governance")}>
               <Network /> Governance & Structure
             </CommandItem>
+            <CommandItem onSelect={() => go("/governance/leadership")}>
+              <Network /> Leadership
+            </CommandItem>
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Listed Companies">

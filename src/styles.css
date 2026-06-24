@@ -346,4 +346,90 @@
   .dark select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8b0bc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
+
+  /* Client-side PDF capture — mirror print colors so exports match the preview. */
+  .statement-document--pdf-export {
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+
+  .statement-document--pdf-export .text-foreground,
+  .statement-document--pdf-export .font-semibold {
+    color: black !important;
+  }
+
+  .statement-document--pdf-export .text-muted-foreground {
+    color: #525252 !important;
+  }
+
+  .statement-document--pdf-export .text-gold {
+    color: #525252 !important;
+  }
+
+  .statement-document--pdf-export header {
+    border-color: black !important;
+  }
+
+  .statement-document--pdf-export section,
+  .statement-document--pdf-export tr {
+    border-color: #d4d4d4 !important;
+  }
+
+  .statement-document--pdf-export .statement-document__stat {
+    background: transparent !important;
+  }
+
+  @media print {
+    @page {
+      size: letter;
+      margin: 0.65in 0.75in;
+    }
+
+    html,
+    body {
+      background: white !important;
+      color: black !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    header[class*="sticky"],
+    nav,
+    footer,
+    .print\\:hidden,
+    .page-shell-hero {
+      display: none !important;
+    }
+
+    .statement-print-page > header,
+    .statement-print-page > footer {
+      display: none !important;
+    }
+
+    .statement-document article,
+    .statement-document__page {
+      box-shadow: none !important;
+      border: none !important;
+    }
+
+    .statement-document__stat {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .statement-document__transactions table {
+      width: 100%;
+    }
+
+    .statement-document__transactions thead {
+      display: table-header-group;
+    }
+
+    .statement-document__row {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
 }

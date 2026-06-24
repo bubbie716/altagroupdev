@@ -6,14 +6,26 @@ export function BankStatCard({
   value,
   sub,
   accent,
+  signedValue,
   className,
 }: {
   label: string;
   value: string;
   sub?: string;
   accent?: boolean;
+  /** When set, value text is green if positive and red if negative. */
+  signedValue?: number;
   className?: string;
 }) {
+  const signedTone =
+    signedValue !== undefined
+      ? signedValue > 0
+        ? "text-[var(--success)]"
+        : signedValue < 0
+          ? "text-[var(--destructive)]"
+          : undefined
+      : undefined;
+
   return (
     <Card className={cn("!p-5", className)}>
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -23,6 +35,7 @@ export function BankStatCard({
         className={cn(
           "tabular mt-2 text-xl font-semibold tracking-tight",
           accent && "text-[var(--success)]",
+          signedTone,
         )}
       >
         {value}

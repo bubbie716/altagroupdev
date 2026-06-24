@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { WatchlistTable } from "@/components/terminal/watchlist-table";
 import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
@@ -20,8 +20,7 @@ function TerminalWatchlist() {
   const showMockData = isUserFinancialMockDataEnabled();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Watchlist"
+    <TerminalPageShell
       title="Watchlist"
       description={
         showMockData
@@ -29,7 +28,6 @@ function TerminalWatchlist() {
           : "Saved companies, price alerts, and watchlist groups."
       }
     >
-      <TerminalSubNav />
 
       <Card className="mb-8 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
         <p className="text-[14px] text-muted-foreground">
@@ -61,7 +59,7 @@ function TerminalWatchlist() {
           </Section>
         </>
       )}
-    </PageShell>
+    </TerminalPageShell>
   );
 }
 

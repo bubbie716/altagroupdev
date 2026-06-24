@@ -6,11 +6,7 @@ import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
-import {
-  fetchUserBankAccounts,
-  fetchUserBankDashboard,
-  fetchUserBankTransactions,
-} from "@/lib/bank/bank.functions";
+import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { BankDashboardMockContent } from "@/routes/bank/-dashboard-mock";
@@ -19,12 +15,7 @@ export const Route = createFileRoute("/bank/")({
   beforeLoad: authBeforeLoad,
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const [dashboard, accounts, transactions] = await Promise.all([
-      fetchUserBankDashboard(),
-      fetchUserBankAccounts(),
-      fetchUserBankTransactions({ data: 10 }),
-    ]);
-    return { dashboard, accounts, transactions };
+    return fetchBankDashboardBundle();
   },
   head: () => ({
     meta: [{ title: "Bank Like the 1% — Alta Bank" }],
@@ -113,7 +104,7 @@ function BankDashboardLiveContent({
           <TransactionTable
             rows={transactions.map((t) => ({
               id: t.referenceCode,
-              date: t.createdAt.slice(0, 10),
+              date: t.createdAt,
               desc: t.description,
               category: t.typeLabel,
               amount: t.type === "withdrawal" ? -t.amount : t.amount,

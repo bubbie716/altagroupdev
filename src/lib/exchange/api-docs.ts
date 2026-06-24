@@ -73,7 +73,7 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
 ];
 
 export const exchangeApiConsumers = [
-  { name: "Alta Terminal", role: "First-party brokerage interface" },
+  { name: "Alta Terminal", role: "First-party Alta Exchange product" },
   { name: "Third-party brokerages", role: "Licensed market data & order routing partners" },
   { name: "Institutional clients", role: "Portfolio analytics and research integrations" },
 ];

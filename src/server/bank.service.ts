@@ -9,6 +9,7 @@ import type {
   SubmitDepositInput,
   SubmitInternalTransferInput,
   SubmitWithdrawalInput,
+  BankProofInput,
   UserBankAccount,
   UserBankAccountDetail,
   UserBankDashboard,
@@ -86,9 +87,14 @@ async function getAvailableBalance(accountId: string): Promise<number> {
   return balance - reserved;
 }
 
-function placeholderProofUrl(filename: string): string {
-  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `pending-upload://${safe}`;
+function proofData(proof: BankProofInput) {
+  return {
+    proofImageUrl: proof.proofImageUrl,
+    proofFileName: proof.proofFileName,
+    proofMimeType: proof.proofMimeType,
+    proofSizeBytes: proof.proofSizeBytes,
+    proofUploadedAt: proof.proofUploadedAt,
+  };
 }
 
 function initialAccountStatus(
@@ -131,7 +137,7 @@ async function requireAccessibleAccount(accountId: string, userId: string) {
   return account;
 }
 
-async function isAccountAccessibleByUser(accountId: string, userId: string): Promise<boolean> {
+export async function isAccountAccessibleByUser(accountId: string, userId: string): Promise<boolean> {
   const companyIds = await getUserCompanyIds(userId);
   const account = await prisma.bankAccount.findFirst({
     where: { id: accountId, ...accessibleAccountWhere(userId, companyIds) },
@@ -140,7 +146,7 @@ async function isAccountAccessibleByUser(accountId: string, userId: string): Pro
   return !!account;
 }
 
-function normalizeAccountNumber(input: string): string {
+export function normalizeAccountNumber(input: string): string {
   return input.trim().toUpperCase();
 }
 
@@ -398,13 +404,14 @@ export async function openBankAccount(
 export async function submitDepositRequest(
   userId: string,
   input: SubmitDepositInput,
+  proof: BankProofInput,
 ): Promise<{ transactionId: string; referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
   const account = await requireAccessibleAccount(input.bankAccountId, userId);
   if (account.status !== "ACTIVE") badRequest("Account must be active to accept deposits");
 
-  if (!input.proofFilename?.trim()) badRequest("Screenshot proof is required");
+  if (!proof.proofImageUrl?.trim()) badRequest("Screenshot proof is required");
 
   const transaction = await prisma.bankTransaction.create({
     data: {
@@ -415,7 +422,7 @@ export async function submitDepositRequest(
       description: "Deposit request",
       memo: input.memo?.trim() || null,
       referenceCode: generateReferenceCode("DEP"),
-      proofImageUrl: placeholderProofUrl(input.proofFilename.trim()),
+      ...proofData(proof),
     },
   });
 
@@ -448,7 +455,11 @@ export async function submitWithdrawalRequest(
       description: destination,
       memo: input.memo?.trim() || null,
       referenceCode: generateReferenceCode("WDR"),
-      proofImageUrl: null,
+      proofImageUrl: input.proof?.proofImageUrl ?? null,
+      proofFileName: input.proof?.proofFileName ?? null,
+      proofMimeType: input.proof?.proofMimeType ?? null,
+      proofSizeBytes: input.proof?.proofSizeBytes ?? null,
+      proofUploadedAt: input.proof?.proofUploadedAt ?? null,
     },
   });
 
@@ -649,14 +660,21 @@ export async function listUserInternalTransfers(
 }
 
 export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummary> {
-  const [totalAccounts, pendingAccountOpenings, pendingDeposits, pendingWithdrawals, frozenAccounts] =
-    await Promise.all([
-      prisma.bankAccount.count(),
-      prisma.bankAccount.count({ where: { status: "PENDING" } }),
-      prisma.bankTransaction.count({ where: { type: "DEPOSIT", status: "PENDING" } }),
-      prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
-      prisma.bankAccount.count({ where: { status: "FROZEN" } }),
-    ]);
+  const [
+    totalAccounts,
+    pendingAccountOpenings,
+    pendingDeposits,
+    pendingWithdrawals,
+    frozenAccounts,
+    altaPayVolume,
+  ] = await Promise.all([
+    prisma.bankAccount.count(),
+    prisma.bankAccount.count({ where: { status: "PENDING" } }),
+    prisma.bankTransaction.count({ where: { type: "DEPOSIT", status: "PENDING" } }),
+    prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
+    prisma.bankAccount.count({ where: { status: "FROZEN" } }),
+    import("@/server/alta-pay.service").then((m) => m.getAltaPayVolumeSummary()),
+  ]);
 
   return {
     totalAccounts,
@@ -667,6 +685,8 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     lendingQueue: 0,
     transfersInReview: 0,
     privateInvitesPending: 0,
+    altaPayCountThisMonth: altaPayVolume.countThisMonth,
+    altaPayVolumeThisMonth: altaPayVolume.volumeThisMonth,
   };
 }
 

@@ -1,18 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
+import { useServerFn } from "@tanstack/react-start";
+import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { TransferFormPreview } from "@/components/bank/transfer-form-preview";
+import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
+import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
-import { florin, getTransferHistory } from "@/lib/bank/api";
 import { fetchTransferContacts } from "@/lib/bank/bank.functions";
+import { fetchPaySourceAccounts } from "@/lib/bank/alta-pay.functions";
+import {
+  cancelUserScheduledTransferRecord,
+  createUserScheduledTransferRecord,
+  fetchUserScheduledTransfers,
+} from "@/lib/bank/scheduled-transfer.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
+type BankInterbankSearch = {
+  accountId?: string;
+};
+
 export const Route = createFileRoute("/bank/transfers/interbank")({
+  validateSearch: (search: Record<string, unknown>): BankInterbankSearch => ({
+    accountId: typeof search.accountId === "string" ? search.accountId : undefined,
+  }),
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const contacts = await fetchTransferContacts({ data: "interbank" });
-    return { contacts };
+    const [contacts, sourceAccounts, scheduledTransfers] = await Promise.all([
+      fetchTransferContacts({ data: "interbank" }),
+      fetchPaySourceAccounts(),
+      fetchUserScheduledTransfers({ data: "interbank" }),
+    ]);
+    return { contacts, sourceAccounts, scheduledTransfers };
   },
   head: () => ({
     meta: [{ title: "Interbank Transfers — Alta Bank" }],
@@ -23,6 +42,7 @@ export const Route = createFileRoute("/bank/transfers/interbank")({
 function BankInterbankTransfers() {
   const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
+  const { accountId } = Route.useSearch();
 
   return (
     <PageShell
@@ -34,27 +54,45 @@ function BankInterbankTransfers() {
 
       {showMockData ? (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
           <Section>
             <TransferFormPreview disabled={!showMockData} />
-          </Section>
-          <Section title="Wire history" className="mt-10">
-            <InterbankTransferHistoryMock />
           </Section>
         </>
       ) : !data ? (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
           <EmptyBankState
           title="Unable to load wire transfer page."
           description="Sign in and try again."
         />
         </>
+      ) : data.sourceAccounts.length === 0 ? (
+        <>
+          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
+          <EmptyBankState
+            title="No active Alta Bank accounts yet."
+            description="Open a personal or business operating account to schedule outbound wires."
+          />
+        </>
       ) : (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" />
+          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
           <Section>
-            <TransferFormPreview disabled contacts={data.contacts} />
+            <TransferFormPreview
+              disabled
+              contacts={data.contacts}
+              defaultFromAccount={
+                accountId
+                  ? data.sourceAccounts.find((account) => account.id === accountId)
+                  : undefined
+              }
+            />
+          </Section>
+
+          <Section title="Scheduled & recurring wires" className="mt-10">
+            <BusinessFutureNotice />
+            <InterbankScheduledTransfers data={data} defaultSourceAccountId={accountId} />
           </Section>
         </>
       )}
@@ -62,48 +100,35 @@ function BankInterbankTransfers() {
   );
 }
 
-function InterbankTransferHistoryMock() {
-  const transferHistory = getTransferHistory().filter((transfer) => transfer.type === "Wire");
-
-  if (transferHistory.length === 0) {
-    return (
-      <Card className="!p-8 text-center">
-        <p className="text-[14px] text-muted-foreground">No wire transfers yet.</p>
-      </Card>
-    );
-  }
+function InterbankScheduledTransfers({
+  data,
+  defaultSourceAccountId,
+}: {
+  data: NonNullable<ReturnType<typeof Route.useLoaderData>>;
+  defaultSourceAccountId?: string;
+}) {
+  const createTransfer = useServerFn(createUserScheduledTransferRecord);
+  const cancelTransfer = useServerFn(cancelUserScheduledTransferRecord);
 
   return (
-    <Card className="!p-0">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <th className="px-5 py-3">Date</th>
-            <th className="px-5 py-3">From</th>
-            <th className="px-5 py-3">To</th>
-            <th className="px-5 py-3">Settlement</th>
-            <th className="px-5 py-3 text-right">Amount</th>
-            <th className="px-5 py-3">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transferHistory.map((transfer) => (
-            <tr
-              key={transfer.id}
-              className="border-b border-border/50 last:border-0 hover:bg-surface-2/40"
-            >
-              <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">{transfer.date}</td>
-              <td className="px-5 py-3 text-muted-foreground">{transfer.from}</td>
-              <td className="px-5 py-3">{transfer.to}</td>
-              <td className="px-5 py-3 font-mono text-[11px] text-muted-foreground">
-                {transfer.settlement ?? "—"}
-              </td>
-              <td className="tabular px-5 py-3 text-right">{florin(transfer.amount)}</td>
-              <td className="px-5 py-3 font-mono text-[11px]">{transfer.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
+    <ScheduledTransferCenter
+      transferScope="interbank"
+      defaultSourceAccountId={defaultSourceAccountId}
+      sourceAccounts={data.sourceAccounts.map((account) => ({
+        id: account.id,
+        accountName: account.accountName,
+        accountNumber: account.accountNumber,
+        ownerLabel: account.isCompanyAccount ? account.companyName : null,
+      }))}
+      payments={data.scheduledTransfers}
+      contacts={data.contacts}
+      canManage
+      onCreate={async (input) => {
+        await createTransfer({ data: { ...input, transferScope: "interbank" } });
+      }}
+      onCancel={async (paymentId) => {
+        await cancelTransfer({ data: { paymentId, transferScope: "interbank" } });
+      }}
+    />
   );
 }

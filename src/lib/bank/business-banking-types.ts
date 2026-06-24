@@ -1,0 +1,181 @@
+import type { CompanyRole } from "@/lib/auth/types";
+
+export type ScheduledPaymentTypeCode = "one_time" | "scheduled" | "recurring";
+export type PaymentFrequencyCode = "weekly" | "biweekly" | "monthly" | "quarterly";
+export type ScheduledPaymentStatusCode =
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "executed"
+  | "cancelled"
+  | "paused"
+  | "failed";
+export type ScheduledExecutionStatusCode = "pending" | "executed" | "failed" | "skipped";
+export type PayrollEmployeeStatusCode = "active" | "inactive";
+export type PayrollRunStatusCode =
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "executed"
+  | "cancelled";
+
+export interface BusinessTreasuryPermissions {
+  canView: boolean;
+  canManage: boolean;
+  viewOnly: boolean;
+  role: CompanyRole;
+  roleLabel: string;
+}
+
+export interface BusinessTreasuryAccount {
+  id: string;
+  accountName: string;
+  accountNumber: string;
+  balance: number;
+  currency: string;
+}
+
+export interface BusinessTreasuryCompany {
+  companyId: string;
+  companyName: string;
+  operatingAccount: BusinessTreasuryAccount;
+  permissions: BusinessTreasuryPermissions;
+}
+
+export interface BusinessBankingOverview {
+  companies: BusinessTreasuryCompany[];
+  selectedCompanyId: string | null;
+}
+
+export type ScheduledTransferScopeCode = "intrabank" | "interbank";
+
+export interface ScheduledPaymentRow {
+  id: string;
+  transferScope: ScheduledTransferScopeCode;
+  transferScopeLabel: string;
+  paymentType: ScheduledPaymentTypeCode;
+  paymentTypeLabel: string;
+  label: string;
+  recipientName: string;
+  recipientAccountNumber: string | null;
+  recipientInstitution: string | null;
+  routingNumber: string | null;
+  wireAccountNumber: string | null;
+  amount: number;
+  currency: string;
+  frequency: PaymentFrequencyCode | null;
+  frequencyLabel: string | null;
+  scheduledDate: string | null;
+  nextRunDate: string | null;
+  lastRunAt: string | null;
+  lastExecutionStatus: ScheduledExecutionStatusCode | null;
+  lastExecutionStatusLabel: string | null;
+  lastFailureReason: string | null;
+  consecutiveFailures: number;
+  status: ScheduledPaymentStatusCode;
+  statusLabel: string;
+  memo: string | null;
+  bankAccountId: string | null;
+  createdAt: string;
+}
+
+export interface PayrollEmployeeRow {
+  id: string;
+  displayName: string;
+  title: string | null;
+  accountNumber: string | null;
+  payAmount: number;
+  payFrequency: PaymentFrequencyCode;
+  payFrequencyLabel: string;
+  status: PayrollEmployeeStatusCode;
+  statusLabel: string;
+  createdAt: string;
+}
+
+export interface PayrollRunLineItem {
+  employeeId: string;
+  displayName: string;
+  amount: number;
+}
+
+export interface PayrollRunRow {
+  id: string;
+  label: string;
+  totalAmount: number;
+  status: PayrollRunStatusCode;
+  statusLabel: string;
+  payDate: string;
+  lineItems: PayrollRunLineItem[];
+  memo: string | null;
+  createdAt: string;
+}
+
+export interface BusinessRepresentativeRow {
+  membershipId: string;
+  userId: string;
+  discordUsername: string;
+  role: CompanyRole;
+  roleLabel: string;
+  joinedAt: string;
+}
+
+export interface CreateScheduledPaymentInput {
+  companyId: string;
+  bankAccountId: string;
+  paymentType: ScheduledPaymentTypeCode;
+  label: string;
+  recipientName: string;
+  recipientAccountNumber?: string;
+  amount: number;
+  frequency?: PaymentFrequencyCode;
+  scheduledDate?: string;
+  memo?: string;
+}
+
+export interface CreateUserScheduledTransferInput {
+  bankAccountId: string;
+  transferScope: ScheduledTransferScopeCode;
+  paymentType: ScheduledPaymentTypeCode;
+  label: string;
+  recipientName: string;
+  recipientAccountNumber?: string;
+  recipientInstitution?: string;
+  routingNumber?: string;
+  wireAccountNumber?: string;
+  amount: number;
+  frequency?: PaymentFrequencyCode;
+  scheduledDate?: string;
+  memo?: string;
+}
+
+export interface CreatePayrollEmployeeInput {
+  companyId: string;
+  displayName: string;
+  title?: string;
+  accountNumber?: string;
+  payAmount: number;
+  payFrequency: PaymentFrequencyCode;
+}
+
+export interface CreatePayrollRunInput {
+  companyId: string;
+  bankAccountId: string;
+  label: string;
+  payDate: string;
+  employeeIds: string[];
+  memo?: string;
+}
+
+export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
+  owner: "Owner",
+  executive: "Executive",
+  finance_manager: "Finance Manager",
+  compliance_contact: "Compliance Contact",
+  viewer: "Viewer",
+};
+
+export const INTRABANK_EXECUTION_NOTICE =
+  "Approved intrabank scheduled transfers run automatically. Interbank and wire transfers still require manual review.";
+
+export const FUTURE_EXECUTION_NOTICE =
+  "Automatic payment execution coming in a future release.";

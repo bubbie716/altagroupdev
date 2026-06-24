@@ -29,6 +29,7 @@ const statusStyles: Record<string, string> = {
   Degraded: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
   Halted: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
   Frozen: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
+  Restricted: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
   Suspended: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
   Rejected: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
   Escalated: "bg-[var(--destructive)]/10 text-[var(--destructive)]",

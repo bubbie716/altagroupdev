@@ -53,8 +53,8 @@ export function ApiDocsPanel({
         Exchange data services`}
             </pre>
             <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
-              First-party and third-party consumers share a single API surface. Alta Terminal is a
-              client — not the exchange itself. Licensed brokerages receive the same market data and
+              First-party and third-party consumers share a single API surface. Alta Terminal — an Alta Exchange product — is a
+              client, not the exchange itself. Licensed brokerages receive the same market data and
               listing endpoints under separate credentials.
             </p>
           </Card>

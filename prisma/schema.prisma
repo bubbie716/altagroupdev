@@ -77,11 +77,13 @@ model User {
   tags               UserTagAssignment[]
   companyMemberships CompanyMembership[]
   sessions           Session[]
-  bankAccounts       BankAccount[]
-  transferContacts   TransferContact[]
-  reviewedBankTransactions BankTransaction[] @relation("BankTransactionReviewer")
+  bankAccounts               BankAccount[]
+  transferContacts           TransferContact[]
+  reviewedBankTransactions   BankTransaction[]   @relation("BankTransactionReviewer")
   sentCompanyInvitations     CompanyInvitation[] @relation("SentCompanyInvitations")
   receivedCompanyInvitations CompanyInvitation[] @relation("ReceivedCompanyInvitations")
+  scheduledPaymentsCreated   ScheduledPayment[]  @relation("ScheduledPaymentCreator")
+  payrollRunsCreated         PayrollRun[]        @relation("PayrollRunCreator")
 }
 
 model UserTagAssignment {
@@ -111,9 +113,12 @@ model Company {
   createdAt                     DateTime           @default(now())
   updatedAt                     DateTime           @updatedAt
 
-  memberships CompanyMembership[]
-  bankAccounts BankAccount[]
-  invitations CompanyInvitation[]
+  memberships       CompanyMembership[]
+  bankAccounts      BankAccount[]
+  invitations       CompanyInvitation[]
+  scheduledPayments ScheduledPayment[]
+  payrollEmployees  PayrollEmployee[]
+  payrollRuns       PayrollRun[]
 }
 
 model CompanyMembership {
@@ -254,11 +259,164 @@ model BankAccount {
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  transactions BankTransaction[]
-  transferContacts TransferContact[]
+  transactions      BankTransaction[]
+  transferContacts  TransferContact[]
+  scheduledPayments ScheduledPayment[]
+  payrollRuns       PayrollRun[]
+  statements        BankStatement[]
 
   @@index([userId])
   @@index([companyId])
+  @@index([status])
+}
+
+enum ScheduledTransferScope {
+  INTRABANK
+  INTERBANK
+}
+
+enum ScheduledPaymentType {
+  ONE_TIME
+  SCHEDULED
+  RECURRING
+}
+
+enum PaymentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum ScheduledPaymentStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXECUTED
+  CANCELLED
+  PAUSED
+  FAILED
+}
+
+enum ScheduledTransferExecutionStatus {
+  PENDING
+  EXECUTED
+  FAILED
+  SKIPPED
+}
+
+enum PayrollEmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PayrollRunStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXECUTED
+  CANCELLED
+}
+
+model ScheduledPayment {
+  id                     String                 @id @default(cuid())
+  companyId              String?
+  bankAccountId          String
+  createdByUserId        String
+  transferScope          ScheduledTransferScope @default(INTRABANK)
+  paymentType            ScheduledPaymentType
+  label                  String
+  recipientName          String
+  recipientAccountNumber String?
+  recipientInstitution   String?
+  routingNumber          String?
+  wireAccountNumber      String?
+  amount                 Decimal                @db.Decimal(18, 2)
+  currency               String                 @default("FLR")
+  frequency              PaymentFrequency?
+  scheduledDate          DateTime?
+  nextRunDate            DateTime?
+  lastRunAt              DateTime?
+  consecutiveFailures    Int                    @default(0)
+  lastFailureReason      String?
+  lastExecutionStatus    ScheduledTransferExecutionStatus?
+  status                 ScheduledPaymentStatus @default(PENDING_REVIEW)
+  memo                   String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  company     Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("ScheduledPaymentCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  executions  ScheduledTransferExecution[]
+
+  @@index([companyId])
+  @@index([createdByUserId])
+  @@index([transferScope])
+  @@index([bankAccountId])
+  @@index([status])
+  @@index([paymentType])
+  @@index([nextRunDate])
+  @@index([scheduledDate])
+}
+
+model ScheduledTransferExecution {
+  id                 String                           @id @default(cuid())
+  scheduledPaymentId String
+  scheduledRunAt     DateTime
+  status             ScheduledTransferExecutionStatus @default(PENDING)
+  bankTransactionId  String?
+  failureReason      String?
+  executedAt         DateTime?
+  createdAt          DateTime                         @default(now())
+
+  scheduledPayment ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
+  bankTransaction  BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+
+  @@unique([scheduledPaymentId, scheduledRunAt])
+  @@index([scheduledPaymentId])
+  @@index([status])
+  @@index([scheduledRunAt])
+}
+
+model PayrollEmployee {
+  id            String                @id @default(cuid())
+  companyId     String
+  displayName   String
+  title         String?
+  accountNumber String?
+  payAmount     Decimal               @db.Decimal(18, 2)
+  payFrequency  PaymentFrequency      @default(MONTHLY)
+  status        PayrollEmployeeStatus @default(ACTIVE)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model PayrollRun {
+  id              String           @id @default(cuid())
+  companyId       String
+  bankAccountId   String
+  createdByUserId String
+  label           String
+  totalAmount     Decimal          @db.Decimal(18, 2)
+  status          PayrollRunStatus @default(PENDING_REVIEW)
+  payDate         DateTime
+  lineItems       Json
+  memo            String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("PayrollRunCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([bankAccountId])
   @@index([status])
 }
 
@@ -272,16 +430,51 @@ model BankTransaction {
   memo          String?
   referenceCode String                @unique
   proofImageUrl String?
+  proofFileName String?
+  proofUploadedAt DateTime?
+  proofMimeType String?
+  proofSizeBytes Int?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   reviewedById  String?
   reviewedAt    DateTime?
   reviewNote    String?
 
-  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  reviewedBy  User?       @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  bankAccount                BankAccount                  @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  scheduledTransferExecution ScheduledTransferExecution[]
 
   @@index([bankAccountId])
   @@index([status])
   @@index([type])
+}
+
+enum BankStatementStatus {
+  DRAFT
+  GENERATED
+  VOID
+}
+
+model BankStatement {
+  id                String              @id @default(cuid())
+  bankAccountId     String
+  statementNumber   String              @unique
+  periodStart       DateTime
+  periodEnd         DateTime
+  openingBalance    Decimal             @db.Decimal(18, 2)
+  closingBalance    Decimal             @db.Decimal(18, 2)
+  totalDeposits     Decimal             @db.Decimal(18, 2)
+  totalWithdrawals  Decimal             @db.Decimal(18, 2)
+  totalTransfersIn  Decimal             @db.Decimal(18, 2)
+  totalTransfersOut Decimal             @db.Decimal(18, 2)
+  transactionCount  Int
+  status            BankStatementStatus @default(GENERATED)
+  generatedAt       DateTime?
+  createdAt         DateTime            @default(now())
+
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  @@index([bankAccountId])
+  @@index([status])
+  @@index([periodStart, periodEnd])
 }

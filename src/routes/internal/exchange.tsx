@@ -5,7 +5,8 @@ import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { MockActionButton } from "@/components/internal/mock-action-button";
-import { getExchangeListings, getExchangeOpsSummary, getOverviewMetrics } from "@/lib/internal/api";
+import { getExchangeListings, getExchangeOpsSummary } from "@/lib/internal/api";
+import { internalPreviewNotice } from "@/lib/internal/data";
 import type { ExchangeListingRow } from "@/lib/internal/types";
 
 export const Route = createFileRoute("/internal/exchange")({
@@ -15,19 +16,19 @@ export const Route = createFileRoute("/internal/exchange")({
 
 function InternalExchange() {
   const s = getExchangeOpsSummary();
-  const m = getOverviewMetrics();
   const listings = getExchangeListings();
 
   return (
-    <InternalPageShell title="Exchange Operations" description="Listings, trading status, corporate actions, and API usage.">
+    <InternalPageShell title="Exchange Operations" description="Simulated market preview for listings, notices, and API usage.">
+      <p className="mb-6 text-[13px] text-muted-foreground">{internalPreviewNotice} Exchange statistics below are simulated market data.</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <InternalStatCard label="Listed Companies" value={String(s.listedCompanies)} />
-        <InternalStatCard label="Securities Halted" value={String(s.securitiesHalted)} alert={s.securitiesHalted > 0} />
-        <InternalStatCard label="Pending Corporate Actions" value={String(s.pendingCorporateActions)} />
-        <InternalStatCard label="Active Notices" value={String(s.activeNotices)} />
-        <InternalStatCard label="API Keys Active" value={String(s.apiKeysActive)} />
-        <InternalStatCard label="Pending API Applications" value={String(m.pendingApiApplications)} alert />
-        <InternalStatCard label="API Calls (24h)" value={s.dailyApiCalls} />
+        <InternalStatCard label="Listed Companies" value={String(s.listedCompanies)} sub="Simulated market" />
+        <InternalStatCard label="Securities Halted" value={String(s.securitiesHalted)} alert={s.securitiesHalted > 0} sub="Simulated market" />
+        <InternalStatCard label="Pending Corporate Actions" value={String(s.pendingCorporateActions)} sub="Simulated market" />
+        <InternalStatCard label="Active Notices" value={String(s.activeNotices)} sub="Simulated market" />
+        <InternalStatCard label="API Keys Active" value={String(s.apiKeysActive)} sub="Preview" />
+        <InternalStatCard label="Pending API Applications" value="—" alert sub="Preview" />
+        <InternalStatCard label="API Calls (24h)" value={s.dailyApiCalls} sub="Preview" />
       </div>
 
       <Section title="Market Notices" className="mt-10">

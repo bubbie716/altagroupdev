@@ -3,8 +3,9 @@ import { getCompanies } from "./companies";
 import { getIndices } from "./indices";
 import type { MarketRankings, MarketStats } from "./types";
 
-const exchangeDescription =
-  "Listings, price discovery, trade execution, and market data for the Republic.";
+import { ALTA_EXCHANGE_TAGLINE } from "@/lib/branding/alta-products";
+
+const exchangeDescription = ALTA_EXCHANGE_TAGLINE;
 
 const exchangeStats = [
   { label: "Total Listed", value: "184" },

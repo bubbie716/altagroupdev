@@ -5,6 +5,7 @@ import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
+import { BankProofStatus } from "@/components/bank/bank-proof-link";
 import {
   approveBankAccountOpening,
   approveBankDeposit,
@@ -15,7 +16,12 @@ import {
   freezeBankAccountRecord,
   unfreezeBankAccountRecord,
 } from "@/lib/bank/bank.functions";
+import { fetchInternalStatementOps } from "@/lib/bank/statement.functions";
 import type { InternalBankAccountRow, InternalBankTransactionRow } from "@/lib/bank/backend-types";
+import type { BankStatementSummary } from "@/lib/bank/statement-types";
+import { InternalStatementBatchButton } from "@/components/bank/internal-statement-ops";
+import { RunDueTransfersButton } from "@/components/bank/internal-scheduled-transfers-panel";
+import { Link } from "@tanstack/react-router";
 import { MockActionButton } from "@/components/internal/mock-action-button";
 import {
   getBankOpsLoanApplications,
@@ -23,14 +29,26 @@ import {
 } from "@/lib/internal/api";
 
 export const Route = createFileRoute("/internal/bank")({
-  loader: () => fetchInternalBankOps(),
+  loader: async () => {
+    const [bankOps, statementOps] = await Promise.all([
+      fetchInternalBankOps(),
+      fetchInternalStatementOps(),
+    ]);
+    return { ...bankOps, statementOps };
+  },
   head: () => ({ meta: [{ title: "Bank Ops — Alta Internal" }] }),
   component: InternalBank,
 });
 
 function InternalBank() {
-  const { summary, accounts, pendingAccounts, pendingDeposits, pendingWithdrawals } =
-    Route.useLoaderData();
+  const {
+    summary,
+    accounts,
+    pendingAccounts,
+    pendingDeposits,
+    pendingWithdrawals,
+    statementOps,
+  } = Route.useLoaderData();
   const loans = getBankOpsLoanApplications();
   const transfers = getBankOpsTransfers();
 
@@ -45,8 +63,30 @@ function InternalBank() {
         <InternalStatCard label="Deposits Pending" value={String(summary.pendingDeposits)} alert />
         <InternalStatCard label="Withdrawals Pending" value={String(summary.pendingWithdrawals)} alert />
         <InternalStatCard label="Frozen Accounts" value={String(summary.frozenAccounts)} alert />
+        <InternalStatCard
+          label="Alta Pay (MTD)"
+          value={summary.altaPayCountThisMonth.toLocaleString()}
+          sub={`ƒ${summary.altaPayVolumeThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} volume`}
+        />
         <InternalStatCard label="Loan Applications (mock)" value={String(summary.lendingQueue)} />
       </div>
+
+      <Section title="Scheduled Transfers" className="mt-10">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[13px] text-muted-foreground">
+            Automatic execution for approved intrabank Alta-to-Alta transfers.
+          </p>
+          <Link
+            to="/internal/bank/scheduled"
+            className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold hover:underline"
+          >
+            View all scheduled →
+          </Link>
+        </div>
+        <div className="mt-4">
+          <RunDueTransfersButton />
+        </div>
+      </Section>
 
       <Section title="Pending Account Openings" className="mt-10">
         <AdminDataTable
@@ -89,6 +129,68 @@ function InternalBank() {
           rows={pendingWithdrawals}
           rowKey={(r) => r.id}
         />
+      </Section>
+
+      <Section title="Statement Operations" className="mt-10">
+        <div className="mb-6 rounded-lg border border-border/60 bg-surface-2/30 p-5">
+          <InternalStatementBatchButton />
+        </div>
+        <AdminDataTable
+          columns={[
+            {
+              key: "number",
+              header: "Statement",
+              cell: (s: BankStatementSummary) => (
+                <span className="font-mono text-[11px]">{s.statementNumber}</span>
+              ),
+            },
+            {
+              key: "account",
+              header: "Account",
+              cell: (s: BankStatementSummary) => (
+                <span className="font-mono text-[11px]">{s.accountNumber}</span>
+              ),
+            },
+            {
+              key: "holder",
+              header: "Holder",
+              cell: (s: BankStatementSummary) => s.ownerLabel,
+            },
+            {
+              key: "period",
+              header: "Period end",
+              cell: (s: BankStatementSummary) => s.periodEnd.slice(0, 10),
+            },
+            {
+              key: "status",
+              header: "Status",
+              cell: (s: BankStatementSummary) => <StatusBadge status={s.statusLabel} />,
+            },
+            {
+              key: "view",
+              header: "",
+              cell: (s: BankStatementSummary) => (
+                <Link
+                  to="/bank/statements/$statementId"
+                  params={{ statementId: s.id }}
+                  className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+                >
+                  View
+                </Link>
+              ),
+            },
+          ]}
+          rows={statementOps.recentStatements}
+          rowKey={(s) => s.id}
+        />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-md border border-border/60 px-4 py-3 text-[13px] text-muted-foreground">
+            Voided statements: {statementOps.voidedCount}
+          </div>
+          <div className="rounded-md border border-border/60 px-4 py-3 text-[13px] text-muted-foreground">
+            {statementOps.errorPlaceholder}
+          </div>
+        </div>
       </Section>
 
       <Section title="All Accounts" className="mt-10">
@@ -190,12 +292,15 @@ function depositWithdrawColumns(kind: "deposit" | "withdrawal") {
     {
       key: "proof",
       header: "Proof",
-      cell: (r: InternalBankTransactionRow) =>
-        r.proofImageUrl ? (
-          <span className="font-mono text-[10px] text-muted-foreground">{r.proofImageUrl}</span>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
+      cell: (r: InternalBankTransactionRow) => (
+        <BankProofStatus
+          variant="internal"
+          proofImageUrl={r.proofImageUrl}
+          proofFileName={r.proofFileName}
+          proofUploadedAt={r.proofUploadedAt}
+          hasProof={r.hasProof}
+        />
+      ),
     },
     { key: "status", header: "Status", cell: (r: InternalBankTransactionRow) => <StatusBadge status={r.status} /> },
     {

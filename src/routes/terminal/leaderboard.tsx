@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { LeaderboardTable } from "@/components/terminal/leaderboard-table";
 import { getLeaderboard } from "@/lib/terminal/api";
 
@@ -15,12 +15,10 @@ function TerminalLeaderboard() {
   const lb = getLeaderboard();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Leaderboard"
+    <TerminalPageShell
       title="Investor Leaderboard"
-      description="Largest portfolios, daily performance, and market activity across Alta Terminal clients — simulated rankings."
+      description="Largest portfolios, daily performance, and market activity across Alta Exchange Terminal clients — simulated rankings."
     >
-      <TerminalSubNav />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Section title="Largest Portfolios">
@@ -62,6 +60,6 @@ function TerminalLeaderboard() {
           />
         </Section>
       </div>
-    </PageShell>
+    </TerminalPageShell>
   );
 }

@@ -1,0 +1,117 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import { Section, Card } from "@/components/page-shell";
+import { GroupHierarchy } from "@/components/governance/group-hierarchy";
+import { EntityOverview } from "@/components/governance/entity-overview";
+import { GovernanceMetricsGrid } from "@/components/governance/governance-metrics-grid";
+import { entityOverviewItems, groupHierarchy } from "@/lib/governance/content";
+import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
+import { buildGovernancePlatformMetrics } from "@/lib/metrics/governance-metrics";
+
+export const Route = createFileRoute("/governance/")({
+  loader: () => fetchPlatformMetrics(),
+  head: () => ({
+    meta: [
+      { title: "Governance & Structure — Alta Group" },
+      {
+        name: "description",
+        content:
+          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank, Alta Exchange (including Alta Terminal), and Newport Clearing Corporation.",
+      },
+      { property: "og:title", content: "Alta Group — Governance & Structure" },
+      {
+        property: "og:description",
+        content: "The financial holding company behind Newport's banking, exchange, and clearing infrastructure.",
+      },
+    ],
+  }),
+  component: GovernanceStructure,
+});
+
+function GovernanceStructure() {
+  const metrics = Route.useLoaderData();
+  const platformItems = buildGovernancePlatformMetrics(metrics);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="border-b border-border/60 pb-12"
+      >
+        <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
+          Governance
+        </div>
+        <h1 className="mt-5 text-[clamp(3.25rem,8vw,6.5rem)] font-semibold uppercase leading-[0.92] tracking-[-0.02em]">
+          Alta Group
+        </h1>
+        <p className="mt-4 text-[clamp(1.125rem,1.4vw,1.5rem)] font-medium tracking-tight text-foreground">
+          Live Like the 1%
+        </p>
+        <p className="mt-2 text-[clamp(1.125rem,1.4vw,1.5rem)] font-medium tracking-tight text-muted-foreground">
+          Corporate Structure &amp; Governance
+        </p>
+        <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+          A single parent holding company — Alta Group N.V. — operating banking, exchange, and future
+          clearing infrastructure for the Republic of Newport.
+        </p>
+      </motion.div>
+
+      <main className="py-12">
+        <div className="mb-12 grid gap-6 lg:grid-cols-3">
+          <Card>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              Entity
+            </div>
+            <div className="mt-2 text-2xl font-semibold tracking-tight">Alta Group N.V.</div>
+            <div className="mt-2 text-sm font-medium tracking-tight text-foreground">
+              Live Like the 1%
+            </div>
+            <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Financial Infrastructure Holding
+            </div>
+          </Card>
+          <Card>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              Mandate
+            </div>
+            <div className="mt-2 text-sm leading-relaxed">
+              Operate banking, exchange, market technology, and clearing infrastructure for the
+              Republic of Newport under unified governance.
+            </div>
+          </Card>
+          <Card>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              Disclosures
+            </div>
+            <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Alta platform data reflects live platform records where available. Market data remains
+              simulated. Florin-denominated. Not a real-money venue.
+            </div>
+          </Card>
+        </div>
+
+        <Section title="Group hierarchy">
+          <GroupHierarchy nodes={groupHierarchy} />
+        </Section>
+
+        <Section title="Entity overview" className="mt-12">
+          <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+            Division mandates, service lines, and exchange products. The hierarchy above reflects
+            ownership and reporting relationships only.
+          </p>
+          <EntityOverview entities={entityOverviewItems} />
+        </Section>
+
+        <Section title="Platform status" className="mt-12">
+          <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+            Entity posture and live platform records. Exchange market statistics remain simulated for
+            product testing.
+          </p>
+          <GovernanceMetricsGrid items={platformItems} />
+        </Section>
+      </main>
+    </>
+  );
+}

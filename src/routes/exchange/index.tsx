@@ -23,12 +23,13 @@ import {
   getIPOs,
   getMarketStats,
 } from "@/lib/exchange/api";
+import { ALTA_EXCHANGE_TAGLINE } from "@/lib/branding/alta-products";
 import { indexSeries, pct } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/exchange/")({
   head: () => ({
     meta: [
-      { title: "Alta Exchange — National Market Infrastructure" },
+      { title: "Alta Exchange — The capital markets platform of Newport." },
       { name: "description", content: getMarketStats().description },
     ],
   }),
@@ -47,8 +48,8 @@ function ExchangeOverview() {
   return (
     <PageShell
       eyebrow="Alta Exchange"
-      title="The national venue of the Republic."
-      description="Alta Exchange operates Newport's primary market infrastructure for listings, price discovery, execution, and market data."
+      title={ALTA_EXCHANGE_TAGLINE}
+      description="Alta Exchange operates Newport's primary market infrastructure for listings, price discovery, execution, market data, and Alta Terminal."
     >
       <ExchangeSubNav />
 

@@ -10,13 +10,16 @@ import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
+import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
+import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
 import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  loader: () => fetchPlatformMetrics(),
   head: () => ({
     meta: [
       { title: "Alta Group — Live Like the 1%" },
-      { name: "description", content: "The financial infrastructure company of Newport. Alta Bank, Alta Terminal, Alta Exchange, and Newport Clearing Corporation." },
+      { name: "description", content: "The financial infrastructure company of Newport. Alta Bank, Alta Exchange, and Newport Clearing Corporation." },
       { property: "og:title", content: "Alta Group — Live Like the 1%" },
       { property: "og:description", content: "The financial infrastructure company of Newport." },
     ],
@@ -25,13 +28,15 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const platformMetrics = Route.useLoaderData();
+
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
       <Hero />
       <Marquee />
       <Divisions />
-      <Capabilities />
+      <Capabilities metrics={platformMetrics} />
       <ClosingCTA />
       <SiteFooter />
     </div>
@@ -211,31 +216,22 @@ function Divisions() {
       tag: "01 · Banking",
       desc: "Personal banking, business accounts, deposits, lending, and treasury for Newport citizens, builders, and institutions.",
       services: ["Deposits", "Business Banking", "Lending", "Treasury Services"],
-      metric: "ƒ62B deposits · 12,480 accounts",
-    },
-    {
-      to: "/terminal",
-      name: "Alta Terminal",
-      headline: "Invest Like the 1%",
-      tag: "02 · Terminal",
-      desc: "Portfolio access, market data, watchlists, analytics, and order entry in one interface.",
-      services: ["Portfolio Dashboard", "Market Data", "Watchlists", "Order Entry"],
-      metric: "8,240 active users",
+      metric: "Operational · Personal & business banking",
     },
     {
       to: "/exchange",
       name: "Alta Exchange",
-      headline: "National Market Infrastructure",
-      tag: "03 · Exchange",
-      desc: "Listings, price discovery, trade execution, and market data for the Republic.",
-      services: ["Listings", "Price Discovery", "Trade Execution", "Market Infrastructure"],
-      metric: "184 listed companies",
+      headline: "The capital markets platform of Newport.",
+      tag: "02 · Exchange",
+      desc: "Listings, price discovery, trade execution, market data, and Alta Terminal — an Alta Exchange product.",
+      services: ["Listings", "IPO Center", "Market Data", "Developer API", "Alta Terminal"],
+      metric: "Operational · Terminal included",
     },
     {
       to: "/governance",
       name: "NCC",
       headline: "Clearing & Settlement Infrastructure",
-      tag: "04 · Clearing",
+      tag: "03 · Clearing",
       desc: "Planned settlement network for routing, wires, payment rails, account registry, and securities clearing.",
       services: ["Interbank Settlement", "Securities Clearing", "Account Registry", "Payment Network"],
       metric: "Planned · Future infrastructure",
@@ -249,16 +245,15 @@ function Divisions() {
             01 — Structure
           </div>
             <h2 className="mt-4 text-[clamp(2.25rem,4.4vw,3.75rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
-              Four divisions. <br />
+              Three divisions. <br />
               <span className="text-muted-foreground">One financial architecture.</span>
           </h2>
         </div>
         <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-          Banking, terminal, exchange, and clearing — operated as a single
-          institution under unified governance.
+          Banking, exchange, and clearing — operated as a single institution under unified governance.
         </p>
       </div>
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
         {divs.map((d, i) => (
           <Link
             key={d.name}
@@ -299,24 +294,30 @@ function Divisions() {
   );
 }
 
-function Capabilities() {
-  const items = [
-    { k: "ƒ62B", l: "Assets administered" },
-    { k: "142", l: "Listed companies" },
-    { k: "T+0", l: "Settlement cycle" },
-    { k: "99.99%", l: "Platform uptime" },
-  ];
+function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPlatformMetrics>> }) {
+  const items = buildHomepagePlatformMetrics(metrics);
+
   return (
     <section className="border-y border-border bg-surface-1/40">
+      <div className="mx-auto max-w-[1400px] px-6 py-8">
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          Live platform records
+        </p>
+      </div>
       <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px bg-border md:grid-cols-4">
         {items.map((it) => (
-          <div key={it.l} className="bg-surface-1/50 px-6 py-12 text-center md:py-16">
-            <div className="text-[clamp(2rem,3.5vw,3.5rem)] font-semibold tracking-tight">
-              {it.k}
+          <div key={it.label} className="bg-surface-1/50 px-6 py-12 text-center md:py-16">
+            <div className="text-[clamp(1.75rem,3vw,2.75rem)] font-semibold tracking-tight tabular">
+              {it.value}
             </div>
             <div className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              {it.l}
+              {it.label}
             </div>
+            {it.sourceLabel ? (
+              <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-gold/80">
+                {it.sourceLabel}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

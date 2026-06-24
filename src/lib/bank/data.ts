@@ -155,7 +155,7 @@ export const bankProducts: BankProduct[] = [
       "Company account structure",
       "Business deposits and withdrawals",
       "Authorized representative access",
-      "Future payroll and merchant tools",
+      "Payroll and merchant tools",
     ],
     availability: "Requires verified company",
   },
@@ -220,7 +220,7 @@ export const lendingProducts: LendingProduct[] = [
     name: "Secured Lending",
     limit: "Portfolio-based",
     rate: "L + 1.10%",
-    summary: "Lending against eligible securities held at Alta Terminal.",
+    summary: "Lending against eligible securities held via Alta Exchange Terminal.",
     status: "Available",
   },
   {
@@ -287,45 +287,45 @@ export const privateBanking = {
 };
 
 export const privateMetrics: MetricItem[] = [
-  { label: "Current Members", value: "47" },
-  { label: "New Invitations This Year", value: "3" },
-  { label: "Minimum Relationship Value", value: "ƒ5M" },
+  { label: "Membership", value: "By invitation" },
   { label: "Applications", value: "Closed" },
+  { label: "Access Model", value: "Referral only" },
+  { label: "Data Source", value: "Preview profile" },
 ];
 
 export const businessMetrics: MetricItem[] = [
-  { label: "Client Deposits", value: "ƒ42B" },
-  { label: "Treasury Clients", value: "312" },
-  { label: "Payroll Processed", value: "ƒ4.2B / month" },
-  { label: "Business Credit", value: "ƒ18B committed" },
-  { label: "Business Accounts", value: "1,842" },
+  { label: "Operating Accounts", value: "Live per company" },
+  { label: "Payroll Services", value: "Coming Soon" },
+  { label: "Merchant Accounts", value: "Preview" },
+  { label: "Business Lending", value: "Coming Soon" },
+  { label: "Treasury Services", value: "In Development" },
 ];
 
 export const businessServices: BusinessService[] = [
   {
     name: "Operating Accounts",
-    desc: "Multi-entity cash management for Newport companies and family offices.",
-    metric: "1,842 business accounts",
+    desc: "Multi-entity cash management for verified Newport companies.",
+    metric: "Live · Business Operating Account",
   },
   {
     name: "Merchant Accounts",
     desc: "Institutional settlement and receivables for Newport merchants.",
-    metric: "NCC-Net · T+0 settlement",
+    metric: "Preview · not yet active",
   },
   {
     name: "Payroll Services",
-    desc: "Disbursement, tax withholding, and employee accounts at institutional scale.",
-    metric: "ƒ4.2B processed monthly",
+    desc: "Employee registry, payroll batches, and disbursement workflows.",
+    metric: "Coming Soon",
   },
   {
     name: "Business Lending",
     desc: "Revolving and term credit for operating companies and institutions.",
-    metric: "ƒ18B committed",
+    metric: "Coming Soon",
   },
   {
     name: "Treasury Services",
     desc: "Sweep, FX, and short-term instruments for corporate treasury desks.",
-    metric: "312 treasury clients",
+    metric: "In Development",
   },
 ];
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { NewsFeed } from "@/components/terminal/news-feed";
 import { getTerminalNews } from "@/lib/terminal/api";
 
@@ -17,12 +17,10 @@ function TerminalNews() {
   const terminalNews = getTerminalNews();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · News"
+    <TerminalPageShell
       title="Market News"
       description="Market updates, company announcements, exchange notices, and macro headlines — simulated feed."
     >
-      <TerminalSubNav />
 
       {categories.map((cat, i) => (
         <Section
@@ -37,6 +35,6 @@ function TerminalNews() {
           />
         </Section>
       ))}
-    </PageShell>
+    </TerminalPageShell>
   );
 }

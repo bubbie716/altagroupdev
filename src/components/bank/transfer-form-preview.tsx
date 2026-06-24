@@ -4,23 +4,29 @@ import type { TransferContact } from "@/lib/bank/backend-types";
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
 const fields = [
-  { label: "From account", placeholder: "Alta Checking ••1187" },
-  { label: "Recipient institution", placeholder: "Meridian Holdings LLP" },
-  { label: "Recipient name", placeholder: "Treasury Operations" },
-  { label: "Routing number", placeholder: "021000021" },
-  { label: "Account number", placeholder: "•••• •••• 4821" },
-  { label: "Settlement network", placeholder: "NCC-Net", value: "NCC-Net" },
-  { label: "Amount", placeholder: "ƒ0.00" },
-  { label: "Memo", placeholder: "Operating disbursement" },
-];
+  { key: "fromAccount", label: "From account", placeholder: "Alta Checking ••1187" },
+  { key: "recipientInstitution", label: "Recipient institution", placeholder: "Meridian Holdings LLP" },
+  { key: "recipientName", label: "Recipient name", placeholder: "Treasury Operations" },
+  { key: "routingNumber", label: "Routing number", placeholder: "021000021" },
+  { key: "accountNumber", label: "Account number", placeholder: "•••• •••• 4821" },
+  { key: "settlementNetwork", label: "Settlement network", placeholder: "NCC-Net", value: "NCC-Net" },
+  { key: "amount", label: "Amount", placeholder: "ƒ0.00" },
+  { key: "memo", label: "Memo", placeholder: "Operating disbursement" },
+] as const;
 
 export function TransferFormPreview({
   disabled = false,
   contacts = [],
+  defaultFromAccount,
 }: {
   disabled?: boolean;
   contacts?: TransferContact[];
+  defaultFromAccount?: { accountName: string; accountNumber: string };
 }) {
+  const fromAccountValue = defaultFromAccount
+    ? `${defaultFromAccount.accountName} · ${defaultFromAccount.accountNumber}`
+    : undefined;
+
   return (
     <Card>
       <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -54,19 +60,28 @@ export function TransferFormPreview({
       )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {fields.map((f) => (
-          <label key={f.label} className="block">
+        {fields.map((f) => {
+          const value =
+            f.key === "fromAccount"
+              ? fromAccountValue
+              : "value" in f
+                ? f.value
+                : undefined;
+
+          return (
+          <label key={f.key} className="block">
             <span className={fieldLabel}>{f.label}</span>
             <input
               type="text"
               readOnly
               disabled={disabled}
-              value={disabled ? undefined : f.value}
-              placeholder={disabled ? "—" : f.placeholder}
+              value={value}
+              placeholder={disabled && !value ? "—" : f.placeholder}
               className="mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground"
             />
           </label>
-        ))}
+          );
+        })}
       </div>
       {disabled ? (
         <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">

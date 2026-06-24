@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section } from "@/components/page-shell";
+import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { ResearchCard } from "@/components/terminal/research-card";
 import { getTerminalResearch } from "@/lib/terminal/api";
 import type { TerminalResearchItem } from "@/lib/terminal/api";
@@ -28,12 +28,10 @@ function TerminalResearch() {
   const terminalResearch = getTerminalResearch();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal · Research"
+    <TerminalPageShell
       title="Research"
       description="Company reports, market notes, exchange filings, and economic research — simulated document library."
     >
-      <TerminalSubNav />
 
       <div className="mb-8 flex flex-wrap gap-2">
         {filters.map((f, i) => (
@@ -62,6 +60,6 @@ function TerminalResearch() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </TerminalPageShell>
   );
 }

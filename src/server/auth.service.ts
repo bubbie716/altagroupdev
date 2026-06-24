@@ -13,6 +13,27 @@ import { upsertUserFromDiscord } from "@/server/user.service";
 import type { DiscordProfile } from "@/lib/auth/types";
 import { isDatabaseConfigured } from "@/server/db";
 
+const SESSION_USER_CACHE_TTL_MS = 30_000;
+const sessionUserCache = new Map<string, { user: AltaUser; expiresAt: number }>();
+
+function getCachedSessionUser(token: string): AltaUser | null {
+  const entry = sessionUserCache.get(token);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    sessionUserCache.delete(token);
+    return null;
+  }
+  return entry.user;
+}
+
+function setCachedSessionUser(token: string, user: AltaUser): void {
+  sessionUserCache.set(token, { user, expiresAt: Date.now() + SESSION_USER_CACHE_TTL_MS });
+}
+
+export function invalidateSessionUserCache(token?: string): void {
+  if (token) sessionUserCache.delete(token);
+}
+
 export async function readCurrentUser(): Promise<AltaUser | null> {
   if (!isDatabaseConfigured()) return null;
 
@@ -20,7 +41,12 @@ export async function readCurrentUser(): Promise<AltaUser | null> {
   const token = readCookie(getSessionCookieName(), cookieHeader);
   if (!token) return null;
 
-  return loadUserBySessionToken(token);
+  const cached = getCachedSessionUser(token);
+  if (cached) return cached;
+
+  const user = await loadUserBySessionToken(token);
+  if (user) setCachedSessionUser(token, user);
+  return user;
 }
 
 export function clearUserSession(): void {
@@ -38,6 +64,7 @@ export async function logoutCurrentUser(): Promise<void> {
   const cookieHeader = getRequestHeader("cookie");
   const token = readCookie(getSessionCookieName(), cookieHeader);
   if (token) {
+    invalidateSessionUserCache(token);
     await deleteSessionByToken(token);
   }
   clearUserSession();

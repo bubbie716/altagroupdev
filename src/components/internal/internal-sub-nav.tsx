@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { to: "/internal", label: "Overview", exact: true },
-  { to: "/internal/users", label: "Users" },
+  { to: "/internal/users", label: "Users", match: "/internal/users" },
   { to: "/internal/companies", label: "Companies", match: "/internal/companies" },
   { to: "/internal/bank", label: "Bank Ops" },
   { to: "/internal/exchange", label: "Exchange Ops" },
@@ -12,6 +12,7 @@ const links = [
   { to: "/internal/listings", label: "Listings" },
   { to: "/internal/terminal", label: "Terminal Activity" },
   { to: "/internal/compliance", label: "Compliance" },
+  { to: "/internal/embeds", label: "Embeds" },
   { to: "/internal/settings", label: "Settings" },
 ] as const;
 

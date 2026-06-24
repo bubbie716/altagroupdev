@@ -31,7 +31,7 @@ function ExchangeApi() {
     <PageShell
       eyebrow="Alta Exchange · Developer API"
       title="Exchange API"
-      description="Licensed market data access for Alta Terminal, brokerages, and institutional integrations."
+      description="Licensed market data access for Alta Exchange Terminal, brokerages, and institutional integrations."
     >
       <ExchangeSubNav />
       <ApiDocsPanel session={session} onSignOut={() => {}} />

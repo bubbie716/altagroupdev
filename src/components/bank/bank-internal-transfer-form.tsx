@@ -29,16 +29,23 @@ function accountLabel(account: UserBankAccount) {
 export function BankInternalTransferForm({
   accounts,
   contacts = [],
+  defaultFromAccountId,
   onSuccess,
 }: {
   accounts: UserBankAccount[];
   contacts?: TransferContact[];
+  defaultFromAccountId?: string;
   onSuccess?: () => void;
 }) {
   const canTransferOwn = accounts.length >= 2;
   const [transferMode, setTransferMode] = useState<TransferMode>(canTransferOwn ? "own" : "player");
 
-  const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id ?? "");
+  const [fromAccountId, setFromAccountId] = useState(() => {
+    if (defaultFromAccountId && accounts.some((a) => a.id === defaultFromAccountId)) {
+      return defaultFromAccountId;
+    }
+    return accounts[0]?.id ?? "";
+  });
   const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? "");
   const [toAccountNumber, setToAccountNumber] = useState("");
 

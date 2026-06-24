@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { SiteNav, SiteFooter } from "./site-nav";
 
 export function PageShell({
@@ -8,22 +9,30 @@ export function PageShell({
   description,
   children,
   hideFooter = false,
+  printDocument = false,
 }: {
   eyebrow: string;
   title: string;
   description?: string;
   children: ReactNode;
   hideFooter?: boolean;
+  /** Hides site chrome and page hero when printing (e.g. bank statements). */
+  printDocument?: boolean;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("min-h-screen bg-background", printDocument && "statement-print-page")}>
       <SiteNav />
-      <div className="mx-auto max-w-[1400px] px-6 pt-14">
+      <div
+        className={cn(
+          "mx-auto max-w-[1400px] px-6 pt-14",
+          printDocument && "print:max-w-none print:px-0 print:pt-0",
+        )}
+      >
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="border-b border-border/60 pb-10"
+          className={cn("page-shell-hero border-b border-border/60 pb-10", printDocument && "print:hidden")}
         >
           <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-gold">
             {eyebrow}
@@ -37,7 +46,7 @@ export function PageShell({
             </p>
           )}
         </motion.div>
-        <main className="py-12">{children}</main>
+        <main className={cn("py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
       {!hideFooter && <SiteFooter />}
     </div>

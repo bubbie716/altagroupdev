@@ -12,16 +12,17 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as GovernanceRouteImport } from './routes/governance'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AccessRestrictedRouteImport } from './routes/access-restricted'
 import { Route as TerminalRouteRouteImport } from './routes/terminal/route'
 import { Route as InternalRouteRouteImport } from './routes/internal/route'
+import { Route as GovernanceRouteRouteImport } from './routes/governance/route'
 import { Route as ExchangeRouteRouteImport } from './routes/exchange/route'
 import { Route as CompaniesRouteRouteImport } from './routes/companies/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
 import { Route as InternalIndexRouteImport } from './routes/internal/index'
+import { Route as GovernanceIndexRouteImport } from './routes/governance/index'
 import { Route as ExchangeIndexRouteImport } from './routes/exchange/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as BankIndexRouteImport } from './routes/bank/index'
@@ -32,15 +33,17 @@ import { Route as TerminalPortfolioRouteImport } from './routes/terminal/portfol
 import { Route as TerminalNewsRouteImport } from './routes/terminal/news'
 import { Route as TerminalLeaderboardRouteImport } from './routes/terminal/leaderboard'
 import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
-import { Route as InternalUsersRouteImport } from './routes/internal/users'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
 import { Route as InternalListingsRouteImport } from './routes/internal/listings'
 import { Route as InternalIposRouteImport } from './routes/internal/ipos'
 import { Route as InternalExchangeRouteImport } from './routes/internal/exchange'
+import { Route as InternalEmbedsRouteImport } from './routes/internal/embeds'
 import { Route as InternalComplianceRouteImport } from './routes/internal/compliance'
 import { Route as InternalBankRouteImport } from './routes/internal/bank'
 import { Route as InternalApiApplicationsRouteImport } from './routes/internal/api-applications'
+import { Route as GovernanceLeadershipRouteImport } from './routes/governance/leadership'
+import { Route as GovernanceDocumentsRouteImport } from './routes/governance/documents'
 import { Route as ExchangeResearchRouteImport } from './routes/exchange/research'
 import { Route as ExchangeRankingsRouteImport } from './routes/exchange/rankings'
 import { Route as ExchangeListingsRouteImport } from './routes/exchange/listings'
@@ -53,34 +56,67 @@ import { Route as CompaniesCreateRouteImport } from './routes/companies/create'
 import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
 import { Route as BankProductsRouteImport } from './routes/bank/products'
 import { Route as BankPrivateRouteImport } from './routes/bank/private'
+import { Route as BankPayRouteImport } from './routes/bank/pay'
 import { Route as BankOpenRouteImport } from './routes/bank/open'
 import { Route as BankLendingRouteImport } from './routes/bank/lending'
 import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
 import { Route as BankDepositRouteImport } from './routes/bank/deposit'
 import { Route as BankDashboardRouteImport } from './routes/bank/dashboard'
-import { Route as BankBusinessRouteImport } from './routes/bank/business'
 import { Route as BankAccountsRouteImport } from './routes/bank/accounts'
 import { Route as CompaniesCompanyIdRouteRouteImport } from './routes/companies/$companyId/route'
 import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/route'
+import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
+import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
 import { Route as InternalCompaniesIndexRouteImport } from './routes/internal/companies/index'
+import { Route as ExchangeTerminalIndexRouteImport } from './routes/exchange/terminal/index'
 import { Route as CompaniesCompanyIdIndexRouteImport } from './routes/companies/$companyId/index'
 import { Route as BankTransfersIndexRouteImport } from './routes/bank/transfers/index'
+import { Route as BankStatementsIndexRouteImport } from './routes/bank/statements/index'
+import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/index'
+import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/internal/companies/$companyId'
+import { Route as InternalBankScheduledRouteImport } from './routes/internal/bank/scheduled'
+import { Route as ExchangeTerminalSplatRouteImport } from './routes/exchange/terminal/$'
 import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies/$companyId/settings'
 import { Route as CompaniesCompanyIdMembersRouteImport } from './routes/companies/$companyId/members'
 import { Route as BankTransfersIntrabankRouteImport } from './routes/bank/transfers/intrabank'
 import { Route as BankTransfersInterbankRouteImport } from './routes/bank/transfers/interbank'
 import { Route as BankTransfersContactsRouteImport } from './routes/bank/transfers/contacts'
+import { Route as BankStatementsStatementIdRouteImport } from './routes/bank/statements/$statementId'
+import { Route as BankBusinessStatementsRouteImport } from './routes/bank/business/statements'
+import { Route as BankBusinessRepresentativesRouteImport } from './routes/bank/business/representatives'
+import { Route as BankBusinessPayrollRouteImport } from './routes/bank/business/payroll'
+import { Route as BankBusinessPaymentsRouteImport } from './routes/bank/business/payments'
 import { Route as BankAdminPrivateRouteImport } from './routes/bank/admin/private'
 import { Route as BankAdminLoansRouteImport } from './routes/bank/admin/loans'
 import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/clients'
 import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
-import { Route as BankAccountsAccountIdRouteImport } from './routes/bank/accounts/$accountId'
-import { Route as BankAccountAccountIdRouteImport } from './routes/bank/account/$accountId'
+import { Route as ApiCronScheduledTransfersRouteImport } from './routes/api/cron/scheduled-transfers'
+import { Route as ApiBankWithdrawalRequestRouteImport } from './routes/api/bank/withdrawal-request'
+import { Route as ApiBankDepositRequestRouteImport } from './routes/api/bank/deposit-request'
 import { Route as ApiAuthDiscordRouteImport } from './routes/api/auth/discord'
 import { Route as ExchangeCompanyTickerRouteRouteImport } from './routes/exchange/company/$ticker/route'
+import { Route as BankAccountsAccountIdRouteRouteImport } from './routes/bank/accounts/$accountId/route'
+import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/account/$accountId/route'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
+import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
+import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
+import { Route as BankAccountsAccountIdStatementsRouteImport } from './routes/bank/accounts/$accountId/statements'
+import { Route as BankAccountsAccountIdSettingsRouteImport } from './routes/bank/accounts/$accountId/settings'
+import { Route as BankAccountsAccountIdScheduledRouteImport } from './routes/bank/accounts/$accountId/scheduled'
+import { Route as BankAccountsAccountIdRepresentativesRouteImport } from './routes/bank/accounts/$accountId/representatives'
+import { Route as BankAccountsAccountIdPayrollRouteImport } from './routes/bank/accounts/$accountId/payroll'
+import { Route as BankAccountsAccountIdPaymentsRouteImport } from './routes/bank/accounts/$accountId/payments'
+import { Route as BankAccountsAccountIdActivityRouteImport } from './routes/bank/accounts/$accountId/activity'
+import { Route as BankAccountAccountIdStatementsRouteImport } from './routes/bank/account/$accountId/statements'
+import { Route as BankAccountAccountIdSettingsRouteImport } from './routes/bank/account/$accountId/settings'
+import { Route as BankAccountAccountIdScheduledRouteImport } from './routes/bank/account/$accountId/scheduled'
+import { Route as BankAccountAccountIdRepresentativesRouteImport } from './routes/bank/account/$accountId/representatives'
+import { Route as BankAccountAccountIdPayrollRouteImport } from './routes/bank/account/$accountId/payroll'
+import { Route as BankAccountAccountIdPaymentsRouteImport } from './routes/bank/account/$accountId/payments'
+import { Route as BankAccountAccountIdActivityRouteImport } from './routes/bank/account/$accountId/activity'
+import { Route as ApiInternalDiscordEmbedRouteImport } from './routes/api/internal/discord/embed'
 import { Route as ApiAuthDiscordCallbackRouteImport } from './routes/api/auth/discord/callback'
 
 const ProfileRoute = ProfileRouteImport.update({
@@ -96,11 +132,6 @@ const MarketsRoute = MarketsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GovernanceRoute = GovernanceRouteImport.update({
-  id: '/governance',
-  path: '/governance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -121,6 +152,11 @@ const TerminalRouteRoute = TerminalRouteRouteImport.update({
 const InternalRouteRoute = InternalRouteRouteImport.update({
   id: '/internal',
   path: '/internal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GovernanceRouteRoute = GovernanceRouteRouteImport.update({
+  id: '/governance',
+  path: '/governance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExchangeRouteRoute = ExchangeRouteRouteImport.update({
@@ -147,6 +183,11 @@ const InternalIndexRoute = InternalIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => InternalRouteRoute,
+} as any)
+const GovernanceIndexRoute = GovernanceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GovernanceRouteRoute,
 } as any)
 const ExchangeIndexRoute = ExchangeIndexRouteImport.update({
   id: '/',
@@ -198,11 +239,6 @@ const TerminalIpoRoute = TerminalIpoRouteImport.update({
   path: '/ipo',
   getParentRoute: () => TerminalRouteRoute,
 } as any)
-const InternalUsersRoute = InternalUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => InternalRouteRoute,
-} as any)
 const InternalTerminalRoute = InternalTerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
@@ -228,6 +264,11 @@ const InternalExchangeRoute = InternalExchangeRouteImport.update({
   path: '/exchange',
   getParentRoute: () => InternalRouteRoute,
 } as any)
+const InternalEmbedsRoute = InternalEmbedsRouteImport.update({
+  id: '/embeds',
+  path: '/embeds',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
 const InternalComplianceRoute = InternalComplianceRouteImport.update({
   id: '/compliance',
   path: '/compliance',
@@ -242,6 +283,16 @@ const InternalApiApplicationsRoute = InternalApiApplicationsRouteImport.update({
   id: '/api-applications',
   path: '/api-applications',
   getParentRoute: () => InternalRouteRoute,
+} as any)
+const GovernanceLeadershipRoute = GovernanceLeadershipRouteImport.update({
+  id: '/leadership',
+  path: '/leadership',
+  getParentRoute: () => GovernanceRouteRoute,
+} as any)
+const GovernanceDocumentsRoute = GovernanceDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => GovernanceRouteRoute,
 } as any)
 const ExchangeResearchRoute = ExchangeResearchRouteImport.update({
   id: '/research',
@@ -303,6 +354,11 @@ const BankPrivateRoute = BankPrivateRouteImport.update({
   path: '/bank/private',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BankPayRoute = BankPayRouteImport.update({
+  id: '/bank/pay',
+  path: '/bank/pay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BankOpenRoute = BankOpenRouteImport.update({
   id: '/bank/open',
   path: '/bank/open',
@@ -328,11 +384,6 @@ const BankDashboardRoute = BankDashboardRouteImport.update({
   path: '/bank/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BankBusinessRoute = BankBusinessRouteImport.update({
-  id: '/bank/business',
-  path: '/bank/business',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BankAccountsRoute = BankAccountsRouteImport.update({
   id: '/bank/accounts',
   path: '/bank/accounts',
@@ -348,10 +399,25 @@ const BankTransfersRouteRoute = BankTransfersRouteRouteImport.update({
   path: '/bank/transfers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BankBusinessRouteRoute = BankBusinessRouteRouteImport.update({
+  id: '/bank/business',
+  path: '/bank/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InternalUsersIndexRoute = InternalUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
 const InternalCompaniesIndexRoute = InternalCompaniesIndexRouteImport.update({
   id: '/companies/',
   path: '/companies/',
   getParentRoute: () => InternalRouteRoute,
+} as any)
+const ExchangeTerminalIndexRoute = ExchangeTerminalIndexRouteImport.update({
+  id: '/terminal/',
+  path: '/terminal/',
+  getParentRoute: () => ExchangeRouteRoute,
 } as any)
 const CompaniesCompanyIdIndexRoute = CompaniesCompanyIdIndexRouteImport.update({
   id: '/',
@@ -363,12 +429,37 @@ const BankTransfersIndexRoute = BankTransfersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BankTransfersRouteRoute,
 } as any)
+const BankStatementsIndexRoute = BankStatementsIndexRouteImport.update({
+  id: '/bank/statements/',
+  path: '/bank/statements/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankBusinessIndexRoute = BankBusinessIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BankBusinessRouteRoute,
+} as any)
+const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
 const InternalCompaniesCompanyIdRoute =
   InternalCompaniesCompanyIdRouteImport.update({
     id: '/companies/$companyId',
     path: '/companies/$companyId',
     getParentRoute: () => InternalRouteRoute,
   } as any)
+const InternalBankScheduledRoute = InternalBankScheduledRouteImport.update({
+  id: '/scheduled',
+  path: '/scheduled',
+  getParentRoute: () => InternalBankRoute,
+} as any)
+const ExchangeTerminalSplatRoute = ExchangeTerminalSplatRouteImport.update({
+  id: '/terminal/$',
+  path: '/terminal/$',
+  getParentRoute: () => ExchangeRouteRoute,
+} as any)
 const CompaniesCompanyIdSettingsRoute =
   CompaniesCompanyIdSettingsRouteImport.update({
     id: '/settings',
@@ -396,6 +487,33 @@ const BankTransfersContactsRoute = BankTransfersContactsRouteImport.update({
   path: '/contacts',
   getParentRoute: () => BankTransfersRouteRoute,
 } as any)
+const BankStatementsStatementIdRoute =
+  BankStatementsStatementIdRouteImport.update({
+    id: '/bank/statements/$statementId',
+    path: '/bank/statements/$statementId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BankBusinessStatementsRoute = BankBusinessStatementsRouteImport.update({
+  id: '/statements',
+  path: '/statements',
+  getParentRoute: () => BankBusinessRouteRoute,
+} as any)
+const BankBusinessRepresentativesRoute =
+  BankBusinessRepresentativesRouteImport.update({
+    id: '/representatives',
+    path: '/representatives',
+    getParentRoute: () => BankBusinessRouteRoute,
+  } as any)
+const BankBusinessPayrollRoute = BankBusinessPayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => BankBusinessRouteRoute,
+} as any)
+const BankBusinessPaymentsRoute = BankBusinessPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => BankBusinessRouteRoute,
+} as any)
 const BankAdminPrivateRoute = BankAdminPrivateRouteImport.update({
   id: '/bank/admin/private',
   path: '/bank/admin/private',
@@ -416,14 +534,21 @@ const BankAccountsOpenRoute = BankAccountsOpenRouteImport.update({
   path: '/open',
   getParentRoute: () => BankAccountsRoute,
 } as any)
-const BankAccountsAccountIdRoute = BankAccountsAccountIdRouteImport.update({
-  id: '/$accountId',
-  path: '/$accountId',
-  getParentRoute: () => BankAccountsRoute,
-} as any)
-const BankAccountAccountIdRoute = BankAccountAccountIdRouteImport.update({
-  id: '/bank/account/$accountId',
-  path: '/bank/account/$accountId',
+const ApiCronScheduledTransfersRoute =
+  ApiCronScheduledTransfersRouteImport.update({
+    id: '/api/cron/scheduled-transfers',
+    path: '/api/cron/scheduled-transfers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiBankWithdrawalRequestRoute =
+  ApiBankWithdrawalRequestRouteImport.update({
+    id: '/api/bank/withdrawal-request',
+    path: '/api/bank/withdrawal-request',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiBankDepositRequestRoute = ApiBankDepositRequestRouteImport.update({
+  id: '/api/bank/deposit-request',
+  path: '/api/bank/deposit-request',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthDiscordRoute = ApiAuthDiscordRouteImport.update({
@@ -437,11 +562,35 @@ const ExchangeCompanyTickerRouteRoute =
     path: '/company/$ticker',
     getParentRoute: () => ExchangeRouteRoute,
   } as any)
+const BankAccountsAccountIdRouteRoute =
+  BankAccountsAccountIdRouteRouteImport.update({
+    id: '/$accountId',
+    path: '/$accountId',
+    getParentRoute: () => BankAccountsRoute,
+  } as any)
+const BankAccountAccountIdRouteRoute =
+  BankAccountAccountIdRouteRouteImport.update({
+    id: '/bank/account/$accountId',
+    path: '/bank/account/$accountId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ExchangeCompanyTickerIndexRoute =
   ExchangeCompanyTickerIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
+  } as any)
+const BankAccountsAccountIdIndexRoute =
+  BankAccountsAccountIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdIndexRoute =
+  BankAccountAccountIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
   } as any)
 const ExchangeCompanyTickerOwnerRoute =
   ExchangeCompanyTickerOwnerRouteImport.update({
@@ -449,6 +598,95 @@ const ExchangeCompanyTickerOwnerRoute =
     path: '/owner',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
   } as any)
+const BankAccountsAccountIdStatementsRoute =
+  BankAccountsAccountIdStatementsRouteImport.update({
+    id: '/statements',
+    path: '/statements',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdSettingsRoute =
+  BankAccountsAccountIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdScheduledRoute =
+  BankAccountsAccountIdScheduledRouteImport.update({
+    id: '/scheduled',
+    path: '/scheduled',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdRepresentativesRoute =
+  BankAccountsAccountIdRepresentativesRouteImport.update({
+    id: '/representatives',
+    path: '/representatives',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdPayrollRoute =
+  BankAccountsAccountIdPayrollRouteImport.update({
+    id: '/payroll',
+    path: '/payroll',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdPaymentsRoute =
+  BankAccountsAccountIdPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountsAccountIdActivityRoute =
+  BankAccountsAccountIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => BankAccountsAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdStatementsRoute =
+  BankAccountAccountIdStatementsRouteImport.update({
+    id: '/statements',
+    path: '/statements',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdSettingsRoute =
+  BankAccountAccountIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdScheduledRoute =
+  BankAccountAccountIdScheduledRouteImport.update({
+    id: '/scheduled',
+    path: '/scheduled',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdRepresentativesRoute =
+  BankAccountAccountIdRepresentativesRouteImport.update({
+    id: '/representatives',
+    path: '/representatives',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdPayrollRoute =
+  BankAccountAccountIdPayrollRouteImport.update({
+    id: '/payroll',
+    path: '/payroll',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdPaymentsRoute =
+  BankAccountAccountIdPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const BankAccountAccountIdActivityRoute =
+  BankAccountAccountIdActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const ApiInternalDiscordEmbedRoute = ApiInternalDiscordEmbedRouteImport.update({
+  id: '/api/internal/discord/embed',
+  path: '/api/internal/discord/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthDiscordCallbackRoute = ApiAuthDiscordCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -459,23 +697,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
+  '/governance': typeof GovernanceRouteRouteWithChildren
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
-  '/governance': typeof GovernanceRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
+  '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
-  '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
   '/bank/open': typeof BankOpenRoute
+  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRoute
   '/bank/products': typeof BankProductsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -488,15 +727,17 @@ export interface FileRoutesByFullPath {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
+  '/governance/documents': typeof GovernanceDocumentsRoute
+  '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRoute
+  '/internal/bank': typeof InternalBankRouteWithChildren
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
-  '/internal/users': typeof InternalUsersRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -507,44 +748,76 @@ export interface FileRoutesByFullPath {
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
+  '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
   '/terminal/': typeof TerminalIndexRoute
+  '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
-  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
-  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
+  '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
+  '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/business/payments': typeof BankBusinessPaymentsRoute
+  '/bank/business/payroll': typeof BankBusinessPayrollRoute
+  '/bank/business/representatives': typeof BankBusinessRepresentativesRoute
+  '/bank/business/statements': typeof BankBusinessStatementsRoute
+  '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
   '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/bank/business/': typeof BankBusinessIndexRoute
+  '/bank/statements/': typeof BankStatementsIndexRoute
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
+  '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
+  '/internal/users/': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
+  '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
+  '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
+  '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
+  '/bank/account/$accountId/representatives': typeof BankAccountAccountIdRepresentativesRoute
+  '/bank/account/$accountId/scheduled': typeof BankAccountAccountIdScheduledRoute
+  '/bank/account/$accountId/settings': typeof BankAccountAccountIdSettingsRoute
+  '/bank/account/$accountId/statements': typeof BankAccountAccountIdStatementsRoute
+  '/bank/accounts/$accountId/activity': typeof BankAccountsAccountIdActivityRoute
+  '/bank/accounts/$accountId/payments': typeof BankAccountsAccountIdPaymentsRoute
+  '/bank/accounts/$accountId/payroll': typeof BankAccountsAccountIdPayrollRoute
+  '/bank/accounts/$accountId/representatives': typeof BankAccountsAccountIdRepresentativesRoute
+  '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
+  '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
+  '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
+  '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
-  '/governance': typeof GovernanceRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
-  '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
   '/bank/open': typeof BankOpenRoute
+  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRoute
   '/bank/products': typeof BankProductsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -557,15 +830,17 @@ export interface FileRoutesByTo {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
+  '/governance/documents': typeof GovernanceDocumentsRoute
+  '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRoute
+  '/internal/bank': typeof InternalBankRouteWithChildren
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
-  '/internal/users': typeof InternalUsersRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -576,26 +851,57 @@ export interface FileRoutesByTo {
   '/bank': typeof BankIndexRoute
   '/companies': typeof CompaniesIndexRoute
   '/exchange': typeof ExchangeIndexRoute
+  '/governance': typeof GovernanceIndexRoute
   '/internal': typeof InternalIndexRoute
   '/terminal': typeof TerminalIndexRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
-  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
-  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
+  '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
+  '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/business/payments': typeof BankBusinessPaymentsRoute
+  '/bank/business/payroll': typeof BankBusinessPayrollRoute
+  '/bank/business/representatives': typeof BankBusinessRepresentativesRoute
+  '/bank/business/statements': typeof BankBusinessStatementsRoute
+  '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
   '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/bank/business': typeof BankBusinessIndexRoute
+  '/bank/statements': typeof BankStatementsIndexRoute
   '/bank/transfers': typeof BankTransfersIndexRoute
   '/companies/$companyId': typeof CompaniesCompanyIdIndexRoute
+  '/exchange/terminal': typeof ExchangeTerminalIndexRoute
   '/internal/companies': typeof InternalCompaniesIndexRoute
+  '/internal/users': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
+  '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
+  '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
+  '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
+  '/bank/account/$accountId/representatives': typeof BankAccountAccountIdRepresentativesRoute
+  '/bank/account/$accountId/scheduled': typeof BankAccountAccountIdScheduledRoute
+  '/bank/account/$accountId/settings': typeof BankAccountAccountIdSettingsRoute
+  '/bank/account/$accountId/statements': typeof BankAccountAccountIdStatementsRoute
+  '/bank/accounts/$accountId/activity': typeof BankAccountsAccountIdActivityRoute
+  '/bank/accounts/$accountId/payments': typeof BankAccountsAccountIdPaymentsRoute
+  '/bank/accounts/$accountId/payroll': typeof BankAccountsAccountIdPayrollRoute
+  '/bank/accounts/$accountId/representatives': typeof BankAccountsAccountIdRepresentativesRoute
+  '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
+  '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
+  '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
 }
 export interface FileRoutesById {
@@ -603,23 +909,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
+  '/governance': typeof GovernanceRouteRouteWithChildren
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
-  '/governance': typeof GovernanceRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
+  '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
-  '/bank/business': typeof BankBusinessRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/lending': typeof BankLendingRoute
   '/bank/open': typeof BankOpenRoute
+  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRoute
   '/bank/products': typeof BankProductsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -632,15 +939,17 @@ export interface FileRoutesById {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
+  '/governance/documents': typeof GovernanceDocumentsRoute
+  '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRoute
+  '/internal/bank': typeof InternalBankRouteWithChildren
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
-  '/internal/users': typeof InternalUsersRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -651,27 +960,60 @@ export interface FileRoutesById {
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
+  '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
   '/terminal/': typeof TerminalIndexRoute
+  '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
+  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
-  '/bank/account/$accountId': typeof BankAccountAccountIdRoute
-  '/bank/accounts/$accountId': typeof BankAccountsAccountIdRoute
+  '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
+  '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
+  '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
   '/bank/admin/private': typeof BankAdminPrivateRoute
+  '/bank/business/payments': typeof BankBusinessPaymentsRoute
+  '/bank/business/payroll': typeof BankBusinessPayrollRoute
+  '/bank/business/representatives': typeof BankBusinessRepresentativesRoute
+  '/bank/business/statements': typeof BankBusinessStatementsRoute
+  '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
   '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
+  '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/bank/business/': typeof BankBusinessIndexRoute
+  '/bank/statements/': typeof BankStatementsIndexRoute
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
+  '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
+  '/internal/users/': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
+  '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
+  '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
+  '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
+  '/bank/account/$accountId/representatives': typeof BankAccountAccountIdRepresentativesRoute
+  '/bank/account/$accountId/scheduled': typeof BankAccountAccountIdScheduledRoute
+  '/bank/account/$accountId/settings': typeof BankAccountAccountIdSettingsRoute
+  '/bank/account/$accountId/statements': typeof BankAccountAccountIdStatementsRoute
+  '/bank/accounts/$accountId/activity': typeof BankAccountsAccountIdActivityRoute
+  '/bank/accounts/$accountId/payments': typeof BankAccountsAccountIdPaymentsRoute
+  '/bank/accounts/$accountId/payroll': typeof BankAccountsAccountIdPayrollRoute
+  '/bank/accounts/$accountId/representatives': typeof BankAccountsAccountIdRepresentativesRoute
+  '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
+  '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
+  '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
+  '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
 }
 export interface FileRouteTypes {
@@ -680,23 +1022,24 @@ export interface FileRouteTypes {
     | '/'
     | '/companies'
     | '/exchange'
+    | '/governance'
     | '/internal'
     | '/terminal'
     | '/access-restricted'
     | '/dashboard'
-    | '/governance'
     | '/login'
     | '/markets'
     | '/profile'
+    | '/bank/business'
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/bank/accounts'
-    | '/bank/business'
     | '/bank/dashboard'
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
     | '/bank/open'
+    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/withdraw'
@@ -709,15 +1052,17 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
+    | '/governance/documents'
+    | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/bank'
     | '/internal/compliance'
+    | '/internal/embeds'
     | '/internal/exchange'
     | '/internal/ipos'
     | '/internal/listings'
     | '/internal/settings'
     | '/internal/terminal'
-    | '/internal/users'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -728,44 +1073,76 @@ export interface FileRouteTypes {
     | '/bank/'
     | '/companies/'
     | '/exchange/'
+    | '/governance/'
     | '/internal/'
     | '/terminal/'
-    | '/exchange/company/$ticker'
-    | '/api/auth/discord'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
+    | '/exchange/company/$ticker'
+    | '/api/auth/discord'
+    | '/api/bank/deposit-request'
+    | '/api/bank/withdrawal-request'
+    | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/business/payments'
+    | '/bank/business/payroll'
+    | '/bank/business/representatives'
+    | '/bank/business/statements'
+    | '/bank/statements/$statementId'
     | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
+    | '/exchange/terminal/$'
+    | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/users/$userId'
+    | '/bank/business/'
+    | '/bank/statements/'
     | '/bank/transfers/'
     | '/companies/$companyId/'
+    | '/exchange/terminal/'
     | '/internal/companies/'
+    | '/internal/users/'
     | '/api/auth/discord/callback'
+    | '/api/internal/discord/embed'
+    | '/bank/account/$accountId/activity'
+    | '/bank/account/$accountId/payments'
+    | '/bank/account/$accountId/payroll'
+    | '/bank/account/$accountId/representatives'
+    | '/bank/account/$accountId/scheduled'
+    | '/bank/account/$accountId/settings'
+    | '/bank/account/$accountId/statements'
+    | '/bank/accounts/$accountId/activity'
+    | '/bank/accounts/$accountId/payments'
+    | '/bank/accounts/$accountId/payroll'
+    | '/bank/accounts/$accountId/representatives'
+    | '/bank/accounts/$accountId/scheduled'
+    | '/bank/accounts/$accountId/settings'
+    | '/bank/accounts/$accountId/statements'
     | '/exchange/company/$ticker/owner'
+    | '/bank/account/$accountId/'
+    | '/bank/accounts/$accountId/'
     | '/exchange/company/$ticker/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/access-restricted'
     | '/dashboard'
-    | '/governance'
     | '/login'
     | '/markets'
     | '/profile'
     | '/bank/accounts'
-    | '/bank/business'
     | '/bank/dashboard'
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
     | '/bank/open'
+    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/withdraw'
@@ -778,15 +1155,17 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
+    | '/governance/documents'
+    | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/bank'
     | '/internal/compliance'
+    | '/internal/embeds'
     | '/internal/exchange'
     | '/internal/ipos'
     | '/internal/listings'
     | '/internal/settings'
     | '/internal/terminal'
-    | '/internal/users'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -797,49 +1176,81 @@ export interface FileRouteTypes {
     | '/bank'
     | '/companies'
     | '/exchange'
+    | '/governance'
     | '/internal'
     | '/terminal'
     | '/api/auth/discord'
-    | '/bank/account/$accountId'
-    | '/bank/accounts/$accountId'
+    | '/api/bank/deposit-request'
+    | '/api/bank/withdrawal-request'
+    | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/business/payments'
+    | '/bank/business/payroll'
+    | '/bank/business/representatives'
+    | '/bank/business/statements'
+    | '/bank/statements/$statementId'
     | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
+    | '/exchange/terminal/$'
+    | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/users/$userId'
+    | '/bank/business'
+    | '/bank/statements'
     | '/bank/transfers'
     | '/companies/$companyId'
+    | '/exchange/terminal'
     | '/internal/companies'
+    | '/internal/users'
     | '/api/auth/discord/callback'
+    | '/api/internal/discord/embed'
+    | '/bank/account/$accountId/activity'
+    | '/bank/account/$accountId/payments'
+    | '/bank/account/$accountId/payroll'
+    | '/bank/account/$accountId/representatives'
+    | '/bank/account/$accountId/scheduled'
+    | '/bank/account/$accountId/settings'
+    | '/bank/account/$accountId/statements'
+    | '/bank/accounts/$accountId/activity'
+    | '/bank/accounts/$accountId/payments'
+    | '/bank/accounts/$accountId/payroll'
+    | '/bank/accounts/$accountId/representatives'
+    | '/bank/accounts/$accountId/scheduled'
+    | '/bank/accounts/$accountId/settings'
+    | '/bank/accounts/$accountId/statements'
     | '/exchange/company/$ticker/owner'
+    | '/bank/account/$accountId'
+    | '/bank/accounts/$accountId'
     | '/exchange/company/$ticker'
   id:
     | '__root__'
     | '/'
     | '/companies'
     | '/exchange'
+    | '/governance'
     | '/internal'
     | '/terminal'
     | '/access-restricted'
     | '/dashboard'
-    | '/governance'
     | '/login'
     | '/markets'
     | '/profile'
+    | '/bank/business'
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/bank/accounts'
-    | '/bank/business'
     | '/bank/dashboard'
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/lending'
     | '/bank/open'
+    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/withdraw'
@@ -852,15 +1263,17 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
+    | '/governance/documents'
+    | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/bank'
     | '/internal/compliance'
+    | '/internal/embeds'
     | '/internal/exchange'
     | '/internal/ipos'
     | '/internal/listings'
     | '/internal/settings'
     | '/internal/terminal'
-    | '/internal/users'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -871,27 +1284,60 @@ export interface FileRouteTypes {
     | '/bank/'
     | '/companies/'
     | '/exchange/'
+    | '/governance/'
     | '/internal/'
     | '/terminal/'
-    | '/exchange/company/$ticker'
-    | '/api/auth/discord'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
+    | '/exchange/company/$ticker'
+    | '/api/auth/discord'
+    | '/api/bank/deposit-request'
+    | '/api/bank/withdrawal-request'
+    | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
     | '/bank/admin/private'
+    | '/bank/business/payments'
+    | '/bank/business/payroll'
+    | '/bank/business/representatives'
+    | '/bank/business/statements'
+    | '/bank/statements/$statementId'
     | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
+    | '/exchange/terminal/$'
+    | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/users/$userId'
+    | '/bank/business/'
+    | '/bank/statements/'
     | '/bank/transfers/'
     | '/companies/$companyId/'
+    | '/exchange/terminal/'
     | '/internal/companies/'
+    | '/internal/users/'
     | '/api/auth/discord/callback'
+    | '/api/internal/discord/embed'
+    | '/bank/account/$accountId/activity'
+    | '/bank/account/$accountId/payments'
+    | '/bank/account/$accountId/payroll'
+    | '/bank/account/$accountId/representatives'
+    | '/bank/account/$accountId/scheduled'
+    | '/bank/account/$accountId/settings'
+    | '/bank/account/$accountId/statements'
+    | '/bank/accounts/$accountId/activity'
+    | '/bank/accounts/$accountId/payments'
+    | '/bank/accounts/$accountId/payroll'
+    | '/bank/accounts/$accountId/representatives'
+    | '/bank/accounts/$accountId/scheduled'
+    | '/bank/accounts/$accountId/settings'
+    | '/bank/accounts/$accountId/statements'
     | '/exchange/company/$ticker/owner'
+    | '/bank/account/$accountId/'
+    | '/bank/accounts/$accountId/'
     | '/exchange/company/$ticker/'
   fileRoutesById: FileRoutesById
 }
@@ -899,31 +1345,38 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompaniesRouteRoute: typeof CompaniesRouteRouteWithChildren
   ExchangeRouteRoute: typeof ExchangeRouteRouteWithChildren
+  GovernanceRouteRoute: typeof GovernanceRouteRouteWithChildren
   InternalRouteRoute: typeof InternalRouteRouteWithChildren
   TerminalRouteRoute: typeof TerminalRouteRouteWithChildren
   AccessRestrictedRoute: typeof AccessRestrictedRoute
   DashboardRoute: typeof DashboardRoute
-  GovernanceRoute: typeof GovernanceRoute
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRoute
   ProfileRoute: typeof ProfileRoute
+  BankBusinessRouteRoute: typeof BankBusinessRouteRouteWithChildren
   BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
   BankAccountsRoute: typeof BankAccountsRouteWithChildren
-  BankBusinessRoute: typeof BankBusinessRoute
   BankDashboardRoute: typeof BankDashboardRoute
   BankDepositRoute: typeof BankDepositRoute
   BankDepositsRoute: typeof BankDepositsRoute
   BankLendingRoute: typeof BankLendingRoute
   BankOpenRoute: typeof BankOpenRoute
+  BankPayRoute: typeof BankPayRoute
   BankPrivateRoute: typeof BankPrivateRoute
   BankProductsRoute: typeof BankProductsRoute
   BankWithdrawRoute: typeof BankWithdrawRoute
   BankIndexRoute: typeof BankIndexRoute
+  BankAccountAccountIdRouteRoute: typeof BankAccountAccountIdRouteRouteWithChildren
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
-  BankAccountAccountIdRoute: typeof BankAccountAccountIdRoute
+  ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
+  ApiBankWithdrawalRequestRoute: typeof ApiBankWithdrawalRequestRoute
+  ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
   BankAdminClientsRoute: typeof BankAdminClientsRoute
   BankAdminLoansRoute: typeof BankAdminLoansRoute
   BankAdminPrivateRoute: typeof BankAdminPrivateRoute
+  BankStatementsStatementIdRoute: typeof BankStatementsStatementIdRoute
+  BankStatementsIndexRoute: typeof BankStatementsIndexRoute
+  ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -947,13 +1400,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/governance': {
-      id: '/governance'
-      path: '/governance'
-      fullPath: '/governance'
-      preLoaderRoute: typeof GovernanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -982,6 +1428,13 @@ declare module '@tanstack/react-router' {
       path: '/internal'
       fullPath: '/internal'
       preLoaderRoute: typeof InternalRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/governance': {
+      id: '/governance'
+      path: '/governance'
+      fullPath: '/governance'
+      preLoaderRoute: typeof GovernanceRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exchange': {
@@ -1018,6 +1471,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/internal/'
       preLoaderRoute: typeof InternalIndexRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/governance/': {
+      id: '/governance/'
+      path: '/'
+      fullPath: '/governance/'
+      preLoaderRoute: typeof GovernanceIndexRouteImport
+      parentRoute: typeof GovernanceRouteRoute
     }
     '/exchange/': {
       id: '/exchange/'
@@ -1089,13 +1549,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TerminalIpoRouteImport
       parentRoute: typeof TerminalRouteRoute
     }
-    '/internal/users': {
-      id: '/internal/users'
-      path: '/users'
-      fullPath: '/internal/users'
-      preLoaderRoute: typeof InternalUsersRouteImport
-      parentRoute: typeof InternalRouteRoute
-    }
     '/internal/terminal': {
       id: '/internal/terminal'
       path: '/terminal'
@@ -1131,6 +1584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalExchangeRouteImport
       parentRoute: typeof InternalRouteRoute
     }
+    '/internal/embeds': {
+      id: '/internal/embeds'
+      path: '/embeds'
+      fullPath: '/internal/embeds'
+      preLoaderRoute: typeof InternalEmbedsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/compliance': {
       id: '/internal/compliance'
       path: '/compliance'
@@ -1151,6 +1611,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/internal/api-applications'
       preLoaderRoute: typeof InternalApiApplicationsRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/governance/leadership': {
+      id: '/governance/leadership'
+      path: '/leadership'
+      fullPath: '/governance/leadership'
+      preLoaderRoute: typeof GovernanceLeadershipRouteImport
+      parentRoute: typeof GovernanceRouteRoute
+    }
+    '/governance/documents': {
+      id: '/governance/documents'
+      path: '/documents'
+      fullPath: '/governance/documents'
+      preLoaderRoute: typeof GovernanceDocumentsRouteImport
+      parentRoute: typeof GovernanceRouteRoute
     }
     '/exchange/research': {
       id: '/exchange/research'
@@ -1236,6 +1710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankPrivateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank/pay': {
+      id: '/bank/pay'
+      path: '/bank/pay'
+      fullPath: '/bank/pay'
+      preLoaderRoute: typeof BankPayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/open': {
       id: '/bank/open'
       path: '/bank/open'
@@ -1271,13 +1752,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/bank/business': {
-      id: '/bank/business'
-      path: '/bank/business'
-      fullPath: '/bank/business'
-      preLoaderRoute: typeof BankBusinessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/bank/accounts': {
       id: '/bank/accounts'
       path: '/bank/accounts'
@@ -1299,12 +1773,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankTransfersRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank/business': {
+      id: '/bank/business'
+      path: '/bank/business'
+      fullPath: '/bank/business'
+      preLoaderRoute: typeof BankBusinessRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/users/': {
+      id: '/internal/users/'
+      path: '/users'
+      fullPath: '/internal/users/'
+      preLoaderRoute: typeof InternalUsersIndexRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/companies/': {
       id: '/internal/companies/'
       path: '/companies'
       fullPath: '/internal/companies/'
       preLoaderRoute: typeof InternalCompaniesIndexRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/exchange/terminal/': {
+      id: '/exchange/terminal/'
+      path: '/terminal'
+      fullPath: '/exchange/terminal/'
+      preLoaderRoute: typeof ExchangeTerminalIndexRouteImport
+      parentRoute: typeof ExchangeRouteRoute
     }
     '/companies/$companyId/': {
       id: '/companies/$companyId/'
@@ -1320,12 +1815,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankTransfersIndexRouteImport
       parentRoute: typeof BankTransfersRouteRoute
     }
+    '/bank/statements/': {
+      id: '/bank/statements/'
+      path: '/bank/statements'
+      fullPath: '/bank/statements/'
+      preLoaderRoute: typeof BankStatementsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/business/': {
+      id: '/bank/business/'
+      path: '/'
+      fullPath: '/bank/business/'
+      preLoaderRoute: typeof BankBusinessIndexRouteImport
+      parentRoute: typeof BankBusinessRouteRoute
+    }
+    '/internal/users/$userId': {
+      id: '/internal/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/internal/users/$userId'
+      preLoaderRoute: typeof InternalUsersUserIdRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/companies/$companyId': {
       id: '/internal/companies/$companyId'
       path: '/companies/$companyId'
       fullPath: '/internal/companies/$companyId'
       preLoaderRoute: typeof InternalCompaniesCompanyIdRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/bank/scheduled': {
+      id: '/internal/bank/scheduled'
+      path: '/scheduled'
+      fullPath: '/internal/bank/scheduled'
+      preLoaderRoute: typeof InternalBankScheduledRouteImport
+      parentRoute: typeof InternalBankRoute
+    }
+    '/exchange/terminal/$': {
+      id: '/exchange/terminal/$'
+      path: '/terminal/$'
+      fullPath: '/exchange/terminal/$'
+      preLoaderRoute: typeof ExchangeTerminalSplatRouteImport
+      parentRoute: typeof ExchangeRouteRoute
     }
     '/companies/$companyId/settings': {
       id: '/companies/$companyId/settings'
@@ -1362,6 +1892,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankTransfersContactsRouteImport
       parentRoute: typeof BankTransfersRouteRoute
     }
+    '/bank/statements/$statementId': {
+      id: '/bank/statements/$statementId'
+      path: '/bank/statements/$statementId'
+      fullPath: '/bank/statements/$statementId'
+      preLoaderRoute: typeof BankStatementsStatementIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/business/statements': {
+      id: '/bank/business/statements'
+      path: '/statements'
+      fullPath: '/bank/business/statements'
+      preLoaderRoute: typeof BankBusinessStatementsRouteImport
+      parentRoute: typeof BankBusinessRouteRoute
+    }
+    '/bank/business/representatives': {
+      id: '/bank/business/representatives'
+      path: '/representatives'
+      fullPath: '/bank/business/representatives'
+      preLoaderRoute: typeof BankBusinessRepresentativesRouteImport
+      parentRoute: typeof BankBusinessRouteRoute
+    }
+    '/bank/business/payroll': {
+      id: '/bank/business/payroll'
+      path: '/payroll'
+      fullPath: '/bank/business/payroll'
+      preLoaderRoute: typeof BankBusinessPayrollRouteImport
+      parentRoute: typeof BankBusinessRouteRoute
+    }
+    '/bank/business/payments': {
+      id: '/bank/business/payments'
+      path: '/payments'
+      fullPath: '/bank/business/payments'
+      preLoaderRoute: typeof BankBusinessPaymentsRouteImport
+      parentRoute: typeof BankBusinessRouteRoute
+    }
     '/bank/admin/private': {
       id: '/bank/admin/private'
       path: '/bank/admin/private'
@@ -1390,18 +1955,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountsOpenRouteImport
       parentRoute: typeof BankAccountsRoute
     }
-    '/bank/accounts/$accountId': {
-      id: '/bank/accounts/$accountId'
-      path: '/$accountId'
-      fullPath: '/bank/accounts/$accountId'
-      preLoaderRoute: typeof BankAccountsAccountIdRouteImport
-      parentRoute: typeof BankAccountsRoute
+    '/api/cron/scheduled-transfers': {
+      id: '/api/cron/scheduled-transfers'
+      path: '/api/cron/scheduled-transfers'
+      fullPath: '/api/cron/scheduled-transfers'
+      preLoaderRoute: typeof ApiCronScheduledTransfersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/bank/account/$accountId': {
-      id: '/bank/account/$accountId'
-      path: '/bank/account/$accountId'
-      fullPath: '/bank/account/$accountId'
-      preLoaderRoute: typeof BankAccountAccountIdRouteImport
+    '/api/bank/withdrawal-request': {
+      id: '/api/bank/withdrawal-request'
+      path: '/api/bank/withdrawal-request'
+      fullPath: '/api/bank/withdrawal-request'
+      preLoaderRoute: typeof ApiBankWithdrawalRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bank/deposit-request': {
+      id: '/api/bank/deposit-request'
+      path: '/api/bank/deposit-request'
+      fullPath: '/api/bank/deposit-request'
+      preLoaderRoute: typeof ApiBankDepositRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/discord': {
@@ -1418,6 +1990,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExchangeCompanyTickerRouteRouteImport
       parentRoute: typeof ExchangeRouteRoute
     }
+    '/bank/accounts/$accountId': {
+      id: '/bank/accounts/$accountId'
+      path: '/$accountId'
+      fullPath: '/bank/accounts/$accountId'
+      preLoaderRoute: typeof BankAccountsAccountIdRouteRouteImport
+      parentRoute: typeof BankAccountsRoute
+    }
+    '/bank/account/$accountId': {
+      id: '/bank/account/$accountId'
+      path: '/bank/account/$accountId'
+      fullPath: '/bank/account/$accountId'
+      preLoaderRoute: typeof BankAccountAccountIdRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exchange/company/$ticker/': {
       id: '/exchange/company/$ticker/'
       path: '/'
@@ -1425,12 +2011,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExchangeCompanyTickerIndexRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
     }
+    '/bank/accounts/$accountId/': {
+      id: '/bank/accounts/$accountId/'
+      path: '/'
+      fullPath: '/bank/accounts/$accountId/'
+      preLoaderRoute: typeof BankAccountsAccountIdIndexRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/': {
+      id: '/bank/account/$accountId/'
+      path: '/'
+      fullPath: '/bank/account/$accountId/'
+      preLoaderRoute: typeof BankAccountAccountIdIndexRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
     '/exchange/company/$ticker/owner': {
       id: '/exchange/company/$ticker/owner'
       path: '/owner'
       fullPath: '/exchange/company/$ticker/owner'
       preLoaderRoute: typeof ExchangeCompanyTickerOwnerRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
+    }
+    '/bank/accounts/$accountId/statements': {
+      id: '/bank/accounts/$accountId/statements'
+      path: '/statements'
+      fullPath: '/bank/accounts/$accountId/statements'
+      preLoaderRoute: typeof BankAccountsAccountIdStatementsRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/settings': {
+      id: '/bank/accounts/$accountId/settings'
+      path: '/settings'
+      fullPath: '/bank/accounts/$accountId/settings'
+      preLoaderRoute: typeof BankAccountsAccountIdSettingsRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/scheduled': {
+      id: '/bank/accounts/$accountId/scheduled'
+      path: '/scheduled'
+      fullPath: '/bank/accounts/$accountId/scheduled'
+      preLoaderRoute: typeof BankAccountsAccountIdScheduledRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/representatives': {
+      id: '/bank/accounts/$accountId/representatives'
+      path: '/representatives'
+      fullPath: '/bank/accounts/$accountId/representatives'
+      preLoaderRoute: typeof BankAccountsAccountIdRepresentativesRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/payroll': {
+      id: '/bank/accounts/$accountId/payroll'
+      path: '/payroll'
+      fullPath: '/bank/accounts/$accountId/payroll'
+      preLoaderRoute: typeof BankAccountsAccountIdPayrollRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/payments': {
+      id: '/bank/accounts/$accountId/payments'
+      path: '/payments'
+      fullPath: '/bank/accounts/$accountId/payments'
+      preLoaderRoute: typeof BankAccountsAccountIdPaymentsRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/accounts/$accountId/activity': {
+      id: '/bank/accounts/$accountId/activity'
+      path: '/activity'
+      fullPath: '/bank/accounts/$accountId/activity'
+      preLoaderRoute: typeof BankAccountsAccountIdActivityRouteImport
+      parentRoute: typeof BankAccountsAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/statements': {
+      id: '/bank/account/$accountId/statements'
+      path: '/statements'
+      fullPath: '/bank/account/$accountId/statements'
+      preLoaderRoute: typeof BankAccountAccountIdStatementsRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/settings': {
+      id: '/bank/account/$accountId/settings'
+      path: '/settings'
+      fullPath: '/bank/account/$accountId/settings'
+      preLoaderRoute: typeof BankAccountAccountIdSettingsRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/scheduled': {
+      id: '/bank/account/$accountId/scheduled'
+      path: '/scheduled'
+      fullPath: '/bank/account/$accountId/scheduled'
+      preLoaderRoute: typeof BankAccountAccountIdScheduledRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/representatives': {
+      id: '/bank/account/$accountId/representatives'
+      path: '/representatives'
+      fullPath: '/bank/account/$accountId/representatives'
+      preLoaderRoute: typeof BankAccountAccountIdRepresentativesRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/payroll': {
+      id: '/bank/account/$accountId/payroll'
+      path: '/payroll'
+      fullPath: '/bank/account/$accountId/payroll'
+      preLoaderRoute: typeof BankAccountAccountIdPayrollRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/payments': {
+      id: '/bank/account/$accountId/payments'
+      path: '/payments'
+      fullPath: '/bank/account/$accountId/payments'
+      preLoaderRoute: typeof BankAccountAccountIdPaymentsRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/bank/account/$accountId/activity': {
+      id: '/bank/account/$accountId/activity'
+      path: '/activity'
+      fullPath: '/bank/account/$accountId/activity'
+      preLoaderRoute: typeof BankAccountAccountIdActivityRouteImport
+      parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/api/internal/discord/embed': {
+      id: '/api/internal/discord/embed'
+      path: '/api/internal/discord/embed'
+      fullPath: '/api/internal/discord/embed'
+      preLoaderRoute: typeof ApiInternalDiscordEmbedRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/discord/callback': {
       id: '/api/auth/discord/callback'
@@ -1503,6 +2208,8 @@ interface ExchangeRouteRouteChildren {
   ExchangeResearchRoute: typeof ExchangeResearchRoute
   ExchangeIndexRoute: typeof ExchangeIndexRoute
   ExchangeCompanyTickerRouteRoute: typeof ExchangeCompanyTickerRouteRouteWithChildren
+  ExchangeTerminalSplatRoute: typeof ExchangeTerminalSplatRoute
+  ExchangeTerminalIndexRoute: typeof ExchangeTerminalIndexRoute
 }
 
 const ExchangeRouteRouteChildren: ExchangeRouteRouteChildren = {
@@ -1516,40 +2223,74 @@ const ExchangeRouteRouteChildren: ExchangeRouteRouteChildren = {
   ExchangeResearchRoute: ExchangeResearchRoute,
   ExchangeIndexRoute: ExchangeIndexRoute,
   ExchangeCompanyTickerRouteRoute: ExchangeCompanyTickerRouteRouteWithChildren,
+  ExchangeTerminalSplatRoute: ExchangeTerminalSplatRoute,
+  ExchangeTerminalIndexRoute: ExchangeTerminalIndexRoute,
 }
 
 const ExchangeRouteRouteWithChildren = ExchangeRouteRoute._addFileChildren(
   ExchangeRouteRouteChildren,
 )
 
+interface GovernanceRouteRouteChildren {
+  GovernanceDocumentsRoute: typeof GovernanceDocumentsRoute
+  GovernanceLeadershipRoute: typeof GovernanceLeadershipRoute
+  GovernanceIndexRoute: typeof GovernanceIndexRoute
+}
+
+const GovernanceRouteRouteChildren: GovernanceRouteRouteChildren = {
+  GovernanceDocumentsRoute: GovernanceDocumentsRoute,
+  GovernanceLeadershipRoute: GovernanceLeadershipRoute,
+  GovernanceIndexRoute: GovernanceIndexRoute,
+}
+
+const GovernanceRouteRouteWithChildren = GovernanceRouteRoute._addFileChildren(
+  GovernanceRouteRouteChildren,
+)
+
+interface InternalBankRouteChildren {
+  InternalBankScheduledRoute: typeof InternalBankScheduledRoute
+}
+
+const InternalBankRouteChildren: InternalBankRouteChildren = {
+  InternalBankScheduledRoute: InternalBankScheduledRoute,
+}
+
+const InternalBankRouteWithChildren = InternalBankRoute._addFileChildren(
+  InternalBankRouteChildren,
+)
+
 interface InternalRouteRouteChildren {
   InternalApiApplicationsRoute: typeof InternalApiApplicationsRoute
-  InternalBankRoute: typeof InternalBankRoute
+  InternalBankRoute: typeof InternalBankRouteWithChildren
   InternalComplianceRoute: typeof InternalComplianceRoute
+  InternalEmbedsRoute: typeof InternalEmbedsRoute
   InternalExchangeRoute: typeof InternalExchangeRoute
   InternalIposRoute: typeof InternalIposRoute
   InternalListingsRoute: typeof InternalListingsRoute
   InternalSettingsRoute: typeof InternalSettingsRoute
   InternalTerminalRoute: typeof InternalTerminalRoute
-  InternalUsersRoute: typeof InternalUsersRoute
   InternalIndexRoute: typeof InternalIndexRoute
   InternalCompaniesCompanyIdRoute: typeof InternalCompaniesCompanyIdRoute
+  InternalUsersUserIdRoute: typeof InternalUsersUserIdRoute
   InternalCompaniesIndexRoute: typeof InternalCompaniesIndexRoute
+  InternalUsersIndexRoute: typeof InternalUsersIndexRoute
 }
 
 const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalApiApplicationsRoute: InternalApiApplicationsRoute,
-  InternalBankRoute: InternalBankRoute,
+  InternalBankRoute: InternalBankRouteWithChildren,
   InternalComplianceRoute: InternalComplianceRoute,
+  InternalEmbedsRoute: InternalEmbedsRoute,
   InternalExchangeRoute: InternalExchangeRoute,
   InternalIposRoute: InternalIposRoute,
   InternalListingsRoute: InternalListingsRoute,
   InternalSettingsRoute: InternalSettingsRoute,
   InternalTerminalRoute: InternalTerminalRoute,
-  InternalUsersRoute: InternalUsersRoute,
   InternalIndexRoute: InternalIndexRoute,
   InternalCompaniesCompanyIdRoute: InternalCompaniesCompanyIdRoute,
+  InternalUsersUserIdRoute: InternalUsersUserIdRoute,
   InternalCompaniesIndexRoute: InternalCompaniesIndexRoute,
+  InternalUsersIndexRoute: InternalUsersIndexRoute,
 }
 
 const InternalRouteRouteWithChildren = InternalRouteRoute._addFileChildren(
@@ -1582,6 +2323,25 @@ const TerminalRouteRouteWithChildren = TerminalRouteRoute._addFileChildren(
   TerminalRouteRouteChildren,
 )
 
+interface BankBusinessRouteRouteChildren {
+  BankBusinessPaymentsRoute: typeof BankBusinessPaymentsRoute
+  BankBusinessPayrollRoute: typeof BankBusinessPayrollRoute
+  BankBusinessRepresentativesRoute: typeof BankBusinessRepresentativesRoute
+  BankBusinessStatementsRoute: typeof BankBusinessStatementsRoute
+  BankBusinessIndexRoute: typeof BankBusinessIndexRoute
+}
+
+const BankBusinessRouteRouteChildren: BankBusinessRouteRouteChildren = {
+  BankBusinessPaymentsRoute: BankBusinessPaymentsRoute,
+  BankBusinessPayrollRoute: BankBusinessPayrollRoute,
+  BankBusinessRepresentativesRoute: BankBusinessRepresentativesRoute,
+  BankBusinessStatementsRoute: BankBusinessStatementsRoute,
+  BankBusinessIndexRoute: BankBusinessIndexRoute,
+}
+
+const BankBusinessRouteRouteWithChildren =
+  BankBusinessRouteRoute._addFileChildren(BankBusinessRouteRouteChildren)
+
 interface BankTransfersRouteRouteChildren {
   BankTransfersContactsRoute: typeof BankTransfersContactsRoute
   BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
@@ -1599,19 +2359,77 @@ const BankTransfersRouteRouteChildren: BankTransfersRouteRouteChildren = {
 const BankTransfersRouteRouteWithChildren =
   BankTransfersRouteRoute._addFileChildren(BankTransfersRouteRouteChildren)
 
+interface BankAccountsAccountIdRouteRouteChildren {
+  BankAccountsAccountIdActivityRoute: typeof BankAccountsAccountIdActivityRoute
+  BankAccountsAccountIdPaymentsRoute: typeof BankAccountsAccountIdPaymentsRoute
+  BankAccountsAccountIdPayrollRoute: typeof BankAccountsAccountIdPayrollRoute
+  BankAccountsAccountIdRepresentativesRoute: typeof BankAccountsAccountIdRepresentativesRoute
+  BankAccountsAccountIdScheduledRoute: typeof BankAccountsAccountIdScheduledRoute
+  BankAccountsAccountIdSettingsRoute: typeof BankAccountsAccountIdSettingsRoute
+  BankAccountsAccountIdStatementsRoute: typeof BankAccountsAccountIdStatementsRoute
+  BankAccountsAccountIdIndexRoute: typeof BankAccountsAccountIdIndexRoute
+}
+
+const BankAccountsAccountIdRouteRouteChildren: BankAccountsAccountIdRouteRouteChildren =
+  {
+    BankAccountsAccountIdActivityRoute: BankAccountsAccountIdActivityRoute,
+    BankAccountsAccountIdPaymentsRoute: BankAccountsAccountIdPaymentsRoute,
+    BankAccountsAccountIdPayrollRoute: BankAccountsAccountIdPayrollRoute,
+    BankAccountsAccountIdRepresentativesRoute:
+      BankAccountsAccountIdRepresentativesRoute,
+    BankAccountsAccountIdScheduledRoute: BankAccountsAccountIdScheduledRoute,
+    BankAccountsAccountIdSettingsRoute: BankAccountsAccountIdSettingsRoute,
+    BankAccountsAccountIdStatementsRoute: BankAccountsAccountIdStatementsRoute,
+    BankAccountsAccountIdIndexRoute: BankAccountsAccountIdIndexRoute,
+  }
+
+const BankAccountsAccountIdRouteRouteWithChildren =
+  BankAccountsAccountIdRouteRoute._addFileChildren(
+    BankAccountsAccountIdRouteRouteChildren,
+  )
+
 interface BankAccountsRouteChildren {
-  BankAccountsAccountIdRoute: typeof BankAccountsAccountIdRoute
+  BankAccountsAccountIdRouteRoute: typeof BankAccountsAccountIdRouteRouteWithChildren
   BankAccountsOpenRoute: typeof BankAccountsOpenRoute
 }
 
 const BankAccountsRouteChildren: BankAccountsRouteChildren = {
-  BankAccountsAccountIdRoute: BankAccountsAccountIdRoute,
+  BankAccountsAccountIdRouteRoute: BankAccountsAccountIdRouteRouteWithChildren,
   BankAccountsOpenRoute: BankAccountsOpenRoute,
 }
 
 const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
   BankAccountsRouteChildren,
 )
+
+interface BankAccountAccountIdRouteRouteChildren {
+  BankAccountAccountIdActivityRoute: typeof BankAccountAccountIdActivityRoute
+  BankAccountAccountIdPaymentsRoute: typeof BankAccountAccountIdPaymentsRoute
+  BankAccountAccountIdPayrollRoute: typeof BankAccountAccountIdPayrollRoute
+  BankAccountAccountIdRepresentativesRoute: typeof BankAccountAccountIdRepresentativesRoute
+  BankAccountAccountIdScheduledRoute: typeof BankAccountAccountIdScheduledRoute
+  BankAccountAccountIdSettingsRoute: typeof BankAccountAccountIdSettingsRoute
+  BankAccountAccountIdStatementsRoute: typeof BankAccountAccountIdStatementsRoute
+  BankAccountAccountIdIndexRoute: typeof BankAccountAccountIdIndexRoute
+}
+
+const BankAccountAccountIdRouteRouteChildren: BankAccountAccountIdRouteRouteChildren =
+  {
+    BankAccountAccountIdActivityRoute: BankAccountAccountIdActivityRoute,
+    BankAccountAccountIdPaymentsRoute: BankAccountAccountIdPaymentsRoute,
+    BankAccountAccountIdPayrollRoute: BankAccountAccountIdPayrollRoute,
+    BankAccountAccountIdRepresentativesRoute:
+      BankAccountAccountIdRepresentativesRoute,
+    BankAccountAccountIdScheduledRoute: BankAccountAccountIdScheduledRoute,
+    BankAccountAccountIdSettingsRoute: BankAccountAccountIdSettingsRoute,
+    BankAccountAccountIdStatementsRoute: BankAccountAccountIdStatementsRoute,
+    BankAccountAccountIdIndexRoute: BankAccountAccountIdIndexRoute,
+  }
+
+const BankAccountAccountIdRouteRouteWithChildren =
+  BankAccountAccountIdRouteRoute._addFileChildren(
+    BankAccountAccountIdRouteRouteChildren,
+  )
 
 interface ApiAuthDiscordRouteChildren {
   ApiAuthDiscordCallbackRoute: typeof ApiAuthDiscordCallbackRoute
@@ -1629,31 +2447,38 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompaniesRouteRoute: CompaniesRouteRouteWithChildren,
   ExchangeRouteRoute: ExchangeRouteRouteWithChildren,
+  GovernanceRouteRoute: GovernanceRouteRouteWithChildren,
   InternalRouteRoute: InternalRouteRouteWithChildren,
   TerminalRouteRoute: TerminalRouteRouteWithChildren,
   AccessRestrictedRoute: AccessRestrictedRoute,
   DashboardRoute: DashboardRoute,
-  GovernanceRoute: GovernanceRoute,
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRoute,
   ProfileRoute: ProfileRoute,
+  BankBusinessRouteRoute: BankBusinessRouteRouteWithChildren,
   BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
   BankAccountsRoute: BankAccountsRouteWithChildren,
-  BankBusinessRoute: BankBusinessRoute,
   BankDashboardRoute: BankDashboardRoute,
   BankDepositRoute: BankDepositRoute,
   BankDepositsRoute: BankDepositsRoute,
   BankLendingRoute: BankLendingRoute,
   BankOpenRoute: BankOpenRoute,
+  BankPayRoute: BankPayRoute,
   BankPrivateRoute: BankPrivateRoute,
   BankProductsRoute: BankProductsRoute,
   BankWithdrawRoute: BankWithdrawRoute,
   BankIndexRoute: BankIndexRoute,
+  BankAccountAccountIdRouteRoute: BankAccountAccountIdRouteRouteWithChildren,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
-  BankAccountAccountIdRoute: BankAccountAccountIdRoute,
+  ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,
+  ApiBankWithdrawalRequestRoute: ApiBankWithdrawalRequestRoute,
+  ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
   BankAdminClientsRoute: BankAdminClientsRoute,
   BankAdminLoansRoute: BankAdminLoansRoute,
   BankAdminPrivateRoute: BankAdminPrivateRoute,
+  BankStatementsStatementIdRoute: BankStatementsStatementIdRoute,
+  BankStatementsIndexRoute: BankStatementsIndexRoute,
+  ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

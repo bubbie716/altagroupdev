@@ -4,13 +4,14 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
-  { to: "/bank", label: "Dashboard", exact: true },
+  { to: "/bank", label: "Dashboard", exact: true, activePaths: ["/bank/account"] },
   { to: "/bank/deposit", label: "Deposit" },
   { to: "/bank/withdraw", label: "Withdraw" },
   { to: "/bank/transfers", label: "Transfers", activePaths: ["/bank/transfers"] },
+  { to: "/bank/pay", label: "Alta Pay" },
+  { to: "/bank/statements", label: "Statements", activePaths: ["/bank/statements"] },
   { to: "/bank/products", label: "Products", activePaths: ["/bank/products", "/bank/deposits"] },
   { to: "/bank/lending", label: "Lending" },
-  { to: "/bank/business", label: "Business" },
   { to: "/bank/private", label: "Private", privateOnly: true },
 ] as const;
 
@@ -20,17 +21,18 @@ function isNavLinkActive(
 ): boolean {
   const path = pathname.replace(/\/$/, "") || "/";
   if ("activePaths" in link && link.activePaths) {
-    return link.activePaths.some((target) => {
+    const accountActive = link.activePaths.some((target) => {
       const normalized = target.replace(/\/$/, "") || "/";
       return path === normalized || path.startsWith(`${normalized}/`);
     });
+    if (accountActive) return true;
   }
   const target = link.to.replace(/\/$/, "") || "/";
   if ("exact" in link && link.exact) return path === target;
   return path === target || path.startsWith(`${target}/`);
 }
 
-export function BankSubNav() {
+export function BankSubNav({ className }: { className?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
   const visibleLinks = links.filter(
@@ -38,7 +40,7 @@ export function BankSubNav() {
   );
 
   return (
-    <nav className="mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4">
+    <nav className={cn("mb-10 flex flex-wrap gap-1 border-b border-border/60 pb-4", className)}>
       {visibleLinks.map((l) => {
         const active = isNavLinkActive(pathname, l);
         return (

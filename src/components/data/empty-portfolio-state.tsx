@@ -13,9 +13,9 @@ type EmptyPortfolioStateProps = {
 
 export function EmptyPortfolioState({
   title = "No portfolio connected yet.",
-  description = "Connect Alta Terminal to Alta Exchange to track holdings, orders, and performance.",
-  ctaLabel = "Explore Alta Exchange",
-  ctaTo = "/exchange",
+  description = "Sign in to access Alta Exchange Terminal and track holdings, orders, and performance.",
+  ctaLabel = "Open Alta Exchange Terminal",
+  ctaTo = "/terminal",
   children,
   compact = false,
 }: EmptyPortfolioStateProps) {
@@ -38,7 +38,7 @@ export function EmptyPortfolioState({
 
   return (
     <Card className="mx-auto max-w-lg !p-10 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">Alta Terminal</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">An Alta Exchange Product</p>
       <h2 className="mt-4 text-xl font-semibold tracking-tight">{title}</h2>
       <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-muted-foreground">{description}</p>
       {children}

@@ -6,23 +6,49 @@ Authorization for Alta Bank, Alta Exchange, Alta Terminal, and Internal uses **e
 
 ### Global tags (`UserTagAssignment`)
 
-Tags are granted by Alta operations via the database (see `npm run db:grant-tag`). A user may hold multiple tags.
-
-| Tag (app) | DB enum | Purpose |
-|-----------|---------|---------|
-| `admin` | `ADMIN` | Full internal access; admin-only actions |
-| `operator` | `OPERATOR` | Internal console access; no admin-only actions |
-| `private_client` | `PRIVATE_CLIENT` | Alta Private banking surfaces |
-| `developer` | `DEVELOPER` | Exchange API documentation and keys |
-| `issuer` | `ISSUER` | May submit new listing applications |
-
-Grant or revoke tags (one or more per command):
+Tags are granted through the internal portal at **`/internal/users`** (admin and operator access required). The CLI remains available for bootstrap and automation:
 
 ```bash
 npm run db:grant-tag -- DISCORD_ID admin private_client
 npm run db:grant-tag -- DISCORD_ID operator
 npm run db:grant-tag -- DISCORD_ID admin --remove
 ```
+
+| Tag (app) | DB enum | Purpose |
+|-----------|---------|---------|
+| `admin` | `ADMIN` | Full internal access; admin-only staff tag management |
+| `operator` | `OPERATOR` | Internal console access; cannot manage staff tags |
+| `private_client` | `PRIVATE_CLIENT` | Alta Private banking surfaces |
+| `developer` | `DEVELOPER` | Exchange API documentation and keys |
+| `issuer` | `ISSUER` | May submit new listing applications |
+
+### Internal tag management (`/internal/users`)
+
+| Actor | View users | Grant/revoke tags |
+|-------|------------|-------------------|
+| **Admin** | Yes | All tags (`admin`, `operator`, `private_client`, `developer`, `issuer`) |
+| **Operator** | Yes | `private_client`, `developer`, `issuer` only — **not** `admin` or `operator` |
+| **Everyone else** | No | No access to `/internal/users` |
+
+**Safety rules (enforced server-side):**
+
+- Cannot revoke the **last admin** on the platform.
+- Operators cannot grant or revoke **admin** or **operator** tags.
+- Users cannot modify their own **admin** tag (prevents accidental lockout).
+- Grant/revoke **admin**, revoke **operator**, and set **restricted** / **frozen** account status require confirmation in the UI.
+
+**Account status** (`User.accountStatus`):
+
+| Actor | Allowed status changes |
+|-------|------------------------|
+| **Admin** | `active`, `restricted`, `frozen`, `pending_review` |
+| **Operator** | `pending_review`, `restricted` only |
+
+Restricted and frozen accounts are already blocked by existing auth helpers (`auth.service.ts`, embed routes). No auth refactor required.
+
+**Audit:** Tag and status changes are not yet written to an append-only log. TODO: add `AuditLog` model and record `TAG_GRANTED`, `TAG_REVOKED`, `ACCOUNT_STATUS_CHANGED`.
+
+**Future:** Discord role sync — mirror `UserTagAssignment` to Discord guild roles when staff tags change (not implemented).
 
 **Developer access (legacy):** `User.developerAccessStatus === APPROVED` also grants developer permission via `isDeveloper()`, even without the `developer` tag. Prefer the tag for new grants.
 
@@ -86,7 +112,8 @@ Unauthenticated users redirect to `/login`. Authenticated but unauthorized users
 | Surface | Required permission | Enforced |
 |---------|---------------------|----------|
 | Internal console (`/internal`) | Admin **or** operator | Yes |
-| Admin-only internal actions | Admin only | Use `requireAdmin()` per action (future) |
+| Internal user & tag management (`/internal/users`) | Admin **or** operator (tag writes limited by role) | Yes |
+| Admin-only tag actions (admin/operator tags) | Admin only | Server-enforced in `internal-user-management.service.ts` |
 | Alta Private (`/bank/private`) | `private_client` tag | Yes |
 | Exchange API (`/exchange/api`) | Developer tag or approved developer status | Yes |
 | Issuer portal (`/exchange/company/[ticker]/owner`) | Company membership + issuer portal role | Yes |
@@ -121,8 +148,8 @@ Permission checks are pure functions on `AltaUser` (loaded with tags and enriche
 2. **Listing application guard** — Add `issuerBeforeLoad` on `/exchange/apply` using `requireIssuer()` / `isIssuer()`.
 3. **Terminal entitlements** — Map account tiers and market data licenses without new auth models.
 4. **Bank product scopes** — Layer product flags on top of `private_client` when real banking ships.
-5. **Audit logging** — Record permission denials and privileged actions in an append-only log table.
-6. **Tag management UI** — Internal tool to grant/revoke tags and assign company roles (today: CLI + direct DB).
+5. **Audit logging** — Record tag grants/revokes and account status changes in an append-only `AuditLog` table (TODO in internal user management service).
+6. **Discord role sync** — Propagate staff tags to Discord guild roles on grant/revoke.
 7. **Resource-level ACLs** — Fine-grained permissions per filing, API key, or account when backends go live.
 8. **Remove legacy developer field** — Migrate fully to `developer` tag once approval workflow is unified.
 

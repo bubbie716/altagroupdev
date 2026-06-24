@@ -8,9 +8,8 @@ import { Sun, Moon } from "lucide-react";
 const links = [
   { to: "/", label: "Home", exact: true },
   { to: "/bank", label: "Alta Bank", match: "/bank" },
-  { to: "/terminal", label: "Alta Terminal" },
-  { to: "/exchange", label: "Alta Exchange" },
-  { to: "/governance", label: "About" },
+  { to: "/exchange", label: "Alta Exchange", match: "/exchange" },
+  { to: "/governance", label: "About", match: "/governance" },
 ] as const;
 
 function isNavLinkActive(
@@ -64,6 +63,38 @@ export function SiteNav() {
   );
 }
 
+type FooterLink = { label: string; to: string };
+
+const footerColumns: { title: string; items: FooterLink[] }[] = [
+  {
+    title: "Divisions",
+    items: [
+      { label: "Alta Bank", to: "/bank" },
+      { label: "Alta Exchange", to: "/exchange" },
+      { label: "NCC", to: "/governance" },
+    ],
+  },
+  {
+    title: "Platform",
+    items: [
+      { label: "Alta Terminal", to: "/terminal" },
+      { label: "Market Data", to: "/exchange" },
+      { label: "Research", to: "/exchange/research" },
+      { label: "API", to: "/exchange/api" },
+    ],
+  },
+  {
+    title: "Company",
+    items: [
+      { label: "About", to: "/governance" },
+      { label: "Leadership", to: "/governance/leadership" },
+      { label: "Governance Documents", to: "/governance/documents" },
+      { label: "Press", to: "/governance" },
+      { label: "Careers", to: "/governance" },
+    ],
+  },
+];
+
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 mt-32">
@@ -75,18 +106,18 @@ export function SiteFooter() {
               Live Like the 1%
             </p>
           </div>
-          {[
-            { title: "Divisions", items: ["Alta Bank", "Alta Terminal", "Alta Exchange", "NCC"] },
-            { title: "Platform", items: ["Alta Terminal", "Alta Exchange", "Research", "API"] },
-          { title: "Company", items: ["About", "Governance", "Press", "Careers"] },
-          ].map((c) => (
+          {footerColumns.map((c) => (
             <div key={c.title}>
               <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                 {c.title}
               </div>
               <ul className="mt-4 space-y-2 text-sm text-foreground/90">
-                {c.items.map((i) => (
-                  <li key={i} className="hover:text-gold transition-colors cursor-default">{i}</li>
+                {c.items.map((item) => (
+                  <li key={item.label}>
+                    <Link to={item.to} className="transition-colors hover:text-gold">
+                      {item.label}
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -97,7 +128,7 @@ export function SiteFooter() {
             © 2026 Alta Group N.V. — Newport, ND · Florin-denominated · Settlement T+0
           </p>
           <p className="text-[11px] text-muted-foreground">
-            Simulated Newport financial infrastructure.
+            Alta platform data reflects live platform records where available. Market data remains simulated.
           </p>
         </div>
       </div>

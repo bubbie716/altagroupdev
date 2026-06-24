@@ -1,5 +1,6 @@
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/mock-data";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 
 type Row = {
   id: string;
@@ -20,7 +21,7 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <th className="px-5 py-3">Date</th>
+            <th className="px-5 py-3">Date & time</th>
             <th className="px-5 py-3">Reference</th>
             <th className="px-5 py-3">Description</th>
             <th className="px-5 py-3">Category</th>
@@ -33,7 +34,9 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
               key={t.id}
               className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40"
             >
-              <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">{t.date}</td>
+              <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
+                {formatActivityDateTime(t.date)}
+              </td>
               <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">{t.id}</td>
               <td className="px-5 py-3">{t.desc}</td>
               <td className="px-5 py-3 text-muted-foreground">{t.category}</td>

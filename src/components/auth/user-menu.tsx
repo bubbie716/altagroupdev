@@ -42,7 +42,7 @@ export function AuthUserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex items-center gap-2 rounded-md border border-border bg-surface-2/60 py-1 pl-3 pr-1 text-[12px] font-medium tracking-wide text-foreground outline-none ring-offset-background transition-colors hover:border-border-strong focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex items-center gap-2 rounded-md border border-border bg-surface-2/60 py-1 pl-3 pr-1 text-[12px] font-medium tracking-wide text-foreground outline-none transition-colors hover:border-border-strong hover:bg-surface-2 focus-visible:shadow-none focus-visible:ring-0 data-[state=open]:border-border-strong data-[state=open]:bg-surface-2"
       >
         Account
         <Avatar className="size-7 border border-border/60">
@@ -50,33 +50,40 @@ export function AuthUserMenu() {
           <AvatarFallback className="bg-surface-2 text-[10px] font-medium">{initials}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent
+        align="end"
+        className="w-52"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         <DropdownMenuLabel className="font-normal">
           <div className="truncate text-sm font-medium">{user.discordUsername}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/profile" className="cursor-pointer">
+          <Link to="/profile" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
             <User className="mr-2 size-3.5" />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to="/companies" className="cursor-pointer">
+          <Link to="/companies" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
             <Building2 className="mr-2 size-3.5" />
             Companies
           </Link>
         </DropdownMenuItem>
         {showInternal && (
           <DropdownMenuItem asChild>
-            <Link to="/internal" className="cursor-pointer">
+            <Link to="/internal" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
               <Shield className="mr-2 size-3.5" />
               Internal
             </Link>
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem
+          onClick={handleLogout}
+          className="cursor-pointer text-destructive focus:text-destructive data-[highlighted]:text-destructive"
+        >
           <LogOut className="mr-2 size-3.5" />
           Logout
         </DropdownMenuItem>

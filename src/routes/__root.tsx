@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Alta Group — Financial Infrastructure" },
-      { name: "description", content: "Alta Group: Live Like the 1%. Alta Bank, Alta Terminal, Alta Exchange, and Newport Clearing Corporation." },
+      { name: "description", content: "Alta Group: Live Like the 1%. Alta Bank, Alta Exchange, and Newport Clearing Corporation." },
       { name: "author", content: "Alta Group" },
       { property: "og:title", content: "Alta Group" },
       { property: "og:description", content: "Banking. Markets. Capital. Built for Newport." },

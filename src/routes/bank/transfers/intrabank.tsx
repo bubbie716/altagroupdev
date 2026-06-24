@@ -3,21 +3,40 @@ import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankInternalTransferForm } from "@/components/bank/bank-internal-transfer-form";
+import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
+import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import { fetchActiveBankAccounts, fetchTransferContacts, fetchUserInternalTransfers } from "@/lib/bank/bank.functions";
+import { fetchPaySourceAccounts } from "@/lib/bank/alta-pay.functions";
+import {
+  cancelUserScheduledTransferRecord,
+  createUserScheduledTransferRecord,
+  fetchUserScheduledTransfers,
+} from "@/lib/bank/scheduled-transfer.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import type { UserBankTransfer } from "@/lib/bank/backend-types";
+import { useServerFn } from "@tanstack/react-start";
+
+type BankIntrabankSearch = {
+  accountId?: string;
+};
 
 export const Route = createFileRoute("/bank/transfers/intrabank")({
+  validateSearch: (search: Record<string, unknown>): BankIntrabankSearch => ({
+    accountId: typeof search.accountId === "string" ? search.accountId : undefined,
+  }),
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const [accounts, transfers, contacts] = await Promise.all([
+    const [accounts, transfers, contacts, sourceAccounts, scheduledTransfers] = await Promise.all([
       fetchActiveBankAccounts(),
       fetchUserInternalTransfers({ data: 20 }),
       fetchTransferContacts({ data: "intrabank" }),
+      fetchPaySourceAccounts(),
+      fetchUserScheduledTransfers({ data: "intrabank" }),
     ]);
-    return { accounts, transfers, contacts };
+    return { accounts, transfers, contacts, sourceAccounts, scheduledTransfers };
   },
   head: () => ({
     meta: [{ title: "Intrabank Transfers — Alta Bank" }],
@@ -28,6 +47,7 @@ export const Route = createFileRoute("/bank/transfers/intrabank")({
 function BankIntrabankTransfers() {
   const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
+  const { accountId } = Route.useSearch();
   const router = useRouter();
 
   return (
@@ -40,7 +60,7 @@ function BankIntrabankTransfers() {
 
       {showMockData ? (
         <>
-          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <Card className="!p-6">
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             Intrabank transfers between Alta Checking, Savings, Reserve, and Business accounts are
@@ -50,7 +70,7 @@ function BankIntrabankTransfers() {
         </>
       ) : !data || data.accounts.length === 0 ? (
         <>
-          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <EmptyBankState
           title="No active Alta Bank accounts yet."
           description="Open Alta Bank accounts to transfer between your positions or send to another player."
@@ -58,16 +78,24 @@ function BankIntrabankTransfers() {
         </>
       ) : (
         <>
-          <TransferPageHeader title="Internal transfer · Instant settlement" />
+          <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <Section>
             <Card className="mx-auto max-w-2xl !p-6">
               <BankInternalTransferForm
                 accounts={data.accounts}
                 contacts={data.contacts}
+                defaultFromAccountId={accountId}
                 onSuccess={() => void router.invalidate()}
               />
             </Card>
           </Section>
+
+          {data.sourceAccounts.length > 0 && (
+            <Section title="Scheduled & recurring transfers" className="mt-10">
+              <BusinessFutureNotice variant="intrabank" />
+              <IntrabankScheduledTransfers data={data} defaultSourceAccountId={accountId} />
+            </Section>
+          )}
 
           <Section title="Transfer history" className="mt-10">
             <InternalTransferHistory transfers={data.transfers} />
@@ -75,6 +103,39 @@ function BankIntrabankTransfers() {
         </>
       )}
     </PageShell>
+  );
+}
+
+function IntrabankScheduledTransfers({
+  data,
+  defaultSourceAccountId,
+}: {
+  data: NonNullable<ReturnType<typeof Route.useLoaderData>>;
+  defaultSourceAccountId?: string;
+}) {
+  const createTransfer = useServerFn(createUserScheduledTransferRecord);
+  const cancelTransfer = useServerFn(cancelUserScheduledTransferRecord);
+
+  return (
+    <ScheduledTransferCenter
+      transferScope="intrabank"
+      defaultSourceAccountId={defaultSourceAccountId}
+      sourceAccounts={data.sourceAccounts.map((account) => ({
+        id: account.id,
+        accountName: account.accountName,
+        accountNumber: account.accountNumber,
+        ownerLabel: account.isCompanyAccount ? account.companyName : null,
+      }))}
+      payments={data.scheduledTransfers}
+      contacts={data.contacts}
+      canManage
+      onCreate={async (input) => {
+        await createTransfer({ data: { ...input, transferScope: "intrabank" } });
+      }}
+      onCancel={async (paymentId) => {
+        await cancelTransfer({ data: { paymentId, transferScope: "intrabank" } });
+      }}
+    />
   );
 }
 
@@ -92,7 +153,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <th className="px-5 py-3">Date</th>
+            <th className="px-5 py-3">Date & time</th>
             <th className="px-5 py-3">Direction</th>
             <th className="px-5 py-3">From</th>
             <th className="px-5 py-3">To</th>
@@ -107,7 +168,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
               className="border-b border-border/50 last:border-0 hover:bg-surface-2/40"
             >
               <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
-                {transfer.createdAt.slice(0, 10)}
+                {formatActivityDateTime(transfer.createdAt)}
               </td>
               <td className="px-5 py-3 font-mono text-[11px] capitalize">{transfer.direction}</td>
               <td className="px-5 py-3">

@@ -127,3 +127,42 @@ export function canSubmitFilings(user: AltaUser, scope: CompanyScope): boolean {
 export function canAccessIssuerPortal(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, ISSUER_PORTAL_ROLES);
 }
+
+/** Roles that may view business treasury (Business Banking). VIEWER excluded. */
+export const BUSINESS_TREASURY_VIEW_ROLES: readonly CompanyRole[] = [
+  "owner",
+  "executive",
+  "finance_manager",
+  "compliance_contact",
+] as const;
+
+/** Roles that may create payments and payroll batches. */
+export const BUSINESS_TREASURY_MANAGE_ROLES: readonly CompanyRole[] = [
+  "owner",
+  "executive",
+  "finance_manager",
+] as const;
+
+export function canViewBusinessTreasury(user: AltaUser, scope: CompanyScope): boolean {
+  return hasCompanyRole(user, scope, BUSINESS_TREASURY_VIEW_ROLES);
+}
+
+export function canManageBusinessTreasury(user: AltaUser, scope: CompanyScope): boolean {
+  return hasCompanyRole(user, scope, BUSINESS_TREASURY_MANAGE_ROLES);
+}
+
+export function isBusinessTreasuryViewOnly(user: AltaUser, scope: CompanyScope): boolean {
+  const membership = findCompanyMembership(user, scope);
+  return membership?.role === "compliance_contact";
+}
+
+/** Roles that may view incoming Alta Pay payments on the business dashboard. */
+export const ALTA_PAY_RECEIVED_VIEW_ROLES: readonly CompanyRole[] = [
+  "owner",
+  "executive",
+  "finance_manager",
+] as const;
+
+export function canViewAltaPayReceived(user: AltaUser, scope: CompanyScope): boolean {
+  return hasCompanyRole(user, scope, ALTA_PAY_RECEIVED_VIEW_ROLES);
+}
