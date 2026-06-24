@@ -30,20 +30,6 @@ function cronResponse(body: Record<string, unknown>, status = 200) {
 
 async function runExecutor() {
   const summary = await executeDueScheduledTransfers();
-  // #region agent log
-  fetch("http://127.0.0.1:7829/ingest/627124d8-5442-41f8-8b52-a7f340773672", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "b92618" },
-    body: JSON.stringify({
-      sessionId: "b92618",
-      location: "scheduled-transfers.ts:runExecutor",
-      message: "Cron executor response",
-      data: summary,
-      hypothesisId: "J",
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   return cronResponse({ ok: true, ...summary });
 }
 

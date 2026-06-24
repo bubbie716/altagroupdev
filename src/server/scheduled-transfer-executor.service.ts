@@ -25,29 +25,6 @@ export interface ExecuteDueScheduledTransfersResult {
 
 import { calculateNextRunDate as calculateNextRunDateInBankTz } from "@/lib/scheduled-datetime";
 
-// #region agent log
-function agentDebugLog(
-  location: string,
-  message: string,
-  data: Record<string, unknown>,
-  hypothesisId: string,
-) {
-  const payload = {
-    sessionId: "b92618",
-    location,
-    message,
-    data,
-    hypothesisId,
-    timestamp: Date.now(),
-  };
-  fetch("http://127.0.0.1:7829/ingest/627124d8-5442-41f8-8b52-a7f340773672", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "b92618" },
-    body: JSON.stringify(payload),
-  }).catch(() => {});
-}
-// #endregion
-
 export function resolveScheduledRunAt(payment: Pick<ScheduledPayment, "paymentType" | "scheduledDate" | "nextRunDate">): Date | null {
   if (payment.paymentType === "RECURRING") {
     return payment.nextRunDate;
@@ -135,19 +112,6 @@ async function executeSinglePayment(
           },
         },
       });
-      // #region agent log
-      agentDebugLog(
-        "scheduled-transfer-executor.service.ts:idempotency-skip",
-        "Execution already exists — skipping",
-        {
-          paymentId: payment.id,
-          scheduledRunAt: scheduledRunAt.toISOString(),
-          existingStatus: existing?.status ?? null,
-          existingFailureReason: existing?.failureReason ?? null,
-        },
-        "B",
-      );
-      // #endregion
       if (existing?.status === "EXECUTED") {
         return "skipped";
       }
@@ -245,22 +209,6 @@ async function executeSinglePayment(
     return "executed";
   } catch (error) {
     const reason = toFriendlyFailureReason(error);
-    // #region agent log
-    agentDebugLog(
-      "scheduled-transfer-executor.service.ts:transfer-failed",
-      "submitInternalTransfer failed",
-      {
-        paymentId: payment.id,
-        reason,
-        rawError: error instanceof Error ? error.message : String(error),
-        fromAccountId: payment.bankAccountId,
-        destinationNumber,
-        creatorHasDestination,
-        amount,
-      },
-      "D",
-    );
-    // #endregion
     await recordFailure(payment, executionId, scheduledRunAt, now, reason);
     return "failed";
   }
@@ -312,102 +260,40 @@ async function recordFailure(
 
 export async function executeDueScheduledTransfers(
   options: ExecuteDueScheduledTransfersOptions = {},
-): Promise<ExecuteDueScheduledTransfersResult & { _debug?: Record<string, unknown> }> {
+): Promise<ExecuteDueScheduledTransfersResult> {
   const now = options.now ?? new Date();
   const payments = await prisma.scheduledPayment.findMany({
     where: dueWhere(now, options.paymentIds),
     orderBy: [{ scheduledDate: "asc" }, { nextRunDate: "asc" }],
   });
 
-  const approvedIntrabank = await prisma.scheduledPayment.findMany({
-    where: { transferScope: "INTRABANK", status: "APPROVED" },
-    select: {
-      id: true,
-      status: true,
-      paymentType: true,
-      scheduledDate: true,
-      nextRunDate: true,
-      recipientAccountNumber: true,
-    },
-    take: 10,
-    orderBy: { createdAt: "desc" },
-  });
-
-  // #region agent log
-  agentDebugLog(
-    "scheduled-transfer-executor.service.ts:executeDueScheduledTransfers",
-    "Executor run started",
-    {
-      now: now.toISOString(),
-      dueCount: payments.length,
-      duePayments: payments.map((p) => ({
-        id: p.id,
-        status: p.status,
-        paymentType: p.paymentType,
-        scheduledDate: p.scheduledDate?.toISOString() ?? null,
-        nextRunDate: p.nextRunDate?.toISOString() ?? null,
-        recipientAccountNumber: p.recipientAccountNumber ? "set" : "missing",
-      })),
-      allApprovedIntrabank: approvedIntrabank.map((p) => ({
-        id: p.id,
-        paymentType: p.paymentType,
-        scheduledDate: p.scheduledDate?.toISOString() ?? null,
-        nextRunDate: p.nextRunDate?.toISOString() ?? null,
-        isDueByScheduled: p.scheduledDate ? p.scheduledDate <= now : null,
-        isDueByNext: p.nextRunDate ? p.nextRunDate <= now : null,
-        recipientAccountNumber: p.recipientAccountNumber ? "set" : "missing",
-      })),
-    },
-    "A",
-  );
-  // #endregion
-
   let executedCount = 0;
   let failedCount = 0;
   let skippedCount = 0;
-  const outcomes: Array<{ paymentId: string; outcome: string; scheduledRunAt: string | null; reason?: string }> = [];
 
   for (const payment of payments) {
     const scheduledRunAt = resolveScheduledRunAt(payment);
     if (!scheduledRunAt) {
       skippedCount += 1;
-      outcomes.push({ paymentId: payment.id, outcome: "skipped", scheduledRunAt: null, reason: "no_run_at" });
       continue;
     }
 
     if (!options.forceRun && !options.paymentIds && scheduledRunAt > now) {
       skippedCount += 1;
-      outcomes.push({
-        paymentId: payment.id,
-        outcome: "skipped",
-        scheduledRunAt: scheduledRunAt.toISOString(),
-        reason: "run_at_in_future",
-      });
       continue;
     }
 
     const outcome = await executeSinglePayment(payment, scheduledRunAt, now);
-    outcomes.push({ paymentId: payment.id, outcome, scheduledRunAt: scheduledRunAt.toISOString() });
     if (outcome === "executed") executedCount += 1;
     else if (outcome === "failed") failedCount += 1;
     else skippedCount += 1;
   }
-
-  // #region agent log
-  agentDebugLog(
-    "scheduled-transfer-executor.service.ts:executeDueScheduledTransfers-done",
-    "Executor run finished",
-    { executedCount, failedCount, skippedCount, outcomes },
-    "A",
-  );
-  // #endregion
 
   return {
     dueCount: payments.length,
     executedCount,
     failedCount,
     skippedCount,
-    _debug: { now: now.toISOString(), outcomes, approvedIntrabankCount: approvedIntrabank.length },
   };
 }
 
