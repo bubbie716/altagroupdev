@@ -34,7 +34,7 @@ const MOCK_MEMBERSHIPS: EnrichedCompanyMembership[] = [
   {
     userId: "ui-lab-user",
     companyId: "CO-NPC",
-    role: "executive",
+    role: "owner",
     companyName: "Newport Petroleum Corp.",
     companyType: "Listed Company",
     companyTicker: "NPC",
@@ -47,10 +47,10 @@ const MOCK_MEMBERSHIPS: EnrichedCompanyMembership[] = [
 export const UI_LAB_MOCK_USER: AltaUser = {
   id: "ui-lab-user",
   discordId: "000000000000000000",
-  discordUsername: "Carter",
+  discordUsername: "carter",
   avatarUrl: null,
-  email: "carter@ui-lab.local",
-  minecraftUsername: "Carter",
+  email: "carter.townshend@ui-lab.local",
+  minecraftUsername: "carter",
   tags: ["admin", "operator", "private_client", "developer", "issuer"],
   accountStatus: "active",
   developerAccessStatus: "approved",
