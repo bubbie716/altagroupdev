@@ -15,4 +15,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // The Lovable preview iframe loads from an https://*.lovableproject.com
+      // proxy in front of localhost:8080. HMR's WebSocket can't reach
+      // localhost from the browser, so route it through the proxy (wss:443).
+      // This silences "[vite] failed to connect to websocket" in the preview.
+      hmr: { protocol: "wss", clientPort: 443 },
+    },
+  },
 });
