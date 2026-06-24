@@ -13,12 +13,12 @@ export function RankingTable({
   showChange?: boolean;
 }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="border-b border-border px-5 py-3 type-meta">
         {title}
       </div>
       <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">#</th>
@@ -53,7 +53,7 @@ export function RankingTable({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       </div>
     </Card>
   );

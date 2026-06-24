@@ -25,7 +25,7 @@ export function PageShell({
       <SiteNav />
       <div
         className={cn(
-          "mx-auto max-w-[1400px] px-6 pt-14",
+          "mx-auto max-w-[1400px] px-4 sm:px-6 pt-8 sm:pt-14",
           printDocument && "print:max-w-none print:px-0 print:pt-0",
         )}
       >
@@ -33,15 +33,15 @@ export function PageShell({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className={cn("page-shell-hero border-b border-border/60 pb-10", printDocument && "print:hidden")}
+          className={cn("page-shell-hero border-b border-border/60 pb-6 sm:pb-10", printDocument && "print:hidden")}
         >
           <div className={type.eyebrow}>{eyebrow}</div>
-          <h1 className={cn(type.display, "mt-4")}>{title}</h1>
+          <h1 className={cn(type.display, "mt-3 sm:mt-4 break-words")}>{title}</h1>
           {description && (
-            <p className={cn(type.body, "mt-4 max-w-2xl text-muted-foreground")}>{description}</p>
+            <p className={cn(type.body, "mt-3 sm:mt-4 max-w-2xl text-muted-foreground break-words")}>{description}</p>
           )}
         </motion.div>
-        <main className={cn("py-12", printDocument && "print:py-0")}>{children}</main>
+        <main className={cn("py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
       {!hideFooter && <SiteFooter />}
     </div>
@@ -82,7 +82,7 @@ export function Card({
   return (
     <div
       className={
-        "rounded-xl border border-border bg-surface-1/80 p-6 shadow-card transition-all duration-300 hover:border-border-strong hover:-translate-y-0.5 hover:shadow-elevated " +
+        "rounded-xl border border-border bg-surface-1/80 p-4 sm:p-6 shadow-card transition-all duration-300 hover:border-border-strong hover:-translate-y-0.5 hover:shadow-elevated " +
         className
       }
     >

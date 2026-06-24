@@ -15,6 +15,7 @@ import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
 import { fetchCurrentUser } from "@/lib/auth/auth.functions";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
+import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
 
 function NotFoundComponent() {
   return (
@@ -78,6 +79,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null }>()({
   beforeLoad: async () => {
+    // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+    const labUser = getUiLabUserIfEnabled();
+    if (labUser) return { user: labUser };
     try {
       const user = await fetchCurrentUser();
       return { user };
@@ -139,9 +143,36 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        {isUiLabMode() && <UiLabBanner />}
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </ThemeProvider>
     </QueryClientProvider>
+  );
+}
+
+/** UI LAB ONLY — DO NOT ENABLE IN PRODUCTION */
+function UiLabBanner() {
+  return (
+    <div
+      role="status"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 9999,
+        width: "100%",
+        background: "rgb(180, 83, 9)",
+        color: "white",
+        padding: "6px 14px",
+        textAlign: "center",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: 11,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+      }}
+    >
+      UI Lab Mode Active — Using Mock Admin User
+    </div>
   );
 }

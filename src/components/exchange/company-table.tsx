@@ -6,9 +6,9 @@ import { StatusBadge } from "@/components/internal/status-badge";
 
 export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="overflow-x-auto">
-      <table className="w-full min-w-[920px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[920px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Ticker</th>
@@ -72,7 +72,7 @@ export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       </div>
     </Card>
   );

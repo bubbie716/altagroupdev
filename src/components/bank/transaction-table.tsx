@@ -12,13 +12,13 @@ type Row = {
 
 export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Row[]; title?: string }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       {title && (
         <div className="border-b border-border px-5 py-3 type-meta">
           {title}
         </div>
       )}
-      <table className="w-full text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Date & time</th>
@@ -49,7 +49,7 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Card>
   );
 }

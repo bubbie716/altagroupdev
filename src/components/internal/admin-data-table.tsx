@@ -19,8 +19,8 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
   rowKey?: (row: T, index: number) => string;
 }) {
   return (
-    <Card className="!p-0 overflow-x-auto">
-      <table className="alta-table w-full min-w-[640px] text-sm">
+    <Card className="!p-0 overflow-hidden">
+      <div className="w-full overflow-x-auto"><table className="alta-table w-full min-w-[640px] text-sm">
         <thead>
           <tr>
             {columns.map((col) => (
@@ -41,7 +41,7 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Card>
   );
 }

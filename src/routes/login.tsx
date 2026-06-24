@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Card } from "@/components/page-shell";
 import { AuthGate, LoginPortalFooter, LoginPortalShell } from "@/components/auth/auth-gate";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
@@ -35,20 +34,24 @@ function LoginPage() {
   if (user) {
     return (
       <LoginPortalShell footer={<LoginPortalFooter />}>
-        <div className="w-full max-w-md text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">Alta Group</p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Already signed in</h1>
-          <Card className="mt-8 border-border/80 bg-card/95 !p-6 text-left shadow-sm backdrop-blur-sm">
-            <p className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">{user.discordUsername}</span>.
-            </p>
+        <div className="w-full max-w-md">
+          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
+            Already signed in
+          </p>
+          <h2 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
+            Welcome back, {user.discordUsername}.
+          </h2>
+          <div className="mt-8 rounded-lg border border-border bg-surface-1 p-7">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              Continue your session
+            </div>
             <Link
               to={redirect ?? "/profile"}
-              className="mt-4 inline-block text-sm text-gold underline-offset-2 hover:underline"
+              className="mt-3 inline-flex items-center gap-2 font-serif text-lg text-foreground hover:text-gold"
             >
-              Continue to platform →
+              Continue to platform <span aria-hidden>→</span>
             </Link>
-          </Card>
+          </div>
         </div>
       </LoginPortalShell>
     );

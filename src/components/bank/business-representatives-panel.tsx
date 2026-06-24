@@ -28,7 +28,7 @@ export function BusinessRepresentativesPanel({
           have read-only visibility.
         </p>
         <div className="mt-6 overflow-x-auto">
-          <table className="alta-table w-full min-w-[520px] text-sm">
+          <div className="w-full overflow-x-auto"><table className="alta-table w-full min-w-[520px] text-sm">
             <thead>
               <tr>
                 <th>Representative</th>
@@ -55,7 +55,7 @@ export function BusinessRepresentativesPanel({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </Card>
 

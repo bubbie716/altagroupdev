@@ -12,6 +12,7 @@ import { loadUserBySessionToken, deleteSessionByToken, createUserSession } from 
 import { upsertUserFromDiscord } from "@/server/user.service";
 import type { DiscordProfile } from "@/lib/auth/types";
 import { isDatabaseConfigured } from "@/server/db";
+import { getUiLabUserIfEnabled } from "@/lib/auth/ui-lab";
 
 const SESSION_USER_CACHE_TTL_MS = 30_000;
 const sessionUserCache = new Map<string, { user: AltaUser; expiresAt: number }>();
@@ -35,6 +36,10 @@ export function invalidateSessionUserCache(token?: string): void {
 }
 
 export async function readCurrentUser(): Promise<AltaUser | null> {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  const labUser = getUiLabUserIfEnabled();
+  if (labUser) return labUser;
+
   if (!isDatabaseConfigured()) return null;
 
   const cookieHeader = getRequestHeader("cookie");
@@ -87,6 +92,9 @@ export async function getCurrentUser(): Promise<AltaUser | null> {
 }
 
 export async function requireAuth(): Promise<AltaUser> {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  const labUser = getUiLabUserIfEnabled();
+  if (labUser) return labUser;
   const user = await readCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.accountStatus === "frozen" || user.accountStatus === "restricted") {
@@ -96,6 +104,9 @@ export async function requireAuth(): Promise<AltaUser> {
 }
 
 export async function requireTag(tag: UserTag | UserTag[]): Promise<AltaUser> {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  const labUser = getUiLabUserIfEnabled();
+  if (labUser) return labUser;
   const user = await requireAuth();
   const tags = Array.isArray(tag) ? tag : [tag];
   if (!tags.some((t) => hasTag(user, t))) throw new Error("FORBIDDEN");
@@ -103,6 +114,9 @@ export async function requireTag(tag: UserTag | UserTag[]): Promise<AltaUser> {
 }
 
 export async function requireInternalRole(): Promise<AltaUser> {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  const labUser = getUiLabUserIfEnabled();
+  if (labUser) return labUser;
   const { requireOperator } = await import("@/server/permissions.service");
   return requireOperator();
 }

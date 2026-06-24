@@ -326,7 +326,7 @@ function EmployeeTable({
 
   return (
     <div className="mt-4 overflow-x-auto">
-      <table className="alta-table w-full min-w-[480px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="alta-table w-full min-w-[480px] text-sm">
         <thead>
           <tr>
             <th>Name</th>
@@ -378,7 +378,7 @@ function EmployeeTable({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
