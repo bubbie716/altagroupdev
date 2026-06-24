@@ -57,7 +57,7 @@ function InternalCompanyDetail() {
 
         <Section title="Authorized Representatives">
           <Card className="!p-0">
-            <div className="w-full overflow-x-auto"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">User</th>
@@ -107,7 +107,7 @@ function InternalCompanyDetail() {
 
       <Section title="Authorized Representatives (mock data)">
         <Card className="!p-0">
-          <div className="w-full overflow-x-auto"><table className="w-full text-sm">
+          <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
             <tbody>
               {company.representatives.map((r: any) => (
                 <tr key={r.userId} className="border-b border-border/50 last:border-0">

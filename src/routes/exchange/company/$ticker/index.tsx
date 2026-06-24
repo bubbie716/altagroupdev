@@ -129,7 +129,7 @@ function CompanyProfilePage() {
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <Section title="Top Shareholders">
           <Card className="!p-0">
-            <div className="w-full overflow-x-auto"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-5 py-3">Holder</th>

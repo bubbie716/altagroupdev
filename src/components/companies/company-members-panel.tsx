@@ -116,7 +116,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
   return (
     <div className="space-y-8">
       <Card className="!p-0">
-        <div className="w-full overflow-x-auto"><table className="w-full text-sm">
+        <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border text-left type-meta">
               <th className="px-4 py-3">User</th>

@@ -14,7 +14,7 @@ type Holding = {
 export function HoldingsTable({ rows }: { rows: Holding[] }) {
   return (
     <Card className="!p-0">
-      <div className="w-full overflow-x-auto"><table className="w-full text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Symbol</th>
