@@ -105,6 +105,7 @@ import { Route as BankAccountsAccountIdRouteRouteImport } from './routes/bank/ac
 import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/account/$accountId/route'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
+import { Route as BankLendingDealRoomsIndexRouteImport } from './routes/bank/lending/deal-rooms.index'
 import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
@@ -616,6 +617,12 @@ const BankLendingLoansIndexRoute = BankLendingLoansIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BankLendingLoansRouteRoute,
 } as any)
+const BankLendingDealRoomsIndexRoute =
+  BankLendingDealRoomsIndexRouteImport.update({
+    id: '/bank/lending/deal-rooms/',
+    path: '/bank/lending/deal-rooms/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BankAccountsAccountIdIndexRoute =
   BankAccountsAccountIdIndexRouteImport.update({
     id: '/',
@@ -843,6 +850,7 @@ export interface FileRoutesByFullPath {
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
+  '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
 }
@@ -948,6 +956,7 @@ export interface FileRoutesByTo {
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
+  '/bank/lending/deal-rooms': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
 }
@@ -1066,6 +1075,7 @@ export interface FileRoutesById {
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
+  '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
 }
@@ -1185,6 +1195,7 @@ export interface FileRouteTypes {
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
+    | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
   fileRoutesByTo: FileRoutesByTo
@@ -1290,6 +1301,7 @@ export interface FileRouteTypes {
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
+    | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
   id:
@@ -1407,6 +1419,7 @@ export interface FileRouteTypes {
     | '/exchange/company/$ticker/owner'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
+    | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
   fileRoutesById: FileRoutesById
@@ -1451,6 +1464,7 @@ export interface RootRouteChildren {
   BankLendingIndexRoute: typeof BankLendingIndexRoute
   BankStatementsIndexRoute: typeof BankStatementsIndexRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
+  BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2127,6 +2141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankLendingLoansIndexRouteImport
       parentRoute: typeof BankLendingLoansRouteRoute
     }
+    '/bank/lending/deal-rooms/': {
+      id: '/bank/lending/deal-rooms/'
+      path: '/bank/lending/deal-rooms'
+      fullPath: '/bank/lending/deal-rooms/'
+      preLoaderRoute: typeof BankLendingDealRoomsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/accounts/$accountId/': {
       id: '/bank/accounts/$accountId/'
       path: '/'
@@ -2614,6 +2635,7 @@ const rootRouteChildren: RootRouteChildren = {
   BankLendingIndexRoute: BankLendingIndexRoute,
   BankStatementsIndexRoute: BankStatementsIndexRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
+  BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
