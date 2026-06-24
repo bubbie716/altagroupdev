@@ -1,11 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-const links = [
+const links: Array<{ to: "/governance" | "/governance/leadership" | "/governance/documents"; label: string; exact?: boolean }> = [
   { to: "/governance", label: "Structure", exact: true },
   { to: "/governance/leadership", label: "Leadership" },
   { to: "/governance/documents", label: "Documents" },
-] as const;
+];
 
 export function GovernanceSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
