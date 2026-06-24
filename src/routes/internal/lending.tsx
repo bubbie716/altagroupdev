@@ -24,7 +24,7 @@ function InternalLending() {
   const { applications, activeLoans, paidOffLoans, frozenLoans } = Route.useLoaderData();
   const router = useRouter();
   const pending = applications.filter(
-    (a) => a.status === "pending" || a.status === "under_review",
+    (a: any) => a.status === "pending" || a.status === "under_review",
   ).length;
 
   return (
