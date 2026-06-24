@@ -45,7 +45,7 @@ function InternalSettingsPage() {
 
       <Section title="Feature Flags" className="mt-10">
         <Card className="!p-0">
-          <table className="w-full text-sm">
+          <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left type-meta">
                 <th className="px-4 py-3">Flag</th>
@@ -64,7 +64,7 @@ function InternalSettingsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </Card>
       </Section>
     </InternalPageShell>

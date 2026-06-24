@@ -14,7 +14,7 @@ export function LendingSubNav({ className }: { className?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className={cn("mb-8 flex flex-wrap gap-1 border-b border-border/60 pb-4", className)}>
+    <nav className={cn("-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap", className)}>
       {links.map((l) => {
         const target = l.to.replace(/\/$/, "") || "/";
         const path = pathname.replace(/\/$/, "") || "/";

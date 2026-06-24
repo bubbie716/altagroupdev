@@ -148,7 +148,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
 
   return (
     <Card className="!p-0">
-      <table className="w-full text-sm">
+      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Date & time</th>
@@ -188,7 +188,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Card>
   );
 }

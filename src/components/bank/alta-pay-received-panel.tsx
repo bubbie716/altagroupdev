@@ -33,7 +33,7 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="alta-table w-full min-w-[520px] text-sm">
+            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="alta-table w-full min-w-[520px] text-sm">
               <thead>
                 <tr>
                   <th>Customer</th>
@@ -54,7 +54,7 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
       </Card>
@@ -69,7 +69,7 @@ export function AltaPayHistoryTable({ payments }: { payments: AltaPayPaymentRow[
 
   return (
     <div className="overflow-x-auto">
-      <table className="alta-table w-full min-w-[520px] text-sm">
+      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="alta-table w-full min-w-[520px] text-sm">
         <thead>
           <tr>
             <th>Business</th>
@@ -92,7 +92,7 @@ export function AltaPayHistoryTable({ payments }: { payments: AltaPayPaymentRow[
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

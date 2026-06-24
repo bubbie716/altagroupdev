@@ -23,7 +23,7 @@ export function InternalSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="mb-8 flex flex-wrap gap-1 border-b border-border/60 pb-4">
+    <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
       {links.map((l) => {
         const active =
           "exact" in l && l.exact

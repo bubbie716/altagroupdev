@@ -23,7 +23,7 @@ export function AdminQueueTable({
       <div className="border-b border-border px-5 py-3 type-meta">
         {title}
       </div>
-      <table className="w-full text-sm">
+      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">ID</th>
@@ -73,7 +73,7 @@ export function AdminQueueTable({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </Card>
   );
 }
