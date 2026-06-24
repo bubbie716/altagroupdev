@@ -47,7 +47,7 @@ function InternalUserDetailPage() {
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap gap-2">
             <StatusBadge status={formatAccountStatus(user.accountStatus)} />
-            {user.tags.map((tag) => (
+            {user.tags.map((tag: any) => (
               <span
                 key={tag}
                 className="inline-flex rounded bg-surface-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
@@ -124,7 +124,7 @@ function InternalUserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {user.companyMemberships.map((m) => (
+                {user.companyMemberships.map((m: any) => (
                   <tr key={m.companyId} className="border-b border-border/50 last:border-0">
                     <td className="px-4 py-3">
                       <Link
@@ -159,7 +159,7 @@ function InternalUserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {user.bankAccounts.map((a) => (
+                {user.bankAccounts.map((a: any) => (
                   <tr key={a.id} className="border-b border-border/50 last:border-0">
                     <td className="px-4 py-3">
                       <div>{a.accountName}</div>
@@ -195,7 +195,7 @@ function InternalUserDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {user.recentTransactions.map((tx) => (
+                {user.recentTransactions.map((tx: any) => (
                   <tr key={tx.id} className="border-b border-border/50 last:border-0">
                     <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
                       {formatActivityDateTime(tx.createdAt)}

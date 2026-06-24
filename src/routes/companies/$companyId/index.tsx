@@ -112,7 +112,7 @@ function CompanyDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {company.members.map((m) => (
+              {company.members.map((m: any) => (
                 <tr key={m.membershipId} className="border-b border-border/50 last:border-0">
                   <td className="px-4 py-3 font-mono text-[12px]">{m.discordUsername}</td>
                   <td className="px-4 py-3">{formatCompanyRole(m.role)}</td>
