@@ -44,7 +44,7 @@ export function BusinessAccountSubNav({
   );
 
   return (
-    <nav className="mb-8 flex flex-wrap gap-1 border-b border-border/60 pb-4">
+    <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
       {visibleModules.map((mod) => {
         const to = `${base}${MODULE_PATHS[mod]}` as
           | "/bank/account/$accountId"
@@ -92,7 +92,7 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
   ] as const;
 
   return (
-    <nav className="mb-8 flex flex-wrap gap-1 border-b border-border/60 pb-4">
+    <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
       {links.map((l) => {
         const path = `${base}${l.suffix}`;
         const active =
