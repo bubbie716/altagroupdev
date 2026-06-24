@@ -384,12 +384,13 @@
   }
 
   .type-display-governance {
-    font-family: var(--font-display);
+    font-family: var(--font-serif);
     font-size: clamp(3.25rem, 8vw, 6.5rem);
-    font-weight: 600;
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
+    font-weight: 400;
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+    text-transform: none;
+    font-feature-settings: "ss01", "ss02";
   }
 
   .type-section-title {
