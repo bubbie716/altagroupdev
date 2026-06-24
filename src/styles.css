@@ -217,6 +217,19 @@
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }
 
+  /* Safari iOS: prevent text-size auto-bumping on orientation change. */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Safari iOS momentum scrolling for any overflow container. */
+  .overflow-x-auto,
+  .overflow-y-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* ── Global typography system ──
      Display headings use Fraunces (serif) by default for editorial weight.
      Override per-element with `.font-sans` or `.font-mono` when needed
