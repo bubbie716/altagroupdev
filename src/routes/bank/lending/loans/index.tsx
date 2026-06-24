@@ -44,7 +44,7 @@ function BankLendingLoans() {
         <p className="text-[14px] text-muted-foreground">No active or historical loans on file.</p>
       ) : (
         <div className="space-y-8">
-          {loans.map((loan, index) => (
+          {loans.map((loan: any, index: number) => (
             <LoanCard
               key={loan.id}
               loan={loan}

@@ -42,7 +42,7 @@ async function requireAccess(
 }
 
 export async function internalBeforeLoad(context: GuardContext) {
-  const user = context.user ?? (await fetchCurrentUser());
+  const user = context.context.user ?? (await fetchCurrentUser());
   if (!user) {
     throw redirect({
       to: "/login",

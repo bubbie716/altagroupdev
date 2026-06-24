@@ -24,7 +24,7 @@ function InternalLending() {
   const { applications, activeLoans, paidOffLoans, frozenLoans } = Route.useLoaderData();
   const router = useRouter();
   const pending = applications.filter(
-    (a) => a.status === "pending" || a.status === "under_review",
+    (a: any) => a.status === "pending" || a.status === "under_review",
   ).length;
 
   return (
@@ -77,7 +77,7 @@ function InternalLending() {
           <p className="text-[13px] text-muted-foreground">No active loans.</p>
         ) : (
           <div className="space-y-6">
-            {activeLoans.map((loan) => (
+            {activeLoans.map((loan: any) => (
               <InternalActiveLoanCard key={loan.id} loan={loan} />
             ))}
           </div>
@@ -95,7 +95,7 @@ function InternalLending() {
           <p className="text-[13px] text-muted-foreground">No frozen loans.</p>
         ) : (
           <div className="space-y-6">
-            {frozenLoans.map((loan) => (
+            {frozenLoans.map((loan: any) => (
               <InternalActiveLoanCard key={loan.id} loan={loan} />
             ))}
           </div>
@@ -107,7 +107,7 @@ function InternalLending() {
           <p className="text-[13px] text-muted-foreground">No paid-off loans on file.</p>
         ) : (
           <div className="space-y-6">
-            {paidOffLoans.map((loan) => (
+            {paidOffLoans.map((loan: any) => (
               <InternalActiveLoanCard key={loan.id} loan={loan} />
             ))}
           </div>

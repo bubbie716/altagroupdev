@@ -14,7 +14,7 @@ export function InternalUserFilters({ search }: { search: InternalUsersSearch })
 
   function update(partial: Partial<InternalUsersSearch>) {
     void navigate({
-      search: (prev) => ({ ...prev, ...partial }),
+      search: (prev: InternalUsersSearch) => ({ ...prev, ...partial }),
       replace: true,
     });
   }

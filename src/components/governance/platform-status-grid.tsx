@@ -1,5 +1,5 @@
 import { Card } from "@/components/page-shell";
-import type { PlatformStatus, PlatformStatusItem } from "@/lib/governance/content";
+import type { EntityStatus as PlatformStatus, PlatformStatusItem } from "@/lib/governance/content";
 import { cn } from "@/lib/utils";
 
 function statusLabel(status: PlatformStatus): string {
