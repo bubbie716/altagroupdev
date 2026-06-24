@@ -158,10 +158,10 @@
   --success: oklch(0.72 0.16 155);
   --danger: oklch(0.65 0.22 25);
 
-  --border: oklch(1 0 0 / 8%);
-  --border-strong: oklch(1 0 0 / 14%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.42 0.09 264);
+  --border: oklch(1 0 0 / 10%);
+  --border-strong: oklch(1 0 0 / 18%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.78 0.11 85);
 
   --chart-1: oklch(0.72 0.16 155);
   --chart-2: oklch(0.78 0.11 85);
