@@ -11,7 +11,7 @@ import { Route as CompanyRoute } from "@/routes/companies/$companyId/route";
 
 export const Route = createFileRoute("/companies/$companyId/")({
   head: ({ matches }) => {
-    const companyMatch = matches.find((m) => m.routeId === "/companies/$companyId");
+    const companyMatch = matches.find((m) => (m.routeId as string) === "/companies/$companyId");
     const company = companyMatch?.loaderData as CompanyDetail | undefined;
     return {
       meta: [{ title: `${company?.name ?? "Company"} — Alta Group` }],
