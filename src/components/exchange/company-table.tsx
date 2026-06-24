@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/internal/status-badge";
 
 export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="overflow-x-auto">
       <div className="w-full overflow-x-auto"><table className="w-full min-w-[920px] text-sm">
         <thead>

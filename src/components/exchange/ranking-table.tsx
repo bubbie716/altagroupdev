@@ -13,7 +13,7 @@ export function RankingTable({
   showChange?: boolean;
 }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="border-b border-border px-5 py-3 type-meta">
         {title}
       </div>
