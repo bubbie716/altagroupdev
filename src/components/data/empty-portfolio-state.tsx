@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { Card } from "@/components/page-shell";
+import { EmptyState } from "@/components/data/empty-state";
 
 type EmptyPortfolioStateProps = {
   title?: string;
@@ -19,35 +18,19 @@ export function EmptyPortfolioState({
   children,
   compact = false,
 }: EmptyPortfolioStateProps) {
-  if (compact) {
-    return (
-      <div className="rounded-xl border border-border bg-surface-1 p-8 text-center">
-        <p className="type-meta">Alta Portfolio</p>
-        <h3 className="mt-3 text-lg font-semibold tracking-tight">{title}</h3>
-        <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{description}</p>
-        {children}
-        <Link
-          to={ctaTo}
-          className="mt-6 inline-block rounded-md border border-border px-5 py-2.5 text-[13px] font-medium tracking-wide"
-        >
-          {ctaLabel}
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <Card className="mx-auto max-w-lg !p-10 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-gold">An Alta Exchange Product</p>
-      <h2 className="mt-4 text-xl font-semibold tracking-tight">{title}</h2>
-      <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-muted-foreground">{description}</p>
+    <EmptyState
+      eyebrow={compact ? "Alta Portfolio" : "An Alta Exchange Product"}
+      title={title}
+      description={description}
+      compact={compact}
+      actions={[
+        compact
+          ? { label: ctaLabel, to: ctaTo, variant: "secondary" }
+          : { label: ctaLabel, to: ctaTo },
+      ]}
+    >
       {children}
-      <Link
-        to={ctaTo}
-        className="mt-8 inline-block rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background"
-      >
-        {ctaLabel}
-      </Link>
-    </Card>
+    </EmptyState>
   );
 }
