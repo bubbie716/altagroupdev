@@ -13,6 +13,7 @@ import { LoanPaymentScheduleTable } from "@/components/bank/loan-payment-schedul
 import { LoanAutoPayForm } from "@/components/bank/loan-autopay-form";
 import { AutoPayBadge } from "@/components/bank/auto-pay-badge";
 import { AltaCreditProfilePlaceholder } from "@/components/bank/alta-credit-profile-placeholder";
+import { EmptyState } from "@/components/data/empty-state";
 import { florin } from "@/lib/bank/api";
 import { fetchLoanPaymentContext, fetchUserLoans } from "@/lib/bank/lending.functions";
 import type { LendingAccountOption, LoanPaymentRow, LoanRow } from "@/lib/bank/lending-types";
@@ -41,7 +42,12 @@ function BankLendingLoans() {
       <LendingSubNav />
 
       {loans.length === 0 ? (
-        <p className="text-[14px] text-muted-foreground">No active or historical loans on file.</p>
+        <EmptyState
+          eyebrow="Alta Bank · Lending"
+          title="No loans on file"
+          description="Approved credit facilities and their servicing summary will appear here once a loan is originated."
+          actions={[{ label: "Apply for credit", to: "/bank/lending/apply" }]}
+        />
       ) : (
         <div className="space-y-8">
           {loans.map((loan: any, index: number) => (
