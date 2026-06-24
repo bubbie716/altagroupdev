@@ -154,14 +154,14 @@ function Hero() {
             )}
           </div>
           {portfolioLocked && (
-            <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
               {valueProps.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-lg border border-border/80 bg-surface-1/50 px-4 py-3 text-left backdrop-blur-sm"
+                  className="bg-surface-1/70 px-5 py-4 text-left backdrop-blur-sm"
                 >
-                  <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold">{item.title}</div>
-                  <p className="mt-1.5 text-[12px] leading-snug text-muted-foreground">{item.desc}</p>
+                  <div className="type-meta-accent">{item.title}</div>
+                  <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -299,10 +299,12 @@ function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPla
 
   return (
     <section className="border-y border-border bg-surface-1/40">
-      <div className="mx-auto max-w-[1400px] px-6 py-8">
-        <p className="type-meta">
-          Live platform records
-        </p>
+      <div className="mx-auto max-w-[1400px] px-6 pt-12 pb-6">
+        <div className="type-eyebrow">02 — Platform</div>
+        <h2 className="mt-3 max-w-2xl text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.05] tracking-[-0.018em]">
+          Live platform records.{" "}
+          <span className="text-muted-foreground">Drawn directly from the ledger.</span>
+        </h2>
       </div>
       <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-px bg-border md:grid-cols-4">
         {items.map((it) => (
@@ -351,7 +353,7 @@ function ClosingCTA() {
             {isPublicSimulatedMarketDataEnabled() && (
               <MockDataNotice className="max-w-sm" />
             )}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="tabular text-2xl font-semibold tracking-tight text-foreground">
                 NSX-100{" "}
                 <AnimatedNumber
@@ -362,7 +364,7 @@ function ClosingCTA() {
                   className="text-[var(--success)]"
                 />
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2.5 py-0.5 font-mono text-[11px] font-medium text-[var(--success)]">
+              <span className="ticker-up inline-flex items-center gap-1 rounded-md border border-[color:var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 font-mono text-[11px] font-medium">
                 ↗ {pct(nsxIndex.change)}
               </span>
             </div>
@@ -370,7 +372,7 @@ function ClosingCTA() {
               <span>
                 {compact(topMover.marketCap)} top mover · {topMover.symbol}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success)]/10 px-2.5 py-0.5 font-medium text-[var(--success)]">
+              <span className="ticker-up inline-flex items-center gap-1 rounded-md border border-[color:var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 font-medium">
                 ↗ {pct(topMover.change)}
               </span>
             </div>
