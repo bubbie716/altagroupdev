@@ -23,8 +23,8 @@ export function BankAccountTransactions({
   }
 
   return (
-    <Card className="!p-0">
-      <table className="alta-table w-full text-sm">
+    <Card className="!p-0 overflow-x-auto">
+      <table className="alta-table w-full min-w-[820px] text-sm">
         <thead>
           <tr>
             <th>Date & time</th>
