@@ -3,6 +3,7 @@ import {
   ALTA_TERMINAL_SUBTITLE,
   ALTA_TERMINAL_TAGLINE,
 } from "@/lib/branding/alta-products";
+import type { DiscordEmbedDraft, EmbedTemplateKey } from "@/lib/discord/embed-types";
 
 function field(name: string, value: string, inline = false) {
   return { id: crypto.randomUUID(), name, value, inline };
