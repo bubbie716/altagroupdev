@@ -7,6 +7,7 @@ import {
   verifyIssuerPortalAccess,
   verifyPrivateClientAccess,
 } from "@/lib/auth/auth.functions";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 
 type GuardContext = {
   context: { user: AltaUser | null };
@@ -14,6 +15,8 @@ type GuardContext = {
 };
 
 export function authBeforeLoad({ context, location }: GuardContext) {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  if (isUiLabMode()) return;
   if (context.user) return;
   throw redirect({
     to: "/login",
@@ -22,6 +25,8 @@ export function authBeforeLoad({ context, location }: GuardContext) {
 }
 
 async function requireSignedIn({ context, location }: GuardContext) {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  if (isUiLabMode()) return;
   if (!context.user) {
     throw redirect({
       to: "/login",
@@ -34,6 +39,8 @@ async function requireAccess(
   context: GuardContext,
   verify: () => Promise<boolean>,
 ): Promise<void> {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  if (isUiLabMode()) return;
   await requireSignedIn(context);
   const allowed = await verify();
   if (!allowed) {
@@ -42,6 +49,8 @@ async function requireAccess(
 }
 
 export async function internalBeforeLoad(context: GuardContext) {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  if (isUiLabMode()) return;
   const user = context.context.user ?? (await fetchCurrentUser());
   if (!user) {
     throw redirect({
@@ -67,6 +76,8 @@ type IssuerGuardContext = GuardContext & {
 };
 
 export async function issuerPortalBeforeLoad(context: IssuerGuardContext) {
+  // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
+  if (isUiLabMode()) return;
   await requireSignedIn(context);
   const allowed = await verifyIssuerPortalAccess({ data: { ticker: context.params.ticker } });
   if (!allowed) {
