@@ -41,12 +41,12 @@ export const stocks: Stock[] = [
 // Smooth synthetic time series (deterministic)
 export function makeSeries(points = 120, base = 100, vol = 0.6, drift = 0.04) {
   let v = base;
-  const out: { t: string; v: number }[] = [];
+  const out: { t: number; v: number }[] = [];
   for (let i = 0; i < points; i++) {
     const s = Math.sin(i / 6) * vol * 0.4;
     const r = (Math.sin(i * 1.7) + Math.cos(i * 2.3)) * vol * 0.5;
     v += s + r + drift;
-    out.push({ t: String(i), v: Math.max(0, +v.toFixed(2)) });
+    out.push({ t: i, v: Math.max(0, +v.toFixed(2)) });
   }
   return out;
 }
