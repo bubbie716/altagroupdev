@@ -7,7 +7,7 @@ async function actor() {
 }
 
 export const fetchBusinessAccountContext = createServerFn({ method: "GET" })
-  .validator((accountId: string) => accountId)
+  .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
     const { resolveBusinessAccountContext } = await import("@/server/business-account-context.service");
     const user = await actor();
@@ -15,7 +15,7 @@ export const fetchBusinessAccountContext = createServerFn({ method: "GET" })
   });
 
 export const fetchBusinessAccountContextForModule = createServerFn({ method: "GET" })
-  .validator((input: { accountId: string; module: BusinessAccountModule }) => input)
+  .inputValidator((input: { accountId: string; module: BusinessAccountModule }) => input)
   .handler(async ({ data }) => {
     const { assertBusinessAccountAccess } = await import("@/server/business-account-context.service");
     const user = await actor();
@@ -23,7 +23,7 @@ export const fetchBusinessAccountContextForModule = createServerFn({ method: "GE
   });
 
 export const resolveBusinessOperatingAccountRedirect = createServerFn({ method: "GET" })
-  .validator((companyId: string | undefined) => companyId)
+  .inputValidator((companyId: string | undefined) => companyId)
   .handler(async ({ data: companyId }) => {
     const { getBusinessBankingOverview } = await import("@/server/business-banking.service");
     const { resolveOperatingAccountIdForCompany } = await import(

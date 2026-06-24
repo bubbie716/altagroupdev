@@ -10,7 +10,7 @@ async function actor() {
 }
 
 export const fetchUserScheduledTransfers = createServerFn({ method: "GET" })
-  .validator((scope: ScheduledTransferScopeCode) => scope)
+  .inputValidator((scope: ScheduledTransferScopeCode) => scope)
   .handler(async ({ data: scope }) => {
     const { listUserScheduledTransfers } = await import("@/server/scheduled-transfer.service");
     const user = await actor();
@@ -18,7 +18,7 @@ export const fetchUserScheduledTransfers = createServerFn({ method: "GET" })
   });
 
 export const createUserScheduledTransferRecord = createServerFn({ method: "POST" })
-  .validator((input: CreateUserScheduledTransferInput) => input)
+  .inputValidator((input: CreateUserScheduledTransferInput) => input)
   .handler(async ({ data }) => {
     const { createUserScheduledTransfer } = await import("@/server/scheduled-transfer.service");
     const user = await actor();
@@ -26,7 +26,7 @@ export const createUserScheduledTransferRecord = createServerFn({ method: "POST"
   });
 
 export const cancelUserScheduledTransferRecord = createServerFn({ method: "POST" })
-  .validator((input: { paymentId: string; transferScope: ScheduledTransferScopeCode }) => input)
+  .inputValidator((input: { paymentId: string; transferScope: ScheduledTransferScopeCode }) => input)
   .handler(async ({ data }) => {
     const { cancelUserScheduledTransfer } = await import("@/server/scheduled-transfer.service");
     const user = await actor();
