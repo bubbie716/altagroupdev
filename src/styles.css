@@ -217,6 +217,25 @@
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }
 
+  /* ── Global typography system ──
+     Display headings use Fraunces (serif) by default for editorial weight.
+     Override per-element with `.font-sans` or `.font-mono` when needed
+     (nav, eyebrows, tabular data, code). */
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    font-feature-settings: "ss01", "ss02";
+  }
+  h1 { line-height: 0.98; letter-spacing: -0.03em; }
+  h2 { line-height: 1.04; }
+  h3 { line-height: 1.15; letter-spacing: -0.02em; }
+  h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
   input[type="button"]:not(:disabled),
