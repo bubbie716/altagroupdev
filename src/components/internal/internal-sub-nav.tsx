@@ -1,49 +1,95 @@
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { type } from "@/lib/typography";
 import { RouteButton } from "@/components/bank/route-button";
 
-const links = [
-  { to: "/internal", label: "Overview", exact: true },
-  { to: "/internal/users", label: "Users", match: "/internal/users" },
-  { to: "/internal/companies", label: "Companies", match: "/internal/companies" },
-  { to: "/internal/bank", label: "Bank Ops" },
-  { to: "/internal/lending", label: "Lending" },
-  { to: "/internal/exchange", label: "Exchange Ops" },
-  { to: "/internal/ipos", label: "IPO Applications" },
-  { to: "/internal/api-applications", label: "API Applications" },
-  { to: "/internal/listings", label: "Listings" },
-  { to: "/internal/terminal", label: "Terminal Activity" },
-  { to: "/internal/compliance", label: "Compliance" },
-  { to: "/internal/embeds", label: "Embeds" },
-  { to: "/internal/settings", label: "Settings" },
-] as const;
+type Link = { to: string; label: string; exact?: boolean; match?: string };
+
+const groups: { id: string; label: string; links: Link[] }[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    links: [{ to: "/internal", label: "Dashboard", exact: true }],
+  },
+  {
+    id: "banking",
+    label: "Banking",
+    links: [
+      { to: "/internal/bank", label: "Bank Ops" },
+      { to: "/internal/lending", label: "Lending" },
+    ],
+  },
+  {
+    id: "identity",
+    label: "Identity",
+    links: [
+      { to: "/internal/users", label: "Users", match: "/internal/users" },
+      { to: "/internal/companies", label: "Companies", match: "/internal/companies" },
+      { to: "/internal/compliance", label: "Compliance" },
+    ],
+  },
+  {
+    id: "markets",
+    label: "Markets",
+    links: [
+      { to: "/internal/exchange", label: "Exchange Ops" },
+      { to: "/internal/ipos", label: "IPO Applications" },
+      { to: "/internal/listings", label: "Listings" },
+      { to: "/internal/terminal", label: "Terminal Activity" },
+      { to: "/internal/api-applications", label: "API Applications" },
+    ],
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    links: [
+      { to: "/internal/embeds", label: "Embeds" },
+      { to: "/internal/settings", label: "Settings" },
+    ],
+  },
+];
+
+function isActive(pathname: string, link: Link) {
+  if (link.exact) return pathname === link.to;
+  if (link.match) return pathname.startsWith(link.match);
+  return pathname.startsWith(link.to);
+}
 
 export function InternalSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
-      {links.map((l) => {
-        const active =
-          "exact" in l && l.exact
-            ? pathname === l.to
-            : "match" in l
-              ? pathname.startsWith(l.match)
-              : pathname.startsWith(l.to);
-        return (
-          <RouteButton
-            key={l.to}
-            to={l.to}
-            className={cn(
-              "type-subnav-mono rounded-md px-3 py-1.5 transition-colors",
-              active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {l.label}
-          </RouteButton>
-        );
-      })}
+    <nav
+      aria-label="Internal sections"
+      className="-mx-4 mb-6 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:px-0 sm:pb-4"
+    >
+      <ul className="flex min-w-max items-stretch gap-6 sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
+        {groups.map((group) => (
+          <li key={group.id} className="flex shrink-0 flex-col gap-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
+              {group.label}
+            </span>
+            <div className="flex items-center gap-1">
+              {group.links.map((l) => {
+                const active = isActive(pathname, l);
+                return (
+                  <RouteButton
+                    key={l.to}
+                    to={l.to}
+                    className={cn(
+                      "type-subnav-mono whitespace-nowrap rounded-md px-2.5 py-1.5 transition-colors",
+                      active
+                        ? "bg-surface-2 text-foreground shadow-[inset_0_-2px_0_0] shadow-gold/70"
+                        : "text-muted-foreground hover:bg-surface-2/50 hover:text-foreground",
+                    )}
+                  >
+                    {l.label}
+                  </RouteButton>
+                );
+              })}
+            </div>
+          </li>
+        ))}
+      </ul>
     </nav>
   );
 }
