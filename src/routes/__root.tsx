@@ -157,24 +157,22 @@ function UiLabBanner() {
     <div
       role="status"
       style={{
-        position: "fixed",
-        bottom: 12,
-        left: "50%",
-        transform: "translateX(-50%)",
+        position: "sticky",
+        top: 0,
         zIndex: 9999,
-        background: "rgba(180, 83, 9, 0.95)",
+        width: "100%",
+        background: "rgb(180, 83, 9)",
         color: "white",
         padding: "6px 14px",
-        borderRadius: 999,
+        textAlign: "center",
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
         fontSize: 11,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
-        pointerEvents: "none",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
       }}
     >
-      UI Lab Mode — authentication bypass enabled
+      UI Lab Mode Active — Using Mock Admin User
     </div>
   );
 }
