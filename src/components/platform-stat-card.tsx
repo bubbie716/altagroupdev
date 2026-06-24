@@ -1,7 +1,11 @@
-import { Card } from "@/components/page-shell";
 import { type } from "@/lib/typography";
 import { cn } from "@/lib/utils";
 
+/**
+ * Institutional stat card. Static surface (no hover lift — these aren't
+ * clickable), subtle gold rail when `accent`, and a numeric body that
+ * lines up across rows because we lock the value line-height.
+ */
 export function PlatformStatCard({
   label,
   value,
@@ -31,12 +35,25 @@ export function PlatformStatCard({
       : undefined;
 
   return (
-    <Card className={cn(padding === "sm" ? "!p-4" : "!p-5", className)}>
-      <div className={type.meta}>{label}</div>
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-xl border border-border bg-surface-1/80 shadow-card",
+        "transition-colors duration-200 hover:border-border-strong",
+        padding === "sm" ? "p-4" : "p-5",
+        className,
+      )}
+    >
+      {accent ? (
+        <span
+          aria-hidden
+          className="absolute inset-y-3 left-0 w-[2px] rounded-full bg-gradient-to-b from-gold/80 via-gold to-gold/40"
+        />
+      ) : null}
+      <div className={cn(type.meta, "truncate")}>{label}</div>
       <div
         className={cn(
           type.financeLg,
-          "mt-2",
+          "mt-2 leading-none",
           accent && "text-[var(--success)]",
           alert && "text-[var(--destructive)]",
           signedTone,
@@ -44,7 +61,11 @@ export function PlatformStatCard({
       >
         {value}
       </div>
-      {sub && <div className={cn(type.financeSm, "mt-1 text-muted-foreground")}>{sub}</div>}
-    </Card>
+      {sub && (
+        <div className={cn(type.financeSm, "mt-2 text-muted-foreground")}>
+          {sub}
+        </div>
+      )}
+    </div>
   );
 }
