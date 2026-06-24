@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { compact, pct } from "@/lib/mock-data";
 import type { ListedCompany } from "@/lib/exchange/types";
+import { StatusBadge } from "@/components/internal/status-badge";
 
 export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
   return (
@@ -58,7 +59,7 @@ export function CompanyTable({ companies }: { companies: ListedCompany[] }) {
               <td className="tabular px-5 py-3 text-right text-muted-foreground">
                 {compact(c.volume)}
               </td>
-              <td className="px-5 py-3 font-mono text-[11px] text-[var(--success)]">{c.status}</td>
+              <td className="px-5 py-3"><StatusBadge status={c.status} /></td>
               <td className="px-5 py-3">
                 <Link
                   to="/exchange/company/$ticker/owner"
