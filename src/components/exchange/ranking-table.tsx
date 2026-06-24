@@ -18,7 +18,7 @@ export function RankingTable({
         {title}
       </div>
       <div className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
+      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">#</th>
@@ -53,7 +53,7 @@ export function RankingTable({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       </div>
     </Card>
   );

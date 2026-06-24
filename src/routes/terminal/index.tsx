@@ -91,7 +91,7 @@ function TerminalHomeMockContent() {
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <Section title="Open Orders">
           <Card className="!p-0">
-            <table className="w-full text-sm">
+            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-5 py-3">Order</th>
@@ -114,7 +114,7 @@ function TerminalHomeMockContent() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </Card>
         </Section>
 

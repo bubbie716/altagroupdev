@@ -45,7 +45,7 @@ function TerminalTradeMockOrders() {
   return (
     <Section title="Recent Orders" className="mt-10">
       <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-        <table className="w-full text-sm">
+        <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left type-meta">
               <th className="px-5 py-3">Order</th>
@@ -72,7 +72,7 @@ function TerminalTradeMockOrders() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </Section>
   );

@@ -21,7 +21,7 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
 
   return (
     <div className="overflow-x-auto">
-      <table className="alta-table w-full min-w-[640px] text-sm">
+      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="alta-table w-full min-w-[640px] text-sm">
         <thead>
           <tr>
             <th>Account</th>
@@ -59,7 +59,7 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
