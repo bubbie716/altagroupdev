@@ -75,4 +75,4 @@ export const tradeDefaults = getTradeDefaults();
 /** @deprecated Use getTradeHistory() */
 export const tradeHistory = getTradeHistory();
 
-export { holdings, movers, orders, portfolioSeries, stocks, transactions, getEstimatedCost };
+export { holdings, movers, orders, portfolioSeries, stocks, transactions };
