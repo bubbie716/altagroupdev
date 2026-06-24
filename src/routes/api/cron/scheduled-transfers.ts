@@ -2,21 +2,49 @@ import { createFileRoute } from "@tanstack/react-router";
 import { executeDueScheduledTransfers } from "@/server/scheduled-transfer-executor.service";
 
 function validateCronSecret(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret?.trim()) return false;
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret) return false;
 
-  const authHeader = request.headers.get("authorization");
-  if (authHeader === `Bearer ${secret}` || authHeader === secret) {
+  const authHeader = request.headers.get("authorization")?.trim();
+  const bearerMatch = authHeader?.match(/^Bearer\s+(.+)$/i);
+  if (bearerMatch && bearerMatch[1].trim() === secret) {
+    return true;
+  }
+  if (authHeader === secret) {
     return true;
   }
 
   const url = new URL(request.url);
-  return url.searchParams.get("secret") === secret;
+  return url.searchParams.get("secret")?.trim() === secret;
+}
+
+function cronResponse(body: Record<string, unknown>, status = 200) {
+  return Response.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      Pragma: "no-cache",
+    },
+  });
 }
 
 async function runExecutor() {
   const summary = await executeDueScheduledTransfers();
-  return Response.json({ ok: true, ...summary });
+  // #region agent log
+  fetch("http://127.0.0.1:7829/ingest/627124d8-5442-41f8-8b52-a7f340773672", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "b92618" },
+    body: JSON.stringify({
+      sessionId: "b92618",
+      location: "scheduled-transfers.ts:runExecutor",
+      message: "Cron executor response",
+      data: summary,
+      hypothesisId: "J",
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+  return cronResponse({ ok: true, ...summary });
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({
@@ -24,24 +52,24 @@ export const Route = createFileRoute("/api/cron/scheduled-transfers")({
     handlers: {
       GET: async ({ request }) => {
         if (!validateCronSecret(request)) {
-          return Response.json({ ok: false, message: "Unauthorized." }, { status: 401 });
+          return cronResponse({ ok: false, message: "Unauthorized." }, 401);
         }
 
         try {
           return await runExecutor();
         } catch {
-          return Response.json({ ok: false, message: "Scheduled transfer execution failed." }, { status: 500 });
+          return cronResponse({ ok: false, message: "Scheduled transfer execution failed." }, 500);
         }
       },
       POST: async ({ request }) => {
         if (!validateCronSecret(request)) {
-          return Response.json({ ok: false, message: "Unauthorized." }, { status: 401 });
+          return cronResponse({ ok: false, message: "Unauthorized." }, 401);
         }
 
         try {
           return await runExecutor();
         } catch {
-          return Response.json({ ok: false, message: "Scheduled transfer execution failed." }, { status: 500 });
+          return cronResponse({ ok: false, message: "Scheduled transfer execution failed." }, 500);
         }
       },
     },
