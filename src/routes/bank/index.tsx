@@ -81,7 +81,7 @@ function BankDashboardLiveContent({
       <Section title="Account Overview" className="mt-10">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <OpenAccountCard />
-          {accounts.map((a) => (
+          {accounts.map((a: any) => (
             <AccountCard
               key={a.id}
               footer="view"
@@ -103,7 +103,7 @@ function BankDashboardLiveContent({
           <p className="text-[14px] text-muted-foreground">No transactions yet.</p>
         ) : (
           <TransactionTable
-            rows={transactions.map((t) => ({
+            rows={transactions.map((t: any) => ({
               id: t.referenceCode,
               date: t.createdAt,
               desc: t.description,
