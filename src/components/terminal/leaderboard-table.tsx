@@ -18,11 +18,11 @@ export function LeaderboardTable({
   showChange?: boolean;
 }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="border-b border-border px-5 py-3 type-meta">
         {title}
       </div>
-      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">#</th>

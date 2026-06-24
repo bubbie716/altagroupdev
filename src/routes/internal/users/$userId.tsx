@@ -116,7 +116,7 @@ function InternalUserDetailPage() {
           <Card className="!p-6 text-[13px] text-muted-foreground">No company memberships.</Card>
         ) : (
           <Card className="!p-0">
-            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Company</th>
@@ -149,7 +149,7 @@ function InternalUserDetailPage() {
           <Card className="!p-6 text-[13px] text-muted-foreground">No bank accounts.</Card>
         ) : (
           <Card className="!p-0">
-            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Account</th>
@@ -184,7 +184,7 @@ function InternalUserDetailPage() {
       {user.recentTransactions.length > 0 && (
         <Section title="Recent bank activity" className="mt-10">
           <Card className="!p-0">
-            <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full text-sm">
+            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Date & time</th>

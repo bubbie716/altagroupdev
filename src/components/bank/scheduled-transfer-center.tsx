@@ -478,7 +478,7 @@ function TransferHistoryTable({
 
   return (
     <div className={`${compact ? "mt-4" : "mt-6"} overflow-x-auto`}>
-      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
+      <div className="w-full overflow-x-auto"><table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
         <thead>
           <tr>
             <th>Recipient</th>

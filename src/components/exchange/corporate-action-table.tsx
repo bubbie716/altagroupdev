@@ -3,9 +3,9 @@ import type { CorporateAction } from "@/lib/exchange/types";
 
 export function CorporateActionTable({ actions }: { actions: CorporateAction[] }) {
   return (
-    <Card className="!p-0">
+    <Card className="!p-0 overflow-hidden">
       <div className="overflow-x-auto">
-      <div className="-mx-4 overflow-x-auto sm:mx-0"><table className="w-full min-w-[640px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Ticker</th>

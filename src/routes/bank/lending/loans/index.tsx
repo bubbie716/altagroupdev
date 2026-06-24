@@ -151,9 +151,9 @@ function LoanCard({
             </div>
           </div>
         </button>
-        <div className="flex flex-wrap items-center gap-2">
-          {loan.status === "active" && <AutoPayBadge enabled={loan.autoPay.enabled} />}
+        <div className="flex shrink-0 flex-col items-end gap-2">
           <StatusBadge status={loan.statusLabel} />
+          {loan.status === "active" && <AutoPayBadge enabled={loan.autoPay.enabled} />}
         </div>
       </div>
 
