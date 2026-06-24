@@ -1,59 +1,117 @@
 import { cn } from "@/lib/utils";
 
-const statusStyles: Record<string, string> = {
-  Active: "bg-[var(--success)]/10 text-[var(--success)]",
-  Operational: "bg-[var(--success)]/10 text-[var(--success)]",
-  Open: "bg-[var(--success)]/10 text-[var(--success)]",
-  Listed: "bg-[var(--success)]/10 text-[var(--success)]",
-  Cleared: "bg-[var(--success)]/10 text-[var(--success)]",
-  Verified: "bg-[var(--success)]/10 text-[var(--success)]",
-  Authorized: "bg-[var(--success)]/10 text-[var(--success)]",
-  Complete: "bg-[var(--success)]/10 text-[var(--success)]",
-  Approved: "bg-[var(--success)]/10 text-[var(--success)]",
-  Denied: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Cancelled: "bg-muted text-muted-foreground",
-  "Paid Off": "bg-[var(--success)]/10 text-[var(--success)]",
-  "Auto-pay enabled": "bg-[var(--success)]/10 text-[var(--success)]",
-  "Auto-pay disabled": "bg-muted text-muted-foreground",
-  Completed: "bg-[var(--success)]/10 text-[var(--success)]",
-  Failed: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Posted: "bg-[var(--success)]/10 text-[var(--success)]",
-  Deposit: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Withdrawal: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  "Not Required": "bg-muted text-muted-foreground",
-  Unverified: "bg-muted text-muted-foreground",
-  Partial: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  "Pending Review": "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  Missing: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Revoked: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  None: "bg-muted text-muted-foreground",
-  Working: "bg-gold/10 text-gold",
-  Review: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  "Under Review": "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  Assigned: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  Pending: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  New: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Degraded: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  Halted: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Frozen: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Restricted: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  Suspended: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Rejected: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Escalated: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  Flagged: "bg-[var(--destructive)]/10 text-[var(--destructive)]",
-  "Needs Info": "bg-muted text-muted-foreground",
-  Resolved: "bg-muted text-muted-foreground",
-  Maintenance: "bg-muted text-muted-foreground",
+/**
+ * Institutional status badge.
+ * Tone is derived from the status string, with an optional indicator dot
+ * so badges feel like a financial terminal rather than a generic pill.
+ */
+type Tone = "success" | "danger" | "warning" | "info" | "gold" | "neutral";
+
+const toneStyles: Record<Tone, { wrap: string; dot: string }> = {
+  success: {
+    wrap: "bg-[var(--success)]/10 text-[var(--success)] ring-1 ring-inset ring-[var(--success)]/20",
+    dot: "bg-[var(--success)]",
+  },
+  danger: {
+    wrap: "bg-[var(--destructive)]/10 text-[var(--destructive)] ring-1 ring-inset ring-[var(--destructive)]/25",
+    dot: "bg-[var(--destructive)]",
+  },
+  warning: {
+    wrap: "bg-amber-500/10 text-amber-700 ring-1 ring-inset ring-amber-500/25 dark:text-amber-300",
+    dot: "bg-amber-500",
+  },
+  info: {
+    wrap: "bg-sky-500/10 text-sky-700 ring-1 ring-inset ring-sky-500/25 dark:text-sky-300",
+    dot: "bg-sky-500",
+  },
+  gold: {
+    wrap: "bg-gold/12 text-gold ring-1 ring-inset ring-gold/30",
+    dot: "bg-gold",
+  },
+  neutral: {
+    wrap: "bg-surface-2 text-muted-foreground ring-1 ring-inset ring-border-strong/60",
+    dot: "bg-muted-foreground/60",
+  },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+const statusTone: Record<string, Tone> = {
+  // success
+  Active: "success",
+  Operational: "success",
+  Open: "success",
+  Listed: "success",
+  Cleared: "success",
+  Verified: "success",
+  Authorized: "success",
+  Complete: "success",
+  Completed: "success",
+  Approved: "success",
+  Posted: "success",
+  "Paid Off": "success",
+  "Auto-pay enabled": "success",
+  // gold (premium / preview / queued action)
+  "Private Client": "gold",
+  Private: "gold",
+  Preview: "gold",
+  Working: "gold",
+  Planned: "gold",
+  // warning (action required, in-flight)
+  Pending: "warning",
+  "Pending Review": "warning",
+  "Under Review": "warning",
+  Review: "warning",
+  Assigned: "warning",
+  Partial: "warning",
+  Restricted: "warning",
+  Degraded: "warning",
+  // info (kind/category)
+  New: "info",
+  Deposit: "info",
+  Withdrawal: "info",
+  // danger
+  Denied: "danger",
+  Failed: "danger",
+  Missing: "danger",
+  Revoked: "danger",
+  Halted: "danger",
+  Frozen: "danger",
+  Suspended: "danger",
+  Rejected: "danger",
+  Escalated: "danger",
+  Flagged: "danger",
+  // neutral
+  Cancelled: "neutral",
+  Unverified: "neutral",
+  "Not Required": "neutral",
+  None: "neutral",
+  "Needs Info": "neutral",
+  Resolved: "neutral",
+  Maintenance: "neutral",
+  "Auto-pay disabled": "neutral",
+};
+
+export function StatusBadge({
+  status,
+  tone,
+  dot = true,
+  className,
+}: {
+  status: string;
+  tone?: Tone;
+  dot?: boolean;
+  className?: string;
+}) {
+  const t = tone ?? statusTone[status] ?? "neutral";
+  const s = toneStyles[t];
   return (
     <span
       className={cn(
-        "inline-flex rounded px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em]",
-        statusStyles[status] ?? "bg-surface-2 text-muted-foreground",
+        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em] whitespace-nowrap",
+        s.wrap,
+        className,
       )}
     >
+      {dot ? <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} aria-hidden /> : null}
       {status}
     </span>
   );
