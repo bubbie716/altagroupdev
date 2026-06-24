@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  ProofUploadError,
-  ProofValidationError,
-  uploadBankProof,
-} from "@/lib/storage/proof-upload";
-import {
   jsonError,
   parseFormString,
-  parseProofFile,
   requireAuthFromRequest,
 } from "@/server/bank-request-auth";
 
@@ -21,9 +15,7 @@ export const Route = createFileRoute("/api/bank/withdrawal-request")({
 
           const bankAccountId = parseFormString(formData, "bankAccountId");
           const amountRaw = parseFormString(formData, "amount");
-          const destinationInstructions = parseFormString(formData, "destinationInstructions");
           const memo = parseFormString(formData, "memo");
-          const proofFile = parseProofFile(formData);
 
           if (!bankAccountId) {
             return jsonError("Select a bank account.", 400);
@@ -34,42 +26,11 @@ export const Route = createFileRoute("/api/bank/withdrawal-request")({
             return jsonError("Amount must be greater than zero.", 400);
           }
 
-          if (!destinationInstructions) {
-            return jsonError("Withdrawal destination / instructions are required.", 400);
-          }
-
-          let proofInput;
-          if (proofFile) {
-            try {
-              const proof = await uploadBankProof(proofFile, {
-                userId: user.id,
-                transactionType: "withdrawal",
-              });
-              proofInput = {
-                proofImageUrl: proof.url,
-                proofFileName: proof.fileName,
-                proofMimeType: proof.mimeType,
-                proofSizeBytes: proof.sizeBytes,
-                proofUploadedAt: proof.uploadedAt,
-              };
-            } catch (error) {
-              if (error instanceof ProofValidationError) {
-                return jsonError(error.message, 400);
-              }
-              if (error instanceof ProofUploadError) {
-                return jsonError("Proof upload failed. Please try again.", 422);
-              }
-              throw error;
-            }
-          }
-
           const { submitWithdrawalRequest } = await import("@/server/bank.service");
           const result = await submitWithdrawalRequest(user.id, {
             bankAccountId,
             amount,
-            destinationInstructions,
             memo: memo || undefined,
-            proof: proofInput,
           });
 
           return Response.json({

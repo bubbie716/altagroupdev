@@ -122,9 +122,7 @@ export interface BankProofInput {
 export interface SubmitWithdrawalInput {
   bankAccountId: string;
   amount: number;
-  destinationInstructions: string;
   memo?: string;
-  proof?: BankProofInput;
 }
 
 export interface SubmitInternalTransferInput {
@@ -169,12 +167,11 @@ export interface TransferContact {
 }
 
 export interface CreateIntrabankTransferContactInput {
-  label: string;
+  recipientName: string;
   accountNumber: string;
 }
 
 export interface CreateInterbankTransferContactInput {
-  label: string;
   recipientInstitution: string;
   recipientName: string;
   routingNumber: string;

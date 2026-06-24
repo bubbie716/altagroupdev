@@ -213,7 +213,12 @@ export function BankInternalTransferForm({
         )
       ) : (
         <>
-          <TransferContactPicker contacts={contacts} onSelect={setToAccountNumber} />
+          <TransferContactPicker
+            contacts={contacts}
+            onSelect={(contact) => {
+              if (contact.accountNumber) setToAccountNumber(contact.accountNumber);
+            }}
+          />
           <label className="block">
             <span className={fieldLabel}>Recipient account number</span>
           <input

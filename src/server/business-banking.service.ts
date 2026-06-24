@@ -14,6 +14,7 @@ import type {
   PayrollRunRow,
   ScheduledPaymentRow,
 } from "@/lib/bank/business-banking-types";
+import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 import {
@@ -147,8 +148,14 @@ export async function createScheduledPayment(
   await assertOperatingAccount(input.companyId, input.bankAccountId);
 
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
-  if (!input.label.trim() || !input.recipientName.trim()) {
-    badRequest("Label and recipient name are required.");
+  if (!input.recipientName.trim()) {
+    badRequest("Recipient name is required.");
+  }
+  if (!input.recipientAccountNumber?.trim()) {
+    badRequest("Recipient Alta account number is required.");
+  }
+  if (!isValidAltaAccountNumber(input.recipientAccountNumber.trim())) {
+    badRequest("Enter a valid Alta Bank account number (AB-####-######).");
   }
 
   const scheduledDate = resolveScheduledInputDateTime(input.scheduledDate, input.scheduledTime);
@@ -173,7 +180,7 @@ export async function createScheduledPayment(
       createdByUserId: user.id,
       transferScope: "INTRABANK",
       paymentType: toDbPaymentType(input.paymentType),
-      label: input.label.trim(),
+      label: input.recipientName.trim(),
       recipientName: input.recipientName.trim(),
       recipientAccountNumber: input.recipientAccountNumber?.trim() || null,
       amount: input.amount,

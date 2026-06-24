@@ -123,7 +123,6 @@ export interface CreateScheduledPaymentInput {
   companyId: string;
   bankAccountId: string;
   paymentType: ScheduledPaymentTypeCode;
-  label: string;
   recipientName: string;
   recipientAccountNumber?: string;
   amount: number;
@@ -138,7 +137,6 @@ export interface CreateUserScheduledTransferInput {
   bankAccountId: string;
   transferScope: ScheduledTransferScopeCode;
   paymentType: ScheduledPaymentTypeCode;
-  label: string;
   recipientName: string;
   recipientAccountNumber?: string;
   recipientInstitution?: string;

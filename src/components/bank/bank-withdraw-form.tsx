@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MAX_PROOF_BYTES, ACCEPTED_PROOF_INPUT } from "@/lib/storage/proof-upload.constants";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
 
@@ -36,9 +35,7 @@ export function BankWithdrawForm({
   const selectedAccount = accounts.find((account) => account.id === bankAccountId);
   const availableBalance = selectedAccount?.balance ?? 0;
   const [amount, setAmount] = useState("");
-  const [destinationInstructions, setDestinationInstructions] = useState("");
   const [memo, setMemo] = useState("");
-  const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -54,22 +51,13 @@ export function BankWithdrawForm({
       return;
     }
 
-    if (proofFile && proofFile.size > MAX_PROOF_BYTES) {
-      setError("Proof file must be 8MB or smaller.");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
       const formData = new FormData();
       formData.append("bankAccountId", bankAccountId);
       formData.append("amount", amount);
-      formData.append("destinationInstructions", destinationInstructions);
       formData.append("memo", memo);
-      if (proofFile) {
-        formData.append("proof", proofFile);
-      }
 
       const response = await fetch("/api/bank/withdrawal-request", {
         method: "POST",
@@ -89,9 +77,7 @@ export function BankWithdrawForm({
 
       setSuccess(`Withdrawal pending manual review. Reference: ${payload.referenceCode ?? "—"}`);
       setAmount("");
-      setDestinationInstructions("");
       setMemo("");
-      setProofFile(null);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unable to submit withdrawal.";
@@ -145,31 +131,6 @@ export function BankWithdrawForm({
             placeholder="0.00"
             className={`${inputClass} tabular`}
           />
-        </label>
-
-        <label className="block">
-          <span className={fieldLabel}>Withdrawal destination / instructions</span>
-          <Textarea
-            autoResize
-            required
-            value={destinationInstructions}
-            onChange={(e) => setDestinationInstructions(e.target.value)}
-            placeholder="In-game username, destination account, or payout instructions…"
-            className={`${inputClass} min-h-[100px]`}
-          />
-        </label>
-
-        <label className="block">
-          <span className={fieldLabel}>Supporting screenshot (optional)</span>
-          <input
-            type="file"
-            accept={ACCEPTED_PROOF_INPUT}
-            onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-            className="mt-2 block w-full text-[13px] text-muted-foreground file:mr-4 file:rounded-md file:border file:border-border file:bg-surface-2 file:px-3 file:py-2 file:text-[12px] file:font-medium"
-          />
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            Optional PNG, JPG, or WebP up to 8MB.
-          </p>
         </label>
 
         <label className="block">

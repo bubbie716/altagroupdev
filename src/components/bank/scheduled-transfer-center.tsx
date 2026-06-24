@@ -14,6 +14,7 @@ import type {
 } from "@/lib/bank/business-banking-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
+import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -149,8 +150,6 @@ function ScheduledTransferForm({
       ? defaultSourceAccountId
       : (sourceAccounts[0]?.id ?? "");
   const [bankAccountId, setBankAccountId] = useState(defaultAccountId);
-  const [contactId, setContactId] = useState("");
-  const [label, setLabel] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientAccountNumber, setRecipientAccountNumber] = useState("");
   const [recipientInstitution, setRecipientInstitution] = useState("");
@@ -164,16 +163,12 @@ function ScheduledTransferForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  function applyContact(id: string) {
-    setContactId(id);
-    const contact = contacts.find((c) => c.id === id);
-    if (!contact) return;
-    setLabel(contact.label);
+  function selectContact(contact: TransferContact) {
     if (transferScope === "intrabank") {
-      setRecipientName(contact.resolvedName ?? contact.recipientName ?? "");
-      setRecipientAccountNumber(contact.accountNumber ?? "");
+      if (contact.accountNumber) setRecipientAccountNumber(contact.accountNumber);
+      setRecipientName(contact.recipientName ?? contact.label ?? "");
     } else {
-      setRecipientName(contact.recipientName ?? "");
+      setRecipientName(contact.recipientName ?? contact.label ?? "");
       setRecipientInstitution(contact.recipientInstitution ?? "");
       setRoutingNumber(contact.routingNumber ?? "");
       setWireAccountNumber(contact.wireAccountNumber ?? "");
@@ -188,7 +183,6 @@ function ScheduledTransferForm({
       await onCreate({
         bankAccountId,
         paymentType,
-        label,
         recipientName,
         recipientAccountNumber: recipientAccountNumber || undefined,
         recipientInstitution: recipientInstitution || undefined,
@@ -201,8 +195,6 @@ function ScheduledTransferForm({
         memo: memo || undefined,
       });
       await router.invalidate();
-      setContactId("");
-      setLabel("");
       setRecipientName("");
       setRecipientAccountNumber("");
       setRecipientInstitution("");
@@ -240,48 +232,30 @@ function ScheduledTransferForm({
         </label>
       )}
 
-      {contacts.length > 0 && (
-        <label className="block text-sm">
-          Saved contact (optional)
-          <select
-            className={fieldClass}
-            value={contactId}
-            onChange={(e) => applyContact(e.target.value)}
-          >
-            <option value="">Enter manually</option>
-            {contacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {contact.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      <label className="block text-sm">
-        Label
-        <input className={fieldClass} value={label} onChange={(e) => setLabel(e.target.value)} required />
-      </label>
-      <label className="block text-sm">
-        Recipient name
-        <input
-          className={fieldClass}
-          value={recipientName}
-          onChange={(e) => setRecipientName(e.target.value)}
-          required
-        />
-      </label>
+      <TransferContactPicker contacts={contacts} scope={transferScope} onSelect={selectContact} />
 
       {transferScope === "intrabank" ? (
-        <label className="block text-sm">
-          Recipient account (optional)
-          <input
-            className={fieldClass}
-            value={recipientAccountNumber}
-            onChange={(e) => setRecipientAccountNumber(e.target.value)}
-            placeholder="AB-5000-000000"
-          />
-        </label>
+        <>
+          <label className="block text-sm">
+            Recipient Alta account
+            <input
+              className={fieldClass}
+              value={recipientAccountNumber}
+              onChange={(e) => setRecipientAccountNumber(e.target.value)}
+              placeholder="AB-5000-000000"
+              required
+            />
+          </label>
+          <label className="block text-sm">
+            Recipient name
+            <input
+              className={fieldClass}
+              value={recipientName}
+              onChange={(e) => setRecipientName(e.target.value)}
+              required
+            />
+          </label>
+        </>
       ) : (
         <>
           <label className="block text-sm">
@@ -290,6 +264,15 @@ function ScheduledTransferForm({
               className={fieldClass}
               value={recipientInstitution}
               onChange={(e) => setRecipientInstitution(e.target.value)}
+              required
+            />
+          </label>
+          <label className="block text-sm">
+            Recipient name
+            <input
+              className={fieldClass}
+              value={recipientName}
+              onChange={(e) => setRecipientName(e.target.value)}
               required
             />
           </label>
@@ -455,27 +438,36 @@ function TransferHistoryTable({
 
   return (
     <div className={`${compact ? "mt-4" : "mt-6"} overflow-x-auto`}>
-      <table className="alta-table w-full min-w-[520px] text-sm">
+      <table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
         <thead>
           <tr>
-            <th>Label</th>
             <th>Recipient</th>
             <th>Amount</th>
+            {compact && <th>Scheduled</th>}
+            {compact && <th>Memo</th>}
             {!compact && <th>Type</th>}
             {showScopeColumn && !compact && <th>Scope</th>}
             <th>Status</th>
-            {!compact && <th>Next run</th>}
+            {!compact && <th>Scheduled</th>}
             {!compact && <th>Last run</th>}
             {!compact && <th>Last result</th>}
-            {canManage && <th />}
+            {!compact && <th>Memo</th>}
+            {canManage && !compact && <th className="w-[1%] whitespace-nowrap" />}
           </tr>
         </thead>
         <tbody>
           {payments.map((p) => (
             <tr key={p.id}>
-              <td>{p.label}</td>
               <td>{p.recipientName}</td>
               <td className="tabular-nums">{florin(p.amount)}</td>
+              {compact && (
+                <td className="max-w-[120px] text-[12px] leading-snug">{formatRunAt(paymentNextRun(p))}</td>
+              )}
+              {compact && (
+                <td className="max-w-[160px] truncate text-[12px] text-muted-foreground" title={p.memo ?? undefined}>
+                  {p.memo?.trim() || "—"}
+                </td>
+              )}
               {!compact && <td>{p.paymentTypeLabel}</td>}
               {showScopeColumn && !compact && <td>{p.transferScopeLabel}</td>}
               <td>
@@ -483,16 +475,34 @@ function TransferHistoryTable({
                 {p.lastFailureReason ? (
                   <div className="mt-0.5 text-[11px] text-muted-foreground">{p.lastFailureReason}</div>
                 ) : null}
+                {compact && canManage &&
+                (p.status === "pending_review" || p.status === "approved" || p.status === "paused") ? (
+                  <button
+                    type="button"
+                    className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline"
+                    onClick={async () => {
+                      await onCancel(p.id);
+                      await router.invalidate();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : null}
               </td>
-              {!compact && <td className="text-[12px]">{formatRunAt(paymentNextRun(p))}</td>}
+              {!compact && <td className="whitespace-nowrap text-[12px]">{formatRunAt(paymentNextRun(p))}</td>}
               {!compact && <td className="text-[12px]">{formatRunAt(p.lastRunAt)}</td>}
               {!compact && (
                 <td className="text-[12px]">
                   {p.lastExecutionStatusLabel ?? "—"}
                 </td>
               )}
-              {canManage && (
-                <td>
+              {!compact && (
+                <td className="max-w-[200px] truncate text-[12px] text-muted-foreground" title={p.memo ?? undefined}>
+                  {p.memo?.trim() || "—"}
+                </td>
+              )}
+              {canManage && !compact && (
+                <td className="w-[1%] whitespace-nowrap">
                   {p.status === "pending_review" || p.status === "approved" || p.status === "paused" ? (
                     <button
                       type="button"

@@ -11,6 +11,7 @@ import {
   toDbPaymentType,
   toDbTransferScope,
 } from "@/server/business-banking-mapper";
+import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 
@@ -35,8 +36,8 @@ async function assertTransferSourceAccount(user: AltaUser, bankAccountId: string
 
 function validateScheduledTransferInput(input: CreateUserScheduledTransferInput) {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
-  if (!input.label.trim() || !input.recipientName.trim()) {
-    badRequest("Label and recipient name are required.");
+  if (!input.recipientName.trim()) {
+    badRequest("Recipient name is required.");
   }
 
   if (input.transferScope === "interbank") {
@@ -46,6 +47,16 @@ function validateScheduledTransferInput(input: CreateUserScheduledTransferInput)
     if (!input.routingNumber?.trim()) badRequest("Routing number is required for interbank transfers.");
     if (!input.wireAccountNumber?.trim()) {
       badRequest("Wire account number is required for interbank transfers.");
+    }
+  }
+
+  if (input.transferScope === "intrabank") {
+    const recipientAccountNumber = input.recipientAccountNumber?.trim();
+    if (!recipientAccountNumber) {
+      badRequest("Recipient Alta account number is required.");
+    }
+    if (!isValidAltaAccountNumber(recipientAccountNumber)) {
+      badRequest("Enter a valid Alta Bank account number (AB-####-######).");
     }
   }
 
@@ -96,7 +107,7 @@ export async function createUserScheduledTransfer(
       createdByUserId: user.id,
       transferScope: toDbTransferScope(input.transferScope),
       paymentType: toDbPaymentType(input.paymentType),
-      label: input.label.trim(),
+      label: input.recipientName.trim(),
       recipientName: input.recipientName.trim(),
       recipientAccountNumber:
         input.transferScope === "intrabank" ? input.recipientAccountNumber?.trim() || null : null,

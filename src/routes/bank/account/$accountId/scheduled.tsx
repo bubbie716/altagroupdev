@@ -21,8 +21,11 @@ export const Route = createFileRoute("/bank/account/$accountId/scheduled")({
       const ctx = await fetchBusinessAccountContextForModule({
         data: { accountId: params.accountId, module: "scheduled" },
       });
-      const payments = await fetchScheduledPayments({ data: ctx.companyId });
-      return { isBusinessOperating: true as const, payments, contacts: [] };
+      const [payments, contacts] = await Promise.all([
+        fetchScheduledPayments({ data: ctx.companyId }),
+        fetchTransferContacts({ data: "intrabank" }),
+      ]);
+      return { isBusinessOperating: true as const, payments, contacts };
     }
 
     const [payments, contacts] = await Promise.all([
@@ -45,7 +48,11 @@ function AccountScheduledPage() {
 
   if (isBusinessOperating && businessContext) {
     return (
-      <BusinessAccountPaymentsCenter company={businessContext.treasury} payments={payments} />
+      <BusinessAccountPaymentsCenter
+        company={businessContext.treasury}
+        payments={payments}
+        contacts={contacts}
+      />
     );
   }
 

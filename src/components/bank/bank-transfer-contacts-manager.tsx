@@ -126,14 +126,18 @@ function ContactRow({
 
 export function TransferContactPicker({
   contacts,
+  scope = "intrabank",
   onSelect,
 }: {
   contacts: TransferContact[];
-  onSelect: (accountNumber: string) => void;
+  scope?: TransferContactScopeCode;
+  onSelect: (contact: TransferContact) => void;
 }) {
-  const matching = contacts.filter(
-    (contact) => contact.scope === "intrabank" && contact.accountNumber,
-  );
+  const matching = contacts.filter((contact) => {
+    if (contact.scope !== scope) return false;
+    if (scope === "intrabank") return !!contact.accountNumber;
+    return true;
+  });
 
   if (matching.length === 0) return null;
 
@@ -145,12 +149,14 @@ export function TransferContactPicker({
           <button
             key={contact.id}
             type="button"
-            onClick={() => contact.accountNumber && onSelect(contact.accountNumber)}
+            onClick={() => onSelect(contact)}
             className="rounded-md border border-border bg-surface-2/40 px-3 py-1.5 text-left text-[12px] transition-colors hover:border-border-strong hover:bg-surface-2"
           >
             <span className="font-medium">{contact.label}</span>
             <span className="mt-0.5 block font-mono text-[10px] text-muted-foreground">
-              {contact.accountNumber}
+              {scope === "intrabank"
+                ? contact.accountNumber
+                : `${contact.recipientInstitution ?? "—"} · ${contact.routingNumber ?? "—"}`}
             </span>
           </button>
         ))}
@@ -166,7 +172,7 @@ function AddIntrabankContactForm({
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const [label, setLabel] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -177,7 +183,7 @@ function AddIntrabankContactForm({
     setSubmitting(true);
     try {
       const input: CreateIntrabankTransferContactInput = {
-        label,
+        recipientName,
         accountNumber: accountNumber.trim().toUpperCase(),
       };
       await createIntrabankContactRecord({ data: input });
@@ -197,12 +203,12 @@ function AddIntrabankContactForm({
     <Card className="!p-5">
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
-          <span className={fieldLabel}>Label</span>
+          <span className={fieldLabel}>Recipient name</span>
           <input
             required
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. John's checking"
+            value={recipientName}
+            onChange={(e) => setRecipientName(e.target.value)}
+            placeholder="e.g. John Smith"
             className={inputClass}
           />
         </label>
@@ -250,7 +256,6 @@ function AddInterbankContactForm({
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const [label, setLabel] = useState("");
   const [recipientInstitution, setRecipientInstitution] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [routingNumber, setRoutingNumber] = useState("");
@@ -264,7 +269,6 @@ function AddInterbankContactForm({
     setSubmitting(true);
     try {
       const input: CreateInterbankTransferContactInput = {
-        label,
         recipientInstitution,
         recipientName,
         routingNumber,
@@ -287,10 +291,6 @@ function AddInterbankContactForm({
         Wire recipients can be saved now and used when interbank transfers launch.
       </p>
       <form onSubmit={onSubmit} className="space-y-4">
-        <label className="block">
-          <span className={fieldLabel}>Label</span>
-          <input required value={label} onChange={(e) => setLabel(e.target.value)} className={inputClass} />
-        </label>
         <label className="block">
           <span className={fieldLabel}>Recipient institution</span>
           <input

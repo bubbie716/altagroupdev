@@ -85,7 +85,7 @@ function mapTransferContact(row: {
     accountNumber: row.accountNumber,
     resolvedName: row.resolvedName,
     recipientInstitution: row.recipientInstitution,
-    recipientName: row.recipientName,
+    recipientName: row.recipientName ?? row.label,
     routingNumber: row.routingNumber,
     wireAccountNumber: row.wireAccountNumber,
     createdAt: row.createdAt.toISOString(),
@@ -119,8 +119,8 @@ export async function createIntrabankTransferContact(
   userId: string,
   input: CreateIntrabankTransferContactInput,
 ): Promise<TransferContact> {
-  const label = input.label.trim();
-  if (!label) badRequest("Contact label is required");
+  const recipientName = input.recipientName.trim();
+  if (!recipientName) badRequest("Recipient name is required");
 
   const accountNumber = normalizeAccountNumber(input.accountNumber);
   if (!isValidAltaAccountNumber(accountNumber)) {
@@ -138,7 +138,8 @@ export async function createIntrabankTransferContact(
     data: {
       userId,
       scope: "INTRABANK",
-      label,
+      label: recipientName,
+      recipientName,
       intrabankKind: "PLAYER_ACCOUNT",
       accountNumber: recipient.accountNumber,
       resolvedName: recipient.accountName,
@@ -151,13 +152,11 @@ export async function createInterbankTransferContact(
   userId: string,
   input: CreateInterbankTransferContactInput,
 ): Promise<TransferContact> {
-  const label = input.label.trim();
   const recipientInstitution = input.recipientInstitution.trim();
   const recipientName = input.recipientName.trim();
   const routingNumber = input.routingNumber.trim();
   const wireAccountNumber = input.wireAccountNumber.trim();
 
-  if (!label) badRequest("Contact label is required");
   if (!recipientInstitution) badRequest("Recipient institution is required");
   if (!recipientName) badRequest("Recipient name is required");
   if (!routingNumber) badRequest("Routing number is required");
@@ -167,7 +166,7 @@ export async function createInterbankTransferContact(
     data: {
       userId,
       scope: "INTERBANK",
-      label,
+      label: recipientName,
       recipientInstitution,
       recipientName,
       routingNumber,

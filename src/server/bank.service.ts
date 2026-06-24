@@ -443,23 +443,15 @@ export async function submitWithdrawalRequest(
     badRequest("Insufficient balance for this withdrawal");
   }
 
-  const destination = input.destinationInstructions.trim();
-  if (!destination) badRequest("Withdrawal destination / instructions are required");
-
   const transaction = await prisma.bankTransaction.create({
     data: {
       bankAccountId: account.id,
       type: "WITHDRAWAL",
       amount: input.amount,
       status: "PENDING",
-      description: destination,
+      description: "Withdrawal request",
       memo: input.memo?.trim() || null,
       referenceCode: generateReferenceCode("WDR"),
-      proofImageUrl: input.proof?.proofImageUrl ?? null,
-      proofFileName: input.proof?.proofFileName ?? null,
-      proofMimeType: input.proof?.proofMimeType ?? null,
-      proofSizeBytes: input.proof?.proofSizeBytes ?? null,
-      proofUploadedAt: input.proof?.proofUploadedAt ?? null,
     },
   });
 

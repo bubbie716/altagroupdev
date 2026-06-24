@@ -6,14 +6,17 @@ import {
   createScheduledPaymentRecord,
 } from "@/lib/bank/business-banking.functions";
 import type { BusinessTreasuryCompany, ScheduledPaymentRow } from "@/lib/bank/business-banking-types";
+import type { TransferContact } from "@/lib/bank/backend-types";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 
 export function BusinessAccountPaymentsCenter({
   company,
   payments,
+  contacts = [],
 }: {
   company: BusinessTreasuryCompany;
   payments: ScheduledPaymentRow[];
+  contacts?: TransferContact[];
 }) {
   const createPayment = useServerFn(createScheduledPaymentRecord);
   const cancelPayment = useServerFn(cancelScheduledPaymentRecord);
@@ -30,6 +33,7 @@ export function BusinessAccountPaymentsCenter({
         },
       ]}
       payments={payments}
+      contacts={contacts}
       canManage={company.permissions.canManage}
       viewOnlyMessage="Your role has view-only access. Contact an owner, executive, or finance manager to submit treasury transfers."
       onCreate={async (input) => {
@@ -38,7 +42,6 @@ export function BusinessAccountPaymentsCenter({
             companyId: company.companyId,
             bankAccountId: company.operatingAccount.id,
             paymentType: input.paymentType,
-            label: input.label,
             recipientName: input.recipientName,
             recipientAccountNumber: input.recipientAccountNumber,
             amount: input.amount,
