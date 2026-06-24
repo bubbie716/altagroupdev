@@ -35,14 +35,17 @@ export function LoanRepaymentProgressBar({
         </span>
       </div>
 
-      <Progress value={percentRepaid} className="h-2 bg-surface-2 [&>div]:bg-gold" />
+      <Progress
+        value={percentRepaid}
+        className="h-1.5 rounded-full bg-foreground/[0.06] ring-1 ring-inset ring-border [&>div]:bg-gold [&>div]:transition-all [&>div]:duration-700"
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-foreground">
         <span>
           Projected outstanding:{" "}
           <span className="type-finance text-foreground">{florin(projectedOutstanding)}</span>
         </span>
-        <StatusBadge status={statusLabel} />
+        {!compact && <StatusBadge status={statusLabel} />}
       </div>
     </div>
   );
