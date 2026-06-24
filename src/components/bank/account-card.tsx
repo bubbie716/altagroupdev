@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import { RouteButton } from "@/components/bank/route-button";
+import { StatusBadge } from "@/components/internal/status-badge";
 
 type AccountCardData = {
   id?: string;
@@ -21,7 +22,6 @@ export function AccountCard({
   account: AccountCardData;
   footer?: "activity" | "view";
 }) {
-  const isActive = account.status === "Active" || account.status === "active";
   const statusLabel =
     account.status === "active"
       ? "Active"
@@ -32,20 +32,12 @@ export function AccountCard({
           : account.status;
 
   return (
-    <Card className="group flex h-full flex-col !p-6">
-      <div className="flex items-start justify-between">
-        <div className="type-meta">
-          {account.product}
-        </div>
-        <span
-          className={`font-mono text-[9px] uppercase tracking-[0.18em] ${
-            isActive ? "text-[var(--success)]" : "text-muted-foreground"
-          }`}
-        >
-          {statusLabel}
-        </span>
+    <Card className="group flex h-full flex-col !p-6 transition-colors hover:border-border-strong">
+      <div className="flex items-start justify-between gap-3">
+        <div className="type-meta-accent min-w-0 truncate">{account.product}</div>
+        <StatusBadge status={statusLabel} />
       </div>
-      <div className="mt-5 text-base font-medium tracking-tight">{account.name}</div>
+      <div className="mt-5 truncate text-base font-medium tracking-tight">{account.name}</div>
       <div className="mt-1 font-mono text-[11px] text-muted-foreground">{account.accountNumber}</div>
       {account.routingNumber && (
         <div className="mt-1 font-mono text-[10px] text-muted-foreground/80">
