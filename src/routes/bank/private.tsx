@@ -15,26 +15,48 @@ export const Route = createFileRoute("/bank/private")({
   component: BankPrivate,
 });
 
-const PLACEHOLDER = "—";
-
 function BankPrivate() {
   const showMockData = isUserFinancialMockDataEnabled();
   const p = showMockData ? getPrivateBanking() : null;
 
-  // Relationship overview values (placeholders when not available).
+  // Intentional placeholders — never expose a raw dash.
+  const PENDING = "Pending Relationship Review";
+
   const relationship = {
     status: p ? "Active" : "Pending Onboarding",
-    since: p ? "March 2023" : PLACEHOLDER,
+    since: p ? "March 2023" : PENDING,
+    activeProducts: p ? "4 · Reserve, Summit, Liquidity, Custody" : PENDING,
+    relationshipValue: p ? "Tier I" : PENDING,
     tier: p?.tier ?? "Tier I · Founding Relationship",
     standing: p ? "Excellent · Founding Client" : "Awaiting first relationship review",
   };
 
-  const wealth = {
-    netWorth: PLACEHOLDER,
-    banking: PLACEHOLDER,
-    investments: PLACEHOLDER,
-    lending: p?.liquidityLine ?? PLACEHOLDER,
-  };
+  const wealth: { label: string; value: string | null; note: string; fallback: string }[] = [
+    {
+      label: "Net worth",
+      value: null,
+      note: "Consolidated estimate",
+      fallback: "Connect additional Alta products to unlock.",
+    },
+    {
+      label: "Banking assets",
+      value: null,
+      note: "Deposits & money market",
+      fallback: "Aggregates with your next statement cycle.",
+    },
+    {
+      label: "Investments",
+      value: null,
+      note: "Equities, IPOs, holdings",
+      fallback: "Requires Alta Exchange portfolio integration.",
+    },
+    {
+      label: "Lending exposure",
+      value: p?.liquidityLine ?? null,
+      note: "Approved facilities & utilization",
+      fallback: "No active facilities.",
+    },
+  ];
 
   return (
     <PageShell
@@ -44,32 +66,27 @@ function BankPrivate() {
     >
       <BankSubNav />
 
-      {/* INVITATION RIBBON */}
-      <div className="-mt-2 mb-10 flex flex-wrap items-center gap-4 border-y border-border/60 py-3 sm:mb-14">
-        <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-          <span className="size-1 rounded-full bg-gold" aria-hidden />
-          Invitation Only · Est. 2026
-        </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Membership extended by referral
-        </span>
-      </div>
+      {/* HERO RELATIONSHIP CARD */}
+      <HeroRelationshipCard />
 
       {/* RELATIONSHIP OVERVIEW */}
       <PrivateSection
         index="01"
         title="Your relationship"
         kicker="At a glance"
+        className="mt-16 sm:mt-24"
         action={
           <div className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
             Refreshed daily · 09:00 ET
           </div>
         }
       >
-        <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
           <DataCell label="Status" value={relationship.status} accent={!!p} />
-          <DataCell label="Relationship since" value={relationship.since} />
-          <DataCell label="Tier" value={relationship.tier} />
+          <DataCell label="Private client since" value={relationship.since} muted={!p} />
+          <DataCell label="Active products" value={relationship.activeProducts} muted={!p} />
+          <DataCell label="Relationship tier" value={relationship.tier} />
+          <DataCell label="Banking relationship value" value={relationship.relationshipValue} muted={!p} />
           <DataCell label="Client standing" value={relationship.standing} />
         </div>
       </PrivateSection>
@@ -103,6 +120,9 @@ function BankPrivate() {
         </div>
       </PrivateSection>
 
+      {/* ALTA PRIVATE CHARTER */}
+      <CharterSection />
+
       {/* WEALTH OVERVIEW */}
       <PrivateSection
         index="03"
@@ -116,14 +136,9 @@ function BankPrivate() {
         }
       >
         <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <WealthCell label="Net worth" value={wealth.netWorth} note="Consolidated estimate" />
-          <WealthCell label="Banking assets" value={wealth.banking} note="Deposits & money market" />
-          <WealthCell label="Investments" value={wealth.investments} note="Equities, IPOs, holdings" />
-          <WealthCell
-            label="Lending exposure"
-            value={wealth.lending}
-            note="Approved facilities & utilization"
-          />
+          {wealth.map((w) => (
+            <WealthCell key={w.label} {...w} />
+          ))}
         </div>
         <p className="mt-4 text-[12px] text-muted-foreground">
           Wealth aggregates appear here as your portfolio is connected. Discuss reporting cadence
@@ -173,50 +188,159 @@ function BankPrivate() {
         </div>
       </PrivateSection>
 
-      {/* CLIENT BENEFITS */}
+      {/* CLIENT BENEFITS — premium cards */}
       <PrivateSection
         index="05"
         title="Client benefits"
         kicker="What membership confers"
         className="mt-16 sm:mt-24"
       >
-        <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          <BenefitCell
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <BenefitCard
             n="i"
+            tag="Operations"
             title="Priority Review Processing"
             description="Deposits, withdrawals, and wire approvals routed to the front of the operator queue."
           />
-          <BenefitCell
+          <BenefitCard
             n="ii"
+            tag="Treasury"
             title="Enhanced Banking Limits"
             description="Elevated daily, monthly, and transfer ceilings calibrated to your relationship."
           />
-          <BenefitCell
+          <BenefitCard
             n="iii"
+            tag="Credit"
             title="Private Lending Access"
             description="Direct access to portfolio-backed credit, business facilities, and bespoke structures."
           />
-          <BenefitCell
+          <BenefitCard
             n="iv"
+            tag="Pricing"
             title="Relationship Pricing"
             description="Negotiated yield, fee, and rate tiers reviewed quarterly with your banker."
           />
-          <BenefitCell
+          <BenefitCard
             n="v"
+            tag="Recognition"
             title="Founding Client Recognition"
             description="Permanent acknowledgement as an inaugural Alta Private relationship."
           />
-          <BenefitCell
+          <BenefitCard
             n="vi"
+            tag="Platform"
             title="Early Product Access"
             description="Preview new Alta Bank, Exchange, and Terminal capabilities before public release."
           />
         </div>
       </PrivateSection>
 
-      {/* OPPORTUNITIES & OFFERS */}
+      {/* PRIVATE CLIENT OFFERS */}
       <PrivateSection
         index="06"
+        title="Private client offers"
+        kicker="Exclusive benefits from Alta & partners"
+        className="mt-16 sm:mt-24"
+      >
+        <OfferGroup heading="Alta Private exclusive">
+          <OfferCard
+            badge="Alta Private"
+            partner="Reserve Account"
+            title="Account fee waivers"
+            body="Maintenance, wire, and statement fees waived for the life of the relationship."
+          />
+          <OfferCard
+            badge="Private Client Only"
+            partner="Summit Money Market"
+            title="Preferred yield terms"
+            body="Negotiated rate tier above standard published yields, reviewed quarterly."
+          />
+          <OfferCard
+            badge="Member Benefit"
+            partner="Alta Exchange"
+            title="Priority IPO allocation access"
+            body="Allocation windows ahead of public order books for select Alta Exchange listings."
+          />
+          <OfferCard
+            badge="Exclusive"
+            partner="Private Liquidity Line"
+            title="Review priority"
+            body="Front-of-queue underwriting for new and expanded facility requests."
+          />
+        </OfferGroup>
+
+        <OfferGroup heading="Partner benefits" className="mt-10">
+          <OfferCard
+            badge="Partner"
+            partner="Newport Tavern"
+            title="67% off one side with entrée"
+            body="Extended at the discretion of the house. Present membership at the door."
+          />
+          <OfferCard
+            badge="Partner"
+            partner="Harbor Logistics"
+            title="Priority commercial processing"
+            body="Expedited freight scheduling and dedicated coverage for Alta Private accounts."
+          />
+          <OfferCard
+            badge="Partner"
+            partner="Redmont Aviation"
+            title="Private member charter discounts"
+            body="Negotiated rates on Redmont charter inventory and empty-leg priority access."
+          />
+          <OfferCard
+            badge="Partner"
+            partner="Alta Exchange"
+            title="Priority access to select offerings"
+            body="Pre-listing previews of curated Newport company placements."
+          />
+        </OfferGroup>
+      </PrivateSection>
+
+      {/* PRIVATE CLIENT NETWORK */}
+      <PrivateSection
+        index="07"
+        title="Private client network"
+        kicker="Access to people, not just products"
+        className="mt-16 sm:mt-24"
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <NetworkCard
+            tag="Founder roundtables"
+            title="Closed-room conversations"
+            body="Quarterly gatherings with Newport founders and Alta leadership. Invitation by relationship."
+          />
+          <NetworkCard
+            tag="Private economic briefings"
+            title="Newport market reads"
+            body="Discreet briefings from Alta's research desk ahead of public commentary."
+          />
+          <NetworkCard
+            tag="Capital introductions"
+            title="Quiet placements"
+            body="Curated introductions between members raising and members allocating capital."
+          />
+          <NetworkCard
+            tag="Business networking"
+            title="Curated salons"
+            body="Small-format dinners across Newport with operators in your sector and stage."
+          />
+          <NetworkCard
+            tag="Leadership discussions"
+            title="Off-the-record forums"
+            body="Sessions with founders, governors, and operators on matters not yet public."
+          />
+          <NetworkCard
+            tag="Bespoke engagements"
+            title="By appointment"
+            body="Custom convenings — boards, advisors, families — at the request of a member."
+          />
+        </div>
+      </PrivateSection>
+
+      {/* OPPORTUNITIES */}
+      <PrivateSection
+        index="08"
         title="Client opportunities"
         kicker="Curated, discreet, limited"
         className="mt-16 sm:mt-24"
@@ -236,21 +360,6 @@ function BankPrivate() {
             tag="Membership"
             title="Founding Client Programs"
             body="Closed-door briefings, governance previews, and Alta leadership roundtables."
-          />
-          <OpportunityCard
-            tag="Banking"
-            title="Exclusive Promotions"
-            body="Negotiated incentives on Reserve, Summit, and lending products as they are introduced."
-          />
-          <OpportunityCard
-            tag="Platform"
-            title="Early Platform Access"
-            body="Preview new Alta capabilities — terminals, instruments, and reporting — before launch."
-          />
-          <OpportunityCard
-            tag="Concierge"
-            title="Bespoke Engagements"
-            body="Specialty requests across treasury, custody, and structured banking by appointment."
           />
         </div>
       </PrivateSection>
@@ -281,6 +390,133 @@ function BankPrivate() {
 }
 
 /* ---------- Layout primitives ---------- */
+
+function HeroRelationshipCard() {
+  return (
+    <div className="relative -mt-2 mb-12 overflow-hidden rounded-xl border border-gold/30 bg-surface-1 sm:mb-16">
+      {/* Hairline gold corner accents */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-0 top-0 h-px w-16 bg-gold/60" />
+        <div className="absolute left-0 top-0 h-16 w-px bg-gold/60" />
+        <div className="absolute right-0 bottom-0 h-px w-16 bg-gold/60" />
+        <div className="absolute right-0 bottom-0 h-16 w-px bg-gold/60" />
+      </div>
+
+      <div className="grid gap-px bg-border/60 sm:grid-cols-[1.4fr_1fr]">
+        <div className="bg-surface-1 px-6 py-8 sm:px-10 sm:py-12">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <PrestigeBadge>Invitation Only</PrestigeBadge>
+            <PrestigeBadge tone="muted">Founding Client</PrestigeBadge>
+            <PrestigeBadge tone="muted">Est. 2026</PrestigeBadge>
+          </div>
+          <h2 className="mt-6 font-serif text-3xl leading-[1.05] tracking-tight sm:text-[40px]">
+            Alta Private Relationship
+          </h2>
+          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+            Reserved for clients requiring bespoke banking, lending, treasury, and capital
+            markets access. Membership is extended by invitation and maintained through active
+            participation in the Alta financial ecosystem.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              className="group inline-flex items-center gap-2 rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-gold/[0.14]"
+            >
+              Speak with your banker
+              <span aria-hidden className="text-gold transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:border-gold/40"
+            >
+              View membership benefits
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between bg-surface-1 px-6 py-8 sm:px-8 sm:py-12">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+              Relationship signature
+            </div>
+            <div className="mt-5 space-y-4">
+              <HeroStat label="Membership" value="Alta Private" />
+              <HeroStat label="Standing" value="Founding Client" />
+              <HeroStat label="Tier" value="Tier I" />
+              <HeroStat label="Coverage" value="Newport Private Group" />
+            </div>
+          </div>
+          <div className="mt-8 border-t border-border/60 pt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Relationship managed · Discretion assured
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-border/50 pb-3 last:border-0 last:pb-0">
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-serif text-[15px] tracking-tight text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function CharterSection() {
+  return (
+    <section className="mt-20 border-y border-border/60 py-16 sm:mt-28 sm:py-24">
+      <div className="mx-auto max-w-4xl">
+        <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+          <span className="size-1 rounded-full bg-gold" aria-hidden />
+          The Alta Private Charter
+        </div>
+        <p className="mt-8 font-serif text-2xl leading-[1.35] tracking-tight text-foreground sm:text-[32px]">
+          Alta Private exists to provide relationship-based banking, lending, treasury services,
+          and capital markets access to Newport's most sophisticated individuals and institutions.
+        </p>
+        <p className="mt-8 font-serif text-xl leading-[1.45] tracking-tight text-muted-foreground sm:text-2xl">
+          Membership is extended by invitation and maintained through active participation in the
+          Alta financial ecosystem.
+        </p>
+        <div className="mt-10 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          — Office of the Chief Executive · Alta Bank
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PrestigeBadge({
+  children,
+  tone = "gold",
+}: {
+  children: ReactNode;
+  tone?: "gold" | "muted";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em]",
+        tone === "gold" ? "text-gold" : "text-muted-foreground",
+      )}
+    >
+      <span
+        className={cn(
+          "size-1 rounded-full",
+          tone === "gold" ? "bg-gold" : "bg-muted-foreground/50",
+        )}
+        aria-hidden
+      />
+      {children}
+    </span>
+  );
+}
 
 function PrivateSection({
   index,
@@ -324,10 +560,12 @@ function DataCell({
   label,
   value,
   accent,
+  muted,
 }: {
   label: string;
   value: string;
   accent?: boolean;
+  muted?: boolean;
 }) {
   return (
     <div className="flex h-full flex-col justify-between bg-surface-1 px-5 py-5 sm:px-6 sm:py-6">
@@ -336,8 +574,9 @@ function DataCell({
       </div>
       <div
         className={cn(
-          "mt-4 font-serif text-xl tracking-tight sm:text-2xl",
+          "mt-4 font-serif text-lg leading-tight tracking-tight sm:text-xl",
           accent && "text-foreground",
+          muted && "text-muted-foreground italic",
         )}
       >
         {value}
@@ -350,18 +589,36 @@ function WealthCell({
   label,
   value,
   note,
+  fallback,
 }: {
   label: string;
-  value: string;
+  value: string | null;
   note: string;
+  fallback: string;
 }) {
+  const hasValue = value !== null && value !== "—";
   return (
     <div className="flex h-full flex-col justify-between bg-surface-1 px-5 py-6 sm:px-6 sm:py-7">
       <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </div>
-      <div className="tabular mt-5 font-serif text-3xl leading-none tracking-tight">{value}</div>
-      <div className="mt-3 text-[12px] text-muted-foreground">{note}</div>
+      {hasValue ? (
+        <>
+          <div className="tabular mt-5 font-serif text-3xl leading-none tracking-tight">
+            {value}
+          </div>
+          <div className="mt-3 text-[12px] text-muted-foreground">{note}</div>
+        </>
+      ) : (
+        <>
+          <div className="mt-5 font-serif text-[15px] leading-snug tracking-tight text-foreground/80">
+            {fallback}
+          </div>
+          <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {note}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -448,22 +705,101 @@ function ProductCard({
   );
 }
 
-function BenefitCell({
+function BenefitCard({
   n,
+  tag,
   title,
   description,
 }: {
   n: string;
+  tag: string;
   title: string;
   description: string;
 }) {
   return (
-    <div className="bg-surface-1 px-6 py-6">
-      <div className="flex items-baseline gap-3">
-        <span className="font-serif text-base italic text-gold">{n}.</span>
-        <h3 className="font-serif text-lg leading-tight tracking-tight">{title}</h3>
+    <div className="group flex h-full flex-col rounded-lg border border-border bg-surface-1 p-6 transition-colors hover:border-gold/40 sm:p-7">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">{tag}</span>
+        <span className="font-serif text-base italic text-gold/80">{n}.</span>
       </div>
-      <p className="mt-3 pl-7 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+      <h3 className="mt-6 font-serif text-xl leading-tight tracking-tight sm:text-[22px]">
+        {title}
+      </h3>
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+      <div className="mt-auto pt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        Member benefit
+      </div>
+    </div>
+  );
+}
+
+function OfferGroup({
+  heading,
+  children,
+  className,
+}: {
+  heading: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <div className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span className="h-px flex-none w-6 bg-gold/60" aria-hidden />
+        {heading}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+function OfferCard({
+  badge,
+  partner,
+  title,
+  body,
+}: {
+  badge: string;
+  partner: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="group flex h-full flex-col rounded-lg border border-border bg-surface-1 p-6 transition-colors hover:border-gold/40">
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/[0.06] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
+          {badge}
+        </span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          {partner}
+        </span>
+      </div>
+      <h3 className="mt-5 font-serif text-lg leading-tight tracking-tight sm:text-xl">{title}</h3>
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
+      <div className="mt-auto pt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        Redeem through your banker →
+      </div>
+    </div>
+  );
+}
+
+function NetworkCard({
+  tag,
+  title,
+  body,
+}: {
+  tag: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex h-full flex-col rounded-lg border border-border bg-surface-1 p-6 transition-colors hover:border-gold/40">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">{tag}</div>
+      <h3 className="mt-4 font-serif text-lg leading-tight tracking-tight sm:text-xl">{title}</h3>
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{body}</p>
+      <div className="mt-auto pt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        Priority access · Invitation only
+      </div>
     </div>
   );
 }
