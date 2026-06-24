@@ -7,7 +7,7 @@ import {
   verifyIssuerPortalAccess,
   verifyPrivateClientAccess,
 } from "@/lib/auth/auth.functions";
-import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 
 type GuardContext = {
   context: { user: AltaUser | null };
