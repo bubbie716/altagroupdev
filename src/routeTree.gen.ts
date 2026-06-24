@@ -75,6 +75,7 @@ import { Route as BankStatementsIndexRouteImport } from './routes/bank/statement
 import { Route as BankLendingIndexRouteImport } from './routes/bank/lending/index'
 import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/index'
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
+import { Route as InternalLendingDealRoomsRouteImport } from './routes/internal/lending.deal-rooms'
 import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/internal/companies/$companyId'
 import { Route as InternalBankScheduledRouteImport } from './routes/internal/bank/scheduled'
 import { Route as ExchangeTerminalSplatRouteImport } from './routes/exchange/terminal/$'
@@ -457,6 +458,12 @@ const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => InternalRouteRoute,
 } as any)
+const InternalLendingDealRoomsRoute =
+  InternalLendingDealRoomsRouteImport.update({
+    id: '/deal-rooms',
+    path: '/deal-rooms',
+    getParentRoute: () => InternalLendingRoute,
+  } as any)
 const InternalCompaniesCompanyIdRoute =
   InternalCompaniesCompanyIdRouteImport.update({
     id: '/companies/$companyId',
@@ -784,7 +791,7 @@ export interface FileRoutesByFullPath {
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
-  '/internal/lending': typeof InternalLendingRoute
+  '/internal/lending': typeof InternalLendingRouteWithChildren
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
@@ -829,6 +836,7 @@ export interface FileRoutesByFullPath {
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/business/': typeof BankBusinessIndexRoute
   '/bank/lending/': typeof BankLendingIndexRoute
@@ -895,7 +903,7 @@ export interface FileRoutesByTo {
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
-  '/internal/lending': typeof InternalLendingRoute
+  '/internal/lending': typeof InternalLendingRouteWithChildren
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
@@ -936,6 +944,7 @@ export interface FileRoutesByTo {
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/business': typeof BankBusinessIndexRoute
   '/bank/lending': typeof BankLendingIndexRoute
@@ -1011,7 +1020,7 @@ export interface FileRoutesById {
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
-  '/internal/lending': typeof InternalLendingRoute
+  '/internal/lending': typeof InternalLendingRouteWithChildren
   '/internal/listings': typeof InternalListingsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
@@ -1056,6 +1065,7 @@ export interface FileRoutesById {
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
+  '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/business/': typeof BankBusinessIndexRoute
   '/bank/lending/': typeof BankLendingIndexRoute
@@ -1177,6 +1187,7 @@ export interface FileRouteTypes {
     | '/exchange/terminal/$'
     | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
     | '/bank/business/'
     | '/bank/lending/'
@@ -1284,6 +1295,7 @@ export interface FileRouteTypes {
     | '/exchange/terminal/$'
     | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
     | '/bank/business'
     | '/bank/lending'
@@ -1403,6 +1415,7 @@ export interface FileRouteTypes {
     | '/exchange/terminal/$'
     | '/internal/bank/scheduled'
     | '/internal/companies/$companyId'
+    | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
     | '/bank/business/'
     | '/bank/lending/'
@@ -1945,6 +1958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalUsersUserIdRouteImport
       parentRoute: typeof InternalRouteRoute
     }
+    '/internal/lending/deal-rooms': {
+      id: '/internal/lending/deal-rooms'
+      path: '/deal-rooms'
+      fullPath: '/internal/lending/deal-rooms'
+      preLoaderRoute: typeof InternalLendingDealRoomsRouteImport
+      parentRoute: typeof InternalLendingRoute
+    }
     '/internal/companies/$companyId': {
       id: '/internal/companies/$companyId'
       path: '/companies/$companyId'
@@ -2417,6 +2437,18 @@ const InternalBankRouteWithChildren = InternalBankRoute._addFileChildren(
   InternalBankRouteChildren,
 )
 
+interface InternalLendingRouteChildren {
+  InternalLendingDealRoomsRoute: typeof InternalLendingDealRoomsRoute
+}
+
+const InternalLendingRouteChildren: InternalLendingRouteChildren = {
+  InternalLendingDealRoomsRoute: InternalLendingDealRoomsRoute,
+}
+
+const InternalLendingRouteWithChildren = InternalLendingRoute._addFileChildren(
+  InternalLendingRouteChildren,
+)
+
 interface InternalRouteRouteChildren {
   InternalApiApplicationsRoute: typeof InternalApiApplicationsRoute
   InternalBankRoute: typeof InternalBankRouteWithChildren
@@ -2424,7 +2456,7 @@ interface InternalRouteRouteChildren {
   InternalEmbedsRoute: typeof InternalEmbedsRoute
   InternalExchangeRoute: typeof InternalExchangeRoute
   InternalIposRoute: typeof InternalIposRoute
-  InternalLendingRoute: typeof InternalLendingRoute
+  InternalLendingRoute: typeof InternalLendingRouteWithChildren
   InternalListingsRoute: typeof InternalListingsRoute
   InternalSettingsRoute: typeof InternalSettingsRoute
   InternalTerminalRoute: typeof InternalTerminalRoute
@@ -2442,7 +2474,7 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalEmbedsRoute: InternalEmbedsRoute,
   InternalExchangeRoute: InternalExchangeRoute,
   InternalIposRoute: InternalIposRoute,
-  InternalLendingRoute: InternalLendingRoute,
+  InternalLendingRoute: InternalLendingRouteWithChildren,
   InternalListingsRoute: InternalListingsRoute,
   InternalSettingsRoute: InternalSettingsRoute,
   InternalTerminalRoute: InternalTerminalRoute,
