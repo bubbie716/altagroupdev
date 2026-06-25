@@ -36,19 +36,26 @@ function BankTransferContactsPage() {
       <TransferPageHeader />
 
       {showMockData ? (
-        <Card className="!p-6">
+        <div className="rounded-xl border border-dashed border-border bg-surface-1/40 px-6 py-10 text-center">
           <p className="text-[13px] text-muted-foreground">
             Transfer contacts are available when connected to live Alta Bank accounts.
           </p>
-        </Card>
+        </div>
       ) : !data ? (
-        <Card className="!p-6">
+        <div className="rounded-xl border border-dashed border-border bg-surface-1/40 px-6 py-10 text-center">
           <p className="text-[13px] text-muted-foreground">Unable to load contacts.</p>
-        </Card>
+        </div>
       ) : (
         <div className="grid gap-10 lg:grid-cols-2">
-          <Section title="Intrabank contacts">
-            <Card className="!p-6">
+          <Section
+            title="Intrabank contacts"
+            action={
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Alta · Alta
+              </span>
+            }
+          >
+            <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
                 Shortcuts for other Alta Bank clients by account number.
               </p>
@@ -62,11 +69,18 @@ function BankTransferContactsPage() {
                 contacts={data.contacts}
                 onChanged={() => void router.invalidate()}
               />
-            </Card>
+            </div>
           </Section>
 
-          <Section title="Interbank contacts">
-            <Card className="!p-6">
+          <Section
+            title="Interbank contacts"
+            action={
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                NCC-Net
+              </span>
+            }
+          >
+            <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
                 External wire recipients — ready for when NCC-Net wires launch.
               </p>
@@ -75,7 +89,7 @@ function BankTransferContactsPage() {
                 contacts={data.contacts}
                 onChanged={() => void router.invalidate()}
               />
-            </Card>
+            </div>
           </Section>
         </div>
       )}
