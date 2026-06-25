@@ -144,6 +144,20 @@ export interface LoanPaymentRow {
   statusLabel: string;
 }
 
+export type LoanInterestScheduleStatusCode = "pending" | "guaranteed" | "paid" | "waived";
+
+export interface LoanInterestScheduleItemRow {
+  id: string;
+  installmentNumber: number;
+  guaranteeDate: string;
+  interestAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+  status: LoanInterestScheduleStatusCode;
+  statusLabel: string;
+  paidAt: string | null;
+}
+
 export interface LoanScheduleItemRow {
   id: string;
   installmentNumber: number;
@@ -167,8 +181,26 @@ export interface LoanRow {
   productType: LoanProductTypeCode;
   productLabel: string;
   principalAmount: number;
+  /** Outstanding principal still borrowed. */
+  principalOutstanding: number;
+  /** Guaranteed but unpaid interest (owed today). */
+  guaranteedInterestOwed: number;
+  /** @deprecated Use guaranteedInterestOwed */
+  accruedInterest: number;
+  /** Principal + guaranteed unpaid interest — amount required to pay off today. */
+  currentPayoffAmount: number;
+  /** @deprecated Alias for currentPayoffAmount */
   outstandingBalance: number;
-  projectedOutstanding: number;
+  /** Pending (unvested) interest on guarantee schedule. */
+  remainingPotentialInterest: number;
+  /** Principal + all scheduled guarantee interest if full term completes. */
+  projectedFullTermCost: number;
+  /** @deprecated Use remainingPotentialInterest */
+  estimatedFutureInterest: number;
+  principalRepaid: number;
+  principalPercentRepaid: number;
+  /** Unpaid scheduled installment totals (estimate only, not current debt). */
+  estimatedScheduleRemaining: number;
   amountRepaid: number;
   percentRepaid: number;
   totalRepaymentObligation: number;
@@ -186,12 +218,15 @@ export interface LoanRow {
   approvedAt: string;
   includesAccruedInterest: boolean;
   nextInterestAccrualAt: string | null;
+  nextInterestGuaranteeDate: string | null;
   lastInterestAccrualAt: string | null;
+  /** @deprecated Use guaranteedInterestOwed */
   accruedInterestAmount: number;
   canMakePayment: boolean;
   termMonths: number | null;
   monthlyPrincipalPercent: number | null;
   paymentSchedule: LoanScheduleItemRow[];
+  interestGuaranteeSchedule: LoanInterestScheduleItemRow[];
   autoPay: LoanAutoPayState;
   recentPayments: LoanPaymentRow[];
 }
@@ -250,8 +285,16 @@ export interface InternalActiveLoanRow {
   companyName: string | null;
   linkedAccountNumber: string | null;
   principalAmount: number;
+  principalOutstanding: number;
+  accruedInterest: number;
+  currentPayoffAmount: number;
   outstandingBalance: number;
-  projectedOutstanding: number;
+  guaranteedInterestOwed: number;
+  remainingPotentialInterest: number;
+  projectedFullTermCost: number;
+  nextInterestGuaranteeDate: string | null;
+  principalRepaid: number;
+  principalPercentRepaid: number;
   amountRepaid: number;
   percentRepaid: number;
   totalRepaymentObligation: number;
@@ -263,6 +306,7 @@ export interface InternalActiveLoanRow {
   paymentStatusLabel: string;
   lastPaymentAt: string | null;
   nextInterestAccrualAt: string | null;
+  interestGuaranteeSchedule: LoanInterestScheduleItemRow[];
 }
 
 export interface InternalLoanApplicationRow extends LoanApplicationRow {

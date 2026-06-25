@@ -8,17 +8,26 @@ import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { fetchInternalUserDetail } from "@/lib/internal/user-management.functions";
+import { InternalAuditTable } from "@/components/internal/internal-audit-table";
+import { InternalNotePanel } from "@/components/internal/internal-note-panel";
+import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
 
 export const Route = createFileRoute("/internal/users/$userId")({
-  loader: ({ params }) => fetchInternalUserDetail({ data: params.userId }),
+  loader: async ({ params }) => {
+    const [user, notes] = await Promise.all([
+      fetchInternalUserDetail({ data: params.userId }),
+      fetchInternalNotes({ data: { targetType: "USER", targetId: params.userId } }),
+    ]);
+    return { user, notes };
+  },
   head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.discordUsername ?? "User"} — Alta Internal` }],
+    meta: [{ title: `${loaderData?.user.discordUsername ?? "User"} — Alta Internal` }],
   }),
   component: InternalUserDetailPage,
 });
 
 function InternalUserDetailPage() {
-  const user = Route.useLoaderData();
+  const { user, notes } = Route.useLoaderData();
 
   return (
     <InternalPageShell
@@ -89,9 +98,9 @@ function InternalUserDetailPage() {
             </div>
             <div>
               <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Bank accounts
+                Total bank balance
               </dt>
-              <dd className="mt-1 type-finance">{user.bankAccountCount}</dd>
+              <dd className="mt-1 type-finance">{florin(user.totalBankBalance)}</dd>
             </div>
           </dl>
         </div>
@@ -216,6 +225,42 @@ function InternalUserDetailPage() {
           </Card>
         </Section>
       )}
+
+      {(user.loanApplications.length > 0 || user.activeLoans.length > 0) && (
+        <Section title="Lending" className="mt-10">
+          <Card className="!p-5 space-y-4">
+            {user.activeLoans.map((loan) => (
+              <div key={loan.id} className="flex flex-wrap justify-between gap-2 border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                <div>
+                  <div className="font-mono text-[11px]">{loan.id.slice(0, 10)}</div>
+                  <div className="text-[13px]">{loan.productLabel}</div>
+                </div>
+                <div className="text-right text-[13px]">
+                  <div>{florin(loan.currentPayoffAmount)} payoff today</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {florin(loan.principalOutstanding)} principal remaining
+                  </div>
+                  <StatusBadge status={loan.statusLabel} />
+                </div>
+              </div>
+            ))}
+            {user.loanApplications.map((app) => (
+              <div key={app.id} className="text-[13px] text-muted-foreground">
+                Application {app.id.slice(0, 8)} · {app.productLabel} · {florin(app.requestedAmount)} ·{" "}
+                <StatusBadge status={app.statusLabel} />
+              </div>
+            ))}
+          </Card>
+        </Section>
+      )}
+
+      <Section title="Internal notes" className="mt-10">
+        <InternalNotePanel targetType="USER" targetId={user.id} initialNotes={notes} />
+      </Section>
+
+      <Section title="Recent admin actions" className="mt-10">
+        <InternalAuditTable rows={user.recentAuditLogs} />
+      </Section>
     </InternalPageShell>
   );
 }

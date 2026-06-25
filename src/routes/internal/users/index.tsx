@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { InternalUserFilters } from "@/components/internal/internal-user-filters";
 import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
 import type { AccountStatus, UserTag } from "@/lib/auth/types";
+import { florin } from "@/lib/bank/api";
 import { fetchInternalUsers } from "@/lib/internal/user-management.functions";
 import type { InternalUserListRow } from "@/lib/internal/user-management.types";
 
@@ -71,6 +72,11 @@ function InternalUsers() {
       ),
     },
     {
+      key: "email",
+      header: "Email",
+      cell: (u: InternalUserListRow) => u.email ?? <span className="text-muted-foreground">—</span>,
+    },
+    {
       key: "mc",
       header: "Minecraft",
       cell: (u: InternalUserListRow) =>
@@ -105,10 +111,10 @@ function InternalUsers() {
       ),
     },
     {
-      key: "accounts",
-      header: "Bank accounts",
+      key: "balance",
+      header: "Bank balance",
       cell: (u: InternalUserListRow) => (
-        <span className="type-finance text-[12px]">{u.bankAccountCount}</span>
+        <span className="type-finance text-[12px]">{florin(u.totalBankBalance)}</span>
       ),
     },
     {

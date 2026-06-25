@@ -89,6 +89,9 @@ model User {
   loansBorrowed              Loan[]              @relation("LoanBorrower")
   loansApproved              Loan[]              @relation("LoanApprover")
   loanLedgerEntriesCreated   LoanLedgerEntry[]   @relation("LoanLedgerCreator")
+  auditLogsActed             AuditLog[]          @relation("AuditActor")
+  internalNotesAuthored      InternalNote[]      @relation("InternalNoteAuthor")
+  bankInterestAccrualsProcessed BankInterestAccrual[] @relation("InterestAccrualProcessor")
 }
 
 model UserTagAssignment {
@@ -190,6 +193,7 @@ enum BankAccountType {
   ALTA_ACCESS
   CHECKING
   SAVINGS
+  MONEY_MARKET
   RESERVE
   BUSINESS_OPERATING
   PRIVATE
@@ -208,6 +212,18 @@ enum BankTransactionType {
   ADJUSTMENT
   LOAN_PAYMENT
   INTEREST_CHARGE
+  INTEREST_CREDIT
+}
+
+enum InterestRatePeriod {
+  MONTHLY
+}
+
+enum BankInterestAccrualStatus {
+  PENDING
+  PROCESSED
+  SKIPPED
+  FAILED
 }
 
 enum BankTransactionStatus {
@@ -263,12 +279,18 @@ model BankAccount {
   balance       Decimal           @default(0) @db.Decimal(18, 2)
   currency      String            @default("FLR")
   openingNotes  String?
+  interestRate           Decimal            @default(0) @db.Decimal(10, 6)
+  interestRatePeriod     InterestRatePeriod?
+  interestAccrualEnabled Boolean            @default(false)
+  lastInterestAccruedAt  DateTime?
+  nextInterestAccrualAt  DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
   transactions      BankTransaction[]
+  interestAccruals  BankInterestAccrual[]
   transferContacts  TransferContact[]
   scheduledPayments ScheduledPayment[]
   payrollRuns       PayrollRun[]
@@ -512,10 +534,35 @@ model BankTransaction {
   payrollRunLineExecution    PayrollRunLineExecution[]
   loanPayment                LoanPayment?
   loanLedgerEntries          LoanLedgerEntry[]
+  interestAccrual            BankInterestAccrual?
 
   @@index([bankAccountId])
   @@index([status])
   @@index([type])
+}
+
+model BankInterestAccrual {
+  id                String                    @id @default(cuid())
+  bankAccountId     String
+  periodStart       DateTime
+  periodEnd         DateTime
+  interestRate      Decimal                   @db.Decimal(10, 6)
+  openingBalance    Decimal                   @db.Decimal(18, 2)
+  interestAmount    Decimal                   @default(0) @db.Decimal(18, 2)
+  status            BankInterestAccrualStatus @default(PENDING)
+  bankTransactionId String?                   @unique
+  createdAt         DateTime                  @default(now())
+  processedAt       DateTime?
+  processedById     String?
+  failureReason     String?
+
+  bankAccount     BankAccount      @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  bankTransaction BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  processedBy     User?            @relation("InterestAccrualProcessor", fields: [processedById], references: [id], onDelete: SetNull)
+
+  @@unique([bankAccountId, periodStart, periodEnd])
+  @@index([bankAccountId])
+  @@index([status])
 }
 
 enum BankStatementStatus {
@@ -638,6 +685,8 @@ model Loan {
   principalAmount     Decimal              @db.Decimal(18, 2)
   termMonths          Int?
   outstandingBalance  Decimal              @db.Decimal(18, 2)
+  principalOutstanding Decimal             @db.Decimal(18, 2)
+  accruedInterest     Decimal              @default(0) @db.Decimal(18, 2)
   interestRate        Decimal              @db.Decimal(8, 4)
   interestRateType    LoanInterestRateType @default(MONTHLY_PERCENT)
   lastInterestAccruedAt DateTime?
@@ -660,6 +709,7 @@ model Loan {
   payments          LoanPayment[]
   ledgerEntries     LoanLedgerEntry[]
   paymentSchedule   LoanPaymentScheduleItem[]
+  interestSchedule  LoanInterestScheduleItem[]
 
   @@index([borrowerUserId])
   @@index([companyId])
@@ -672,6 +722,8 @@ model LoanPayment {
   id                  String            @id @default(cuid())
   loanId              String
   amount              Decimal           @db.Decimal(18, 2)
+  appliedToInterest   Decimal?          @db.Decimal(18, 2)
+  appliedToPrincipal  Decimal?          @db.Decimal(18, 2)
   paymentDate         DateTime
   sourceBankAccountId String?
   bankTransactionId   String?           @unique
@@ -710,6 +762,32 @@ model LoanPaymentScheduleItem {
   @@index([status, dueDate])
 }
 
+enum LoanInterestScheduleStatus {
+  PENDING
+  GUARANTEED
+  PAID
+  WAIVED
+}
+
+model LoanInterestScheduleItem {
+  id                String                     @id @default(cuid())
+  loanId            String
+  installmentNumber Int
+  guaranteeDate     DateTime
+  interestAmount    Decimal                    @db.Decimal(18, 2)
+  paidAmount        Decimal                    @default(0) @db.Decimal(18, 2)
+  status            LoanInterestScheduleStatus @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([status, guaranteeDate])
+}
+
 model LoanLedgerEntry {
   id                String              @id @default(cuid())
   loanId            String
@@ -727,5 +805,64 @@ model LoanLedgerEntry {
 
   @@index([loanId])
   @@index([type])
+  @@index([createdAt])
+}
+
+enum AuditEntityType {
+  USER
+  BANK_ACCOUNT
+  BANK_TRANSACTION
+  COMPANY
+  LOAN
+  LOAN_APPLICATION
+  SCHEDULED_PAYMENT
+  STATEMENT
+}
+
+enum InternalNoteTargetType {
+  USER
+  BANK_ACCOUNT
+  COMPANY
+  LOAN
+}
+
+model AuditLog {
+  id                  String          @id @default(cuid())
+  actorUserId         String
+  targetUserId        String?
+  targetAccountId     String?
+  targetCompanyId     String?
+  targetTransactionId String?
+  targetLoanId        String?
+  action              String
+  entityType          AuditEntityType
+  entityId            String?
+  description         String
+  metadata            Json?
+  createdAt           DateTime        @default(now())
+
+  actor User @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([targetAccountId])
+  @@index([targetCompanyId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model InternalNote {
+  id           String                 @id @default(cuid())
+  authorUserId String
+  targetType   InternalNoteTargetType
+  targetId     String
+  note         String
+  visibility   String                 @default("INTERNAL")
+  createdAt    DateTime               @default(now())
+
+  author User @relation("InternalNoteAuthor", fields: [authorUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
   @@index([createdAt])
 }

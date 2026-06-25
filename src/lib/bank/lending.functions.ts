@@ -159,6 +159,16 @@ export const unfreezeLoanRecord = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const waivePendingLoanInterestRecord = createServerFn({ method: "POST" })
+  .inputValidator((loanId: string) => loanId)
+  .handler(async ({ data: loanId }) => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { waivePendingInterestForLoan } = await import("@/server/loan.service");
+    const admin = await requireOperator();
+    const waived = await waivePendingInterestForLoan(admin.id, loanId);
+    return { waived };
+  });
+
 export const markLoanPaidOffRecord = createServerFn({ method: "POST" })
   .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {

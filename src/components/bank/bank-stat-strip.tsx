@@ -8,9 +8,8 @@ export interface BankStatStripItem {
 }
 
 /**
- * Institutional stat strip — hairline-divided `dl` with mono uppercase labels
- * and serif tabular values. Replaces card grids of `BankStatCard` on overview
- * surfaces.
+ * Institutional stat strip — hairline-divided cells with mono labels
+ * and sans-serif tabular values (matches account cards).
  */
 export function BankStatStrip({
   items,
@@ -19,30 +18,46 @@ export function BankStatStrip({
 }: {
   items: BankStatStripItem[];
   className?: string;
-  density?: "default" | "compact";
+  density?: "default" | "compact" | "emphasized";
 }) {
   const cols =
-    items.length >= 4 ? "sm:grid-cols-4" : items.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
+    items.length >= 5
+      ? "sm:grid-cols-3 lg:grid-cols-5"
+      : items.length >= 4
+        ? "sm:grid-cols-4"
+        : items.length === 3
+          ? "sm:grid-cols-3"
+          : "sm:grid-cols-2";
+  const rows = items.length === 8 && items.length >= 4 ? "sm:grid-rows-2" : undefined;
+  const cellPadding =
+    density === "compact" ? "px-4 py-3" : density === "emphasized" ? "px-5 py-5 sm:py-6" : "px-5 py-4";
+  const valueSize =
+    density === "compact"
+      ? "text-xl"
+      : density === "emphasized"
+        ? "text-2xl"
+        : "text-2xl";
   return (
     <dl
       className={cn(
-        "grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:divide-y-0",
+        "grid auto-rows-fr grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80",
         cols,
+        rows,
         className,
       )}
     >
       {items.map((item) => (
         <div
           key={item.label}
-          className={cn(density === "compact" ? "px-4 py-3" : "px-5 py-4")}
+          className={cn(cellPadding, "flex h-full min-h-[5.75rem] flex-col justify-center sm:min-h-0")}
         >
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             {item.label}
           </dt>
           <dd
             className={cn(
-              "mt-1 tabular font-serif tracking-tight",
-              density === "compact" ? "text-[16px]" : "text-[20px]",
+              "mt-1 tabular font-semibold tracking-tight",
+              valueSize,
               item.accent && "text-gold",
             )}
           >

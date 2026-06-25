@@ -1,5 +1,6 @@
 import type {
   LoanApplicationStatus as DbLoanApplicationStatus,
+  LoanInterestScheduleStatus as DbLoanInterestScheduleStatus,
   LoanLedgerEntryType as DbLoanLedgerEntryType,
   LoanPaymentStatus as DbLoanPaymentStatus,
   LoanProductType as DbLoanProductType,
@@ -14,6 +15,8 @@ import type {
   LoanApplicationRow,
   LoanApplicationStatusCode,
   LoanDetailRow,
+  LoanInterestScheduleItemRow,
+  LoanInterestScheduleStatusCode,
   LoanLedgerEntryRow,
   LoanLedgerEntryTypeCode,
   LoanPaymentRow,
@@ -26,10 +29,13 @@ import type {
 } from "@/lib/bank/lending-types";
 import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
 import { computeLoanTermEstimate } from "@/lib/bank/lending-types";
-import { computeLoanRepaymentProgress } from "@/lib/bank/lending-progress";
+import {
+  calculateCurrentPayoff,
+  computePrincipalRepaymentProgress,
+  summarizeInterestSchedule,
+} from "@/lib/bank/loan-interest-service";
 import {
   buildRepaymentScheduleWithInterest,
-  computeScheduleRepaymentTotals,
   findNextDueInstallment,
   formatNextPaymentDueLabel,
   monthlyPrincipalPercent,
@@ -214,6 +220,23 @@ const SCHEDULE_STATUS_LABELS: Record<LoanScheduleInstallmentStatusCode, string> 
   failed: "Failed",
 };
 
+const INTEREST_SCHEDULE_STATUS_FROM_DB: Record<
+  DbLoanInterestScheduleStatus,
+  LoanInterestScheduleStatusCode
+> = {
+  PENDING: "pending",
+  GUARANTEED: "guaranteed",
+  PAID: "paid",
+  WAIVED: "waived",
+};
+
+const INTEREST_SCHEDULE_STATUS_LABELS: Record<LoanInterestScheduleStatusCode, string> = {
+  pending: "Pending",
+  guaranteed: "Guaranteed",
+  paid: "Paid",
+  waived: "Waived",
+};
+
 function formatScheduleStatusLabel(status: LoanScheduleInstallmentStatusCode): string {
   return SCHEDULE_STATUS_LABELS[status];
 }
@@ -226,6 +249,7 @@ const loanInclude = {
   loanApplication: { select: { applicantUserId: true } },
   payments: { orderBy: { paymentDate: "desc" as const } },
   paymentSchedule: { orderBy: { installmentNumber: "asc" as const } },
+  interestSchedule: { orderBy: { installmentNumber: "asc" as const } },
 } as const satisfies Prisma.LoanInclude;
 
 const loanDetailInclude = {
@@ -236,6 +260,7 @@ const loanDetailInclude = {
   loanApplication: { select: { applicantUserId: true } },
   payments: { orderBy: { paymentDate: "desc" as const } },
   paymentSchedule: { orderBy: { installmentNumber: "asc" as const } },
+  interestSchedule: { orderBy: { installmentNumber: "asc" as const } },
   ledgerEntries: { orderBy: { createdAt: "desc" as const } },
 } as const satisfies Prisma.LoanInclude;
 
@@ -245,6 +270,7 @@ const internalLoanInclude = {
   linkedBankAccount: { select: { accountNumber: true } },
   payments: { orderBy: { paymentDate: "desc" as const } },
   paymentSchedule: { orderBy: { installmentNumber: "asc" as const } },
+  interestSchedule: { orderBy: { installmentNumber: "asc" as const } },
 } as const satisfies Prisma.LoanInclude;
 
 type LoanRecord = Prisma.LoanGetPayload<{ include: typeof loanInclude }>;
@@ -268,30 +294,74 @@ function sumCompletedLoanPayments(
 
 function mapLoanRepaymentFields(
   principalAmount: number,
-  outstandingBalance: number,
+  principalOutstanding: number,
+  accruedInterest: number,
   payments: { amount: Prisma.Decimal | number; status: DbLoanPaymentStatus }[] = [],
   scheduleItems: LoanScheduleItemRow[] = [],
+  interestScheduleSummary?: ReturnType<typeof summarizeInterestSchedule>,
 ) {
-  const progress = computeLoanRepaymentProgress(
+  const { principalRepaid, principalPercentRepaid } = computePrincipalRepaymentProgress(
     principalAmount,
-    outstandingBalance,
-    sumCompletedLoanPayments(payments),
+    principalOutstanding,
   );
-  const scheduleTotals = computeScheduleRepaymentTotals(scheduleItems, {
-    totalRepaymentObligation: progress.totalRepaymentObligation,
-    amountRepaid: progress.amountRepaid,
+  const guaranteedInterestOwed = interestScheduleSummary?.guaranteedUnpaidInterest ?? accruedInterest;
+  const currentPayoffAmount = calculateCurrentPayoff({
+    principalOutstanding,
+    accruedInterest: guaranteedInterestOwed,
   });
+  const remainingPotentialInterest =
+    interestScheduleSummary?.pendingFutureInterest ?? 0;
+  const projectedFullTermCost =
+    interestScheduleSummary?.projectedFullTermCost ??
+    roundCurrency(principalAmount + remainingPotentialInterest + guaranteedInterestOwed);
+  const estimatedFutureInterest = remainingPotentialInterest;
+  const estimatedScheduleRemaining = Math.round(
+    scheduleItems
+      .filter((item) => item.status !== "paid")
+      .reduce((sum, item) => sum + item.scheduledAmount, 0) * 100,
+  ) / 100;
+  const amountRepaid = sumCompletedLoanPayments(payments);
   const nextInstallment = findNextDueInstallment(scheduleItems);
   const nextPaymentDueLabel = formatNextPaymentDueLabel(nextInstallment, formatDueDate);
 
   return {
-    amountRepaid: scheduleTotals.amountRepaid,
-    percentRepaid: scheduleTotals.percentRepaid,
-    totalRepaymentObligation: scheduleTotals.totalRepaymentObligation,
-    projectedOutstanding: scheduleTotals.projectedOutstanding,
+    principalRepaid,
+    principalPercentRepaid,
+    guaranteedInterestOwed,
+    currentPayoffAmount,
+    remainingPotentialInterest,
+    projectedFullTermCost,
+    estimatedFutureInterest,
+    estimatedScheduleRemaining,
+    amountRepaid,
+    percentRepaid: principalPercentRepaid,
+    totalRepaymentObligation: principalAmount,
     nextPaymentDueLabel,
-    includesAccruedInterest: scheduleTotals.totalRepaymentObligation > principalAmount,
-    accruedInterestAmount: Math.max(0, scheduleTotals.totalRepaymentObligation - principalAmount),
+    includesAccruedInterest: guaranteedInterestOwed > 0,
+    accruedInterestAmount: guaranteedInterestOwed,
+  };
+}
+
+function roundCurrency(amount: number): number {
+  return Math.round(amount * 100) / 100;
+}
+
+export function mapLoanInterestScheduleItemRow(
+  record: Prisma.LoanInterestScheduleItemGetPayload<object>,
+): LoanInterestScheduleItemRow {
+  const status = INTEREST_SCHEDULE_STATUS_FROM_DB[record.status];
+  const interestAmount = decimalToNumber(record.interestAmount);
+  const paidAmount = decimalToNumber(record.paidAmount);
+  return {
+    id: record.id,
+    installmentNumber: record.installmentNumber,
+    guaranteeDate: record.guaranteeDate.toISOString(),
+    interestAmount,
+    paidAmount,
+    unpaidAmount: roundCurrency(Math.max(0, interestAmount - paidAmount)),
+    status,
+    statusLabel: INTEREST_SCHEDULE_STATUS_LABELS[status],
+    paidAt: record.paidAt?.toISOString() ?? null,
   };
 }
 
@@ -359,6 +429,7 @@ function mapLoanCoreFields(
     nextInterestAccrualAt?: Date | null;
     loanApplication?: { applicantUserId: string } | null;
     paymentSchedule?: Prisma.LoanPaymentScheduleItemGetPayload<object>[];
+    interestSchedule?: Prisma.LoanInterestScheduleItemGetPayload<object>[];
     autoPaySourceBankAccount?: {
       id: string;
       accountName: string;
@@ -373,7 +444,8 @@ function mapLoanCoreFields(
   const rateType: LoanRateType =
     record.interestRateType === "ANNUAL_PERCENT" ? "ANNUAL_PERCENT" : "MONTHLY_PERCENT";
   const principalAmount = decimalToNumber(record.principalAmount);
-  const outstandingBalance = decimalToNumber(record.outstandingBalance);
+  const principalOutstanding = decimalToNumber(record.principalOutstanding);
+  const accruedInterest = decimalToNumber(record.accruedInterest);
   const termMonths = record.termMonths ?? null;
   const scheduleDrafts = buildScheduleDraftsForLoan(record);
   const paymentSchedule = (record.paymentSchedule ?? []).map((item) => {
@@ -381,6 +453,16 @@ function mapLoanCoreFields(
       (entry) => entry.installmentNumber === item.installmentNumber,
     );
     return mapLoanScheduleItemRow(item, termMonths, draft);
+  });
+  const interestGuaranteeSchedule = (record.interestSchedule ?? []).map(mapLoanInterestScheduleItemRow);
+  const interestSummary =
+    interestGuaranteeSchedule.length > 0
+      ? summarizeInterestSchedule(principalAmount, record.interestSchedule ?? [])
+      : undefined;
+  const guaranteedInterestOwed = interestSummary?.guaranteedUnpaidInterest ?? accruedInterest;
+  const currentPayoffAmount = calculateCurrentPayoff({
+    principalOutstanding,
+    accruedInterest: guaranteedInterestOwed,
   });
   const applicantUserId = record.loanApplication?.applicantUserId ?? undefined;
 
@@ -397,12 +479,22 @@ function mapLoanCoreFields(
     productType,
     productLabel: LOAN_PRODUCT_LABELS[productType],
     principalAmount,
-    outstandingBalance,
+    principalOutstanding,
+    guaranteedInterestOwed,
+    accruedInterest: guaranteedInterestOwed,
+    currentPayoffAmount,
+    outstandingBalance: currentPayoffAmount,
+    remainingPotentialInterest: interestSummary?.pendingFutureInterest ?? 0,
+    projectedFullTermCost:
+      interestSummary?.projectedFullTermCost ??
+      roundCurrency(principalAmount + guaranteedInterestOwed),
     ...mapLoanRepaymentFields(
       principalAmount,
-      outstandingBalance,
+      principalOutstanding,
+      accruedInterest,
       record.payments ?? [],
       paymentSchedule,
+      interestSummary,
     ),
     interestRate,
     interestRateType: rateType,
@@ -416,10 +508,12 @@ function mapLoanCoreFields(
     linkedAccountLabel: accountLabel(record.linkedBankAccount),
     approvedAt: record.approvedAt.toISOString(),
     nextInterestAccrualAt: record.nextInterestAccrualAt?.toISOString() ?? null,
+    nextInterestGuaranteeDate: interestSummary?.nextInterestGuaranteeDate ?? null,
     lastInterestAccrualAt: record.lastInterestAccruedAt?.toISOString() ?? null,
     termMonths,
     monthlyPrincipalPercent: termMonths ? monthlyPrincipalPercent(termMonths) : null,
     paymentSchedule,
+    interestGuaranteeSchedule,
     autoPay: {
       enabled: record.autoPayEnabled,
       sourceBankAccountId: record.autoPaySourceBankAccountId,
@@ -464,12 +558,30 @@ export function mapInternalActiveLoanRow(
   const productType = fromDbLoanProductType(record.productType);
   const status = LOAN_STATUS_FROM_DB[record.status];
   const principalAmount = decimalToNumber(record.principalAmount);
-  const outstandingBalance = decimalToNumber(record.outstandingBalance);
+  const principalOutstanding = decimalToNumber(record.principalOutstanding);
+  const accruedInterest = decimalToNumber(record.accruedInterest);
   const interestRate = decimalToNumber(record.interestRate);
   const rateType: LoanRateType =
     record.interestRateType === "ANNUAL_PERCENT" ? "ANNUAL_PERCENT" : "MONTHLY_PERCENT";
+  const interestGuaranteeSchedule = (record.interestSchedule ?? []).map(mapLoanInterestScheduleItemRow);
+  const interestSummary =
+    interestGuaranteeSchedule.length > 0
+      ? summarizeInterestSchedule(principalAmount, record.interestSchedule ?? [])
+      : undefined;
+  const guaranteedInterestOwed = interestSummary?.guaranteedUnpaidInterest ?? accruedInterest;
+  const currentPayoffAmount = calculateCurrentPayoff({
+    principalOutstanding,
+    accruedInterest: guaranteedInterestOwed,
+  });
   const borrowerLabel =
     record.company?.name ?? record.borrowerUser?.discordUsername ?? "Unknown borrower";
+
+  const paymentSchedule = (record.paymentSchedule ?? []).map((item) => {
+    const draft = buildScheduleDraftsForLoan(record).find(
+      (entry) => entry.installmentNumber === item.installmentNumber,
+    );
+    return mapLoanScheduleItemRow(item, record.termMonths, draft);
+  });
 
   return {
     id: record.id,
@@ -478,17 +590,24 @@ export function mapInternalActiveLoanRow(
     companyName: record.company?.name ?? null,
     linkedAccountNumber: record.linkedBankAccount?.accountNumber ?? null,
     principalAmount,
-    outstandingBalance,
+    principalOutstanding,
+    guaranteedInterestOwed,
+    accruedInterest: guaranteedInterestOwed,
+    currentPayoffAmount,
+    outstandingBalance: currentPayoffAmount,
+    remainingPotentialInterest: interestSummary?.pendingFutureInterest ?? 0,
+    projectedFullTermCost:
+      interestSummary?.projectedFullTermCost ??
+      roundCurrency(principalAmount + guaranteedInterestOwed),
+    nextInterestGuaranteeDate: interestSummary?.nextInterestGuaranteeDate ?? null,
+    interestGuaranteeSchedule,
     ...mapLoanRepaymentFields(
       principalAmount,
-      outstandingBalance,
+      principalOutstanding,
+      accruedInterest,
       record.payments ?? [],
-      (record.paymentSchedule ?? []).map((item) => {
-        const draft = buildScheduleDraftsForLoan(record).find(
-          (entry) => entry.installmentNumber === item.installmentNumber,
-        );
-        return mapLoanScheduleItemRow(item, record.termMonths, draft);
-      }),
+      paymentSchedule,
+      interestSummary,
     ),
     interestRateLabel: formatInterestRateLabel(interestRate, rateType),
     status,

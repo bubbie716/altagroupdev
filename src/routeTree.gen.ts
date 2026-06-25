@@ -41,7 +41,7 @@ import { Route as InternalIposRouteImport } from './routes/internal/ipos'
 import { Route as InternalExchangeRouteImport } from './routes/internal/exchange'
 import { Route as InternalEmbedsRouteImport } from './routes/internal/embeds'
 import { Route as InternalComplianceRouteImport } from './routes/internal/compliance'
-import { Route as InternalBankRouteImport } from './routes/internal/bank'
+import { Route as InternalAuditRouteImport } from './routes/internal/audit'
 import { Route as InternalApiApplicationsRouteImport } from './routes/internal/api-applications'
 import { Route as GovernanceLeadershipRouteImport } from './routes/governance/leadership'
 import { Route as GovernanceDocumentsRouteImport } from './routes/governance/documents'
@@ -63,11 +63,13 @@ import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
 import { Route as BankDepositRouteImport } from './routes/bank/deposit'
 import { Route as BankDashboardRouteImport } from './routes/bank/dashboard'
 import { Route as BankAccountsRouteImport } from './routes/bank/accounts'
+import { Route as InternalBankRouteRouteImport } from './routes/internal/bank/route'
 import { Route as CompaniesCompanyIdRouteRouteImport } from './routes/companies/$companyId/route'
 import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/route'
 import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
 import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
 import { Route as InternalCompaniesIndexRouteImport } from './routes/internal/companies/index'
+import { Route as InternalBankIndexRouteImport } from './routes/internal/bank/index'
 import { Route as ExchangeTerminalIndexRouteImport } from './routes/exchange/terminal/index'
 import { Route as CompaniesCompanyIdIndexRouteImport } from './routes/companies/$companyId/index'
 import { Route as BankTransfersIndexRouteImport } from './routes/bank/transfers/index'
@@ -77,7 +79,12 @@ import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/in
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalLendingDealRoomsRouteImport } from './routes/internal/lending.deal-rooms'
 import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/internal/companies/$companyId'
+import { Route as InternalBankWithdrawalsRouteImport } from './routes/internal/bank/withdrawals'
+import { Route as InternalBankTransfersRouteImport } from './routes/internal/bank/transfers'
+import { Route as InternalBankStatementsRouteImport } from './routes/internal/bank/statements'
 import { Route as InternalBankScheduledRouteImport } from './routes/internal/bank/scheduled'
+import { Route as InternalBankInterestRouteImport } from './routes/internal/bank/interest'
+import { Route as InternalBankDepositsRouteImport } from './routes/internal/bank/deposits'
 import { Route as ExchangeTerminalSplatRouteImport } from './routes/exchange/terminal/$'
 import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies/$companyId/settings'
 import { Route as CompaniesCompanyIdMembersRouteImport } from './routes/companies/$companyId/members'
@@ -105,11 +112,13 @@ import { Route as BankLendingLoansRouteRouteImport } from './routes/bank/lending
 import { Route as BankLendingDealRoomsRouteRouteImport } from './routes/bank/lending/deal-rooms/route'
 import { Route as BankAccountsAccountIdRouteRouteImport } from './routes/bank/accounts/$accountId/route'
 import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/account/$accountId/route'
+import { Route as InternalBankAccountsIndexRouteImport } from './routes/internal/bank/accounts/index'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
 import { Route as BankLendingDealRoomsIndexRouteImport } from './routes/bank/lending/deal-rooms/index'
 import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
+import { Route as InternalBankAccountsAccountIdRouteImport } from './routes/internal/bank/accounts/$accountId'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
 import { Route as BankAccountsAccountIdStatementsRouteImport } from './routes/bank/accounts/$accountId/statements'
@@ -289,9 +298,9 @@ const InternalComplianceRoute = InternalComplianceRouteImport.update({
   path: '/compliance',
   getParentRoute: () => InternalRouteRoute,
 } as any)
-const InternalBankRoute = InternalBankRouteImport.update({
-  id: '/bank',
-  path: '/bank',
+const InternalAuditRoute = InternalAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => InternalRouteRoute,
 } as any)
 const InternalApiApplicationsRoute = InternalApiApplicationsRouteImport.update({
@@ -399,6 +408,11 @@ const BankAccountsRoute = BankAccountsRouteImport.update({
   path: '/bank/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalBankRouteRoute = InternalBankRouteRouteImport.update({
+  id: '/bank',
+  path: '/bank',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
 const CompaniesCompanyIdRouteRoute = CompaniesCompanyIdRouteRouteImport.update({
   id: '/$companyId',
   path: '/$companyId',
@@ -423,6 +437,11 @@ const InternalCompaniesIndexRoute = InternalCompaniesIndexRouteImport.update({
   id: '/companies/',
   path: '/companies/',
   getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalBankIndexRoute = InternalBankIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => InternalBankRouteRoute,
 } as any)
 const ExchangeTerminalIndexRoute = ExchangeTerminalIndexRouteImport.update({
   id: '/terminal/',
@@ -471,10 +490,35 @@ const InternalCompaniesCompanyIdRoute =
     path: '/companies/$companyId',
     getParentRoute: () => InternalRouteRoute,
   } as any)
+const InternalBankWithdrawalsRoute = InternalBankWithdrawalsRouteImport.update({
+  id: '/withdrawals',
+  path: '/withdrawals',
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
+const InternalBankTransfersRoute = InternalBankTransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
+const InternalBankStatementsRoute = InternalBankStatementsRouteImport.update({
+  id: '/statements',
+  path: '/statements',
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
 const InternalBankScheduledRoute = InternalBankScheduledRouteImport.update({
   id: '/scheduled',
   path: '/scheduled',
-  getParentRoute: () => InternalBankRoute,
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
+const InternalBankInterestRoute = InternalBankInterestRouteImport.update({
+  id: '/interest',
+  path: '/interest',
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
+const InternalBankDepositsRoute = InternalBankDepositsRouteImport.update({
+  id: '/deposits',
+  path: '/deposits',
+  getParentRoute: () => InternalBankRouteRoute,
 } as any)
 const ExchangeTerminalSplatRoute = ExchangeTerminalSplatRouteImport.update({
   id: '/terminal/$',
@@ -621,6 +665,12 @@ const BankAccountAccountIdRouteRoute =
     path: '/bank/account/$accountId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const InternalBankAccountsIndexRoute =
+  InternalBankAccountsIndexRouteImport.update({
+    id: '/accounts/',
+    path: '/accounts/',
+    getParentRoute: () => InternalBankRouteRoute,
+  } as any)
 const ExchangeCompanyTickerIndexRoute =
   ExchangeCompanyTickerIndexRouteImport.update({
     id: '/',
@@ -649,6 +699,12 @@ const BankAccountAccountIdIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const InternalBankAccountsAccountIdRoute =
+  InternalBankAccountsAccountIdRouteImport.update({
+    id: '/accounts/$accountId',
+    path: '/accounts/$accountId',
+    getParentRoute: () => InternalBankRouteRoute,
   } as any)
 const ExchangeCompanyTickerOwnerRoute =
   ExchangeCompanyTickerOwnerRouteImport.update({
@@ -772,6 +828,7 @@ export interface FileRoutesByFullPath {
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
+  '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
@@ -793,7 +850,7 @@ export interface FileRoutesByFullPath {
   '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRouteWithChildren
+  '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
@@ -842,7 +899,12 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/deposits': typeof InternalBankDepositsRoute
+  '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/statements': typeof InternalBankStatementsRoute
+  '/internal/bank/transfers': typeof InternalBankTransfersRoute
+  '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
@@ -852,6 +914,7 @@ export interface FileRoutesByFullPath {
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
+  '/internal/bank/': typeof InternalBankIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -872,11 +935,13 @@ export interface FileRoutesByFullPath {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
+  '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -906,7 +971,7 @@ export interface FileRoutesByTo {
   '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRouteWithChildren
+  '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
@@ -950,7 +1015,12 @@ export interface FileRoutesByTo {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/deposits': typeof InternalBankDepositsRoute
+  '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/statements': typeof InternalBankStatementsRoute
+  '/internal/bank/transfers': typeof InternalBankTransfersRoute
+  '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
@@ -960,6 +1030,7 @@ export interface FileRoutesByTo {
   '/bank/transfers': typeof BankTransfersIndexRoute
   '/companies/$companyId': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal': typeof ExchangeTerminalIndexRoute
+  '/internal/bank': typeof InternalBankIndexRoute
   '/internal/companies': typeof InternalCompaniesIndexRoute
   '/internal/users': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -980,11 +1051,13 @@ export interface FileRoutesByTo {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
   '/bank/lending/deal-rooms': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
+  '/internal/bank/accounts': typeof InternalBankAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1002,6 +1075,7 @@ export interface FileRoutesById {
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
+  '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
@@ -1023,7 +1097,7 @@ export interface FileRoutesById {
   '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
-  '/internal/bank': typeof InternalBankRouteWithChildren
+  '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exchange': typeof InternalExchangeRoute
@@ -1072,7 +1146,12 @@ export interface FileRoutesById {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/internal/bank/deposits': typeof InternalBankDepositsRoute
+  '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/statements': typeof InternalBankStatementsRoute
+  '/internal/bank/transfers': typeof InternalBankTransfersRoute
+  '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
@@ -1082,6 +1161,7 @@ export interface FileRoutesById {
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
+  '/internal/bank/': typeof InternalBankIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -1102,11 +1182,13 @@ export interface FileRoutesById {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
+  '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
+  '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1125,6 +1207,7 @@ export interface FileRouteTypes {
     | '/bank/business'
     | '/bank/transfers'
     | '/companies/$companyId'
+    | '/internal/bank'
     | '/bank/accounts'
     | '/bank/dashboard'
     | '/bank/deposit'
@@ -1146,7 +1229,7 @@ export interface FileRouteTypes {
     | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
-    | '/internal/bank'
+    | '/internal/audit'
     | '/internal/compliance'
     | '/internal/embeds'
     | '/internal/exchange'
@@ -1195,7 +1278,12 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/internal/bank/deposits'
+    | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/statements'
+    | '/internal/bank/transfers'
+    | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
     | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
@@ -1205,6 +1293,7 @@ export interface FileRouteTypes {
     | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/exchange/terminal/'
+    | '/internal/bank/'
     | '/internal/companies/'
     | '/internal/users/'
     | '/api/auth/discord/callback'
@@ -1225,11 +1314,13 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
+    | '/internal/bank/accounts/$accountId'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
+    | '/internal/bank/accounts/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1259,7 +1350,7 @@ export interface FileRouteTypes {
     | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
-    | '/internal/bank'
+    | '/internal/audit'
     | '/internal/compliance'
     | '/internal/embeds'
     | '/internal/exchange'
@@ -1303,7 +1394,12 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/internal/bank/deposits'
+    | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/statements'
+    | '/internal/bank/transfers'
+    | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
     | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
@@ -1313,6 +1409,7 @@ export interface FileRouteTypes {
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/exchange/terminal'
+    | '/internal/bank'
     | '/internal/companies'
     | '/internal/users'
     | '/api/auth/discord/callback'
@@ -1333,11 +1430,13 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
+    | '/internal/bank/accounts/$accountId'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
     | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
+    | '/internal/bank/accounts'
   id:
     | '__root__'
     | '/'
@@ -1354,6 +1453,7 @@ export interface FileRouteTypes {
     | '/bank/business'
     | '/bank/transfers'
     | '/companies/$companyId'
+    | '/internal/bank'
     | '/bank/accounts'
     | '/bank/dashboard'
     | '/bank/deposit'
@@ -1375,7 +1475,7 @@ export interface FileRouteTypes {
     | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
-    | '/internal/bank'
+    | '/internal/audit'
     | '/internal/compliance'
     | '/internal/embeds'
     | '/internal/exchange'
@@ -1424,7 +1524,12 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/internal/bank/deposits'
+    | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/statements'
+    | '/internal/bank/transfers'
+    | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
     | '/internal/lending/deal-rooms'
     | '/internal/users/$userId'
@@ -1434,6 +1539,7 @@ export interface FileRouteTypes {
     | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/exchange/terminal/'
+    | '/internal/bank/'
     | '/internal/companies/'
     | '/internal/users/'
     | '/api/auth/discord/callback'
@@ -1454,11 +1560,13 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
+    | '/internal/bank/accounts/$accountId'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
+    | '/internal/bank/accounts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1730,11 +1838,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalComplianceRouteImport
       parentRoute: typeof InternalRouteRoute
     }
-    '/internal/bank': {
-      id: '/internal/bank'
-      path: '/bank'
-      fullPath: '/internal/bank'
-      preLoaderRoute: typeof InternalBankRouteImport
+    '/internal/audit': {
+      id: '/internal/audit'
+      path: '/audit'
+      fullPath: '/internal/audit'
+      preLoaderRoute: typeof InternalAuditRouteImport
       parentRoute: typeof InternalRouteRoute
     }
     '/internal/api-applications': {
@@ -1884,6 +1992,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/bank': {
+      id: '/internal/bank'
+      path: '/bank'
+      fullPath: '/internal/bank'
+      preLoaderRoute: typeof InternalBankRouteRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/companies/$companyId': {
       id: '/companies/$companyId'
       path: '/$companyId'
@@ -1918,6 +2033,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/internal/companies/'
       preLoaderRoute: typeof InternalCompaniesIndexRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/bank/': {
+      id: '/internal/bank/'
+      path: '/'
+      fullPath: '/internal/bank/'
+      preLoaderRoute: typeof InternalBankIndexRouteImport
+      parentRoute: typeof InternalBankRouteRoute
     }
     '/exchange/terminal/': {
       id: '/exchange/terminal/'
@@ -1982,12 +2104,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalCompaniesCompanyIdRouteImport
       parentRoute: typeof InternalRouteRoute
     }
+    '/internal/bank/withdrawals': {
+      id: '/internal/bank/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/internal/bank/withdrawals'
+      preLoaderRoute: typeof InternalBankWithdrawalsRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
+    '/internal/bank/transfers': {
+      id: '/internal/bank/transfers'
+      path: '/transfers'
+      fullPath: '/internal/bank/transfers'
+      preLoaderRoute: typeof InternalBankTransfersRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
+    '/internal/bank/statements': {
+      id: '/internal/bank/statements'
+      path: '/statements'
+      fullPath: '/internal/bank/statements'
+      preLoaderRoute: typeof InternalBankStatementsRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
     '/internal/bank/scheduled': {
       id: '/internal/bank/scheduled'
       path: '/scheduled'
       fullPath: '/internal/bank/scheduled'
       preLoaderRoute: typeof InternalBankScheduledRouteImport
-      parentRoute: typeof InternalBankRoute
+      parentRoute: typeof InternalBankRouteRoute
+    }
+    '/internal/bank/interest': {
+      id: '/internal/bank/interest'
+      path: '/interest'
+      fullPath: '/internal/bank/interest'
+      preLoaderRoute: typeof InternalBankInterestRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
+    '/internal/bank/deposits': {
+      id: '/internal/bank/deposits'
+      path: '/deposits'
+      fullPath: '/internal/bank/deposits'
+      preLoaderRoute: typeof InternalBankDepositsRouteImport
+      parentRoute: typeof InternalBankRouteRoute
     }
     '/exchange/terminal/$': {
       id: '/exchange/terminal/$'
@@ -2178,6 +2335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/bank/accounts/': {
+      id: '/internal/bank/accounts/'
+      path: '/accounts'
+      fullPath: '/internal/bank/accounts/'
+      preLoaderRoute: typeof InternalBankAccountsIndexRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
     '/exchange/company/$ticker/': {
       id: '/exchange/company/$ticker/'
       path: '/'
@@ -2212,6 +2376,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/account/$accountId/'
       preLoaderRoute: typeof BankAccountAccountIdIndexRouteImport
       parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/internal/bank/accounts/$accountId': {
+      id: '/internal/bank/accounts/$accountId'
+      path: '/accounts/$accountId'
+      fullPath: '/internal/bank/accounts/$accountId'
+      preLoaderRoute: typeof InternalBankAccountsAccountIdRouteImport
+      parentRoute: typeof InternalBankRouteRoute
     }
     '/exchange/company/$ticker/owner': {
       id: '/exchange/company/$ticker/owner'
@@ -2442,17 +2613,32 @@ const GovernanceRouteRouteWithChildren = GovernanceRouteRoute._addFileChildren(
   GovernanceRouteRouteChildren,
 )
 
-interface InternalBankRouteChildren {
+interface InternalBankRouteRouteChildren {
+  InternalBankDepositsRoute: typeof InternalBankDepositsRoute
+  InternalBankInterestRoute: typeof InternalBankInterestRoute
   InternalBankScheduledRoute: typeof InternalBankScheduledRoute
+  InternalBankStatementsRoute: typeof InternalBankStatementsRoute
+  InternalBankTransfersRoute: typeof InternalBankTransfersRoute
+  InternalBankWithdrawalsRoute: typeof InternalBankWithdrawalsRoute
+  InternalBankIndexRoute: typeof InternalBankIndexRoute
+  InternalBankAccountsAccountIdRoute: typeof InternalBankAccountsAccountIdRoute
+  InternalBankAccountsIndexRoute: typeof InternalBankAccountsIndexRoute
 }
 
-const InternalBankRouteChildren: InternalBankRouteChildren = {
+const InternalBankRouteRouteChildren: InternalBankRouteRouteChildren = {
+  InternalBankDepositsRoute: InternalBankDepositsRoute,
+  InternalBankInterestRoute: InternalBankInterestRoute,
   InternalBankScheduledRoute: InternalBankScheduledRoute,
+  InternalBankStatementsRoute: InternalBankStatementsRoute,
+  InternalBankTransfersRoute: InternalBankTransfersRoute,
+  InternalBankWithdrawalsRoute: InternalBankWithdrawalsRoute,
+  InternalBankIndexRoute: InternalBankIndexRoute,
+  InternalBankAccountsAccountIdRoute: InternalBankAccountsAccountIdRoute,
+  InternalBankAccountsIndexRoute: InternalBankAccountsIndexRoute,
 }
 
-const InternalBankRouteWithChildren = InternalBankRoute._addFileChildren(
-  InternalBankRouteChildren,
-)
+const InternalBankRouteRouteWithChildren =
+  InternalBankRouteRoute._addFileChildren(InternalBankRouteRouteChildren)
 
 interface InternalLendingRouteChildren {
   InternalLendingDealRoomsRoute: typeof InternalLendingDealRoomsRoute
@@ -2467,8 +2653,9 @@ const InternalLendingRouteWithChildren = InternalLendingRoute._addFileChildren(
 )
 
 interface InternalRouteRouteChildren {
+  InternalBankRouteRoute: typeof InternalBankRouteRouteWithChildren
   InternalApiApplicationsRoute: typeof InternalApiApplicationsRoute
-  InternalBankRoute: typeof InternalBankRouteWithChildren
+  InternalAuditRoute: typeof InternalAuditRoute
   InternalComplianceRoute: typeof InternalComplianceRoute
   InternalEmbedsRoute: typeof InternalEmbedsRoute
   InternalExchangeRoute: typeof InternalExchangeRoute
@@ -2485,8 +2672,9 @@ interface InternalRouteRouteChildren {
 }
 
 const InternalRouteRouteChildren: InternalRouteRouteChildren = {
+  InternalBankRouteRoute: InternalBankRouteRouteWithChildren,
   InternalApiApplicationsRoute: InternalApiApplicationsRoute,
-  InternalBankRoute: InternalBankRouteWithChildren,
+  InternalAuditRoute: InternalAuditRoute,
   InternalComplianceRoute: InternalComplianceRoute,
   InternalEmbedsRoute: InternalEmbedsRoute,
   InternalExchangeRoute: InternalExchangeRoute,
@@ -2726,3 +2914,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -18,6 +18,8 @@ AB-[PRODUCT CODE]-[UNIQUE NUMBER]
 
 - `AB-1000-482913` — Alta Access
 - `AB-2000-938144` — Checking
+- `AB-3000-938144` — Savings
+- `AB-3500-552811` — Alta Money Market
 - `AB-5000-774120` — Business Operating
 - `AB-9000-118742` — Alta Private
 
@@ -44,6 +46,7 @@ Validation pattern: `/^AB-\d{4}-\d{6}$/`
 | `1000` | Alta Access | `ALTA_ACCESS` |
 | `2000` | Checking | `CHECKING` |
 | `3000` | Savings | `SAVINGS` |
+| `3500` | Alta Money Market | `MONEY_MARKET` |
 | `4000` | Reserve | `RESERVE` |
 | `5000` | Business Operating | `BUSINESS_OPERATING` |
 | `9000` | Alta Private | `PRIVATE` |

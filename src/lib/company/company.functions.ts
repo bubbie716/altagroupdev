@@ -117,21 +117,21 @@ export const fetchInternalCompanyFromDb = createServerFn({ method: "GET" })
   });
 
 export const verifyCompanyRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { companyId: string }) => input)
+  .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { verifyCompany } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
-    await requireOperator();
-    await verifyCompany(data.companyId);
+    const admin = await requireOperator();
+    await verifyCompany(admin.id, data.companyId, data.reviewNote);
     return { ok: true as const };
   });
 
 export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { companyId: string }) => input)
+  .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
     const { rejectCompanyVerification } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
-    await requireOperator();
-    await rejectCompanyVerification(data.companyId);
+    const admin = await requireOperator();
+    await rejectCompanyVerification(admin.id, data.companyId, data.reviewNote);
     return { ok: true as const };
   });

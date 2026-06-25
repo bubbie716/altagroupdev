@@ -2,6 +2,7 @@ export type BankAccountTypeCode =
   | "alta_access"
   | "checking"
   | "savings"
+  | "money_market"
   | "reserve"
   | "business_operating"
   | "private";
@@ -13,7 +14,8 @@ export type BankTransactionTypeCode =
   | "withdrawal"
   | "adjustment"
   | "loan_payment"
-  | "interest_charge";
+  | "interest_charge"
+  | "interest_credit";
 
 export type BankTransactionStatusCode = "pending" | "approved" | "denied" | "cancelled";
 
@@ -38,6 +40,18 @@ export interface UserBankAccount {
   name: string;
   product: string;
   type: string;
+  interestAccrualEnabled: boolean;
+  interestRateLabel: string | null;
+}
+
+export interface AccountInterestInfo {
+  applicable: boolean;
+  enabled?: boolean;
+  rateLabel?: string;
+  statusLabel?: string;
+  lastInterestCreditedAt?: string | null;
+  nextInterestAccrualAt?: string | null;
+  estimatedNextInterest?: number | null;
 }
 
 export interface UserBankAccountDetail extends UserBankAccount {
@@ -47,6 +61,7 @@ export interface UserBankAccountDetail extends UserBankAccount {
   netChangeThisMonth: number;
   availableBalance: number;
   recentTransactions: UserBankTransaction[];
+  interestInfo: AccountInterestInfo;
 }
 
 export interface OpenBankAccountResult {
@@ -85,10 +100,12 @@ export interface UserBankDashboard {
   totalRelationshipValue: number;
   checkingBalance: number;
   savingsBalance: number;
-  reserveBalance: number;
+  privateBalance: number;
+  moneyMarketBalance: number;
   businessBalance: number;
   creditAvailable: number;
   privateStatus: string;
+  enrolledInPrivate: boolean;
   accountCount: number;
   pendingDeposits: number;
   pendingWithdrawals: number;
@@ -226,10 +243,51 @@ export interface InternalBankOpsSummary {
   altaPayVolumeThisMonth: number;
 }
 
+export interface InternalBankAccountDetail {
+  id: string;
+  accountNumber: string;
+  accountName: string;
+  holder: string;
+  ownerUserId: string;
+  product: string;
+  balance: number;
+  currency: string;
+  status: string;
+  routingNumber: string;
+  companyId: string | null;
+  companyName: string | null;
+  openingNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  pendingTransactions: InternalBankTransactionRow[];
+  recentTransactions: InternalBankTransactionRow[];
+}
+
+export type AdminAccountAdjustmentInput = {
+  accountId: string;
+  direction: "credit" | "debit";
+  amount: number;
+  reason: string;
+  referenceCode?: string;
+  allowOverdraft?: boolean;
+};
+
+export type InternalBankAccountFilters = {
+  q?: string;
+  accountType?: string;
+  status?: string;
+  companyId?: string;
+};
+
 export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountTypeCode; label: string; description: string }[] = [
   { value: "alta_access", label: "Alta Access", description: "Starter account for new Newport citizens." },
   { value: "checking", label: "Alta Checking", description: "Primary operating account." },
   { value: "savings", label: "Alta Savings", description: "A simple savings account for building Florin reserves." },
+  {
+    value: "money_market",
+    label: "Alta Money Market",
+    description: "Higher-yield money market account — opens immediately.",
+  },
   {
     value: "reserve",
     label: "Reserve Account by Alta Private",
@@ -251,6 +309,7 @@ const PERSONAL_ACCOUNT_TYPES: BankAccountTypeCode[] = [
   "alta_access",
   "checking",
   "savings",
+  "money_market",
   "reserve",
   "private",
 ];
@@ -288,5 +347,10 @@ export function formatBankAccountTypeLabel(type: BankAccountTypeCode): string {
 }
 
 export function isInstantApprovalAccountType(type: BankAccountTypeCode): boolean {
-  return type === "alta_access" || type === "checking" || type === "savings";
+  return (
+    type === "alta_access" ||
+    type === "checking" ||
+    type === "savings" ||
+    type === "money_market"
+  );
 }

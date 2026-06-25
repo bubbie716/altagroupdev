@@ -8,13 +8,21 @@ const groups: { id: string; label: string; links: Link[] }[] = [
   {
     id: "overview",
     label: "Overview",
-    links: [{ to: "/internal", label: "Dashboard", exact: true }],
+    links: [
+      { to: "/internal", label: "Dashboard", exact: true },
+      { to: "/internal/audit", label: "Audit log" },
+    ],
   },
   {
     id: "banking",
     label: "Banking",
     links: [
-      { to: "/internal/bank", label: "Bank Ops" },
+      { to: "/internal/bank", label: "Bank Ops", match: "/internal/bank" },
+      { to: "/internal/bank/deposits", label: "Deposits" },
+      { to: "/internal/bank/withdrawals", label: "Withdrawals" },
+      { to: "/internal/bank/accounts", label: "Accounts", match: "/internal/bank/accounts" },
+      { to: "/internal/bank/transfers", label: "Transfers" },
+      { to: "/internal/bank/statements", label: "Statements" },
       { to: "/internal/lending", label: "Lending" },
     ],
   },
@@ -51,7 +59,7 @@ const groups: { id: string; label: string; links: Link[] }[] = [
 function isActive(pathname: string, link: Link) {
   if (link.exact) return pathname === link.to;
   if (link.match) return pathname.startsWith(link.match);
-  return pathname.startsWith(link.to);
+  return pathname === link.to || pathname.startsWith(`${link.to}/`);
 }
 
 export function InternalSubNav() {

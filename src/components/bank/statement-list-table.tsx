@@ -1,5 +1,6 @@
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { RouteButton } from "@/components/bank/route-button";
 
@@ -8,6 +9,10 @@ function formatPeriod(start: string, end: string): string {
   const e = new Date(end);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
   return `${s.toLocaleDateString(undefined, opts)} – ${e.toLocaleDateString(undefined, opts)}`;
+}
+
+function formatGeneratedAt(generatedAt: string | null, createdAt: string): string {
+  return formatActivityDateTime(generatedAt ?? createdAt);
 }
 
 export function StatementListTable({ statements }: { statements: BankStatementSummary[] }) {
@@ -21,12 +26,13 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
 
   return (
     <div className="overflow-x-auto">
-      <div className="w-full overflow-x-auto"><table className="alta-table w-full min-w-[640px] text-sm">
+      <div className="w-full overflow-x-auto"><table className="alta-table w-full min-w-[760px] text-sm">
         <thead>
           <tr>
             <th>Account</th>
             <th>Number</th>
             <th>Period</th>
+            <th>Generated</th>
             <th>Closing balance</th>
             <th>Status</th>
             <th />
@@ -43,6 +49,7 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
               </td>
               <td className="font-mono text-[11px]">{s.accountNumber}</td>
               <td className="text-muted-foreground">{formatPeriod(s.periodStart, s.periodEnd)}</td>
+              <td className="text-muted-foreground">{formatGeneratedAt(s.generatedAt, s.createdAt)}</td>
               <td className="type-finance-nums">{florin(s.closingBalance)}</td>
               <td>
                 <StatusBadge status={s.statusLabel} />

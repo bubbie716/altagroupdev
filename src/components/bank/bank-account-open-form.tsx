@@ -16,6 +16,7 @@ import {
   defaultBankAccountTypeForOwnership,
   getBankAccountTypeOptionsForOpening,
   isInstantApprovalAccountType,
+  isPrivateBankingAccountType,
   type BankAccountTypeCode,
   type OpenBankAccountInput,
   type OpenBankAccountResult,
@@ -49,6 +50,7 @@ export function BankAccountOpenForm() {
   const instant =
     selectedAccountType &&
     (isInstantApprovalAccountType(selectedAccountType.value) ||
+      (hasPrivateAccess && isPrivateBankingAccountType(selectedAccountType.value)) ||
       (selectedAccountType.value === "business_operating" &&
         verifiedCompanies.some((company) => company.companyId === companyId)));
 

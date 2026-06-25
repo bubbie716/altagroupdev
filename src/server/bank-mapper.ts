@@ -18,11 +18,13 @@ import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
 import { hasStoredProof, getProofFileUrl } from "@/lib/storage/proof-upload.constants";
 import { getRoutingNumber } from "@/lib/bank/routing";
 import { formatBankTransactionTypeLabel } from "@/lib/bank/transaction-display";
+import { formatMonthlyInterestRateLabel } from "@/lib/bank/account-interest-service";
 
 const ACCOUNT_TYPE_TO_DB: Record<BankAccountTypeCode, DbBankAccountType> = {
   alta_access: "ALTA_ACCESS",
   checking: "CHECKING",
   savings: "SAVINGS",
+  money_market: "MONEY_MARKET",
   reserve: "RESERVE",
   business_operating: "BUSINESS_OPERATING",
   private: "PRIVATE",
@@ -32,6 +34,7 @@ const ACCOUNT_TYPE_FROM_DB: Record<DbBankAccountType, BankAccountTypeCode> = {
   ALTA_ACCESS: "alta_access",
   CHECKING: "checking",
   SAVINGS: "savings",
+  MONEY_MARKET: "money_market",
   RESERVE: "reserve",
   BUSINESS_OPERATING: "business_operating",
   PRIVATE: "private",
@@ -50,6 +53,7 @@ const TRANSACTION_TYPE_FROM_DB: Record<DbBankTransactionType, BankTransactionTyp
   ADJUSTMENT: "adjustment",
   LOAN_PAYMENT: "loan_payment",
   INTEREST_CHARGE: "interest_charge",
+  INTEREST_CREDIT: "interest_credit",
 };
 
 const TRANSACTION_STATUS_FROM_DB: Record<DbBankTransactionStatus, BankTransactionStatusCode> = {
@@ -110,6 +114,8 @@ type BankAccountRecord = {
   currency: string;
   openingNotes: string | null;
   createdAt: Date;
+  interestAccrualEnabled?: boolean;
+  interestRate?: { toNumber(): number };
   company?: { name: string } | null;
   transactions?: { createdAt: Date; description: string; type: DbBankTransactionType }[];
 };
@@ -131,7 +137,9 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
             ? "Loan payment"
             : latest.type === "INTEREST_CHARGE"
               ? "Interest charge"
-              : "Adjustment";
+              : latest.type === "INTEREST_CREDIT"
+                ? "Interest credit"
+                : "Adjustment";
     recentActivity = `${prefix} · ${latest.description}`;
   }
 
@@ -155,6 +163,11 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
     name: account.accountName,
     product: formatBankAccountTypeLabel(accountType),
     type: account.companyId ? "Business" : "Personal",
+    interestAccrualEnabled: account.interestAccrualEnabled ?? false,
+    interestRateLabel:
+      account.interestAccrualEnabled && account.interestRate
+        ? formatMonthlyInterestRateLabel(decimalToNumber(account.interestRate))
+        : null,
   };
 }
 

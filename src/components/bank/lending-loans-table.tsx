@@ -9,8 +9,10 @@ import { Florin } from "@/components/ui/florin";
 import { LoanRepaymentProgressBar } from "@/components/bank/loan-repayment-progress";
 import { LoanRepaymentDialog } from "@/components/bank/loan-repayment-dialog";
 import { LoanPaymentScheduleTable } from "@/components/bank/loan-payment-schedule-table";
+import { LoanInterestGuaranteeScheduleTable } from "@/components/bank/loan-interest-guarantee-schedule-table";
 import { LoanAutoPayForm } from "@/components/bank/loan-autopay-form";
 import { AutoPayBadge } from "@/components/bank/auto-pay-badge";
+import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { florin } from "@/lib/bank/api";
 import { fetchLoanPaymentContext } from "@/lib/bank/lending.functions";
 import type {
@@ -32,7 +34,7 @@ export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
     let autopay = 0;
     let nextDue: { date: string; amount: number } | null = null;
     for (const loan of loans) {
-      exposure += loan.projectedOutstanding;
+      exposure += loan.currentPayoffAmount;
       repaid += loan.amountRepaid;
       if (loan.autoPay.enabled) autopay++;
       const next = nextInstallment(loan.paymentSchedule);
@@ -48,59 +50,61 @@ export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
   return (
     <div className="space-y-8">
       {/* Portfolio summary strip */}
-      <dl className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-4 sm:divide-y-0">
-        <Stat label="Total exposure" value={florin(summary.exposure)} />
-        <Stat label="Total repaid" value={florin(summary.repaid)} />
-        <Stat
-          label="Next payment"
-          value={
-            summary.nextDue
-              ? florin(summary.nextDue.amount)
-              : "—"
-          }
-          sub={
-            summary.nextDue
+      <BankStatStrip
+        density="emphasized"
+        items={[
+          { label: "Total payoff exposure", value: florin(summary.exposure) },
+          { label: "Total repaid", value: florin(summary.repaid) },
+          {
+            label: "Next payment",
+            value: summary.nextDue ? florin(summary.nextDue.amount) : "—",
+            sub: summary.nextDue
               ? new Date(summary.nextDue.date).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                 })
-              : "No installments due"
-          }
-        />
-        <Stat
-          label="Auto-pay"
-          value={`${summary.autopay} / ${summary.total}`}
-          sub="facilities enrolled"
-        />
-      </dl>
+              : "No installments due",
+          },
+          {
+            label: "Auto-pay",
+            value: `${summary.autopay} / ${summary.total}`,
+            sub: "facilities enrolled",
+          },
+        ]}
+      />
 
-      {/* Facility table */}
+      {/* Facility table — single <table> so header and row columns share widths */}
       <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-        <div className="hidden grid-cols-[1.4fr_1fr_0.9fr_0.7fr_0.9fr_0.8fr_0.7fr_auto] gap-4 border-b border-border bg-surface-2/40 px-5 py-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:grid">
-          <span>Facility</span>
-          <span>Product</span>
-          <span className="text-right">Outstanding</span>
-          <span className="text-right">Rate</span>
-          <span>Next due</span>
-          <span>Status</span>
-          <span>Auto-pay</span>
-          <span className="text-right">·</span>
+        <div className="overflow-x-auto">
+          <table className="alta-table w-full min-w-[920px] table-fixed text-sm">
+            <thead className="bg-surface-2/40">
+              <tr>
+                <th className="w-[18%]">Facility</th>
+                <th className="w-[14%]">Product</th>
+                <th className="w-[14%] text-right">Principal due</th>
+                <th className="w-[11%]">Rate</th>
+                <th className="w-[12%]">Next due</th>
+                <th className="w-[11%]">Status</th>
+                <th className="w-[14%]">Auto-pay</th>
+                <th className="w-10" aria-hidden />
+              </tr>
+            </thead>
+            <tbody>
+              {loans.map((loan) => (
+                <FacilityRow
+                  key={loan.id}
+                  loan={loan}
+                  isExpanded={expanded === loan.id}
+                  onToggle={() => setExpanded(expanded === loan.id ? null : loan.id)}
+                  onPaid={async () => {
+                    await router.invalidate();
+                  }}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
-        <ul className="divide-y divide-border">
-          {loans.map((loan) => (
-            <li key={loan.id}>
-              <FacilityRow
-                loan={loan}
-                isExpanded={expanded === loan.id}
-                onToggle={() => setExpanded(expanded === loan.id ? null : loan.id)}
-                onPaid={async () => {
-                  await router.invalidate();
-                }}
-              />
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );
@@ -142,35 +146,45 @@ function FacilityRow({
   }, [isExpanded, loan.id, loadContext, sourceAccounts]);
 
   return (
-    <div className={cn(isExpanded && "bg-surface-2/30")}>
-      <button
-        type="button"
-        onClick={onToggle}
+    <>
+      <tr
+        role="button"
+        tabIndex={0}
         aria-expanded={isExpanded}
-        className="grid w-full grid-cols-1 items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-surface-2/40 sm:grid-cols-[1.4fr_1fr_0.9fr_0.7fr_0.9fr_0.8fr_0.7fr_auto] sm:gap-4"
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className={cn(
+          "cursor-pointer transition-colors",
+          isExpanded && "bg-surface-2/30",
+        )}
       >
-        <div className="min-w-0">
+        <td className="align-middle">
           <div className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground">
             {loan.id.slice(0, 10)}
           </div>
           {loan.companyName && (
             <div className="mt-0.5 text-[12px] text-muted-foreground">{loan.companyName}</div>
           )}
-        </div>
-        <div className="text-[13px]">{loan.productLabel}</div>
-        <div className="sm:text-right">
-          <span className="text-[14px]">
-            <Florin value={loan.projectedOutstanding} fractionDigits={0} />
-          </span>
-          <div className="tabular font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:mt-0.5">
+        </td>
+        <td className="align-middle text-[13px]">{loan.productLabel}</td>
+        <td className="align-middle text-right">
+          <div className="text-[14px]">
+            <Florin value={loan.principalOutstanding} fractionDigits={0} />
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             of {florin(loan.principalAmount)}
           </div>
-        </div>
-        <div className="tabular font-mono text-[13px] sm:text-right">{loan.interestRateLabel}</div>
-        <div className="text-[12px]">
+        </td>
+        <td className="align-middle font-mono text-[13px]">{loan.interestRateLabel}</td>
+        <td className="align-middle text-[12px]">
           {next ? (
             <>
-              <div className="tabular">{florin(next.scheduledAmount)}</div>
+              <div>{florin(next.scheduledAmount)}</div>
               <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                 {new Date(next.dueDate).toLocaleDateString(undefined, {
                   month: "short",
@@ -181,39 +195,45 @@ function FacilityRow({
           ) : (
             <span className="text-muted-foreground">—</span>
           )}
-        </div>
-        <div>
+        </td>
+        <td className="align-middle">
           <StatusBadge status={loan.statusLabel} />
-        </div>
-        <div>
+        </td>
+        <td className="align-middle">
           {loan.status === "active" ? <AutoPayBadge enabled={loan.autoPay.enabled} /> : null}
-        </div>
-        <div className="flex justify-end">
+        </td>
+        <td className="align-middle text-right">
           <ChevronDown
             className={cn(
-              "size-4 text-gold transition-transform",
+              "ml-auto inline size-4 text-gold transition-transform",
               isExpanded && "rotate-180",
             )}
             aria-hidden
           />
-        </div>
-      </button>
+        </td>
+      </tr>
 
       {isExpanded && (
-        <div className="border-t border-border px-5 py-6 sm:px-6">
+        <tr className="bg-surface-2/30">
+          <td colSpan={8} className="!p-0">
+            <div className="border-t border-border px-5 py-6 sm:px-6">
           <Section title="Repayment progress">
             <LoanRepaymentProgressBar
-              projectedOutstanding={loan.projectedOutstanding}
-              amountRepaid={loan.amountRepaid}
-              percentRepaid={loan.percentRepaid}
-              totalRepaymentObligation={loan.totalRepaymentObligation}
+              principalAmount={loan.principalAmount}
+              principalRepaid={loan.principalRepaid}
+              principalPercentRepaid={loan.principalPercentRepaid}
+              currentPayoffAmount={loan.currentPayoffAmount}
+              guaranteedInterestOwed={loan.guaranteedInterestOwed}
               statusLabel={loan.statusLabel}
               compact
             />
             {loan.canMakePayment && (
               <button
                 type="button"
-                onClick={() => setPayOpen(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPayOpen(true);
+                }}
                 className="mt-4 rounded-md border border-gold/40 bg-gold/10 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
               >
                 Make payment
@@ -223,19 +243,35 @@ function FacilityRow({
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Metric label="Original principal" value={florin(loan.principalAmount)} />
-            <Metric label="Projected outstanding" value={florin(loan.projectedOutstanding)} />
-            <Metric label="Amount repaid" value={florin(loan.amountRepaid)} />
+            <Metric label="Outstanding principal" value={florin(loan.principalOutstanding)} />
+            <Metric label="Guaranteed interest owed" value={florin(loan.guaranteedInterestOwed)} />
+            <Metric
+              label="Remaining potential interest"
+              value={florin(loan.remainingPotentialInterest)}
+            />
+            <Metric
+              label="Current payoff amount"
+              value={florin(loan.currentPayoffAmount)}
+              emphasize
+            />
+            <Metric
+              label="Projected full-term cost"
+              value={florin(loan.projectedFullTermCost)}
+            />
             <Metric label="Interest rate" value={loan.interestRateLabel} />
+            <Metric label="Next payment estimate" value={loan.nextPaymentDueLabel} />
+            <Metric label="Loan status" value={loan.statusLabel} />
             {loan.termMonths != null && (
               <Metric
                 label="Term"
                 value={`${loan.termMonths} mo · ${loan.monthlyPrincipalPercent?.toFixed(0) ?? "—"}%/mo`}
               />
             )}
-            {next && (
-              <Metric label="Next installment" value={florin(next.scheduledAmount)} />
-            )}
           </div>
+
+          <Section title="Interest guarantee schedule" className="mt-8">
+            <LoanInterestGuaranteeScheduleTable schedule={loan.interestGuaranteeSchedule} />
+          </Section>
 
           <Section title="Payment schedule" className="mt-8">
             <LoanPaymentScheduleTable
@@ -269,33 +305,36 @@ function FacilityRow({
             onOpenChange={setPayOpen}
             onPaid={onPaid}
           />
-        </div>
+            </div>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
   return (
     <div>
       <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
-      <div className="tabular mt-1 text-sm font-medium">{value}</div>
-    </div>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="px-5 py-4">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</dt>
-      <dd className="mt-1 font-serif text-[20px] leading-tight tracking-tight tabular">{value}</dd>
-      {sub && (
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
-          {sub}
-        </p>
-      )}
+      <div
+        className={cn(
+          "tabular mt-1 text-sm font-medium",
+          emphasize && "text-base font-semibold text-gold",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }

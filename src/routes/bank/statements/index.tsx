@@ -33,12 +33,11 @@ function BankStatementsPage() {
           { label: "Personal statements", value: String(personal.length) },
           { label: "Business statements", value: String(business.length) },
           { label: "Total on file", value: String(statements.length) },
-          { label: "PDF export", value: "Soon", sub: "Planned for future release" },
         ]}
       />
 
       <p className="mt-3 mb-8 rounded-md border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground">
-        Statements are generated from approved transaction history. PDF export and automated monthly delivery are planned for a future release.
+        Statements are generated from approved transaction history.
       </p>
 
       {statements.length === 0 ? (

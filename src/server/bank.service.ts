@@ -1,6 +1,9 @@
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import type {
+  AdminAccountAdjustmentInput,
+  InternalBankAccountDetail,
+  InternalBankAccountFilters,
   InternalBankAccountRow,
   InternalBankOpsSummary,
   InternalBankTransactionRow,
@@ -17,12 +20,18 @@ import type {
   UserBankTransaction,
   UserBankTransfer,
 } from "@/lib/bank/backend-types";
+import { generateAccountNumber, isValidAltaAccountNumber } from "@/lib/bank/account-number";
+import {
+  countsTowardMoneyMarketCard,
+  countsTowardPrivateBankCard,
+  countsTowardSavingsCard,
+} from "@/lib/bank/dashboard-balances";
 import {
   formatBankAccountTypeLabel,
   getBankAccountTypeOptionsForOpening,
   isInstantApprovalAccountType,
+  isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
-import { generateAccountNumber, isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import { getRoutingNumber } from "@/lib/bank/routing";
 import { isPrivateClient } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
@@ -34,6 +43,8 @@ import {
   toDbBankAccountType,
 } from "@/server/bank-mapper";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
+import { isAdmin } from "@/lib/auth/permissions";
+import { requireOperator } from "@/server/permissions.service";
 
 function forbidden(): never {
   throw new Error("FORBIDDEN");
@@ -62,7 +73,7 @@ async function generateUniqueAccountNumber(
   throw new Error("ACCOUNT_NUMBER_GENERATION_FAILED");
 }
 
-function generateReferenceCode(type: "DEP" | "WDR" | "TRF"): string {
+function generateReferenceCode(type: "DEP" | "WDR" | "TRF" | "PVR"): string {
   const suffix = randomBytes(3).toString("hex").toUpperCase();
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return `${type}-${date}-${suffix}`;
@@ -100,9 +111,13 @@ function proofData(proof: BankProofInput) {
 function initialAccountStatus(
   accountType: OpenBankAccountInput["accountType"],
   companyVerificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED",
+  privateClient = false,
 ): "PENDING" | "ACTIVE" {
   if (accountType === "business_operating") {
     return companyVerificationStatus === "VERIFIED" ? "ACTIVE" : "PENDING";
+  }
+  if (privateClient && isPrivateBankingAccountType(accountType)) {
+    return "ACTIVE";
   }
   return isInstantApprovalAccountType(accountType) ? "ACTIVE" : "PENDING";
 }
@@ -211,7 +226,7 @@ export async function getUserBankAccountDetail(
   let withdrawalsThisMonth = 0;
   for (const tx of monthTransactions) {
     const amount = decimalToNumber(tx.amount);
-    if (tx.type === "DEPOSIT") depositsThisMonth += amount;
+    if (tx.type === "DEPOSIT" || tx.type === "INTEREST_CREDIT") depositsThisMonth += amount;
     if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
       withdrawalsThisMonth += amount;
     }
@@ -223,6 +238,9 @@ export async function getUserBankAccountDetail(
     transactions: recentTransactions.slice(0, 1),
   });
 
+  const { buildAccountInterestInfo } = await import("@/lib/bank/account-interest-service");
+  const interestInfo = buildAccountInterestInfo(account);
+
   const ownerLabel = account.company?.name ?? user?.discordUsername ?? "Personal";
 
   return {
@@ -233,6 +251,7 @@ export async function getUserBankAccountDetail(
     netChangeThisMonth: depositsThisMonth - withdrawalsThisMonth,
     availableBalance: balance,
     recentTransactions: recentTransactions.map(mapUserBankTransaction),
+    interestInfo,
   };
 }
 
@@ -249,10 +268,13 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
     .filter((a) => a.accountType === "checking" || a.accountType === "alta_access")
     .reduce((sum, a) => sum + a.balance, 0);
   const savingsBalance = activeAccounts
-    .filter((a) => a.accountType === "savings")
+    .filter((a) => countsTowardSavingsCard(a))
     .reduce((sum, a) => sum + a.balance, 0);
-  const reserveBalance = activeAccounts
-    .filter((a) => a.accountType === "reserve" || a.accountType === "private")
+  const privateBalance = activeAccounts
+    .filter((a) => countsTowardPrivateBankCard(a))
+    .reduce((sum, a) => sum + a.balance, 0);
+  const moneyMarketBalance = activeAccounts
+    .filter((a) => countsTowardMoneyMarketCard(a))
     .reduce((sum, a) => sum + a.balance, 0);
   const businessBalance = activeAccounts
     .filter((a) => a.accountType === "business_operating")
@@ -275,16 +297,23 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
     },
   });
 
-  const hasPrivate = accounts.some((a) => a.accountType === "private" && a.status === "active");
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithMembershipsInclude,
+  });
+  const user = userRecord ? mapDbUserToAltaUser(userRecord) : null;
+  const enrolledInPrivate = user !== null && isPrivateClient(user);
 
   return {
     totalRelationshipValue,
     checkingBalance,
     savingsBalance,
-    reserveBalance,
+    privateBalance,
+    moneyMarketBalance,
     businessBalance,
     creditAvailable: 0,
-    privateStatus: hasPrivate ? "Alta Private" : "Not enrolled",
+    privateStatus: enrolledInPrivate ? "Enrolled" : "Not enrolled",
+    enrolledInPrivate,
     accountCount: accounts.length,
     pendingDeposits,
     pendingWithdrawals,
@@ -373,8 +402,15 @@ export async function openBankAccount(
   }
 
   const accountNumber = await generateUniqueAccountNumber(input.accountType);
-  const status = initialAccountStatus(input.accountType, companyVerificationStatus);
+  const status = initialAccountStatus(
+    input.accountType,
+    companyVerificationStatus,
+    isPrivateClient(user),
+  );
   const instant = status === "ACTIVE";
+
+  const { buildInterestInitializationData } = await import("@/lib/bank/account-interest-service");
+  const interestData = buildInterestInitializationData(input.accountType, status, new Date());
 
   const account = await prisma.bankAccount.create({
     data: {
@@ -386,6 +422,10 @@ export async function openBankAccount(
       status,
       openingNotes: input.openingNotes?.trim() || null,
       currency: "FLR",
+      interestRate: interestData.interestRate,
+      interestRatePeriod: interestData.interestRatePeriod,
+      interestAccrualEnabled: interestData.interestAccrualEnabled,
+      nextInterestAccrualAt: interestData.nextInterestAccrualAt,
     },
   });
 
@@ -686,10 +726,34 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
   };
 }
 
-export async function listInternalBankAccounts(): Promise<InternalBankAccountRow[]> {
+export async function listInternalBankAccounts(
+  filters: InternalBankAccountFilters = {},
+): Promise<InternalBankAccountRow[]> {
+  const and: Prisma.BankAccountWhereInput[] = [];
+  const q = filters.q?.trim();
+  if (q) {
+    and.push({
+      OR: [
+        { accountNumber: { contains: q, mode: "insensitive" } },
+        { accountName: { contains: q, mode: "insensitive" } },
+        { user: { discordUsername: { contains: q, mode: "insensitive" } } },
+        { company: { name: { contains: q, mode: "insensitive" } } },
+      ],
+    });
+  }
+  if (filters.accountType) {
+    and.push({ accountType: filters.accountType.toUpperCase() as Prisma.EnumBankAccountTypeFilter["equals"] });
+  }
+  if (filters.status) {
+    and.push({ status: filters.status.toUpperCase() as Prisma.EnumBankAccountStatusFilter["equals"] });
+  }
+  if (filters.companyId) and.push({ companyId: filters.companyId });
+
   const accounts = await prisma.bankAccount.findMany({
+    where: and.length > 0 ? { AND: and } : undefined,
     include: { user: true, company: true },
     orderBy: { createdAt: "desc" },
+    take: 500,
   });
   return accounts.map(mapInternalBankAccountRow);
 }
@@ -722,13 +786,13 @@ export async function listPendingBankTransactions(
 }
 
 export async function approveDeposit(adminId: string, transactionId: string, reviewNote?: string) {
-  await prisma.$transaction(async (tx) => {
-    const record = await tx.bankTransaction.findUnique({
+  const record = await prisma.$transaction(async (tx) => {
+    const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
       include: { bankAccount: true },
     });
-    if (!record) notFound();
-    if (record.type !== "DEPOSIT" || record.status !== "PENDING") badRequest("Invalid deposit request");
+    if (!row) notFound();
+    if (row.type !== "DEPOSIT" || row.status !== "PENDING") badRequest("Invalid deposit request");
 
     await tx.bankTransaction.update({
       where: { id: transactionId },
@@ -741,14 +805,31 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     });
 
     await tx.bankAccount.update({
-      where: { id: record.bankAccountId },
-      data: { balance: { increment: record.amount } },
+      where: { id: row.bankAccountId },
+      data: { balance: { increment: row.amount } },
     });
+    return row;
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "DEPOSIT_APPROVED",
+    entityType: "BANK_TRANSACTION",
+    entityId: transactionId,
+    targetUserId: record.bankAccount.userId,
+    targetAccountId: record.bankAccountId,
+    targetTransactionId: transactionId,
+    description: `Approved deposit ${record.referenceCode}`,
+    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
 }
 
 export async function denyDeposit(adminId: string, transactionId: string, reviewNote?: string) {
-  const record = await prisma.bankTransaction.findUnique({ where: { id: transactionId } });
+  const record = await prisma.bankTransaction.findUnique({
+    where: { id: transactionId },
+    include: { bankAccount: true },
+  });
   if (!record) notFound();
   if (record.type !== "DEPOSIT" || record.status !== "PENDING") badRequest("Invalid deposit request");
 
@@ -761,19 +842,32 @@ export async function denyDeposit(adminId: string, transactionId: string, review
       reviewNote: reviewNote?.trim() || null,
     },
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "DEPOSIT_DENIED",
+    entityType: "BANK_TRANSACTION",
+    entityId: transactionId,
+    targetUserId: record.bankAccount.userId,
+    targetAccountId: record.bankAccountId,
+    targetTransactionId: transactionId,
+    description: `Denied deposit ${record.referenceCode}`,
+    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+  });
 }
 
 export async function approveWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
-  await prisma.$transaction(async (tx) => {
-    const record = await tx.bankTransaction.findUnique({
+  const record = await prisma.$transaction(async (tx) => {
+    const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
       include: { bankAccount: true },
     });
-    if (!record) notFound();
-    if (record.type !== "WITHDRAWAL" || record.status !== "PENDING") badRequest("Invalid withdrawal request");
+    if (!row) notFound();
+    if (row.type !== "WITHDRAWAL" || row.status !== "PENDING") badRequest("Invalid withdrawal request");
 
-    const balance = decimalToNumber(record.bankAccount.balance);
-    const amount = decimalToNumber(record.amount);
+    const balance = decimalToNumber(row.bankAccount.balance);
+    const amount = decimalToNumber(row.amount);
     if (balance < amount) badRequest("Insufficient balance");
 
     await tx.bankTransaction.update({
@@ -787,14 +881,31 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     });
 
     await tx.bankAccount.update({
-      where: { id: record.bankAccountId },
-      data: { balance: { decrement: record.amount } },
+      where: { id: row.bankAccountId },
+      data: { balance: { decrement: row.amount } },
     });
+    return row;
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "WITHDRAWAL_APPROVED",
+    entityType: "BANK_TRANSACTION",
+    entityId: transactionId,
+    targetUserId: record.bankAccount.userId,
+    targetAccountId: record.bankAccountId,
+    targetTransactionId: transactionId,
+    description: `Approved withdrawal ${record.referenceCode}`,
+    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
 }
 
 export async function denyWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
-  const record = await prisma.bankTransaction.findUnique({ where: { id: transactionId } });
+  const record = await prisma.bankTransaction.findUnique({
+    where: { id: transactionId },
+    include: { bankAccount: true },
+  });
   if (!record) notFound();
   if (record.type !== "WITHDRAWAL" || record.status !== "PENDING") badRequest("Invalid withdrawal request");
 
@@ -807,6 +918,151 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
       reviewNote: reviewNote?.trim() || null,
     },
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "WITHDRAWAL_DENIED",
+    entityType: "BANK_TRANSACTION",
+    entityId: transactionId,
+    targetUserId: record.bankAccount.userId,
+    targetAccountId: record.bankAccountId,
+    targetTransactionId: transactionId,
+    description: `Denied withdrawal ${record.referenceCode}`,
+    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+  });
+}
+
+function appendAccountNote(existing: string | null | undefined, note: string): string {
+  return existing ? `${existing}\n${note}` : note;
+}
+
+export type PrivateBankingLiquidationResult = {
+  accountsClosed: number;
+  totalTransferred: number;
+  destinationAccountId: string | null;
+};
+
+/** Move personal reserve/private balances to the oldest active personal account, then close them. */
+export async function liquidatePrivateBankingOnAccessRevoked(
+  userId: string,
+): Promise<PrivateBankingLiquidationResult> {
+  const privateAccounts = await prisma.bankAccount.findMany({
+    where: {
+      userId,
+      companyId: null,
+      accountType: { in: ["RESERVE", "PRIVATE"] },
+      status: { not: "CLOSED" },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (privateAccounts.length === 0) {
+    return { accountsClosed: 0, totalTransferred: 0, destinationAccountId: null };
+  }
+
+  const totalToMove = privateAccounts.reduce((sum, account) => sum + decimalToNumber(account.balance), 0);
+
+  let destination: { id: string; accountName: string; accountNumber: string } | null = null;
+  if (totalToMove > 0) {
+    destination = await prisma.bankAccount.findFirst({
+      where: {
+        userId,
+        companyId: null,
+        status: "ACTIVE",
+        accountType: { notIn: ["RESERVE", "PRIVATE"] },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, accountName: true, accountNumber: true },
+    });
+
+    if (!destination) {
+      badRequest(
+        "Cannot revoke Alta Private access while private accounts hold funds and no other active personal account exists to receive the balance.",
+      );
+    }
+  }
+
+  let totalTransferred = 0;
+  const closedNote = `Closed ${new Date().toISOString()}: Alta Private access revoked.`;
+
+  await prisma.$transaction(async (tx) => {
+    for (const privateAccount of privateAccounts) {
+      const balance = decimalToNumber(privateAccount.balance);
+
+      if (balance > 0 && destination) {
+        const referenceBase = generateReferenceCode("PVR");
+        const outReference = `${referenceBase}-OUT`;
+        const inReference = `${referenceBase}-IN`;
+
+        await tx.bankAccount.update({
+          where: { id: privateAccount.id },
+          data: { balance: { decrement: balance } },
+        });
+        await tx.bankAccount.update({
+          where: { id: destination.id },
+          data: { balance: { increment: balance } },
+        });
+
+        await tx.bankTransaction.create({
+          data: {
+            bankAccountId: privateAccount.id,
+            type: "WITHDRAWAL",
+            amount: balance,
+            status: "APPROVED",
+            description: `Alta Private access ended — transfer to ${destination.accountName} · ${destination.accountNumber}`,
+            referenceCode: outReference,
+            proofImageUrl: null,
+          },
+        });
+
+        await tx.bankTransaction.create({
+          data: {
+            bankAccountId: destination.id,
+            type: "DEPOSIT",
+            amount: balance,
+            status: "APPROVED",
+            description: `Alta Private access ended — transfer from ${privateAccount.accountName} · ${privateAccount.accountNumber}`,
+            referenceCode: inReference,
+            proofImageUrl: null,
+          },
+        });
+
+        totalTransferred += balance;
+      }
+
+      await tx.bankAccount.update({
+        where: { id: privateAccount.id },
+        data: {
+          status: "CLOSED",
+          balance: 0,
+          openingNotes: appendAccountNote(privateAccount.openingNotes, closedNote),
+        },
+      });
+    }
+  });
+
+  return {
+    accountsClosed: privateAccounts.length,
+    totalTransferred,
+    destinationAccountId: destination?.id ?? null,
+  };
+}
+
+export async function activatePendingPrivateBankAccounts(): Promise<{ updated: number }> {
+  const result = await prisma.bankAccount.updateMany({
+    where: {
+      status: "PENDING",
+      accountType: { in: ["RESERVE", "PRIVATE"] },
+      user: {
+        tags: {
+          some: { tag: "PRIVATE_CLIENT" },
+        },
+      },
+    },
+    data: { status: "ACTIVE" },
+  });
+  return { updated: result.count };
 }
 
 export async function approveBankAccount(adminId: string, accountId: string, reviewNote?: string) {
@@ -824,7 +1080,20 @@ export async function approveBankAccount(adminId: string, accountId: string, rev
     },
   });
 
-  void adminId;
+  const { ensureInterestScheduleOnActivation } = await import("@/lib/bank/account-interest-service");
+  await ensureInterestScheduleOnActivation(accountId);
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "ACCOUNT_STATUS_CHANGED",
+    entityType: "BANK_ACCOUNT",
+    entityId: accountId,
+    targetUserId: account.userId,
+    targetAccountId: accountId,
+    description: `Approved account opening ${account.accountNumber}`,
+    metadata: { status: "ACTIVE", reviewNote: reviewNote ?? null },
+  });
 }
 
 export async function freezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
@@ -842,7 +1111,17 @@ export async function freezeBankAccount(adminId: string, accountId: string, revi
     },
   });
 
-  void adminId;
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "ACCOUNT_STATUS_CHANGED",
+    entityType: "BANK_ACCOUNT",
+    entityId: accountId,
+    targetUserId: account.userId,
+    targetAccountId: accountId,
+    description: `Froze account ${account.accountNumber}`,
+    metadata: { status: "FROZEN", reviewNote: reviewNote ?? null },
+  });
 }
 
 export async function unfreezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
@@ -860,5 +1139,174 @@ export async function unfreezeBankAccount(adminId: string, accountId: string, re
     },
   });
 
-  void adminId;
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "ACCOUNT_STATUS_CHANGED",
+    entityType: "BANK_ACCOUNT",
+    entityId: accountId,
+    targetUserId: account.userId,
+    targetAccountId: accountId,
+    description: `Unfroze account ${account.accountNumber}`,
+    metadata: { status: "ACTIVE", reviewNote: reviewNote ?? null },
+  });
+}
+
+export async function closeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
+  const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
+  if (!account) notFound();
+  if (account.status === "CLOSED") badRequest("Account is already closed");
+  if (decimalToNumber(account.balance) !== 0) {
+    badRequest("Account balance must be zero before closing.");
+  }
+
+  await prisma.bankAccount.update({
+    where: { id: accountId },
+    data: {
+      status: "CLOSED",
+      openingNotes: reviewNote?.trim()
+        ? [account.openingNotes, `Closed: ${reviewNote.trim()}`].filter(Boolean).join("\n")
+        : account.openingNotes,
+    },
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "ACCOUNT_STATUS_CHANGED",
+    entityType: "BANK_ACCOUNT",
+    entityId: accountId,
+    targetUserId: account.userId,
+    targetAccountId: accountId,
+    description: `Closed account ${account.accountNumber}`,
+    metadata: { status: "CLOSED", reviewNote: reviewNote ?? null },
+  });
+}
+
+export async function getInternalBankAccountDetail(accountId: string): Promise<InternalBankAccountDetail> {
+  await requireOperator();
+  const account = await prisma.bankAccount.findUnique({
+    where: { id: accountId },
+    include: { user: true, company: true },
+  });
+  if (!account) notFound();
+
+  const [pendingTransactions, recentTransactions] = await Promise.all([
+    prisma.bankTransaction.findMany({
+      where: { bankAccountId: accountId, status: "PENDING" },
+      include: { bankAccount: { include: { user: true, company: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.bankTransaction.findMany({
+      where: { bankAccountId: accountId },
+      include: { bankAccount: { include: { user: true, company: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+    }),
+  ]);
+
+  const row = mapInternalBankAccountRow(account);
+  return {
+    id: account.id,
+    accountNumber: account.accountNumber,
+    accountName: account.accountName,
+    holder: row.holder,
+    ownerUserId: account.userId,
+    product: row.product,
+    balance: decimalToNumber(account.balance),
+    currency: account.currency,
+    status: row.status,
+    routingNumber: getRoutingNumber(),
+    companyId: account.companyId,
+    companyName: account.company?.name ?? null,
+    openingNotes: account.openingNotes,
+    createdAt: account.createdAt.toISOString(),
+    updatedAt: account.updatedAt.toISOString(),
+    pendingTransactions: pendingTransactions.map(mapInternalBankTransactionRow),
+    recentTransactions: recentTransactions.map(mapInternalBankTransactionRow),
+  };
+}
+
+export async function adminAdjustBankAccount(
+  actorUserId: string,
+  input: AdminAccountAdjustmentInput,
+): Promise<{ transactionId: string; referenceCode: string }> {
+  const actorRecord = await prisma.user.findUnique({
+    where: { id: actorUserId },
+    include: userWithMembershipsInclude,
+  });
+  if (!actorRecord) forbid();
+  const actor = mapDbUserToAltaUser(actorRecord);
+  await requireOperator();
+
+  if (input.amount <= 0) badRequest("Amount must be greater than zero.");
+  const reason = input.reason.trim();
+  if (!reason) badRequest("Reason is required.");
+
+  const account = await prisma.bankAccount.findUnique({ where: { id: input.accountId } });
+  if (!account) notFound();
+  if (account.status !== "ACTIVE") badRequest("Account must be active for adjustments.");
+
+  const balance = decimalToNumber(account.balance);
+  if (input.direction === "debit" && input.amount > balance) {
+    if (!input.allowOverdraft || !isAdmin(actor)) {
+      badRequest("Insufficient balance for debit. Admin override required.");
+    }
+  }
+
+  const referenceCode =
+    input.referenceCode?.trim() ||
+    generateReferenceCode(input.direction === "credit" ? "DEP" : "WDR");
+
+  const transaction = await prisma.$transaction(async (tx) => {
+    const created = await tx.bankTransaction.create({
+      data: {
+        bankAccountId: account.id,
+        type: "ADJUSTMENT",
+        amount: input.amount,
+        status: "APPROVED",
+        description:
+          input.direction === "credit"
+            ? `Admin credit — ${reason}`
+            : `Admin debit — ${reason}`,
+        referenceCode,
+        reviewedById: actorUserId,
+        reviewedAt: new Date(),
+        reviewNote: reason,
+      },
+    });
+
+    await tx.bankAccount.update({
+      where: { id: account.id },
+      data: {
+        balance:
+          input.direction === "credit"
+            ? { increment: input.amount }
+            : { decrement: input.amount },
+      },
+    });
+
+    return created;
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "ACCOUNT_ADJUSTMENT_CREATED",
+    entityType: "BANK_TRANSACTION",
+    entityId: transaction.id,
+    targetUserId: account.userId,
+    targetAccountId: account.id,
+    targetTransactionId: transaction.id,
+    description: `${input.direction === "credit" ? "Credited" : "Debited"} ${account.accountNumber} by ƒ${input.amount}`,
+    metadata: {
+      direction: input.direction,
+      amount: input.amount,
+      reason,
+      referenceCode,
+      allowOverdraft: input.allowOverdraft ?? false,
+    },
+  });
+
+  return { transactionId: transaction.id, referenceCode };
 }

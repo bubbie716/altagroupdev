@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { RouteButton } from "@/components/bank/route-button";
 import {
@@ -8,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useHiddenClosedAccounts } from "@/hooks/use-hidden-closed-accounts";
 import { findCompanyMembership } from "@/lib/auth/permissions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { resolveAccountSwitchSuffix } from "@/lib/bank/account-switch-path";
@@ -27,11 +29,23 @@ export function AccountPageToolbar({
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
+  const { hiddenIds } = useHiddenClosedAccounts();
+
+  const switcherAccounts = useMemo(
+    () =>
+      accounts.filter(
+        (account) =>
+          account.id === currentAccountId ||
+          account.status !== "closed" ||
+          !hiddenIds.has(account.id),
+      ),
+    [accounts, currentAccountId, hiddenIds],
+  );
 
   function handleAccountChange(nextAccountId: string) {
     if (nextAccountId === currentAccountId) return;
 
-    const nextAccount = accounts.find((account) => account.id === nextAccountId);
+    const nextAccount = switcherAccounts.find((account) => account.id === nextAccountId);
     if (!nextAccount) return;
 
     const companyRole =
@@ -70,7 +84,7 @@ export function AccountPageToolbar({
             <SelectValue placeholder="Select account" />
           </SelectTrigger>
           <SelectContent>
-            {accounts.map((account) => (
+            {switcherAccounts.map((account) => (
               <SelectItem key={account.id} value={account.id} className="font-mono text-[12px]">
                 {accountOptionLabel(account)}
               </SelectItem>

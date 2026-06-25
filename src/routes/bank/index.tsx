@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
-import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
+import { AccountOverviewGrid } from "@/components/bank/account-overview-grid";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
+import { buildBankBalanceStripItems } from "@/lib/bank/dashboard-balances";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
@@ -61,6 +62,7 @@ function BankDashboardLiveContent({
   return (
     <>
       <BankStatStrip
+        density="emphasized"
         items={[
           { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
           { label: "Private status", value: dashboard.privateStatus },
@@ -74,13 +76,8 @@ function BankDashboardLiveContent({
       />
       <BankStatStrip
         className="mt-3"
-        density="compact"
-        items={[
-          { label: "Checking", value: florin(dashboard.checkingBalance) },
-          { label: "Savings", value: florin(dashboard.savingsBalance) },
-          { label: "Reserve", value: florin(dashboard.reserveBalance) },
-          { label: "Business", value: florin(dashboard.businessBalance) },
-        ]}
+        density="emphasized"
+        items={buildBankBalanceStripItems(dashboard, florin)}
       />
 
       <Section
@@ -92,23 +89,7 @@ function BankDashboardLiveContent({
           </span>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <OpenAccountCard />
-          {accounts.map((a: any) => (
-            <AccountCard
-              key={a.id}
-              footer="view"
-              account={{
-                id: a.id,
-                name: a.name,
-                product: a.product,
-                accountNumber: a.accountNumber,
-                balance: a.balance,
-                status: a.statusLabel,
-              }}
-            />
-          ))}
-        </div>
+        <AccountOverviewGrid accounts={accounts} />
       </Section>
 
       <Section title="Recent Activity" className="mt-10">

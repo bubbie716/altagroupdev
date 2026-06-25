@@ -26,6 +26,16 @@ const statementInclude = {
   },
 } satisfies Prisma.BankStatementInclude;
 
+function sortStatementsNewestGeneratedFirst(
+  statements: BankStatementSummary[],
+): BankStatementSummary[] {
+  return [...statements].sort((a, b) => {
+    const aMs = new Date(a.generatedAt ?? a.createdAt).getTime();
+    const bMs = new Date(b.generatedAt ?? b.createdAt).getTime();
+    return bMs - aMs;
+  });
+}
+
 const periodTransactionInclude = {
   bankAccount: {
     include: {
@@ -129,7 +139,9 @@ async function calculateOpeningBalance(accountId: string, periodStart: Date): Pr
 
   return prior.reduce((balance, tx) => {
     const amount = decimalToNumber(tx.amount);
-    if (tx.type === "DEPOSIT" || tx.type === "ADJUSTMENT") return balance + amount;
+    if (tx.type === "DEPOSIT" || tx.type === "ADJUSTMENT" || tx.type === "INTEREST_CREDIT") {
+      return balance + amount;
+    }
     if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
       return balance - amount;
     }
@@ -139,7 +151,7 @@ async function calculateOpeningBalance(accountId: string, periodStart: Date): Pr
 
 function summarizePeriodTransactions(
   transactions: {
-    type: "DEPOSIT" | "WITHDRAWAL" | "ADJUSTMENT" | "LOAN_PAYMENT" | "INTEREST_CHARGE";
+    type: "DEPOSIT" | "WITHDRAWAL" | "ADJUSTMENT" | "LOAN_PAYMENT" | "INTEREST_CHARGE" | "INTEREST_CREDIT";
     amount: { toString(): string };
     referenceCode: string;
   }[],
@@ -151,9 +163,11 @@ function summarizePeriodTransactions(
 
   for (const tx of transactions) {
     const amount = decimalToNumber(tx.amount);
-    if (tx.type === "DEPOSIT") {
+    if (tx.type === "DEPOSIT" || tx.type === "INTEREST_CREDIT") {
       totalDeposits += amount;
-      if (isTransferReference(tx.referenceCode, "DEPOSIT")) totalTransfersIn += amount;
+      if (tx.type === "DEPOSIT" && isTransferReference(tx.referenceCode, "DEPOSIT")) {
+        totalTransfersIn += amount;
+      }
     } else if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
       totalWithdrawals += amount;
       if (tx.type === "WITHDRAWAL" && isTransferReference(tx.referenceCode, "WITHDRAWAL")) {
@@ -255,9 +269,9 @@ export async function listPersonalStatements(userId: string): Promise<BankStatem
       },
     },
     include: statementInclude,
-    orderBy: { periodEnd: "desc" },
+    orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
   });
-  return rows.map(mapBankStatementSummary);
+  return sortStatementsNewestGeneratedFirst(rows.map(mapBankStatementSummary));
 }
 
 /** Personal and business operating statements the user may view in Statement Center. */
@@ -288,9 +302,9 @@ export async function listStatementCenterStatements(userId: string): Promise<Ban
       },
     },
     include: statementInclude,
-    orderBy: { periodEnd: "desc" },
+    orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
   });
-  return rows.map(mapBankStatementSummary);
+  return sortStatementsNewestGeneratedFirst(rows.map(mapBankStatementSummary));
 }
 
 export async function listAccountStatements(
@@ -302,9 +316,9 @@ export async function listAccountStatements(
   const rows = await prisma.bankStatement.findMany({
     where: { bankAccountId: accountId, status: { not: "VOID" } },
     include: statementInclude,
-    orderBy: { periodEnd: "desc" },
+    orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
   });
-  return rows.map(mapBankStatementSummary);
+  return sortStatementsNewestGeneratedFirst(rows.map(mapBankStatementSummary));
 }
 
 export async function listBusinessStatements(
@@ -319,9 +333,9 @@ export async function listBusinessStatements(
       status: { not: "VOID" },
     },
     include: statementInclude,
-    orderBy: { periodEnd: "desc" },
+    orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
   });
-  return rows.map(mapBankStatementSummary);
+  return sortStatementsNewestGeneratedFirst(rows.map(mapBankStatementSummary));
 }
 
 export async function getStatementDetail(
@@ -376,14 +390,16 @@ export async function getInternalStatementOps(): Promise<InternalStatementOpsSum
   const [recentStatements, voidedCount] = await Promise.all([
     prisma.bankStatement.findMany({
       include: statementInclude,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
     }),
     prisma.bankStatement.count({ where: { status: "VOID" } }),
   ]);
 
   return {
-    recentStatements: recentStatements.map(mapBankStatementSummary),
+    recentStatements: sortStatementsNewestGeneratedFirst(
+      recentStatements.map(mapBankStatementSummary),
+    ),
     voidedCount,
     errorPlaceholder: "No statement generation errors logged yet.",
   };

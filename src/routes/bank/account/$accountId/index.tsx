@@ -3,6 +3,7 @@ import { Section, Card } from "@/components/page-shell";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { BankAccountTransactions } from "@/components/bank/bank-account-transactions";
 import { AccountQuickActions } from "@/components/bank/account-quick-actions";
+import { ClosedAccountBanner } from "@/components/bank/closed-account-banner";
 import { RouteButton } from "@/components/bank/route-button";
 import { florin } from "@/lib/bank/api";
 import type { BankAccountStatusCode } from "@/lib/bank/backend-types";
@@ -42,9 +43,11 @@ function ProfileRow({
 
 function AccountOverviewPage() {
   const { account, businessContext, isBusinessOperating } = AccountRoute.useLoaderData();
+  const isClosed = account.status === "closed";
 
   return (
     <>
+      {isClosed ? <ClosedAccountBanner accountId={account.id} /> : null}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <BankStatCard label="Current Balance" value={florin(account.balance)} accent />
         <BankStatCard label="Deposits This Month" value={florin(account.depositsThisMonth)} />
@@ -90,11 +93,51 @@ function AccountOverviewPage() {
               value={account.statusLabel}
               valueClassName={accountStatusTone(account.status)}
             />
+            {account.interestInfo.applicable ? (
+              <>
+                <ProfileRow label="Interest rate" value={account.interestInfo.rateLabel ?? "—"} />
+                <ProfileRow label="Interest status" value={account.interestInfo.statusLabel ?? "—"} />
+                <ProfileRow
+                  label="Last interest credited"
+                  value={
+                    account.interestInfo.lastInterestCreditedAt
+                      ? new Date(account.interestInfo.lastInterestCreditedAt).toLocaleDateString()
+                      : "—"
+                  }
+                />
+                <ProfileRow
+                  label="Next interest date"
+                  value={
+                    account.interestInfo.nextInterestAccrualAt
+                      ? new Date(account.interestInfo.nextInterestAccrualAt).toLocaleDateString()
+                      : "—"
+                  }
+                />
+                <ProfileRow
+                  label="Est. next interest credit"
+                  value={
+                    account.interestInfo.estimatedNextInterest != null
+                      ? florin(account.interestInfo.estimatedNextInterest)
+                      : "—"
+                  }
+                />
+              </>
+            ) : (
+              <ProfileRow label="Interest" value="Not applicable" />
+            )}
           </Card>
         </Section>
 
         <Section title="Quick actions" className="flex h-full min-h-0 flex-col">
-          <AccountQuickActions accountId={account.id} className="min-h-0 flex-1" />
+          {isClosed ? (
+            <Card className="flex min-h-0 flex-1 flex-col !p-6">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                Transfers, deposits, and withdrawals are not available on closed accounts.
+              </p>
+            </Card>
+          ) : (
+            <AccountQuickActions accountId={account.id} className="min-h-0 flex-1" />
+          )}
         </Section>
       </div>
 

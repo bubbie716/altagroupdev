@@ -21,10 +21,11 @@ export const bankDashboard = {
   totalRelationshipValue: 12_127_276.21,
   checkingBalance: 184_220.15,
   savingsBalance: 1_240_500.0,
-  reserveBalance: 2_890_000.0,
+  privateBalance: 2_890_000.0,
+  moneyMarketBalance: 4_812_440.22,
   businessBalance: 2_390_115.84,
   creditAvailable: 3_500_000.0,
-  privateStatus: "Alta Private · Tier I",
+  privateStatus: "Enrolled",
   balanceTrend: makeSeries(90, 11_800_000, 120_000, 4_200),
 };
 

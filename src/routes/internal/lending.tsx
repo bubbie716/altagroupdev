@@ -30,7 +30,7 @@ function InternalLending() {
   return (
     <InternalPageShell
       title="Lending Review"
-      description="Manual credit facilities — applications, servicing, and interest accrual."
+      description="Manual credit facilities — applications, servicing, and monthly interest guarantees."
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InternalStatCard label="Open applications" value={String(pending)} alert={pending > 0} />
@@ -42,7 +42,7 @@ function InternalLending() {
       <Section title="Loan servicing" className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-[13px] text-muted-foreground">
-            Monthly interest accrual and automatic loan payments (equal principal installments on due dates).
+            Monthly interest guarantees vest on disbursement anniversaries. Automatic loan payments run on principal installment due dates.
           </p>
           <div className="flex flex-wrap gap-2">
             <AccrueDueInterestButton
@@ -120,7 +120,7 @@ function InternalLending() {
 function AccrueDueInterestButton({ onDone }: { onDone: () => Promise<void> }) {
   return (
     <BankReviewButton
-      label="Accrue due interest"
+      label="Guarantee due interest"
       variant="primary"
       onAction={async () => {
         await accrueDueLoanInterestRecord();

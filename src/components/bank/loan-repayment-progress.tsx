@@ -1,33 +1,35 @@
 import { florin } from "@/lib/bank/api";
-import type { LoanRepaymentProgress } from "@/lib/bank/lending-progress";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { cn } from "@/lib/utils";
 
 export function LoanRepaymentProgressBar({
-  projectedOutstanding,
-  amountRepaid,
-  percentRepaid,
-  totalRepaymentObligation,
+  principalAmount,
+  principalRepaid,
+  principalPercentRepaid,
+  currentPayoffAmount,
+  guaranteedInterestOwed = 0,
   statusLabel,
   compact,
-}: Pick<
-  LoanRepaymentProgress,
-  "amountRepaid" | "percentRepaid" | "totalRepaymentObligation"
-> & {
-  projectedOutstanding: number;
+}: {
+  principalAmount: number;
+  principalRepaid: number;
+  principalPercentRepaid: number;
+  currentPayoffAmount: number;
+  guaranteedInterestOwed?: number;
   statusLabel: string;
   compact?: boolean;
 }) {
-  const percentDisplay = percentRepaid.toFixed(percentRepaid % 1 === 0 ? 0 : 1);
-  const repaymentTarget = totalRepaymentObligation;
+  const percentDisplay = principalPercentRepaid.toFixed(
+    principalPercentRepaid % 1 === 0 ? 0 : 1,
+  );
 
   return (
     <div className={cn("space-y-3", compact && "space-y-2")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className={cn("text-muted-foreground", compact ? "text-[12px]" : "text-[13px]")}>
           <span className="type-finance text-foreground">
-            {florin(amountRepaid)} of {florin(repaymentTarget)} repaid
+            Principal repaid {florin(principalRepaid)} of {florin(principalAmount)}
           </span>
         </p>
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">
@@ -36,17 +38,46 @@ export function LoanRepaymentProgressBar({
       </div>
 
       <Progress
-        value={percentRepaid}
+        value={principalPercentRepaid}
         className="h-1.5 rounded-full bg-foreground/[0.06] ring-1 ring-inset ring-border [&>div]:bg-gold [&>div]:transition-all [&>div]:duration-700"
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-foreground">
-        <span>
-          Projected outstanding:{" "}
-          <span className="type-finance text-foreground">{florin(projectedOutstanding)}</span>
-        </span>
-        {!compact && <StatusBadge status={statusLabel} />}
+      {guaranteedInterestOwed > 0 && (
+        <p className={cn("text-muted-foreground", compact ? "text-[12px]" : "text-[13px]")}>
+          Guaranteed interest owed:{" "}
+          <span className="type-finance font-medium text-foreground">
+            {florin(guaranteedInterestOwed)}
+          </span>
+        </p>
+      )}
+
+      <div
+        className={cn(
+          "rounded-lg border border-gold/25 bg-gold/5 px-4 py-3",
+          compact && "px-3 py-2.5",
+        )}
+      >
+        <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          Current payoff amount
+        </div>
+        <div
+          className={cn(
+            "type-finance mt-1 font-semibold text-gold",
+            compact ? "text-lg" : "text-xl",
+          )}
+        >
+          {florin(currentPayoffAmount)}
+        </div>
+        <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+          Includes outstanding principal plus guaranteed unpaid interest.
+        </p>
       </div>
+
+      {!compact && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-foreground">
+          <StatusBadge status={statusLabel} />
+        </div>
+      )}
     </div>
   );
 }

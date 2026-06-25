@@ -4,6 +4,7 @@ import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
+import { buildBankBalanceStripItems } from "@/lib/bank/dashboard-balances";
 
 export function BankDashboardMockContent() {
   const d = getBankDashboard();
@@ -13,22 +14,24 @@ export function BankDashboardMockContent() {
   return (
     <>
       <BankStatStrip
+        density="emphasized"
         items={[
           { label: "Total relationship", value: florin(d.totalRelationshipValue) },
-          { label: "Private status", value: d.privateStatus, sub: "Alta Private member" },
+          { label: "Private status", value: d.privateStatus },
           { label: "MTD change", value: "+2.14%", sub: "Relationship assets", accent: true },
           { label: "Accounts", value: String(bankAccounts.length) },
         ]}
       />
       <BankStatStrip
         className="mt-3"
-        density="compact"
-        items={[
-          { label: "Checking", value: florin(d.checkingBalance) },
-          { label: "Savings", value: florin(d.savingsBalance) },
-          { label: "Reserve", value: florin(d.reserveBalance) },
-          { label: "Business", value: florin(d.businessBalance) },
-        ]}
+        density="emphasized"
+        items={buildBankBalanceStripItems(
+          {
+            ...d,
+            enrolledInPrivate: d.privateStatus === "Enrolled",
+          },
+          florin,
+        )}
       />
 
       <Section title="Balance Trend" className="mt-10">

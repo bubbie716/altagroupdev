@@ -55,7 +55,7 @@ Account opening (`/bank/accounts/open`) uses backend account types, not every ca
 | Alta Access | `alta_access` |
 | Alta Checking | `checking` |
 | Alta Savings | `savings` |
-| Alta Money Market | Not yet — catalog only |
+| Alta Money Market | `money_market` |
 | Business Operating Account | `business_operating` |
 | Reserve Account by Alta Private | `reserve` |
 | Summit Money Market by Alta Private | `private` |

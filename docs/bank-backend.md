@@ -30,7 +30,7 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 | `id` | CUID primary key |
 | `userId` | Owning Alta user |
 | `companyId` | Optional linked company |
-| `accountType` | `ALTA_ACCESS`, `CHECKING`, `SAVINGS`, `RESERVE`, `BUSINESS_OPERATING`, `PRIVATE` |
+| `accountType` | `ALTA_ACCESS`, `CHECKING`, `SAVINGS`, `MONEY_MARKET`, `RESERVE`, `BUSINESS_OPERATING`, `PRIVATE` |
 | `accountName` | Display name |
 | `accountNumber` | Unique Alta Bank number (`AB-[PRODUCT]-[UNIQUE]`, see `docs/account-numbering.md`) |
 | `status` | `PENDING`, `ACTIVE`, `FROZEN`, `CLOSED` |
@@ -40,9 +40,9 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 
 **Opening rules**
 
-- `ALTA_ACCESS`, `CHECKING`, `SAVINGS` → `ACTIVE` immediately
+- `ALTA_ACCESS`, `CHECKING`, `SAVINGS`, `MONEY_MARKET` → `ACTIVE` immediately
 - `BUSINESS_OPERATING` → `ACTIVE` immediately when linked company is `VERIFIED`
-- `RESERVE`, `PRIVATE` → require `private_client` tag; `PENDING` until admin approval
+- `RESERVE`, `PRIVATE` → require `private_client` tag; **ACTIVE** immediately when enrolled (no manual review). Revoking `private_client` transfers remaining private balances to the user's oldest active personal account and closes reserve/private accounts.
 
 ### `BankTransaction`
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { LoanRepaymentProgressBar } from "@/components/bank/loan-repayment-progress";
+import { LoanInterestGuaranteeScheduleTable } from "@/components/bank/loan-interest-guarantee-schedule-table";
 import { florin } from "@/lib/bank/api";
 import {
   accrueLoanInterestRecord,
@@ -9,9 +10,10 @@ import {
   freezeLoanRecord,
   markLoanPaidOffRecord,
   unfreezeLoanRecord,
+  waivePendingLoanInterestRecord,
 } from "@/lib/bank/lending.functions";
 import type { InternalActiveLoanRow } from "@/lib/bank/lending-types";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -51,42 +53,48 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
 
       <div className="mt-5">
         <LoanRepaymentProgressBar
-          projectedOutstanding={loan.projectedOutstanding}
-          amountRepaid={loan.amountRepaid}
-          percentRepaid={loan.percentRepaid}
-          totalRepaymentObligation={loan.totalRepaymentObligation}
+          principalAmount={loan.principalAmount}
+          principalRepaid={loan.principalRepaid}
+          principalPercentRepaid={loan.principalPercentRepaid}
+          currentPayoffAmount={loan.currentPayoffAmount}
+          guaranteedInterestOwed={loan.guaranteedInterestOwed}
           statusLabel={loan.statusLabel}
           compact
         />
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Principal" value={florin(loan.principalAmount)} />
-        <Metric label="Projected outstanding" value={florin(loan.projectedOutstanding)} />
+        <Metric label="Outstanding principal" value={florin(loan.principalOutstanding)} />
+        <Metric label="Guaranteed interest owed" value={florin(loan.guaranteedInterestOwed)} />
+        <Metric label="Pending future interest" value={florin(loan.remainingPotentialInterest)} />
+        <Metric label="Current payoff" value={florin(loan.currentPayoffAmount)} />
+        <Metric label="Projected full-term cost" value={florin(loan.projectedFullTermCost)} />
         <Metric label="Rate" value={loan.interestRateLabel} />
+        <Metric
+          label="Next interest guarantee"
+          value={
+            loan.nextInterestGuaranteeDate
+              ? formatDueDate(loan.nextInterestGuaranteeDate)
+              : loan.nextInterestAccrualAt
+                ? formatActivityDateTime(loan.nextInterestAccrualAt)
+                : "—"
+          }
+        />
         <Metric label="Risk" value={loan.riskStatusLabel} placeholder />
         <Metric label="Payment status" value={loan.paymentStatusLabel} placeholder />
         <Metric
           label="Last payment"
           value={loan.lastPaymentAt ? formatActivityDateTime(loan.lastPaymentAt) : "—"}
         />
-        <Metric
-          label="Next interest"
-          value={
-            loan.nextInterestAccrualAt
-              ? formatActivityDateTime(loan.nextInterestAccrualAt)
-              : "Coming Soon"
-          }
-        />
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-3 border-t border-border/50 pt-4">
+        <div className="mt-4 space-y-4 border-t border-border/50 pt-4">
           <div className="flex flex-wrap gap-1">
             {loan.status === "active" && (
               <>
                 <BankReviewButton
-                  label="Accrue interest"
+                  label="Guarantee due interest"
                   variant="primary"
                   onAction={async () => {
                     await accrueLoanInterestRecord({ data: loan.id });
@@ -113,7 +121,18 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
                 }}
               />
             )}
-            {loan.outstandingBalance <= 0 && loan.status !== "paid_off" && (
+            {(loan.status === "paid_off" || loan.status === "cancelled") &&
+              loan.remainingPotentialInterest > 0 && (
+                <BankReviewButton
+                  label="Waive pending interest"
+                  variant="default"
+                  onAction={async () => {
+                    await waivePendingLoanInterestRecord({ data: loan.id });
+                    await invalidate();
+                  }}
+                />
+              )}
+            {loan.currentPayoffAmount <= 0 && loan.status !== "paid_off" && (
               <BankReviewButton
                 label="Mark paid off"
                 variant="primary"
@@ -124,6 +143,12 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
               />
             )}
           </div>
+
+          <div>
+            <p className="type-meta-sm mb-2">Interest guarantee schedule</p>
+            <LoanInterestGuaranteeScheduleTable schedule={loan.interestGuaranteeSchedule} />
+          </div>
+
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <label className={fieldLabel}>Adjustment ƒ (+/-)</label>

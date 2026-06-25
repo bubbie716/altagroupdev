@@ -180,11 +180,16 @@ function mapListRow(user: {
     id: user.id,
     discordUsername: user.discordUsername,
     discordId: user.discordId,
+    email: user.email,
     minecraftUsername: user.minecraftUsername,
     accountStatus: fromDbAccountStatus(user.accountStatus),
     tags: user.tags.map((t) => fromDbUserTag(t.tag)),
     companyCount: user._count.companyMemberships,
     bankAccountCount: user._count.bankAccounts,
+    totalBankBalance:
+      "bankAccounts" in user && Array.isArray(user.bankAccounts)
+        ? user.bankAccounts.reduce((sum, a) => sum + decimalToNumber(a.balance), 0)
+        : 0,
     lastLoginAt: user.lastLoginAt.toISOString(),
     createdAt: user.createdAt.toISOString(),
   };
@@ -234,6 +239,7 @@ export async function listInternalUsers(
     where: buildListWhere(filters),
     include: {
       tags: true,
+      bankAccounts: { select: { balance: true } },
       _count: {
         select: {
           companyMemberships: true,
@@ -284,6 +290,20 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
     },
   });
 
+  const [loanApplications, activeLoans, recentAuditLogs] = await Promise.all([
+    prisma.loanApplication.findMany({
+      where: { applicantUserId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.loan.findMany({
+      where: { borrowerUserId: user.id, status: { in: ["ACTIVE", "FROZEN"] } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    import("@/server/audit.service").then((m) => m.listAuditLogsForTarget("USER", user.id, 15)),
+  ]);
+
   const capabilities: InternalUserManagementCapabilities = {
     tags: buildTagCapabilities(actor, tags),
     ...buildStatusCapabilities(actor),
@@ -292,7 +312,6 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
   return {
     ...mapListRow(user),
     avatarUrl: discordAvatarUrl(user.discordId, user.discordAvatar),
-    email: user.email,
     companyMemberships: user.companyMemberships.map((m) => {
       const role = fromDbCompanyRole(m.role);
       return {
@@ -323,6 +342,23 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
       description: tx.description,
       createdAt: tx.createdAt.toISOString(),
     })),
+    loanApplications: loanApplications.map((app) => ({
+      id: app.id,
+      productLabel: app.productType.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+      statusLabel: app.status.charAt(0) + app.status.slice(1).toLowerCase().replace(/_/g, " "),
+      requestedAmount: decimalToNumber(app.requestedAmount),
+      createdAt: app.createdAt.toISOString(),
+    })),
+    activeLoans: activeLoans.map((loan) => ({
+      id: loan.id,
+      productLabel: loan.productType.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+      statusLabel: loan.status.charAt(0) + loan.status.slice(1).toLowerCase().replace(/_/g, " "),
+      principalAmount: decimalToNumber(loan.principalAmount),
+      principalOutstanding: decimalToNumber(loan.principalOutstanding),
+      currentPayoffAmount: decimalToNumber(loan.outstandingBalance),
+      createdAt: loan.createdAt.toISOString(),
+    })),
+    recentAuditLogs,
     capabilities,
   };
 }
@@ -353,7 +389,16 @@ export async function grantInternalUserTag(
     update: {},
   });
 
-  // TODO: Future AuditLog — TAG_GRANTED (actorUserId, targetUserId, tag)
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "USER_TAG_GRANTED",
+    entityType: "USER",
+    entityId: targetUserId,
+    targetUserId,
+    description: `Granted ${formatUserTag(tag)} tag`,
+    metadata: { tag },
+  });
 
   return getInternalUserDetail(targetUserId);
 }
@@ -379,11 +424,25 @@ export async function revokeInternalUserTag(
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) notFound();
 
+  if (tag === "private_client") {
+    const { liquidatePrivateBankingOnAccessRevoked } = await import("@/server/bank.service");
+    await liquidatePrivateBankingOnAccessRevoked(targetUserId);
+  }
+
   await prisma.userTagAssignment.deleteMany({
     where: { userId: targetUserId, tag: toDbUserTag(tag) },
   });
 
-  // TODO: Future AuditLog — TAG_REVOKED (actorUserId, targetUserId, tag)
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "USER_TAG_REVOKED",
+    entityType: "USER",
+    entityId: targetUserId,
+    targetUserId,
+    description: `Revoked ${formatUserTag(tag)} tag`,
+    metadata: { tag },
+  });
 
   return getInternalUserDetail(targetUserId);
 }
@@ -415,7 +474,16 @@ export async function updateInternalUserAccountStatus(
     data: { accountStatus: toDbAccountStatus(accountStatus) },
   });
 
-  // TODO: Future AuditLog — ACCOUNT_STATUS_CHANGED (actorUserId, targetUserId, accountStatus)
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "USER_STATUS_CHANGED",
+    entityType: "USER",
+    entityId: targetUserId,
+    targetUserId,
+    description: `Changed account status to ${accountStatus}`,
+    metadata: { accountStatus },
+  });
 
   return getInternalUserDetail(targetUserId);
 }

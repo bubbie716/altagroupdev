@@ -21,17 +21,8 @@ export function LoanPaymentScheduleTable({
     );
   }
 
-  const percentLabel =
-    monthlyPrincipalPercent != null
-      ? `${monthlyPrincipalPercent % 1 === 0 ? monthlyPrincipalPercent.toFixed(0) : monthlyPrincipalPercent.toFixed(2)}%`
-      : "—";
-
   return (
     <div className="space-y-3">
-      <p className="text-[13px] text-muted-foreground">
-        {termMonths}-month term · equal {percentLabel} of principal per month plus projected monthly
-        interest on the remaining balance.
-      </p>
       <AdminDataTable
         columns={[
           {
@@ -48,21 +39,21 @@ export function LoanPaymentScheduleTable({
           },
           {
             key: "principal",
-            header: "Principal",
+            header: "Principal due",
             cell: (row: LoanScheduleItemRow) => (
               <span className="type-finance">{florin(row.principalPortion)}</span>
             ),
           },
           {
             key: "interest",
-            header: "Interest",
+            header: "Estimated interest",
             cell: (row: LoanScheduleItemRow) => (
               <span className="type-finance">{florin(row.interestPortion)}</span>
             ),
           },
           {
             key: "amount",
-            header: "Total due",
+            header: "Estimated payment",
             cell: (row: LoanScheduleItemRow) => (
               <span className="type-finance font-medium">{florin(row.scheduledAmount)}</span>
             ),
@@ -76,6 +67,9 @@ export function LoanPaymentScheduleTable({
         rows={schedule}
         rowKey={(row) => row.id}
       />
+      <p className="text-[12px] leading-relaxed text-muted-foreground">
+        Estimated payments assume scheduled repayment. Early repayment reduces future interest.
+      </p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ export function monthlyRateFromPercent(monthlyPercent: number): number {
   return monthlyPercent / 100;
 }
 
+/** Monthly interest on a balance (use principal outstanding for live accrual). */
 export function computeMonthlyInterestCharge(
   outstandingBalance: number,
   ratePercent: number,

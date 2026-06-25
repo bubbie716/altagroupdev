@@ -68,7 +68,7 @@ export function LoanRepaymentDialog({
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-[0.12em]">Make payment</DialogTitle>
           <DialogDescription>
-            {loan.productLabel} · {florin(loan.projectedOutstanding)} projected outstanding
+            {loan.productLabel} · Payoff today {florin(loan.currentPayoffAmount)}
           </DialogDescription>
         </DialogHeader>
 

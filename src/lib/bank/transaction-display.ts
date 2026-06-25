@@ -6,6 +6,7 @@ const TRANSACTION_TYPE_LABELS: Record<BankTransactionTypeCode, string> = {
   adjustment: "Adjustment",
   loan_payment: "Loan payment",
   interest_charge: "Interest charge",
+  interest_credit: "Interest Credit",
 };
 
 export function formatBankTransactionTypeLabel(type: BankTransactionTypeCode): string {

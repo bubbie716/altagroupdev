@@ -66,6 +66,17 @@ async function main() {
     await prisma.userTagAssignment.deleteMany({
       where: { userId: user.id, tag: { in: tags } },
     });
+
+    if (tags.includes(UserTag.PRIVATE_CLIENT)) {
+      const { liquidatePrivateBankingOnAccessRevoked } = await import("../src/server/bank.service");
+      const result = await liquidatePrivateBankingOnAccessRevoked(user.id);
+      if (result.accountsClosed > 0) {
+        console.log(
+          `Liquidated ${result.accountsClosed} private account(s); transferred ${result.totalTransferred} FLR.`,
+        );
+      }
+    }
+
     const remaining = await listUserTags(user.id);
     console.log(
       `Removed ${tags.map((tag) => TAG_LABELS[tag]).join(", ")} from ${user.discordUsername} (${discordId})`,

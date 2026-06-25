@@ -1,5 +1,4 @@
 import { PageShell } from "@/components/page-shell";
-import { InternalPreviewBanner } from "./internal-preview-banner";
 import { InternalSubNav } from "./internal-sub-nav";
 import type { ReactNode } from "react";
 
@@ -19,7 +18,6 @@ export function InternalPageShell({
       description={description}
       hideFooter
     >
-      <InternalPreviewBanner />
       <InternalSubNav />
       {children}
     </PageShell>

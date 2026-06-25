@@ -7,7 +7,23 @@ import {
   isPrivateClient,
 } from "@/lib/auth/permissions";
 import { canUserPayLoan, canUserViewLoan } from "@/lib/bank/loan-permissions";
-import { addMonths, computeMonthlyInterestCharge, type LoanRateType } from "@/lib/bank/loan-interest";
+import {
+  addMonths,
+  type LoanRateType,
+} from "@/lib/bank/loan-interest";
+import {
+  allocateLoanPayment,
+  applyBalanceAdjustment,
+  applyGuaranteedInterestPaymentInTx,
+  calculateCurrentPayoff,
+  createLoanInterestScheduleInTx,
+  guaranteeDueInterestForLoan,
+  guaranteeDueLoanInterest,
+  previewInterest,
+  roundCurrency,
+  syncOutstandingBalance,
+  waivePendingInterestScheduleInTx,
+} from "@/lib/bank/loan-interest-service";
 import { buildRepaymentScheduleWithInterest } from "@/lib/bank/loan-payment-schedule";
 import type {
   AdminAdjustLoanInput,
@@ -164,7 +180,7 @@ async function assertPaySourceAccount(
   }
 }
 
-async function createLedgerEntry(
+export async function createLedgerEntry(
   tx: Prisma.TransactionClient,
   data: {
     loanId: string;
@@ -409,18 +425,24 @@ async function processLoanPayment(
   const amount = input.amount;
   if (amount <= 0) badRequest("Payment amount must be greater than zero");
 
-  const outstanding = decimalToNumber(loanRecord.outstandingBalance);
-  if (amount > outstanding) badRequest("Payment cannot exceed outstanding balance");
+  const principalOutstanding = decimalToNumber(loanRecord.principalOutstanding);
+  const accruedInterest = decimalToNumber(loanRecord.accruedInterest);
+  const payoff = calculateCurrentPayoff({ principalOutstanding, accruedInterest });
+  if (amount > payoff) badRequest("Payment cannot exceed current payoff amount");
 
   await assertPaySourceAccount(actorUserId, input.sourceBankAccountId, loanRecord);
 
   const available = await getAvailableBalance(input.sourceBankAccountId);
   if (available < amount) badRequest("Insufficient available balance in source account");
 
-  const now = new Date();
-  const newBalance = Math.round((outstanding - amount) * 100) / 100;
-  const paidOff = newBalance <= 0;
+  const allocation = allocateLoanPayment(amount, principalOutstanding, accruedInterest);
+  const newPayoff = syncOutstandingBalance({
+    principalOutstanding: allocation.newPrincipalOutstanding,
+    accruedInterest: allocation.newAccruedInterest,
+  });
+  const paidOff = newPayoff <= 0;
   const paymentMemo = options.memo ?? (input.memo?.trim() || null);
+  const now = new Date();
 
   await prisma.$transaction(async (tx) => {
     const referenceCode = generateReferenceCode("LNP");
@@ -458,6 +480,8 @@ async function processLoanPayment(
       data: {
         loanId: loanRecord.id,
         amount,
+        appliedToInterest: allocation.appliedToInterest,
+        appliedToPrincipal: allocation.appliedToPrincipal,
         paymentDate: now,
         sourceBankAccountId: input.sourceBankAccountId,
         bankTransactionId: bankTx.id,
@@ -481,23 +505,35 @@ async function processLoanPayment(
     await tx.loan.update({
       where: { id: loanRecord.id },
       data: {
-        outstandingBalance: newBalance,
+        principalOutstanding: allocation.newPrincipalOutstanding,
+        accruedInterest: allocation.newAccruedInterest,
+        outstandingBalance: newPayoff,
         status: paidOff ? "PAID_OFF" : loanRecord.status,
         ...(paidOff ? { autoPayEnabled: false, autoPaySourceBankAccountId: null } : {}),
       },
     });
 
+    if (allocation.appliedToInterest > 0) {
+      await applyGuaranteedInterestPaymentInTx(
+        tx,
+        loanRecord.id,
+        allocation.appliedToInterest,
+        now,
+      );
+    }
+
     await createLedgerEntry(tx, {
       loanId: loanRecord.id,
       type: "PAYMENT",
       amount: -amount,
-      balanceAfter: newBalance,
+      balanceAfter: newPayoff,
       description: paymentMemo || (options.isAutoPay ? "Automatic loan payment" : "Loan payment"),
       bankTransactionId: bankTx.id,
       createdById: actorUserId,
     });
 
     if (paidOff) {
+      await waivePendingInterestScheduleInTx(tx, loanRecord.id);
       await createLedgerEntry(tx, {
         loanId: loanRecord.id,
         type: "STATUS_CHANGE",
@@ -626,8 +662,11 @@ export async function executeDueLoanAutoPayments(
     }
 
     const scheduledAmount = decimalToNumber(item.scheduledAmount);
-    const outstanding = decimalToNumber(loan.outstandingBalance);
-    const amount = Math.min(scheduledAmount, outstanding);
+    const payoff = calculateCurrentPayoff({
+      principalOutstanding: decimalToNumber(loan.principalOutstanding),
+      accruedInterest: decimalToNumber(loan.accruedInterest),
+    });
+    const amount = Math.min(scheduledAmount, payoff);
     if (amount <= 0) {
       skippedCount += 1;
       continue;
@@ -673,57 +712,13 @@ export async function executeDueLoanAutoPayments(
 export async function accrueInterestForLoan(
   loanId: string,
   createdById?: string,
-  force = false,
+  _force = false,
 ): Promise<{ accrued: boolean; amount: number }> {
-  const loan = await prisma.loan.findUnique({ where: { id: loanId } });
-  if (!loan) notFound();
-
-  if (!["ACTIVE"].includes(loan.status)) {
-    badRequest("Interest cannot accrue on this loan status");
-  }
-
-  const now = new Date();
-  if (!force && loan.nextInterestAccrualAt && loan.nextInterestAccrualAt > now) {
-    return { accrued: false, amount: 0 };
-  }
-
-  const outstanding = decimalToNumber(loan.outstandingBalance);
-  if (outstanding <= 0) {
-    return { accrued: false, amount: 0 };
-  }
-
-  const annualRate = decimalToNumber(loan.interestRate);
-  const rateType: LoanRateType =
-    loan.interestRateType === "ANNUAL_PERCENT" ? "ANNUAL_PERCENT" : "MONTHLY_PERCENT";
-  const interestAmount = computeMonthlyInterestCharge(outstanding, annualRate, rateType);
-  if (interestAmount <= 0) {
-    return { accrued: false, amount: 0 };
-  }
-
-  const newBalance = Math.round((outstanding + interestAmount) * 100) / 100;
-  const nextAccrual = addMonths(loan.nextInterestAccrualAt ?? now, 1);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.loan.update({
-      where: { id: loanId },
-      data: {
-        outstandingBalance: newBalance,
-        lastInterestAccruedAt: now,
-        nextInterestAccrualAt: nextAccrual,
-      },
-    });
-
-    await createLedgerEntry(tx, {
-      loanId,
-      type: "INTEREST_CHARGE",
-      amount: interestAmount,
-      balanceAfter: newBalance,
-      description: `Monthly interest · ${rateType === "MONTHLY_PERCENT" ? `${annualRate.toFixed(2)}% monthly` : `${annualRate.toFixed(2)}% APR`}`,
-      createdById: createdById ?? undefined,
-    });
-  });
-
-  return { accrued: true, amount: interestAmount };
+  const result = await guaranteeDueInterestForLoan(loanId, createdById);
+  return {
+    accrued: result.guaranteedCount > 0,
+    amount: result.totalInterestGuaranteed,
+  };
 }
 
 function resolveLegacyMonthlyRate(
@@ -752,10 +747,10 @@ export async function accrueInterestCatchUpForLoan(
   for (let i = 0; i < MAX_CATCH_UP_MONTHS; i++) {
     const loan = await prisma.loan.findUnique({
       where: { id: loanId },
-      select: { status: true, nextInterestAccrualAt: true, outstandingBalance: true },
+      select: { status: true, nextInterestAccrualAt: true, principalOutstanding: true },
     });
     if (!loan || loan.status !== "ACTIVE") break;
-    if (decimalToNumber(loan.outstandingBalance) <= 0) break;
+    if (decimalToNumber(loan.principalOutstanding) <= 0) break;
     if (loan.nextInterestAccrualAt && loan.nextInterestAccrualAt > now) break;
 
     const result = await accrueInterestForLoan(loanId, createdById, true);
@@ -876,27 +871,12 @@ export async function accrueInterestForDueLoans(createdById?: string): Promise<{
   accrued: number;
   totalInterest: number;
 }> {
-  const now = new Date();
-  const dueLoans = await prisma.loan.findMany({
-    where: {
-      status: "ACTIVE",
-      outstandingBalance: { gt: 0 },
-      OR: [{ nextInterestAccrualAt: null }, { nextInterestAccrualAt: { lte: now } }],
-    },
-    select: { id: true },
-  });
-
-  let accrued = 0;
-  let totalInterest = 0;
-  for (const { id } of dueLoans) {
-    const catchUp = await accrueInterestCatchUpForLoan(id, createdById);
-    if (catchUp.periods > 0) {
-      accrued += catchUp.periods;
-      totalInterest += catchUp.totalInterest;
-    }
-  }
-
-  return { processed: dueLoans.length, accrued, totalInterest };
+  const result = await guaranteeDueLoanInterest(createdById);
+  return {
+    processed: result.loansProcessed,
+    accrued: result.guaranteedCount,
+    totalInterest: result.totalInterestGuaranteed,
+  };
 }
 
 async function getReviewableApplication(applicationId: string) {
@@ -959,6 +939,8 @@ export async function approveLoanApplication(
         principalAmount,
         termMonths: application.termMonths,
         outstandingBalance: principalAmount,
+        principalOutstanding: principalAmount,
+        accruedInterest: 0,
         interestRate,
         interestRateType: "MONTHLY_PERCENT",
         lastInterestAccruedAt: now,
@@ -1041,7 +1023,51 @@ export async function approveLoanApplication(
         interestRate,
         "MONTHLY_PERCENT",
       );
+
+      const { firstGuaranteedInterest } = await createLoanInterestScheduleInTx(
+        tx,
+        loan.id,
+        principalAmount,
+        application.termMonths,
+        now,
+        interestRate,
+        "MONTHLY_PERCENT",
+      );
+
+      if (firstGuaranteedInterest > 0) {
+        const newPayoff = roundCurrency(principalAmount + firstGuaranteedInterest);
+        await tx.loan.update({
+          where: { id: loan.id },
+          data: {
+            accruedInterest: firstGuaranteedInterest,
+            outstandingBalance: newPayoff,
+          },
+        });
+
+        await createLedgerEntry(tx, {
+          loanId: loan.id,
+          type: "INTEREST_CHARGE",
+          amount: firstGuaranteedInterest,
+          balanceAfter: newPayoff,
+          description: "Month 1 interest guaranteed at disbursement",
+          createdById: adminId,
+        });
+      }
     }
+  });
+
+  const loan = await prisma.loan.findFirst({ where: { loanApplicationId: application.id } });
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "LOAN_APPROVED",
+    entityType: "LOAN_APPLICATION",
+    entityId: application.id,
+    targetUserId: application.applicantUserId,
+    targetLoanId: loan?.id ?? undefined,
+    targetCompanyId: application.companyId ?? undefined,
+    description: `Approved loan application ${application.id.slice(0, 8)}`,
+    metadata: { principalAmount, interestRate },
   });
 }
 
@@ -1058,6 +1084,18 @@ export async function denyLoanApplication(
       reviewedAt: new Date(),
       reviewNote: input.reviewNote?.trim() || application.reviewNote,
     },
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "LOAN_DENIED",
+    entityType: "LOAN_APPLICATION",
+    entityId: application.id,
+    targetUserId: application.applicantUserId,
+    targetCompanyId: application.companyId ?? undefined,
+    description: `Denied loan application ${application.id.slice(0, 8)}`,
+    metadata: { reviewNote: input.reviewNote ?? null },
   });
 }
 
@@ -1097,14 +1135,48 @@ export async function unfreezeLoan(adminId: string, loanId: string): Promise<voi
   });
 }
 
+export async function waivePendingInterestForLoan(adminId: string, loanId: string): Promise<number> {
+  const loan = await prisma.loan.findUnique({ where: { id: loanId } });
+  if (!loan) notFound();
+  if (!["PAID_OFF", "CANCELLED"].includes(loan.status)) {
+    badRequest("Pending interest can only be waived on paid-off or cancelled loans");
+  }
+
+  let waived = 0;
+  await prisma.$transaction(async (tx) => {
+    waived = await waivePendingInterestScheduleInTx(tx, loanId);
+    await createLedgerEntry(tx, {
+      loanId,
+      type: "STATUS_CHANGE",
+      amount: 0,
+      balanceAfter: decimalToNumber(loan.outstandingBalance),
+      description: `Waived ${waived} pending interest schedule item(s)`,
+      createdById: adminId,
+    });
+  });
+  return waived;
+}
+
 export async function markLoanPaidOff(adminId: string, loanId: string): Promise<void> {
   const loan = await prisma.loan.findUnique({ where: { id: loanId } });
   if (!loan) notFound();
-  const outstanding = decimalToNumber(loan.outstandingBalance);
-  if (outstanding > 0) badRequest("Outstanding balance must be zero to mark paid off");
+  const payoff = calculateCurrentPayoff({
+    principalOutstanding: decimalToNumber(loan.principalOutstanding),
+    accruedInterest: decimalToNumber(loan.accruedInterest),
+  });
+  if (payoff > 0) badRequest("Current payoff must be zero to mark paid off");
 
   await prisma.$transaction(async (tx) => {
-    await tx.loan.update({ where: { id: loanId }, data: { status: "PAID_OFF" } });
+    await waivePendingInterestScheduleInTx(tx, loanId);
+    await tx.loan.update({
+      where: { id: loanId },
+      data: {
+        status: "PAID_OFF",
+        principalOutstanding: 0,
+        accruedInterest: 0,
+        outstandingBalance: 0,
+      },
+    });
     await createLedgerEntry(tx, {
       loanId,
       type: "STATUS_CHANGE",
@@ -1127,20 +1199,26 @@ export async function adminAdjustLoanBalance(
     badRequest("Adjustments only allowed on active or frozen loans");
   }
 
-  const outstanding = decimalToNumber(loan.outstandingBalance);
-  const newBalance = Math.round((outstanding + input.amount) * 100) / 100;
-  if (newBalance < 0) badRequest("Adjustment would result in negative outstanding balance");
+  const principalOutstanding = decimalToNumber(loan.principalOutstanding);
+  const accruedInterest = decimalToNumber(loan.accruedInterest);
+  const adjusted = applyBalanceAdjustment(input.amount, principalOutstanding, accruedInterest);
+  const newPayoff = syncOutstandingBalance(adjusted);
+  if (newPayoff < 0) badRequest("Adjustment would result in negative payoff balance");
 
   await prisma.$transaction(async (tx) => {
     await tx.loan.update({
       where: { id: input.loanId },
-      data: { outstandingBalance: newBalance },
+      data: {
+        principalOutstanding: adjusted.principalOutstanding,
+        accruedInterest: adjusted.accruedInterest,
+        outstandingBalance: newPayoff,
+      },
     });
     await createLedgerEntry(tx, {
       loanId: input.loanId,
       type: "ADJUSTMENT",
       amount: input.amount,
-      balanceAfter: newBalance,
+      balanceAfter: newPayoff,
       description: input.description.trim() || "Operator balance adjustment",
       createdById: adminId,
     });

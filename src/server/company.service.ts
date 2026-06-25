@@ -481,7 +481,7 @@ export async function getInternalCompanyDetail(companyId: string) {
   });
 }
 
-export async function verifyCompany(companyId: string): Promise<void> {
+export async function verifyCompany(actorUserId: string, companyId: string, reviewNote?: string): Promise<void> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
 
@@ -492,14 +492,40 @@ export async function verifyCompany(companyId: string): Promise<void> {
       status: company.status === "PENDING" ? "ACTIVE" : company.status,
     },
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_VERIFIED",
+    entityType: "COMPANY",
+    entityId: companyId,
+    targetCompanyId: companyId,
+    description: `Verified company ${company.name}`,
+    metadata: { reviewNote: reviewNote ?? null },
+  });
 }
 
-export async function rejectCompanyVerification(companyId: string): Promise<void> {
+export async function rejectCompanyVerification(
+  actorUserId: string,
+  companyId: string,
+  reviewNote?: string,
+): Promise<void> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
 
   await prisma.company.update({
     where: { id: companyId },
     data: { verificationStatus: "REJECTED" },
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_REJECTED",
+    entityType: "COMPANY",
+    entityId: companyId,
+    targetCompanyId: companyId,
+    description: `Rejected verification for ${company.name}`,
+    metadata: { reviewNote: reviewNote ?? null },
   });
 }

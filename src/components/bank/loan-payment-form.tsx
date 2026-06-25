@@ -30,14 +30,15 @@ export function LoanPaymentForm({
   suggestedAmount,
   onSuccess,
 }: {
-  loan: Pick<LoanRow, "id" | "outstandingBalance">;
+  loan: Pick<LoanRow, "id" | "currentPayoffAmount" | "outstandingBalance">;
   sourceAccounts: LendingAccountOption[];
   suggestedAmount?: number;
   onSuccess?: () => void | Promise<void>;
 }) {
   const router = useRouter();
   const pay = useServerFn(submitLoanPayment);
-  const defaultAmount = suggestedAmount ?? loan.outstandingBalance;
+  const payoff = loan.currentPayoffAmount ?? loan.outstandingBalance;
+  const defaultAmount = suggestedAmount ?? payoff;
   const [sourceBankAccountId, setSourceBankAccountId] = useState(sourceAccounts[0]?.id ?? "");
   const [amount, setAmount] = useState(String(defaultAmount));
   const [memo, setMemo] = useState("");
@@ -81,8 +82,8 @@ export function LoanPaymentForm({
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
         <div className="rounded-md border border-border/60 bg-surface-2/30 px-4 py-3 text-[13px]">
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Outstanding balance</span>
-            <span className="type-finance font-medium">{florin(loan.outstandingBalance)}</span>
+            <span className="text-muted-foreground">Current payoff amount</span>
+            <span className="type-finance font-medium">{florin(payoff)}</span>
           </div>
         </div>
 
@@ -111,7 +112,7 @@ export function LoanPaymentForm({
             type="number"
             min="0.01"
             step="0.01"
-            max={loan.outstandingBalance}
+            max={payoff}
             required
             className={inputClass}
             value={amount}

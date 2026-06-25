@@ -4,6 +4,7 @@ const PERSONAL_ACCOUNT_TYPES = [
   "ALTA_ACCESS",
   "CHECKING",
   "SAVINGS",
+  "MONEY_MARKET",
   "RESERVE",
   "PRIVATE",
 ] as const;

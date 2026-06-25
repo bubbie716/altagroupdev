@@ -6,6 +6,7 @@ export const BANK_PRODUCT_CODES: Record<BankAccountTypeCode, string> = {
   alta_access: "1000",
   checking: "2000",
   savings: "3000",
+  money_market: "3500",
   reserve: "4000",
   business_operating: "5000",
   private: "9000",

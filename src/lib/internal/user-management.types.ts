@@ -11,11 +11,13 @@ export type InternalUserListRow = {
   id: string;
   discordUsername: string;
   discordId: string;
+  email: string | null;
   minecraftUsername: string | null;
   accountStatus: AccountStatus;
   tags: UserTag[];
   companyCount: number;
   bankAccountCount: number;
+  totalBankBalance: number;
   lastLoginAt: string;
   createdAt: string;
 };
@@ -65,11 +67,31 @@ export type InternalUserManagementCapabilities = {
 
 export type InternalUserDetail = InternalUserListRow & {
   avatarUrl: string | null;
-  email: string | null;
   companyMemberships: InternalUserCompanyMembership[];
   bankAccounts: InternalUserBankAccountSummary[];
   recentTransactions: InternalUserRecentTransaction[];
+  loanApplications: InternalUserLoanApplicationSummary[];
+  activeLoans: InternalUserLoanSummary[];
+  recentAuditLogs: import("@/lib/internal/audit.types").AuditLogRow[];
   capabilities: InternalUserManagementCapabilities;
+};
+
+export type InternalUserLoanApplicationSummary = {
+  id: string;
+  productLabel: string;
+  statusLabel: string;
+  requestedAmount: number;
+  createdAt: string;
+};
+
+export type InternalUserLoanSummary = {
+  id: string;
+  productLabel: string;
+  statusLabel: string;
+  principalAmount: number;
+  principalOutstanding: number;
+  currentPayoffAmount: number;
+  createdAt: string;
 };
 
 export type InternalAccessMetrics = {
