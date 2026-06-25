@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
+import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankTransferContactsManager } from "@/components/bank/bank-transfer-contacts-manager";
