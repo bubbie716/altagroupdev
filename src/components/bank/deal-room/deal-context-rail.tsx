@@ -34,7 +34,9 @@ export function DealContextRail({ room }: { room: DealRoom }) {
         title="Terms"
         accessory={<MetaLabel>v{t.version}</MetaLabel>}
       >
-        <TermsBlock requested={room.requested} termSheet={t} />
+        <div className="[&_.grid]:!grid-cols-1 [&_.grid]:gap-3">
+          <TermsBlock requested={room.requested} termSheet={t} />
+        </div>
         <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-4 text-[12px]">
           <div>
             <MetaLabel>Min payment</MetaLabel>
