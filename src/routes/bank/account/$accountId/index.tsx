@@ -95,29 +95,19 @@ function AccountOverviewPage() {
             />
             {account.interestInfo.applicable ? (
               <>
-                <ProfileRow label="Interest rate" value={account.interestInfo.rateLabel ?? "—"} />
-                <ProfileRow label="Interest status" value={account.interestInfo.statusLabel ?? "—"} />
                 <ProfileRow
-                  label="Last interest credited"
+                  label="Last interest date"
                   value={
-                    account.interestInfo.lastInterestCreditedAt
-                      ? new Date(account.interestInfo.lastInterestCreditedAt).toLocaleDateString()
+                    account.interestInfo.lastInterestDate
+                      ? new Date(account.interestInfo.lastInterestDate).toLocaleDateString()
                       : "—"
                   }
                 />
                 <ProfileRow
-                  label="Next interest date"
+                  label="Last interest amount"
                   value={
-                    account.interestInfo.nextInterestAccrualAt
-                      ? new Date(account.interestInfo.nextInterestAccrualAt).toLocaleDateString()
-                      : "—"
-                  }
-                />
-                <ProfileRow
-                  label="Est. next interest credit"
-                  value={
-                    account.interestInfo.estimatedNextInterest != null
-                      ? florin(account.interestInfo.estimatedNextInterest)
+                    account.interestInfo.lastInterestAmount != null
+                      ? florin(account.interestInfo.lastInterestAmount)
                       : "—"
                   }
                 />

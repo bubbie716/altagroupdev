@@ -5,7 +5,10 @@ import type {
   BankStatementDetail,
   BankStatementSummary,
   GenerateStatementInput,
+  GenerateStatementsBatchInput,
+  GenerateStatementsBatchResult,
   InternalStatementOpsSummary,
+  StatementGeneratableAccount,
 } from "@/lib/bank/statement-types";
 import { formatStatementNumber } from "@/lib/bank/statement-number";
 import { prisma } from "@/server/db";
@@ -448,6 +451,97 @@ export async function generateMonthlyStatementsPreview(): Promise<{
   }
 
   return { created, skipped, errors };
+}
+
+export async function listStatementGeneratableAccountsForUser(
+  userId: string,
+): Promise<StatementGeneratableAccount[]> {
+  const companyIds = await getUserCompanyIds(userId);
+  const accounts = await prisma.bankAccount.findMany({
+    where: { ...accessibleAccountWhere(userId, companyIds), status: "ACTIVE" },
+    include: { company: true },
+    orderBy: [{ companyId: "asc" }, { accountName: "asc" }],
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithMembershipsInclude,
+  });
+  if (!user) return [];
+
+  const { mapDbUserToAltaUser } = await import("@/server/user-mapper");
+  const altaUser = mapDbUserToAltaUser(user);
+
+  return accounts
+    .filter((account) => !account.companyId || canGenerateBusinessStatement(altaUser, account.companyId))
+    .map((account) => ({
+      id: account.id,
+      accountName: account.accountName,
+      accountNumber: account.accountNumber,
+      isCompanyAccount: !!account.companyId,
+      companyName: account.company?.name ?? null,
+    }));
+}
+
+export async function generateStatementsForUserBatch(
+  userId: string,
+  input: GenerateStatementsBatchInput,
+): Promise<GenerateStatementsBatchResult> {
+  const generatable = await listStatementGeneratableAccountsForUser(userId);
+  const generatableIds = new Set(generatable.map((a) => a.id));
+
+  let targetIds: string[];
+  if (input.allAccounts) {
+    targetIds = generatable.map((a) => a.id);
+  } else if (input.accountIds?.length) {
+    const invalid = input.accountIds.filter((id) => !generatableIds.has(id));
+    if (invalid.length > 0) forbidden();
+    targetIds = input.accountIds;
+  } else {
+    badRequest("Select at least one account or choose all accounts.");
+  }
+
+  if (targetIds.length === 0) {
+    badRequest("No eligible accounts available for statement generation.");
+  }
+
+  const { periodStart, periodEnd } = parsePeriod(input.periodStart, input.periodEnd);
+
+  let created = 0;
+  let skipped = 0;
+  const errors: GenerateStatementsBatchResult["errors"] = [];
+  const statements: GenerateStatementsBatchResult["statements"] = [];
+
+  for (const accountId of targetIds) {
+    const account = generatable.find((a) => a.id === accountId);
+    const label = account?.accountNumber ?? accountId;
+    try {
+      const existing = await prisma.bankStatement.findFirst({
+        where: {
+          bankAccountId: accountId,
+          periodStart,
+          periodEnd,
+          status: { not: "VOID" },
+        },
+      });
+      if (existing) {
+        skipped++;
+        statements.push({ id: existing.id, accountId });
+        continue;
+      }
+      const detail = await generateStatementForAccount(accountId, periodStart, periodEnd);
+      created++;
+      statements.push({ id: detail.id, accountId });
+    } catch (err) {
+      errors.push({
+        accountId,
+        label,
+        message: err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unknown error",
+      });
+    }
+  }
+
+  return { created, skipped, errors, statements };
 }
 
 export function previousCalendarMonthRange(): { periodStart: string; periodEnd: string } {

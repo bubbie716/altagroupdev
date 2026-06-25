@@ -251,25 +251,18 @@ export async function getAccountInterestOpsSummary(): Promise<AccountInterestOps
   };
 }
 
-export function buildAccountInterestInfo(account: BankAccount): AccountInterestInfo {
+export function buildAccountInterestInfo(
+  account: BankAccount,
+  lastInterestCredit?: { createdAt: Date; amount: { toString(): string } } | null,
+): AccountInterestInfo {
   if (!account.interestAccrualEnabled) {
     return { applicable: false };
   }
 
-  const rate = decimalToNumber(account.interestRate);
-  const balance = decimalToNumber(account.balance);
-
   return {
     applicable: true,
-    enabled: account.interestAccrualEnabled,
-    rateLabel: formatMonthlyInterestRateLabel(rate),
-    statusLabel: account.interestAccrualEnabled ? "Enabled" : "Disabled",
-    lastInterestCreditedAt: account.lastInterestAccruedAt?.toISOString() ?? null,
-    nextInterestAccrualAt: account.nextInterestAccrualAt?.toISOString() ?? null,
-    estimatedNextInterest:
-      account.status === "ACTIVE" && balance > 0
-        ? calculateInterestAmount(balance, rate)
-        : null,
+    lastInterestDate: lastInterestCredit?.createdAt.toISOString() ?? null,
+    lastInterestAmount: lastInterestCredit ? decimalToNumber(lastInterestCredit.amount) : null,
   };
 }
 

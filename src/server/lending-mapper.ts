@@ -589,6 +589,7 @@ export function mapInternalActiveLoanRow(
     borrowerLabel,
     companyName: record.company?.name ?? null,
     linkedAccountNumber: record.linkedBankAccount?.accountNumber ?? null,
+    linkedBankAccountId: record.linkedBankAccountId,
     principalAmount,
     principalOutstanding,
     guaranteedInterestOwed,
@@ -616,6 +617,9 @@ export function mapInternalActiveLoanRow(
     paymentStatusLabel: "Coming Soon",
     lastPaymentAt: record.payments[0]?.paymentDate.toISOString() ?? null,
     nextInterestAccrualAt: record.nextInterestAccrualAt?.toISOString() ?? null,
+    paymentSchedule,
+    termMonths: record.termMonths,
+    monthlyPrincipalPercent: null,
   };
 }
 

@@ -7,18 +7,14 @@ import { InternalUserAccountStatusPanel } from "@/components/internal/internal-u
 import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { fetchInternalUserDetail } from "@/lib/internal/user-management.functions";
-import { InternalAuditTable } from "@/components/internal/internal-audit-table";
+import { fetchCustomer360 } from "@/lib/internal/ops-platform.functions";
+import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
+import { InternalAuditTable, AccountActivityLink } from "@/components/internal/internal-audit-table";
 import { InternalNotePanel } from "@/components/internal/internal-note-panel";
-import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
 
 export const Route = createFileRoute("/internal/users/$userId")({
   loader: async ({ params }) => {
-    const [user, notes] = await Promise.all([
-      fetchInternalUserDetail({ data: params.userId }),
-      fetchInternalNotes({ data: { targetType: "USER", targetId: params.userId } }),
-    ]);
-    return { user, notes };
+    return fetchCustomer360({ data: params.userId });
   },
   head: ({ loaderData }) => ({
     meta: [{ title: `${loaderData?.user.discordUsername ?? "User"} — Alta Internal` }],
@@ -27,7 +23,7 @@ export const Route = createFileRoute("/internal/users/$userId")({
 });
 
 function InternalUserDetailPage() {
-  const { user, notes } = Route.useLoaderData();
+  const { user, notes, timeline, altaPayActivity, isPrivateClient } = Route.useLoaderData();
 
   return (
     <InternalPageShell
@@ -56,6 +52,11 @@ function InternalUserDetailPage() {
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap gap-2">
             <StatusBadge status={formatAccountStatus(user.accountStatus)} />
+            {isPrivateClient && (
+              <span className="inline-flex rounded bg-gold/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+                Private banking
+              </span>
+            )}
             {user.tags.map((tag: any) => (
               <span
                 key={tag}
@@ -171,11 +172,13 @@ function InternalUserDetailPage() {
                 {user.bankAccounts.map((a: any) => (
                   <tr key={a.id} className="border-b border-border/50 last:border-0">
                     <td className="px-4 py-3">
-                      <div>{a.accountName}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">
-                        {a.accountNumber}
-                        {a.companyName ? ` · ${a.companyName}` : ""}
-                      </div>
+                      <Link to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} className="hover:text-gold">
+                        <div>{a.accountName}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground">
+                          {a.accountNumber}
+                          {a.companyName ? ` · ${a.companyName}` : ""}
+                        </div>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-[12px]">{a.accountTypeLabel}</td>
                     <td className="px-4 py-3">
@@ -198,6 +201,7 @@ function InternalUserDetailPage() {
                 <tr className="border-b border-border text-left type-meta">
                   <th className="px-4 py-3">Date & time</th>
                   <th className="px-4 py-3">Account</th>
+                  <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3 text-right">Amount</th>
                   <th className="px-4 py-3">Status</th>
@@ -210,9 +214,13 @@ function InternalUserDetailPage() {
                       {formatActivityDateTime(tx.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-[12px]">{tx.accountName}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{tx.description}</div>
+                      <AccountActivityLink
+                        accountId={tx.accountId}
+                        accountName={tx.accountName}
+                        accountNumber={tx.accountNumber}
+                      />
                     </td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{tx.description}</td>
                     <td className="px-4 py-3">{tx.type}</td>
                     <td className="tabular px-4 py-3 text-right">{florin(tx.amount)}</td>
                     <td className="px-4 py-3">
@@ -232,7 +240,9 @@ function InternalUserDetailPage() {
             {user.activeLoans.map((loan) => (
               <div key={loan.id} className="flex flex-wrap justify-between gap-2 border-b border-border/50 pb-3 last:border-0 last:pb-0">
                 <div>
-                  <div className="font-mono text-[11px]">{loan.id.slice(0, 10)}</div>
+                  <Link to="/internal/lending/loans/$loanId" params={{ loanId: loan.id }} className="font-mono text-[11px] text-gold hover:underline">
+                    {loan.id.slice(0, 10)}
+                  </Link>
                   <div className="text-[13px]">{loan.productLabel}</div>
                 </div>
                 <div className="text-right text-[13px]">
@@ -253,6 +263,51 @@ function InternalUserDetailPage() {
           </Card>
         </Section>
       )}
+
+      {altaPayActivity.length > 0 && (
+        <Section title="Alta Pay activity" className="mt-10">
+          <Card className="!p-0">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left type-meta">
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Direction</th>
+                    <th className="px-4 py-3">Reference</th>
+                    <th className="px-4 py-3">Account</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {altaPayActivity.map((tx) => (
+                    <tr key={tx.id} className="border-b border-border/50 last:border-0">
+                      <td className="px-4 py-3 font-mono text-[11px]">{formatActivityDateTime(tx.createdAt)}</td>
+                      <td className="px-4 py-3 capitalize">{tx.direction}</td>
+                      <td className="px-4 py-3">
+                        <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: tx.id }} className="font-mono text-[11px] text-gold hover:underline">
+                          {tx.referenceCode}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <AccountActivityLink
+                          accountId={tx.accountId}
+                          accountName={tx.accountName}
+                          accountNumber={tx.accountNumber}
+                        />
+                      </td>
+                      <td className="tabular px-4 py-3 text-right">{florin(tx.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </Section>
+      )}
+
+      <Section title="Activity timeline" className="mt-10">
+        <InternalActivityTimeline events={timeline} />
+      </Section>
 
       <Section title="Internal notes" className="mt-10">
         <InternalNotePanel targetType="USER" targetId={user.id} initialNotes={notes} />

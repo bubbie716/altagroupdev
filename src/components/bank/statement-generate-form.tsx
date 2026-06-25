@@ -34,6 +34,7 @@ export function StatementGenerateForm({
       await router.navigate({
         to: "/bank/statements/$statementId",
         params: { statementId: result.id },
+        search: { from: "account" },
       });
     } catch (err) {
       const message =

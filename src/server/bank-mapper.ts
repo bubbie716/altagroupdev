@@ -151,6 +151,7 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
     accountNumber: account.accountNumber,
     routingNumber: getRoutingNumber(),
     balance,
+    availableBalance: balance,
     status,
     statusLabel: formatStatusLabel(status),
     currency: account.currency,

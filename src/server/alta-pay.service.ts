@@ -35,18 +35,8 @@ function generatePayReferenceBase(): string {
 }
 
 async function getAvailableBalance(accountId: string): Promise<number> {
-  const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
-  if (!account) notFound();
-
-  const balance = decimalToNumber(account.balance);
-  const pendingWithdrawals = await prisma.bankTransaction.aggregate({
-    where: { bankAccountId: accountId, type: "WITHDRAWAL", status: "PENDING" },
-    _sum: { amount: true },
-  });
-  const reserved = pendingWithdrawals._sum.amount
-    ? decimalToNumber(pendingWithdrawals._sum.amount)
-    : 0;
-  return balance - reserved;
+  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  return getAccountAvailableBalance(accountId);
 }
 
 function startOfUtcMonth(date = new Date()): Date {
@@ -153,7 +143,29 @@ export async function listPaySourceAccounts(user: AltaUser) {
   });
 
   const { mapUserBankAccount } = await import("@/server/bank-mapper");
-  return accounts.map((a) => mapUserBankAccount(a));
+  if (accounts.length === 0) return [];
+
+  const accountIds = accounts.map((a) => a.id);
+  const {
+    getActiveHoldsByAccountIds,
+    getPendingWithdrawalsByAccountIds,
+    computeAvailableBalance,
+  } = await import("@/server/account-balance.service");
+
+  const [holdsByAccount, pendingByAccount] = await Promise.all([
+    getActiveHoldsByAccountIds(accountIds),
+    getPendingWithdrawalsByAccountIds(accountIds),
+  ]);
+
+  return accounts.map((account) => {
+    const mapped = mapUserBankAccount(account);
+    const holds = holdsByAccount.get(account.id) ?? 0;
+    const pending = pendingByAccount.get(account.id) ?? 0;
+    return {
+      ...mapped,
+      availableBalance: computeAvailableBalance(mapped.balance, pending, holds),
+    };
+  });
 }
 
 /** @deprecated Use listPaySourceAccounts */
@@ -175,6 +187,9 @@ async function resolvePaySourceAccount(user: AltaUser, fromAccountId: string) {
   if (!account) badRequest("Select a valid Alta Bank account.");
   if (account.status !== "ACTIVE") {
     badRequest("Source account must be active to send Alta Pay payments.");
+  }
+  if (account.restrictWithdrawals) {
+    badRequest("Withdrawals are restricted on this account.");
   }
 
   if (account.companyId === null) {
@@ -236,6 +251,9 @@ export async function submitAltaPayPayment(
   }
   if (destination.id === sourceAccount.id) {
     badRequest("Cannot pay your own account through Alta Pay.");
+  }
+  if (destination.restrictDeposits) {
+    badRequest("Deposits are restricted on the recipient account.");
   }
   if (sourceAccount.companyId && sourceAccount.companyId === company.id) {
     badRequest("Cannot pay your own company through Alta Pay from its operating account.");

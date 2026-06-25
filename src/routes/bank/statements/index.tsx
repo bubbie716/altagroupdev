@@ -1,14 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
+import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { StatementListTable } from "@/components/bank/statement-list-table";
+import { StatementCenterGenerateForm } from "@/components/bank/statement-center-generate-form";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
-import { fetchStatementCenterStatements } from "@/lib/bank/statement.functions";
+import {
+  fetchPreviousStatementPeriod,
+  fetchStatementCenterStatements,
+  fetchStatementGeneratableAccounts,
+} from "@/lib/bank/statement.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/statements/")({
   beforeLoad: authBeforeLoad,
-  loader: () => fetchStatementCenterStatements(),
+  loader: async () => {
+    const [statements, generatableAccounts, defaultPeriod] = await Promise.all([
+      fetchStatementCenterStatements(),
+      fetchStatementGeneratableAccounts(),
+      fetchPreviousStatementPeriod(),
+    ]);
+    return { statements, generatableAccounts, defaultPeriod };
+  },
   head: () => ({
     meta: [{ title: "Account Statements — Alta Bank" }],
   }),
@@ -16,7 +28,7 @@ export const Route = createFileRoute("/bank/statements/")({
 });
 
 function BankStatementsPage() {
-  const statements = Route.useLoaderData();
+  const { statements, generatableAccounts, defaultPeriod } = Route.useLoaderData();
   const personal = statements.filter((s: any) => !s.isCompanyAccount);
   const business = statements.filter((s: any) => s.isCompanyAccount);
 
@@ -36,14 +48,20 @@ function BankStatementsPage() {
         ]}
       />
 
-      <p className="mt-3 mb-8 rounded-md border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground">
+      <Section title="Generate preview statement" className="mt-8 mb-10">
+        <Card className="mx-auto max-w-xl !p-6">
+          <StatementCenterGenerateForm accounts={generatableAccounts} defaultPeriod={defaultPeriod} />
+        </Card>
+      </Section>
+
+      <p className="mb-8 rounded-md border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground">
         Statements are generated from approved transaction history.
       </p>
 
       {statements.length === 0 ? (
         <Section title="Statements">
           <div className="rounded-xl border border-border bg-surface-1">
-            <StatementListTable statements={statements} />
+            <StatementListTable statements={statements} returnFrom="center" />
           </div>
         </Section>
       ) : (
@@ -59,7 +77,7 @@ function BankStatementsPage() {
               }
             >
               <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-                <StatementListTable statements={personal} />
+                <StatementListTable statements={personal} returnFrom="center" />
               </div>
             </Section>
           )}
@@ -73,7 +91,7 @@ function BankStatementsPage() {
               }
             >
               <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-                <StatementListTable statements={business} />
+                <StatementListTable statements={business} returnFrom="center" />
               </div>
             </Section>
           )}

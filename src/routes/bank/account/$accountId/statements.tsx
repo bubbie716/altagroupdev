@@ -50,7 +50,7 @@ function AccountStatementsPage() {
 
       <Section title="Statement history">
         <Card className="!p-6">
-          <StatementListTable statements={statements} />
+          <StatementListTable statements={statements} returnFrom="account" />
         </Card>
       </Section>
     </>

@@ -1,6 +1,7 @@
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/mock-data";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
 
 type Row = {
   id: string;
@@ -8,9 +9,20 @@ type Row = {
   desc: string;
   category: string;
   amount: number;
+  accountId?: string;
+  accountName?: string;
+  accountNumber?: string;
 };
 
-export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Row[]; title?: string }) {
+export function TransactionTable({
+  rows,
+  title = "Recent Activity",
+  showAccount = false,
+}: {
+  rows: Row[];
+  title?: string;
+  showAccount?: boolean;
+}) {
   return (
     <Card className="!p-0 overflow-hidden">
       {title && (
@@ -22,6 +34,7 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Date & time</th>
+            {showAccount ? <th className="px-5 py-3">Account</th> : null}
             <th className="px-5 py-3">Reference</th>
             <th className="px-5 py-3">Description</th>
             <th className="px-5 py-3">Category</th>
@@ -37,6 +50,19 @@ export function TransactionTable({ rows, title = "Recent Activity" }: { rows: Ro
               <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">
                 {formatActivityDateTime(t.date)}
               </td>
+              {showAccount ? (
+                <td className="px-5 py-3">
+                  {t.accountId && t.accountName && t.accountNumber ? (
+                    <BankAccountActivityLink
+                      accountId={t.accountId}
+                      accountName={t.accountName}
+                      accountNumber={t.accountNumber}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              ) : null}
               <td className="px-5 py-3 font-mono text-[12px] text-muted-foreground">{t.id}</td>
               <td className="px-5 py-3">{t.desc}</td>
               <td className="px-5 py-3 text-muted-foreground">{t.category}</td>

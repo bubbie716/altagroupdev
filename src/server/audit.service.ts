@@ -2,11 +2,20 @@ import type { AuditEntityType, Prisma } from "@prisma/client";
 import type { AuditLogFilters, AuditLogRow, WriteAuditLogInput } from "@/lib/internal/audit.types";
 import { prisma } from "@/server/db";
 
+type AuditRowRecord = Prisma.AuditLogGetPayload<{
+  include: { actor: { select: { discordUsername: true } } };
+}>;
+
+type AccountRef = {
+  id: string;
+  accountNumber: string;
+  accountName: string;
+};
+
 function mapAuditRow(
-  row: Prisma.AuditLogGetPayload<{
-    include: { actor: { select: { discordUsername: true } } };
-  }>,
+  row: AuditRowRecord,
   targetUsername: string | null,
+  account: AccountRef | null,
 ): AuditLogRow {
   return {
     id: row.id,
@@ -14,7 +23,9 @@ function mapAuditRow(
     actorUsername: row.actor.discordUsername,
     targetUserId: row.targetUserId,
     targetUsername,
-    targetAccountId: row.targetAccountId,
+    targetAccountId: account?.id ?? row.targetAccountId,
+    targetAccountNumber: account?.accountNumber ?? null,
+    targetAccountName: account?.accountName ?? null,
     targetCompanyId: row.targetCompanyId,
     targetTransactionId: row.targetTransactionId,
     targetLoanId: row.targetLoanId,
@@ -89,14 +100,91 @@ async function resolveTargetUsernames(rows: { targetUserId: string | null }[]): 
   return new Map(users.map((u) => [u.id, u.discordUsername]));
 }
 
+async function resolveAuditAccounts(rows: AuditRowRecord[]): Promise<{
+  accounts: Map<string, AccountRef>;
+  transactionAccountIds: Map<string, string>;
+}> {
+  const accountIds = new Set<string>();
+  const transactionIds: string[] = [];
+
+  for (const row of rows) {
+    if (row.targetAccountId) accountIds.add(row.targetAccountId);
+    if (row.entityType === "BANK_ACCOUNT" && row.entityId) accountIds.add(row.entityId);
+    if (row.targetTransactionId) transactionIds.push(row.targetTransactionId);
+  }
+
+  const transactionAccountIds = new Map<string, string>();
+  if (transactionIds.length > 0) {
+    const transactions = await prisma.bankTransaction.findMany({
+      where: { id: { in: transactionIds } },
+      select: { id: true, bankAccountId: true },
+    });
+    for (const tx of transactions) {
+      transactionAccountIds.set(tx.id, tx.bankAccountId);
+      accountIds.add(tx.bankAccountId);
+    }
+  }
+
+  if (accountIds.size === 0) {
+    return { accounts: new Map(), transactionAccountIds };
+  }
+
+  const accounts = await prisma.bankAccount.findMany({
+    where: { id: { in: [...accountIds] } },
+    select: { id: true, accountNumber: true, accountName: true },
+  });
+
+  return {
+    accounts: new Map(accounts.map((a) => [a.id, a])),
+    transactionAccountIds,
+  };
+}
+
+function accountForAuditRow(
+  row: AuditRowRecord,
+  accounts: Map<string, AccountRef>,
+  transactionAccountIds: Map<string, string>,
+): AccountRef | null {
+  if (row.targetAccountId) {
+    const account = accounts.get(row.targetAccountId);
+    if (account) return account;
+  }
+  if (row.entityType === "BANK_ACCOUNT" && row.entityId) {
+    const account = accounts.get(row.entityId);
+    if (account) return account;
+  }
+  if (row.targetTransactionId) {
+    const bankAccountId = transactionAccountIds.get(row.targetTransactionId);
+    if (bankAccountId) {
+      const account = accounts.get(bankAccountId);
+      if (account) return account;
+    }
+  }
+  return null;
+}
+
+async function mapAuditRows(rows: AuditRowRecord[]): Promise<AuditLogRow[]> {
+  const [targetMap, { accounts, transactionAccountIds }] = await Promise.all([
+    resolveTargetUsernames(rows),
+    resolveAuditAccounts(rows),
+  ]);
+
+  return rows.map((row) =>
+    mapAuditRow(
+      row,
+      row.targetUserId ? targetMap.get(row.targetUserId) ?? null : null,
+      accountForAuditRow(row, accounts, transactionAccountIds),
+    ),
+  );
+}
+
 export async function listRecentAuditLogs(limit = 25): Promise<AuditLogRow[]> {
   const rows = await prisma.auditLog.findMany({
     include: { actor: { select: { discordUsername: true } } },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-  const targetMap = await resolveTargetUsernames(rows);
-  return rows.map((row) => mapAuditRow(row, row.targetUserId ? targetMap.get(row.targetUserId) ?? null : null));
+  return mapAuditRows(rows);
 }
 
 export async function queryAuditLogs(filters: AuditLogFilters, limit = 200): Promise<AuditLogRow[]> {
@@ -106,8 +194,7 @@ export async function queryAuditLogs(filters: AuditLogFilters, limit = 200): Pro
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-  const targetMap = await resolveTargetUsernames(rows);
-  return rows.map((row) => mapAuditRow(row, row.targetUserId ? targetMap.get(row.targetUserId) ?? null : null));
+  return mapAuditRows(rows);
 }
 
 export async function listAuditLogsForTarget(
@@ -130,6 +217,25 @@ export async function listAuditLogsForTarget(
     orderBy: { createdAt: "desc" },
     take: limit,
   });
-  const targetMap = await resolveTargetUsernames(rows);
-  return rows.map((row) => mapAuditRow(row, row.targetUserId ? targetMap.get(row.targetUserId) ?? null : null));
+  return mapAuditRows(rows);
+}
+
+export async function resolveAccountsByAuditLogId(
+  rows: Array<{
+    id: string;
+    targetAccountId: string | null;
+    entityType: AuditEntityType;
+    entityId: string | null;
+    targetTransactionId: string | null;
+  }>,
+): Promise<Map<string, AccountRef>> {
+  const { accounts, transactionAccountIds } = await resolveAuditAccounts(
+    rows as AuditRowRecord[],
+  );
+  const result = new Map<string, AccountRef>();
+  for (const row of rows) {
+    const account = accountForAuditRow(row as AuditRowRecord, accounts, transactionAccountIds);
+    if (account) result.set(row.id, account);
+  }
+  return result;
 }

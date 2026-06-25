@@ -5,11 +5,15 @@ import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
 import { RouteButton } from "@/components/bank/route-button";
 import { EmptyState } from "@/components/data/empty-state";
+import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
 
 export function BankAccountTransactions({
   transactions,
+  showAccount = false,
 }: {
   transactions: UserBankTransaction[];
+  /** Show account column for multi-account views (e.g. bank dashboard). */
+  showAccount?: boolean;
 }) {
   if (transactions.length === 0) {
     return (
@@ -28,6 +32,7 @@ export function BankAccountTransactions({
         <thead>
           <tr>
             <th>Date & time</th>
+            {showAccount ? <th>Account</th> : null}
             <th>Reference</th>
             <th>Description</th>
             <th>Type</th>
@@ -48,6 +53,15 @@ export function BankAccountTransactions({
                 <td className="type-finance-sm text-muted-foreground">
                   {formatActivityDateTime(tx.createdAt)}
                 </td>
+                {showAccount ? (
+                  <td>
+                    <BankAccountActivityLink
+                      accountId={tx.bankAccountId}
+                      accountName={tx.accountName}
+                      accountNumber={tx.accountNumber}
+                    />
+                  </td>
+                ) : null}
                 <td className="type-finance-sm text-muted-foreground">
                   {tx.referenceCode}
                 </td>

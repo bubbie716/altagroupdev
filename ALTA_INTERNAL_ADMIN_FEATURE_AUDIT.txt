@@ -1,0 +1,424 @@
+Alta Internal Admin Panel — Feature Audit
+
+Scope: /internal and all bank/user/company/lending admin routes
+Focus: Missing admin functionality — can staff operate without DB edits?
+Date: June 22, 2026
+
+
+================================================================================
+ROLE SUMMARY
+================================================================================
+
+Operator: All /internal routes; most bank/lending/company ops; cannot grant
+admin/operator tags; cannot freeze/reactivate users; cannot overdraft-debit;
+cannot run scheduled deposit interest accrual or apply manual interest.
+
+Admin: Everything operators can do, plus staff tags, full user status control,
+overdraft debits, deposit interest accrual, manual interest apply.
+
+
+================================================================================
+1. USER MANAGEMENT (/internal/users, /internal/users/$userId)
+================================================================================
+
+Feature                          Status   Who              Backend  DB edit  Priority  Notes
+-------------------------------  -------  ---------------  -------  -------  --------  -----
+Search users (username, Discord) Exists   Both             Yes      No       —         Cap 200, no pagination
+Filter by tag / account status   Exists   Both             Yes      No       —         No email search
+View user detail                 Exists   Both             Yes      No       —
+Grant/revoke admin tag           Exists   Admin only       Yes      No       —         Confirm dialog
+Grant/revoke operator tag        Exists   Admin only       Yes      No       —         Confirm dialog
+Grant/revoke private_client etc  Exists   Both             Yes      No       —         Revoke triggers liquidation
+Freeze/restrict/reactivate user  Partial  Admin: all;      Yes      Yes*     High      *Operator cannot unfreeze/reactivate
+                                          Operator: partial
+View linked companies            Exists   Both             Yes      No       —
+View bank accounts               Partial  Both             Yes      No       Medium    Read-only; no link to account admin
+View loans                       Partial  Both             Yes      No       Medium    Last 10 apps + active loans
+View transactions                Partial  Both             Yes      No       Medium    Last 10 non-pending txns
+Add internal note                Exists   Both             Yes      No       —         Append-only
+View audit history               Exists   Both             Yes      No       —         Last 15 on user page
+Impersonation / debug view       Missing  Nobody           No       —        Low       Not implemented
+Pagination / export users        Missing  Nobody           Partial  No       High      Silent 200 cap
+Deep link user -> account admin  Missing  Nobody           N/A      No       Medium    Extra navigation friction
+
+Admins can: Search, inspect, tag, status-manage, note, audit.
+Operators can: Same except admin/operator tags and full status control.
+
+
+================================================================================
+2. BANK ACCOUNT MANAGEMENT (/internal/bank/accounts)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+Search accounts (q, status)      Partial  Both    Yes      No       High      Cap 500; accountType in API not UI
+View account detail              Exists   Both    Yes      No       —
+Freeze / unfreeze account        Exists   Both    Yes      No       —         One-click, no confirm
+Close account                    Partial  Both    Yes      No       —         Only when balance = 0
+Reopen closed account            Missing  Nobody  No       Yes      Medium    No API or UI
+Approve pending account          Exists   Both    Yes      No       —
+Admin credit balance             Exists   Both    Yes      No       —         Adjustment form with confirm
+Admin debit balance              Exists   Both    Yes      No       —         Overdraft = admin only
+Reverse transaction              Missing  Nobody  No       Yes      Critical  Offsetting adjustment only
+View transaction history         Partial  Both    Yes      No       Medium    25 recent + pending on detail
+View pending holds               Partial  Both    Yes      No       Medium    Pending txns; no aggregated available
+View scheduled transfers/acct    Missing  Nobody  Partial  No       Medium    Global transfers page only
+View/generate statements/acct    Missing  Nobody  Partial  No       Medium    Global page only; no admin single-gen
+Void statement                   Missing  Nobody  No       Yes      Medium    VOID enum exists; no mutation
+Add internal note                Exists   Both    Yes      No       —
+Change account type / name       Missing  Nobody  No       Yes      Low       Not supported
+Pagination                       Missing  Nobody  Partial  No       High      500 cap
+
+
+================================================================================
+3. MONEY MOVEMENT OPS (/internal/bank, deposits, withdrawals, interest)
+================================================================================
+
+Feature                          Status   Who                    Backend  DB edit  Priority  Notes
+-------------------------------  -------  ---------------------  -------  -------  --------  -----
+Approve deposits                 Exists   Both                   Yes      No       —
+Deny deposits                    Exists   Both                   Yes      No       —
+View proof screenshots           Exists   Both                   Yes      No       —         Opens in new tab
+Approve/deny withdrawals         Exists   Both                   Yes      No       —
+Manual transfer correction       Missing  Nobody                 No       Yes      High      Use adjustments
+Admin adjustment (credit/debit)  Exists   Both                   Yes      No       —
+Apply manual interest            Exists   Admin apply; Op preview Yes     No       —         /internal/bank/interest
+Batch scheduled deposit interest Partial  Admin only             Yes      No       Critical  Manual only; no cron
+Reverse mistaken payment         Missing  Nobody                 No       Yes      Critical  Adjustment workaround
+View failed transfers            Partial  Both                   Yes      No       Medium    On transfers page
+Retry failed transfer            Partial  Both                   Yes      No       Medium    Run now per schedule
+Cancel/pause/resume scheduled    Exists   Both                   Yes      No       —
+Run scheduled transfers manually Exists   Both                   Yes      No       —
+Interbank transfer ops           Missing  Nobody                 No       Yes      Medium    Mock on bank hub
+Bulk approve/deny queues         Missing  Nobody                 No       No       High      One row at a time
+Review note on approve/deny      Partial  Both                   Partial  No       Medium    API accepts; UI does not
+
+
+================================================================================
+4. ALTA PAY / MERCHANT OPS
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+View Alta Pay volume (MTD)       Partial  Both    Yes      No       —         Stat on bank hub only
+Search/list Alta Pay payments    Missing  Nobody  Partial  Yes      Critical  No admin payment ledger
+Refund payment                   Missing  Nobody  No       Yes      Critical  TODO in alta-pay.service.ts
+Reverse payment                  Missing  Nobody  No       Yes      Critical
+View payer/payee accounts        Missing  Nobody  Partial  Yes      High
+View payment references          Missing  Nobody  Partial  Yes      High
+Merchant payment history         Missing  Nobody  Partial  Yes      High      User-scoped API only
+Merchant account controls        Missing  Nobody  No       Yes      Medium
+
+Alta Pay is effectively unmanageable from admin except aggregate volume.
+Disputes require DB edits or manual adjustments on both sides.
+
+
+================================================================================
+5. LENDING OPS (/internal/lending)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+Review applications              Exists   Both    Yes      No       —
+Approve/deny applications        Exists   Both    Yes      No       —         Disburse on approve if linked acct
+Mark under review                Exists   Both    Yes      No       —
+Update approved principal        Exists   Both    Yes      No       —         At approval
+Update rate                      Exists   Both    Yes      No       —         Monthly rate at approval
+Update term                      Missing  Nobody  Partial  Yes      High      Uses application termMonths only
+Disburse loan                    Exists   Both    Yes      No       —         Auto on approve
+View active/frozen/paid loans    Exists   Both    Yes      No       —         Cards; no dedicated detail route
+View repayment schedule          Missing  Nobody  Partial  No       High      Interest schedule shown; not principal
+View interest guarantee schedule Exists   Both    Yes      No       —
+Guarantee interest (manual)      Exists   Both    Yes      No       —
+Waive interest                   Exists   Both    Yes      No       —
+Record manual payment            Missing  Nobody  Partial  Yes      Critical  Borrower UI only
+Adjust loan balance              Exists   Both    Yes      No       —
+Freeze/unfreeze loan             Exists   Both    Yes      No       —
+Mark paid off                    Exists   Both    Yes      No       —
+Run auto-pay batch               Exists   Both    Yes      No       —
+Delinquency tracking             Missing  Nobody  No       Yes      High      Coming Soon placeholder
+Open/create deal room            Missing  Nobody  No       Yes      Medium    Mock page only
+Assign loan officer              Missing  Nobody  No       Yes      Low       Not in schema
+Add internal loan note           Missing  Nobody  Yes      No       Medium    LOAN note type exists; no UI
+Loan audit on detail             Missing  Nobody  Partial  No       Medium    Payments/disbursements not logged
+
+
+================================================================================
+6. COMPANY OPS (/internal/companies)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+List companies                   Exists   Both    Yes      No       —         No search; mock fallback on error
+View company detail              Partial  Both    Yes      No       Medium    Members list only
+Verify company                   Exists   Both    Yes      No       —
+Reject company verification      Exists   Both    Yes      No       —
+Suspend/reactivate company       Missing  Nobody  No       Yes      High
+Assign ticker                    Missing  Nobody  Partial  Yes      Medium    User updateCompanySettings only
+Edit company metadata (admin)    Missing  Nobody  Partial  Yes      Medium
+View members                     Exists   Both    Yes      No       —         Read-only
+Manage members (admin)           Missing  Nobody  Partial  Yes      High      User-facing only
+View company bank accounts       Missing  Nobody  Partial  No       High      companyId filter in API; no UI
+View company loans               Missing  Nobody  Partial  No       High
+View company Alta Pay            Missing  Nobody  Partial  Yes      High
+Add internal note                Missing  Nobody  Yes      No       Medium    COMPANY type exists; no UI
+View company audit history       Missing  Nobody  Partial  No       Medium
+
+
+================================================================================
+7. STATEMENTS (/internal/bank/statements)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+Batch generate statements        Exists   Both    Yes      No       —
+View statement                   Partial  Both    Yes      No       —         Links to client route
+Generate single-account stmt     Missing  Nobody  Yes      No       Medium
+Void statement                   Missing  Nobody  No       Yes      Medium    Count shown; no action
+Regenerate statement             Missing  Nobody  Partial  Yes      Medium
+Download/export PDF              Missing  Nobody  No       —        Low       DB records only
+
+
+================================================================================
+8. AUDIT / COMPLIANCE (/internal/audit, /internal/compliance)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+View audit logs                  Exists   Both    Yes      No       —         Cap 200
+Filter by q / action             Partial  Both    Yes      No       Medium    Date/entity in API not UI
+Search actor/target              Partial  Both    Yes      No       Medium
+Export logs                      Missing  Nobody  No       No       High
+Create compliance case           Missing  Nobody  No       Yes      High      Placeholder page
+Assign/close case                Missing  Nobody  No       Yes      High
+View frozen/restricted accounts  Partial  Both    Yes      No       —         Via signals + search
+View suspicious activity         Missing  Nobody  No       Yes      Medium
+View negative balances           Missing  Nobody  No       Yes      High
+View failed transactions         Partial  Both    Yes      No       Medium    No unified queue
+
+
+================================================================================
+9. SETTINGS / OPS (/internal/settings, dashboard)
+================================================================================
+
+Feature                          Status   Who     Backend  DB edit  Priority  Notes
+-------------------------------  -------  ------  -------  -------  --------  -----
+Operations dashboard             Exists   Both    Yes      No       —         /internal
+Feature flags                    Missing  Nobody  No       Yes      Medium    Static placeholders
+Maintenance mode                 Missing  Nobody  No       Yes      Medium
+Cron status                      Missing  Nobody  Partial  No       High      No last-run UI
+Scheduled transfer status        Partial  Both    Yes      No       —
+Interest accrual status          Partial  Both    Yes      No       —
+Platform stats                   Exists   Both    Yes      No       —
+Discord embed tool               Exists   Both    Yes      No       —         /internal/embeds
+Manual interest link             Exists   Both    Yes      No       —         Not in sub-nav
+
+
+================================================================================
+ADMIN PANEL MISSING FUNCTIONALITY LIST (RANKED)
+================================================================================
+
+CRITICAL (launch blockers for controlled beta)
+
+1. Alta Pay admin ledger + refund/reverse — no way to investigate or correct
+   merchant payments
+2. Transaction reversal workflow — adjustments are poor substitute; no linked
+   reversal
+3. Admin manual loan payment — cannot post payment on behalf of borrower
+4. Automated deposit interest trigger — admin can batch manually but nothing
+   schedules it
+5. Pagination on users, accounts, audit — staff cannot see full population
+6. Alta Pay payment search — disputes require hunting transactions per account
+
+
+HIGH
+
+7. User bank account -> account admin deep links
+8. Company bank accounts / loans / payments from company page
+9. Admin company member management
+10. Company suspend / reactivate
+11. Loan repayment schedule in admin UI
+12. Editable loan term at approval
+13. Bulk queue actions (deposits, withdrawals, loans)
+14. Review note field on deposit/withdrawal approve/deny
+15. Negative balance / exception dashboard
+16. Compliance case workflow
+17. Audit log export
+18. Cron run history / health
+19. Failed transaction unified queue
+20. Operator cannot reactivate frozen users (admin-only today)
+
+
+MEDIUM
+
+21. Statement void + per-account generate
+22. Internal notes on company and loan
+23. Account scheduled transfers / statements from account detail
+24. Reopen closed account
+25. Interbank transfer ops (or remove user-facing interbank creation)
+26. Deal room creation (currently mock)
+27. Company admin metadata / ticker assignment
+28. Audit date-range and entity filters in UI
+29. Email search on users
+30. accountType filter on accounts page
+
+
+LOW
+
+31. User impersonation / debug view
+32. Loan officer assignment
+33. Statement PDF export
+34. Change account name/type
+35. Note edit/delete
+
+
+================================================================================
+LAUNCH BLOCKER ADMIN FEATURES (CONTROLLED BETA ONLY)
+================================================================================
+
+For a small controlled beta (hundreds of users, few operators), staff can run
+core flows. These gaps still block a confident beta:
+
+1. Alta Pay admin visibility + correction path
+   Merchant payments are live; no ops tooling
+
+2. Manual loan payment (admin)
+   Borrower unavailable = stuck loan
+
+3. Deposit interest automation or documented daily admin runbook
+   Savings products won't pay without manual batch
+
+4. Transaction correction beyond blind adjustment
+   Error recovery is error-prone
+
+5. User/account deep navigation
+   Daily ops friction causes mistakes
+
+Pagination and bulk ops matter less at beta scale but become blockers quickly
+after.
+
+
+================================================================================
+CAN RUN BANK WITHOUT DB EDITS?
+================================================================================
+
+VERDICT: PARTIALLY YES — FOR A SMALL CONTROLLED BETA ONLY
+
+
+YES, WITHOUT DB EDITS, STAFF CAN:
+
+- Review and approve/deny deposits (with proof) and withdrawals
+- Approve account openings; freeze, unfreeze, close accounts
+- Credit/debit via admin adjustments (with reason + audit)
+- Run manual interest campaigns and (admin) scheduled deposit interest batches
+- Manage scheduled transfers and payroll execution
+- Generate statement batches and view statements
+- Review, approve, deny, disburse, service, freeze, adjust, and mark paid off
+  loans
+- Manage users (tags, status within role limits), notes, and audit
+- Verify/reject companies
+- Monitor compliance signals and platform vitals
+
+
+NO — THESE STILL REQUIRE DB EDITS OR UNSUPPORTED WORKAROUNDS:
+
+Task                          Workaround without DB          Gap
+----------------------------  -----------------------------  -------------------------
+Refund Alta Pay               Offsetting adjustments         No reference link/audit
+Reverse specific transaction  Opposite adjustment            No tie to original txn
+Void statement                —                              No API
+Suspend company               —                              No API
+Assign ticker (admin)         —                              User-only settings
+Change loan term at approval  —                              Fixed from application
+Post loan payment for user    —                              No admin payment UI
+Reactivate user (operator)    —                              Admin only
+Reopen closed account         —                              No API
+Compliance case               Audit + notes                  No case model
+Deal room lifecycle           —                              Mock only
+Feature flags / maintenance   —                              Not persisted
+Interbank scheduled execution —                              Stuck PENDING_REVIEW
+
+
+BOTTOM LINE:
+
+Core retail banking (deposits, withdrawals, accounts, adjustments, lending
+lifecycle) is operable from the panel.
+
+Alta Pay, merchant ops, precise reversals, compliance cases, and several
+company/loan edge cases are NOT.
+
+
+================================================================================
+RECOMMENDED BUILD ORDER
+================================================================================
+
+1. Alta Pay admin ledger — searchable PAY-* transactions with payer, payee,
+   amount, reference, date
+
+2. Alta Pay refund/reverse — operator action with paired offsetting txns + audit
+
+3. Admin manual loan payment — post payment from selected source account
+
+4. Deposit interest cron + admin last-run status — automate batch; show health
+
+5. Transaction reversal helper — linked offsetting ADJUSTMENT referencing original
+
+6. Pagination — users, accounts, audit (server cursor + UI)
+
+7. User -> account admin links — clickable account numbers on user detail
+
+8. Company ops expansion — bank accounts, loans, members, notes, audit on detail
+
+9. Loan repayment schedule table — on admin loan card
+
+10. Editable term at loan approval — extend approve form + input type
+
+11. Review note on deposit/withdrawal actions — expose existing API field
+
+12. Statement void + single-account generate — wire VOID status + admin form
+
+13. Internal notes on LOAN and COMPANY — wire existing note service
+
+14. Exception dashboard — negative balances, failed transfers, large adjustments
+
+15. Compliance case model + UI — assign, status, link to user/account
+
+16. Bulk queue actions — multi-select approve/deny for deposits/withdrawals
+
+17. Audit export + date/entity filters in UI
+
+18. Company suspend/reactivate + admin ticker
+
+19. Deal room backend + admin create — replace mock
+
+20. Interbank ops or remove interbank schedule creation
+
+
+================================================================================
+BRUTALLY HONEST SUMMARY
+================================================================================
+
+The Internal Admin Panel is REAL and USABLE for bread-and-butter work: queues,
+account lifecycle, adjustments, lending approval/servicing, user tagging, and
+audit.
+
+It is NOT a complete operations platform.
+
+The largest functional holes are Alta Pay (almost no admin surface), payment/
+transaction reversal, admin-initiated loan payments, and company-level
+operations.
+
+Several backend capabilities exist but are NOT exposed in UI (statement void,
+company/loan notes, single-account statements, audit date filters).
+
+For a controlled beta with hands-on admins and low volume: YES, you can run the
+bank from the panel with occasional adjustment workarounds.
+
+For institution-scale operations without database access: NO — staff will hit
+walls on Alta Pay, reversals, compliance, and company/merchant workflows within
+the first week.
+
+
+---
+This audit was performed read-only. No code was modified. Findings are based on
+source review of routes, components, and server functions as of June 22, 2026.

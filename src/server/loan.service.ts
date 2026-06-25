@@ -136,17 +136,8 @@ async function getLoanForUser(userId: string, loanId: string) {
 }
 
 async function getAvailableBalance(accountId: string): Promise<number> {
-  const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
-  if (!account) notFound();
-  const balance = decimalToNumber(account.balance);
-  const pendingWithdrawals = await prisma.bankTransaction.aggregate({
-    where: { bankAccountId: accountId, type: "WITHDRAWAL", status: "PENDING" },
-    _sum: { amount: true },
-  });
-  const reserved = pendingWithdrawals._sum.amount
-    ? decimalToNumber(pendingWithdrawals._sum.amount)
-    : 0;
-  return balance - reserved;
+  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  return getAccountAvailableBalance(accountId);
 }
 
 async function assertPaySourceAccount(
@@ -172,6 +163,7 @@ async function assertPaySourceAccount(
     },
   });
   if (!account) badRequest("Source bank account not found or not accessible");
+  if (account.restrictWithdrawals) badRequest("Withdrawals are restricted on this account");
   if (loan.companyId && account.companyId !== loan.companyId) {
     badRequest("Source account must belong to the loan company");
   }
@@ -210,6 +202,7 @@ const PAYABLE_LOAN_STATUSES: DbLoanStatus[] = ["ACTIVE"];
 interface ProcessLoanPaymentOptions {
   scheduleItemId?: string;
   isAutoPay?: boolean;
+  isOperatorPayment?: boolean;
   memo?: string;
 }
 
@@ -400,7 +393,7 @@ async function processLoanPayment(
   });
   if (!loanRecord) notFound();
 
-  if (!options.isAutoPay) {
+  if (!options.isAutoPay && !options.isOperatorPayment) {
     const viewable = await prisma.loan.findFirst({
       where: { id: input.loanId, ...(await userLoanViewWhere(actorUserId)) },
       include: { loanApplication: { select: { applicantUserId: true } } },
@@ -430,7 +423,12 @@ async function processLoanPayment(
   const payoff = calculateCurrentPayoff({ principalOutstanding, accruedInterest });
   if (amount > payoff) badRequest("Payment cannot exceed current payoff amount");
 
-  await assertPaySourceAccount(actorUserId, input.sourceBankAccountId, loanRecord);
+  if (!options.isOperatorPayment) {
+    await assertPaySourceAccount(actorUserId, input.sourceBankAccountId, loanRecord);
+  } else {
+    const src = await prisma.bankAccount.findUnique({ where: { id: input.sourceBankAccountId } });
+    if (!src || src.status !== "ACTIVE") badRequest("Source account must be active");
+  }
 
   const available = await getAvailableBalance(input.sourceBankAccountId);
   if (available < amount) badRequest("Insufficient available balance in source account");
@@ -937,7 +935,7 @@ export async function approveLoanApplication(
         companyId: application.companyId,
         productType: application.productType,
         principalAmount,
-        termMonths: application.termMonths,
+        termMonths: input.termMonths ?? application.termMonths,
         outstandingBalance: principalAmount,
         principalOutstanding: principalAmount,
         accruedInterest: 0,
@@ -1238,4 +1236,45 @@ export async function listInternalLoansByStatus(
     orderBy: { createdAt: "desc" },
   });
   return records.map(mapInternalActiveLoanRow);
+}
+
+export async function getInternalLoanDetail(loanId: string): Promise<InternalActiveLoanRow> {
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
+  const record = await prisma.loan.findUnique({
+    where: { id: loanId },
+    include: internalLoanInclude,
+  });
+  if (!record) notFound();
+  return mapInternalActiveLoanRow(record);
+}
+
+export async function adminRecordLoanPayment(
+  adminId: string,
+  input: { loanId: string; sourceBankAccountId: string; amount: number; memo?: string; reason: string },
+): Promise<void> {
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
+  const reason = input.reason.trim();
+  if (!reason) badRequest("Reason is required");
+  await processLoanPayment(
+    adminId,
+    {
+      loanId: input.loanId,
+      sourceBankAccountId: input.sourceBankAccountId,
+      amount: input.amount,
+      memo: input.memo ? `${input.memo} · ${reason}` : reason,
+    },
+    { isOperatorPayment: true, memo: reason },
+  );
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: adminId,
+    action: "ADMIN_LOAN_PAYMENT_RECORDED",
+    entityType: "LOAN",
+    entityId: input.loanId,
+    targetLoanId: input.loanId,
+    description: `Operator recorded loan payment of ${input.amount}`,
+    metadata: { amount: input.amount, reason, sourceBankAccountId: input.sourceBankAccountId },
+  });
 }

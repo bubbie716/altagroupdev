@@ -15,7 +15,14 @@ function formatGeneratedAt(generatedAt: string | null, createdAt: string): strin
   return formatActivityDateTime(generatedAt ?? createdAt);
 }
 
-export function StatementListTable({ statements }: { statements: BankStatementSummary[] }) {
+export function StatementListTable({
+  statements,
+  returnFrom = "account",
+}: {
+  statements: BankStatementSummary[];
+  /** Where the user opened statements from — controls back navigation on the detail page. */
+  returnFrom?: "account" | "center";
+}) {
   if (statements.length === 0) {
     return (
       <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -58,6 +65,7 @@ export function StatementListTable({ statements }: { statements: BankStatementSu
                 <RouteButton
                   to="/bank/statements/$statementId"
                   params={{ statementId: s.id }}
+                  search={{ from: returnFrom }}
                   className="rounded border border-gold/30 bg-gold/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
                 >
                   View

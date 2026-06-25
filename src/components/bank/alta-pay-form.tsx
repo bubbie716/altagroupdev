@@ -58,7 +58,7 @@ export function AltaPayForm({
   const [confirmation, setConfirmation] = useState<SubmitAltaPayResult | null>(null);
 
   const fromAccount = accounts.find((a) => a.id === fromAccountId);
-  const availableBalance = fromAccount?.balance ?? 0;
+  const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
 
   useEffect(() => {
     if (companyQuery.trim().length < 1) {

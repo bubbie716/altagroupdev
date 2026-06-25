@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useRouter, Link } from "@tanstack/react-router";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { LoanRepaymentProgressBar } from "@/components/bank/loan-repayment-progress";
 import { LoanInterestGuaranteeScheduleTable } from "@/components/bank/loan-interest-guarantee-schedule-table";
@@ -42,13 +42,22 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
             <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{loan.linkedAccountNumber}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
-        >
-          {expanded ? "Hide actions" : "Manage"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/internal/lending/loans/$loanId"
+            params={{ loanId: loan.id }}
+            className="rounded border border-gold/30 bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
+          >
+            Open workspace
+          </Link>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
+          >
+            {expanded ? "Hide actions" : "Quick actions"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-5">

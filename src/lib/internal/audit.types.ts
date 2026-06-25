@@ -7,6 +7,8 @@ export type AuditLogRow = {
   targetUserId: string | null;
   targetUsername: string | null;
   targetAccountId: string | null;
+  targetAccountNumber: string | null;
+  targetAccountName: string | null;
   targetCompanyId: string | null;
   targetTransactionId: string | null;
   targetLoanId: string | null;

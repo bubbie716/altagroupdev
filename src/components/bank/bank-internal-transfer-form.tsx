@@ -50,7 +50,7 @@ export function BankInternalTransferForm({
   const [toAccountNumber, setToAccountNumber] = useState("");
 
   const fromAccount = accounts.find((account) => account.id === fromAccountId);
-  const availableBalance = fromAccount?.balance ?? 0;
+  const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
   const destinationAccounts = accounts.filter((account) => account.id !== fromAccountId);
 
   const [amount, setAmount] = useState("");

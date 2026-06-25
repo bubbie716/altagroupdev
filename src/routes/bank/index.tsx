@@ -3,12 +3,11 @@ import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountOverviewGrid } from "@/components/bank/account-overview-grid";
-import { TransactionTable } from "@/components/bank/transaction-table";
+import { BankAccountTransactions } from "@/components/bank/bank-account-transactions";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
 import { buildBankBalanceStripItems } from "@/lib/bank/dashboard-balances";
-import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { BankDashboardMockContent } from "@/routes/bank/-dashboard-mock";
@@ -99,16 +98,7 @@ function BankDashboardLiveContent({
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-            <TransactionTable
-              rows={transactions.map((t: any) => ({
-                id: t.referenceCode,
-                date: t.createdAt,
-                desc: t.description,
-                category: t.typeLabel,
-                amount: getSignedBankTransactionAmount(t.type, t.amount),
-              }))}
-              title=""
-            />
+            <BankAccountTransactions transactions={transactions} showAccount />
           </div>
         )}
       </Section>

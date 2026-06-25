@@ -284,6 +284,7 @@ export interface InternalActiveLoanRow {
   borrowerLabel: string;
   companyName: string | null;
   linkedAccountNumber: string | null;
+  linkedBankAccountId: string | null;
   principalAmount: number;
   principalOutstanding: number;
   accruedInterest: number;
@@ -307,6 +308,9 @@ export interface InternalActiveLoanRow {
   lastPaymentAt: string | null;
   nextInterestAccrualAt: string | null;
   interestGuaranteeSchedule: LoanInterestScheduleItemRow[];
+  paymentSchedule: LoanScheduleItemRow[];
+  termMonths: number | null;
+  monthlyPrincipalPercent: number | null;
 }
 
 export interface InternalLoanApplicationRow extends LoanApplicationRow {
@@ -319,6 +323,7 @@ export interface ApproveLoanApplicationInput {
   applicationId: string;
   interestRate: number;
   principalAmount?: number;
+  termMonths?: number;
   reviewNote?: string;
 }
 

@@ -10,6 +10,8 @@ const groups: { id: string; label: string; links: Link[] }[] = [
     label: "Overview",
     links: [
       { to: "/internal", label: "Dashboard", exact: true },
+      { to: "/internal/exceptions", label: "Exceptions" },
+      { to: "/internal/reports", label: "Reports" },
       { to: "/internal/audit", label: "Audit log" },
     ],
   },
@@ -21,6 +23,8 @@ const groups: { id: string; label: string; links: Link[] }[] = [
       { to: "/internal/bank/deposits", label: "Deposits" },
       { to: "/internal/bank/withdrawals", label: "Withdrawals" },
       { to: "/internal/bank/accounts", label: "Accounts", match: "/internal/bank/accounts" },
+      { to: "/internal/bank/transactions", label: "Transactions", match: "/internal/bank/transactions" },
+      { to: "/internal/bank/alta-pay", label: "Alta Pay" },
       { to: "/internal/bank/transfers", label: "Transfers" },
       { to: "/internal/bank/statements", label: "Statements" },
       { to: "/internal/lending", label: "Lending" },

@@ -334,6 +334,7 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
     })),
     recentTransactions: recentTransactions.map((tx) => ({
       id: tx.id,
+      accountId: tx.bankAccountId,
       accountName: tx.bankAccount.accountName,
       accountNumber: tx.bankAccount.accountNumber,
       type: tx.type.charAt(0) + tx.type.slice(1).toLowerCase(),

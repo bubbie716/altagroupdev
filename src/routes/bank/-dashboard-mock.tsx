@@ -75,7 +75,7 @@ export function BankDashboardMockContent() {
 
       <Section title="Recent Activity" className="mt-10">
         <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-          <TransactionTable rows={bankRecentActivity} title="" />
+          <TransactionTable rows={bankRecentActivity} title="" showAccount />
         </div>
       </Section>
     </>

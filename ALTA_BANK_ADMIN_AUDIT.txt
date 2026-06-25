@@ -1,0 +1,640 @@
+Alta Bank & Internal Admin Panel — Pre-Production Audit
+
+Audit type: Read-only architectural review
+Scope: Alta Bank + Internal Admin Panel only
+Assumption: Platform will scale to one of the largest financial institutions on the server
+Date: June 22, 2026
+
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Alta Bank has a coherent foundation: Prisma-backed accounts, a denormalized
+balance model, atomic $transaction blocks for most instant flows, operator-gated
+admin server functions, and a growing audit trail. Core user journeys (open
+account, deposit/withdraw request, intrabank transfer, Alta Pay, business
+payroll, lending lifecycle) are real and wired to the database.
+
+However, the system is NOT production-ready for an institution of scale. Several
+issues are not cosmetic — they are financial integrity and authorization defects
+that would cause unauthorized movement, negative balances, duplicate interest,
+incorrect loan servicing, and operator error at volume.
+
+The Internal Admin Panel can run day-to-day banking for a small population, but
+cannot efficiently or safely operate at 10,000 users / 100 staff without
+pagination, queue management, confirmations on money-moving actions, and
+reconciliation tooling.
+
+
+================================================================================
+CRITICAL ISSUES
+================================================================================
+
+C1. Company viewers can move money from business accounts
+    Location: src/server/bank.service.ts — accessibleAccountWhere() grants
+    access to any company membership, including viewer and compliance_contact.
+
+    Problem: Business UI restricts treasury actions to manage roles
+    (canManageBusinessTreasury), but core bank APIs (submitInternalTransfer,
+    submitWithdrawalRequest, etc.) only check accessibleAccountWhere. A
+    read-only company member can debit a business operating account server-side.
+
+    Why it matters: Unauthorized treasury access — a launch blocker for business
+    banking.
+
+
+C2. Balance checks occur outside transactions (TOCTOU overdraft)
+    Locations:
+    - src/server/bank.service.ts — submitInternalTransfer() (~541–552)
+    - src/server/alta-pay.service.ts — Alta Pay payments
+    - src/server/loan.service.ts — processLoanPayment() (~435–465)
+
+    Problem: getAvailableBalance() is read before the $transaction that
+    decrements balance. Concurrent transfers, loan payments, scheduled
+    transfers, and payroll can all pass the check and overdraw. There is no DB
+    constraint preventing negative BankAccount.balance.
+
+    Why it matters: At any meaningful concurrency, balances become untrustworthy.
+    There is no ledger reconciliation to recover.
+
+
+C3. Withdrawal approval ignores aggregate pending holds
+    Location: src/server/bank.service.ts — approveWithdrawal() (~869–871)
+
+    Problem: Submit validates against balance - pending withdrawals. Approval
+    only checks raw balance >= amount. Multiple pending withdrawals can all be
+    approved until balance goes negative.
+
+    Why it matters: Operators can unknowingly approve more withdrawals than the
+    account can support.
+
+
+C4. availableBalance shown to users is wrong
+    Location: src/server/bank.service.ts — getUserBankAccountDetail() (~252)
+
+    Problem: Returns availableBalance: balance (full balance), ignoring pending
+    withdrawal holds that getAvailableBalance() correctly subtracts at submit
+    time.
+
+    Why it matters: Users see spendable funds they cannot actually withdraw or
+    transfer. Creates support load and trust issues.
+
+
+C5. Loan schedule marked PAID on partial payment
+    Location: src/server/loan.service.ts — processLoanPayment() (~494–499)
+
+    Problem: Any payment linked to a schedule item marks that installment PAID,
+    even when amount < scheduledAmount (auto-pay uses Math.min(scheduledAmount,
+    payoff)). A partial payoff installment is closed; future installments may be
+    skipped or misclassified.
+
+    Why it matters: Loan servicing state becomes incorrect. Delinquency tracking
+    is explicitly "Coming Soon" — there is no recovery path.
+
+
+C6. Interest guarantee can double-accrue under concurrency
+    Location: src/lib/bank/loan-interest-service.ts —
+    guaranteeDueInterestForLoan() (~317–359)
+
+    Problem: Pending schedule items are loaded outside the transaction, then
+    updated inside. Concurrent cron runs or operator "Guarantee due interest" +
+    cron can both guarantee the same installment.
+
+    Why it matters: Borrowers owe interest that was guaranteed twice. No bank
+    debit occurs, but loan payoff inflates — a silent balance corruption.
+
+
+C7. Duplicate loan servicing cron endpoints
+    Locations:
+    - src/routes/api/cron/scheduled-transfers.ts — runs loan interest + auto-pay
+      in parallel with transfers/payroll
+    - src/routes/api/cron/loan-interest.ts — same loan servicing
+
+    Problem: Two cron entry points invoke the same loan batch logic. Auto-pay is
+    not safely concurrent across duplicate invocations.
+
+    Why it matters: Double debits on autopay are possible under overlapping
+    cron triggers.
+
+
+C8. Payroll partial execution without compensation
+    Location: src/server/payroll-executor.service.ts
+
+    Problem: If line 2 of a payroll run fails after line 1 succeeds, the run is
+    marked FAILED but some employees were paid. No saga, rollback, or explicit
+    partial-success state.
+
+    Why it matters: Companies pay some employees twice on retry, or operators
+    must manually reconcile who was paid.
+
+
+C9. VITE_UI_LAB_MODE bypasses all authentication
+    Locations: src/lib/auth/ui-lab.ts, src/server/auth.service.ts,
+    src/lib/auth/guards.ts
+
+    Problem: When enabled, injects a mock admin user and skips auth guards on
+    both client and server.
+
+    Why it matters: If this env var is set in any production-like deployment,
+    everyone is admin. This is a catastrophic misconfiguration risk.
+
+
+C10. Public deal room routes are unauthenticated
+     Locations:
+     - src/routes/bank/lending/deal-rooms/index.tsx
+     - src/routes/bank/lending/deal-rooms/$dealRoomId.tsx
+
+     Problem: No authBeforeLoad. Loads mock deal room data for any visitor. UX
+     promises secure deal rooms; there is no server enforcement.
+
+     Why it matters: Today exposes mock financial terms to unauthenticated
+     users. When wired to real data without auth, this becomes a direct IDOR.
+
+
+C11. Financial audit writes are not transactional with money movement
+     Location: src/server/audit.service.ts + all money-moving services
+
+     Problem: writeAuditLog() runs after the Prisma $transaction commits. Money
+     can succeed while audit fails, leaving no operator trail.
+
+     Why it matters: Regulatory and operational requirement for a bank — "who
+     moved what money" must be atomic with the movement.
+
+
+C12. Most money-moving actions have no confirmation
+     Location: src/components/bank/bank-review-button.tsx — used across
+     deposits, withdrawals, loans, account status, company verify, batch
+     operations
+
+     Problem: Single click immediately executes approve/deny/disburse/freeze/
+     batch payroll/interest guarantee with no dialog, amount recap, or required
+     review note.
+
+     Why it matters: At 100 staff processing queues, misclicks become real
+     financial events. private_client revoke (triggers liquidation) also has no
+     confirmation.
+
+
+================================================================================
+HIGH PRIORITY
+================================================================================
+
+H1. Deposit account interest has no automated cron
+     Location: src/lib/bank/account-interest-service.ts —
+     accrueInterestForDueAccounts() is admin-triggered only via
+     accrueAllDueAccountInterest.
+
+     Impact: Savings/money market/private accounts may never receive scheduled
+     interest unless an admin manually runs batch accrual.
+
+
+H2. Audit logging gaps on high-volume operations
+
+     Logged well: deposit/withdrawal approve/deny, account status changes, admin
+     adjustments, manual interest, account interest accrual, loan approve/deny.
+
+     Not logged:
+     - User deposit/withdrawal submission — no trail until operator acts
+     - Internal transfers — high volume, no actor audit
+     - Alta Pay payments — merchant settlement
+     - Loan payments & disbursements — core lending gap
+     - Scheduled transfer / payroll execution — automated movement
+     - Loan freeze/unfreeze/adjust/mark paid off — operator lifecycle
+     - Account opening (user-initiated) — only logged on operator approve
+     - Private banking liquidation — tag revoke side effect
+
+
+H3. Operator (not Admin) can disburse loans and adjust balances
+     Location: src/lib/bank/lending.functions.ts — all internal records use
+     requireOperator(), not requireAdmin().
+
+     Impact: Disbursement, balance adjustment, interest backfill, and auto-pay
+     execution are available to any operator. Manual interest apply correctly
+     requires admin; loan disbursement does not — inconsistent privilege model.
+
+
+H4. Disbursement does not re-validate linked account ownership
+     Location: src/server/loan.service.ts — approveLoanApplication()
+
+     Problem: linkedBankAccountId validated at application time only. At
+     approval, only existence + not frozen/closed is checked. Membership or
+     ownership could have changed.
+
+
+H5. Approval principal uncapped vs requested amount
+     Location: src/server/loan.service.ts + internal-lending-panel.tsx
+
+     Problem: Operator can set principalAmount to any positive value at approval
+     with no ceiling vs requestedAmount.
+
+
+H6. Interbank scheduled transfers never execute
+     Location: src/server/scheduled-transfer.service.ts
+
+     Problem: Interbank schedules sit in PENDING_REVIEW with no wire execution
+     path. Users can create them; nothing happens.
+
+
+H7. Companies admin pages fall back to mock data on DB error
+     Location: src/routes/internal/companies/index.tsx, $companyId.tsx
+
+     Problem: Catch blocks show fake company data. Operators may act on records
+     that do not exist.
+
+
+H8. Admin list endpoints silently truncate
+
+     Users: 200
+     Audit log: 200
+     Bank accounts: 500
+     Pending deposits/withdrawals: Unbounded (loads all)
+     Loan applications: Unbounded
+     Scheduled transfers: Unbounded
+
+     Impact: Staff cannot see the full population. No pagination, no "load
+     more", no export.
+
+
+H9. No idempotency on user-facing instant payments
+
+     Problem: Internal transfers, Alta Pay, loan payments have no client
+     idempotency key. Network retries can double-pay (reference code collision
+     would fail, but a retry generates a new reference).
+
+     Contrast: Manual interest apply has idempotency via audit log — the right
+     pattern, applied inconsistently.
+
+
+H10. Cron secret accepted via query parameter
+      Location: src/routes/api/cron/scheduled-transfers.ts (~22–23)
+
+      Problem: ?secret= may leak via logs, referrers, browser history.
+
+
+H11. markLoanPaidOff / adminAdjustLoanBalance leave inconsistent state
+
+      Problem:
+      - markLoanPaidOff waives interest but does not mark principal schedule
+        rows PAID
+      - adminAdjustLoanBalance can zero payoff while loan stays ACTIVE
+
+
+H12. Service-layer permission checks inconsistent
+
+      Problem: Some services call requireOperator() internally
+      (adminAdjustBankAccount, getInternalBankAccountDetail); others
+      (approveDeposit, listInternalBankAccounts) rely entirely on server
+      function boundary. Any future import bypasses auth.
+
+
+================================================================================
+MEDIUM PRIORITY
+================================================================================
+
+M1. Scheduled transfer executor impersonates creator
+     Location: src/server/scheduled-transfer-executor.service.ts
+     Runs transfers as createdByUserId. If membership is revoked, executor
+     behavior is undefined relative to current treasury policy.
+
+M2. No transfer pair linkage in schema
+     Location: prisma/schema.prisma — BankTransaction
+     Intrabank transfers create paired WITHDRAWAL/DEPOSIT rows linked only by
+     reference naming (TRF-*-OUT/*-IN). No FK or journal grouping.
+
+M3. Statement void exists in schema but no admin UI
+     Location: BankStatementStatus.VOID in schema; statement.service.ts counts
+     voided statements; no void mutation exposed in admin.
+
+M4. Compliance page is a placeholder
+     Location: src/routes/internal/compliance.tsx
+     Counters only. No case model, assignment, or investigation workflow.
+
+M5. Company admin is verify-only
+     No suspend/reactivate, ticker assignment, internal notes, linked bank
+     accounts, or audit on company detail page.
+
+M6. User detail page bank accounts are read-only
+     No deep link to /internal/bank/accounts/$accountId from user profile.
+
+M7. Side effects on read
+     Location: src/server/loan.service.ts — getUserLoans() calls
+     ensureLoanPaymentSchedule() during list fetch, mutating DB on page load.
+
+M8. Deal rooms are 100% mock with no loan integration
+     Locations: src/lib/bank/deal-rooms-mock.ts, internal/lending.deal-rooms.tsx,
+     public deal room routes
+     Application UX references deal rooms opening; nothing is created server-side.
+
+M9. Internal settings feature flags are static placeholders
+     Location: src/routes/internal/settings.tsx, src/lib/internal/data.ts
+     Not persisted. No maintenance mode, no remote toggles.
+
+M10. Markets nav items are mock but presented as operational
+      Exchange, IPOs, listings, terminal, API applications — all mock data with
+      disabled buttons. Only exchange has a preview notice; others do not.
+
+M11. No reconciliation tooling
+      No balance vs transaction sum verification, no end-of-day reports, no
+      exception queue for negative balances or orphaned transactions.
+
+M12. Float amounts throughout
+      Many inputs accept JavaScript floats without strict decimal validation.
+
+M13. Audit log action is free string, not enum
+      Location: prisma/schema.prisma — AuditLog.action
+      Flexible but unenforceable. Inconsistent action naming over time.
+
+M14. Deposit approval does not re-check account status
+      Frozen account could receive approved deposit if request was submitted
+      while active.
+
+
+================================================================================
+LOW PRIORITY
+================================================================================
+
+L1. referenceCode random suffix collision risk at extreme scale
+L2. Stale UI copy on user tag panel ("Audit logging planned" but server writes audit)
+L3. accrueInterestForLoan ignores _force parameter
+L4. LoanPayment.status defaults PENDING but payments created as COMPLETED
+L5. Internal notes are append-only
+L6. User search lacks email filter
+L7. /internal/bank/interest not in sub-nav
+L8. Lending parent route may lack <Outlet /> for child routes
+
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+Immediate (pre-launch blockers):
+
+1. Align server-side account access with treasury RBAC — require
+   canManageBusinessTreasury for all mutating ops on business accounts.
+2. Move balance checks inside $transaction with conditional update
+   (WHERE balance >= amount) or row locking.
+3. Fix withdrawal approval to respect aggregate pending holds.
+4. Fix availableBalance in account detail to match submit-time logic.
+5. Fix loan schedule PAID logic — only mark PAID when cumulative payment >=
+   scheduled amount; support partial state.
+6. Make interest guarantee idempotent — conditional status transition
+   PENDING -> GUARANTEED WHERE status = PENDING.
+7. Consolidate loan cron to one endpoint or add per-loan/per-account lock.
+8. Add confirmation dialogs to all money-moving admin actions with amount recap
+   and optional review note.
+9. Guard VITE_UI_LAB_MODE — build-time fail if set in production.
+10. Add authBeforeLoad to deal room routes before any real data wiring.
+
+Short-term (first month of operations):
+
+11. Add cron for deposit account interest accrual.
+12. Audit all money-moving mutations inside the same transaction as the
+    financial write.
+13. Pagination + server-side search on users, accounts, audit, all queues.
+14. Remove mock fallbacks on company routes — fail loudly.
+15. Split operator vs admin for loan disbursement, large adjustments, batch ops.
+16. Client idempotency keys on instant payment endpoints.
+17. Payroll saga — all lines in one transaction or explicit partial-success.
+18. Re-validate disbursement account ownership at loan approval.
+
+Medium-term (institution scale):
+
+19. Balance reconciliation job (sum of transactions vs BankAccount.balance).
+20. Queue model with assignee, SLA, bulk approve/deny, optimistic locking.
+21. Compliance case management workflow.
+22. Reporting/export for audit and regulatory investigation.
+23. Transfer pair journal grouping in schema.
+24. DB check constraints on non-negative balances.
+25. Wire interbank execution or remove interbank schedule creation from user UI.
+
+
+================================================================================
+LAUNCH BLOCKERS
+================================================================================
+
+These must be resolved before treating Alta Bank as production infrastructure:
+
+1.  Company viewer unauthorized treasury access (C1)
+2.  Concurrent overdraft / negative balances (C2)
+3.  Withdrawal approval over-approval (C3)
+4.  Loan partial payment schedule corruption (C5)
+5.  Interest guarantee double-accrual (C6)
+6.  Duplicate loan cron / autopay race (C7)
+7.  UI Lab mode auth bypass risk (C9)
+8.  One-click financial mutations (C12)
+9.  No deposit interest automation (H1)
+10. Audit not atomic with money movement (C11)
+11. Admin list truncation at scale (H8)
+
+
+================================================================================
+DETAILED SECTION SUMMARIES
+================================================================================
+
+1. BANKING ARCHITECTURE
+
+Area                  Status              Notes
+--------------------  ------------------  ----------------------------------------
+Account creation      Functional          Instant approval for some types
+Deposits              Functional          Request -> approve; no velocity limits
+Withdrawals           Defective           Hold model incomplete at approval
+Transfers             Functional          Intrabank instant; TOCTOU race
+Scheduled/recurring   Partial             Intrabank executes; interbank stuck
+Alta Pay              Functional          Treasury-gated on source; TOCTOU race
+Business banking      Functional          Payroll + scheduled; partial failure risk
+Statements            Functional          Batch generate; void in schema, no UI
+Transaction history   Functional          Per-account; capped at 100 recent
+Account permissions   Broken for viewers  UI != server
+Interest (scheduled)  Manual admin only   No cron
+Interest (manual)     Functional          Split-total fixed mode; admin apply
+Balances              Untrustworthy       Denormalized, no constraint
+Reconciliation        Missing             No tooling
+
+
+2. LOAN SYSTEM
+
+Solid permission scaffolding (canUserPayLoan, userLoanViewWhere), good DB
+uniqueness on schedule items and payment links. Undermined by schedule PAID bug,
+guarantee race, operator-level disbursement, missing audit on
+payments/disbursements, and mock deal rooms.
+
+
+3. ADMIN PANEL — Can Staff Run the Bank?
+
+Yes, for a small population (< ~500 accounts, few concurrent operators).
+
+No, at stated scale without:
+- Pagination and search across all queues
+- Bulk operations
+- Queue assignment
+- Confirmations on financial actions
+- Reconciliation and exception handling
+- Automated interest accrual
+- Compliance workflow
+
+Still requires DB edits for:
+- Statement void
+- Company suspension beyond verify/reject
+- Interbank transfer execution
+- Compliance cases
+- Feature flags / maintenance mode
+- Deal room lifecycle
+- Reversing errant batch operations without manual adjustment per account
+
+
+4. SECURITY
+
+Works: Route guard on /internal, server-side requireOperator/requireAdmin on
+live mutations, frozen/restricted staff blocked, payment amount validated
+server-side.
+
+Fails: Treasury RBAC mismatch (C1), TOCTOU (C2), UI Lab bypass (C9),
+unauthenticated deal rooms (C10), cron secret in query string (H10), operator
+disbursement privileges (H3).
+
+
+5. DATA CONSISTENCY
+
+Action              Transaction  Balance      Duplicate-safe  Audit
+------------------  -----------  -----------  --------------  -----
+Deposit approve     Yes          Yes          Status guard    Yes
+Withdrawal approve  Yes          Hold bug     Status guard    Yes
+Internal transfer   Yes          Race         Ref unique only No
+Alta Pay            Yes          Race         Ref unique only No
+Account interest    Yes          Yes          Period unique   Yes
+Manual interest     Per-acct tx  Yes          Idempotency key Yes
+Admin adjustment    Yes          Yes          No              Yes
+Loan disbursement   Yes          Yes          App unique      No
+Loan payment        Yes          Race         Schedule unique No
+Payroll             Per-line     Partial fail Execution unique No
+
+
+6. OPERATIONAL WORKFLOW AT SCALE
+
+Bottlenecks: Single-click queues, no assignee, no bulk approve, mega-loader on
+bank hub, keystroke-triggered user search, unbounded pending queues, global
+batch buttons, no export.
+
+Missing: Work queues with SLA, staff workload dashboard, exception/alerts for
+negative balances, end-of-day settlement report, investigation tools beyond
+200-row audit cap.
+
+
+7. AUDIT LOGGING
+
+Strong for operator review actions and manual interest. Weak for user-initiated
+and automated money movement. Audit not co-transactional with financial writes.
+targetLoanId field exists but rarely populated.
+
+
+8. UX (WORKFLOW EFFICIENCY)
+
+Good: Manual interest multi-step preview + confirmation phrase; account
+adjustment has confirm dialog; admin tag changes have dialogs.
+
+Poor: BankReviewButton pattern everywhere else; bank hub overloads one page;
+user -> account navigation broken; interest page not in sub-nav; companies have
+no search; duplicate transfers/scheduled views; lending batch buttons on same
+page as application queue.
+
+
+9. DATABASE DESIGN
+
+Strengths: Good indexes on status/dates; unique constraints on interest accrual
+periods, schedule installments, payment schedule links, execution idempotency
+keys.
+
+Gaps: No non-negative balance CHECK; no transfer pair FK; no DB constraint
+linking loan disbursement account to applicant; denormalized loan balances must
+stay in sync via application code; AuditLog.action is unenforced string;
+PayrollRun.lineItems as JSON.
+
+
+10. PERFORMANCE
+
+N+1 risk in list mappers; bank hub loader fetches everything upfront;
+AdminDataTable renders full DOM (no virtualization); unbounded loan/scheduled
+transfer lists; no caching on dashboard metrics; concurrent cron debiting same
+accounts in parallel (Promise.all in scheduled-transfers cron).
+
+At 10k users: user list cap hides 98% of users; account search cap hides
+records; audit unusable for investigation.
+
+
+================================================================================
+MISSING FEATURES (PRE-LAUNCH ONLY)
+================================================================================
+
+Critical:
+- Treasury RBAC enforcement on server
+- Atomic balance enforcement (no negative balances)
+- Withdrawal hold model through approval
+- Loan schedule partial payment handling
+- Idempotent interest guarantee
+- Confirmation on all admin financial actions
+- Deposit interest automation (cron)
+- Pagination on all admin lists
+
+High:
+- Comprehensive audit on all money movement
+- Operator/admin privilege separation for disbursement
+- Queue management (assign, bulk, lock)
+- Balance reconciliation tooling
+- Remove auth bypass paths (UI Lab)
+- Deal room authentication
+
+Medium:
+- Statement void admin action
+- Compliance case workflow
+- Company operational controls (suspend, notes, audit)
+- Interbank execution or UI removal
+- Export/reporting for audit and queues
+- Payroll partial-failure handling
+
+Low:
+- Email search on users
+- Transfer pair linkage in schema
+- Interest page in sub-nav
+
+
+================================================================================
+LAUNCH READINESS SCORES
+================================================================================
+
+Category          Score   Rationale
+----------------  ------  -------------------------------------------------------
+Architecture      5/10    Clear layering but denormalized balance without locking,
+                          inconsistent RBAC, split cron paths
+Security          4/10    Server auth good; treasury bypass, TOCTOU, UI Lab,
+                          unauthenticated deal rooms are severe
+Banking           5/10    Core flows work; withdrawal holds, concurrency,
+                          missing interest cron are production gaps
+Admin             5/10    Real ops tooling exists; scale, confirmations, mock
+                          fallbacks limit trust
+Lending           4/10    Full lifecycle but schedule bug, guarantee race,
+                          audit gaps, mock deal rooms
+Data Integrity    4/10    Good idempotency in places; missing in transfers,
+                          loans, payroll partial failure
+Scalability       3/10    Hard caps, unbounded loads, no pagination, parallel cron
+Operations        4/10    Can run small bank manually; not 10k users / 100 staff
+
+Overall Readiness: 4.3 / 10
+
+
+================================================================================
+VERDICT
+================================================================================
+
+Alta Bank is a functional beta suitable for controlled testing with a small user
+base and low transaction concurrency. It is NOT ready for production launch as
+a major server financial institution until the Critical and Launch Blocker items
+are resolved. The admin panel provides real operational capability but lacks the
+safety rails, scale infrastructure, and audit completeness required before real
+money (even simulated) moves at institution volume.
+
+
+---
+This audit was performed read-only. No code was modified. Findings are based on
+source review of services, routes, components, and Prisma schema as of June 22,
+2026.

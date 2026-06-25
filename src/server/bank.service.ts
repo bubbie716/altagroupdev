@@ -80,22 +80,8 @@ function generateReferenceCode(type: "DEP" | "WDR" | "TRF" | "PVR"): string {
 }
 
 async function getAvailableBalance(accountId: string): Promise<number> {
-  const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
-  if (!account) notFound();
-
-  const balance = decimalToNumber(account.balance);
-  const pendingWithdrawals = await prisma.bankTransaction.aggregate({
-    where: {
-      bankAccountId: accountId,
-      type: "WITHDRAWAL",
-      status: "PENDING",
-    },
-    _sum: { amount: true },
-  });
-  const reserved = pendingWithdrawals._sum.amount
-    ? decimalToNumber(pendingWithdrawals._sum.amount)
-    : 0;
-  return balance - reserved;
+  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  return getAccountAvailableBalance(accountId);
 }
 
 function proofData(proof: BankProofInput) {
@@ -181,7 +167,28 @@ export async function listUserBankAccounts(userId: string): Promise<UserBankAcco
     include: accountInclude,
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
-  return accounts.map(mapUserBankAccount);
+  if (accounts.length === 0) return [];
+
+  const accountIds = accounts.map((a) => a.id);
+  const {
+    getActiveHoldsByAccountIds,
+    getPendingWithdrawalsByAccountIds,
+    computeAvailableBalance,
+  } = await import("@/server/account-balance.service");
+  const [holdsByAccount, pendingByAccount] = await Promise.all([
+    getActiveHoldsByAccountIds(accountIds),
+    getPendingWithdrawalsByAccountIds(accountIds),
+  ]);
+
+  return accounts.map((account) => {
+    const mapped = mapUserBankAccount(account);
+    const holds = holdsByAccount.get(account.id) ?? 0;
+    const pending = pendingByAccount.get(account.id) ?? 0;
+    return {
+      ...mapped,
+      availableBalance: computeAvailableBalance(mapped.balance, pending, holds),
+    };
+  });
 }
 
 export async function getUserBankAccountDetail(
@@ -233,13 +240,24 @@ export async function getUserBankAccountDetail(
   }
 
   const balance = decimalToNumber(account.balance);
+  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  const availableBalance = await getAccountAvailableBalance(accountId);
   const summary = mapUserBankAccount({
     ...account,
     transactions: recentTransactions.slice(0, 1),
   });
 
   const { buildAccountInterestInfo } = await import("@/lib/bank/account-interest-service");
-  const interestInfo = buildAccountInterestInfo(account);
+  const lastInterestCredit = await prisma.bankTransaction.findFirst({
+    where: {
+      bankAccountId: accountId,
+      type: "INTEREST_CREDIT",
+      status: "APPROVED",
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true, amount: true },
+  });
+  const interestInfo = buildAccountInterestInfo(account, lastInterestCredit);
 
   const ownerLabel = account.company?.name ?? user?.discordUsername ?? "Personal";
 
@@ -249,7 +267,7 @@ export async function getUserBankAccountDetail(
     depositsThisMonth,
     withdrawalsThisMonth,
     netChangeThisMonth: depositsThisMonth - withdrawalsThisMonth,
-    availableBalance: balance,
+    availableBalance,
     recentTransactions: recentTransactions.map(mapUserBankTransaction),
     interestInfo,
   };
@@ -452,6 +470,7 @@ export async function submitDepositRequest(
 
   const account = await requireAccessibleAccount(input.bankAccountId, userId);
   if (account.status !== "ACTIVE") badRequest("Account must be active to accept deposits");
+  if (account.restrictDeposits) badRequest("Deposits are restricted on this account");
 
   if (!proof.proofImageUrl?.trim()) badRequest("Screenshot proof is required");
 
@@ -479,6 +498,7 @@ export async function submitWithdrawalRequest(
 
   const account = await requireAccessibleAccount(input.bankAccountId, userId);
   if (account.status !== "ACTIVE") badRequest("Account must be active for withdrawals");
+  if (account.restrictWithdrawals) badRequest("Withdrawals are restricted on this account");
 
   const availableBalance = await getAvailableBalance(account.id);
   if (input.amount > availableBalance) {
@@ -514,6 +534,7 @@ export async function submitInternalTransfer(
 
   const fromAccount = await requireAccessibleAccount(input.fromAccountId, userId);
   if (fromAccount.status !== "ACTIVE") badRequest("Source account must be active");
+  if (fromAccount.restrictTransfers) badRequest("Transfers are restricted on this account");
 
   let toAccount: NonNullable<Awaited<ReturnType<typeof prisma.bankAccount.findUnique>>>;
 
@@ -537,6 +558,7 @@ export async function submitInternalTransfer(
   }
 
   if (toAccount.status !== "ACTIVE") badRequest("Destination account must be active");
+  if (toAccount.restrictDeposits) badRequest("Deposits are restricted on this account");
 
   const availableBalance = await getAvailableBalance(fromAccount.id);
   if (input.amount > availableBalance) {
@@ -579,6 +601,79 @@ export async function submitInternalTransfer(
         amount,
         status: "APPROVED",
         description: `Intrabank transfer from ${fromAccount.accountName} · ${fromAccount.accountNumber}`,
+        memo,
+        referenceCode: inReference,
+        proofImageUrl: null,
+      },
+    });
+  });
+
+  return { referenceCode: referenceBase };
+}
+
+/** Operator-initiated transfer between any Alta accounts (bypasses user ownership checks). */
+export async function submitOperatorInternalTransfer(input: {
+  fromAccountId: string;
+  toAccountNumber: string;
+  amount: number;
+  memo: string;
+}): Promise<{ referenceCode: string }> {
+  if (input.amount <= 0) badRequest("Amount must be greater than zero");
+
+  const fromAccount = await prisma.bankAccount.findUnique({ where: { id: input.fromAccountId } });
+  if (!fromAccount) notFound();
+  if (fromAccount.status !== "ACTIVE") badRequest("Source account must be active");
+
+  const toAccountNumber = normalizeAccountNumber(input.toAccountNumber);
+  if (!isValidAltaAccountNumber(toAccountNumber)) {
+    badRequest("Enter a valid Alta Bank account number (AB-####-######)");
+  }
+  const toAccount = await prisma.bankAccount.findUnique({ where: { accountNumber: toAccountNumber } });
+  if (!toAccount) badRequest("Recipient account not found");
+  if (toAccount.id === fromAccount.id) badRequest("Choose a different recipient account");
+  if (toAccount.status !== "ACTIVE") badRequest("Destination account must be active");
+
+  const availableBalance = await getAvailableBalance(fromAccount.id);
+  if (input.amount > availableBalance) {
+    badRequest("Insufficient available balance for this transfer");
+  }
+
+  const referenceBase = generateReferenceCode("TRF");
+  const outReference = `${referenceBase}-OUT`;
+  const inReference = `${referenceBase}-IN`;
+  const memo = input.memo?.trim() || null;
+  const amount = input.amount;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.bankAccount.update({
+      where: { id: fromAccount.id },
+      data: { balance: { decrement: amount } },
+    });
+    await tx.bankAccount.update({
+      where: { id: toAccount.id },
+      data: { balance: { increment: amount } },
+    });
+
+    await tx.bankTransaction.create({
+      data: {
+        bankAccountId: fromAccount.id,
+        type: "WITHDRAWAL",
+        amount,
+        status: "APPROVED",
+        description: `Operator transfer to ${toAccount.accountName} · ${toAccount.accountNumber}`,
+        memo,
+        referenceCode: outReference,
+        proofImageUrl: null,
+      },
+    });
+
+    await tx.bankTransaction.create({
+      data: {
+        bankAccountId: toAccount.id,
+        type: "DEPOSIT",
+        amount,
+        status: "APPROVED",
+        description: `Operator transfer from ${fromAccount.accountName} · ${fromAccount.accountNumber}`,
         memo,
         referenceCode: inReference,
         proofImageUrl: null,

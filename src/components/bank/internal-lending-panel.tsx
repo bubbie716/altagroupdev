@@ -31,6 +31,7 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
   const [reviewNote, setReviewNote] = useState(row.reviewNote ?? "");
   const [interestRate, setInterestRate] = useState(() => defaultMonthlyRate(row.productType));
   const [principalAmount, setPrincipalAmount] = useState(String(row.requestedAmount));
+  const [termMonths, setTermMonths] = useState(String(row.termMonths));
   const [expanded, setExpanded] = useState(false);
 
   if (!isActionable(row.status)) {
@@ -88,6 +89,17 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
                 onChange={(e) => setPrincipalAmount(e.target.value)}
               />
             </div>
+            <div>
+              <label className={fieldLabel}>Term (mo)</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                className={inputClass}
+                value={termMonths}
+                onChange={(e) => setTermMonths(e.target.value)}
+              />
+            </div>
           </div>
           <div className="flex flex-wrap gap-1 pt-1">
             {row.status === "pending" && (
@@ -110,6 +122,7 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
                     applicationId: row.id,
                     interestRate: Number(interestRate),
                     principalAmount: Number(principalAmount),
+                    termMonths: Number(termMonths),
                     reviewNote: reviewNote || undefined,
                   },
                 });

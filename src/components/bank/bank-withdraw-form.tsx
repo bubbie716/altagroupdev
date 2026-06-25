@@ -33,7 +33,7 @@ export function BankWithdrawForm({
     resolveInitialAccountId(accounts, defaultAccountId),
   );
   const selectedAccount = accounts.find((account) => account.id === bankAccountId);
-  const availableBalance = selectedAccount?.balance ?? 0;
+  const availableBalance = selectedAccount?.availableBalance ?? selectedAccount?.balance ?? 0;
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [submitting, setSubmitting] = useState(false);

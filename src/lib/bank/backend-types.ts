@@ -27,6 +27,7 @@ export interface UserBankAccount {
   accountNumber: string;
   routingNumber: string;
   balance: number;
+  availableBalance: number;
   status: BankAccountStatusCode;
   statusLabel: string;
   currency: string;
@@ -46,12 +47,8 @@ export interface UserBankAccount {
 
 export interface AccountInterestInfo {
   applicable: boolean;
-  enabled?: boolean;
-  rateLabel?: string;
-  statusLabel?: string;
-  lastInterestCreditedAt?: string | null;
-  nextInterestAccrualAt?: string | null;
-  estimatedNextInterest?: number | null;
+  lastInterestDate?: string | null;
+  lastInterestAmount?: number | null;
 }
 
 export interface UserBankAccountDetail extends UserBankAccount {

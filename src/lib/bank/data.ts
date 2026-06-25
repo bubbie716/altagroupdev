@@ -329,7 +329,15 @@ export const adminLoanQueue: AdminLoanRequest[] = [
   { id: "LN-4392", client: "Port Haven Maritime", product: "Secured Lending", amount: 1_200_000, status: "Approved", submitted: "2026-06-15" },
 ];
 
-export const bankRecentActivity = transactions.slice(0, 6);
+export const bankRecentActivity = transactions.slice(0, 6).map((tx, index) => {
+  const account = bankAccounts[index % bankAccounts.length];
+  return {
+    ...tx,
+    accountId: account.id,
+    accountName: account.name,
+    accountNumber: account.accountNumber,
+  };
+});
 
 export const bankMarketingSections: BankMarketingSection[] = [
   { title: "Alta Access", desc: "Starter banking for new Newport citizens.", to: "/bank/products" },

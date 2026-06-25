@@ -14,7 +14,7 @@ import {
 } from "@/lib/bank/lending.functions";
 import { useRouter } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/internal/lending")({
+export const Route = createFileRoute("/internal/lending/")({
   loader: async () => fetchInternalLendingOps(),
   head: () => ({ meta: [{ title: "Lending Review — Alta Internal" }] }),
   component: InternalLending,

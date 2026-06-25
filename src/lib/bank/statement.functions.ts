@@ -64,3 +64,15 @@ export const fetchPreviousStatementPeriod = createServerFn({ method: "GET" }).ha
   const { previousCalendarMonthRange } = await import("@/server/statement.service");
   return previousCalendarMonthRange();
 });
+
+export const fetchStatementGeneratableAccounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { listStatementGeneratableAccountsForUser } = await import("@/server/statement.service");
+  return listStatementGeneratableAccountsForUser(await actorId());
+});
+
+export const generateAccountStatementsBatch = createServerFn({ method: "POST" })
+  .inputValidator((input: import("@/lib/bank/statement-types").GenerateStatementsBatchInput) => input)
+  .handler(async ({ data }) => {
+    const { generateStatementsForUserBatch } = await import("@/server/statement.service");
+    return generateStatementsForUserBatch(await actorId(), data);
+  });

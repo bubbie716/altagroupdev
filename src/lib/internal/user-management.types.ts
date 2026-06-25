@@ -43,6 +43,7 @@ export type InternalUserBankAccountSummary = {
 
 export type InternalUserRecentTransaction = {
   id: string;
+  accountId: string;
   accountName: string;
   accountNumber: string;
   type: string;

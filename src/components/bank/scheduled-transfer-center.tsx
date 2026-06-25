@@ -15,6 +15,7 @@ import type {
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
+import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
 import { Textarea } from "@/components/ui/textarea";
 
 const fieldClass =
@@ -120,6 +121,7 @@ export function ScheduledTransferCenter({
           </div>
           <TransferHistoryTable
             payments={history}
+            sourceAccounts={sourceAccounts}
             canManage={canManage}
             onCancel={onCancel}
             showScopeColumn={showScopeColumn}
@@ -153,6 +155,7 @@ export function ScheduledTransferCenter({
             </div>
             <TransferHistoryTable
               payments={tab === "scheduled" ? scheduled : recurring}
+              sourceAccounts={sourceAccounts}
               canManage={canManage}
               onCancel={onCancel}
               compact
@@ -449,8 +452,17 @@ function paymentNextRun(p: ScheduledPaymentRow): string | null {
   return p.scheduledDate;
 }
 
+function lookupSourceAccount(
+  payment: ScheduledPaymentRow,
+  sourceAccounts: ScheduledTransferSourceAccount[],
+): ScheduledTransferSourceAccount | null {
+  if (!payment.bankAccountId) return null;
+  return sourceAccounts.find((account) => account.id === payment.bankAccountId) ?? null;
+}
+
 function TransferHistoryTable({
   payments,
+  sourceAccounts,
   canManage,
   onCancel,
   compact = false,
@@ -458,6 +470,7 @@ function TransferHistoryTable({
   emptyMessage = "queue",
 }: {
   payments: ScheduledPaymentRow[];
+  sourceAccounts: ScheduledTransferSourceAccount[];
   canManage: boolean;
   onCancel: (paymentId: string) => Promise<void>;
   compact?: boolean;
@@ -465,6 +478,7 @@ function TransferHistoryTable({
   emptyMessage?: "queue" | "history";
 }) {
   const router = useRouter();
+  const showSourceAccount = sourceAccounts.length > 1;
 
   if (payments.length === 0) {
     return (
@@ -481,6 +495,7 @@ function TransferHistoryTable({
       <div className="w-full overflow-x-auto"><table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
         <thead>
           <tr>
+            {showSourceAccount ? <th>From account</th> : null}
             <th>Recipient</th>
             <th>Amount</th>
             {compact && <th>Scheduled</th>}
@@ -496,8 +511,24 @@ function TransferHistoryTable({
           </tr>
         </thead>
         <tbody>
-          {payments.map((p) => (
+          {payments.map((p) => {
+            const sourceAccount = lookupSourceAccount(p, sourceAccounts);
+
+            return (
             <tr key={p.id}>
+              {showSourceAccount ? (
+                <td>
+                  {sourceAccount ? (
+                    <BankAccountActivityLink
+                      accountId={sourceAccount.id}
+                      accountName={sourceAccount.accountName}
+                      accountNumber={sourceAccount.accountNumber}
+                    />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+              ) : null}
               <td>{p.recipientName}</td>
               <td className="tabular-nums">{florin(p.amount)}</td>
               {compact && (
@@ -558,7 +589,8 @@ function TransferHistoryTable({
                 </td>
               )}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table></div>
     </div>

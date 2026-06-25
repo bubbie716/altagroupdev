@@ -21,7 +21,12 @@ export function StatementDocument({
   backTo,
 }: {
   statement: BankStatementDetail;
-  backTo: { to: string; params?: Record<string, string>; search?: Record<string, string> };
+  backTo: {
+    to: string;
+    params?: Record<string, string>;
+    search?: Record<string, string>;
+    label: string;
+  };
 }) {
   const pageRef = useRef<HTMLElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -74,7 +79,7 @@ export function StatementDocument({
           search={backTo.search}
           className="shrink-0 rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground"
         >
-          ← Back to account
+          ← {backTo.label}
         </RouteButton>
       </div>
 

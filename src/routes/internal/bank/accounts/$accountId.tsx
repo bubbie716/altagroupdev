@@ -8,6 +8,8 @@ import { BankProofStatus } from "@/components/bank/bank-proof-link";
 import { InternalAccountAdjustmentForm } from "@/components/internal/internal-account-adjustment-form";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
 import { InternalNotePanel } from "@/components/internal/internal-note-panel";
+import { InternalAccountOpsPanel } from "@/components/internal/internal-account-ops-panel";
+import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
 import {
   approveBankAccountOpening,
   closeBankAccountRecord,
@@ -17,17 +19,21 @@ import {
 } from "@/lib/bank/bank.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
+import { fetchAccountOpsSummary, fetchActivityTimeline } from "@/lib/internal/ops-platform.functions";
 import { florin } from "@/lib/bank/api";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { InternalBankTransactionRow } from "@/lib/bank/backend-types";
 
 export const Route = createFileRoute("/internal/bank/accounts/$accountId")({
   loader: async ({ params }) => {
-    const [account, auditLogs, notes] = await Promise.all([
+    const [account, auditLogs, notes, ops, timeline] = await Promise.all([
       fetchInternalBankAccountDetail({ data: params.accountId }),
       fetchAuditLogsForEntity({ data: { entityType: "BANK_ACCOUNT", entityId: params.accountId } }),
       fetchInternalNotes({ data: { targetType: "BANK_ACCOUNT", targetId: params.accountId } }),
+      fetchAccountOpsSummary({ data: params.accountId }),
+      fetchActivityTimeline({ data: { entityType: "BANK_ACCOUNT", entityId: params.accountId } }),
     ]);
-    return { account, auditLogs, notes };
+    return { account, auditLogs, notes, ops, timeline };
   },
   head: ({ loaderData }) => ({
     meta: [{ title: `${loaderData?.account.accountNumber ?? "Account"} — Alta Internal` }],
@@ -36,7 +42,7 @@ export const Route = createFileRoute("/internal/bank/accounts/$accountId")({
 });
 
 function InternalBankAccountDetail() {
-  const { account, auditLogs, notes } = Route.useLoaderData();
+  const { account, auditLogs, notes, ops, timeline } = Route.useLoaderData();
 
   return (
     <InternalPageShell
@@ -92,17 +98,58 @@ function InternalBankAccountDetail() {
             }}
           />
         )}
-        <Link
-          to="/bank/account/$accountId"
-          params={{ accountId: account.id }}
-          className="rounded-md border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
-        >
-          Client view
-        </Link>
       </div>
 
-      <Section title="Admin adjustment">
+      <Section title="Money operations">
+        <InternalAccountOpsPanel
+          accountId={account.id}
+          accountNumber={account.accountNumber}
+          status={account.status}
+          restrictions={ops.restrictions}
+          holds={ops.holds}
+          activeHoldTotal={ops.activeHoldTotal}
+        />
+      </Section>
+
+      <Section title="Admin adjustment" className="mt-10">
         <InternalAccountAdjustmentForm accountId={account.id} />
+      </Section>
+
+      <Section title="Scheduled transfers" className="mt-10">
+        {ops.scheduled.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">No scheduled transfers.</p>
+        ) : (
+          <AdminDataTable
+            columns={[
+              { key: "name", header: "Label", cell: (r) => r.label },
+              { key: "amount", header: "Amount", cell: (r) => florin(r.amount) },
+              {
+                key: "next",
+                header: "Next run",
+                cell: (r) => (r.nextRunDate ? formatActivityDateTime(r.nextRunDate) : "—"),
+              },
+              { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
+            ]}
+            rows={ops.scheduled}
+            rowKey={(r) => r.id}
+          />
+        )}
+      </Section>
+
+      <Section title="Statements" className="mt-10">
+        {ops.statements.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">No statements generated.</p>
+        ) : (
+          <AdminDataTable
+            columns={[
+              { key: "num", header: "Statement", cell: (r) => <span className="font-mono text-[11px]">{r.statementNumber}</span> },
+              { key: "period", header: "Period end", cell: (r) => r.periodEnd.slice(0, 10) },
+              { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
+            ]}
+            rows={ops.statements}
+            rowKey={(r) => r.id}
+          />
+        )}
       </Section>
 
       <Section title="Pending transactions" className="mt-10">
@@ -113,12 +160,16 @@ function InternalBankAccountDetail() {
         <TxTable rows={account.recentTransactions} empty="No transactions yet." />
       </Section>
 
+      <Section title="Activity timeline" className="mt-10">
+        <InternalActivityTimeline events={timeline} />
+      </Section>
+
       <Section title="Internal notes" className="mt-10">
         <InternalNotePanel targetType="BANK_ACCOUNT" targetId={account.id} initialNotes={notes} />
       </Section>
 
       <Section title="Audit history" className="mt-10">
-        <InternalAuditTable rows={auditLogs} />
+        <InternalAuditTable rows={auditLogs} showAccount={false} />
       </Section>
     </InternalPageShell>
   );
@@ -140,7 +191,15 @@ function TxTable({ rows, empty }: { rows: InternalBankTransactionRow[]; empty: s
   return (
     <AdminDataTable
       columns={[
-        { key: "ref", header: "Reference", cell: (r) => <span className="font-mono text-[11px]">{r.referenceCode}</span> },
+        {
+          key: "ref",
+          header: "Reference",
+          cell: (r) => (
+            <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: r.id }} className="font-mono text-[11px] text-gold hover:underline">
+              {r.referenceCode}
+            </Link>
+          ),
+        },
         { key: "type", header: "Type", cell: (r) => r.type },
         { key: "amount", header: "Amount", cell: (r) => r.amount },
         { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },

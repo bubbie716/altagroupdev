@@ -42,6 +42,28 @@ export interface GenerateStatementInput {
   periodEnd: string;
 }
 
+export interface StatementGeneratableAccount {
+  id: string;
+  accountName: string;
+  accountNumber: string;
+  isCompanyAccount: boolean;
+  companyName: string | null;
+}
+
+export interface GenerateStatementsBatchInput {
+  periodStart: string;
+  periodEnd: string;
+  accountIds?: string[];
+  allAccounts?: boolean;
+}
+
+export interface GenerateStatementsBatchResult {
+  created: number;
+  skipped: number;
+  errors: { accountId: string; label: string; message: string }[];
+  statements: { id: string; accountId: string }[];
+}
+
 export interface InternalStatementOpsSummary {
   recentStatements: BankStatementSummary[];
   voidedCount: number;
