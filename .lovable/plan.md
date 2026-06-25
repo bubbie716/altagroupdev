@@ -1,137 +1,75 @@
 
-# Alta — Premium Editorial Pass
+# Lending Editorial Pass — Apply, Applications, Loans
 
-Alta Bank is the institution; **Alta Private** is one division. The polish target is "private-bank caliber across the whole bank," but the *Private* name and voice are reserved for the Private division surfaces. Everywhere else reads as Alta Bank (institutional, modern, confident) — not Alta Private.
+Bring the three weaker lending routes up to the bar set by `/bank/lending` and `/bank/lending/deal-rooms`. Frontend/presentation only — no changes to server functions, loan service, mock data, schema, routing, or auth.
 
-The logo is navy ink + a gold arc on ivory, so the visual system stays in that family. No new design system, no rebrand — refine tokens, then deeply rework Lending, then rebuild Deal Rooms as a modern agent chat.
+## 1. `/bank/lending/apply` — Editorial application flow
 
-## Brand voice & labeling (clarified)
+Goal: feel like sitting across from a credit officer, not filling a generic form.
 
-- Default chrome, headers, and microcopy across the site = **Alta Bank**. Eyebrows like "Alta Bank · Lending", "Alta Bank · Markets", etc.
-- **Alta Private** voice (serif-forward, "your relationship manager", concierge tone) is used only on Private-division surfaces — e.g. eligible private-client dashboards, the private client section of Profile, and any product card explicitly tagged as a Private offering.
-- The Alta Private split-screen login from the previous priority pass stays for the Private route, but the default login experience belongs to Alta Bank — not Private. (No code change to login is part of this plan unless the user asks; flagging only for naming consistency.)
-- Lending is an **Alta Bank** product surface. The Credit Desk wording stays, but no "Private" branding on application, products, loans, or deal rooms unless the underlying product is a Private offering.
-- Deal Room officer is an "Alta credit officer" (Alta Bank), not a "private banker."
+- Restructure the route body into a two-column layout (`lg:grid-cols-[minmax(0,1fr)_360px]`). Single column on mobile.
+- **Left column** — split the existing `LendingApplyForm` into 4 visual fieldsets separated by hairline dividers and mono section eyebrows:
+  1. `01 · Product` — product selector + (when business) company picker.
+  2. `02 · Amount & term` — requested amount, term months, linked account.
+  3. `03 · Purpose` — purpose, repayment plan, collateral.
+  4. `04 · Notes for the officer` — notes textarea.
+  No fields added or removed. State, validation, and `submitLoanApplication` call stay identical.
+- Add a slim progress rail above the form: 4 hairline pills, current step highlighted in gold, driven by scroll position (IntersectionObserver on the fieldsets). Pure UI affordance.
+- **Right column (sticky `top-24`)** — new `ApplicationSummaryCard` component that mirrors current form state live:
+  - Eyebrow: `Application summary`.
+  - Product label, requested amount (Florin), term, repayment cadence (from `LOAN_PRODUCT_REPAYMENT_TERMS`), estimated total outstanding (already computed via `computeLoanTermEstimate`).
+  - Mono rate line ("Indicative · subject to officer review").
+  - "What happens next" 3-step list (Submit → Officer assigned → Deal room opens). Static copy.
+- **Mobile**: summary becomes a collapsible bottom sheet (`<details>` with sticky bottom bar) showing the same fields.
+- Submit button row gets a hairline top divider and a mono caption ("Reviewed manually by Alta Bank credit operations · typical response < 4h").
 
-## 1. Global system refinement
+## 2. `/bank/lending/applications` — Editorial list
 
-Touch tokens once, every page benefits.
+Goal: stop looking like an internal admin table.
 
-- **Type scale**: serif headers paired with a tighter editorial ramp (h1 56/60, h2 40/44, h3 28/32, eyebrow mono 11/16 +0.18em). Body sans, slightly looser leading.
-- **Color / surface**: ivory + navy + gold. Add `--surface-3` (deeper ivory) for sectioning, `--ink-soft` for secondary text, and a true `--hairline` token for 1px dividers. Replace heavier `border` usage on cards with hairlines.
-- **Radius**: standardize on 6 / 10 / 14 (controls / cards / modals).
-- **Shadows**: `--shadow-hairline` (subtle inset) and `--shadow-elevated` (soft Y-shadow with 6% navy tint).
-- **Motion**: `--ease-editorial` cubic-bezier + 180ms standard. Applied to button, link, tabs, sub-nav, dialog. No springy motion.
-- **Cards / tables / dialogs**: refactor `Card`, `Table`, `Dialog` to the hairline editorial system; opt-in `variant="elevated"` for shadow.
-- **Section spacing**: 96px desktop / 56px mobile rhythm.
+- Add a stat strip above the table (4 cells, hairline divided, mono labels): Total submitted · Under review · Approved · Declined. Computed from `applications` array.
+- Replace the raw `AdminDataTable` with a hairline-bordered row list (same row pattern as deal rooms): each row shows
+  - mono ID + submitted timestamp eyebrow,
+  - serif product name, company subline,
+  - right-aligned Florin amount, term (mono),
+  - status badge,
+  - review note (line-clamped, muted) beneath.
+- Filter chip row above the list: All / Pending / Under review / Approved / Declined. Local `useState`, filters the same array.
+- Improved empty state using the project's `EmptyState` with eyebrow, title, and a CTA to `/bank/lending/apply`.
+- All data still comes from `fetchUserLoanApplications`; no fields added.
 
-Files: `src/styles.css`, `src/components/ui/card.tsx`, `src/components/ui/dialog.tsx`, `src/components/ui/table.tsx`, `src/components/page-shell.tsx`, `src/components/typography.tsx`, `src/lib/typography.ts`.
+## 3. `/bank/lending/loans` — Facility summary + table
 
-## 2. Section-by-section editorial pass
+Goal: institutional credit portfolio, not a stack of expanding cards.
 
-Same vocabulary applied everywhere. No route or IA changes.
+- Add a top **Portfolio summary strip** (4 hairline cells): Total exposure, Total repaid, Next payment due (date + amount from soonest pending installment across loans), Auto-pay coverage (X of Y facilities). Derived from existing `loans` array — no new server calls.
+- Replace the vertical card stack with an institutional **facility table**:
+  - Columns: Facility ID (mono), Product, Principal, Outstanding, Rate, Next due, Status, Auto-pay.
+  - Row click expands an inline detail panel beneath the row (single-row expanded at a time) containing the existing `LoanRepaymentProgressBar`, metric grid, `LoanPaymentScheduleTable`, `LoanAutoPayForm`, payment history, and Make payment button.
+  - Reuses every existing component and the existing `useServerFn(fetchLoanPaymentContext)` lazy load — only the outer container changes.
+- First facility expanded by default when count > 0; matches current behavior.
+- Empty state unchanged (already polished).
+- Keep `AltaCreditProfilePlaceholder` at the bottom.
 
-- **Home (`/`)**: editorial Alta Bank hero, serif headline, gold rule, three-up product proof, hairline footer.
-- **Bank**: dashboard cards re-skinned to institutional statement look (account numbers in mono, balances via `Florin`).
-- **Exchange + Terminal**: stat cards, watchlist, leaderboard, news, research re-skinned to shared table + card system. No layout changes.
-- **Governance**: leadership / entity overview re-typeset with editorial serif intros and hairline dividers.
-- **Internal**: tables and stat cards inherit shared components; filter bars get new control styles.
-- **Profile / Companies / Markets**: typography, hairlines, button styles only. Profile's private-client section keeps Private voice; everything else is Alta Bank.
+## Technical notes
 
-No business logic, routing, or auth changes.
+- New components, all under `src/components/bank/`:
+  - `lending-apply-shell.tsx` (two-column layout + progress rail + sticky summary).
+  - `application-summary-card.tsx`.
+  - `lending-applications-list.tsx` (row list + filter chips + stat strip).
+  - `lending-loans-table.tsx` (facility table + expanded detail row).
+- `LendingApplyForm` refactored internally to expose its state via a render-prop or to accept an optional `onStateChange` callback so the sticky summary stays in sync. No public API breakage for any other caller — only `/bank/lending/apply` imports it.
+- All styling via existing tokens (`bg-surface-1`, `border-border`, `text-gold`, `font-mono`, `font-serif`). No new CSS variables, no hardcoded colors.
+- Mobile: single column for Apply, scrollable filter chip row for Applications, table degrades to a stacked row list on `<sm` for Loans.
+- No changes to `routeTree.gen.ts`, route files' loaders/`beforeLoad`, or any `*.functions.ts`.
 
-## 3. Lending — deeper rework (highest priority)
+## Out of scope
 
-Keep all routes and logic intact. Rework presentation across the five lending surfaces. Branded as **Alta Bank · Credit Desk** (not Private).
+- Backend, server functions, Prisma, loan service, auth, routing.
+- Deal room chat (already done).
+- Editorial pass on Exchange / Terminal / Governance / Profile / etc.
+- Adding new loan fields, new statuses, or new product types.
 
-### `/bank/lending` (overview)
-- Editorial hero: "Alta Bank Credit Desk", short lede, two CTAs (Apply, View facilities).
-- Three product summary cards (Personal credit line, Business term, Bridge / structured) in hairline editorial style.
-- Below: "Your facilities" — institutional table replacing current card grid.
+## Order of work
 
-### `/bank/lending/apply` (most work)
-Full rework into a premium multi-step.
-- Two-column desktop: left = step content, right = sticky **Application Summary** card (live preview of amount, term, est. rate, monthly est., assigned officer).
-- Steps as hairline progress rail (mono labels): `Product → Amount & Term → Purpose → Profile → Review`.
-- Inputs use the existing Alta input system; inline helper + validation in mono micro-caps.
-- Review step shows a term-sheet–style preview block (`ReceiptBlock` + `Florin`) before submit.
-- Mobile: single column, sticky bottom action bar with summary chip that expands to a sheet.
-
-### `/bank/lending/products`
-Editorial product detail cards: serif name, eyebrow tag, rate band, term band, eligibility list, "Start application" link. Hairline dividers, no shadow.
-
-### `/bank/lending/loans` (My Loans) + loan detail
-- List: institutional table — Facility ID (mono), product, principal (Florin), rate, next payment, status badge.
-- Detail: hairline underline tabs — Overview, Schedule, Statements, Autopay. Schedule = dense table with tabular numerics; current row gets a gold left-border.
-
-### `/bank/lending/deal-rooms` (directory)
-Editorial list (not card grid): row = counterparty + product + status badge + last-activity timestamp + officer initials, hairline divider, hover tint. Filter chips above.
-
-### Internal `/internal/lending/deal-rooms`
-Picks up new table styles; Actions menu re-skinned. No logic change.
-
-## 4. Deal Room → modern agent chat (rebuild)
-
-Single-pane chat with a deal context rail.
-
-### Layout
-```text
-Desktop (≥lg):
-┌──────────────────────────────────────────┬─────────────────────┐
-│ Header: counterparty · product · status  │ Deal Context Rail   │
-│ ──────────────────────────────────────── │ ───────────────────│
-│                                          │ Summary             │
-│   Chat transcript (AI Elements)          │ Terms (req vs Alta) │
-│   - officer / applicant / system         │ Documents           │
-│   - inline cards (term sheet, document,  │ Timeline            │
-│     status, signature)                   │ Officer             │
-│                                          │                     │
-│ ──────────────────────────────────────── │                     │
-│ Composer (PromptInput, attach, send)     │                     │
-└──────────────────────────────────────────┴─────────────────────┘
-
-Mobile:
-- Chat full-screen.
-- Sticky top: counterparty + status + "Deal" button.
-- "Deal" opens a bottom sheet with the rail (Summary, Terms, Documents, Timeline).
-```
-
-### Implementation
-- Install AI Elements: `bun x ai-elements@latest add conversation message prompt-input shimmer`.
-- Build `DealRoomChat` from `Conversation`, `Message` + `MessageContent` + `MessageResponse`, `PromptInput` + `PromptInputTextarea` + `PromptInputFooter` + `PromptInputSubmit`.
-- Roles: `officer` (Alta credit officer), `applicant`, `system`. Officer messages on the left with a small Alta gold mark avatar; applicant on the right as a navy-on-ivory bubble; system as centered hairline meta lines ("Term sheet v2 issued", "Documents requested").
-- **Inline cards** as custom `message.parts` types (mocked):
-  - `term-sheet-card` — compact terms grid + "View term sheet" link to rail.
-  - `document-request-card` — requested docs with "Upload" placeholder buttons.
-  - `status-card` — status transitions with gold rule.
-  - `signature-card` — ready-for-signature CTA.
-- Composer is UI-only. Submitting appends an optimistic applicant message + a `Shimmer` "Officer is reviewing…" then a canned reply from mock data. No websockets, no AI gateway calls.
-- Deal Context Rail = condensed `TermsBlock`, `DealTimeline`, documents list, officer card. Collapsible sections with hairline headers.
-
-### Files
-- New: `src/components/bank/deal-room/deal-room-chat.tsx`, `deal-context-rail.tsx`, `inline-cards.tsx`, `mobile-deal-sheet.tsx`.
-- Update: `src/routes/bank/lending/deal-rooms/$dealRoomId.tsx` to use the new chat layout.
-- Update: `src/lib/bank/deal-rooms-mock.ts` to add per-room `messages` with mixed text + inline-card parts and canned officer replies.
-- Keep: existing `deal-room-bits.tsx` exports reused inside the rail.
-
-## 5. Non-goals (explicit)
-
-- No backend, websockets, AI calls, e-signature, or contract generation.
-- No new design system or rebrand — same Alta tokens, refined.
-- No auth, routing, lending business logic, Prisma, or server function changes.
-- No relabeling of non-Private surfaces as "Alta Private" — Lending and the rest stay Alta Bank.
-
-## 6. Order of execution
-
-1. Tokens + shared primitives.
-2. Lending rework (overview → apply → products → loans → deal-rooms directory).
-3. Deal Room chat rebuild.
-4. Editorial pass on remaining sections (Home, Bank, Exchange, Terminal, Governance, Internal, Profile, Companies, Markets).
-5. Mobile QA pass.
-
-## Final summary
-
-- Site-wide premium editorial polish on Alta Bank, with Private voice scoped to Private division surfaces only.
-- Significantly deeper Lending rework, especially Apply.
-- Deal Rooms rebuilt as a single-pane AI-Elements agent chat with a deal context rail (mocked, UI-only).
-- All routing, auth, and lending logic preserved.
+1. `application-summary-card.tsx` + refactor `LendingApplyForm` state hook → 2. `lending-apply-shell.tsx` and rewire `apply.tsx` → 3. `lending-applications-list.tsx` and rewire `applications.tsx` → 4. `lending-loans-table.tsx` and rewire `loans/index.tsx` → 5. Mobile QA across all three.
