@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { LendingSubNav } from "@/components/bank/lending-sub-nav";
-import { LendingApplyForm } from "@/components/bank/lending-apply-form";
+import { LendingApplyExperience } from "@/components/bank/lending-apply-experience";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
 import type { LoanProductTypeCode } from "@/lib/bank/lending-types";
@@ -43,7 +43,7 @@ function BankLendingApply() {
     >
       <BankSubNav />
       <LendingSubNav />
-      <LendingApplyForm accounts={accounts} companies={companies} initialProduct={product} />
+      <LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />
     </PageShell>
   );
 }
