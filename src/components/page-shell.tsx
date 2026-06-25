@@ -82,7 +82,7 @@ export function Card({
   return (
     <div
       className={
-        "rounded-xl border border-border bg-surface-1/80 p-4 sm:p-6 shadow-card transition-all duration-300 hover:border-border-strong hover:-translate-y-0.5 hover:shadow-elevated " +
+        "rounded-xl border border-border bg-surface-1/80 p-5 sm:p-6 transition-colors duration-200 hover:border-border-strong " +
         className
       }
     >

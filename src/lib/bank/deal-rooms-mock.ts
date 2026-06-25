@@ -55,6 +55,46 @@ export interface ActivityEvent {
   timestamp: string;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Chat messages (agent-chat shape, separate from activity log)               */
+/* -------------------------------------------------------------------------- */
+
+export type ChatRole = "officer" | "applicant" | "system";
+
+export type ChatPart =
+  | { type: "text"; text: string }
+  | {
+      type: "term-sheet-card";
+      version: number;
+      amount: number;
+      rate: number;
+      termMonths: number;
+      minPayment: number;
+    }
+  | {
+      type: "document-request-card";
+      docs: string[];
+    }
+  | {
+      type: "status-card";
+      label: string;
+      detail?: string;
+    }
+  | {
+      type: "signature-card";
+      title: string;
+      detail?: string;
+    };
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  author?: string;
+  authorRole?: string;
+  timestamp: string;
+  parts: ChatPart[];
+}
+
 export type ContractStatus =
   | "drafting"
   | "ready_for_review"
@@ -107,6 +147,9 @@ export interface DealRoom {
   termSheet: TermSheet;
   contractStatus: ContractStatus;
   activity: ActivityEvent[];
+  messages?: ChatMessage[];
+  officerTitle?: string;
+  officerInitials?: string;
 }
 
 export const DEAL_TIMELINE_STEPS = [
@@ -146,6 +189,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
     applicantHandle: "carter.hale",
     company: "Aurelia Maritime Holdings",
     assignedOfficer: "Alex Morgan",
+    officerTitle: "Senior Credit Officer · Alta Bank",
+    officerInitials: "AM",
     requestedAmount: 480_000,
     proposedAmount: 420_000,
     proposedRate: 0.078,
@@ -243,6 +288,78 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
         timestamp: "2026-06-24T14:08:00Z",
       },
     ],
+    messages: [
+      {
+        id: "m1",
+        role: "system",
+        timestamp: "2026-06-14T09:12:00Z",
+        parts: [{ type: "status-card", label: "Application submitted", detail: "Business Growth Facility · ƒ480,000 requested over 60 months." }],
+      },
+      {
+        id: "m2",
+        role: "system",
+        timestamp: "2026-06-14T11:42:00Z",
+        parts: [{ type: "status-card", label: "Officer assigned", detail: "Alex Morgan, Senior Credit Officer." }],
+      },
+      {
+        id: "m3",
+        role: "officer",
+        author: "Alex Morgan",
+        authorRole: "Senior Credit Officer · Alta Bank",
+        timestamp: "2026-06-15T13:20:00Z",
+        parts: [
+          { type: "text", text: "Welcome to the deal room, Carter. To open committee review I'll need a couple of items from the Aurelia side before we can structure terms." },
+          { type: "document-request-card", docs: ["FY24 audited financials", "FY25 audited financials", "Current MV Aurelia I insurance certificate"] },
+        ],
+      },
+      {
+        id: "m4",
+        role: "applicant",
+        author: "Carter Hale",
+        timestamp: "2026-06-17T10:05:00Z",
+        parts: [{ type: "text", text: "All three uploaded. Hull insurance is the renewed certificate — valid through March 2027." }],
+      },
+      {
+        id: "m5",
+        role: "officer",
+        author: "Alex Morgan",
+        authorRole: "Senior Credit Officer · Alta Bank",
+        timestamp: "2026-06-19T08:30:00Z",
+        parts: [
+          { type: "text", text: "Reviewed and circulated to committee. Here is our opening term sheet — pricing reflects current marine credit benchmarks and the LTV we discussed informally." },
+          { type: "term-sheet-card", version: 1, amount: 400_000, rate: 0.082, termMonths: 60, minPayment: 8_120 },
+        ],
+      },
+      {
+        id: "m6",
+        role: "applicant",
+        author: "Carter Hale",
+        timestamp: "2026-06-20T16:50:00Z",
+        parts: [{ type: "text", text: "Appreciated. Could we revisit at ƒ440,000 @ 7.50% to align with the hull refit timeline? Happy to add quarterly covenant reporting in exchange." }],
+      },
+      {
+        id: "m7",
+        role: "officer",
+        author: "Alex Morgan",
+        authorRole: "Senior Credit Officer · Alta Bank",
+        timestamp: "2026-06-22T09:15:00Z",
+        parts: [
+          { type: "text", text: "Committee accepted the covenant addition. Pricing comes in slightly above your ask given vessel-class risk weighting — revised structure below." },
+          { type: "term-sheet-card", version: 2, amount: 420_000, rate: 0.078, termMonths: 60, minPayment: 8_540 },
+        ],
+      },
+      {
+        id: "m8",
+        role: "officer",
+        author: "Alex Morgan",
+        authorRole: "Senior Credit Officer · Alta Bank",
+        timestamp: "2026-06-24T14:08:00Z",
+        parts: [
+          { type: "text", text: "Best-and-final structure pending your acceptance — same terms, with the LTV covenant codified in section 4.2." },
+          { type: "term-sheet-card", version: 3, amount: 420_000, rate: 0.078, termMonths: 60, minPayment: 8_540 },
+        ],
+      },
+    ],
   },
   {
     id: "DR-2051-HBRLINE",
@@ -250,6 +367,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
     applicant: "Harbor Line Logistics",
     company: "Harbor Line Logistics",
     assignedOfficer: "Priya Raman",
+    officerTitle: "Commercial Credit Officer · Alta Bank",
+    officerInitials: "PR",
     requestedAmount: 150_000,
     proposedAmount: 150_000,
     proposedRate: 0.062,
@@ -296,6 +415,49 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
         timestamp: "2026-06-23T17:30:00Z",
       },
     ],
+    messages: [
+      {
+        id: "h1",
+        role: "system",
+        timestamp: "2026-05-28T12:00:00Z",
+        parts: [{ type: "status-card", label: "Application submitted" }],
+      },
+      {
+        id: "h2",
+        role: "officer",
+        author: "Priya Raman",
+        authorRole: "Commercial Credit Officer · Alta Bank",
+        timestamp: "2026-06-21T15:10:00Z",
+        parts: [
+          { type: "text", text: "Terms approved by committee — full requested amount on a revolving structure." },
+          { type: "term-sheet-card", version: 2, amount: 150_000, rate: 0.062, termMonths: 24, minPayment: 775 },
+        ],
+      },
+      {
+        id: "h3",
+        role: "applicant",
+        author: "Harbor Line Logistics",
+        timestamp: "2026-06-22T09:45:00Z",
+        parts: [{ type: "text", text: "Accepted — please proceed with documentation." }],
+      },
+      {
+        id: "h4",
+        role: "system",
+        timestamp: "2026-06-23T17:30:00Z",
+        parts: [{ type: "status-card", label: "Contract draft generated", detail: "Awaiting counterparty signature." }],
+      },
+      {
+        id: "h5",
+        role: "officer",
+        author: "Priya Raman",
+        authorRole: "Commercial Credit Officer · Alta Bank",
+        timestamp: "2026-06-23T17:35:00Z",
+        parts: [
+          { type: "text", text: "Contract is ready for your countersignature." },
+          { type: "signature-card", title: "Working Capital Line — Master Agreement", detail: "Sign in-room once you're ready. We'll counter-execute and disburse same day." },
+        ],
+      },
+    ],
   },
   {
     id: "DR-2059-MERIDIAN",
@@ -303,6 +465,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
     applicant: "Meridian Partners",
     company: "Meridian Partners",
     assignedOfficer: "Alex Morgan",
+    officerTitle: "Senior Credit Officer · Alta Bank",
+    officerInitials: "AM",
     requestedAmount: 2_400_000,
     proposedAmount: 2_000_000,
     proposedRate: 0.054,
@@ -352,6 +516,25 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
         timestamp: "2026-06-24T09:00:00Z",
       },
     ],
+    messages: [
+      {
+        id: "p1",
+        role: "system",
+        timestamp: "2026-06-21T08:00:00Z",
+        parts: [{ type: "status-card", label: "Application submitted", detail: "Private Liquidity Line · ƒ2.4M requested." }],
+      },
+      {
+        id: "p2",
+        role: "officer",
+        author: "Alex Morgan",
+        authorRole: "Senior Credit Officer · Alta Bank",
+        timestamp: "2026-06-24T09:00:00Z",
+        parts: [
+          { type: "text", text: "Routed to the credit desk. Before structuring, I'll need the most recent custodial statement and a beneficial-ownership disclosure on file." },
+          { type: "document-request-card", docs: ["Custodial statement (most recent)", "Beneficial ownership disclosure"] },
+        ],
+      },
+    ],
   },
   {
     id: "DR-2061-HELIX",
@@ -359,6 +542,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
     applicant: "Helix Dynamics",
     company: "Helix Dynamics",
     assignedOfficer: "Jordan Vale",
+    officerTitle: "Founder Credit Officer · Alta Bank",
+    officerInitials: "JV",
     requestedAmount: 75_000,
     proposedAmount: 75_000,
     proposedRate: 0.092,
@@ -392,11 +577,67 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
         timestamp: "2026-06-20T11:00:00Z",
       },
     ],
+    messages: [
+      {
+        id: "x1",
+        role: "system",
+        timestamp: "2026-06-20T11:00:00Z",
+        parts: [{ type: "status-card", label: "Loan approved", detail: "Disbursement scheduled to your linked Alta account." }],
+      },
+      {
+        id: "x2",
+        role: "officer",
+        author: "Jordan Vale",
+        authorRole: "Founder Credit Officer · Alta Bank",
+        timestamp: "2026-06-20T11:05:00Z",
+        parts: [{ type: "text", text: "Congratulations — facility is live. Quarterly revenue updates are the only ongoing requirement. Reach out here any time." }],
+      },
+    ],
   },
 ];
 
 export function getDealRoom(id: string): DealRoom | undefined {
   return MOCK_DEAL_ROOMS.find((r) => r.id === id);
+}
+
+/**
+ * Canned officer reply used by the agent-chat composer (UI-only mock).
+ * Picked by lightweight keyword routing over the applicant's message.
+ */
+export function generateMockOfficerReply(
+  room: DealRoom,
+  applicantText: string,
+): ChatPart[] {
+  const t = applicantText.toLowerCase();
+  if (/rate|pricing|apr|interest/.test(t)) {
+    return [
+      {
+        type: "text",
+        text: "Noted. I'll re-run the pricing model with that benchmark in mind and circle back with a revised structure shortly.",
+      },
+    ];
+  }
+  if (/document|upload|statement|certificate|insurance/.test(t)) {
+    return [
+      { type: "text", text: "Thanks — flagging these for review. I'll confirm once they clear documentation." },
+    ];
+  }
+  if (/sign|signature|accept|approve/.test(t)) {
+    return [
+      { type: "text", text: "Understood. I'll prepare the package for countersignature on our side." },
+      {
+        type: "signature-card",
+        title: `${room.loanProduct} — Acceptance Package`,
+        detail: "Sign in-room. We'll counter-execute and notify operations.",
+      },
+    ];
+  }
+  return [
+    {
+      type: "text",
+      text: `Acknowledged. I'll review with the desk and respond within one business day.\n\n— ${room.assignedOfficer}`,
+    },
+  ];
 }
 
 export function formatPercent(value: number): string {

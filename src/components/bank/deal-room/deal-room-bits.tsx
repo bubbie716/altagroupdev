@@ -92,12 +92,15 @@ export function MetaRow({
 export function TermsBlock({
   requested,
   termSheet,
+  stacked,
 }: {
   requested: RequestedTerms;
   termSheet: TermSheet;
+  /** Force a single-column layout (for narrow contexts like the rail). */
+  stacked?: boolean;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className={cn("grid gap-4", !stacked && "sm:grid-cols-2")}>
       <TermColumn title="Requested" subtitle="Counterparty">
         <TermRow label="Amount">
           <Florin value={requested.amount} fractionDigits={0} />
