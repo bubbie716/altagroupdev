@@ -55,6 +55,46 @@ export interface ActivityEvent {
   timestamp: string;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Chat messages (agent-chat shape, separate from activity log)               */
+/* -------------------------------------------------------------------------- */
+
+export type ChatRole = "officer" | "applicant" | "system";
+
+export type ChatPart =
+  | { type: "text"; text: string }
+  | {
+      type: "term-sheet-card";
+      version: number;
+      amount: number;
+      rate: number;
+      termMonths: number;
+      minPayment: number;
+    }
+  | {
+      type: "document-request-card";
+      docs: string[];
+    }
+  | {
+      type: "status-card";
+      label: string;
+      detail?: string;
+    }
+  | {
+      type: "signature-card";
+      title: string;
+      detail?: string;
+    };
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  author?: string;
+  authorRole?: string;
+  timestamp: string;
+  parts: ChatPart[];
+}
+
 export type ContractStatus =
   | "drafting"
   | "ready_for_review"
@@ -107,6 +147,9 @@ export interface DealRoom {
   termSheet: TermSheet;
   contractStatus: ContractStatus;
   activity: ActivityEvent[];
+  messages?: ChatMessage[];
+  officerTitle?: string;
+  officerInitials?: string;
 }
 
 export const DEAL_TIMELINE_STEPS = [
