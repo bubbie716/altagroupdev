@@ -12,10 +12,19 @@ export const Route = createFileRoute("/bank/products")({
   component: BankProducts,
 });
 
-const PRODUCT_SECTIONS: BankProductCategory[] = [
-  "Retail Banking",
-  "Business Banking",
-  "Alta Private",
+const PRODUCT_SECTIONS: Array<{ id: BankProductCategory; description: string }> = [
+  {
+    id: "Retail Banking",
+    description: "Everyday Florin deposit products for Newport citizens.",
+  },
+  {
+    id: "Business Banking",
+    description: "Treasury and operating accounts for verified Newport companies.",
+  },
+  {
+    id: "Alta Private",
+    description: "Invitation-only private banking tiers for qualifying clients.",
+  },
 ];
 
 function BankProducts() {
@@ -29,12 +38,24 @@ function BankProducts() {
     >
       <BankSubNav />
 
-      {PRODUCT_SECTIONS.map((section) => {
-        const sectionProducts = products.filter((p) => p.category === section);
+      {PRODUCT_SECTIONS.map((section, index) => {
+        const sectionProducts = products.filter((p) => p.category === section.id);
         if (sectionProducts.length === 0) return null;
 
         return (
-          <Section key={section} title={section} className={section !== "Retail Banking" ? "mt-12" : undefined}>
+          <Section
+            key={section.id}
+            title={section.id}
+            className={index > 0 ? "mt-14" : undefined}
+            action={
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                {sectionProducts.length} {sectionProducts.length === 1 ? "product" : "products"}
+              </span>
+            }
+          >
+            <p className="-mt-2 mb-6 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+              {section.description}
+            </p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {sectionProducts.map((p) => (
                 <ProductCard key={p.name} product={p} />

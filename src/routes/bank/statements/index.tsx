@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
+import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { StatementListTable } from "@/components/bank/statement-list-table";
+import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { fetchStatementCenterStatements } from "@/lib/bank/statement.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
@@ -27,33 +28,54 @@ function BankStatementsPage() {
     >
       <BankSubNav />
 
-      <div className="mb-8 flex items-start gap-3 rounded-lg border border-border/60 bg-surface-2/40 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        <p>
-          Statements are generated from approved transaction history. PDF export and automated monthly
-          delivery are planned for a future release.
-        </p>
-      </div>
+      <BankStatStrip
+        items={[
+          { label: "Personal statements", value: String(personal.length) },
+          { label: "Business statements", value: String(business.length) },
+          { label: "Total on file", value: String(statements.length) },
+          { label: "PDF export", value: "Soon", sub: "Planned for future release" },
+        ]}
+      />
+
+      <p className="mt-3 mb-8 rounded-md border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground">
+        Statements are generated from approved transaction history. PDF export and automated monthly delivery are planned for a future release.
+      </p>
 
       {statements.length === 0 ? (
         <Section title="Statements">
-          <Card className="!p-6">
+          <div className="rounded-xl border border-border bg-surface-1">
             <StatementListTable statements={statements} />
-          </Card>
+          </div>
         </Section>
       ) : (
         <>
           {personal.length > 0 && (
-            <Section title="Personal accounts" className={business.length > 0 ? "mb-10" : undefined}>
-              <Card className="!p-6">
+            <Section
+              title="Personal accounts"
+              className={business.length > 0 ? "mb-10" : undefined}
+              action={
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {personal.length} on file
+                </span>
+              }
+            >
+              <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
                 <StatementListTable statements={personal} />
-              </Card>
+              </div>
             </Section>
           )}
           {business.length > 0 && (
-            <Section title="Business accounts">
-              <Card className="!p-6">
+            <Section
+              title="Business accounts"
+              action={
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {business.length} on file
+                </span>
+              }
+            >
+              <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
                 <StatementListTable statements={business} />
-              </Card>
+              </div>
             </Section>
           )}
         </>

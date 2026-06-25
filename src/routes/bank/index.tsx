@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { BankStatCard } from "@/components/bank/bank-stat-card";
+import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
@@ -60,25 +60,38 @@ function BankDashboardLiveContent({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <BankStatCard
-          label="Total Relationship Value"
-          value={florin(dashboard.totalRelationshipValue)}
-          className="md:col-span-2 lg:col-span-2"
-        />
-        <BankStatCard label="Private Status" value={dashboard.privateStatus} />
-        <BankStatCard label="Checking Balance" value={florin(dashboard.checkingBalance)} />
-        <BankStatCard label="Savings Balance" value={florin(dashboard.savingsBalance)} />
-        <BankStatCard label="Reserve Balance" value={florin(dashboard.reserveBalance)} />
-        <BankStatCard label="Business Balance" value={florin(dashboard.businessBalance)} />
-        <BankStatCard
-          label="Pending Reviews"
-          value={String(dashboard.pendingDeposits + dashboard.pendingWithdrawals)}
-          sub="Deposits + withdrawals"
-        />
-      </div>
+      <BankStatStrip
+        items={[
+          { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
+          { label: "Private status", value: dashboard.privateStatus },
+          {
+            label: "Pending reviews",
+            value: String(dashboard.pendingDeposits + dashboard.pendingWithdrawals),
+            sub: "Deposits + withdrawals",
+          },
+          { label: "Accounts", value: String(accounts.length) },
+        ]}
+      />
+      <BankStatStrip
+        className="mt-3"
+        density="compact"
+        items={[
+          { label: "Checking", value: florin(dashboard.checkingBalance) },
+          { label: "Savings", value: florin(dashboard.savingsBalance) },
+          { label: "Reserve", value: florin(dashboard.reserveBalance) },
+          { label: "Business", value: florin(dashboard.businessBalance) },
+        ]}
+      />
 
-      <Section title="Account Overview" className="mt-10">
+      <Section
+        title="Account Overview"
+        className="mt-10"
+        action={
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            {accounts.length} active
+          </span>
+        }
+      >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <OpenAccountCard />
           {accounts.map((a: any) => (
@@ -100,18 +113,22 @@ function BankDashboardLiveContent({
 
       <Section title="Recent Activity" className="mt-10">
         {transactions.length === 0 ? (
-          <p className="text-[14px] text-muted-foreground">No transactions yet.</p>
+          <p className="rounded-md border border-dashed border-border bg-surface-1/40 px-4 py-6 text-center text-[13px] text-muted-foreground">
+            No transactions yet.
+          </p>
         ) : (
-          <TransactionTable
-            rows={transactions.map((t: any) => ({
-              id: t.referenceCode,
-              date: t.createdAt,
-              desc: t.description,
-              category: t.typeLabel,
-              amount: getSignedBankTransactionAmount(t.type, t.amount),
-            }))}
-            title=""
-          />
+          <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
+            <TransactionTable
+              rows={transactions.map((t: any) => ({
+                id: t.referenceCode,
+                date: t.createdAt,
+                desc: t.description,
+                category: t.typeLabel,
+                amount: getSignedBankTransactionAmount(t.type, t.amount),
+              }))}
+              title=""
+            />
+          </div>
         )}
       </Section>
     </>

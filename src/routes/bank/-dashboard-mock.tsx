@@ -1,6 +1,6 @@
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { Section } from "@/components/page-shell";
-import { BankStatCard } from "@/components/bank/bank-stat-card";
+import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
 import { florin, getBankAccounts, getBankDashboard, getRecentActivity } from "@/lib/bank/api";
@@ -12,18 +12,27 @@ export function BankDashboardMockContent() {
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <BankStatCard label="Total Relationship Value" value={florin(d.totalRelationshipValue)} className="md:col-span-2 lg:col-span-2" />
-        <BankStatCard label="Private Status" value={d.privateStatus} sub="Alta Private member" />
-        <BankStatCard label="Checking Balance" value={florin(d.checkingBalance)} />
-        <BankStatCard label="Savings Balance" value={florin(d.savingsBalance)} />
-        <BankStatCard label="Reserve Balance" value={florin(d.reserveBalance)} />
-        <BankStatCard label="Business Balance" value={florin(d.businessBalance)} />
-        <BankStatCard label="MTD Change" value="+2.14%" accent sub="Relationship assets" />
-      </div>
+      <BankStatStrip
+        items={[
+          { label: "Total relationship", value: florin(d.totalRelationshipValue) },
+          { label: "Private status", value: d.privateStatus, sub: "Alta Private member" },
+          { label: "MTD change", value: "+2.14%", sub: "Relationship assets", accent: true },
+          { label: "Accounts", value: String(bankAccounts.length) },
+        ]}
+      />
+      <BankStatStrip
+        className="mt-3"
+        density="compact"
+        items={[
+          { label: "Checking", value: florin(d.checkingBalance) },
+          { label: "Savings", value: florin(d.savingsBalance) },
+          { label: "Reserve", value: florin(d.reserveBalance) },
+          { label: "Business", value: florin(d.businessBalance) },
+        ]}
+      />
 
       <Section title="Balance Trend" className="mt-10">
-        <div className="rounded-xl border border-border bg-surface-1/80 p-5 shadow-card">
+        <div className="rounded-xl border border-border bg-surface-1/80 p-5">
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={d.balanceTrend}>
@@ -62,7 +71,9 @@ export function BankDashboardMockContent() {
       </Section>
 
       <Section title="Recent Activity" className="mt-10">
-        <TransactionTable rows={bankRecentActivity} title="" />
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
+          <TransactionTable rows={bankRecentActivity} title="" />
+        </div>
       </Section>
     </>
   );
