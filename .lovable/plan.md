@@ -1,75 +1,74 @@
 
-# Lending Editorial Pass — Apply, Applications, Loans
+# Bank Editorial Polish — Every Page
 
-Bring the three weaker lending routes up to the bar set by `/bank/lending` and `/bank/lending/deal-rooms`. Frontend/presentation only — no changes to server functions, loan service, mock data, schema, routing, or auth.
+Visual polish pass across every page under `src/routes/bank/`. Same vocabulary as the Lending overview and Deal Rooms (hairline rails, mono micro-caps, serif headers, gold accents, Florin tabular). Frontend only — no loaders, server functions, schema, routes, or business logic change.
 
-## 1. `/bank/lending/apply` — Editorial application flow
+## Shared idioms to standardize
 
-Goal: feel like sitting across from a credit officer, not filling a generic form.
+- **Hairline stat strip**: `dl` with hairline dividers (`divide-x divide-y divide-border`), mono uppercase labels, serif tabular values. Replaces ad-hoc `BankStatCard` grids on overview pages.
+- **Mono section eyebrow + serif header**: every `Section` already has it via `PageShell`, but in-page subsections (Account Overview, Recent Activity, etc.) get a consistent eyebrow + right-aligned mono action chip.
+- **Hairline row list** (`ul.divide-y.border` in `bg-surface-1`) for directory-style content (statements, contacts, transfers hub). Replaces card grids where the content reads as a list.
+- **Hairline product/feature tiles** (`grid gap-px bg-border`) for product-style content (Products, Business "what's included"). Replaces drop-shadow card grids.
+- **Editorial CTA strip** (the one used on `/bank/lending`) for marketing surfaces: hero copy + buttons left, mono stat dl below the gold hairline. Used on Bank index empty state, Business index, Products header, Private hero.
+- **Empty states**: consolidate to the shared `EmptyState` with eyebrow, single CTA, dashed hairline border.
+- **Page chrome consistency**: every `PageShell` keeps the existing `eyebrow="Alta Bank · …"` pattern; trim any rogue inline informational banners into a single hairline strip (`border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground`).
 
-- Restructure the route body into a two-column layout (`lg:grid-cols-[minmax(0,1fr)_360px]`). Single column on mobile.
-- **Left column** — split the existing `LendingApplyForm` into 4 visual fieldsets separated by hairline dividers and mono section eyebrows:
-  1. `01 · Product` — product selector + (when business) company picker.
-  2. `02 · Amount & term` — requested amount, term months, linked account.
-  3. `03 · Purpose` — purpose, repayment plan, collateral.
-  4. `04 · Notes for the officer` — notes textarea.
-  No fields added or removed. State, validation, and `submitLoanApplication` call stay identical.
-- Add a slim progress rail above the form: 4 hairline pills, current step highlighted in gold, driven by scroll position (IntersectionObserver on the fieldsets). Pure UI affordance.
-- **Right column (sticky `top-24`)** — new `ApplicationSummaryCard` component that mirrors current form state live:
-  - Eyebrow: `Application summary`.
-  - Product label, requested amount (Florin), term, repayment cadence (from `LOAN_PRODUCT_REPAYMENT_TERMS`), estimated total outstanding (already computed via `computeLoanTermEstimate`).
-  - Mono rate line ("Indicative · subject to officer review").
-  - "What happens next" 3-step list (Submit → Officer assigned → Deal room opens). Static copy.
-- **Mobile**: summary becomes a collapsible bottom sheet (`<details>` with sticky bottom bar) showing the same fields.
-- Submit button row gets a hairline top divider and a mono caption ("Reviewed manually by Alta Bank credit operations · typical response < 4h").
+## Page-by-page
 
-## 2. `/bank/lending/applications` — Editorial list
+### Overview / dashboards
+- **`/bank` (`index.tsx`)** — Replace the 7-cell `BankStatCard` grid with a 4-cell hairline stat strip (Total Relationship · Private Status · Pending reviews · Net change). Move the secondary balances (Checking · Savings · Reserve · Business) into a second compact mono-labeled row. Account Overview keeps cards but gets a mono right-aligned `View all →` chip. Recent Activity gets a hairline-bordered table wrapper.
+- **`-dashboard-mock.tsx`** — mirror the live dashboard changes so preview matches.
 
-Goal: stop looking like an internal admin table.
+### Products & marketing
+- **`/bank/products`** — Editorial section headers (mono eyebrow + serif title + count chip). Each product category renders as a hairline product grid (`grid gap-px bg-border`) instead of shadowed cards. Add a one-line section description below each header.
+- **`/bank/business/index.tsx`** — Replace the 2-up card hero with an editorial CTA strip (matches `/bank/lending`). "What's included" becomes a hairline 3-column grid with mono "01–06" indices.
+- **`/bank/open.tsx`** — Add a hairline summary rail showing the 3 products being opened.
+- **`/bank/private.tsx`** — Already large (826 lines). Scope here: just normalize section headers, swap shadowed cards for hairline cards, and apply the editorial CTA strip at the top. No structural rebuild.
 
-- Add a stat strip above the table (4 cells, hairline divided, mono labels): Total submitted · Under review · Approved · Declined. Computed from `applications` array.
-- Replace the raw `AdminDataTable` with a hairline-bordered row list (same row pattern as deal rooms): each row shows
-  - mono ID + submitted timestamp eyebrow,
-  - serif product name, company subline,
-  - right-aligned Florin amount, term (mono),
-  - status badge,
-  - review note (line-clamped, muted) beneath.
-- Filter chip row above the list: All / Pending / Under review / Approved / Declined. Local `useState`, filters the same array.
-- Improved empty state using the project's `EmptyState` with eyebrow, title, and a CTA to `/bank/lending/apply`.
-- All data still comes from `fetchUserLoanApplications`; no fields added.
+### Money movement
+- **`/bank/transfers`** — Hub tiles get hairline borders, mono micro-caps, gold corner accent, hover tint matching lending overview.
+- **`/bank/transfers/intrabank` & `/interbank`** — Wrap the form in a two-column layout (form + sticky summary card showing source/destination/amount/schedule). Same Application-Summary pattern from Lending Apply.
+- **`/bank/transfers/contacts`** — Convert grid to a hairline row list (name, type, account, last used).
+- **`/bank/pay`** — Wrap form in a two-column shell (form + sticky "What you're sending" summary). Payment history becomes a hairline row list.
+- **`/bank/deposit`, `/bank/deposits`, `/bank/withdraw`** — Normalize: editorial header, hairline form card, mono note strip in place of long muted paragraphs.
 
-## 3. `/bank/lending/loans` — Facility summary + table
+### Accounts & statements
+- **`/bank/accounts.tsx`**, **`/bank/account/$accountId`**, **`/bank/accounts/$accountId`**, **`/bank/accounts/open.tsx`** — Hairline account row list on the index, sticky right rail on detail (balance, status, account number, linked products), tabbed hairline underline for activity / statements / scheduled.
+- **`/bank/statements/index.tsx`** — Already a list; replace the muted info banner with a mono hairline note, switch the Card wrapper to a hairline row list, add a 2-cell stat strip (Personal months · Business months).
+- **`/bank/statements/$statementId.tsx`** — Receipt-style hairline panel with mono metadata header, tabular line items, gold hairline footer.
 
-Goal: institutional credit portfolio, not a stack of expanding cards.
+### Business
+- **`/bank/business/payments`, `payroll`, `representatives`, `statements`** — These are 18-line route stubs that just compose existing components. Add editorial `PageShell` headers with descriptions and a consistent in-page mono stat strip drawn from the loader data (e.g. employees count, batches this period).
+- **`/bank/business/route.tsx`** — keep as-is; just confirm `<Outlet />`.
 
-- Add a top **Portfolio summary strip** (4 hairline cells): Total exposure, Total repaid, Next payment due (date + amount from soonest pending installment across loans), Auto-pay coverage (X of Y facilities). Derived from existing `loans` array — no new server calls.
-- Replace the vertical card stack with an institutional **facility table**:
-  - Columns: Facility ID (mono), Product, Principal, Outstanding, Rate, Next due, Status, Auto-pay.
-  - Row click expands an inline detail panel beneath the row (single-row expanded at a time) containing the existing `LoanRepaymentProgressBar`, metric grid, `LoanPaymentScheduleTable`, `LoanAutoPayForm`, payment history, and Make payment button.
-  - Reuses every existing component and the existing `useServerFn(fetchLoanPaymentContext)` lazy load — only the outer container changes.
-- First facility expanded by default when count > 0; matches current behavior.
-- Empty state unchanged (already polished).
-- Keep `AltaCreditProfilePlaceholder` at the bottom.
+### Admin
+- **`/bank/admin/clients`, `loans`, `private`** — 7-line stubs. Add editorial `PageShell` framing, hairline stat strip, hairline row list, mono action menu (same pattern as `/internal/lending/deal-rooms`). Keep all server data identical.
 
 ## Technical notes
 
-- New components, all under `src/components/bank/`:
-  - `lending-apply-shell.tsx` (two-column layout + progress rail + sticky summary).
-  - `application-summary-card.tsx`.
-  - `lending-applications-list.tsx` (row list + filter chips + stat strip).
-  - `lending-loans-table.tsx` (facility table + expanded detail row).
-- `LendingApplyForm` refactored internally to expose its state via a render-prop or to accept an optional `onStateChange` callback so the sticky summary stays in sync. No public API breakage for any other caller — only `/bank/lending/apply` imports it.
-- All styling via existing tokens (`bg-surface-1`, `border-border`, `text-gold`, `font-mono`, `font-serif`). No new CSS variables, no hardcoded colors.
-- Mobile: single column for Apply, scrollable filter chip row for Applications, table degrades to a stacked row list on `<sm` for Loans.
-- No changes to `routeTree.gen.ts`, route files' loaders/`beforeLoad`, or any `*.functions.ts`.
+- New shared components under `src/components/bank/`:
+  - `bank-stat-strip.tsx` (the hairline `dl` strip).
+  - `hairline-row-list.tsx` (typed list wrapper).
+  - `editorial-cta-strip.tsx` (the marketing hero strip).
+  - `summary-rail.tsx` (sticky right-column summary card).
+- Existing components touched only where the visual layer is internal (e.g. `BankStatCard` keeps existing API but gets a `variant="strip"` for the new layout — or callers switch to `bank-stat-strip`). No external API breakage.
+- All styling via existing tokens. No new CSS variables, no hardcoded colors. No font changes.
+- Mobile: every two-column shell collapses to single column; row lists already stack via existing patterns.
+- All loaders, `beforeLoad`, server functions, `routeTree.gen.ts`, business logic, validation, and mocks are untouched.
 
 ## Out of scope
 
-- Backend, server functions, Prisma, loan service, auth, routing.
-- Deal room chat (already done).
-- Editorial pass on Exchange / Terminal / Governance / Profile / etc.
-- Adding new loan fields, new statuses, or new product types.
+- Backend, server functions, Prisma, validation, auth, routing IA.
+- Adding new fields, statuses, or data sources.
+- Rewriting `/bank/private.tsx` (only header + cards normalized; no structural rebuild).
+- Non-bank routes (Exchange / Terminal / Governance / Profile / Companies / Home).
+- New components outside the four shared primitives above.
 
 ## Order of work
 
-1. `application-summary-card.tsx` + refactor `LendingApplyForm` state hook → 2. `lending-apply-shell.tsx` and rewire `apply.tsx` → 3. `lending-applications-list.tsx` and rewire `applications.tsx` → 4. `lending-loans-table.tsx` and rewire `loans/index.tsx` → 5. Mobile QA across all three.
+1. Build the four shared primitives.
+2. Apply across overview + marketing pages (`/bank`, `/bank/products`, `/bank/business/index`, `/bank/private` header, `/bank/-dashboard-mock`).
+3. Money movement (`/bank/transfers/*`, `/bank/pay`, `/bank/deposit*`, `/bank/withdraw`).
+4. Accounts & statements (`/bank/accounts*`, `/bank/account/$accountId`, `/bank/statements/*`).
+5. Business sub-routes and admin stubs.
+6. Mobile QA across all touched pages.
