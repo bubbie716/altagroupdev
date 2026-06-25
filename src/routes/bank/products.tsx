@@ -56,7 +56,7 @@ function BankProducts() {
             <p className="-mt-2 mb-6 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
               {section.description}
             </p>
-            <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {sectionProducts.map((p) => (
                 <ProductCard key={p.name} product={p} />
               ))}
