@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Florin } from "@/components/ui/florin";
-import { StatusBadge } from "@/components/internal/status-badge";
 import { cn } from "@/lib/utils";
+import { ArrowLeft, Paperclip, Send, MoreHorizontal, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import type {
   LoanApplicationThreadContext,
   LoanApplicationThreadMessageRow,
@@ -36,11 +36,13 @@ export function LoanApplicationThreadView({
 }) {
   const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [messages, setMessages] = useState(initialMessages);
   const [ctx, setCtx] = useState(context);
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMeta, setShowMeta] = useState(false);
 
   const sendUser = useServerFn(sendLoanApplicationThreadMessage);
   const sendInternal = useServerFn(sendInternalLoanApplicationThreadMessage);
@@ -53,6 +55,14 @@ export function LoanApplicationThreadView({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages]);
+
+  // Auto-grow composer textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "0px";
+    ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+  }, [body]);
 
   async function refresh() {
     await router.invalidate();
@@ -133,108 +143,126 @@ export function LoanApplicationThreadView({
         className,
       )}
     >
-      {/* Header */}
-      <header className="shrink-0 border-b border-border/60 bg-surface-1/90 px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-start justify-between gap-4">
-          <div>
-            <Link
-              to={backTo}
-              className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-gold"
-            >
-              {backLabel}
-            </Link>
-            <h1 className="mt-2 font-serif text-[22px] tracking-tight">
-              {variant === "internal" ? "Application thread" : "Secure Deal Room"}
-            </h1>
-            <p className="mt-1 text-[13px] text-muted-foreground">{ctx.productLabel}</p>
+      {/* Header — simple status header */}
+      <header className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-[#f8f7f4]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[#f8f7f4]/70 dark:bg-background/85 dark:supports-[backdrop-filter]:bg-background/70">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
+          <Link
+            to={backTo}
+            aria-label={backLabel}
+            className="-ml-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]">
+            <Sparkles className="h-4 w-4" />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={ctx.applicationStatusLabel} />
-            <span
-              className={cn(
-                "rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]",
-                ctx.status === "closed"
-                  ? "border-border text-muted-foreground"
-                  : ctx.status === "waiting_on_alta"
-                    ? "border-gold/40 bg-gold/10 text-gold"
-                    : "border-border bg-surface-2 text-foreground",
-              )}
-            >
-              {ctx.statusLabel}
-            </span>
-          </div>
-        </div>
-        <dl className="mx-auto mt-4 grid max-w-3xl grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
-          <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Requested</dt>
-            <dd className="mt-0.5 tabular-nums">
-              <Florin value={ctx.requestedAmount} fractionDigits={0} />
-            </dd>
-          </div>
-          <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Submitted</dt>
-            <dd className="mt-0.5">{ctx.submittedAtLabel}</dd>
-          </div>
-          <div>
-            <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Applicant</dt>
-            <dd className="mt-0.5">{ctx.applicantName}</dd>
-          </div>
-          {ctx.companyName && (
-            <div>
-              <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Company</dt>
-              <dd className="mt-0.5">{ctx.companyName}</dd>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate font-serif text-[16px] leading-tight tracking-tight sm:text-[17px]">
+                {variant === "internal" ? ctx.applicantName : "Alta Loan Desk"}
+              </h1>
+              <StatusDot status={ctx.status} />
             </div>
-          )}
-        </dl>
+            <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+              {ctx.productLabel} · {ctx.statusLabel}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMeta((s) => !s)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+            aria-label="Toggle details"
+          >
+            {showMeta ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
 
-        {variant === "internal" && (
-          <InternalThreadControls
-            context={ctx}
-            onStatus={async (status) => {
-              const next = await updateStatus({ data: { applicationId: ctx.applicationId, status } });
-              setCtx(next);
-            }}
-            onClose={async () => {
-              const next = await closeThread({ data: ctx.applicationId });
-              setCtx(next);
-            }}
-            onReopen={async () => {
-              const next = await reopen({ data: ctx.applicationId });
-              setCtx(next);
-            }}
-          />
+        {showMeta && (
+          <div className="border-t border-border/60 bg-surface-1/60 px-4 py-3 sm:px-6">
+            <dl className="mx-auto grid max-w-3xl grid-cols-2 gap-x-6 gap-y-3 text-[12px] sm:grid-cols-4">
+              <MetaCell label="Requested">
+                <span className="tabular-nums">
+                  <Florin value={ctx.requestedAmount} fractionDigits={0} />
+                </span>
+              </MetaCell>
+              <MetaCell label="Submitted">{ctx.submittedAtLabel}</MetaCell>
+              <MetaCell label="Applicant">{ctx.applicantName}</MetaCell>
+              <MetaCell label={ctx.companyName ? "Company" : "Status"}>
+                {ctx.companyName ?? ctx.applicationStatusLabel}
+              </MetaCell>
+            </dl>
+            {variant === "internal" && (
+              <InternalThreadControls
+                context={ctx}
+                onStatus={async (status) => {
+                  const next = await updateStatus({ data: { applicationId: ctx.applicationId, status } });
+                  setCtx(next);
+                }}
+                onClose={async () => {
+                  const next = await closeThread({ data: ctx.applicationId });
+                  setCtx(next);
+                }}
+                onReopen={async () => {
+                  const next = await reopen({ data: ctx.applicationId });
+                  setCtx(next);
+                }}
+              />
+            )}
+          </div>
         )}
       </header>
 
       {/* Messages */}
-      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-        <div className="mx-auto max-w-3xl space-y-4">
+      <div
+        ref={scrollerRef}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
+        style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      >
+        <div className="mx-auto max-w-3xl">
           {messages.length === 0 ? (
-            <p className="py-12 text-center text-[13px] text-muted-foreground">
-              Your application thread will appear here.
-            </p>
+            <div className="py-16 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <p className="mt-4 font-serif text-[16px] tracking-tight">Start the conversation</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                {variant === "internal"
+                  ? "Reply to the applicant or request additional documents."
+                  : "Ask a question, share a document, or request an update from your Alta loan officer."}
+              </p>
+            </div>
           ) : (
-            messages.map((m) => (
-              <ThreadMessageBubble key={m.id} message={m} variant={variant} viewerUserId={ctx.viewerUserId} />
-            ))
+            renderMessageStream(messages, variant, ctx.viewerUserId)
           )}
         </div>
       </div>
 
       {/* Composer */}
-      <footer className="shrink-0 border-t border-border/60 bg-surface-1/90 px-4 py-4 sm:px-6">
+      <footer
+        className="shrink-0 border-t border-border/60 bg-[#f8f7f4]/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md dark:bg-background/95 sm:px-6 sm:pt-4"
+      >
         <form onSubmit={(e) => void onSend(e)} className="mx-auto max-w-3xl">
-          {error && <p className="mb-2 text-[12px] text-destructive">{error}</p>}
+          {error && (
+            <p className="mb-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-1.5 text-[12px] text-destructive">
+              {error}
+            </p>
+          )}
           {!ctx.canSend ? (
-            <p className="text-center text-[13px] text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border bg-surface-1 px-4 py-3 text-center text-[12.5px] text-muted-foreground">
               {ctx.status === "closed"
                 ? "This thread is closed. Alta Bank will reopen it if further discussion is needed."
                 : "You cannot send messages in this thread."}
             </p>
           ) : (
-            <div className="flex gap-2">
-              <label className="flex shrink-0 cursor-pointer items-center rounded-lg border border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:border-gold/40">
-                Attach
+            <div className="group relative flex items-end gap-2 rounded-[22px] border border-border/70 bg-white px-2 py-2 shadow-[0_1px_0_rgba(15,23,41,0.04),0_8px_30px_-12px_rgba(15,23,41,0.18)] transition focus-within:border-foreground/30 focus-within:shadow-[0_1px_0_rgba(15,23,41,0.04),0_12px_40px_-12px_rgba(15,23,41,0.25)] dark:border-border dark:bg-surface-1">
+              <label
+                className={cn(
+                  "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground",
+                  pending && "pointer-events-none opacity-50",
+                )}
+                aria-label="Attach a file"
+              >
+                <Paperclip className="h-4 w-4" />
                 <input
                   type="file"
                   accept="image/*,.pdf,.doc,.docx"
@@ -248,32 +276,115 @@ export function LoanApplicationThreadView({
                 />
               </label>
               <textarea
+                ref={textareaRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 onKeyDown={onComposerKeyDown}
                 placeholder={
                   variant === "internal"
                     ? "Reply to applicant…"
-                    : "Message Alta Bank about this application…"
+                    : "Message Alta Bank…"
                 }
-                rows={2}
+                rows={1}
                 disabled={pending}
-                className="min-h-[44px] flex-1 resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-[14px] shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
+                className="max-h-[200px] min-h-[36px] flex-1 resize-none border-0 bg-transparent px-1 py-1.5 text-[15px] leading-snug text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                style={{ fontSize: "16px" }}
               />
               <button
                 type="submit"
                 disabled={pending || !body.trim()}
-                className="shrink-0 self-end rounded-xl bg-[#0f1729] px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white hover:bg-[#0f1729]/90 disabled:opacity-40 dark:bg-gold dark:text-[#0f1729]"
+                aria-label="Send message"
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition",
+                  body.trim()
+                    ? "bg-[#0f1729] text-white hover:bg-[#0f1729]/90 dark:bg-gold dark:text-[#0f1729]"
+                    : "bg-foreground/10 text-muted-foreground",
+                  pending && "opacity-50",
+                )}
               >
-                Send
+                <Send className="h-4 w-4" />
               </button>
             </div>
           )}
-          <p className="mt-2 text-center font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            Enter to send · Shift+Enter for new line · asynchronous messaging
+          <p className="mt-2 hidden text-center font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/60 sm:block">
+            Enter to send · Shift + Enter for new line · Asynchronous messaging
           </p>
         </form>
       </footer>
+    </div>
+  );
+}
+
+function MetaCell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: LoanApplicationThreadStatusCode }) {
+  const tone =
+    status === "closed"
+      ? "bg-muted-foreground/40"
+      : status === "waiting_on_alta"
+        ? "bg-gold animate-pulse"
+        : status === "waiting_on_applicant"
+          ? "bg-emerald-500"
+          : "bg-foreground/50";
+  return <span className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", tone)} aria-hidden />;
+}
+
+function renderMessageStream(
+  messages: LoanApplicationThreadMessageRow[],
+  variant: "user" | "internal",
+  viewerUserId: string,
+) {
+  const nodes: React.ReactNode[] = [];
+  let lastDay = "";
+  let prevSenderKey = "";
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    const day = new Date(m.createdAt).toDateString();
+    if (day !== lastDay) {
+      nodes.push(<DaySeparator key={`day-${m.id}`} date={m.createdAt} />);
+      lastDay = day;
+      prevSenderKey = "";
+    }
+    const senderKey = `${m.senderRole}:${m.senderUserId ?? ""}`;
+    const isGrouped = senderKey === prevSenderKey && m.senderRole !== "system";
+    nodes.push(
+      <ThreadMessageBubble
+        key={m.id}
+        message={m}
+        variant={variant}
+        viewerUserId={viewerUserId}
+        grouped={isGrouped}
+      />,
+    );
+    prevSenderKey = m.senderRole === "system" ? "" : senderKey;
+  }
+  return <div className="flex flex-col gap-1">{nodes}</div>;
+}
+
+function DaySeparator({ date }: { date: string }) {
+  const d = new Date(date);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+  const isYesterday = d.toDateString() === yest.toDateString();
+  const label = sameDay
+    ? "Today"
+    : isYesterday
+      ? "Yesterday"
+      : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return (
+    <div className="my-4 flex items-center gap-3 px-2 first:mt-0">
+      <div className="h-px flex-1 bg-border/60" />
+      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
+      <div className="h-px flex-1 bg-border/60" />
     </div>
   );
 }
@@ -282,15 +393,17 @@ function ThreadMessageBubble({
   message,
   variant,
   viewerUserId,
+  grouped,
 }: {
   message: LoanApplicationThreadMessageRow;
   variant: "user" | "internal";
   viewerUserId: string;
+  grouped: boolean;
 }) {
   if (message.senderRole === "system") {
     return (
-      <div className="flex justify-center px-4">
-        <p className="max-w-md rounded-full bg-surface-2/80 px-4 py-1.5 text-center text-[12px] text-muted-foreground">
+      <div className="my-2 flex justify-center px-4">
+        <p className="max-w-md rounded-full border border-border/60 bg-surface-1 px-3.5 py-1 text-center text-[11.5px] text-muted-foreground">
           {message.body}
         </p>
       </div>
@@ -304,25 +417,64 @@ function ThreadMessageBubble({
       : message.senderRole === "applicant" ||
         (message.senderUserId != null && message.senderUserId === viewerUserId);
 
+  const senderName = isStaff ? "Alta Loan Desk" : (message.senderName ?? "Applicant");
+  const initials = getInitials(senderName);
+  const timeLabel = formatTimeOnly(message.createdAt) || message.createdAtLabel;
+  const tone: "light" | "dark" = isOwnMessage ? "dark" : "light";
+
   return (
-    <div className={cn("flex", isOwnMessage ? "justify-start" : "justify-end")}>
-      <div
-        className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-3 sm:max-w-[72%]",
-          isOwnMessage
-            ? "rounded-tl-md bg-[#0f1729] text-white"
-            : "rounded-tr-md border border-border/60 bg-white text-[#0f1729] shadow-sm",
+    <div
+      className={cn(
+        "flex items-end gap-2",
+        isOwnMessage ? "flex-row-reverse" : "flex-row",
+        grouped ? "mt-0.5" : "mt-3",
+      )}
+    >
+      <div className="w-8 shrink-0">
+        {!grouped && (
+          <div
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full font-mono text-[10px] font-medium uppercase tracking-wide",
+              isStaff
+                ? "bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]"
+                : "border border-border/70 bg-surface-1 text-foreground",
+            )}
+            aria-hidden
+          >
+            {isStaff ? "A" : initials}
+          </div>
         )}
-      >
-        <div className={cn("mb-1 text-[11px] font-medium", isOwnMessage ? "text-white/80" : "text-muted-foreground")}>
-          {isOwnMessage ? "You" : isStaff ? "Loan Officer" : (message.senderName ?? "Applicant")}
-        </div>
-        {message.body && (
-          <p className="whitespace-pre-wrap text-[14px] leading-relaxed">{linkifyText(message.body)}</p>
+      </div>
+      <div className={cn("flex max-w-[82%] flex-col sm:max-w-[72%]", isOwnMessage ? "items-end" : "items-start")}>
+        {!grouped && (
+          <div className="mb-1 flex items-center gap-2 px-1">
+            <span className="text-[11.5px] font-medium text-foreground/80">
+              {isOwnMessage ? "You" : senderName}
+            </span>
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground/80">
+              {timeLabel}
+            </span>
+          </div>
         )}
-        <ThreadAttachmentList attachments={message.attachments} />
-        <div className={cn("mt-1.5 text-[10px]", isOwnMessage ? "text-white/60" : "text-muted-foreground")}>
-          {message.createdAtLabel}
+        <div
+          className={cn(
+            "rounded-2xl px-4 py-2.5 text-[14.5px] leading-relaxed",
+            isOwnMessage
+              ? "bg-[#0f1729] text-white"
+              : "border border-border/70 bg-white text-[#0f1729] dark:bg-surface-1 dark:text-foreground",
+            isOwnMessage
+              ? grouped
+                ? "rounded-br-md"
+                : "rounded-br-md"
+              : grouped
+                ? "rounded-bl-md"
+                : "rounded-bl-md",
+          )}
+        >
+          {message.body && (
+            <p className="whitespace-pre-wrap break-words">{linkifyText(message.body)}</p>
+          )}
+          <ThreadAttachmentList attachments={message.attachments} tone={tone} />
         </div>
       </div>
     </div>
@@ -341,7 +493,7 @@ function InternalThreadControls({
   onReopen: () => Promise<void>;
 }) {
   return (
-    <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center gap-2 border-t border-border/40 pt-4">
+    <div className="mx-auto mt-3 flex max-w-3xl flex-wrap items-center gap-2 border-t border-border/40 pt-3">
       <ActionBtn label="Waiting on applicant" onClick={() => onStatus("waiting_on_applicant")} />
       <ActionBtn label="Waiting on Alta" onClick={() => onStatus("waiting_on_alta")} />
       {context.status === "closed" ? (
@@ -367,13 +519,29 @@ function ActionBtn({
       type="button"
       onClick={() => void onClick()}
       className={cn(
-        "rounded-md border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em]",
+        "rounded-full border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition",
         accent
-          ? "border-gold/50 bg-gold/10 text-gold"
-          : "border-border text-muted-foreground hover:text-foreground",
+          ? "border-gold/50 bg-gold/10 text-gold hover:bg-gold/15"
+          : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
       )}
     >
       {label}
     </button>
   );
 }
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "·";
+}
+
+function formatTimeOnly(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+// Suppress unused import warning for MoreHorizontal (kept for future menu hook)
+void MoreHorizontal;
