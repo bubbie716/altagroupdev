@@ -154,6 +154,24 @@ export function canViewBusinessTreasury(user: AltaUser, scope: CompanyScope): bo
   return hasCompanyRole(user, scope, BUSINESS_TREASURY_VIEW_ROLES);
 }
 
+export function isCompanyViewer(user: AltaUser, scope: CompanyScope): boolean {
+  const membership = findCompanyMembership(user, scope);
+  return membership?.role === "viewer";
+}
+
+/** Company business Alta Card line (not employee cards). Viewers are excluded. */
+export function canViewCompanyAltaCard(user: AltaUser, companyId: string): boolean {
+  if (isAdmin(user) || isOperator(user)) return true;
+  if (isCompanyViewer(user, { companyId })) return false;
+  return canViewBusinessTreasury(user, { companyId });
+}
+
+export function canManageCompanyAltaCard(user: AltaUser, companyId: string): boolean {
+  if (isAdmin(user) || isOperator(user)) return true;
+  if (isCompanyViewer(user, { companyId })) return false;
+  return canManageBusinessTreasury(user, { companyId });
+}
+
 export function canManageBusinessTreasury(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, BUSINESS_TREASURY_MANAGE_ROLES);
 }

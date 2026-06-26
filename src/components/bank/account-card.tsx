@@ -16,7 +16,6 @@ type AccountCardData = {
   status: string;
   statusCode?: BankAccountStatusCode;
   recentActivity?: string;
-  interestAccrualEnabled?: boolean;
 };
 
 export function AccountCard({
@@ -44,14 +43,7 @@ export function AccountCard({
     <Card className="group flex h-full flex-col !p-6 transition-colors hover:border-border-strong">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <div className="type-meta-accent truncate">{account.product}</div>
-            {account.interestAccrualEnabled ? (
-              <span className="shrink-0 rounded border border-border/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
-                Interest bearing
-              </span>
-            ) : null}
-          </div>
+          <div className="type-meta-accent truncate">{account.product}</div>
         </div>
         <StatusBadge status={statusLabel} className="shrink-0" />
       </div>

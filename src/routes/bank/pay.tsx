@@ -1,23 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell, Section, Card } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { AltaPayForm } from "@/components/bank/alta-pay-form";
+import { AltaPayForm, altaCardPayFundingKey, employeeCardPayFundingKey } from "@/components/bank/alta-pay-form";
 import { AltaPayHistoryTable } from "@/components/bank/alta-pay-received-panel";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import {
-  fetchPaySourceAccounts,
+  fetchPayFundingSources,
   fetchUserAltaPayHistory,
 } from "@/lib/bank/alta-pay.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
+type AltaPaySearch = {
+  employeeCardId?: string;
+  cardId?: string;
+};
+
 export const Route = createFileRoute("/bank/pay")({
   beforeLoad: authBeforeLoad,
+  validateSearch: (search: Record<string, unknown>): AltaPaySearch => {
+    const result: AltaPaySearch = {};
+    const employeeCardId = search.employeeCardId;
+    const cardId = search.cardId;
+    if (typeof employeeCardId === "string" && employeeCardId.trim()) {
+      result.employeeCardId = employeeCardId.trim();
+    }
+    if (typeof cardId === "string" && cardId.trim()) {
+      result.cardId = cardId.trim();
+    }
+    return result;
+  },
   loader: async () => {
-    const [accounts, history] = await Promise.all([
-      fetchPaySourceAccounts(),
+    const [fundingSources, history] = await Promise.all([
+      fetchPayFundingSources(),
       fetchUserAltaPayHistory({ data: 25 }),
     ]);
-    return { accounts, history };
+    return { fundingSources, history };
   },
   head: () => ({
     meta: [{ title: "Alta Pay — Alta Bank" }],
@@ -26,24 +43,30 @@ export const Route = createFileRoute("/bank/pay")({
 });
 
 function AltaPayPage() {
-  const { accounts, history } = Route.useLoaderData();
+  const { fundingSources, history } = Route.useLoaderData();
+  const { employeeCardId, cardId } = Route.useSearch();
+  const defaultFundingKey = employeeCardId
+    ? employeeCardPayFundingKey(employeeCardId)
+    : cardId
+      ? altaCardPayFundingKey(cardId)
+      : undefined;
 
   return (
     <PageShell
       eyebrow="Alta Bank · Alta Pay"
       title="Pay a Business"
-      description="Send Florins to verified Newport companies instantly — from a personal account or your company's Business Operating Account."
+      description="Send Florins to verified Newport companies instantly — from a bank account or your Alta Card."
     >
       <BankSubNav />
 
-      {accounts.length === 0 ? (
+      {fundingSources.length === 0 ? (
         <EmptyBankState
-          title="No eligible payment accounts"
-          description="Open a personal Alta Bank account, or ensure you have treasury access to an active Business Operating Account for a verified company."
+          title="No eligible payment sources"
+          description="Open a personal Alta Bank account or activate an Alta Card to pay businesses through Alta Pay."
         />
       ) : (
         <>
-          <AltaPayForm accounts={accounts} />
+          <AltaPayForm fundingSources={fundingSources} defaultFundingKey={defaultFundingKey} />
 
           <Section title="Payment history" className="mt-12">
             <Card className="!p-6">

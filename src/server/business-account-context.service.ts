@@ -6,7 +6,7 @@ import {
   getBusinessModuleAccess,
 } from "@/lib/bank/business-account-access";
 import type { BusinessTreasuryCompany } from "@/lib/bank/business-banking-types";
-import { findCompanyMembership } from "@/lib/auth/permissions";
+import { findCompanyMembership, canViewBusinessTreasury } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { mapTreasuryCompany } from "@/server/business-banking-mapper";
 import { fromDbCompanyRole } from "@/server/enum-map";
@@ -48,7 +48,7 @@ export async function resolveBusinessAccountContext(
   if (!account.companyId || !account.company) notFound();
 
   const membership = findCompanyMembership(user, { companyId: account.companyId });
-  if (!membership) forbidden();
+  if (!membership || !canViewBusinessTreasury(user, { companyId: account.companyId })) forbidden();
 
   if (account.company.verificationStatus !== "VERIFIED") {
     badRequest("Company must be verified to access business account features.");

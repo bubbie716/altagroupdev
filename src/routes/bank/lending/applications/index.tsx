@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { LendingSubNav } from "@/components/bank/lending-sub-nav";
 import { fetchUserLoanApplications } from "@/lib/bank/lending.functions";
 import { LendingApplicationsList } from "@/components/bank/lending-applications-list";
 
@@ -23,7 +22,6 @@ function BankLendingApplications() {
       description="Track submitted credit facility requests and operator review outcomes."
     >
       <BankSubNav />
-      <LendingSubNav />
       <LendingApplicationsList applications={applications} />
     </PageShell>
   );

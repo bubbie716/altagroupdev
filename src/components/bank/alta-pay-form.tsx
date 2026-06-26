@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Search, ShieldCheck } from "lucide-react";
+import { Search, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -13,13 +13,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ReceiptBlock } from "@/components/shared/receipt-block";
 import { florin } from "@/lib/bank/api";
 import {
   searchPayableCompaniesForPay,
   submitAltaPay,
 } from "@/lib/bank/alta-pay.functions";
-import type { PayableCompany, SubmitAltaPayResult } from "@/lib/bank/alta-pay-types";
-import type { UserBankAccount } from "@/lib/bank/backend-types";
+import type {
+  AltaPayFundingSource,
+  PayableCompany,
+  PayFundingSourceOption,
+  SubmitAltaPayResult,
+} from "@/lib/bank/alta-pay-types";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -27,18 +32,51 @@ const inputClass =
 
 type Step = "compose" | "review" | "confirmed";
 
-function accountLabel(account: UserBankAccount) {
-  const scope = account.isCompanyAccount && account.companyName
-    ? `${account.companyName} · `
-    : "";
-  return `${scope}${account.accountName} · ${account.accountNumber} · ${florin(account.balance)}`;
+function fundingKey(source: PayFundingSourceOption): string {
+  return `${source.kind}:${source.id}`;
+}
+
+export function resolvePayFundingKey(
+  fundingSources: PayFundingSourceOption[],
+  preferredKey?: string,
+): string {
+  if (preferredKey && fundingSources.some((source) => fundingKey(source) === preferredKey)) {
+    return preferredKey;
+  }
+  return fundingKey(fundingSources[0]!);
+}
+
+export function employeeCardPayFundingKey(employeeCardId: string): string {
+  return fundingKey({ kind: "alta_card", id: `employee:${employeeCardId}` });
+}
+
+export function altaCardPayFundingKey(cardId: string): string {
+  return fundingKey({ kind: "alta_card", id: cardId });
+}
+
+function parseFundingKey(key: string): AltaPayFundingSource {
+  const [kind, ...rest] = key.split(":");
+  const id = rest.join(":");
+  if (kind === "alta_card") return { kind: "alta_card", cardId: id };
+  return { kind: "bank_account", accountId: id };
+}
+
+function fundingLabel(source: PayFundingSourceOption): string {
+  if (source.kind === "alta_card") {
+    return source.cardLastFour
+      ? `Alta Card •••• ${source.cardLastFour}`
+      : source.label;
+  }
+  return `${source.label} · ${source.detail} · ${florin(source.availableBalance)}`;
 }
 
 export function AltaPayForm({
-  accounts,
+  fundingSources,
+  defaultFundingKey,
   onSuccess,
 }: {
-  accounts: UserBankAccount[];
+  fundingSources: PayFundingSourceOption[];
+  defaultFundingKey?: string;
   onSuccess?: () => void;
 }) {
   const router = useRouter();
@@ -46,7 +84,9 @@ export function AltaPayForm({
   const pay = useServerFn(submitAltaPay);
 
   const [step, setStep] = useState<Step>("compose");
-  const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id ?? "");
+  const [fundingKeyValue, setFundingKeyValue] = useState(() =>
+    resolvePayFundingKey(fundingSources, defaultFundingKey),
+  );
   const [companyQuery, setCompanyQuery] = useState("");
   const [companyResults, setCompanyResults] = useState<PayableCompany[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<PayableCompany | null>(null);
@@ -57,8 +97,9 @@ export function AltaPayForm({
   const [pending, setPending] = useState(false);
   const [confirmation, setConfirmation] = useState<SubmitAltaPayResult | null>(null);
 
-  const fromAccount = accounts.find((a) => a.id === fromAccountId);
-  const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
+  const selectedFunding =
+    fundingSources.find((s) => fundingKey(s) === fundingKeyValue) ?? fundingSources[0];
+  const availableBalance = selectedFunding?.availableBalance ?? 0;
 
   useEffect(() => {
     if (companyQuery.trim().length < 1) {
@@ -82,25 +123,29 @@ export function AltaPayForm({
       setError("Select a verified company to pay.");
       return;
     }
+    if (!selectedFunding) {
+      setError("Select a funding source.");
+      return;
+    }
     if (!payAmount || payAmount <= 0) {
       setError("Enter a valid payment amount.");
       return;
     }
     if (payAmount > availableBalance) {
-      setError("Insufficient balance for this payment.");
+      setError("Insufficient available credit or balance for this payment.");
       return;
     }
     setStep("review");
   }
 
   async function submitPayment() {
-    if (!selectedCompany) return;
+    if (!selectedCompany || !selectedFunding) return;
     setError(null);
     setPending(true);
     try {
       const result = await pay({
         data: {
-          fromAccountId,
+          fundingSource: parseFundingKey(fundingKeyValue),
           companyId: selectedCompany.id,
           amount: Number(amount),
           memo: memo.trim() || undefined,
@@ -119,46 +164,46 @@ export function AltaPayForm({
 
   if (step === "confirmed" && confirmation) {
     return (
-      <Card className="mx-auto max-w-lg !p-8 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-gold/30 bg-gold/10">
-          <Check className="size-6 text-gold" />
-        </div>
-        <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Payment sent</div>
-        <h2 className="mt-3 text-xl font-semibold">{florin(confirmation.amount)}</h2>
-        <p className="mt-2 text-[14px] text-muted-foreground">Paid to {confirmation.companyName}</p>
-        <p className="mt-4 font-mono text-[11px] text-muted-foreground">
-          Reference {confirmation.referenceCode}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setStep("compose");
-            setConfirmation(null);
-            setAmount("");
-            setMemo("");
-            setSelectedCompany(null);
-            setCompanyQuery("");
-          }}
-          className="mt-8 rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium hover:bg-surface-2/80"
-        >
-          Send another payment
-        </button>
-      </Card>
+      <ReceiptBlock
+        kind="Alta Pay"
+        reference={confirmation.referenceCode}
+        timestamp={new Date().toISOString()}
+        amount={confirmation.amount}
+        account={confirmation.fundingSourceLabel}
+        counterparty={confirmation.companyName}
+        memo={memo.trim() || undefined}
+        rows={[
+          { label: "Settlement", value: "Instant intrabank" },
+          { label: "Funding", value: confirmation.fundingSourceLabel },
+        ]}
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setStep("compose");
+              setConfirmation(null);
+              setAmount("");
+              setMemo("");
+              setSelectedCompany(null);
+              setCompanyQuery("");
+            }}
+            className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium hover:bg-surface-2/80"
+          >
+            Send another payment
+          </button>
+        }
+      />
     );
   }
 
-  if (step === "review" && selectedCompany && fromAccount) {
+  if (step === "review" && selectedCompany && selectedFunding) {
     return (
       <Card className="mx-auto max-w-lg !p-6">
         <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Review payment</div>
         <div className="mt-6 space-y-4 border-y border-border/60 py-6 text-sm">
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">From</span>
-            <span className="text-right font-mono text-[12px]">
-              {fromAccount.isCompanyAccount && fromAccount.companyName
-                ? `${fromAccount.companyName} · ${fromAccount.accountName}`
-                : fromAccount.accountName}
-            </span>
+            <span className="text-right font-mono text-[12px]">{fundingLabel(selectedFunding)}</span>
           </div>
           <div className="flex justify-between gap-4">
             <span className="text-muted-foreground">To</span>
@@ -181,8 +226,10 @@ export function AltaPayForm({
           )}
         </div>
         <p className="text-[12px] leading-relaxed text-muted-foreground">
-          Funds settle instantly to the company&apos;s Business Operating Account via Alta Bank intrabank
-          transfer.
+          Funds settle instantly to the company&apos;s Business Operating Account.
+          {selectedFunding.kind === "alta_card"
+            ? " Your Alta Card balance will increase and available credit will decrease."
+            : null}
         </p>
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
         <div className="mt-6 flex flex-wrap gap-2">
@@ -210,8 +257,7 @@ export function AltaPayForm({
     <Card className="mx-auto max-w-2xl !p-6">
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Alta Pay</div>
       <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-        Pay verified Newport businesses instantly — from a personal account or a Business Operating
-        Account you manage.
+        Pay verified Newport businesses instantly — from a bank account or your Alta Card.
       </p>
 
       <form
@@ -223,14 +269,14 @@ export function AltaPayForm({
       >
         <label className="block">
           <span className={fieldLabel}>Pay from</span>
-          <Select value={fromAccountId} onValueChange={setFromAccountId}>
+          <Select value={fundingKeyValue} onValueChange={setFundingKeyValue}>
             <SelectTrigger className="mt-2">
-              <SelectValue placeholder="Select account" />
+              <SelectValue placeholder="Select funding source" />
             </SelectTrigger>
             <SelectContent>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {accountLabel(account)}
+              {fundingSources.map((source) => (
+                <SelectItem key={fundingKey(source)} value={fundingKey(source)}>
+                  {fundingLabel(source)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -273,9 +319,6 @@ export function AltaPayForm({
                       <span className="mt-0.5 block text-[12px] text-muted-foreground">
                         {[company.sector, company.ticker].filter(Boolean).join(" · ")}
                       </span>
-                      <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        {company.destinationLabel}
-                      </span>
                     </span>
                   </button>
                 </li>
@@ -287,17 +330,7 @@ export function AltaPayForm({
               <div className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-gold" />
                 <span className="font-medium">{selectedCompany.name}</span>
-                <span className="rounded-full border border-gold/30 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
-                  Verified
-                </span>
               </div>
-              <p className="mt-2 text-[12px] text-muted-foreground">
-                {selectedCompany.sector ?? "Newport company"}
-                {selectedCompany.ticker ? ` · ${selectedCompany.ticker}` : ""}
-              </p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                Destination: {selectedCompany.destinationLabel}
-              </p>
             </div>
           )}
         </div>

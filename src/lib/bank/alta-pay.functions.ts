@@ -7,6 +7,12 @@ export const fetchPaySourceAccounts = createServerFn({ method: "GET" }).handler(
   return listPaySourceAccounts(await requireAuth());
 });
 
+export const fetchPayFundingSources = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireAuth } = await import("@/server/auth.service");
+  const { listPayFundingSources } = await import("@/server/alta-pay.service");
+  return listPayFundingSources(await requireAuth());
+});
+
 /** @deprecated Use fetchPaySourceAccounts */
 export const fetchPersonalPaySourceAccounts = fetchPaySourceAccounts;
 

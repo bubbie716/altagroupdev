@@ -29,6 +29,7 @@ export function PageShell({
   eyebrow,
   title,
   description,
+  action,
   children,
   hideFooter = false,
   footerVariant,
@@ -37,6 +38,7 @@ export function PageShell({
   eyebrow: string;
   title: string;
   description?: string;
+  action?: ReactNode;
   children: ReactNode;
   hideFooter?: boolean;
   /** Overrides route-based footer selection. Legal footers belong on auth shells, not PageShell. */
@@ -64,11 +66,18 @@ export function PageShell({
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className={cn("page-shell-hero border-b border-border/60 pb-6 sm:pb-10", printDocument && "print:hidden")}
         >
-          <div className={type.eyebrow}>{eyebrow}</div>
-          <h1 className={cn(type.display, "mt-3 sm:mt-4 break-words")}>{title}</h1>
-          {description && (
-            <p className={cn(type.body, "mt-3 sm:mt-4 max-w-2xl text-muted-foreground break-words")}>{description}</p>
-          )}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className={type.eyebrow}>{eyebrow}</div>
+              <h1 className={cn(type.display, "mt-3 sm:mt-4 break-words")}>{title}</h1>
+              {description && (
+                <p className={cn(type.body, "mt-3 sm:mt-4 max-w-2xl text-muted-foreground break-words")}>
+                  {description}
+                </p>
+              )}
+            </div>
+            {action ? <div className="shrink-0">{action}</div> : null}
+          </div>
         </motion.div>
         <main className={cn("py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>

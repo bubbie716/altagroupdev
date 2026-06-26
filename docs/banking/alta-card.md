@@ -1,0 +1,552 @@
+# Alta Card
+
+Alta Card is Alta Bank's revolving credit product — separate from term lending facilities. V1 establishes data models, application workflow, card servicing, business employee cards, and internal admin controls. Rewards, Discord bot integration, NCC, and payment processing are out of scope for this foundation.
+
+## Products
+
+| Product | Scope | Rules |
+|---------|-------|-------|
+| **Personal Alta Card** | One card per user | At most one active personal card (`ACTIVE`, `FROZEN`, `LOST`, `DELINQUENT`) |
+| **Business Alta Card** | One line per company | Treasury managers apply; company must be verified |
+| **Employee cards** | Authorized spend against company line | Individual spend limit; cannot exceed company available credit |
+
+## Tiers
+
+Order: **White** < **Navy** < **Black** < **Gold**
+
+| Tier | Default limit | Default APR | Notes |
+|------|---------------|-------------|-------|
+| Alta White | $5,000 | 24.99% | Entry tier |
+| Alta Navy | $15,000 | 19.99% | |
+| Alta Black | $50,000 | 15.99% | |
+| Alta Gold | Negotiable | Negotiable | Alta Private only (`private_client` tag) |
+
+Admins may override tier, limit, and rate on approval or after issuance.
+
+### Tier config (`src/lib/bank/alta-card-tier-config.ts`)
+
+Centralized defaults — **recommendation only**. Approved limit and rate are stored on `AltaCard`.
+
+| Tier | Role | Default limit | Default APR |
+|------|------|---------------|-------------|
+| Alta White | Entry | $5,000 | 24.99% |
+| Alta Navy | Standard | $15,000 | 19.99% |
+| Alta Black | Premium public | $50,000 | 15.99% |
+| Alta Gold | Private banking | Negotiable | Negotiable |
+
+Gold is `private_client` only unless admin override. Changing tier does not change limit/rate unless admin selects **Apply tier defaults**.
+
+## Relationship pricing
+
+`src/server/alta-card-relationship-pricing.service.ts`
+
+`getAltaCardRelationshipRecommendation(userId, companyId?)` returns:
+
+- `recommendedTier`, `recommendedCreditLimit`, `recommendedInterestRate`
+- `relationshipScore` (0–100)
+- `relationshipFactors` (bank balances, deposit activity, loan history, company verification, private client, account age, etc.)
+
+**Recommendation only** — never auto-approves applications. Shown on internal card detail and application review. Audit: `ALTA_CARD_RELATIONSHIP_RECOMMENDATION_VIEWED`.
+
+TODO: Alta Pay volume when centralized analytics are available.
+
+## Admin controls
+
+`src/server/alta-card-admin.service.ts` · `src/lib/bank/alta-card-admin.functions.ts`
+
+Internal card operations page: `/internal/alta-card/$cardId`
+
+### Status transitions
+
+| From | Allowed to |
+|------|------------|
+| `PENDING` | `ACTIVE` |
+| `ACTIVE` | `FROZEN`, `LOST`, `CLOSED`, `DELINQUENT` |
+| `FROZEN` | `ACTIVE` |
+| `DELINQUENT` | `ACTIVE` |
+| `LOST` | `CLOSED` |
+| `CLOSED` | `ACTIVE` (admin override only) |
+
+Spending allowed when `status = ACTIVE`. Payments allowed when `ACTIVE`, `FROZEN`, or `DELINQUENT`.
+
+Every admin action requires **reason** and writes an audit event (`ALTA_CARD_STATUS_CHANGED`, etc.).
+
+### Limit changes
+
+- Increase or decrease credit limit
+- New limit must be ≥ `currentBalance` unless admin override + reason
+- Updates `availableCredit`; audits `previousLimit` / `newLimit`
+
+### Rate changes
+
+- Rate ≥ 0; Gold may be custom
+- UI shows tier default vs current rate
+- Audits `previousRate` / `newRate`
+
+### Payments & fees
+
+- **Manual payment** (`ALTA_CARD_MANUAL_PAYMENT`): posts `PAYMENT` transaction without bank withdrawal
+- **Apply fee** (`ALTA_CARD_FEE_APPLIED`): manual fee via `AltaCardFee` + `FEE` transaction
+- **Admin adjustment** (`ALTA_CARD_ADMIN_ADJUSTMENT`): credit/debit — never updates balance without a transaction
+
+### Employee card admin (business cards)
+
+Admins can create employee cards, update limits, freeze/unfreeze, close, and view employee transactions.
+
+Business owners (`OWNER` / `EXECUTIVE` / `FINANCE_MANAGER`) can create employee cards, set limits, freeze/unfreeze, close, and view transactions — but **cannot** change company limit, rate, tier, waive fees, or admin-adjust balance.
+
+Employee limit cannot exceed company `availableCredit`. Employee spend rolls up to parent business card.
+
+## Data model
+
+### Enums
+
+- `AltaCardType`: `PERSONAL`, `BUSINESS`, `EMPLOYEE` (employee records use `AltaEmployeeCard`)
+- `AltaCardTier`: `WHITE`, `NAVY`, `BLACK`, `GOLD`
+- `AltaCardStatus`: `PENDING`, `ACTIVE`, `FROZEN`, `LOST`, `EXPIRED`, `CLOSED`, `DELINQUENT`
+- `AltaCardApplicationStatus`: `SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFO`, `APPROVED`, `DENIED`, `CANCELLED`
+
+### `AltaCardApplication`
+
+Application queue before a card is issued. Creates an application thread on submit. Approval stores terms; card is created when the applicant accepts (or immediately if admin chooses **approve and activate**).
+
+Key fields: `requestedTier`, `requestedLimit`, `purpose`, `approvedTier`, `approvedLimit`, `approvedInterestRate`, `billingCycleDay`, `paymentSourceAccountId`, `goldOverride`, `acceptedAt`.
+
+Rules:
+
+- One open personal application per user (`SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFO`)
+- One active personal card per user
+- Business applications require treasury role (`OWNER` / `EXECUTIVE` / `FINANCE_MANAGER`)
+- One open business application per company
+- One active business line per company
+
+### `AltaCardApplicationThread` / `AltaCardApplicationThreadMessage`
+
+Simplified messaging thread (mirrors loan application thread pattern):
+
+- Applicant, Alta staff, and system messages
+- Attachments via JSON (`FILE`, `IMAGE`, `LINK`)
+- No offers, contracts, or e-sign
+
+### `AltaCard`
+
+Primary revolving credit account for personal and business cards.
+
+Key fields: `ownerUserId`, `companyId`, `tier`, `cardType`, `status`, `creditLimit`, `availableCredit`, `currentBalance`, `statementBalance`, `minimumPaymentDue`, `interestRate`, `billingCycleDay`, `dueDate`, `openedAt`, `closedAt`.
+
+### `AltaEmployeeCard`
+
+Employee authorized cards: `companyId`, `authorizedUserId`, `parentBusinessCardId`, `employeeSpendLimit`, `employeeAvailableLimit`, `employeeCurrentBalance`, `status`.
+
+### `AltaCardTransaction`
+
+Ledger of all balance-changing card activity.
+
+| Field | Purpose |
+|-------|---------|
+| `altaCardId` | Parent personal or business card |
+| `altaEmployeeCardId` | Set when an employee card spends |
+| `type` | `PURCHASE`, `ALTA_PAY`, `CASH_ADVANCE`, `PAYMENT`, `INTEREST`, `FEE`, `ADJUSTMENT_CREDIT`, `ADJUSTMENT_DEBIT`, `REVERSAL` |
+| `status` | `PENDING`, `COMPLETED`, `FAILED`, `REVERSED` |
+| `relatedBankTransactionId` | Linked bank deposit/withdrawal |
+| `relatedAltaPayPaymentId` | Alta Pay reference (`PAY-YYYYMMDD-XXX`) |
+| `merchantCompanyId` | Payee company for Alta Pay / purchases |
+
+## Application workflow
+
+### Personal (`/bank/alta-card/apply`)
+
+User selects tier, optional limit, intended use, optional payment source, acknowledgement → `SUBMITTED` application + thread.
+
+### Business (`/bank/alta-card/business/apply`)
+
+Treasury managers submit company application with expected spend and employee card needs.
+
+### Approval & activation
+
+- Admin approves tier, limit, rate, billing cycle day
+- Applicant **Accept card** creates active card (unless admin used approve-and-activate)
+- Gold requires admin; non–private Gold requires override audit
+
+Routes: `/bank/alta-card/applications/$applicationId`, `/internal/alta-card/applications/$applicationId`
+
+## Transaction service
+
+`src/server/alta-card-transaction.service.ts`
+
+| Function | Purpose |
+|----------|---------|
+| `chargeAltaCardInTransaction` | Atomic charge + transaction record (internal) |
+| `chargeAltaCardForAltaPay` | Alta Pay funding from personal or employee card |
+| `submitCashAdvance` | Card → checking deposit |
+| `submitCardPayment` | Checking → card balance reduction |
+| `createAdminAltaCardAdjustment` | Operator credit/debit adjustment |
+| `reverseAltaCardTransaction` | Reverse completed transaction |
+| `listAltaCardTransactions` | Card history |
+| `listEmployeeCardTransactions` | Employee drill-down history |
+| `listAltaCardFundingSources` | Alta Pay funding source list |
+
+### Balance rules
+
+All charges (purchase, Alta Pay, cash advance, admin debit):
+
+- `currentBalance` increases
+- `availableCredit` = `creditLimit - currentBalance`
+
+Payments and admin credits reverse the effect. Employee spends also update `employeeCurrentBalance` and `employeeAvailableLimit` on `AltaEmployeeCard`.
+
+Guards:
+
+- `currentBalance` never below 0
+- `availableCredit` never above `creditLimit`
+- Charges blocked when card is not `ACTIVE` (admin override for adjustments)
+- Payments allowed when `ACTIVE`, `FROZEN`, or `DELINQUENT`
+- Employee spend cannot exceed employee limit or parent available credit
+
+### Alta Pay funding source
+
+At `/bank/pay`, users select **bank account** or **Alta Card •••• XXXX** (personal or employee card).
+
+**Bank account:** existing paired `PAY-*-OUT` / `PAY-*-IN` bank transactions.
+
+**Alta Card:**
+
+1. Merchant receives `PAY-*-IN` deposit to Business Operating Account
+2. Card `currentBalance` increases; `availableCredit` decreases
+3. `AltaCardTransaction` type `ALTA_PAY` created with `relatedAltaPayPaymentId`
+4. Receipt shows funding source label
+5. Audit: `ALTA_CARD_ALTA_PAY_CHARGED`
+
+Employee card Alta Pay charges the parent business line and records the authorized user as spender.
+
+### Cash advance
+
+On `/bank/alta-card/$cardId`:
+
+1. User selects destination personal checking account and amount (confirmation required)
+2. Card balance increases; available credit decreases
+3. `AltaCardTransaction` type `CASH_ADVANCE`
+4. `BankTransaction` deposit on destination account
+5. Audit: `ALTA_CARD_CASH_ADVANCE_CREATED`
+
+### Card payment
+
+1. User selects source checking account and amount (minimum / statement / current / custom)
+2. Payment capped at `currentBalance`
+3. Source account debited via `BankTransaction` withdrawal
+4. Card balance decreases; available credit increases
+5. `AltaCardTransaction` type `PAYMENT`
+6. Payment allocated to oldest unpaid statement first (`ISSUED`, `PARTIALLY_PAID`, `OVERDUE`)
+7. Audit: `ALTA_CARD_PAYMENT_MADE`, `ALTA_CARD_STATEMENT_PAID` when a statement is paid in full
+
+## Billing cycle & statements
+
+`src/server/alta-card-statement.service.ts` · `src/lib/bank/alta-card-minimum-payment.ts` · `src/lib/bank/alta-card-billing-cycle.ts`
+
+### Alta Card Billing Policy (V1)
+
+| Rule | Value |
+|------|-------|
+| Statement close | Last day of every calendar month |
+| Statement generation | Immediately when the monthly period closes (cron or admin) |
+| Payment due | 15 days after statement close |
+| Minimum payment | Greater of 5% of **statement balance** or ƒ100, capped at statement balance |
+| Interest | Only if statement balance is not fully paid by the due date |
+
+**Current balance vs statement balance**
+
+- **Current balance** — total card balance including purchases in the open billing cycle.
+- **Statement balance** — amount owed from closed statement(s), excluding new-cycle activity.
+- **Minimum payment** — calculated from the oldest unpaid statement’s `statementBalance` (not `currentBalance`).
+
+Example: June 30 statement closes at ƒ5,000. User spends ƒ2,000 on July 2.
+
+| Field | Value |
+|-------|-------|
+| Current balance | ƒ7,000 |
+| Statement balance | ƒ5,000 |
+| Minimum payment | ƒ250 |
+| Payment due | July 15 |
+
+New purchases after the statement date appear on the next statement.
+
+**Minimum payment examples** (from `calculateAltaCardMinimumPayment`):
+
+| Statement balance | Minimum payment |
+|-------------------|-----------------|
+| ƒ80 | ƒ80 |
+| ƒ400 | ƒ100 |
+| ƒ5,000 | ƒ250 |
+| ƒ20,000 | ƒ1,000 |
+
+### Card billing fields
+
+- `currentBillingCycleStart` / `currentBillingCycleEnd`
+- `currentStatementId` (OPEN cycle accumulator)
+- `lastStatementDate`, `nextStatementDate`, `paymentDueDate`
+- `statementBalance`, `minimumPaymentDue` (synced from unpaid statements)
+
+### `AltaCardStatement`
+
+Monthly statement with period totals, minimum payment, amount paid, and status.
+
+Statuses: `OPEN` → `ISSUED` → `PAID` / `PARTIALLY_PAID` / `OVERDUE` / `VOID`
+
+Transactions are linked to a statement via `altaCardStatementId` when the cycle closes. New spending after close belongs to the next OPEN cycle.
+
+### Statement generation (`generateStatement`)
+
+1. Aggregate `AltaCardTransaction` rows in `[billingPeriodStart, billingPeriodEnd]` (inclusive) with no statement link
+2. Compute previous balance from prior unpaid statement remainder
+3. Calculate purchases, payments, adjustments, interest, fees
+4. `endingBalance` = previous + activity; `statementBalance` = max(0, ending)
+5. `minimumPayment` = `calculateAltaCardMinimumPayment(statementBalance)`
+6. `statementDate` = `billingPeriodEnd`; `dueDate` = `getAltaCardDueDate(billingPeriodEnd)`
+7. Issue statement (`ISSUED`), tag transactions, advance to next OPEN cycle (next month)
+8. Audit: `ALTA_CARD_STATEMENT_GENERATED`
+
+Billing cycle helpers (`src/lib/bank/alta-card-billing-cycle.ts`):
+
+- `getStatementCloseDate(date)` — last day of that month
+- `getAltaCardDueDate(statementCloseDate)` — close + 15 days
+- `getInitialBillingCycle(anchorDate)` — first cycle for a new card
+- `getNextBillingCycle(previousCycleEnd)` — day after close through last day of next month
+
+### Minimum payment (V1)
+
+```typescript
+// src/lib/bank/alta-card-minimum-payment.ts
+calculateAltaCardMinimumPayment(statementBalance)
+// max(5% × statementBalance, ƒ100), capped at statementBalance; 0 if balance ≤ 0
+```
+
+### Payment allocation
+
+Payments apply to the **oldest unpaid statement first**. Within each statement, payment priority is:
+
+1. Fees
+2. Interest
+3. Principal / statement balance
+
+Updates `amountPaid`, `feesPaid`, `interestPaid`, `principalPaid`, `remainingBalance`, and status (`PAID` / `PARTIALLY_PAID`). Sets `paidAt` when fully paid. Card `statementBalance` and `minimumPaymentDue` resync from unpaid statements.
+
+## Interest & fees
+
+`src/server/alta-card-interest.service.ts` · `src/server/alta-card-fee.service.ts` · `src/lib/bank/alta-card-fee-config.ts`
+
+### Interest rules (V1)
+
+- Interest applies only when a statement is **not fully paid by the due date**
+- Pay the full statement balance by `dueDate` → **no interest**
+- After due date with unpaid `remainingBalance` → monthly interest on the unpaid balance
+- Formula: `unpaidBalance × (APR / 100) / 12` — `interestRate` on `AltaCard` is stored as APR percent
+- One interest charge per statement per billing period (`interestAppliedAt` prevents duplicates)
+- Creates `AltaCardTransaction` type `INTEREST`; increases `currentBalance`, decreases `availableCredit`
+
+### Tier default rates (starting values on approval)
+
+| Tier | Default APR |
+|------|-------------|
+| Alta White | 24.99% (highest) |
+| Alta Navy | 19.99% |
+| Alta Black | 15.99% |
+| Alta Gold | Manual / negotiable (private banking) |
+
+Admins can override via `updateAltaCardRate`. Audit: `ALTA_CARD_RATE_CHANGED`.
+
+### Grace period
+
+15-day payment window from statement close to `dueDate`. Pay the full statement balance by due date to avoid interest. No daily accrual in V1.
+
+### Overdue behavior
+
+When `dueDate` passes with unpaid balance:
+
+1. Status → `OVERDUE` (`overdueAt` set)
+2. Late fee charged once per statement (ƒ100 default)
+3. Monthly interest applied when billing processor runs
+
+### Late fees
+
+- `AltaCardFee` type `LATE_PAYMENT`, default ƒ100 (`ALTA_CARD_LATE_FEE_AMOUNT`)
+- Charged once per overdue statement; creates `FEE` transaction
+- Admins can waive → adjustment credit + `ALTA_CARD_FEE_WAIVED`
+- Cash advance fee default ƒ0 (`ALTA_CARD_CASH_ADVANCE_FEE_AMOUNT`) — hook for future pricing
+
+### `AltaCardFee` model
+
+Tracks fee lifecycle: `ACTIVE` → `PAID` / `WAIVED`. Linked to statement and transaction.
+
+### Billing processor
+
+`processAltaCardBilling()` in `src/server/alta-card-billing.service.ts`:
+
+1. `markOverdueStatements()`
+2. `applyLateFeesForDueStatements()`
+3. `applyInterestForDueStatements()`
+
+Cron hook (TODO wire in production scheduler): `GET|POST /api/cron/alta-card-billing` (requires `CRON_SECRET`)
+
+Internal admin: preview interest, apply manually, run billing batch, waive fees.
+
+### Interest & fee audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_INTEREST_APPLIED` | Interest posted to a statement |
+| `ALTA_CARD_INTEREST_BATCH_APPLIED` | Batch interest run |
+| `ALTA_CARD_FEE_CHARGED` | Fee posted (e.g. late payment) |
+| `ALTA_CARD_FEE_WAIVED` | Admin waived a fee |
+| `ALTA_CARD_RATE_CHANGED` | Card APR updated |
+
+### Scheduler hooks
+
+| Hook | Endpoint |
+|------|----------|
+| Statement generation | `/api/cron/alta-card-statements` |
+| Overdue + fees + interest | `/api/cron/alta-card-billing` |
+
+### PDF (placeholder)
+
+`generateStatementPdf(statementId)` in `src/server/alta-card-statement-pdf.ts` — returns not-yet-available message.
+
+### Statement routes
+
+| Route | Purpose |
+|-------|---------|
+| `/bank/alta-card/$cardId/statements` | Statement list |
+| `/bank/alta-card/$cardId/statements/$statementId` | Statement detail + period transactions |
+
+### Statement audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_STATEMENT_GENERATED` | Statement issued |
+| `ALTA_CARD_STATEMENT_VOIDED` | Statement voided (no payments applied) |
+| `ALTA_CARD_STATEMENT_PAID` | Statement paid in full via card payment |
+
+### Billing test checklist (manual)
+
+No automated test suite — verify manually when changing billing logic:
+
+1. `calculateAltaCardMinimumPayment` returns ƒ80 / ƒ100 / ƒ250 / ƒ1,000 for ƒ80 / ƒ400 / ƒ5,000 / ƒ20,000
+2. Statement closes on last calendar day; `dueDate` is 15 days later
+3. Post-close purchase increases `currentBalance` but not `statementBalance` until next close
+4. Payment applies to oldest unpaid statement first; status → `PARTIALLY_PAID` or `PAID`
+5. After `dueDate`, unpaid statements → `OVERDUE`; interest only on unpaid statement `remainingBalance`
+6. Full payment by `dueDate` → no interest for that statement
+
+## Service
+
+`src/server/alta-card.service.ts`
+
+### Admin adjustments
+
+Operators post credit (reduces balance) or debit (increases balance) with required reason and confirmation. Audit: `ALTA_CARD_ADJUSTMENT_CREATED`. Use adjustment credits to waive interest.
+
+| Function | Purpose |
+|----------|---------|
+| `getUserAltaCard` | Active/pending personal card for user |
+| `getCompanyAltaCards` | Business card + employee cards for company |
+| `getAltaCardDetail` | Full card detail with employee cards |
+| `createPersonalAltaCardApplication` | Submit personal application |
+| `createBusinessAltaCardApplication` | Submit business application |
+| `approveAltaCardApplication` | Issue card (status `PENDING`) |
+| `denyAltaCardApplication` | Deny application |
+| `activateAltaCard` | `PENDING` → `ACTIVE` |
+| `freezeAltaCard` / `unfreezeAltaCard` | Card freeze controls |
+| `closeAltaCard` | Close card |
+| `updateAltaCardLimit` / `updateAltaCardRate` / `changeAltaCardTier` | Admin overrides |
+| `createEmployeeCard` | Issue employee card |
+| `updateEmployeeCardLimit` | Adjust employee spend cap |
+| `freezeEmployeeCard` / `closeEmployeeCard` | Employee card controls |
+| `listInternalAltaCards` / `listInternalAltaCardApplications` | Internal lists |
+
+Server functions: `src/lib/bank/alta-card.functions.ts`
+
+## Routes
+
+### User-facing (`/bank/alta-card`)
+
+| Route | Purpose |
+|-------|---------|
+| `/bank/alta-card` | Personal dashboard |
+| `/bank/alta-card/apply` | Application form |
+| `/bank/alta-card/$cardId` | Card detail |
+| `/bank/alta-card/business` | Company list |
+| `/bank/alta-card/business/$companyId` | Business line + employee cards |
+
+### Internal (`/internal/alta-card`)
+
+| Route | Purpose |
+|-------|---------|
+| `/internal/alta-card` | All cards, filters, pending applications |
+| `/internal/alta-card/$cardId` | Full card operations (status, terms, payments, relationship pricing) |
+| `/internal/alta-card/applications` | Full application queue |
+| `/internal/alta-card/applications/$applicationId` | Application review with relationship recommendation |
+
+## UI
+
+- Card visuals: `src/components/bank/alta-card/alta-card-visual.tsx` (Untitled UI `CreditCard` asset)
+- Dashboard: tier benefits, utilization, rate, limits, relationship note (Gold → Alta Private)
+- Business page: company limit, balance, employee utilization, company transactions
+- Internal: all transactions, adjustments, reversals, linked bank/Alta Pay refs
+
+## Audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_APPLICATION_CREATED` | Application submitted |
+| `ALTA_CARD_APPROVED` | Application approved, card created |
+| `ALTA_CARD_DENIED` | Application denied |
+| `ALTA_CARD_ACTIVATED` | Card activated |
+| `ALTA_CARD_STATUS_CHANGED` | Card status transition |
+| `ALTA_CARD_LIMIT_CHANGED` | Credit limit updated |
+| `ALTA_CARD_RATE_CHANGED` | Interest rate updated |
+| `ALTA_CARD_TIER_CHANGED` | Tier changed |
+| `ALTA_CARD_FEE_WAIVED` | Fee waived |
+| `ALTA_CARD_FEE_APPLIED` | Manual fee applied |
+| `ALTA_CARD_MANUAL_PAYMENT` | Admin manual payment |
+| `ALTA_CARD_ADMIN_ADJUSTMENT` | Admin credit/debit adjustment |
+| `ALTA_CARD_RELATIONSHIP_RECOMMENDATION_VIEWED` | Relationship pricing viewed |
+| `ALTA_CARD_EMPLOYEE_CARD_CREATED` | Employee card issued |
+| `ALTA_CARD_EMPLOYEE_CARD_UPDATED` | Employee card updated (e.g. unfreeze) |
+| `ALTA_CARD_EMPLOYEE_CARD_CLOSED` | Employee card closed |
+| `ALTA_CARD_FROZEN` / `ALTA_CARD_UNFROZEN` / `ALTA_CARD_CLOSED` | Legacy status events (user flows) |
+| `ALTA_CARD_PAYMENT_MADE` | Card payment from checking |
+| `ALTA_CARD_CASH_ADVANCE_CREATED` | Cash advance to checking |
+| `ALTA_CARD_ALTA_PAY_CHARGED` | Alta Pay charged to card |
+| `ALTA_CARD_ADJUSTMENT_CREATED` | Admin adjustment |
+| `ALTA_CARD_TRANSACTION_REVERSED` | Transaction reversed |
+
+Metadata includes: `cardId`, `userId`, `companyId`, `oldValue`, `newValue`, `reason`, `actorUserId`, plus transaction-specific fields.
+
+Entity type: `ALTA_CARD`
+
+## Migration
+
+```bash
+npx prisma migrate dev --name alta_card_application_workflow
+npx prisma generate
+```
+
+Migrations:
+
+- `prisma/migrations/20250701230000_alta_card_foundation/migration.sql`
+- `prisma/migrations/20250702000000_alta_card_transactions/migration.sql`
+- `prisma/migrations/20250702010000_alta_card_statements/migration.sql`
+- `prisma/migrations/20250702020000_alta_card_interest_fees/migration.sql`
+- `prisma/migrations/20250702030000_alta_card_application_workflow/migration.sql`
+
+## V1 limitations
+
+- No rewards program
+- No Discord bot card commands
+- No NCC integration
+- No merge with term loan lending UI or servicing
+- Alta Pay volume not yet in relationship score
+- Interest waiver / fee waiver as distinct adjustment types use fee waive + credit adjustment paths
+- No daily interest accrual — monthly charge only
+- No repeated daily late fees
+- PDF statements not yet generated (placeholder only)
+- Purchases (non–Alta Pay) model exists; POS authorization not built

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { AltaLogo } from "@/components/alta-logo";
 import { cx, sortCx } from "@/lib/utils/cx";
 import { MastercardIcon, MastercardIconWhite, PaypassIcon } from "./icons";
 
@@ -45,6 +46,38 @@ const styles = sortCx({
         footerText: "text-neutral-700",
         paypassIcon: "text-neutral-400",
         cardTypeRoot: "bg-white",
+    },
+    "alta-white": {
+        root: "bg-linear-to-br from-[#f8f4ec] to-[#ebe4d6] before:pointer-events-none before:absolute before:inset-0 before:z-1 before:rounded-[inherit] before:ring-1 before:ring-black/8 before:ring-inset",
+        company: "text-[#3d3830]",
+        tierLabel: "text-[#6b6358]",
+        footerText: "text-[#2c2824]",
+        paypassIcon: "text-[#8a8278]",
+        cardTypeRoot: "bg-white/60",
+    },
+    "alta-navy": {
+        root: "bg-linear-to-tr from-[#152238] via-[#1e3354] to-[#2a4568] before:pointer-events-none before:absolute before:inset-0 before:z-1 before:rounded-[inherit] before:mask-linear-135 before:mask-linear-to-white/15 before:ring-1 before:ring-white/20 before:ring-inset",
+        company: "text-white",
+        tierLabel: "text-white/70",
+        footerText: "text-white",
+        paypassIcon: "text-white/80",
+        cardTypeRoot: "bg-white/10",
+    },
+    "alta-black": {
+        root: "bg-linear-to-tr from-[#141414] via-[#1c1c1f] to-[#2a2a30] before:pointer-events-none before:absolute before:inset-0 before:z-1 before:rounded-[inherit] before:mask-linear-135 before:mask-linear-to-white/12 before:ring-1 before:ring-white/15 before:ring-inset",
+        company: "text-white",
+        tierLabel: "text-white/60",
+        footerText: "text-white/95",
+        paypassIcon: "text-white/70",
+        cardTypeRoot: "bg-white/8",
+    },
+    "alta-gold": {
+        root: "bg-linear-to-br from-[#2a2418] via-[#4a3d24] to-[#6b5630] before:pointer-events-none before:absolute before:inset-0 before:z-1 before:rounded-[inherit] before:mask-linear-135 before:mask-linear-to-white/10 before:ring-1 before:ring-[oklch(0.72_0.1_78)]/40 before:ring-inset",
+        company: "text-[oklch(0.88_0.08_85)]",
+        tierLabel: "text-[oklch(0.78_0.1_78)]",
+        footerText: "text-[oklch(0.92_0.06_85)]",
+        paypassIcon: "text-[oklch(0.78_0.1_78)]",
+        cardTypeRoot: "bg-black/20",
     },
 
     // Strip
@@ -101,20 +134,34 @@ const styles = sortCx({
     },
 });
 
-const _NORMAL_TYPES = ["transparent", "transparent-gradient", "brand-dark", "brand-light", "gray-dark", "gray-light"] as const;
+const _NORMAL_TYPES = [
+    "transparent",
+    "transparent-gradient",
+    "brand-dark",
+    "brand-light",
+    "gray-dark",
+    "gray-light",
+    "alta-white",
+    "alta-navy",
+    "alta-black",
+    "alta-gold",
+] as const;
 const STRIP_TYPES = ["transparent-strip", "gray-strip", "gradient-strip", "salmon-strip"] as const;
 const VERTICAL_STRIP_TYPES = ["gray-strip-vertical", "gradient-strip-vertical", "salmon-strip-vertical"] as const;
 
-const CARD_WITH_COLOR_LOGO = ["brand-dark", "brand-light", "gray-dark", "gray-light"] as const;
+const CARD_WITH_COLOR_LOGO = ["brand-dark", "brand-light", "gray-dark", "gray-light", "alta-white"] as const;
+const ALTA_CARD_TYPES = ["alta-white", "alta-navy", "alta-black", "alta-gold"] as const;
 
 type CreditCardType = (typeof _NORMAL_TYPES)[number] | (typeof STRIP_TYPES)[number] | (typeof VERTICAL_STRIP_TYPES)[number];
 
 interface CreditCardProps {
     company?: string;
+    tierLabel?: string;
     cardNumber?: string;
     cardHolder?: string;
     cardExpiration?: string;
     type?: CreditCardType;
+    brandMark?: "alta" | "network";
     className?: string;
     width?: number;
 }
@@ -136,10 +183,12 @@ const calculateScale = (desiredWidth: number, originalWidth: number, originalHei
 
 export const CreditCard = ({
     company = "Untitled.",
+    tierLabel,
     cardNumber = "1234 1234 1234 1234",
     cardHolder = "OLIVIA RHYE",
     cardExpiration = "06/28",
     type = "brand-dark",
+    brandMark = "network",
     className,
     width,
 }: CreditCardProps) => {
@@ -190,9 +239,28 @@ export const CreditCard = ({
                         <div className="bg-green-500 size-20 rounded-br-full opacity-30 mix-blend-normal" />
                     </div>
                 )}
+                {type === "alta-gold" && (
+                    <div className="pointer-events-none absolute -top-8 -right-8 size-32 rounded-full bg-[oklch(0.72_0.1_78)]/20 blur-2xl" />
+                )}
 
                 <div className="relative flex items-start justify-between px-1 pt-1">
-                    <div className={cx("text-md leading-[normal] font-semibold", styles[type].company)}>{company}</div>
+                    <div>
+                        <div className={cx("text-md leading-[normal] font-semibold tracking-wide", styles[type].company)}>
+                            {company}
+                        </div>
+                        {tierLabel ? (
+                            <div
+                                className={cx(
+                                    "mt-0.5 text-[10px] font-medium uppercase tracking-[0.22em]",
+                                    "tierLabel" in styles[type]
+                                        ? (styles[type] as { tierLabel?: string }).tierLabel
+                                        : styles[type].company,
+                                )}
+                            >
+                                {tierLabel}
+                            </div>
+                        ) : null}
+                    </div>
 
                     <PaypassIcon className={styles[type].paypassIcon} />
                 </div>
@@ -226,7 +294,19 @@ export const CreditCard = ({
                     </div>
 
                     <div className={cx("flex h-8 w-11.5 shrink-0 items-center justify-center rounded", styles[type].cardTypeRoot)}>
-                        {CARD_WITH_COLOR_LOGO.includes(type as (typeof CARD_WITH_COLOR_LOGO)[number]) ? <MastercardIcon /> : <MastercardIconWhite />}
+                        {brandMark === "alta" || ALTA_CARD_TYPES.includes(type as (typeof ALTA_CARD_TYPES)[number]) ? (
+                            <AltaLogo
+                                className={cx(
+                                    "h-6 w-6",
+                                    type === "alta-white" ? "text-[#2c2824]" : "text-white",
+                                    type === "alta-gold" && "text-[oklch(0.78_0.1_78)]",
+                                )}
+                            />
+                        ) : CARD_WITH_COLOR_LOGO.includes(type as (typeof CARD_WITH_COLOR_LOGO)[number]) ? (
+                            <MastercardIcon />
+                        ) : (
+                            <MastercardIconWhite />
+                        )}
                     </div>
                 </div>
             </div>

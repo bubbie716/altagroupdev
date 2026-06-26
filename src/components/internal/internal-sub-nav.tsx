@@ -28,6 +28,7 @@ const groups: { id: string; label: string; links: Link[] }[] = [
       { to: "/internal/bank/transfers", label: "Transfers" },
       { to: "/internal/bank/statements", label: "Statements" },
       { to: "/internal/lending", label: "Lending", exact: true },
+      { to: "/internal/alta-card", label: "Alta Card", match: "/internal/alta-card" },
     ],
   },
   {

@@ -33,8 +33,13 @@ import {
   isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
 import { getRoutingNumber } from "@/lib/bank/routing";
-import { isPrivateClient } from "@/lib/auth/permissions";
+import { isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
+import {
+  bankAccountAccessWhere,
+  isBankAccountAccessibleByUser,
+  loadAltaUserOrThrow,
+} from "@/server/bank-account-access.service";
 import {
   mapInternalBankAccountRow,
   mapInternalBankTransactionRow,
@@ -108,27 +113,14 @@ function initialAccountStatus(
   return isInstantApprovalAccountType(accountType) ? "ACTIVE" : "PENDING";
 }
 
-async function getUserCompanyIds(userId: string): Promise<Set<string>> {
-  const memberships = await prisma.companyMembership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-  return new Set(memberships.map((m) => m.companyId));
-}
-
-function accessibleAccountWhere(userId: string, companyIds: Set<string>): Prisma.BankAccountWhereInput {
-  return {
-    OR: [
-      { userId, companyId: null },
-      ...(companyIds.size > 0 ? [{ companyId: { in: [...companyIds] } }] : []),
-    ],
-  };
-}
-
-async function requireAccessibleAccount(accountId: string, userId: string) {
-  const companyIds = await getUserCompanyIds(userId);
+async function requireAccessibleAccount(
+  accountId: string,
+  userId: string,
+  access: "view" | "manage" = "view",
+) {
+  const user = await loadAltaUserOrThrow(userId);
   const account = await prisma.bankAccount.findFirst({
-    where: { id: accountId, ...accessibleAccountWhere(userId, companyIds) },
+    where: { id: accountId, ...bankAccountAccessWhere(user, access) },
     include: {
       company: true,
       transactions: { orderBy: { createdAt: "desc" }, take: 1 },
@@ -139,12 +131,7 @@ async function requireAccessibleAccount(accountId: string, userId: string) {
 }
 
 export async function isAccountAccessibleByUser(accountId: string, userId: string): Promise<boolean> {
-  const companyIds = await getUserCompanyIds(userId);
-  const account = await prisma.bankAccount.findFirst({
-    where: { id: accountId, ...accessibleAccountWhere(userId, companyIds) },
-    select: { id: true },
-  });
-  return !!account;
+  return isBankAccountAccessibleByUser(userId, accountId, "view");
 }
 
 export function normalizeAccountNumber(input: string): string {
@@ -161,9 +148,9 @@ const accountInclude = {
 } as const;
 
 export async function listUserBankAccounts(userId: string): Promise<UserBankAccount[]> {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const accounts = await prisma.bankAccount.findMany({
-    where: accessibleAccountWhere(userId, companyIds),
+    where: bankAccountAccessWhere(user, "view"),
     include: accountInclude,
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
   });
@@ -299,19 +286,19 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
     .reduce((sum, a) => sum + a.balance, 0);
   const totalRelationshipValue = activeAccounts.reduce((sum, a) => sum + a.balance, 0);
 
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const pendingDeposits = await prisma.bankTransaction.count({
     where: {
       type: "DEPOSIT",
       status: "PENDING",
-      bankAccount: accessibleAccountWhere(userId, companyIds),
+      bankAccount: bankAccountAccessWhere(user, "view"),
     },
   });
   const pendingWithdrawals = await prisma.bankTransaction.count({
     where: {
       type: "WITHDRAWAL",
       status: "PENDING",
-      bankAccount: accessibleAccountWhere(userId, companyIds),
+      bankAccount: bankAccountAccessWhere(user, "view"),
     },
   });
 
@@ -319,8 +306,8 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
     where: { id: userId },
     include: userWithMembershipsInclude,
   });
-  const user = userRecord ? mapDbUserToAltaUser(userRecord) : null;
-  const enrolledInPrivate = user !== null && isPrivateClient(user);
+  const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
+  const enrolledInPrivate = altaUser !== null && isPrivateClient(altaUser);
 
   return {
     totalRelationshipValue,
@@ -340,14 +327,14 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
 
 export async function getUserBankSummary(userId: string): Promise<UserBankSummary> {
   const accounts = await listUserBankAccounts(userId);
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
 
   const [pendingDepositCount, pendingWithdrawalCount] = await Promise.all([
     prisma.bankTransaction.count({
-      where: { type: "DEPOSIT", status: "PENDING", bankAccount: accessibleAccountWhere(userId, companyIds) },
+      where: { type: "DEPOSIT", status: "PENDING", bankAccount: bankAccountAccessWhere(user, "view") },
     }),
     prisma.bankTransaction.count({
-      where: { type: "WITHDRAWAL", status: "PENDING", bankAccount: accessibleAccountWhere(userId, companyIds) },
+      where: { type: "WITHDRAWAL", status: "PENDING", bankAccount: bankAccountAccessWhere(user, "view") },
     }),
   ]);
 
@@ -361,11 +348,11 @@ export async function getUserBankSummary(userId: string): Promise<UserBankSummar
 }
 
 export async function listUserRecentTransactions(userId: string, limit = 10): Promise<UserBankTransaction[]> {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const transactions = await prisma.bankTransaction.findMany({
     where: {
       status: { not: "PENDING" },
-      bankAccount: accessibleAccountWhere(userId, companyIds),
+      bankAccount: bankAccountAccessWhere(user, "view"),
     },
     include: {
       bankAccount: {
@@ -412,6 +399,9 @@ export async function openBankAccount(
       include: { company: true },
     });
     if (!membership) forbidden();
+    if (!canManageBusinessTreasury(user, { companyId: input.companyId })) {
+      forbidden();
+    }
     if (membership.company.verificationStatus !== "VERIFIED") {
       badRequest("Company must be verified before opening a business operating account");
     }
@@ -468,7 +458,7 @@ export async function submitDepositRequest(
 ): Promise<{ transactionId: string; referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
-  const account = await requireAccessibleAccount(input.bankAccountId, userId);
+  const account = await requireAccessibleAccount(input.bankAccountId, userId, "manage");
   if (account.status !== "ACTIVE") badRequest("Account must be active to accept deposits");
   if (account.restrictDeposits) badRequest("Deposits are restricted on this account");
 
@@ -496,7 +486,7 @@ export async function submitWithdrawalRequest(
 ): Promise<{ transactionId: string; referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
-  const account = await requireAccessibleAccount(input.bankAccountId, userId);
+  const account = await requireAccessibleAccount(input.bankAccountId, userId, "manage");
   if (account.status !== "ACTIVE") badRequest("Account must be active for withdrawals");
   if (account.restrictWithdrawals) badRequest("Withdrawals are restricted on this account");
 
@@ -532,7 +522,7 @@ export async function submitInternalTransfer(
     badRequest("Choose a destination account or enter a recipient account number");
   }
 
-  const fromAccount = await requireAccessibleAccount(input.fromAccountId, userId);
+  const fromAccount = await requireAccessibleAccount(input.fromAccountId, userId, "manage");
   if (fromAccount.status !== "ACTIVE") badRequest("Source account must be active");
   if (fromAccount.restrictTransfers) badRequest("Transfers are restricted on this account");
 
@@ -542,7 +532,7 @@ export async function submitInternalTransfer(
     if (input.fromAccountId === input.toAccountId) {
       badRequest("Choose two different accounts for a transfer");
     }
-    toAccount = await requireAccessibleAccount(input.toAccountId, userId);
+    toAccount = await requireAccessibleAccount(input.toAccountId, userId, "manage");
   } else {
     const toAccountNumber = normalizeAccountNumber(input.toAccountNumber!);
     if (!isValidAltaAccountNumber(toAccountNumber)) {
@@ -720,8 +710,8 @@ export async function listUserInternalTransfers(
   userId: string,
   limit = 20,
 ): Promise<UserBankTransfer[]> {
-  const companyIds = await getUserCompanyIds(userId);
-  const accountWhere = accessibleAccountWhere(userId, companyIds);
+  const user = await loadAltaUserOrThrow(userId);
+  const accountWhere = bankAccountAccessWhere(user, "view");
 
   const [outTransactions, inTransactions] = await Promise.all([
     prisma.bankTransaction.findMany({

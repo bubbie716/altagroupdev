@@ -10,7 +10,6 @@ type DashboardAccount = {
   balance: number;
   status: BankAccountStatusCode;
   statusLabel: string;
-  interestAccrualEnabled?: boolean;
 };
 
 export function AccountOverviewGrid({ accounts }: { accounts: DashboardAccount[] }) {
@@ -35,7 +34,6 @@ export function AccountOverviewGrid({ accounts }: { accounts: DashboardAccount[]
             balance: account.balance,
             status: account.statusLabel,
             statusCode: account.status,
-            interestAccrualEnabled: account.interestAccrualEnabled,
           }}
           onHideClosed={
             account.status === "closed" ? () => hideAccount(account.id) : undefined

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { LendingSubNav } from "@/components/bank/lending-sub-nav";
 import { AltaCreditProfilePlaceholder } from "@/components/bank/alta-credit-profile-placeholder";
 import { LendingLoansTable } from "@/components/bank/lending-loans-table";
 import { EmptyState } from "@/components/data/empty-state";
@@ -25,7 +24,6 @@ function BankLendingLoans() {
       description="Approved credit facilities and servicing summary."
     >
       <BankSubNav />
-      <LendingSubNav />
 
       {loans.length === 0 ? (
         <EmptyState

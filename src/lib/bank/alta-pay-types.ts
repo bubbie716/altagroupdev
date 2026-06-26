@@ -8,8 +8,12 @@ export interface PayableCompany {
   destinationLabel: string;
 }
 
+export type AltaPayFundingSource =
+  | { kind: "bank_account"; accountId: string }
+  | { kind: "alta_card"; cardId: string };
+
 export interface SubmitAltaPayInput {
-  fromAccountId: string;
+  fundingSource: AltaPayFundingSource;
   companyId: string;
   amount: number;
   memo?: string;
@@ -19,6 +23,17 @@ export interface SubmitAltaPayResult {
   referenceCode: string;
   amount: number;
   companyName: string;
+  fundingSourceLabel: string;
+  cardTransactionId?: string;
+}
+
+export interface PayFundingSourceOption {
+  kind: "bank_account" | "alta_card";
+  id: string;
+  label: string;
+  detail: string;
+  availableBalance: number;
+  cardLastFour?: string;
 }
 
 export interface AltaPayPaymentRow {
@@ -31,6 +46,7 @@ export interface AltaPayPaymentRow {
   payerLabel: string;
   payeeLabel: string;
   sourceAccountName: string | null;
+  fundingSourceLabel: string;
 }
 
 export interface AltaPayReceivedSummary {

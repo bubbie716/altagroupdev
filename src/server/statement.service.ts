@@ -13,6 +13,11 @@ import type {
 import { formatStatementNumber } from "@/lib/bank/statement-number";
 import { prisma } from "@/server/db";
 import {
+  bankAccountAccessWhere,
+  isBankAccountAccessibleByUser,
+  loadAltaUserOrThrow,
+} from "@/server/bank-account-access.service";
+import {
   isTransferReference,
   mapBankStatementDetail,
   mapBankStatementSummary,
@@ -64,27 +69,10 @@ function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
 }
 
-async function getUserCompanyIds(userId: string): Promise<Set<string>> {
-  const memberships = await prisma.companyMembership.findMany({
-    where: { userId },
-    select: { companyId: true, role: true },
-  });
-  return new Set(memberships.map((m) => m.companyId));
-}
-
-function accessibleAccountWhere(userId: string, companyIds: Set<string>): Prisma.BankAccountWhereInput {
-  return {
-    OR: [
-      { userId, companyId: null },
-      ...(companyIds.size > 0 ? [{ companyId: { in: [...companyIds] } }] : []),
-    ],
-  };
-}
-
 async function requireAccessibleAccount(accountId: string, userId: string) {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const account = await prisma.bankAccount.findFirst({
-    where: { id: accountId, ...accessibleAccountWhere(userId, companyIds) },
+    where: { id: accountId, ...bankAccountAccessWhere(user, "view") },
     include: { user: true, company: true },
   });
   if (!account) forbidden();
@@ -345,11 +333,11 @@ export async function getStatementDetail(
   userId: string,
   statementId: string,
 ): Promise<BankStatementDetail> {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const row = await prisma.bankStatement.findFirst({
     where: {
       id: statementId,
-      bankAccount: accessibleAccountWhere(userId, companyIds),
+      bankAccount: bankAccountAccessWhere(user, "view"),
     },
     include: statementInclude,
   });
@@ -456,21 +444,14 @@ export async function generateMonthlyStatementsPreview(): Promise<{
 export async function listStatementGeneratableAccountsForUser(
   userId: string,
 ): Promise<StatementGeneratableAccount[]> {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const accounts = await prisma.bankAccount.findMany({
-    where: { ...accessibleAccountWhere(userId, companyIds), status: "ACTIVE" },
+    where: { ...bankAccountAccessWhere(user, "view"), status: "ACTIVE" },
     include: { company: true },
     orderBy: [{ companyId: "asc" }, { accountName: "asc" }],
   });
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: userWithMembershipsInclude,
-  });
-  if (!user) return [];
-
-  const { mapDbUserToAltaUser } = await import("@/server/user-mapper");
-  const altaUser = mapDbUserToAltaUser(user);
+  const altaUser = user;
 
   return accounts
     .filter((account) => !account.companyId || canGenerateBusinessStatement(altaUser, account.companyId))

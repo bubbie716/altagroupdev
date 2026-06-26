@@ -4,6 +4,7 @@ import type {
   ApproveLoanApplicationInput,
   CreateLoanApplicationInput,
   DenyLoanApplicationInput,
+  LendingDeskStats,
   MakeLoanPaymentInput,
 } from "@/lib/bank/lending-types";
 
@@ -12,6 +13,25 @@ async function actorId(): Promise<string> {
   const user = await requireAuth();
   return user.id;
 }
+
+const emptyLendingDeskStats: LendingDeskStats = {
+  officersOnDesk: 0,
+  avgResponseHours: null,
+  activeFacilities: 0,
+  pendingReview: 0,
+};
+
+export const fetchLendingDeskStats = createServerFn({ method: "GET" }).handler(async () => {
+  const { isDatabaseConfigured } = await import("@/server/db");
+  if (!isDatabaseConfigured()) return emptyLendingDeskStats;
+
+  try {
+    const { getLendingDeskStats } = await import("@/server/lending.service");
+    return getLendingDeskStats();
+  } catch {
+    return emptyLendingDeskStats;
+  }
+});
 
 export const fetchLendingFormContext = createServerFn({ method: "GET" }).handler(async () => {
   const { getLendingFormContext } = await import("@/server/lending.service");

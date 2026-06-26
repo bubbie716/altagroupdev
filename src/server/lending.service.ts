@@ -3,10 +3,16 @@ import type {
   CreateLoanApplicationInput,
   InternalLoanApplicationRow,
   LendingAccountOption,
+  LendingDeskStats,
   LoanApplicationRow,
 } from "@/lib/bank/lending-types";
 import { LOAN_TERM_MONTHS_MAX, LOAN_TERM_MONTHS_MIN } from "@/lib/bank/lending-types";
 import { prisma } from "@/server/db";
+import {
+  bankAccountAccessWhere,
+  companyIdsForBankAccess,
+  loadAltaUserOrThrow,
+} from "@/server/bank-account-access.service";
 import {
   loanApplicationInclude,
   mapInternalLoanApplicationRow,
@@ -60,11 +66,8 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 async function getUserCompanyIds(userId: string): Promise<Set<string>> {
-  const memberships = await prisma.companyMembership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-  return new Set(memberships.map((m) => m.companyId));
+  const user = await loadAltaUserOrThrow(userId);
+  return new Set(companyIdsForBankAccess(user, "manage"));
 }
 
 function companyIdsWithTreasuryAccess(user: AltaUser): Set<string> {
@@ -80,12 +83,9 @@ async function assertAccountAccessible(
   accountId: string,
   companyId?: string,
 ): Promise<void> {
-  const companyIds = await getUserCompanyIds(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const account = await prisma.bankAccount.findFirst({
-    where: {
-      id: accountId,
-      OR: [{ userId }, { companyId: { in: [...companyIds] } }],
-    },
+    where: { id: accountId, ...bankAccountAccessWhere(user, "manage") },
   });
   if (!account) badRequest("Linked bank account not found or not accessible");
   if (account.status !== "ACTIVE") badRequest("Linked bank account must be active");
@@ -234,6 +234,48 @@ export async function countPendingLoanApplications(): Promise<number> {
   return prisma.loanApplication.count({
     where: { status: { in: ["PENDING", "UNDER_REVIEW"] } },
   });
+}
+
+async function computeAvgStaffResponseHours(): Promise<number | null> {
+  const threads = await prisma.loanApplicationThread.findMany({
+    select: {
+      createdAt: true,
+      messages: {
+        where: { senderRole: "ALTA_STAFF" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { createdAt: true },
+      },
+    },
+  });
+
+  const responseHours = threads
+    .filter((thread) => thread.messages.length > 0)
+    .map((thread) => {
+      const firstStaffReply = thread.messages[0]!.createdAt.getTime();
+      return (firstStaffReply - thread.createdAt.getTime()) / (1000 * 60 * 60);
+    });
+
+  if (responseHours.length === 0) return null;
+  return responseHours.reduce((sum, hours) => sum + hours, 0) / responseHours.length;
+}
+
+export async function getLendingDeskStats(): Promise<LendingDeskStats> {
+  const [officersOnDesk, activeFacilities, pendingReview, avgResponseHours] = await Promise.all([
+    prisma.user.count({
+      where: { tags: { some: { tag: { in: ["ADMIN", "OPERATOR"] } } } },
+    }),
+    prisma.loan.count({ where: { status: "ACTIVE" } }),
+    countPendingLoanApplications(),
+    computeAvgStaffResponseHours(),
+  ]);
+
+  return {
+    officersOnDesk,
+    activeFacilities,
+    pendingReview,
+    avgResponseHours,
+  };
 }
 
 export async function listInternalLoanApplications(): Promise<InternalLoanApplicationRow[]> {

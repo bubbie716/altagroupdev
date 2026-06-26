@@ -6,6 +6,7 @@ import type {
   AltaPayReceivedSummary,
   AltaPayVolumeSummary,
   PayableCompany,
+  PayFundingSourceOption,
   SubmitAltaPayInput,
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
@@ -57,6 +58,7 @@ function mapPayRow(
   payerLabel: string,
   payeeLabel: string,
   sourceAccountName: string | null,
+  fundingSourceLabel: string,
 ): AltaPayPaymentRow {
   const baseRef = tx.referenceCode.replace(/-(OUT|IN)$/, "");
   return {
@@ -69,6 +71,7 @@ function mapPayRow(
     payerLabel,
     payeeLabel,
     sourceAccountName,
+    fundingSourceLabel,
   };
 }
 
@@ -115,6 +118,40 @@ export async function searchPayableCompanies(query: string): Promise<PayableComp
   });
 }
 
+export async function listPayFundingSources(user: AltaUser): Promise<PayFundingSourceOption[]> {
+  const [bankAccounts, cardSources] = await Promise.all([
+    listPaySourceAccounts(user),
+    (async () => {
+      const { listAltaCardFundingSources } = await import("@/server/alta-card-transaction.service");
+      return listAltaCardFundingSources(user);
+    })(),
+  ]);
+
+  const options: PayFundingSourceOption[] = bankAccounts.map((account) => ({
+    kind: "bank_account",
+    id: account.id,
+    label: account.isCompanyAccount && account.companyName
+      ? `${account.companyName} · ${account.accountName}`
+      : account.accountName,
+    detail: account.accountNumber,
+    availableBalance: account.availableBalance ?? account.balance,
+  }));
+
+  for (const card of cardSources) {
+    options.push({
+      kind: "alta_card",
+      id: card.id,
+      label: card.label,
+      detail: "Revolving credit",
+      availableBalance: card.availableBalance,
+      cardLastFour: card.cardLastFour,
+    });
+  }
+
+  return options;
+}
+
+/** @deprecated Use listPayFundingSources */
 export async function listPaySourceAccounts(user: AltaUser) {
   const manageCompanyIds = user.companyMemberships
     .filter((m) => canManageBusinessTreasury(user, { companyId: m.companyId }))
@@ -228,11 +265,6 @@ export async function submitAltaPayPayment(
 ): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
 
-  const { account: sourceAccount, payerLabel } = await resolvePaySourceAccount(
-    user,
-    input.fromAccountId,
-  );
-
   const company = await prisma.company.findUnique({
     where: { id: input.companyId },
     include: {
@@ -249,45 +281,101 @@ export async function submitAltaPayPayment(
   if (!destination) {
     badRequest("This company does not have an active Business Operating Account.");
   }
-  if (destination.id === sourceAccount.id) {
-    badRequest("Cannot pay your own account through Alta Pay.");
-  }
   if (destination.restrictDeposits) {
     badRequest("Deposits are restricted on the recipient account.");
   }
-  if (sourceAccount.companyId && sourceAccount.companyId === company.id) {
-    badRequest("Cannot pay your own company through Alta Pay from its operating account.");
-  }
-
-  const available = await getAvailableBalance(sourceAccount.id);
-  if (input.amount > available) badRequest("Insufficient balance for this payment.");
 
   const referenceBase = generatePayReferenceBase();
-  const outReference = `${referenceBase}-OUT`;
   const inReference = `${referenceBase}-IN`;
   const memo = input.memo?.trim() || null;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.bankAccount.update({
-      where: { id: sourceAccount.id },
-      data: { balance: { decrement: input.amount } },
+  if (input.fundingSource.kind === "bank_account") {
+    const { account: sourceAccount, payerLabel } = await resolvePaySourceAccount(
+      user,
+      input.fundingSource.accountId,
+    );
+
+    if (destination.id === sourceAccount.id) {
+      badRequest("Cannot pay your own account through Alta Pay.");
+    }
+    if (sourceAccount.companyId && sourceAccount.companyId === company.id) {
+      badRequest("Cannot pay your own company through Alta Pay from its operating account.");
+    }
+
+    const available = await getAvailableBalance(sourceAccount.id);
+    if (input.amount > available) badRequest("Insufficient balance for this payment.");
+
+    const outReference = `${referenceBase}-OUT`;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.bankAccount.update({
+        where: { id: sourceAccount.id },
+        data: { balance: { decrement: input.amount } },
+      });
+      await tx.bankAccount.update({
+        where: { id: destination.id },
+        data: { balance: { increment: input.amount } },
+      });
+
+      await tx.bankTransaction.create({
+        data: {
+          bankAccountId: sourceAccount.id,
+          type: "WITHDRAWAL",
+          amount: input.amount,
+          status: "APPROVED",
+          description: `Alta Pay business payment to ${company.name}`,
+          memo,
+          referenceCode: outReference,
+          proofImageUrl: null,
+        },
+      });
+
+      await tx.bankTransaction.create({
+        data: {
+          bankAccountId: destination.id,
+          type: "DEPOSIT",
+          amount: input.amount,
+          status: "APPROVED",
+          description: `Alta Pay business payment from ${payerLabel}`,
+          memo,
+          referenceCode: inReference,
+          proofImageUrl: null,
+        },
+      });
     });
+
+    return {
+      referenceCode: referenceBase,
+      amount: input.amount,
+      companyName: company.name,
+      fundingSourceLabel: sourceAccount.accountName,
+    };
+  }
+
+  const { chargeAltaCardForAltaPay } = await import("@/server/alta-card-transaction.service");
+  const payerLabel = user.discordUsername;
+
+  let cardTxId = "";
+  let fundingSourceLabel = "Alta Card";
+
+  await prisma.$transaction(async (tx) => {
+    const cardTx = await chargeAltaCardForAltaPay(tx, {
+      user,
+      fundingId: input.fundingSource.cardId,
+      amount: input.amount,
+      companyId: company.id,
+      companyName: company.name,
+      altaPayReference: referenceBase,
+      memo,
+    });
+    cardTxId = cardTx.id;
+    fundingSourceLabel =
+      (cardTx.metadata?.fundingSource as string | undefined) ??
+      `Alta Card •••• ${cardTx.referenceCode}`;
+
     await tx.bankAccount.update({
       where: { id: destination.id },
       data: { balance: { increment: input.amount } },
-    });
-
-    await tx.bankTransaction.create({
-      data: {
-        bankAccountId: sourceAccount.id,
-        type: "WITHDRAWAL",
-        amount: input.amount,
-        status: "APPROVED",
-        description: `Alta Pay business payment to ${company.name}`,
-        memo,
-        referenceCode: outReference,
-        proofImageUrl: null,
-      },
     });
 
     await tx.bankTransaction.create({
@@ -296,7 +384,7 @@ export async function submitAltaPayPayment(
         type: "DEPOSIT",
         amount: input.amount,
         status: "APPROVED",
-        description: `Alta Pay business payment from ${payerLabel}`,
+        description: `Alta Pay business payment from ${payerLabel} (Alta Card)`,
         memo,
         referenceCode: inReference,
         proofImageUrl: null,
@@ -304,37 +392,106 @@ export async function submitAltaPayPayment(
     });
   });
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: user.id,
+    action: "ALTA_CARD_ALTA_PAY_CHARGED",
+    entityType: "ALTA_CARD",
+    entityId: input.fundingSource.cardId.replace(/^employee:/, ""),
+    description: `Alta Pay charge of ${input.amount} to ${company.name}`,
+    targetCompanyId: company.id,
+    metadata: {
+      cardId: input.fundingSource.cardId,
+      transactionId: cardTxId,
+      amount: input.amount,
+      type: "alta_pay",
+      actorUserId: user.id,
+      relatedAltaPayPaymentId: referenceBase,
+    },
+  });
+
   return {
     referenceCode: referenceBase,
     amount: input.amount,
     companyName: company.name,
+    fundingSourceLabel: fundingSourceLabel,
+    cardTransactionId: cardTxId,
   };
 }
 
 export async function listUserAltaPaySent(user: AltaUser, limit = 25): Promise<AltaPayPaymentRow[]> {
   const sourceAccountIds = await listPaySourceAccountIds(user);
-  if (sourceAccountIds.length === 0) return [];
 
-  const txs = await prisma.bankTransaction.findMany({
+  const bankTxs =
+    sourceAccountIds.length === 0
+      ? []
+      : await prisma.bankTransaction.findMany({
+          where: {
+            bankAccountId: { in: sourceAccountIds },
+            type: "WITHDRAWAL",
+            status: "APPROVED",
+            referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-OUT" },
+          },
+          include: { bankAccount: { include: { company: true } } },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        });
+
+  const cardTxs = await prisma.altaCardTransaction.findMany({
     where: {
-      bankAccountId: { in: sourceAccountIds },
-      type: "WITHDRAWAL",
-      status: "APPROVED",
-      referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-OUT" },
+      type: "ALTA_PAY",
+      status: "COMPLETED",
+      createdByUserId: user.id,
     },
-    include: { bankAccount: { include: { company: true } } },
+    include: {
+      merchantCompany: { select: { name: true } },
+      altaEmployeeCard: { include: { company: { select: { name: true } } } },
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
 
-  return txs.map((tx) => {
+  const bankRows = bankTxs.map((tx) => {
     const payee = tx.description.replace(/^Alta Pay business payment to /, "");
     const payer =
       tx.bankAccount.companyId && tx.bankAccount.company
         ? tx.bankAccount.company.name
         : "You";
-    return mapPayRow(tx, "sent", payer, payee, tx.bankAccount.accountName);
+    return mapPayRow(tx, "sent", payer, payee, tx.bankAccount.accountName, tx.bankAccount.accountName);
   });
+
+  const cardRows: AltaPayPaymentRow[] = cardTxs.map((tx) => {
+    const funding =
+      tx.metadata &&
+      typeof tx.metadata === "object" &&
+      !Array.isArray(tx.metadata) &&
+      typeof (tx.metadata as Record<string, unknown>).fundingSource === "string"
+        ? ((tx.metadata as Record<string, unknown>).fundingSource as string)
+        : "Alta Card";
+    const ref = tx.relatedAltaPayPaymentId ?? tx.referenceCode.replace(/-CARD$/, "");
+    return {
+      id: tx.id,
+      referenceCode: ref,
+      amount: decimalToNumber(tx.amount),
+      memo:
+        tx.metadata &&
+        typeof tx.metadata === "object" &&
+        !Array.isArray(tx.metadata) &&
+        typeof (tx.metadata as Record<string, unknown>).memo === "string"
+          ? ((tx.metadata as Record<string, unknown>).memo as string)
+          : null,
+      createdAt: tx.createdAt.toISOString(),
+      direction: "sent",
+      payerLabel: "You",
+      payeeLabel: tx.merchantCompany?.name ?? tx.description,
+      sourceAccountName: null,
+      fundingSourceLabel: funding,
+    };
+  });
+
+  return [...bankRows, ...cardRows]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
 }
 
 export async function listCompanyAltaPayReceived(
@@ -375,6 +532,7 @@ export async function listCompanyAltaPayReceived(
       payer,
       company?.name ?? "Company",
       null,
+      payer,
     );
   });
 

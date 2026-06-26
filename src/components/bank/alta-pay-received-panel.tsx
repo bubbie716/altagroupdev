@@ -84,7 +84,9 @@ export function AltaPayHistoryTable({ payments }: { payments: AltaPayPaymentRow[
           {payments.map((p) => (
             <tr key={p.id}>
               <td>{p.payeeLabel}</td>
-              <td className="text-muted-foreground">{p.sourceAccountName ?? "—"}</td>
+              <td className="text-muted-foreground">
+                {p.fundingSourceLabel || p.sourceAccountName || "—"}
+              </td>
               <td className="type-finance-nums">{florin(p.amount)}</td>
               <td className="font-mono text-[11px]">{p.referenceCode}</td>
               <td className="text-muted-foreground">{p.memo ?? "—"}</td>

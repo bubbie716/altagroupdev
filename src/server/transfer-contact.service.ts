@@ -8,6 +8,7 @@ import type {
 } from "@/lib/bank/backend-types";
 import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import { prisma } from "@/server/db";
+import { isBankAccountAccessibleByUser } from "@/server/bank-account-access.service";
 
 function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
@@ -25,30 +26,8 @@ function normalizeAccountNumber(input: string): string {
   return input.trim().toUpperCase();
 }
 
-async function getUserCompanyIds(userId: string): Promise<Set<string>> {
-  const memberships = await prisma.companyMembership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-  return new Set(memberships.map((m) => m.companyId));
-}
-
-function accessibleAccountWhere(userId: string, companyIds: Set<string>): Prisma.BankAccountWhereInput {
-  return {
-    OR: [
-      { userId, companyId: null },
-      ...(companyIds.size > 0 ? [{ companyId: { in: [...companyIds] } }] : []),
-    ],
-  };
-}
-
 async function isAccountAccessibleByUser(accountId: string, userId: string): Promise<boolean> {
-  const companyIds = await getUserCompanyIds(userId);
-  const account = await prisma.bankAccount.findFirst({
-    where: { id: accountId, ...accessibleAccountWhere(userId, companyIds) },
-    select: { id: true },
-  });
-  return !!account;
+  return isBankAccountAccessibleByUser(userId, accountId, "view");
 }
 
 function mapScope(scope: "INTRABANK" | "INTERBANK"): TransferContactScopeCode {

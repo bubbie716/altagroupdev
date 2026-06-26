@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageShell, Section } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { LendingSubNav } from "@/components/bank/lending-sub-nav";
 import { RouteButton } from "@/components/bank/route-button";
 import { getLendingProducts } from "@/lib/bank/api";
+import { fetchLendingDeskStats } from "@/lib/bank/lending.functions";
+import { formatLendingAvgResponse } from "@/lib/bank/lending-types";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/bank/lending/")({
+  loader: () => fetchLendingDeskStats(),
   head: () => ({
     meta: [{ title: "Alta Bank Lending — Alta Group" }],
   }),
@@ -16,6 +18,14 @@ export const Route = createFileRoute("/bank/lending/")({
 function BankLendingOverview() {
   const lendingProducts = getLendingProducts();
   const user = useCurrentUser();
+  const deskStats = Route.useLoaderData();
+
+  const stats = [
+    { label: "Officers on desk", value: String(deskStats.officersOnDesk) },
+    { label: "Avg. response", value: formatLendingAvgResponse(deskStats.avgResponseHours) },
+    { label: "Active facilities", value: String(deskStats.activeFacilities) },
+    { label: "Awaiting review", value: String(deskStats.pendingReview) },
+  ] as const;
 
   return (
     <PageShell
@@ -24,7 +34,6 @@ function BankLendingOverview() {
       description="Relationship-led credit facilities for Newport citizens, founders, and institutions — every facility manually reviewed by Alta Bank credit operations."
     >
       <BankSubNav />
-      <LendingSubNav />
 
       {/* Editorial CTA strip */}
       <div className="mb-12 overflow-hidden rounded-xl border border-border bg-surface-1/80">
@@ -69,12 +78,7 @@ function BankLendingOverview() {
         </div>
         <div className="h-px w-full bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
         <dl className="grid grid-cols-2 divide-x divide-border/60 sm:grid-cols-4">
-          {[
-            { label: "Officers on desk", value: "12" },
-            { label: "Avg. response", value: "< 4h" },
-            { label: "Active facilities", value: "287" },
-            { label: "Approval review", value: "Manual" },
-          ].map((stat) => (
+          {stats.map((stat) => (
             <div key={stat.label} className="px-6 py-4">
               <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 {stat.label}

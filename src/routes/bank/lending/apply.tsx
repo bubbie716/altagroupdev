@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { LendingSubNav } from "@/components/bank/lending-sub-nav";
 import { LendingApplyExperience } from "@/components/bank/lending-apply-experience";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
@@ -42,7 +41,6 @@ function BankLendingApply() {
       description="Submit a facility request for manual review by Alta Bank credit operations."
     >
       <BankSubNav />
-      <LendingSubNav />
       <LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />
     </PageShell>
   );

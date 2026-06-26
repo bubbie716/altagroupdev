@@ -15,7 +15,8 @@ export type ReceiptKind =
   | "Withdrawal"
   | "Transfer"
   | "Loan payment"
-  | "Payroll";
+  | "Payroll"
+  | "Alta Pay";
 
 export type ReceiptRow = { label: string; value: ReactNode };
 

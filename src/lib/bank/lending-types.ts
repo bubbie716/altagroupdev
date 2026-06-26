@@ -342,3 +342,25 @@ export const LOAN_PRODUCT_LABELS: Record<LoanProductTypeCode, string> = {
   business_credit_line: "Business Credit Line",
   private_liquidity_line: "Private Liquidity Line",
 };
+
+export type LendingDeskStats = {
+  officersOnDesk: number;
+  avgResponseHours: number | null;
+  activeFacilities: number;
+  pendingReview: number;
+};
+
+export function formatLendingAvgResponse(hours: number | null): string {
+  if (hours === null) return "—";
+  if (hours < 1 / 60) return "< 1m";
+  if (hours < 1) {
+    const mins = Math.max(1, Math.round(hours * 60));
+    return `${mins}m`;
+  }
+  if (hours < 24) {
+    const rounded = Math.round(hours * 10) / 10;
+    return rounded === 1 ? "1h" : `${rounded}h`;
+  }
+  const days = Math.round((hours / 24) * 10) / 10;
+  return days === 1 ? "1d" : `${days}d`;
+}
