@@ -201,10 +201,11 @@ export const adminRecordLoanPaymentOps = createServerFn({ method: "POST" })
 export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(async () => {
   const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
   const { getOpsHealth, getOpsActivityFeed } = await import("@/server/ops-platform.service");
+  const { getMaintenanceMode } = await import("@/server/platform-settings.service");
   const { prisma } = await import("@/server/db");
   await import("@/server/permissions.service").then((m) => m.requireOperator());
 
-  const [metrics, health, activity, negativeBalances, largeAdjustments] = await Promise.all([
+  const [metrics, health, activity, negativeBalances, largeAdjustments, maintenance] = await Promise.all([
     getInternalDashboardMetrics(),
     getOpsHealth(),
     getOpsActivityFeed(25),
@@ -217,7 +218,8 @@ export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(
         amount: { gte: 100_000 },
       },
     }),
+    getMaintenanceMode(),
   ]);
 
-  return { metrics, health, activity, negativeBalances, largeAdjustments };
+  return { metrics, health, activity, negativeBalances, largeAdjustments, maintenance };
 });

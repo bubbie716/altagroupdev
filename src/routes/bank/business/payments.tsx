@@ -1,8 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { authBeforeLoad } from "@/lib/auth/guards";
 import type { BusinessBankingSearch } from "./route";
 
 export const Route = createFileRoute("/bank/business/payments")({
-  beforeLoad: async ({ search }: { search: BusinessBankingSearch }) => {
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    const { search } = ctx;
     const { resolveBusinessOperatingAccountRedirect } = await import(
       "@/lib/bank/business-account.functions"
     );

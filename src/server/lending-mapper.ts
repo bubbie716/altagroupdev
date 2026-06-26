@@ -153,6 +153,8 @@ export const loanApplicationInclude = {
   applicantUser: { select: { id: true, discordUsername: true } },
   company: { select: { id: true, name: true, verificationStatus: true } },
   linkedBankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
+  dealRoom: { select: { id: true } },
+  thread: { select: { id: true } },
 } as const satisfies Prisma.LoanApplicationInclude;
 
 export const loanApplicationReviewInclude = {
@@ -191,6 +193,7 @@ export function mapLoanApplicationRow(record: LoanApplicationRecord): LoanApplic
     linkedAccountLabel: accountLabel(record.linkedBankAccount),
     submittedAt: record.createdAt.toISOString(),
     reviewedAt: record.reviewedAt?.toISOString() ?? null,
+    threadId: record.thread?.id ?? null,
   };
 }
 
@@ -203,6 +206,8 @@ export function mapInternalLoanApplicationRow(record: LoanApplicationRecord): In
       ? `${record.applicantUser.discordUsername} · ${record.company.name}`
       : record.applicantUser.discordUsername,
     linkedAccountNumber: record.linkedBankAccount?.accountNumber ?? null,
+    dealRoomId: record.dealRoom?.id ?? null,
+    threadId: record.thread?.id ?? null,
   };
 }
 

@@ -1,8 +1,29 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
-import { SiteNav, SiteFooter } from "./site-nav";
+import { SiteNav } from "./site-nav";
+import { PublicFooter, PlatformFooter } from "./footers";
+import {
+  type FooterVariant,
+  resolveFooterVariant,
+  resolvePlatformFooterContext,
+} from "@/lib/platform/footer-variant";
+
+function PageFooter({
+  variant,
+  pathname,
+}: {
+  variant: FooterVariant;
+  pathname: string;
+}) {
+  if (variant === "none" || variant === "legal") return null;
+  if (variant === "platform") {
+    return <PlatformFooter context={resolvePlatformFooterContext(pathname)} />;
+  }
+  return <PublicFooter />;
+}
 
 export function PageShell({
   eyebrow,
@@ -10,6 +31,7 @@ export function PageShell({
   description,
   children,
   hideFooter = false,
+  footerVariant,
   printDocument = false,
 }: {
   eyebrow: string;
@@ -17,9 +39,16 @@ export function PageShell({
   description?: string;
   children: ReactNode;
   hideFooter?: boolean;
+  /** Overrides route-based footer selection. Legal footers belong on auth shells, not PageShell. */
+  footerVariant?: FooterVariant;
   /** Hides site chrome and page hero when printing (e.g. bank statements). */
   printDocument?: boolean;
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const resolvedVariant = hideFooter
+    ? "none"
+    : (footerVariant ?? resolveFooterVariant(pathname));
+
   return (
     <div className={cn("min-h-screen bg-background", printDocument && "statement-print-page")}>
       <SiteNav />
@@ -43,7 +72,7 @@ export function PageShell({
         </motion.div>
         <main className={cn("py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
-      {!hideFooter && <SiteFooter />}
+      <PageFooter variant={resolvedVariant} pathname={pathname} />
     </div>
   );
 }

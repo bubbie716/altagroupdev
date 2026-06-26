@@ -17,6 +17,7 @@ export {
   isPrivateClient,
   isDeveloper,
   isIssuer,
+  canBypassMaintenanceMode,
   isCompanyOwner,
   isCompanyExecutive,
   isCompanyFinanceManager,

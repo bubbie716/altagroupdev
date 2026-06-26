@@ -134,6 +134,7 @@ export interface LoanApplicationRow {
   linkedAccountLabel: string | null;
   submittedAt: string;
   reviewedAt: string | null;
+  threadId: string | null;
 }
 
 export interface LoanPaymentRow {
@@ -317,6 +318,8 @@ export interface InternalLoanApplicationRow extends LoanApplicationRow {
   applicantUserId: string;
   applicantLabel: string;
   linkedAccountNumber: string | null;
+  dealRoomId: string | null;
+  threadId: string | null;
 }
 
 export interface ApproveLoanApplicationInput {

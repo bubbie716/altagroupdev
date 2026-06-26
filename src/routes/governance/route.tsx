@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { SiteNav, SiteFooter } from "@/components/site-nav";
+import { SiteNav } from "@/components/site-nav";
+import { PublicFooter } from "@/components/footers";
 import { GovernanceSubNav } from "@/components/governance/governance-sub-nav";
 
 export const Route = createFileRoute("/governance")({
@@ -14,7 +15,7 @@ function GovernanceRouteLayout() {
         <GovernanceSubNav />
         <Outlet />
       </div>
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

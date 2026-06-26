@@ -6,6 +6,7 @@ export type InternalDashboardMetrics = {
   pendingWithdrawals: number;
   pendingAccountOpenings: number;
   pendingLoanApplications: number;
+  openDealRooms: number;
   pendingCompanyVerifications: number;
   activeLoans: number;
   frozenAccounts: number;
@@ -32,6 +33,7 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     pendingWithdrawals,
     pendingAccountOpenings,
     pendingLoanApplications,
+    openDealRooms,
     pendingCompanyVerifications,
     activeLoans,
     frozenAccounts,
@@ -49,6 +51,9 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
     prisma.bankAccount.count({ where: { status: "PENDING" } }),
     prisma.loanApplication.count({ where: { status: { in: ["PENDING", "UNDER_REVIEW"] } } }),
+    prisma.dealRoom.count({
+      where: { workflowStage: { notIn: ["COMPLETED", "DECLINED", "CANCELLED", "EXPIRED"] } },
+    }),
     prisma.company.count({ where: { verificationStatus: { in: ["UNVERIFIED", "PENDING"] } } }),
     prisma.loan.count({ where: { status: "ACTIVE" } }),
     prisma.bankAccount.count({ where: { status: "FROZEN" } }),
@@ -70,6 +75,7 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     pendingWithdrawals,
     pendingAccountOpenings,
     pendingLoanApplications,
+    openDealRooms,
     pendingCompanyVerifications,
     activeLoans,
     frozenAccounts,

@@ -23,6 +23,7 @@ import {
   roundCurrency,
   syncOutstandingBalance,
   waivePendingInterestScheduleInTx,
+  waiveUnpaidInterestScheduleInTx,
 } from "@/lib/bank/loan-interest-service";
 import { buildRepaymentScheduleWithInterest } from "@/lib/bank/loan-payment-schedule";
 import type {
@@ -206,7 +207,7 @@ interface ProcessLoanPaymentOptions {
   memo?: string;
 }
 
-async function createLoanPaymentScheduleInTx(
+export async function createLoanPaymentScheduleInTx(
   tx: Prisma.TransactionClient,
   loanId: string,
   principalAmount: number,
@@ -1142,13 +1143,20 @@ export async function waivePendingInterestForLoan(adminId: string, loanId: strin
 
   let waived = 0;
   await prisma.$transaction(async (tx) => {
-    waived = await waivePendingInterestScheduleInTx(tx, loanId);
+    waived = await waiveUnpaidInterestScheduleInTx(tx, loanId);
+    await tx.loan.update({
+      where: { id: loanId },
+      data: {
+        accruedInterest: 0,
+        outstandingBalance: decimalToNumber(loan.principalOutstanding),
+      },
+    });
     await createLedgerEntry(tx, {
       loanId,
       type: "STATUS_CHANGE",
       amount: 0,
-      balanceAfter: decimalToNumber(loan.outstandingBalance),
-      description: `Waived ${waived} pending interest schedule item(s)`,
+      balanceAfter: decimalToNumber(loan.principalOutstanding),
+      description: `Waived ${waived} unpaid interest schedule item(s)`,
       createdById: adminId,
     });
   });
@@ -1165,7 +1173,7 @@ export async function markLoanPaidOff(adminId: string, loanId: string): Promise<
   if (payoff > 0) badRequest("Current payoff must be zero to mark paid off");
 
   await prisma.$transaction(async (tx) => {
-    await waivePendingInterestScheduleInTx(tx, loanId);
+    await waiveUnpaidInterestScheduleInTx(tx, loanId);
     await tx.loan.update({
       where: { id: loanId },
       data: {

@@ -131,7 +131,7 @@ export function LendingApplyExperience({
     setError(null);
     setSubmitting(true);
     try {
-      await submit({
+      const result = await submit({
         data: {
           productType,
           requestedAmount: Number(requestedAmount),
@@ -144,7 +144,10 @@ export function LendingApplyExperience({
           notes: notes || undefined,
         },
       });
-      await router.navigate({ to: "/bank/lending/applications" });
+      await router.navigate({
+        to: "/bank/lending/applications/$applicationId/thread",
+        params: { applicationId: result.id },
+      });
     } catch (err) {
       setError(parseServerError(err));
     } finally {

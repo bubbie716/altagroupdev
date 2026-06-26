@@ -9,6 +9,7 @@ import { formatAccountStatus, formatCompanyRole, formatUserTag } from "@/lib/aut
 import { useRequireCurrentUser } from "@/hooks/use-current-user";
 import { fetchUserBankSummary } from "@/lib/bank/bank.functions";
 import { cn } from "@/lib/utils";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: authBeforeLoad,
@@ -285,15 +286,7 @@ function ProfilePage() {
                 Last sign-in · {lastLoginLabel}
               </div>
             </div>
-            <form action="/api/auth/logout" method="post">
-              <input type="hidden" name="redirect" value="/login" />
-              <button
-                type="submit"
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
-              >
-                Sign out →
-              </button>
-            </form>
+            <SignOutButton className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground" />
           </div>
         </div>
       </ProfileSection>

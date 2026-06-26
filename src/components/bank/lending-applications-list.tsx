@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { Florin } from "@/components/ui/florin";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -142,6 +143,15 @@ function ApplicationRow({ a }: { a: LoanApplicationRow }) {
 
       <div className="sm:text-right">
         <StatusBadge status={a.statusLabel} />
+        <div className="mt-2">
+          <Link
+            to="/bank/lending/applications/$applicationId/thread"
+            params={{ applicationId: a.id }}
+            className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+          >
+            {a.threadId ? "Open thread" : "View application"}
+          </Link>
+        </div>
       </div>
 
       <div className="hidden sm:block sm:text-right">

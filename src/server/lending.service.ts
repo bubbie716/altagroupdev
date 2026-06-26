@@ -173,7 +173,7 @@ export async function getLendingFormContext(userId: string): Promise<{
 export async function createLoanApplication(
   userId: string,
   input: CreateLoanApplicationInput,
-): Promise<LoanApplicationRow> {
+): Promise<LoanApplicationRow & { threadId: string }> {
   const user = await getAltaUser(userId);
   if (input.requestedAmount <= 0) badRequest("Requested amount must be greater than zero");
   if (
@@ -209,7 +209,10 @@ export async function createLoanApplication(
     include: loanApplicationInclude,
   });
 
-  return mapLoanApplicationRow(record);
+  const { createThreadForLoanApplication } = await import("@/server/loan-application-thread.service");
+  const { threadId } = await createThreadForLoanApplication(userId, record.id);
+
+  return { ...mapLoanApplicationRow(record), threadId };
 }
 
 export async function listUserLoanApplications(userId: string): Promise<LoanApplicationRow[]> {

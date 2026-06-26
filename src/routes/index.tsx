@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
-import { SiteNav, SiteFooter } from "@/components/site-nav";
+import { SiteNav } from "@/components/site-nav";
+import { PublicFooter } from "@/components/footers";
 import { AnimatedNumber } from "@/components/animated-number";
 import { compact, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
 import { getIndices } from "@/lib/exchange/api";
@@ -40,7 +41,7 @@ function Landing() {
       <Divisions />
       <Capabilities metrics={platformMetrics} />
       <ClosingCTA />
-      <SiteFooter />
+      <PublicFooter />
     </div>
   );
 }

@@ -2,22 +2,34 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Section, Card } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
+import { MaintenanceModePanel } from "@/components/internal/maintenance-mode-panel";
 import { fetchInternalDashboardMetrics } from "@/lib/internal/internal-dashboard.functions";
+import { fetchMaintenanceModeSettings } from "@/lib/platform/platform-settings.functions";
 import { getInternalSettings } from "@/lib/internal/api";
 
 export const Route = createFileRoute("/internal/settings")({
-  loader: () => fetchInternalDashboardMetrics(),
+  loader: async () => {
+    const [live, maintenance] = await Promise.all([
+      fetchInternalDashboardMetrics(),
+      fetchMaintenanceModeSettings(),
+    ]);
+    return { live, maintenance };
+  },
   head: () => ({ meta: [{ title: "Settings — Alta Internal" }] }),
   component: InternalSettingsPage,
 });
 
 function InternalSettingsPage() {
-  const live = Route.useLoaderData();
+  const { live, maintenance } = Route.useLoaderData();
   const flags = getInternalSettings().featureFlags;
 
   return (
-    <InternalPageShell title="Internal Settings" description="Platform operations status and feature flag placeholders.">
-      <Section title="Operations status (live)">
+    <InternalPageShell title="Internal Settings" description="Platform operations status and maintenance controls.">
+      <Section title="Maintenance mode">
+        <MaintenanceModePanel initial={maintenance} />
+      </Section>
+
+      <Section title="Operations status (live)" className="mt-10">
         <Card className="grid gap-4 md:grid-cols-2 !p-5">
           <StatusRow label="Banking" detail={`${live.activeBankAccounts} active accounts · ${live.pendingDeposits} pending deposits`} status="Operational" />
           <StatusRow label="Scheduled transfers" detail={`${live.pendingScheduledTransfers} pending · ${live.failedScheduledTransfers} failed`} status={live.failedScheduledTransfers > 0 ? "Degraded" : "Operational"} />
@@ -26,9 +38,9 @@ function InternalSettingsPage() {
         </Card>
       </Section>
 
-      <Section title="Maintenance & feature flags" className="mt-10">
+      <Section title="Feature flags (preview)" className="mt-10">
         <Card className="!p-5 text-[13px] text-muted-foreground">
-          Maintenance mode and remote feature flags are not yet wired to a configuration backend. Values below are
+          Remote feature flags beyond maintenance mode are not yet wired to a configuration backend. Values below are
           preview placeholders only.
         </Card>
         <Card className="mt-4 !p-0">

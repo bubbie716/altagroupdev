@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/page-shell";
 import { InternalSubNav } from "./internal-sub-nav";
 import { InternalGlobalSearch } from "./internal-global-search";
+import { InternalNotificationsBell } from "./internal-notifications-bell";
 import type { ReactNode } from "react";
 
 export function InternalPageShell({
@@ -22,6 +23,7 @@ export function InternalPageShell({
       hideFooter
     >
       <InternalSubNav />
+      <InternalNotificationsBell />
       {!hideSearch ? <InternalGlobalSearch /> : null}
       {children}
     </PageShell>

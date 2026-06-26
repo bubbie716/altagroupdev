@@ -85,7 +85,7 @@ function buildCompanyProfile(ticker: string): CompanyProfile | null {
     exchange: "Alta Exchange",
     sharesOutstanding: defaults?.sharesOutstanding ?? Math.round(listed.marketCap / listed.price),
     ceo: defaults?.ceo ?? "—",
-    headquarters: defaults?.headquarters ?? "Newport, Republic",
+    headquarters: defaults?.headquarters ?? "Newport",
     description:
       defaults?.description ??
       `${listed.name} is a Florin-denominated ${listed.sector.toLowerCase()} company listed on Alta Exchange.`,

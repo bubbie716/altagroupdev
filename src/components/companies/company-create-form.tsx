@@ -164,7 +164,7 @@ export function CompanyCreateForm() {
             type="text"
             value={headquarters}
             onChange={(e) => setHeadquarters(e.target.value)}
-            placeholder="Newport, Republic of Alta"
+            placeholder="Newport"
             className={inputClass}
           />
         </label>

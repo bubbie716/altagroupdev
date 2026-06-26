@@ -36,7 +36,7 @@ export function AuthUserMenu() {
   async function handleLogout() {
     await logout();
     await router.invalidate();
-    await router.navigate({ to: "/" });
+    await router.navigate({ to: "/login" });
   }
 
   return (

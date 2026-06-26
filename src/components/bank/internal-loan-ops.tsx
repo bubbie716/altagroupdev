@@ -131,9 +131,9 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
               />
             )}
             {(loan.status === "paid_off" || loan.status === "cancelled") &&
-              loan.remainingPotentialInterest > 0 && (
+              (loan.remainingPotentialInterest > 0 || loan.guaranteedInterestOwed > 0) && (
                 <BankReviewButton
-                  label="Waive pending interest"
+                  label="Waive unpaid interest"
                   variant="default"
                   onAction={async () => {
                     await waivePendingLoanInterestRecord({ data: loan.id });

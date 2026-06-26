@@ -314,6 +314,18 @@ export async function waivePendingInterestScheduleInTx(
   return result.count;
 }
 
+/** Waives all unpaid interest schedule items (pending + guaranteed). */
+export async function waiveUnpaidInterestScheduleInTx(
+  tx: Prisma.TransactionClient,
+  loanId: string,
+): Promise<number> {
+  const result = await tx.loanInterestScheduleItem.updateMany({
+    where: { loanId, status: { in: ["PENDING", "GUARANTEED"] } },
+    data: { status: "WAIVED" },
+  });
+  return result.count;
+}
+
 export async function guaranteeDueInterestForLoan(
   loanId: string,
   actorUserId?: string,
@@ -467,11 +479,14 @@ export async function backfillLoanInterestGuaranteeSchedules(): Promise<{ update
       await tx.loanInterestScheduleItem.createMany({
         data: drafts.map((draft) => {
           const isDue = draft.guaranteeDate <= now;
+          const isClosed = loan.status === "PAID_OFF" || loan.status === "CANCELLED";
           const shouldGuarantee =
-            draft.initialStatus === "GUARANTEED" ||
-            (draft.initialStatus === "PENDING" && isDue && loan.status === "ACTIVE");
+            loan.status === "ACTIVE" &&
+            (draft.initialStatus === "GUARANTEED" ||
+              (draft.initialStatus === "PENDING" && isDue));
           const shouldWaive =
-            draft.initialStatus === "PENDING" && isDue && loan.status !== "ACTIVE";
+            isClosed ||
+            (draft.initialStatus === "PENDING" && isDue && loan.status !== "ACTIVE");
 
           return {
             loanId: loan.id,
@@ -483,9 +498,7 @@ export async function backfillLoanInterestGuaranteeSchedules(): Promise<{ update
               ? ("GUARANTEED" as const)
               : shouldWaive
                 ? ("WAIVED" as const)
-                : loan.status === "PAID_OFF" && draft.initialStatus === "PENDING"
-                  ? ("WAIVED" as const)
-                  : draft.initialStatus,
+                : draft.initialStatus,
           };
         }),
       });
@@ -501,9 +514,10 @@ export async function backfillLoanInterestGuaranteeSchedules(): Promise<{ update
       }
 
       const principalOutstanding = decimalToNumber(loan.principalOutstanding);
-      const targetAccrued = roundCurrency(
-        Math.max(guaranteedUnpaid, decimalToNumber(loan.accruedInterest)),
-      );
+      const isClosed = loan.status === "PAID_OFF" || loan.status === "CANCELLED";
+      const targetAccrued = isClosed
+        ? 0
+        : roundCurrency(Math.max(guaranteedUnpaid, decimalToNumber(loan.accruedInterest)));
 
       await tx.loan.update({
         where: { id: loan.id },

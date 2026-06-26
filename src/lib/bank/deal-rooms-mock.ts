@@ -10,7 +10,9 @@ export type DealRoomStatus =
   | "awaiting_officer"
   | "contract_drafting"
   | "ready_for_signature"
+  | "accepted"
   | "approved"
+  | "executed"
   | "declined"
   | "closed";
 
@@ -20,8 +22,10 @@ export const DEAL_ROOM_STATUS_LABELS: Record<DealRoomStatus, string> = {
   awaiting_applicant: "Awaiting Applicant",
   awaiting_officer: "Awaiting Officer",
   contract_drafting: "Contract Drafting",
-  ready_for_signature: "Ready for Signature",
+  ready_for_signature: "Ready for Acceptance",
+  accepted: "Terms Accepted",
   approved: "Approved",
+  executed: "Executed",
   declined: "Declined",
   closed: "Closed",
 };
@@ -35,7 +39,9 @@ export const DEAL_ROOM_STATUS_TONE: Record<DealRoomStatus, DealRoomStatusTone> =
   awaiting_officer: "warn",
   contract_drafting: "active",
   ready_for_signature: "success",
+  accepted: "success",
   approved: "success",
+  executed: "success",
   declined: "danger",
   closed: "muted",
 };
@@ -176,7 +182,9 @@ export const DEAL_TIMELINE_PROGRESS: Record<DealRoomStatus, number> = {
   awaiting_officer: 2,
   contract_drafting: 5,
   ready_for_signature: 5,
+  accepted: 6,
   approved: 6,
+  executed: 7,
   declined: 1,
   closed: 7,
 };

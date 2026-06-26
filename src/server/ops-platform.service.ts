@@ -9,6 +9,7 @@ import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
 import { getInternalDashboardMetrics } from "@/server/internal-dashboard.service";
+import { getMaintenanceMode } from "@/server/platform-settings.service";
 
 function decimalToNumber(value: { toString(): string } | null | undefined): number {
   return value ? Number(value.toString()) : 0;
@@ -16,7 +17,11 @@ function decimalToNumber(value: { toString(): string } | null | undefined): numb
 
 export async function getOpsHealth(): Promise<OpsHealthItem[]> {
   await requireOperator();
-  const [metrics, jobs] = await Promise.all([getInternalDashboardMetrics(), listOpsJobRuns()]);
+  const [metrics, jobs, maintenance] = await Promise.all([
+    getInternalDashboardMetrics(),
+    listOpsJobRuns(),
+    getMaintenanceMode(),
+  ]);
 
   const jobMap = new Map(jobs.map((j) => [j.jobKey, j]));
   const jobStatus = (key: string, fallback: string): OpsHealthItem => {
@@ -31,6 +36,15 @@ export async function getOpsHealth(): Promise<OpsHealthItem[]> {
   };
 
   return [
+    {
+      key: "maintenance",
+      label: "Maintenance mode",
+      status: maintenance.enabled ? "degraded" : "operational",
+      detail: maintenance.enabled
+        ? `Public platform offline${maintenance.updatedByUsername ? ` · set by ${maintenance.updatedByUsername}` : ""}`
+        : "Public platform online",
+      lastSuccessAt: maintenance.enabled ? maintenance.startedAt : maintenance.updatedAt,
+    },
     {
       key: "platform",
       label: "Platform",

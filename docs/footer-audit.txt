@@ -1,0 +1,476 @@
+ALTA GROUP FOOTER AUDIT
+=======================
+
+Scope: All routes, shared layouts, auth/maintenance pages, bottom CTAs, legal
+lines, and page-ending sections.
+
+Date: June 22, 2026
+Status: Audit only — no code changes implemented.
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+The site has one real global footer (SiteFooter in src/components/site-nav.tsx),
+rendered on ~80 routes via PageShell or the governance layout. Internal admin
+(~30 routes) has no footer. Auth uses a separate LoginPortalFooter on /login
+only; /maintenance and /access-restricted have no footer at all.
+
+Main problems:
+
+1. Same heavy marketing footer on homepage and bank dashboard — full 4-column
+   sitemap + legal on every authenticated platform page.
+2. Login footer copy reads like Alta Private ("Discretion assured · Relationship
+   managed") on a public sign-in page.
+3. Inconsistent auth-adjacent pages — login has a micro-footer; maintenance and
+   access-restricted do not.
+4. Alta Private page adds a custom invitation footnote, then still shows the full
+   public SiteFooter underneath.
+5. Stub links — Press, Careers, and NCC all route to /governance.
+6. Statement PDFs end with transaction tables and no legal/disclaimer footer.
+
+
+1. FOOTER INVENTORY
+-------------------
+
+A. SiteFooter — shared global footer
+------------------------------------
+
+File:       src/components/site-nav.tsx (lines 150–189)
+Component:  SiteFooter
+Type:       Shared global public/platform footer
+
+EXACT COPY
+
+Brand column:
+- Alta wordmark (ALTA)
+- Tagline: Live Like the 1%
+
+Column: Divisions
+  Alta Bank      → /bank
+  Alta Exchange  → /exchange
+  NCC            → /governance
+
+Column: Platform
+  Alta Terminal  → /terminal
+  Market Data    → /exchange
+  Research       → /exchange/research
+  API            → /exchange/api
+
+Column: Company
+  About                  → /governance
+  Leadership             → /governance/leadership
+  Governance Documents   → /governance/documents
+  Press                  → /governance
+  Careers                → /governance
+
+Legal bar:
+  Line 1: © 2026 Alta Group N.V. — Newport, ND · Florin-denominated · Settlement T+0
+  Line 2: Alta platform data reflects live platform records where available.
+          Market data remains simulated.
+
+Styling:
+- border-t border-border/60 mt-32
+- Container: max-w-[1400px] px-6 py-16
+- Grid: 4 columns on md+
+- Column titles: font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground
+- Links: text-sm text-foreground/90, hover gold
+- Legal: mono 11px uppercase (left) + sans 11px muted (right)
+
+How it is mounted:
+
+  PageShell (default hideFooter={false})  → ~75 platform routes
+  src/routes/index.tsx directly         → / (Home)
+  src/routes/governance/route.tsx       → /governance, /governance/leadership,
+                                          /governance/documents
+
+Routes using PageShell + SiteFooter (representative list):
+
+  Home          /  (also has ClosingCTA before footer)
+  Alta Bank     /bank, /bank/deposit, /bank/withdraw, /bank/pay, /bank/open,
+                /bank/products, /bank/private, /bank/business, /bank/lending/*,
+                /bank/transfers/*, /bank/statements (index), account layouts
+  Alta Exchange /exchange, /exchange/listings, /exchange/ipo, /exchange/research,
+                /exchange/api, /exchange/apply, /exchange/rankings,
+                /exchange/indices, /exchange/actions, company pages
+  Terminal      /terminal, /terminal/portfolio, /terminal/trade, /terminal/watchlist,
+                /terminal/news, /terminal/research, /terminal/ipo, /terminal/leaderboard
+  Companies     /companies, /companies/create, /companies/$companyId/*
+  Profile       /profile
+  Governance    All governance child pages via layout wrapper
+
+
+B. LoginPortalFooter — auth micro-footer
+----------------------------------------
+
+File:  src/components/auth/auth-gate.tsx (lines 171–179)
+Type:  Custom legal micro-footer
+
+Exact copy:
+  Left:  © Alta Group · Newport Clearing Corporation
+  Right: Discretion assured · Relationship managed
+
+Styling:
+  border-t border-border/60 px-6 py-5 sm:px-10
+  font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground
+
+Routes:
+  /login (signed out)              Yes — LoginPortalFooter
+  /login (signed in Welcome back)  Yes — LoginPortalFooter
+  /maintenance                     NO — LoginPortalShell without footer prop
+  /access-restricted               NO — LoginPortalShell without footer prop
+
+
+C. No footer (intentional or missing)
+-------------------------------------
+
+Route / area              File                                    Reason
+All /internal/* (~30)     internal-page-shell.tsx → hideFooter   Internal ops
+Statement detail (print)  bank/statements/$statementId.tsx       hideFooter + print
+404                       __root.tsx NotFoundComponent            Bare layout
+Root error                __root.tsx ErrorComponent               Bare layout
+Maintenance               maintenance.tsx                          Auth shell, no footer
+Access restricted         access-restricted.tsx                    Auth shell, no footer
+
+
+D. Bottom-of-page sections (not footers, but page endings)
+----------------------------------------------------------
+
+1. ClosingCTA — Home only
+   File:     src/routes/index.tsx (lines 334–395)
+   Route:    /
+   Position: Above SiteFooter
+   Content:  AltaWordmark, "Access the platform trusted by the Republic",
+             live market snapshot, Enter Platform → /terminal
+   Styling:  py-32, rounded card, gradient — marketing-heavy
+   Issue:    Stacks with full SiteFooter — two large bottom sections on home
+
+2. Alta Private discreet footnote — custom page ending
+   File:     src/routes/bank/private.tsx (lines 367–387)
+   Route:    /bank/private
+   Position: Last content block inside PageShell, BEFORE SiteFooter
+   Copy:     Alta Private invitation-only relationship disclaimer + link to products
+   Issue:    Full public SiteFooter still renders below — redundant on private page
+
+3. EditorialCtaStrip — top hero strip (not bottom)
+   File:  src/components/bank/editorial-cta-strip.tsx
+   Route: /bank/business only
+   Used at top of page after sub-nav, not as a footer
+
+4. Inline editorial strip — lending (duplicate pattern)
+   File:  src/routes/bank/lending/index.tsx (lines 29–88)
+   Route: /bank/lending
+   Same visual pattern as EditorialCtaStrip but inlined at page top
+
+5. MockDataNotice — bottom disclaimers on market pages
+   File:    src/components/data/mock-data-notice.tsx
+   Default: Simulated market data for preview.
+   Appears near page bottom (before SiteFooter) on /terminal, /terminal/trade,
+   home marquee, ClosingCTA when simulated data enabled
+   Issue:   Market disclaimer split between MockDataNotice and SiteFooter legal line
+
+6. AuthGate in-card microcopy (not page footer)
+   File: src/components/auth/auth-gate.tsx (lines 163–165)
+   Copy: Individual accounts · Authorized company representatives
+
+7. ReceiptBlock footer — defined but unused
+   File: src/components/shared/receipt-block.tsx (lines 121–131)
+   Copy: This confirmation is your record of the transaction.
+   No route imports it yet
+
+8. Card-level bottom lines (Private Banking page)
+   NetworkCard:     Priority access · Invitation only
+   OpportunityCard:   By invitation
+   Hero card bottom: Relationship managed · Discretion assured
+   Hero badges:      Invitation Only, Founding Client, Est. 2026
+   These are card footers, not page footers — appropriate for Alta Private
+
+9. Statement document — no bottom legal block
+   File:  src/components/bank/statement-document.tsx
+   Route: /bank/statements/$statementId
+   Document ends after transaction table — no bank legal line or disclaimer
+
+
+2. CONSISTENCY ISSUES
+---------------------
+
+Pages with no footer:
+  Internal admin (/internal/*)     Intentional — long pages end abruptly
+  /maintenance, /access-restricted Inconsistent with /login
+  Print statement                  Correct for print
+  404 / error                      Missing — feels unfinished
+
+Duplicate / stacked bottom content:
+  /              ClosingCTA + full SiteFooter — marketing-heavy double ending
+  /bank/private  Custom invitation footnote + full public SiteFooter
+  /login         In-card microcopy + LoginPortalFooter — entity naming conflicts
+
+No duplicate SiteFooter instances on a single page (no double-mount bug).
+
+Spacing issues:
+  SiteFooter mt-32 — large empty band on short pages (deposit, withdraw forms)
+  Internal pages — bottom can feel cut off after main content
+  Private page — long scroll + custom footnote + mt-32 footer gap
+
+Footer too marketing-heavy:
+  /bank dashboard, /bank/account/*, /terminal/portfolio, /profile
+  Full sitemap footer on authenticated workspace pages
+
+Footer too empty / missing:
+  /maintenance, /access-restricted — no legal line or entity name
+  404 / error — no footer
+  Statement PDF — no document footer
+  Internal long pages — no ops micro-footer
+
+Outdated / wrong copy:
+  LoginPortalFooter — NCC as co-copyright entity (NCC is planned, not parent)
+  LoginPortalFooter — Discretion assured on public login (Alta Private tone)
+  SiteFooter Press/Careers — both link to /governance (placeholder)
+  SiteFooter NCC link — governance hub, not NCC-specific
+  SiteFooter Settlement T+0 — aspirational while NCC in development
+  Home ClosingCTA — "trusted by the Republic" marketing tone
+
+Wrong / stub links:
+  Press        → /governance  (not a press page)
+  Careers      → /governance  (not a careers page)
+  NCC          → /governance  (generic, not NCC section)
+  Market Data  → /exchange    (same as Exchange overview)
+
+Alta Terminal structure:
+  SiteFooter lists Alta Terminal as peer to Market Data/API — doesn't say
+  "part of Alta Exchange"
+  /terminal page shell eyebrow is "Alta Terminal" not "Alta Exchange · Terminal"
+  Footer link /terminal treats Terminal as top-level destination
+
+Invitation-only language in wrong places:
+  LoginPortalFooter — Discretion assured · Relationship managed  WRONG (public login)
+  SiteFooter — no invitation language                             CORRECT
+  /bank/products ProductCard — Invitation only on Alta Private    CORRECT
+  /bank/private footnote + cards — invitation/referral language     CORRECT
+
+
+3. BRAND / MESSAGE ISSUES
+-------------------------
+
+Current structure (target):
+  Alta Group N.V. = parent
+  Alta Bank = banking division (public)
+  Alta Exchange = exchange / capital markets (public)
+  Alta Terminal = product inside Alta Exchange
+  NCC = planned clearing/settlement
+
+Conflicts found:
+  Login footer names NCC as co-copyright entity
+  Login footer uses private-banking tone on public auth
+  Home divisions vs footer — NCC listed as live division alongside Bank/Exchange
+  Terminal in footer Platform column without Exchange parent context
+  "Settlement T+0" in global footer implies live clearing
+  Governance content says NCC "In Development" — footer does not
+
+What's correct:
+  Alta Bank / Exchange links in footer
+  Alta Private invitation language confined to /bank/private and private products
+  Governance pages use same SiteFooter as public site
+  Internal pages don't imply invitation-only access
+
+
+4. FOOTER DESIGN AUDIT
+----------------------
+
+Criterion              Rating   Notes
+Typography             Good     Mono column titles, sm body links — institutional
+Spacing                Mixed    mt-32 + py-16 premium on marketing; excessive on app pages
+Link layout            Good     4-column grid on desktop
+Mobile                 Fair     Grid stacks; legal bar stacks — readable but long
+Dark mode              Good     Semantic tokens; no light-only overrides
+Border / hairline      Good     border-t border-border/60 consistent
+Background             Neutral  Inherits page background
+Premium / institutional Good on marketing; overbuilt on bank dashboard / account pages
+Login micro-footer     Weak     Thin bar, wrong copy, inconsistent with global footer
+Internal (no footer)   Functional — clean for ops, no institutional closure
+
+
+5. RECOMMENDED FOOTER SYSTEM
+----------------------------
+
+A. Global public footer (SiteFooter)
+   Use on: Home, Governance, About, Leadership, Documents, unauthenticated marketing
+   Contents: Wordmark, tagline, Divisions, Company links (real pages only), full legal
+   Remove stub links until pages exist (Press, Careers)
+
+B. Platform footer (PlatformFooter — new, slim)
+   Use on: Authenticated Bank, Exchange, Terminal, Companies, Profile
+   Contents: © 2026 Alta Group N.V. · division name; data disclaimer; 3–4 inline links
+   Drop mt-32 or reduce to mt-16 on app pages
+
+C. Internal footer (InternalMicroFooter — new, minimal)
+   Use on: All /internal/* routes
+   Contents: Alta Internal · Operator Console; © 2026 · Authorized personnel only
+   Height: ~48px bar — no columns
+
+D. Legal micro-footer (LegalMicroFooter — refactor LoginPortalFooter)
+   Use on: Login, maintenance, access-restricted, 404/error
+   Contents: © 2026 Alta Group N.V.; infrastructure line; no Discretion assured
+
+E. Document footer (StatementFooter — new)
+   Use on: Statement print/PDF only
+   Contents: Alta Bank legal name, support line, timestamp, confidentiality notice
+
+F. Page-specific footnotes (keep, don't replace global footer)
+   /bank/private — invitation footnote; swap SiteFooter for slim platform footer
+   / — consider shortening ClosingCTA vs full footer duplication
+
+
+6. SUGGESTED FINAL COPY
+-----------------------
+
+Alta Group public pages (SiteFooter):
+  Tagline: Live Like the 1%
+  Legal primary:   © 2026 Alta Group N.V. · Newport, ND · Florin-denominated
+  Legal secondary: Alta Bank and Alta Exchange operate under Alta Group N.V.
+                   Newport Clearing Corporation (NCC) is in development. Platform
+                   data reflects live records where available; market data may be
+                   simulated.
+
+Alta Bank platform pages (PlatformFooter):
+  Primary:   © 2026 Alta Group N.V. · Alta Bank
+  Secondary: Deposits and transfers reflect live platform records.
+
+Alta Exchange / Terminal platform pages (PlatformFooter):
+  Primary:   © 2026 Alta Group N.V. · Alta Exchange
+  Secondary: Alta Terminal is an Alta Exchange product. Market data may be simulated.
+
+Internal admin pages (InternalMicroFooter):
+  Primary:   Alta Internal · Operator Console
+  Secondary: © 2026 Alta Group N.V. · Authorized operators only · All actions are audited.
+
+Alta Private page (page footnote only — not global footer):
+  Alta Private is an invitation-only relationship within Alta Bank. Membership is
+  extended by referral. Terms subject to your relationship agreement.
+  Do not show full public sitemap footer below this.
+
+Maintenance page (LegalMicroFooter):
+  Primary:   © 2026 Alta Group N.V. · Platform Maintenance
+  Secondary: Scheduled work in progress. Banking and exchange access will resume
+             when maintenance ends.
+
+Login / auth pages (LegalMicroFooter):
+  Primary:   © 2026 Alta Group N.V. · Member Access
+  Secondary: Sign in with Discord · Individual accounts and authorized company
+             representatives
+  Remove: Discretion assured · Relationship managed; NCC as copyright entity
+
+
+7. FIX PLAN
+-----------
+
+CRITICAL
+--------
+
+1. Fix LoginPortalFooter copy — remove private-banking language and incorrect NCC
+   copyright entity.
+   File: src/components/auth/auth-gate.tsx
+
+2. Add footer to /maintenance and /access-restricted — use shared LegalMicroFooter.
+   Files: src/routes/maintenance.tsx, src/routes/access-restricted.tsx
+
+3. Remove or replace stub footer links (Press, Careers → /governance).
+   File: src/components/site-nav.tsx
+
+4. /bank/private — stop rendering full SiteFooter below invitation footnote.
+   Files: src/routes/bank/private.tsx, src/components/page-shell.tsx (footer variant)
+
+
+HIGH
+----
+
+5. Introduce PlatformFooter vs SiteFooter — PageShell footerVariant prop.
+   Files: src/components/page-shell.tsx, src/components/site-nav.tsx
+
+6. Add InternalMicroFooter to InternalPageShell.
+   File: src/components/internal/internal-page-shell.tsx
+
+7. Update NCC messaging in global footer — "In development" or dedicated anchor.
+   File: src/components/site-nav.tsx
+
+8. Add statement document legal footer for print/PDF.
+   File: src/components/bank/statement-document.tsx
+
+9. Reduce SiteFooter top margin on platform pages (mt-32 → mt-16 or context-aware).
+   File: src/components/site-nav.tsx
+
+
+MEDIUM
+------
+
+10. Home page — reduce ClosingCTA + full footer double-bottom weight.
+    File: src/routes/index.tsx
+
+11. Terminal branding — footer/platform copy should say "Alta Exchange · Terminal".
+    Files: src/components/site-nav.tsx, src/routes/terminal/index.tsx
+
+12. Consolidate market data disclaimer — shared string for MockDataNotice and footer.
+    Files: src/components/data/mock-data-notice.tsx, src/components/site-nav.tsx
+
+13. 404 / error pages — add LegalMicroFooter + link home.
+    File: src/routes/__root.tsx
+
+14. Refactor lending editorial strip to use EditorialCtaStrip component.
+    File: src/routes/bank/lending/index.tsx
+
+
+LOW
+---
+
+15. Wire up ReceiptBlock when transaction confirmations ship.
+    File: src/components/shared/receipt-block.tsx
+
+16. Add real Press / Careers pages or remove from footer until they exist.
+
+17. Dedicated NCC governance anchor — footer link → /governance#ncc or dedicated route.
+
+18. error-page.ts server HTML — align entity naming with SiteFooter.
+
+
+8. FILES / COMPONENTS TO UPDATE LATER
+-----------------------------------
+
+Priority   File                                          Change
+Critical   src/components/auth/auth-gate.tsx             Rewrite LoginPortalFooter copy
+Critical   src/routes/maintenance.tsx                    Add LegalMicroFooter
+Critical   src/routes/access-restricted.tsx              Add LegalMicroFooter
+Critical   src/components/site-nav.tsx                   Fix stub links, NCC/legal, split variants
+Critical   src/routes/bank/private.tsx                   Footer variant or suppress global footer
+High       src/components/page-shell.tsx                 footerVariant prop
+High       src/components/internal/internal-page-shell.tsx  InternalMicroFooter
+High       src/components/bank/statement-document.tsx    Document legal footer
+High       src/routes/__root.tsx                         404/error micro-footer
+Medium     src/routes/index.tsx                          ClosingCTA + footer balance
+Medium     src/components/data/mock-data-notice.tsx      Shared disclaimer string
+Medium     src/routes/terminal/index.tsx                 Exchange parent branding
+Low        src/lib/error-page.ts                         Server error page footer
+Low        src/components/shared/receipt-block.tsx       Adopt when confirmations live
+
+
+SUMMARY METRICS
+---------------
+
+Metric                              Value
+Shared footer components            2 (SiteFooter, LoginPortalFooter)
+Routes with full SiteFooter         ~80
+Routes with no footer               ~35 (internal + auth edge + print + errors)
+Custom page bottom sections         4 notable (ClosingCTA, Private footnote,
+                                    MockDataNotice, AuthGate card line)
+Stub/wrong footer links             3 (Press, Careers, NCC destination)
+Auth pages missing footer           2 (/maintenance, /access-restricted)
+Wrong invitation-only tone          1 (LoginPortalFooter)
+
+
+CONCLUSION
+----------
+
+The site needs a tiered footer system: full public footer for marketing/governance,
+slim platform footer for authenticated app pages, minimal internal bar for ops,
+and corrected legal micro-footer for auth edge cases. The highest-impact fixes are
+LoginPortalFooter copy, stub link removal, Alta Private footer suppression, and
+adding footers to maintenance/access-restricted pages.

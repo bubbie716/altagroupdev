@@ -97,7 +97,7 @@ export function LendingApplyForm({
     setError(null);
     setSubmitting(true);
     try {
-      await submit({
+      const result = await submit({
         data: {
           productType,
           requestedAmount: Number(requestedAmount),
@@ -110,7 +110,10 @@ export function LendingApplyForm({
           notes: notes || undefined,
         },
       });
-      await router.navigate({ to: "/bank/lending/applications" });
+      await router.navigate({
+        to: "/bank/lending/applications/$applicationId/thread",
+        params: { applicationId: result.id },
+      });
     } catch (err) {
       setError(parseServerError(err));
     } finally {

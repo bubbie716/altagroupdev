@@ -7,6 +7,7 @@ import { AccountActivityLink } from "@/components/internal/internal-audit-table"
 import { fetchEnhancedDashboard } from "@/lib/internal/ops-platform.functions";
 import { florin } from "@/lib/bank/api";
 import { Link } from "@tanstack/react-router";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 
 export const Route = createFileRoute("/internal/")({
   loader: () => fetchEnhancedDashboard(),
@@ -15,7 +16,8 @@ export const Route = createFileRoute("/internal/")({
 });
 
 function InternalOperationsCenter() {
-  const { metrics: m, health, activity, negativeBalances, largeAdjustments } = Route.useLoaderData();
+  const { metrics: m, health, activity, negativeBalances, largeAdjustments, maintenance } =
+    Route.useLoaderData();
 
   const totalQueues =
     m.pendingDeposits +
@@ -33,6 +35,33 @@ function InternalOperationsCenter() {
       hideSearch
     >
       <InternalGlobalSearchInline />
+
+      {maintenance.enabled ? (
+        <div className="mb-8 rounded-lg border border-amber-400/40 bg-amber-400/10 px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200">
+                Maintenance mode active
+              </div>
+              <p className="mt-2 text-[14px] text-foreground">
+                Public platform pages are offline for normal users.
+              </p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                {maintenance.startedAt
+                  ? `Started ${formatActivityDateTime(maintenance.startedAt)}`
+                  : "Start time unavailable"}
+                {maintenance.updatedByUsername ? ` · Updated by ${maintenance.updatedByUsername}` : ""}
+              </p>
+            </div>
+            <Link
+              to="/internal/settings"
+              className="rounded border border-amber-300/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-100 hover:bg-amber-400/10"
+            >
+              Settings
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <Section title={`Operational queues · ${totalQueues} items`}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -94,6 +94,28 @@ model User {
   bankInterestAccrualsProcessed BankInterestAccrual[] @relation("InterestAccrualProcessor")
   bankAccountHoldsCreated    BankAccountHold[]   @relation("BankAccountHoldCreator")
   bankAccountHoldsReleased   BankAccountHold[]   @relation("BankAccountHoldReleaser")
+  platformSettingsUpdated    PlatformSetting[]   @relation("PlatformSettingUpdatedBy")
+  dealRoomsBorrowed          DealRoom[]          @relation("DealRoomBorrower")
+  dealRoomsAssigned          DealRoom[]          @relation("DealRoomOfficer")
+  dealRoomParticipants       DealRoomParticipant[]
+  dealRoomMessagesSent       DealRoomMessage[]   @relation("DealRoomMessageSender")
+  dealRoomOffersCreated      DealRoomOffer[]     @relation("DealRoomOfferCreator")
+  dealRoomDocumentsUploaded  DealRoomDocument[]  @relation("DealRoomDocumentUploader")
+  dealRoomDocumentRequestsCreated DealRoomDocumentRequest[] @relation("DealRoomDocumentRequestRequestedBy")
+  dealRoomDocumentRequestsReviewed DealRoomDocumentRequest[] @relation("DealRoomDocumentRequestReviewedBy")
+  dealRoomAgreementDraftsGenerated DealRoomAgreementDraft[] @relation("DealRoomAgreementDraftGenerator")
+  dealRoomAgreementDraftsVoided  DealRoomAgreementDraft[] @relation("DealRoomAgreementDraftVoider")
+  dealRoomAgreementSignatures    DealRoomAgreementSignature[]
+  dealRoomsCreated               DealRoom[]                 @relation("DealRoomCreator")
+  dealRoomTasksAssigned          DealRoomTask[]             @relation("DealRoomTaskAssignee")
+  dealRoomTasksCreated           DealRoomTask[]             @relation("DealRoomTaskCreator")
+  dealRoomTasksCompleted         DealRoomTask[]             @relation("DealRoomTaskCompleter")
+  dealRoomStageChanges           DealRoomStageHistory[]     @relation("DealRoomStageChanger")
+  dealRoomStageOwnership         DealRoomStageHistory[]     @relation("DealRoomStageOwner")
+  loanApplicationThreads         LoanApplicationThread[]    @relation("LoanApplicationThreadApplicant")
+  loanApplicationThreadsAssigned LoanApplicationThread[]    @relation("LoanApplicationThreadStaff")
+  loanApplicationThreadMessages  LoanApplicationThreadMessage[] @relation("LoanApplicationThreadMessageSender")
+  userNotifications              UserNotification[]
 }
 
 model UserTagAssignment {
@@ -131,6 +153,8 @@ model Company {
   payrollRuns       PayrollRun[]
   loanApplications  LoanApplication[]
   loans             Loan[]
+  dealRooms         DealRoom[]
+  loanApplicationThreads LoanApplicationThread[]
 }
 
 model CompanyMembership {
@@ -674,12 +698,66 @@ model LoanApplication {
   linkedBankAccount BankAccount? @relation(fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
   reviewedBy        User?        @relation("LoanApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   loan              Loan?
+  dealRoom          DealRoom?
+  thread            LoanApplicationThread?
 
   @@index([applicantUserId])
   @@index([companyId])
   @@index([status])
   @@index([productType])
   @@index([createdAt])
+}
+
+enum LoanApplicationThreadStatus {
+  OPEN
+  WAITING_ON_APPLICANT
+  WAITING_ON_ALTA
+  CLOSED
+}
+
+enum LoanApplicationThreadSenderRole {
+  APPLICANT
+  ALTA_STAFF
+  SYSTEM
+}
+
+model LoanApplicationThread {
+  id                String                      @id @default(cuid())
+  loanApplicationId String                      @unique
+  applicantUserId   String
+  companyId         String?
+  status            LoanApplicationThreadStatus @default(OPEN)
+  assignedStaffId   String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  closedAt          DateTime?
+
+  loanApplication LoanApplication                @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  applicantUser   User                           @relation("LoanApplicationThreadApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company         Company?                       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedStaff   User?                          @relation("LoanApplicationThreadStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages        LoanApplicationThreadMessage[]
+
+  @@index([applicantUserId])
+  @@index([companyId])
+  @@index([status])
+  @@index([assignedStaffId])
+}
+
+model LoanApplicationThreadMessage {
+  id           String                          @id @default(cuid())
+  threadId     String
+  senderUserId String?
+  senderRole   LoanApplicationThreadSenderRole
+  body         String?
+  attachments  Json?
+  createdAt    DateTime                        @default(now())
+  deletedAt    DateTime?
+
+  thread LoanApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User?                 @relation("LoanApplicationThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
 }
 
 model Loan {
@@ -703,6 +781,15 @@ model Loan {
   autoPaySourceBankAccountId String?
   approvedById        String
   approvedAt          DateTime
+  sourceDealRoomId          String?   @unique
+  sourceAgreementId         String?
+  sourceAgreementDraftId    String?   @unique
+  disbursementReferenceCode String?
+  collateralDescription     String?
+  paymentFrequencyLabel     String?
+  minimumPayment            Decimal?  @db.Decimal(18, 2)
+  maturityDate              DateTime?
+  firstPaymentDueDate       DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -716,6 +803,7 @@ model Loan {
   ledgerEntries     LoanLedgerEntry[]
   paymentSchedule   LoanPaymentScheduleItem[]
   interestSchedule  LoanInterestScheduleItem[]
+  dealRoom          DealRoom? @relation("DealRoomExecutedLoan")
 
   @@index([borrowerUserId])
   @@index([companyId])
@@ -814,6 +902,457 @@ model LoanLedgerEntry {
   @@index([createdAt])
 }
 
+enum DealRoomStatus {
+  UNDER_REVIEW
+  NEGOTIATING_TERMS
+  AWAITING_APPLICANT
+  AWAITING_OFFICER
+  CONTRACT_DRAFTING
+  READY_FOR_ACCEPTANCE
+  ACCEPTED
+  APPROVED
+  EXECUTED
+  DECLINED
+  CLOSED
+}
+
+enum DealRoomWorkflowStage {
+  APPLICATION_RECEIVED
+  INITIAL_REVIEW
+  DOCUMENT_COLLECTION
+  UNDERWRITING
+  NEGOTIATING_TERMS
+  AGREEMENT_PREPARATION
+  AWAITING_BORROWER_SIGNATURE
+  AWAITING_ALTA_SIGNATURE
+  FUNDING
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+  DECLINED
+  EXPIRED
+}
+
+enum DealRoomPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DealRoomTaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum UserNotificationChannel {
+  IN_APP
+  EMAIL
+  DISCORD
+}
+
+enum UserNotificationType {
+  DEAL_ROOM_CREATED
+  DEAL_ROOM_OFFICER_ASSIGNED
+  DEAL_ROOM_MESSAGE_RECEIVED
+  DEAL_ROOM_DOCUMENT_REQUESTED
+  DEAL_ROOM_DOCUMENT_UPLOADED
+  DEAL_ROOM_OFFER_RECEIVED
+  DEAL_ROOM_AGREEMENT_READY
+  DEAL_ROOM_BORROWER_SIGNED
+  DEAL_ROOM_FUNDING_COMPLETE
+  DEAL_ROOM_TASK_ASSIGNED
+  DEAL_ROOM_TASK_DUE
+  DEAL_ROOM_TASK_OVERDUE
+  DEAL_ROOM_STAGE_CHANGED
+}
+
+enum DealRoomParticipantRole {
+  APPLICANT
+  COMPANY_REPRESENTATIVE
+  LOAN_OFFICER
+  ADMIN_OBSERVER
+}
+
+model DealRoom {
+  id                        String         @id @default(cuid())
+  loanApplicationId         String?        @unique
+  borrowerUserId            String
+  companyId                 String?
+  assignedOfficerId         String?
+  createdByUserId           String?
+  assignedTeamLabel         String         @default("Lending Desk")
+  workflowStage             DealRoomWorkflowStage @default(APPLICATION_RECEIVED)
+  stageEnteredAt            DateTime       @default(now())
+  priority                  DealRoomPriority @default(MEDIUM)
+  status                    DealRoomStatus @default(UNDER_REVIEW)
+  slaOfficerFirstResponseAt DateTime?
+  slaDocumentsRequestedAt   DateTime?
+  slaDocumentsReceivedAt    DateTime?
+  slaAgreementGeneratedAt   DateTime?
+  slaBorrowerSignedAt       DateTime?
+  slaBankSignedAt           DateTime?
+  slaFundingCompletedAt     DateTime?
+  stalledAt                 DateTime?
+  currentRequestedAmount    Decimal        @db.Decimal(18, 2)
+  currentProposedAmount     Decimal?       @db.Decimal(18, 2)
+  currentProposedRate       Decimal?       @db.Decimal(8, 4)
+  currentProposedTermMonths Int?
+  acceptedPrincipal              Decimal?   @db.Decimal(18, 2)
+  acceptedInterestRate           Decimal?   @db.Decimal(8, 4)
+  acceptedTermMonths             Int?
+  acceptedMinimumPayment         Decimal?   @db.Decimal(18, 2)
+  acceptedPaymentFrequency       String?
+  acceptedCollateralDescription  String?
+  acceptedSpecialConditions      String?
+  acceptedOfferId                String?    @unique
+  acceptedAt                     DateTime?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  closedAt                  DateTime?
+
+  loanApplication LoanApplication?      @relation(fields: [loanApplicationId], references: [id], onDelete: SetNull)
+  borrowerUser    User                  @relation("DealRoomBorrower", fields: [borrowerUserId], references: [id], onDelete: Cascade)
+  company         Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedOfficer User?                 @relation("DealRoomOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+  createdBy       User?                 @relation("DealRoomCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  acceptedOffer   DealRoomOffer?        @relation("DealRoomAcceptedOffer", fields: [acceptedOfferId], references: [id], onDelete: SetNull)
+  participants    DealRoomParticipant[]
+  messages        DealRoomMessage[]
+  offers          DealRoomOffer[]       @relation("DealRoomOffers")
+  documents       DealRoomDocument[]
+  documentRequests DealRoomDocumentRequest[]
+  agreement       DealRoomAgreement?
+  executedLoan    Loan?                     @relation("DealRoomExecutedLoan", fields: [executedLoanId], references: [id], onDelete: SetNull)
+  executedLoanId  String?                   @unique
+  tasks           DealRoomTask[]
+  stageHistory    DealRoomStageHistory[]
+
+  @@index([borrowerUserId])
+  @@index([companyId])
+  @@index([assignedOfficerId])
+  @@index([status])
+  @@index([workflowStage])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([stageEnteredAt])
+}
+
+model DealRoomParticipant {
+  id         String                  @id @default(cuid())
+  dealRoomId String
+  userId     String
+  role       DealRoomParticipantRole
+  createdAt  DateTime                @default(now())
+
+  dealRoom DealRoom @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dealRoomId, userId, role])
+  @@index([dealRoomId])
+  @@index([userId])
+}
+
+enum DealRoomMessageType {
+  APPLICANT_MESSAGE
+  OFFICER_MESSAGE
+  SYSTEM_UPDATE
+  INTERNAL_NOTE
+}
+
+model DealRoomMessage {
+  id           String              @id @default(cuid())
+  dealRoomId   String
+  senderUserId String?
+  messageType  DealRoomMessageType
+  body         String
+  metadata     Json?
+  createdAt    DateTime            @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+
+  dealRoom DealRoom @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  sender   User?    @relation("DealRoomMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([dealRoomId, createdAt])
+  @@index([senderUserId])
+  @@index([messageType])
+}
+
+enum DealRoomOfferType {
+  APPLICANT_COUNTER
+  OFFICER_OFFER
+  SYSTEM_GENERATED
+}
+
+enum DealRoomOfferStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+model DealRoomOffer {
+  id                       String              @id @default(cuid())
+  dealRoomId               String
+  createdByUserId          String
+  offerType                DealRoomOfferType
+  status                   DealRoomOfferStatus @default(DRAFT)
+  proposedPrincipal        Decimal             @db.Decimal(18, 2)
+  proposedInterestRate     Decimal             @db.Decimal(8, 4)
+  proposedTermMonths       Int
+  proposedMinimumPayment   Decimal?            @db.Decimal(18, 2)
+  proposedPaymentFrequency String?
+  collateralDescription    String?
+  specialConditions        String?
+  rejectionNote            String?
+  expiresAt                DateTime?
+  acceptedAt               DateTime?
+  rejectedAt               DateTime?
+  withdrawnAt              DateTime?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+
+  dealRoom            DealRoom  @relation("DealRoomOffers", fields: [dealRoomId], references: [id], onDelete: Cascade)
+  createdBy           User      @relation("DealRoomOfferCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  acceptedForDealRoom DealRoom? @relation("DealRoomAcceptedOffer")
+
+  @@index([dealRoomId, createdAt])
+  @@index([dealRoomId, status])
+  @@index([createdByUserId])
+}
+
+enum DealRoomDocumentType {
+  IDENTIFICATION
+  INCOME_VERIFICATION
+  BANK_STATEMENT
+  TAX_DOCUMENT
+  BUSINESS_FINANCIALS
+  COLLATERAL
+  SUPPORTING_DOCUMENT
+  CONTRACT_DRAFT
+  SIGNED_CONTRACT
+  INTERNAL_MEMO
+  OTHER
+}
+
+enum DealRoomDocumentVisibility {
+  SHARED
+  INTERNAL_ONLY
+}
+
+enum DealRoomDocumentStatus {
+  ACTIVE
+  REPLACED
+  DELETED
+}
+
+enum DealRoomDocumentRequestStatus {
+  REQUESTED
+  RECEIVED
+  REVIEWED
+  APPROVED
+  REJECTED
+}
+
+model DealRoomDocument {
+  id                 String                     @id @default(cuid())
+  dealRoomId         String
+  uploadedByUserId   String
+  documentType       DealRoomDocumentType
+  visibility         DealRoomDocumentVisibility @default(SHARED)
+  originalFileName   String
+  storedFileName     String
+  mimeType           String
+  fileSizeBytes      Int
+  storageKey         String
+  description        String?
+  status             DealRoomDocumentStatus     @default(ACTIVE)
+  replacedByDocumentId String?                  @unique
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  deletedAt          DateTime?
+
+  dealRoom         DealRoom                  @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  uploadedBy       User                      @relation("DealRoomDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+  replacedBy       DealRoomDocument?         @relation("DealRoomDocumentReplacement", fields: [replacedByDocumentId], references: [id], onDelete: SetNull)
+  replaces         DealRoomDocument?         @relation("DealRoomDocumentReplacement")
+  documentRequest  DealRoomDocumentRequest?
+
+  @@index([dealRoomId, createdAt])
+  @@index([dealRoomId, status])
+  @@index([dealRoomId, documentType])
+  @@index([uploadedByUserId])
+}
+
+model DealRoomDocumentRequest {
+  id                String                        @id @default(cuid())
+  dealRoomId        String
+  documentType      DealRoomDocumentType
+  status            DealRoomDocumentRequestStatus @default(REQUESTED)
+  title             String?
+  requestNote       String?
+  reviewNote        String?
+  requestedByUserId String
+  reviewedByUserId  String?
+  linkedDocumentId  String?                       @unique
+  requestedAt       DateTime                      @default(now())
+  reviewedAt        DateTime?
+  updatedAt         DateTime                      @updatedAt
+
+  dealRoom       DealRoom          @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  requestedBy    User              @relation("DealRoomDocumentRequestRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Cascade)
+  reviewedBy     User?             @relation("DealRoomDocumentRequestReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  linkedDocument DealRoomDocument? @relation(fields: [linkedDocumentId], references: [id], onDelete: SetNull)
+
+  @@index([dealRoomId, documentType])
+  @@index([dealRoomId, status])
+}
+
+enum DealRoomAgreementDraftStatus {
+  DRAFT
+  AWAITING_BORROWER
+  AWAITING_BANK
+  EXECUTED
+  VOID
+  SUPERSEDED
+}
+
+enum DealRoomAgreementSignatureParty {
+  BORROWER
+  BANK
+}
+
+model DealRoomAgreement {
+  id                 String   @id @default(cuid())
+  dealRoomId         String   @unique
+  templateSlug       String
+  workspaceFieldData Json
+  activeDraftId      String?  @unique
+  executedDraftId    String?  @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  dealRoom      DealRoom                 @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  activeDraft   DealRoomAgreementDraft?  @relation("DealRoomAgreementActiveDraft", fields: [activeDraftId], references: [id], onDelete: SetNull)
+  executedDraft DealRoomAgreementDraft?  @relation("DealRoomAgreementExecutedDraft", fields: [executedDraftId], references: [id], onDelete: SetNull)
+  drafts        DealRoomAgreementDraft[] @relation("DealRoomAgreementDrafts")
+
+  @@index([templateSlug])
+}
+
+model DealRoomAgreementDraft {
+  id                String                       @id @default(cuid())
+  agreementId       String
+  versionNumber     Int
+  status            DealRoomAgreementDraftStatus @default(DRAFT)
+  fieldData         Json
+  pdfStorageKey     String?
+  pdfSha256         String?
+  generatedByUserId String?
+  generatedAt       DateTime?
+  voidedAt          DateTime?
+  voidedByUserId    String?
+  supersededAt      DateTime?
+  executedAt        DateTime?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  agreement          DealRoomAgreement            @relation("DealRoomAgreementDrafts", fields: [agreementId], references: [id], onDelete: Cascade)
+  generatedBy        User?                        @relation("DealRoomAgreementDraftGenerator", fields: [generatedByUserId], references: [id], onDelete: SetNull)
+  voidedBy           User?                        @relation("DealRoomAgreementDraftVoider", fields: [voidedByUserId], references: [id], onDelete: SetNull)
+  signatures         DealRoomAgreementSignature[]
+  activeForAgreement DealRoomAgreement?           @relation("DealRoomAgreementActiveDraft")
+  executedForAgreement DealRoomAgreement?         @relation("DealRoomAgreementExecutedDraft")
+
+  @@unique([agreementId, versionNumber])
+  @@index([agreementId, status])
+}
+
+model DealRoomAgreementSignature {
+  id             String                          @id @default(cuid())
+  draftId        String
+  party          DealRoomAgreementSignatureParty
+  userId         String
+  signatureName  String
+  discordId      String?
+  ipAddress      String?
+  signedAt       DateTime                        @default(now())
+
+  draft DealRoomAgreementDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  user  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([draftId, party])
+  @@index([draftId])
+  @@index([userId])
+}
+
+model DealRoomTask {
+  id                String             @id @default(cuid())
+  dealRoomId        String
+  title             String
+  description       String?
+  assignedToUserId  String?
+  priority          DealRoomPriority   @default(MEDIUM)
+  dueDate           DateTime?
+  status            DealRoomTaskStatus @default(OPEN)
+  createdByUserId   String
+  completedByUserId String?
+  completedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  dealRoom    DealRoom @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  assignedTo  User?    @relation("DealRoomTaskAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  createdBy   User     @relation("DealRoomTaskCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  completedBy User?    @relation("DealRoomTaskCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([dealRoomId])
+  @@index([assignedToUserId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model DealRoomStageHistory {
+  id              String                @id @default(cuid())
+  dealRoomId      String
+  stage           DealRoomWorkflowStage
+  ownerUserId     String?
+  changedByUserId String?
+  enteredAt       DateTime              @default(now())
+  exitedAt        DateTime?
+
+  dealRoom  DealRoom @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  owner     User?    @relation("DealRoomStageOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  changedBy User?    @relation("DealRoomStageChanger", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([dealRoomId])
+  @@index([stage])
+  @@index([enteredAt])
+}
+
+model UserNotification {
+  id           String                  @id @default(cuid())
+  userId       String
+  type         UserNotificationType
+  channel      UserNotificationChannel @default(IN_APP)
+  title        String
+  body         String
+  linkUrl      String?
+  metadata     Json?
+  readAt       DateTime?
+  createdAt    DateTime                @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
 enum AuditEntityType {
   USER
   BANK_ACCOUNT
@@ -821,8 +1360,10 @@ enum AuditEntityType {
   COMPANY
   LOAN
   LOAN_APPLICATION
+  DEAL_ROOM
   SCHEDULED_PAYMENT
   STATEMENT
+  PLATFORM
 }
 
 enum InternalNoteTargetType {
@@ -909,4 +1450,15 @@ model InternalNote {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+model PlatformSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("PlatformSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
 }

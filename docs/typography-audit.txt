@@ -1,0 +1,458 @@
+ALTA GROUP TYPOGRAPHY AUDIT
+============================
+
+Scope: Full codebase review — global CSS, font imports, Tailwind v4 theme, design
+tokens, all route areas, shadcn primitives, mobile/dark mode.
+
+Date: June 22, 2026
+Status: Audit only — no code changes implemented.
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+The site has a strong intended three-font system (Fraunces / Inter Tight /
+JetBrains Mono) defined in src/styles.css and imported in src/routes/__root.tsx.
+In practice, that system is partially adopted: ~70 routes use PageShell with
+tokenized heroes, but 600+ arbitrary pixel sizes and 550+ inline font-mono
+combinations bypass the design tokens.
+
+Two competing EmptyState components, an undefined type-finance-nums class, and
+unused formFieldLabelClass are the clearest signs the system is not yet unified.
+
+Verdict: Premium intent is visible (especially landing, auth, private banking,
+governance). Consistency is moderate — readable and institutional in places,
+fragmented in forms, tables, empty states, and sub-navs.
+
+
+1. FONT FAMILIES FOUND
+----------------------
+
+PRIMARY (loaded via Google Fonts)
+---------------------------------
+
+Family          CSS variable    Weights loaded   Role
+Fraunces        --font-serif    300,400,500,600  Display serif — heroes, editorial headings
+Inter Tight     --font-display  400,500,600,700  UI sans — body, nav, UI chrome
+JetBrains Mono  --font-mono     400,500          Mono/data — labels, figures, table headers
+
+Import location: src/routes/__root.tsx (lines 140–145)
+
+
+FALLBACK STACKS (defined in src/styles.css)
+-------------------------------------------
+
+--font-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system,
+                "Segoe UI", sans-serif;
+--font-serif:   "Fraunces", "Times New Roman", ui-serif, Georgia, serif;
+--font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+- Inter appears only as a fallback in the display stack — not separately loaded.
+- Times New Roman, Georgia, Segoe UI, system-ui, ui-sans-serif, ui-serif,
+  ui-monospace, SF Mono, Menlo are system fallbacks only.
+
+
+TAILWIND V4 THEME MAPPING
+-------------------------
+
+No tailwind.config file. Typography is wired via @theme inline in src/styles.css:
+
+- --font-display, --font-serif, --font-mono → Tailwind utilities font-serif, font-mono
+- Body default font is set in @layer base on body, not via a Tailwind class
+- font-display utility is defined in theme but never used in components
+
+
+ACCIDENTAL / NON-BRAND FONTS
+----------------------------
+
+Location                          Font used                              Notes
+src/lib/error-page.ts             system-ui, -apple-system, sans-serif   Server-rendered error HTML
+src/routes/__root.tsx UiLabBanner ui-monospace, SFMono-Regular, Menlo    Dev-only inline style
+404 / root error components       Inherit body (Inter Tight)             Generic Tailwind sizing
+
+
+2. FONT USAGE MAP
+-----------------
+
+FRAUNCES (font-serif / --font-serif)
+------------------------------------
+
+Context                  Where
+Global h1–h3             src/styles.css base layer — all unstyled h1–h3 inherit serif
+Page titles              PageShell → type.display (~70+ routes)
+Governance display       src/routes/governance/index.tsx → type.displayGovernance
+Marketing hero           src/routes/index.tsx — custom clamp, not type-display token
+Auth / login             src/components/auth/auth-gate.tsx — hero h1 + subcopy in serif
+Maintenance              src/routes/maintenance.tsx
+Private banking editorial src/routes/bank/private.tsx (16+ serif usages)
+Lending / deal rooms     lending-apply-experience.tsx, deal-room components
+Shared empty states      src/components/shared/empty-state.tsx — serif titles
+Profile sections         src/routes/profile.tsx — mixed serif display blocks
+
+
+INTER TIGHT (--font-display / body default)
+-------------------------------------------
+
+Context                  Where
+Body copy default        All pages via body { font-family: var(--font-display) }
+h4–h6                    Base styles — semibold display sans
+Site navigation (desktop) src/components/site-nav.tsx → type-nav (13px)
+Sub-navigation           Bank, Exchange, Lending, Account sub-navs → type-subnav (12px)
+shadcn Button default    src/components/ui/button.tsx → text-sm font-medium
+shadcn Input / Select    text-sm / text-base (mobile)
+Card copy, descriptions  Widespread text-sm, text-[13px], text-[15px]
+Mobile nav               site-nav.tsx sheet links → text-base font-medium (NOT type-nav)
+
+
+JETBRAINS MONO (font-mono / --font-mono)
+----------------------------------------
+
+Context                  Where
+Eyebrows / meta labels   type-eyebrow, type-meta, type-meta-accent, type-section-title, type-ui-label
+Internal sub-nav         type-subnav-mono + group labels at 9px
+Table headers            .alta-table th — 10px, 0.16em tracking, uppercase
+Financial figures        type-finance-*, Florin, .tabular, metric-value-fit
+Timestamps / refs / IDs  Transaction tables, internal ops, audit logs
+Institutional buttons    Button institutional variant; maintenance CTAs; inline mono link-buttons
+Footer / wordmark        Footer column titles; AltaWordmark uses display sans semibold, not mono
+Status badges            status-badge.tsx, compliance-badge.tsx, internal panels
+
+Approximate inline usage: 550+ font-mono occurrences across ~150 files.
+
+Top combos:
+- font-mono text-[10px] — 271×
+- font-mono text-[11px] — 186×
+- font-mono text-[12px] — 68×
+
+
+3. INCONSISTENCIES
+------------------
+
+CRITICAL STRUCTURAL ISSUES
+--------------------------
+
+Issue                    Detail
+Two EmptyState components data/empty-state.tsx — sans titles (text-xl font-semibold);
+                         shared/empty-state.tsx — serif titles. Both used in production.
+type-finance-nums        Referenced in 6 files but NOT defined in styles.css or typography.ts.
+                         Figures render without intended mono/tabular styling.
+formFieldLabelClass      Exported from src/lib/typography.ts but zero form imports.
+                         Forms use ad-hoc font-mono text-[10px] uppercase tracking-[…].
+Design tokens bypassed   type.* from @/lib/typography imported in only ~10 files.
+                         Most typography is inline Tailwind.
+
+
+MIXED HEADING FONTS
+-------------------
+
+Pattern                  Examples
+Tokenized serif titles   PageShell → type-display
+Custom serif clamps      Landing hero, auth gate, private banking
+Display sans semibold    Governance cards (text-2xl font-semibold), shadcn CardTitle, data empty-state
+Mono uppercase sections  Internal ops panels, bank forms
+
+
+MIXED SANS USAGE
+----------------
+
+- Body is Inter Tight, but many UI elements use arbitrary text-[13px] instead of
+  type-body-sm (13px) or type-body (15px).
+- Governance sub-nav uses text-[12px] tracking-wide — no type-subnav token
+  (src/components/governance/governance-sub-nav.tsx).
+- Mobile site nav uses text-base font-medium vs desktop type-nav (13px).
+
+
+MIXED SERIF USAGE
+-----------------
+
+- Editorial/marketing pages lean serif.
+- Operational UI (bank dashboard, internal ops) leans mono labels + sans body.
+- Same "empty state" semantic role renders serif OR sans depending on component.
+
+
+INCONSISTENT MONO / TRACKING
+----------------------------
+
+Letter-spacing values in use (arbitrary):
+
+Value               Count
+tracking-[0.18em]   86
+tracking-[0.14em]   77
+tracking-[0.16em]   55
+tracking-[0.22em]   54
+tracking-[0.2em]    30
+tracking-[0.28em]   6
+
+Token spec: eyebrows 0.20em, meta 0.16em, section titles 0.18em, ui-label 0.16em —
+but inline values diverge constantly.
+
+Mono label sizes: 9px, 10px, 11px, 12px, 13px used interchangeably for the same role.
+
+
+INCONSISTENT BUTTONS
+--------------------
+
+Style                                      Where
+shadcn text-sm font-medium                 Default Button
+Marketing CTA text-[13px] tracking-wide    Landing, data/empty-state, Discord sign-in
+Institutional mono text-[11px] uppercase   Button institutional variant, maintenance, internal ops
+Raw Link/a with custom classes             Widespread — duplicates all three patterns
+
+
+INCONSISTENT FORM LABELS
+------------------------
+
+Designed:     type-ui-label — mono, 10px, 0.16em, uppercase, muted
+shadcn Label: text-sm font-medium — only used inside form.tsx; almost no forms use shadcn Form
+Actual forms: inline font-mono text-[10px] uppercase tracking-[0.16–0.18em]
+
+
+INCONSISTENT NUMBERS / FINANCIAL FORMATTING
+-------------------------------------------
+
+Approach                          Usage
+<Florin /> component              ~10 files — correct tabular mono
+type-finance-lg/md/sm             PlatformStatCard — correct
+Raw florin() strings + tabular    ~50+ files — digits may not align
+type-finance-nums (broken class)  6 files
+Proportional sans in hero mock    Landing portfolio dashboard mock strings
+
+
+INCONSISTENT TABLES
+-------------------
+
+Pattern              Headers                              Body
+.alta-table          Mono 10px uppercase (CSS)            Tabular nums
+transaction-table    type-meta on th but NOT .alta-table  Mixed mono dates + sans descriptions
+AdminDataTable       .alta-table                          Correct pattern
+shadcn Table         text-sm font-medium                  Not used in app (no ui/card imports)
+Internal audit tables Inline mono header classes          Per-file variations
+
+
+4. TYPOGRAPHY HIERARCHY AUDIT
+-------------------------------
+
+Role                  Intended token           Spec (styles.css)              Consistency
+Display / hero        type-display,            Fraunces, clamp              Low — landing, auth, private
+                      type-display-governance  2.75–4.75rem / 3.25–6.5rem   use custom clamps
+Page title            type-display via         Fraunces, -0.025em           High on PageShell routes
+                      PageShell
+Section title         type-section-title       Mono 11px, 0.18em uppercase  Medium — Section uses token;
+                                                                            many pages override
+Card title            (undefined)              —                            Low — ad hoc sizes/fonts
+Body copy             type-body / type-body-sm 15px / 13px                  Low — arbitrary 13–15px
+Metadata / eyebrow    type-meta, type-eyebrow  10–11px mono uppercase       Medium — inline duplicates
+Financial (hero)      type-finance-hero,       Mono, clamp                  Medium
+                      metric-value-fit
+Financial (card)      type-finance-lg          20px, weight 600             High in PlatformStatCard
+Financial (inline)    type-finance-md/sm,      Mono tabular                 Low — mostly raw florin()
+                      Florin
+Table headers         .alta-table th           Mono 10px, 0.16em            Medium — partial adoption
+Buttons (primary)     —                        shadcn 14px medium           Low — 13px custom CTAs
+Buttons (institutional) Button institutional   Mono 11px, 0.2em             Medium — many inline copies
+Form labels           type-ui-label            Mono 10px, 0.16em            Very low — token unused
+Empty states          —                        —                            Broken — two components
+
+
+5. PREMIUM FEEL EVALUATION
+--------------------------
+
+Criterion              Rating              Notes
+Institutional          Strong              Mono labels + tabular figures + gold accents
+Premium                Moderate            Fraunces editorial moments land; 9–10px labels can feel cramped
+Financial              Moderate            Good stat cards; broken type-finance-nums undermines polish
+Serious / trustworthy  Strong              Restrained palette, no playful fonts
+Readable               Good desktop /      9–10px mono labels are small on mobile
+                       Fair mobile
+Mobile consistency     Weak                Mobile nav typography differs; fixed px sizes don't scale
+Dark mode consistency  Strong              Fonts unchanged light/dark; tokens inherit correctly
+
+Best-in-class pages: Landing (index.tsx), auth gate, private banking (bank/private.tsx),
+governance structure hero.
+
+Weakest areas: Form labels across bank/internal, duplicate empty states, governance
+sub-nav, financial columns without Florin.
+
+
+6. RECOMMENDED FINAL TYPOGRAPHY SYSTEM
+--------------------------------------
+
+One unified system — keep the existing three fonts, enforce tokens:
+
+Role                    Font / spec
+Display serif           Fraunces 400 — type-display for page heroes;
+                        type-display-governance for about/governance only; no custom clamps
+UI sans                 Inter Tight — body 15px/1.6 (type-body); small 13px (type-body-sm);
+                        nav 13px (type-nav); subnav 12px (type-subnav)
+Mono / data             JetBrains Mono 500 — all uppercase labels, eyebrows, section titles, table headers
+Financial figures       JetBrains Mono 600 + tabular — <Florin /> everywhere;
+                        type-finance-sm/md/lg/xl/hero by context;
+                        add type-finance-nums as alias of type-finance-md
+Buttons (default)       Inter Tight 500 — 13px (tokenize as type-button)
+Buttons (institutional) JetBrains Mono 500 — 11px uppercase 0.20em — ops/admin only
+Labels / eyebrows       JetBrains Mono 500 — 10px / 0.16em uppercase (type-ui-label, type-meta, type-eyebrow)
+Tables                  Headers: mono 10px 0.16em; body: sans 13px; amounts: mono tabular — mandatory .alta-table
+Forms                   Labels: type-ui-label; inputs: Inter Tight 14px (text-sm);
+                        help text: type-body-sm muted; override shadcn Label
+
+
+TRACKING SCALE (recommended — collapse to 3 values)
+---------------------------------------------------
+
+0.16em — labels, meta, table headers, form labels
+0.20em — eyebrows, institutional buttons, footer column titles
+0.22em — wordmark / brand lockups only (AltaWordmark, login footer tags)
+
+
+7. FIX PLAN (PRIORITIZED)
+-------------------------
+
+CRITICAL
+--------
+
+1. Define or remove type-finance-nums — add to styles.css + typography.ts, or replace
+   6 usages with type-finance-md + <Florin />.
+   Files: alta-pay-form.tsx, alta-pay-received-panel.tsx, statement-list-table.tsx,
+   statement-document.tsx, business-payroll-center.tsx
+
+2. Consolidate EmptyState — merge data/empty-state.tsx and shared/empty-state.tsx into
+   one component with serif titles (institutional default).
+   Consumers: 8 import sites
+
+3. Wire formFieldLabelClass / type-ui-label into all forms — replace ~200+ inline
+   font-mono text-[10px] label patterns.
+   High-traffic: bank-deposit-form, bank-withdraw-form, bank-internal-transfer-form,
+   alta-pay-form, lending-apply-form, bank-account-open-form, internal-manual-interest-ops,
+   company-settings-form
+
+4. Standardize all data tables on .alta-table — especially transaction-table.tsx,
+   bank-account-transactions.tsx, internal audit/user tables.
+
+
+HIGH
+----
+
+5. Replace raw florin() in table columns with <Florin /> — ~50 call sites.
+
+6. Unify sub-navigation typography — governance sub-nav → type-subnav; terminal sub-nav audit;
+   internal group labels → type-meta-sm not 9px arbitrary.
+
+7. Fix mobile site nav — sheet links should use type-nav (or type-nav-mobile at 15px).
+   File: src/components/site-nav.tsx
+
+8. Collapse tracking values — codemod tracking-[0.14em|0.18em|0.22em|0.28em] → token classes.
+
+9. Override shadcn primitives to match system:
+   - src/components/ui/label.tsx → type-ui-label
+   - src/components/ui/badge.tsx → mono optional variant for status
+   - Consider type-button for default button size (13px not 14px)
+
+
+MEDIUM
+------
+
+10. Landing / auth heroes — replace custom clamps with type-display / type-display-governance.
+    Files: src/routes/index.tsx, src/components/auth/auth-gate.tsx, src/routes/maintenance.tsx
+
+11. Card title token — add type-card-title (Inter Tight 18px semibold -0.01em).
+
+12. Migrate inline mono labels to type-meta / type-meta-accent — internal ops panels.
+
+13. Private banking page — route section headers through tokens (bank/private.tsx).
+
+
+LOW
+---
+
+14. AltaWordmark — align with tracking scale (0.22em).
+15. 404 / error pages — apply type-display + type-body.
+16. error-page.ts — load brand fonts or match CSS variables.
+17. Remove unused shadcn ui/card.tsx or align with page-shell Card.
+18. Document typography in src/lib/typography.ts; optional type specimen page.
+
+
+8. FILES / CLASSES TO UPDATE LATER
+----------------------------------
+
+FOUNDATION (touch first)
+------------------------
+
+File                        What to change
+src/styles.css              Add type-finance-nums, type-button, type-card-title
+src/lib/typography.ts       Export new tokens; document scale
+src/routes/__root.tsx       Font import weights audit
+src/components/ui/label.tsx Map to type-ui-label
+src/components/ui/button.tsx Default size → 13px token; keep institutional
+src/components/ui/table.tsx Optional .alta-table integration
+
+
+SHELL / NAVIGATION
+------------------
+
+File                                          Issue
+src/components/page-shell.tsx                 Reference implementation — extend, don't rewrite
+src/components/site-nav.tsx                   Mobile nav typography; footer mono sizes
+src/components/governance/governance-sub-nav.tsx Missing type-subnav
+src/components/internal/internal-sub-nav.tsx  9px group labels → type-meta-sm
+src/components/alta-logo.tsx                  Wordmark tracking
+
+
+DUPLICATE / CONFLICTING COMPONENTS
+----------------------------------
+
+File                                    Issue
+src/components/data/empty-state.tsx     Merge — sans titles
+src/components/shared/empty-state.tsx   Merge — serif titles (preferred)
+src/components/typography.tsx           Underused — promote in refactor
+src/components/ui/florin.tsx            Expand adoption
+
+
+HEAVIEST INLINE-TYPOGRAPHY FILES
+--------------------------------
+
+File                                          Density
+src/routes/bank/private.tsx                   47+ font-mono, 16+ font-serif, 45+ arbitrary px
+src/routes/profile.tsx                        30+ font-mono, 26+ arbitrary px
+src/routes/internal/users/$userId.tsx         25+ font-mono
+src/routes/internal/bank/index.tsx            22+ font-mono
+src/routes/internal/companies/$companyId.tsx  22+ font-mono
+src/components/bank/internal-manual-interest-ops.tsx  17+ font-mono
+src/components/bank/alta-pay-form.tsx         17+ font-mono
+src/components/bank/lending-apply-experience.tsx  24+ arbitrary px
+src/components/bank/statement-document.tsx    Print typography + broken type-finance-nums
+src/routes/index.tsx                          Custom hero vs tokens
+
+
+TOKEN-ADOPTION EXEMPLARS (copy these patterns)
+----------------------------------------------
+
+File                                          Why
+src/components/platform-stat-card.tsx         Correct finance + meta tokens
+src/components/bank/bank-sub-nav.tsx          Correct subnav token
+src/components/exchange/exchange-sub-nav.tsx  Correct subnav token
+src/components/internal/admin-data-table.tsx  Correct .alta-table usage
+src/routes/governance/index.tsx               Mixed but uses type.* for hero
+
+
+SUMMARY METRICS
+---------------
+
+Metric                              Value
+Font families loaded                3 (Fraunces, Inter Tight, JetBrains Mono)
+CSS typography tokens defined       18 classes in styles.css
+Token imports via @/lib/typography  ~10 files
+Routes using PageShell family       ~80
+Arbitrary text-[Npx] usages         ~1,100+
+Inline font-mono usages             ~550+ across ~150 files
+<Florin /> adoption                 ~10 files vs ~50+ raw florin()
+Broken CSS classes                  type-finance-nums (6 usages)
+Duplicate components                2× EmptyState
+
+
+CONCLUSION
+----------
+
+The foundation is right for a premium financial brand. The work ahead is
+enforcement: one empty state, one label pattern, one table pattern, one figure
+component, and retiring arbitrary pixel typography in favor of the tokens already
+defined in src/styles.css.

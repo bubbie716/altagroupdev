@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { LoginPortalShell } from "@/components/auth/auth-gate";
+import { LegalMicroFooter } from "@/components/footers";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/access-restricted")({
@@ -12,7 +13,7 @@ function AccessRestrictedPage() {
   const user = useCurrentUser();
 
   return (
-    <LoginPortalShell>
+    <LoginPortalShell footer={<LegalMicroFooter context="access-restricted" />}>
       <div className="w-full max-w-md text-center">
         <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">Alta Group</p>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">Access Restricted</h1>

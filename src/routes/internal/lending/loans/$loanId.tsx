@@ -61,7 +61,7 @@ function InternalLoanDetailPage() {
         <p className="text-[13px] text-muted-foreground">
           Deal room integration is planned.{" "}
           <Link to="/internal/lending/deal-rooms" className="text-gold hover:underline">
-            View deal rooms (preview)
+            Deal rooms operations
           </Link>
         </p>
       </Section>

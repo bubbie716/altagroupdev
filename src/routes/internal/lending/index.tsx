@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
@@ -32,11 +32,13 @@ function InternalLending() {
       title="Lending Review"
       description="Manual credit facilities — applications, servicing, and monthly interest guarantees."
     >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 flex-1">
         <InternalStatCard label="Open applications" value={String(pending)} alert={pending > 0} />
         <InternalStatCard label="Active loans" value={String(activeLoans.length)} />
         <InternalStatCard label="Frozen loans" value={String(frozenLoans.length)} />
         <InternalStatCard label="Paid off" value={String(paidOffLoans.length)} />
+        </div>
       </div>
 
       <Section title="Loan servicing" className="mt-10">

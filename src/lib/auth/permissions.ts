@@ -98,6 +98,13 @@ export function canAccessInternal(user: AltaUser): boolean {
   return isAdmin(user) || isOperator(user);
 }
 
+/** Admins and operators bypass maintenance mode entirely (public + internal routes). */
+export function canBypassMaintenanceMode(user: AltaUser | null | undefined): boolean {
+  if (!user) return false;
+  if (user.internalAccess) return true;
+  return isAdmin(user) || isOperator(user);
+}
+
 // — Company-scoped permissions (CompanyMembership) —
 
 export function isCompanyOwner(user: AltaUser, scope: CompanyScope): boolean {
@@ -149,6 +156,26 @@ export function canViewBusinessTreasury(user: AltaUser, scope: CompanyScope): bo
 
 export function canManageBusinessTreasury(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, BUSINESS_TREASURY_MANAGE_ROLES);
+}
+
+/** Roles that may view a company-linked Secure Deal Room. */
+export const DEAL_ROOM_COMPANY_VIEW_ROLES: readonly CompanyRole[] = [
+  "owner",
+  "executive",
+  "finance_manager",
+  "compliance_contact",
+] as const;
+
+export function canViewCompanyDealRoom(user: AltaUser, companyId: string): boolean {
+  return hasCompanyRole(user, { companyId }, DEAL_ROOM_COMPANY_VIEW_ROLES);
+}
+
+/** Roles that may negotiate (counter, accept, reject) in a company deal room. */
+export const DEAL_ROOM_COMPANY_NEGOTIATE_ROLES: readonly CompanyRole[] =
+  BUSINESS_TREASURY_MANAGE_ROLES;
+
+export function canNegotiateCompanyDealRoom(user: AltaUser, companyId: string): boolean {
+  return hasCompanyRole(user, { companyId }, DEAL_ROOM_COMPANY_NEGOTIATE_ROLES);
 }
 
 export function isBusinessTreasuryViewOnly(user: AltaUser, scope: CompanyScope): boolean {

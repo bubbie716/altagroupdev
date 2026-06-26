@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -13,28 +14,34 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
 import { fetchCurrentUser } from "@/lib/auth/auth.functions";
+import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
+import { fetchMaintenanceMode } from "@/lib/platform/platform-settings.functions";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
+import { LegalMicroFooter } from "@/components/footers";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-7xl font-bold text-foreground">404</h1>
+          <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <div className="mt-6">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Go home
+            </Link>
+          </div>
         </div>
       </div>
+      <LegalMicroFooter context="login" />
     </div>
   );
 }
@@ -47,48 +54,77 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
+    <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            This page didn't load
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Something went wrong on our end. You can try refreshing or head back home.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => {
+                router.invalidate();
+                reset();
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Try again
+            </button>
+            <a
+              href="/"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              Go home
+            </a>
+          </div>
         </div>
       </div>
+      <LegalMicroFooter context="login" />
     </div>
   );
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null }>()({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
     const labUser = getUiLabUserIfEnabled();
     if (labUser) return { user: labUser };
+
+    let user: AltaUser | null = null;
     try {
-      const user = await fetchCurrentUser();
-      return { user };
+      user = await fetchCurrentUser();
     } catch (error) {
       console.error("[auth] Failed to load current user", error);
-      return { user: null };
     }
+
+    const pathname = location.pathname;
+    const { shouldEnforceMaintenance } = await import("@/lib/platform/maintenance-guard");
+
+    let maintenanceEnabled = false;
+    try {
+      const maintenance = await fetchMaintenanceMode();
+      maintenanceEnabled = maintenance.enabled;
+    } catch (error) {
+      // Lockout prevention: if settings cannot be read, treat maintenance as OFF.
+      console.error("[maintenance] Failed to evaluate maintenance mode; defaulting to OFF", error);
+    }
+
+    if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
+      throw redirect({ to: "/" });
+    }
+
+    if (maintenanceEnabled && shouldEnforceMaintenance(pathname, user)) {
+      throw redirect({ to: "/maintenance" });
+    }
+
+    if (pathname === "/maintenance" && !maintenanceEnabled && !isMaintenanceBypassUser(user)) {
+      throw redirect({ to: "/" });
+    }
+
+    return { user };
   },
   head: () => ({
     meta: [

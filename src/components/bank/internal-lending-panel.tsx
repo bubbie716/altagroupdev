@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
+import { ensureInternalLoanApplicationThread } from "@/lib/bank/loan-application-thread.functions";
 import {
   approveLoanApplicationRecord,
   denyLoanApplicationRecord,
@@ -24,6 +26,42 @@ function isActionable(status: InternalLoanApplicationRow["status"]) {
 function defaultMonthlyRate(productType: LoanProductTypeCode): string {
   const rate = LOAN_PRODUCT_DEFAULT_MONTHLY_RATES[productType];
   return rate != null ? String(rate) : "";
+}
+
+function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow }) {
+  const router = useRouter();
+  const openThread = useServerFn(ensureInternalLoanApplicationThread);
+  const [pending, setPending] = useState(false);
+
+  if (row.threadId) {
+    return (
+      <Link
+        to="/internal/lending/applications/$applicationId/thread"
+        params={{ applicationId: row.id }}
+        className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+      >
+        Open thread
+      </Link>
+    );
+  }
+
+  return (
+    <BankReviewButton
+      label={pending ? "Opening…" : "Open thread"}
+      onAction={async () => {
+        setPending(true);
+        try {
+          await openThread({ data: row.id });
+          await router.navigate({
+            to: "/internal/lending/applications/$applicationId/thread",
+            params: { applicationId: row.id },
+          });
+        } finally {
+          setPending(false);
+        }
+      }}
+    />
+  );
 }
 
 function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow }) {
@@ -211,6 +249,11 @@ export function internalLendingColumns() {
           {formatActivityDateTime(row.submittedAt)}
         </span>
       ),
+    },
+    {
+      key: "thread",
+      header: "Thread",
+      cell: (row: InternalLoanApplicationRow) => <LoanApplicationThreadLink row={row} />,
     },
     {
       key: "actions",

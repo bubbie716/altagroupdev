@@ -60,10 +60,10 @@ function BankLendingOverview() {
               </RouteButton>
             )}
             <Link
-              to="/bank/lending/deal-rooms"
+              to="/bank/lending/applications"
               className="rounded-md border border-border bg-surface-2/60 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground hover:bg-surface-2"
             >
-              View deal rooms
+              My applications
             </Link>
           </div>
         </div>
