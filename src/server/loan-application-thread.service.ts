@@ -33,7 +33,29 @@ import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 
 const INITIAL_SYSTEM_MESSAGE =
-  "Your application has been received. Alta Bank may reply here if more information is needed.";
+  "Your application has been received. Alta Credit Desk may reply here if more information is needed.";
+
+const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
+
+export function buildApplicationApprovedSystemMessage(reviewNote?: string | null): string {
+  const lines = [
+    "Your credit application has been approved by Alta Credit Desk.",
+    "This conversation is now closed. Your approved facility will proceed through Alta Bank.",
+  ];
+  const note = reviewNote?.trim();
+  if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
+  return lines.join("\n");
+}
+
+export function buildApplicationDeniedSystemMessage(reviewNote?: string | null): string {
+  const lines = [
+    "Your credit application has been denied by Alta Credit Desk.",
+    "This conversation is now closed.",
+  ];
+  const note = reviewNote?.trim();
+  if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
+  return lines.join("\n");
+}
 
 const STATUS_FROM_DB: Record<DbThreadStatus, LoanApplicationThreadStatusCode> = {
   OPEN: "open",
@@ -58,12 +80,17 @@ const ROLE_FROM_DB: Record<DbSenderRole, ThreadSenderRoleCode> = {
 const threadInclude = {
   loanApplication: {
     include: {
-      applicantUser: { select: { discordUsername: true } },
+      applicantUser: { select: { discordUsername: true, discordId: true, discordAvatar: true } },
       company: { select: { name: true } },
     },
   },
   assignedStaff: { select: { id: true, discordUsername: true } },
 } satisfies Prisma.LoanApplicationThreadInclude;
+
+function discordAvatarUrl(discordId: string, avatar: string | null | undefined): string | null {
+  if (!avatar) return null;
+  return `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png?size=128`;
+}
 
 type ThreadRecord = Prisma.LoanApplicationThreadGetPayload<{ include: typeof threadInclude }>;
 
@@ -117,7 +144,7 @@ function parseAttachments(value: Prisma.JsonValue | null): ThreadAttachment[] {
 
 function mapMessageRow(
   msg: Prisma.LoanApplicationThreadMessageGetPayload<{
-    include: { sender: { select: { discordUsername: true } } };
+    include: { sender: { select: { discordUsername: true; discordId: true; discordAvatar: true } } };
   }>,
 ): LoanApplicationThreadMessageRow {
   return {
@@ -126,10 +153,14 @@ function mapMessageRow(
     senderRole: ROLE_FROM_DB[msg.senderRole],
     senderName:
       msg.senderRole === "SYSTEM"
-        ? "Alta Bank"
+        ? ALTA_CREDIT_DESK_NAME
         : msg.senderRole === "ALTA_STAFF"
           ? "Loan Officer"
           : (msg.sender?.discordUsername ?? "Applicant"),
+    senderAvatarUrl:
+      msg.senderRole === "APPLICANT" && msg.sender
+        ? discordAvatarUrl(msg.sender.discordId, msg.sender.discordAvatar)
+        : null,
     body: msg.body,
     attachments: parseAttachments(msg.attachments),
     createdAt: msg.createdAt.toISOString(),
@@ -159,6 +190,10 @@ function mapThreadContext(
       ? thread.status !== "CLOSED"
       : canSendAsApplicant(user, thread),
     applicantName: app.applicantUser.discordUsername,
+    applicantAvatarUrl: discordAvatarUrl(
+      app.applicantUser.discordId,
+      app.applicantUser.discordAvatar,
+    ),
     companyName: app.company?.name ?? null,
     productLabel: LOAN_PRODUCT_LABELS[productType],
     requestedAmount: Number(app.requestedAmount),
@@ -210,7 +245,7 @@ export async function createThreadForLoanApplication(
         loanApplicationId: application.id,
         applicantUserId: application.applicantUserId,
         companyId: application.companyId,
-        status: "OPEN",
+        status: "WAITING_ON_ALTA",
       },
     });
 
@@ -281,7 +316,7 @@ export async function getThreadMessages(
 
   const messages = await prisma.loanApplicationThreadMessage.findMany({
     where: { threadId: thread.id, deletedAt: null },
-    include: { sender: { select: { discordUsername: true } } },
+    include: { sender: { select: { discordUsername: true, discordId: true, discordAvatar: true } } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -319,7 +354,7 @@ export async function sendThreadMessage(
         body,
         attachments: attachments.length > 0 ? attachments : undefined,
       },
-      include: { sender: { select: { discordUsername: true } } },
+      include: { sender: { select: { discordUsername: true, discordId: true, discordAvatar: true } } },
     });
 
     await tx.loanApplicationThread.update({
@@ -442,6 +477,52 @@ export async function closeThread(
   return mapThreadContext(updated, actor, "internal");
 }
 
+export async function closeThreadForApplicationIfOpen(
+  actorUserId: string,
+  applicationId: string,
+  reason: string,
+  systemMessage?: string,
+): Promise<void> {
+  const thread = await prisma.loanApplicationThread.findUnique({
+    where: { loanApplicationId: applicationId },
+    select: {
+      id: true,
+      status: true,
+      applicantUserId: true,
+      companyId: true,
+    },
+  });
+  if (!thread || thread.status === "CLOSED") return;
+
+  await prisma.$transaction(async (tx) => {
+    if (systemMessage) {
+      await tx.loanApplicationThreadMessage.create({
+        data: {
+          threadId: thread.id,
+          senderRole: "SYSTEM",
+          body: systemMessage,
+        },
+      });
+    }
+
+    await tx.loanApplicationThread.update({
+      where: { id: thread.id },
+      data: { status: "CLOSED", closedAt: new Date() },
+    });
+  });
+
+  await writeAuditLog({
+    actorUserId,
+    action: "LOAN_THREAD_CLOSED",
+    entityType: "LOAN_APPLICATION",
+    entityId: applicationId,
+    targetUserId: thread.applicantUserId,
+    targetCompanyId: thread.companyId ?? undefined,
+    metadata: { threadId: thread.id, reason },
+    description: reason,
+  });
+}
+
 export async function reopenThread(
   actorUserId: string,
   applicationId: string,
@@ -451,17 +532,9 @@ export async function reopenThread(
 
   const thread = await getThreadByApplicationId(applicationId);
 
-  const lastMessage = await prisma.loanApplicationThreadMessage.findFirst({
-    where: { threadId: thread.id, deletedAt: null, senderRole: { not: "SYSTEM" } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const status: DbThreadStatus =
-    lastMessage?.senderRole === "ALTA_STAFF" ? "WAITING_ON_APPLICANT" : "WAITING_ON_ALTA";
-
   const updated = await prisma.loanApplicationThread.update({
     where: { id: thread.id },
-    data: { status, closedAt: null },
+    data: { status: "WAITING_ON_ALTA", closedAt: null },
     include: threadInclude,
   });
 

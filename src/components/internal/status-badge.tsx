@@ -55,10 +55,13 @@ const statusTone: Record<string, Tone> = {
   Preview: "gold",
   Working: "gold",
   Planned: "gold",
+  "Waiting on Alta": "gold",
   // warning (action required, in-flight)
   Pending: "warning",
   "Pending Review": "warning",
   "Under Review": "warning",
+  "Waiting on you": "warning",
+  "Waiting on applicant": "warning",
   Review: "warning",
   Assigned: "warning",
   Partial: "warning",

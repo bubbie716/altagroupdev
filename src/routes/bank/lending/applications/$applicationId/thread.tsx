@@ -1,7 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { LendingSubNav } from "@/components/bank/lending-sub-nav";
 import { LoanApplicationThreadView } from "@/components/bank/loan-thread/loan-application-thread-view";
 import { EmptyState } from "@/components/shared/empty-state";
 import { fetchLoanApplicationThread } from "@/lib/bank/loan-application-thread.functions";
@@ -38,12 +36,6 @@ function BankApplicationThreadPage() {
   const { context, messages } = Route.useLoaderData();
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-border/60 bg-surface-1">
-        <div className="mx-auto max-w-5xl px-4 pt-4 sm:px-6">
-          <BankSubNav />
-          <LendingSubNav />
-        </div>
-      </div>
       <LoanApplicationThreadView
         className="min-h-0 flex-1"
         context={context}

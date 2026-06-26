@@ -21,6 +21,7 @@ export type LoanApplicationThreadMessageRow = {
   senderUserId: string | null;
   senderRole: ThreadSenderRoleCode;
   senderName: string | null;
+  senderAvatarUrl: string | null;
   body: string | null;
   attachments: ThreadAttachment[];
   createdAt: string;
@@ -37,6 +38,7 @@ export type LoanApplicationThreadContext = {
   assignedStaffName: string | null;
   canSend: boolean;
   applicantName: string;
+  applicantAvatarUrl: string | null;
   companyName: string | null;
   productLabel: string;
   requestedAmount: number;
@@ -63,15 +65,30 @@ export type AssignThreadStaffInput = {
 };
 
 export const THREAD_STATUS_LABELS: Record<LoanApplicationThreadStatusCode, string> = {
-  open: "Open",
+  open: "Waiting on Alta",
   waiting_on_applicant: "Waiting on you",
   waiting_on_alta: "Waiting on Alta",
-  closed: "Closed",
+  closed: "Waiting on Alta",
 };
 
 export const THREAD_STATUS_LABELS_INTERNAL: Record<LoanApplicationThreadStatusCode, string> = {
-  open: "Open",
+  open: "Waiting on Alta",
   waiting_on_applicant: "Waiting on applicant",
   waiting_on_alta: "Waiting on Alta",
-  closed: "Closed",
+  closed: "Waiting on Alta",
 };
+
+export function applicationListStatusLabel(
+  row: {
+    status: string;
+    statusLabel: string;
+    threadStatus: LoanApplicationThreadStatusCode | null;
+  },
+  variant: "user" | "internal" = "user",
+): string {
+  if (row.status === "pending" || row.status === "under_review") {
+    const labels = variant === "internal" ? THREAD_STATUS_LABELS_INTERNAL : THREAD_STATUS_LABELS;
+    return labels[row.threadStatus ?? "waiting_on_alta"];
+  }
+  return row.statusLabel;
+}

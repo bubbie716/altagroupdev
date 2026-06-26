@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
 import { ensureInternalLoanApplicationThread } from "@/lib/bank/loan-application-thread.functions";
+import { applicationListStatusLabel } from "@/lib/bank/loan-application-thread-types";
 import {
   approveLoanApplicationRecord,
   denyLoanApplicationRecord,
@@ -40,14 +41,14 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
         params={{ applicationId: row.id }}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
-        Open thread
+        Open Chat
       </Link>
     );
   }
 
   return (
     <BankReviewButton
-      label={pending ? "Opening…" : "Open thread"}
+      label={pending ? "Opening chat…" : "Open Chat"}
       onAction={async () => {
         setPending(true);
         try {
@@ -239,7 +240,9 @@ export function internalLendingColumns() {
     {
       key: "status",
       header: "Status",
-      cell: (row: InternalLoanApplicationRow) => <StatusBadge status={row.statusLabel} />,
+      cell: (row: InternalLoanApplicationRow) => (
+        <StatusBadge status={applicationListStatusLabel(row, "internal")} />
+      ),
     },
     {
       key: "submitted",

@@ -19,6 +19,7 @@ export const Route = createFileRoute("/api/loan-threads/$applicationId/attachmen
           const message = error instanceof Error ? error.message : "Upload failed.";
           if (message === "FORBIDDEN") return jsonError("Forbidden.", 403);
           if (message === "NOT_FOUND") return jsonError("Not found.", 404);
+          if (message === "UNAUTHORIZED") return jsonError("Unauthorized.", 401);
           if (message.startsWith("BAD_REQUEST:")) {
             return jsonError(message.slice("BAD_REQUEST:".length), 400);
           }

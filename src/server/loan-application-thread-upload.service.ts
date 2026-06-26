@@ -42,12 +42,17 @@ export async function uploadThreadAttachment(
   const pathname = `loan-threads/${applicationId}/${id}/${file.name}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const blob = await put(pathname, buffer, {
-    access: "private",
-    contentType: file.type,
-    token,
-    addRandomSuffix: false,
-  });
+  let blob;
+  try {
+    blob = await put(pathname, buffer, {
+      access: "public",
+      contentType: file.type,
+      token,
+      addRandomSuffix: false,
+    });
+  } catch {
+    throw new Error("BAD_REQUEST:Upload failed. Please try again.");
+  }
 
   return {
     type: attachmentType(file.type),

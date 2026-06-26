@@ -1068,6 +1068,17 @@ export async function approveLoanApplication(
     description: `Approved loan application ${application.id.slice(0, 8)}`,
     metadata: { principalAmount, interestRate },
   });
+
+  const { closeThreadForApplicationIfOpen, buildApplicationApprovedSystemMessage } = await import(
+    "@/server/loan-application-thread.service"
+  );
+  const reviewNote = input.reviewNote?.trim() || application.reviewNote;
+  await closeThreadForApplicationIfOpen(
+    adminId,
+    application.id,
+    "Application thread closed after approval.",
+    buildApplicationApprovedSystemMessage(reviewNote),
+  );
 }
 
 export async function denyLoanApplication(
@@ -1096,6 +1107,17 @@ export async function denyLoanApplication(
     description: `Denied loan application ${application.id.slice(0, 8)}`,
     metadata: { reviewNote: input.reviewNote ?? null },
   });
+
+  const { closeThreadForApplicationIfOpen, buildApplicationDeniedSystemMessage } = await import(
+    "@/server/loan-application-thread.service"
+  );
+  const reviewNote = input.reviewNote?.trim() || application.reviewNote;
+  await closeThreadForApplicationIfOpen(
+    adminId,
+    application.id,
+    "Application thread closed after denial.",
+    buildApplicationDeniedSystemMessage(reviewNote),
+  );
 }
 
 export async function freezeLoan(adminId: string, loanId: string): Promise<void> {

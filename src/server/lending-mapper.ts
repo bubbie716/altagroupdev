@@ -1,5 +1,6 @@
 import type {
   LoanApplicationStatus as DbLoanApplicationStatus,
+  LoanApplicationThreadStatus as DbLoanApplicationThreadStatus,
   LoanInterestScheduleStatus as DbLoanInterestScheduleStatus,
   LoanLedgerEntryType as DbLoanLedgerEntryType,
   LoanPaymentStatus as DbLoanPaymentStatus,
@@ -27,8 +28,8 @@ import type {
   LoanScheduleItemRow,
   LoanStatusCode,
 } from "@/lib/bank/lending-types";
-import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
-import { computeLoanTermEstimate } from "@/lib/bank/lending-types";
+import type { LoanApplicationThreadStatusCode } from "@/lib/bank/loan-application-thread-types";
+import { computeLoanTermEstimate, LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
 import {
   calculateCurrentPayoff,
   computePrincipalRepaymentProgress,
@@ -154,8 +155,15 @@ export const loanApplicationInclude = {
   company: { select: { id: true, name: true, verificationStatus: true } },
   linkedBankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
   dealRoom: { select: { id: true } },
-  thread: { select: { id: true } },
+  thread: { select: { id: true, status: true } },
 } as const satisfies Prisma.LoanApplicationInclude;
+
+const THREAD_STATUS_FROM_DB: Record<DbLoanApplicationThreadStatus, LoanApplicationThreadStatusCode> = {
+  OPEN: "open",
+  WAITING_ON_APPLICANT: "waiting_on_applicant",
+  WAITING_ON_ALTA: "waiting_on_alta",
+  CLOSED: "closed",
+};
 
 export const loanApplicationReviewInclude = {
   applicantUser: { include: userWithMembershipsInclude },
@@ -194,6 +202,7 @@ export function mapLoanApplicationRow(record: LoanApplicationRecord): LoanApplic
     submittedAt: record.createdAt.toISOString(),
     reviewedAt: record.reviewedAt?.toISOString() ?? null,
     threadId: record.thread?.id ?? null,
+    threadStatus: record.thread ? THREAD_STATUS_FROM_DB[record.thread.status] : null,
   };
 }
 

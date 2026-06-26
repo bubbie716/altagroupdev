@@ -55,7 +55,8 @@ export function ThreadAttachmentList({
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "group relative block overflow-hidden rounded-xl border",
+                "group relative block w-full max-w-sm self-start overflow-hidden rounded-xl border",
+                images.length === 1 && "max-w-xs",
                 tone === "dark" ? "border-white/15" : "border-border/60",
               )}
             >
@@ -63,7 +64,7 @@ export function ThreadAttachmentList({
                 src={a.url}
                 alt={a.fileName ?? "Image attachment"}
                 loading="lazy"
-                className="h-full max-h-64 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                className="block h-auto max-h-64 w-full object-contain"
               />
             </a>
           ))}

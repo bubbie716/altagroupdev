@@ -3,7 +3,8 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Florin } from "@/components/ui/florin";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Paperclip, Send, MoreHorizontal, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { AltaLogo } from "@/components/alta-logo";
+import { ArrowLeft, Paperclip, Send, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 import type {
   LoanApplicationThreadContext,
   LoanApplicationThreadMessageRow,
@@ -113,11 +114,14 @@ export function LoanApplicationThreadView({
         method: "POST",
         body: form,
       });
+      const responseBody = (await res.json().catch(() => null)) as
+        | (ThreadAttachment & { error?: string; message?: string })
+        | { error?: string; message?: string }
+        | null;
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Upload failed.");
+        throw new Error(responseBody?.error ?? responseBody?.message ?? "Upload failed.");
       }
-      const attachment = (await res.json()) as ThreadAttachment;
+      const attachment = responseBody as ThreadAttachment;
       const send = variant === "internal" ? sendInternal : sendUser;
       const msg = await send({
         data: {
@@ -153,16 +157,21 @@ export function LoanApplicationThreadView({
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]">
-            <Sparkles className="h-4 w-4" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-[#0f1729] dark:bg-gold/10">
+            {variant === "internal" && ctx.applicantAvatarUrl ? (
+              <img
+                src={ctx.applicantAvatarUrl}
+                alt=""
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <AltaLogo className="h-5 w-5 text-gold" />
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate font-serif text-[16px] leading-tight tracking-tight sm:text-[17px]">
-                {variant === "internal" ? ctx.applicantName : "Alta Loan Desk"}
-              </h1>
-              <StatusDot status={ctx.status} />
-            </div>
+            <h1 className="truncate font-serif text-[16px] leading-tight tracking-tight sm:text-[17px]">
+              {variant === "internal" ? ctx.applicantName : "Alta Loan Desk"}
+            </h1>
             <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
               {ctx.productLabel} · {ctx.statusLabel}
             </p>
@@ -221,8 +230,8 @@ export function LoanApplicationThreadView({
         <div className="mx-auto max-w-3xl">
           {messages.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]">
-                <Sparkles className="h-5 w-5" />
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 bg-[#0f1729] dark:bg-gold/10">
+                <AltaLogo className="h-6 w-6 text-gold" />
               </div>
               <p className="mt-4 font-serif text-[16px] tracking-tight">Start the conversation</p>
               <p className="mt-1 text-[13px] text-muted-foreground">
@@ -232,7 +241,7 @@ export function LoanApplicationThreadView({
               </p>
             </div>
           ) : (
-            renderMessageStream(messages, variant, ctx.viewerUserId)
+            renderMessageStream(messages, variant, ctx.viewerUserId, ctx.applicantAvatarUrl)
           )}
         </div>
       </div>
@@ -324,22 +333,11 @@ function MetaCell({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-function StatusDot({ status }: { status: LoanApplicationThreadStatusCode }) {
-  const tone =
-    status === "closed"
-      ? "bg-muted-foreground/40"
-      : status === "waiting_on_alta"
-        ? "bg-gold animate-pulse"
-        : status === "waiting_on_applicant"
-          ? "bg-emerald-500"
-          : "bg-foreground/50";
-  return <span className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", tone)} aria-hidden />;
-}
-
 function renderMessageStream(
   messages: LoanApplicationThreadMessageRow[],
   variant: "user" | "internal",
   viewerUserId: string,
+  applicantAvatarUrl: string | null,
 ) {
   const nodes: React.ReactNode[] = [];
   let lastDay = "";
@@ -360,6 +358,7 @@ function renderMessageStream(
         message={m}
         variant={variant}
         viewerUserId={viewerUserId}
+        applicantAvatarUrl={applicantAvatarUrl}
         grouped={isGrouped}
       />,
     );
@@ -393,19 +392,29 @@ function ThreadMessageBubble({
   message,
   variant,
   viewerUserId,
+  applicantAvatarUrl,
   grouped,
 }: {
   message: LoanApplicationThreadMessageRow;
   variant: "user" | "internal";
   viewerUserId: string;
+  applicantAvatarUrl: string | null;
   grouped: boolean;
 }) {
   if (message.senderRole === "system") {
     return (
-      <div className="my-2 flex justify-center px-4">
-        <p className="max-w-md rounded-full border border-border/60 bg-surface-1 px-3.5 py-1 text-center text-[11.5px] text-muted-foreground">
-          {message.body}
-        </p>
+      <div className="my-4 flex justify-center px-4">
+        <div className="max-w-md rounded-2xl border border-border/60 bg-white px-4 py-3 text-center shadow-sm dark:bg-surface-1">
+          <div className="mb-2 flex items-center justify-center gap-2">
+            <ThreadAltaAvatar className="h-7 w-7" />
+            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
+              Alta Credit Desk
+            </span>
+          </div>
+          <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">
+            {message.body}
+          </p>
+        </div>
       </div>
     );
   }
@@ -419,6 +428,7 @@ function ThreadMessageBubble({
 
   const senderName = isStaff ? "Alta Loan Desk" : (message.senderName ?? "Applicant");
   const initials = getInitials(senderName);
+  const avatarUrl = message.senderAvatarUrl ?? applicantAvatarUrl;
   const timeLabel = formatTimeOnly(message.createdAt) || message.createdAtLabel;
   const tone: "light" | "dark" = isOwnMessage ? "dark" : "light";
 
@@ -431,19 +441,12 @@ function ThreadMessageBubble({
       )}
     >
       <div className="w-8 shrink-0">
-        {!grouped && (
-          <div
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full font-mono text-[10px] font-medium uppercase tracking-wide",
-              isStaff
-                ? "bg-[#0f1729] text-gold dark:bg-gold dark:text-[#0f1729]"
-                : "border border-border/70 bg-surface-1 text-foreground",
-            )}
-            aria-hidden
-          >
-            {isStaff ? "A" : initials}
-          </div>
-        )}
+        {!grouped &&
+          (isStaff ? (
+            <ThreadAltaAvatar />
+          ) : (
+            <ThreadUserAvatar avatarUrl={avatarUrl} initials={initials} name={senderName} />
+          ))}
       </div>
       <div className={cn("flex max-w-[82%] flex-col sm:max-w-[72%]", isOwnMessage ? "items-end" : "items-start")}>
         {!grouped && (
@@ -477,6 +480,53 @@ function ThreadMessageBubble({
           <ThreadAttachmentList attachments={message.attachments} tone={tone} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function ThreadAltaAvatar({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-full border border-gold/40 bg-[#0f1729] dark:bg-gold/10",
+        className,
+      )}
+      aria-hidden
+    >
+      <AltaLogo className="h-4 w-4 text-gold" />
+    </div>
+  );
+}
+
+function ThreadUserAvatar({
+  avatarUrl,
+  initials,
+  name,
+  className,
+}: {
+  avatarUrl: string | null;
+  initials: string;
+  name: string;
+  className?: string;
+}) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        className={cn("h-8 w-8 rounded-full border border-border/70 object-cover", className)}
+      />
+    );
+  }
+  return (
+    <div
+      className={cn(
+        "flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-surface-1 font-mono text-[10px] font-medium uppercase tracking-wide text-foreground",
+        className,
+      )}
+      aria-hidden
+    >
+      {initials}
     </div>
   );
 }

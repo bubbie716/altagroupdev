@@ -4,6 +4,7 @@ import { Florin } from "@/components/ui/florin";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RouteButton } from "@/components/bank/route-button";
+import { applicationListStatusLabel } from "@/lib/bank/loan-application-thread-types";
 import type { LoanApplicationRow, LoanApplicationStatusCode } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
@@ -142,14 +143,14 @@ function ApplicationRow({ a }: { a: LoanApplicationRow }) {
       </div>
 
       <div className="sm:text-right">
-        <StatusBadge status={a.statusLabel} />
+        <StatusBadge status={applicationListStatusLabel(a, "user")} />
         <div className="mt-2">
           <Link
             to="/bank/lending/applications/$applicationId/thread"
             params={{ applicationId: a.id }}
             className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
           >
-            {a.threadId ? "Open thread" : "View application"}
+            {a.threadId ? "Open Chat" : "View application"}
           </Link>
         </div>
       </div>

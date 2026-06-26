@@ -1,5 +1,6 @@
 import type { LoanRateType } from "@/lib/bank/loan-interest";
 import { estimateOutstandingAfterTerm } from "@/lib/bank/loan-interest";
+import type { LoanApplicationThreadStatusCode } from "@/lib/bank/loan-application-thread-types";
 
 export type LoanProductTypeCode =
   | "personal_credit_line"
@@ -135,6 +136,7 @@ export interface LoanApplicationRow {
   submittedAt: string;
   reviewedAt: string | null;
   threadId: string | null;
+  threadStatus: LoanApplicationThreadStatusCode | null;
 }
 
 export interface LoanPaymentRow {
