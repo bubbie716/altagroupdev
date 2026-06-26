@@ -110,6 +110,7 @@ import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/client
 import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
 import { Route as ApiCronScheduledTransfersRouteImport } from './routes/api/cron/scheduled-transfers'
 import { Route as ApiCronLoanInterestRouteImport } from './routes/api/cron/loan-interest'
+import { Route as ApiCronBankStatementsRouteImport } from './routes/api/cron/bank-statements'
 import { Route as ApiCronAltaCardStatementsRouteImport } from './routes/api/cron/alta-card-statements'
 import { Route as ApiCronAltaCardBillingRouteImport } from './routes/api/cron/alta-card-billing'
 import { Route as ApiBankWithdrawalRequestRouteImport } from './routes/api/bank/withdrawal-request'
@@ -688,6 +689,11 @@ const ApiCronLoanInterestRoute = ApiCronLoanInterestRouteImport.update({
   path: '/api/cron/loan-interest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronBankStatementsRoute = ApiCronBankStatementsRouteImport.update({
+  id: '/api/cron/bank-statements',
+  path: '/api/cron/bank-statements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronAltaCardStatementsRoute =
   ApiCronAltaCardStatementsRouteImport.update({
     id: '/api/cron/alta-card-statements',
@@ -1151,6 +1157,7 @@ export interface FileRoutesByFullPath {
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
   '/api/cron/alta-card-billing': typeof ApiCronAltaCardBillingRoute
   '/api/cron/alta-card-statements': typeof ApiCronAltaCardStatementsRoute
+  '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -1302,6 +1309,7 @@ export interface FileRoutesByTo {
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
   '/api/cron/alta-card-billing': typeof ApiCronAltaCardBillingRoute
   '/api/cron/alta-card-statements': typeof ApiCronAltaCardStatementsRoute
+  '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -1471,6 +1479,7 @@ export interface FileRoutesById {
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
   '/api/cron/alta-card-billing': typeof ApiCronAltaCardBillingRoute
   '/api/cron/alta-card-statements': typeof ApiCronAltaCardStatementsRoute
+  '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -1642,6 +1651,7 @@ export interface FileRouteTypes {
     | '/api/bank/withdrawal-request'
     | '/api/cron/alta-card-billing'
     | '/api/cron/alta-card-statements'
+    | '/api/cron/bank-statements'
     | '/api/cron/loan-interest'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -1793,6 +1803,7 @@ export interface FileRouteTypes {
     | '/api/bank/withdrawal-request'
     | '/api/cron/alta-card-billing'
     | '/api/cron/alta-card-statements'
+    | '/api/cron/bank-statements'
     | '/api/cron/loan-interest'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -1961,6 +1972,7 @@ export interface FileRouteTypes {
     | '/api/bank/withdrawal-request'
     | '/api/cron/alta-card-billing'
     | '/api/cron/alta-card-statements'
+    | '/api/cron/bank-statements'
     | '/api/cron/loan-interest'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -2091,6 +2103,7 @@ export interface RootRouteChildren {
   ApiBankWithdrawalRequestRoute: typeof ApiBankWithdrawalRequestRoute
   ApiCronAltaCardBillingRoute: typeof ApiCronAltaCardBillingRoute
   ApiCronAltaCardStatementsRoute: typeof ApiCronAltaCardStatementsRoute
+  ApiCronBankStatementsRoute: typeof ApiCronBankStatementsRoute
   ApiCronLoanInterestRoute: typeof ApiCronLoanInterestRoute
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
   BankAdminClientsRoute: typeof BankAdminClientsRoute
@@ -2823,6 +2836,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/loan-interest'
       fullPath: '/api/cron/loan-interest'
       preLoaderRoute: typeof ApiCronLoanInterestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/bank-statements': {
+      id: '/api/cron/bank-statements'
+      path: '/api/cron/bank-statements'
+      fullPath: '/api/cron/bank-statements'
+      preLoaderRoute: typeof ApiCronBankStatementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/alta-card-statements': {
@@ -3785,6 +3805,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBankWithdrawalRequestRoute: ApiBankWithdrawalRequestRoute,
   ApiCronAltaCardBillingRoute: ApiCronAltaCardBillingRoute,
   ApiCronAltaCardStatementsRoute: ApiCronAltaCardStatementsRoute,
+  ApiCronBankStatementsRoute: ApiCronBankStatementsRoute,
   ApiCronLoanInterestRoute: ApiCronLoanInterestRoute,
   ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
   BankAdminClientsRoute: BankAdminClientsRoute,

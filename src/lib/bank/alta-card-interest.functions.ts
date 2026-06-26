@@ -54,9 +54,9 @@ export const fetchInternalCardFeesRecord = createServerFn({ method: "GET" })
 
 export const runAltaCardBillingProcessRecord = createServerFn({ method: "POST" }).handler(async () => {
   const { requireAdmin } = await import("@/server/permissions.service");
-  const { processAltaCardBilling } = await import("@/server/alta-card-billing.service");
+  const { runAltaCardBillingSchedulerJob } = await import("@/server/alta-card-billing-scheduler.service");
   const admin = await requireAdmin();
-  return processAltaCardBilling(admin.id);
+  return runAltaCardBillingSchedulerJob({ trigger: "manual", actorUserId: admin.id });
 });
 
 export const fetchCardBillingSummaryRecord = createServerFn({ method: "GET" })

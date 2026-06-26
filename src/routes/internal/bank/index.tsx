@@ -19,7 +19,7 @@ import {
 import { fetchInternalStatementOps } from "@/lib/bank/statement.functions";
 import type { InternalBankAccountRow, InternalBankTransactionRow } from "@/lib/bank/backend-types";
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
-import { InternalStatementBatchButton } from "@/components/bank/internal-statement-ops";
+import { InternalStatementSchedulerPanel } from "@/components/bank/internal-statement-ops";
 import { RunDueTransfersButton } from "@/components/bank/internal-scheduled-transfers-panel";
 import { InternalAccountInterestOps } from "@/components/bank/internal-account-interest-ops";
 import { fetchAccountInterestOps } from "@/lib/bank/account-interest.functions";
@@ -185,7 +185,7 @@ function InternalBank() {
 
       <Section title="Statement Operations" className="mt-10">
         <div className="mb-6 rounded-lg border border-border/60 bg-surface-2/30 p-5">
-          <InternalStatementBatchButton />
+          <InternalStatementSchedulerPanel schedulerJob={statementOps.schedulerJob} />
         </div>
         <AdminDataTable
           columns={[
@@ -235,13 +235,10 @@ function InternalBank() {
           rows={statementOps.recentStatements}
           rowKey={(s) => s.id}
         />
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-md border border-border/60 px-4 py-3 text-[13px] text-muted-foreground">
+        <div className="mt-4">
+          <p className="text-[13px] text-muted-foreground">
             Voided statements: {statementOps.voidedCount}
-          </div>
-          <div className="rounded-md border border-border/60 px-4 py-3 text-[13px] text-muted-foreground">
-            {statementOps.errorPlaceholder}
-          </div>
+          </p>
         </div>
       </Section>
 

@@ -55,6 +55,9 @@ export async function getOpsHealth(): Promise<OpsHealthItem[]> {
     jobStatus("scheduled_transfers", `${metrics.pendingScheduledTransfers} pending · ${metrics.failedScheduledTransfers} failed`),
     jobStatus("deposit_interest", "Manual accrual — schedule via admin batch or cron"),
     jobStatus("loan_servicing", `${metrics.activeLoans} active loans`),
+    jobStatus("BANK_ACCOUNT_STATEMENTS", "Bank account monthly statements"),
+    jobStatus("ALTA_CARD_STATEMENTS", "Alta Card statement generation"),
+    jobStatus("ALTA_CARD_BILLING", "Alta Card billing processing"),
     jobStatus("statements", "Batch generation via Statements ops"),
     {
       key: "alta_pay",

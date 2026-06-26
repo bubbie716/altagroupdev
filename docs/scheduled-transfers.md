@@ -27,7 +27,11 @@ Intrabank transfers and payroll batches are **auto-approved on creation**. Inter
 2. `executeDueScheduledTransfers()` finds due `ScheduledPayment` rows (intrabank, approved).
 3. `executeDuePayrollRuns()` finds due `PayrollRun` rows (`status = APPROVED`, `payDate` due).
 4. `accrueInterestForDueLoans()` then `executeDueLoanAutoPayments()` run loan interest accrual and auto-pay (in that order).
-5. For each due transfer or payroll line:
+5. **Alta Card servicing** runs in parallel with the above:
+   - `runAltaCardStatementSchedulerJob()` — no-ops except on the last calendar day of the month (UTC), then closes eligible statements.
+   - `runAltaCardBillingSchedulerJob()` — marks overdue statements, applies late fees and interest.
+6. **Bank account statements** — `runBankAccountStatementSchedulerJob()` no-ops except on the 1st of the month (UTC), then generates prior-month statements for eligible accounts.
+7. For each due transfer or payroll line:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
    - Executes via `submitInternalTransfer` using the original creator’s permissions.
@@ -95,9 +99,22 @@ Set the same value in **Vercel → Project → Environment Variables**.
     "executedCount": 1,
     "failedCount": 0,
     "skippedCount": 0
+  },
+  "loanServicing": { "...": "..." },
+  "altaCard": {
+    "statements": { "skipped": true, "skipReason": "Not the last calendar day of the month" },
+    "billing": { "overdueStatementsMarked": 0, "interestApplied": 0, "lateFeesApplied": 0 }
+  },
+  "bankStatements": {
+    "skipped": true,
+    "skipReason": "Not statement day (first day of month)"
   }
 }
 ```
+
+**One cron for bank automation:** You do not need separate cron jobs for loans, Alta Card, or bank account statements in production. Point a single daily (or more frequent) scheduler at `/api/cron/scheduled-transfers` only.
+
+Standalone endpoints (`/api/cron/loan-interest`, `/api/cron/alta-card-*`, `/api/cron/bank-statements`) remain available for isolated testing or split schedules, but are optional.
 
 ## cron-job.org setup (recommended)
 

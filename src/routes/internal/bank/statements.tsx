@@ -3,7 +3,7 @@ import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
-import { InternalStatementBatchButton } from "@/components/bank/internal-statement-ops";
+import { InternalStatementSchedulerPanel } from "@/components/bank/internal-statement-ops";
 import { fetchInternalStatementOps } from "@/lib/bank/statement.functions";
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 
@@ -25,10 +25,9 @@ function InternalStatements() {
         ← Bank ops
       </Link>
 
-      <Section title="Batch generation">
+      <Section title="Monthly statement cron">
         <div className="rounded-lg border border-border/60 bg-surface-2/30 p-5">
-          <InternalStatementBatchButton />
-          <p className="mt-3 text-[12px] text-muted-foreground">{statementOps.errorPlaceholder}</p>
+          <InternalStatementSchedulerPanel schedulerJob={statementOps.schedulerJob} />
         </div>
       </Section>
 

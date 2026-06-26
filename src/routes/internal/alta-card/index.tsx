@@ -3,16 +3,24 @@ import { useRouter } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { InternalAltaCardPanel } from "@/components/bank/alta-card/internal-alta-card-panel";
+import { InternalAltaCardSchedulerPanel } from "@/components/bank/alta-card/internal-alta-card-scheduler-panel";
 import { fetchInternalAltaCardOps } from "@/lib/bank/alta-card.functions";
+import { fetchAltaCardSchedulerJobRuns } from "@/lib/bank/alta-card-scheduler.functions";
 
 export const Route = createFileRoute("/internal/alta-card/")({
-  loader: async () => fetchInternalAltaCardOps({ data: {} }),
+  loader: async () => {
+    const [ops, jobRuns] = await Promise.all([
+      fetchInternalAltaCardOps({ data: {} }),
+      fetchAltaCardSchedulerJobRuns(),
+    ]);
+    return { ...ops, jobRuns };
+  },
   head: () => ({ meta: [{ title: "Alta Card Ops — Alta Internal" }] }),
   component: InternalAltaCard,
 });
 
 function InternalAltaCard() {
-  const { cards, applications } = Route.useLoaderData();
+  const { cards, applications, jobRuns } = Route.useLoaderData();
   const router = useRouter();
   const pending = applications.filter((a) =>
     ["submitted", "under_review", "needs_info"].includes(a.status),
@@ -31,7 +39,13 @@ function InternalAltaCard() {
         <InternalStatCard label="Applications" value={String(applications.length)} />
       </div>
 
-      <div className="mt-10">
+      <div className="mt-10 space-y-8">
+        <InternalAltaCardSchedulerPanel
+          jobRuns={jobRuns}
+          onRefresh={async () => {
+            await router.invalidate();
+          }}
+        />
         <InternalAltaCardPanel
           cards={cards}
           applications={applications}

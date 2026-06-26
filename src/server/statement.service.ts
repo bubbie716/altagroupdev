@@ -378,13 +378,17 @@ export async function generateStatementForUser(
 }
 
 export async function getInternalStatementOps(): Promise<InternalStatementOpsSummary> {
-  const [recentStatements, voidedCount] = await Promise.all([
+  const { getBankStatementSchedulerJobRun } = await import(
+    "@/server/bank-statement-scheduler.service"
+  );
+  const [recentStatements, voidedCount, schedulerJob] = await Promise.all([
     prisma.bankStatement.findMany({
       include: statementInclude,
       orderBy: [{ generatedAt: "desc" }, { createdAt: "desc" }],
       take: 20,
     }),
     prisma.bankStatement.count({ where: { status: "VOID" } }),
+    getBankStatementSchedulerJobRun(),
   ]);
 
   return {
@@ -392,53 +396,25 @@ export async function getInternalStatementOps(): Promise<InternalStatementOpsSum
       recentStatements.map(mapBankStatementSummary),
     ),
     voidedCount,
-    errorPlaceholder: "No statement generation errors logged yet.",
+    schedulerJob,
   };
 }
 
-/** Preview batch: generate prior calendar month for all active accounts without an existing statement. */
+/** @deprecated Use runBankAccountStatementSchedulerJob({ force: true }) — kept for compatibility. */
 export async function generateMonthlyStatementsPreview(): Promise<{
   created: number;
   skipped: number;
   errors: string[];
 }> {
-  const now = new Date();
-  const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0, 23, 59, 59, 999));
-  const periodStart = new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), 1, 0, 0, 0, 0));
-
-  const accounts = await prisma.bankAccount.findMany({
-    where: { status: "ACTIVE" },
-    select: { id: true },
-  });
-
-  let created = 0;
-  let skipped = 0;
-  const errors: string[] = [];
-
-  for (const account of accounts) {
-    const existing = await prisma.bankStatement.findFirst({
-      where: {
-        bankAccountId: account.id,
-        periodStart,
-        periodEnd,
-        status: { not: "VOID" },
-      },
-    });
-    if (existing) {
-      skipped++;
-      continue;
-    }
-    try {
-      await generateStatementForAccount(account.id, periodStart, periodEnd);
-      created++;
-    } catch (err) {
-      errors.push(
-        `${account.id}: ${err instanceof Error ? err.message : "Unknown error"}`,
-      );
-    }
-  }
-
-  return { created, skipped, errors };
+  const { runBankAccountStatementSchedulerJob } = await import(
+    "@/server/bank-statement-scheduler.service"
+  );
+  const result = await runBankAccountStatementSchedulerJob({ force: true, trigger: "manual" });
+  return {
+    created: result.statementsGenerated,
+    skipped: result.skippedExisting,
+    errors: result.failures.map((f) => `${f.accountId}: ${f.error}`),
+  };
 }
 
 export async function listStatementGeneratableAccountsForUser(
@@ -525,12 +501,24 @@ export async function generateStatementsForUserBatch(
   return { created, skipped, errors, statements };
 }
 
-export function previousCalendarMonthRange(): { periodStart: string; periodEnd: string } {
-  const now = new Date();
-  const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0, 23, 59, 59, 999));
-  const periodStart = new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), 1, 0, 0, 0, 0));
+export function previousCalendarMonthRange(reference = new Date()): { periodStart: string; periodEnd: string } {
+  const { periodStart, periodEnd } = previousMonthPeriodDates(reference);
   return {
     periodStart: periodStart.toISOString().slice(0, 10),
     periodEnd: periodEnd.toISOString().slice(0, 10),
   };
+}
+
+/** Previous calendar month as UTC instants (inclusive end-of-day on period end). */
+export function previousMonthPeriodDates(reference = new Date()): {
+  periodStart: Date;
+  periodEnd: Date;
+} {
+  const periodEnd = new Date(
+    Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), 0, 23, 59, 59, 999),
+  );
+  const periodStart = new Date(
+    Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth(), 1, 0, 0, 0, 0),
+  );
+  return { periodStart, periodEnd };
 }

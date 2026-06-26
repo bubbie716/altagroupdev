@@ -14,7 +14,7 @@ export type AltaCardBillingProcessResult = {
 
 /**
  * Monthly billing processor for Alta Card statements.
- * TODO: Wire to cron when scheduler is ready — e.g. GET|POST /api/cron/alta-card-billing
+ * Invoked by `/api/cron/alta-card-billing` and internal scheduler jobs.
  */
 export async function processAltaCardBilling(actorUserId?: string): Promise<AltaCardBillingProcessResult> {
   const { marked } = await markOverdueStatements();

@@ -64,3 +64,10 @@ export const ALTA_CARD_BILLING_POLICY_LINES = [
   "Payment is due 15 days after statement close.",
   "Minimum payment is the greater of 5% of the statement balance or ƒ100 (capped at the statement balance).",
 ] as const;
+
+/** True when `date` is the last calendar day of its month (UTC). */
+export function isLastCalendarDayOfMonth(date = new Date()): boolean {
+  const today = startOfUtcDay(date);
+  const monthEnd = startOfUtcDay(getStatementCloseDate(date));
+  return today.getTime() === monthEnd.getTime();
+}

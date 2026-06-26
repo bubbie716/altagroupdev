@@ -1,5 +1,7 @@
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
 
+import type { BankStatementSchedulerJobRunRow } from "@/lib/bank/bank-statement-scheduler-types";
+
 export type BankStatementStatusCode = "draft" | "generated" | "void";
 
 export interface BankStatementSummary {
@@ -67,5 +69,5 @@ export interface GenerateStatementsBatchResult {
 export interface InternalStatementOpsSummary {
   recentStatements: BankStatementSummary[];
   voidedCount: number;
-  errorPlaceholder: string;
+  schedulerJob: BankStatementSchedulerJobRunRow;
 }

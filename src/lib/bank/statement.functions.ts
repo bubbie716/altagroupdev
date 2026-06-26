@@ -54,10 +54,25 @@ export const fetchInternalStatementOps = createServerFn({ method: "GET" }).handl
 });
 
 export const generateMonthlyStatementsBatch = createServerFn({ method: "POST" }).handler(async () => {
-  const { requireOperator } = await import("@/server/permissions.service");
-  await requireOperator();
-  const { generateMonthlyStatementsPreview } = await import("@/server/statement.service");
-  return generateMonthlyStatementsPreview();
+  const { requireAdmin } = await import("@/server/permissions.service");
+  const { runBankAccountStatementSchedulerJob } = await import(
+    "@/server/bank-statement-scheduler.service"
+  );
+  const admin = await requireAdmin();
+  const result = await runBankAccountStatementSchedulerJob({
+    force: true,
+    trigger: "manual",
+    actorUserId: admin.id,
+  });
+  return {
+    created: result.statementsGenerated,
+    skipped: result.skippedExisting,
+    errors: result.failures.map((f) => `${f.accountId}: ${f.error}`),
+    periodStart: result.periodStart,
+    periodEnd: result.periodEnd,
+    eligibleAccounts: result.eligibleAccounts,
+    failed: result.failed,
+  };
 });
 
 export const fetchPreviousStatementPeriod = createServerFn({ method: "GET" }).handler(async () => {

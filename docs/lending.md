@@ -51,7 +51,7 @@ Interest **increases `outstandingBalance`**. Each accrual creates a `LoanLedgerE
 ### Execution
 
 - **Manual:** `/internal/lending` → “Accrue due interest” or per-loan “Accrue interest”
-- **Cron:** `/api/cron/scheduled-transfers` with `CRON_SECRET` — accrues due interest, then runs due loan auto-pay (same job as scheduled transfers and payroll)
+- **Cron:** `/api/cron/scheduled-transfers` with `CRON_SECRET` — accrues due interest, runs loan auto-pay, and (in the same job) Alta Card billing + month-end statements
 
 Automatic monthly accrual via cron may be enabled in production; operators may also accrue manually. Interest does not accrue on `PAID_OFF`, `CANCELLED`, or `FROZEN` loans.
 

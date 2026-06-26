@@ -78,11 +78,68 @@ Enforced in `src/server/statement.service.ts` via `canViewBusinessTreasury` / `c
 
 ## Internal operations
 
-`/internal/bank` → **Statement Operations**
+`/internal/bank/statements` → **Statement Operations**
 
 - Recent generated statements table
-- **Generate monthly statements (preview batch)** — prior calendar month for all active accounts without an existing statement
-- Void count / error placeholders
+- **Automatic monthly generation** status (`OpsJobRun` key `BANK_ACCOUNT_STATEMENTS`)
+- **Generate previous month statements** — admin only, confirmation required; same service as cron (`force: true`)
+- Void count
+
+Operators can view cron status; only admins can run batch generation.
+
+## Monthly statement cron
+
+**Endpoint:** `GET|POST /api/cron/bank-statements`  
+**Auth:** `Authorization: Bearer $CRON_SECRET` (or `?secret=` for testing)
+
+**Schedule:** Daily via `/api/cron/scheduled-transfers` (recommended) or standalone `/api/cron/bank-statements`. Generation runs **only on the first calendar day of each month** (UTC). Other days return success with `skipped: true`.
+
+**Period policy:** Previous calendar month.
+
+Example: cron runs **July 1** → generates statements for **June 1 – June 30**.
+
+Orchestration: `src/server/bank-statement-scheduler.service.ts`  
+Reuses: `generateStatementForAccount()` in `src/server/statement.service.ts`
+
+### Eligible accounts
+
+| Status | Included when |
+|--------|----------------|
+| `ACTIVE` | Always |
+| `FROZEN` | Had approved transactions during the period |
+| `CLOSED` | Had approved transactions during the period |
+| `PENDING` | Never |
+
+Skipped if a non-`VOID` statement already exists for the same `periodStart` / `periodEnd`.
+
+### Idempotency
+
+- Pre-create lookup in `generateStatementForAccount()` and batch scheduler
+- Safe to run cron multiple times on the 1st — existing statements are skipped
+- Issued statements are never overwritten
+
+### Audit events
+
+| Action | When |
+|--------|------|
+| `BANK_STATEMENT_CRON_STARTED` | Batch started |
+| `BANK_STATEMENT_CRON_COMPLETED` | Batch finished or skipped (not 1st) |
+| `BANK_STATEMENT_CRON_FAILED` | Catastrophic batch failure |
+| `BANK_STATEMENTS_BATCH_GENERATED` | One or more statements created |
+
+### Future Vercel Cron (TODO)
+
+One shared job is enough — bank statements are included in `/api/cron/scheduled-transfers`:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/scheduled-transfers", "schedule": "10 0 * * *" }
+  ]
+}
+```
+
+Optional standalone endpoint: `/api/cron/bank-statements` (same scheduler; useful for testing only).
 
 ## What works now
 
@@ -91,18 +148,15 @@ Enforced in `src/server/statement.service.ts` via `canViewBusinessTreasury` / `c
 - Formal statement detail layout with transaction table
 - Browser **Print** (`window.print()` + print CSS)
 - Role-based business access
+- **Automated monthly generation** via `/api/cron/bank-statements` (1st of month) or admin manual batch
 
 ## Preview-only / not built
-
-- **PDF download** — button disabled (“coming soon”)
-- **Email delivery**
-- **Automated scheduled monthly generation** (cron / end-of-month job)
 - **Void workflow UI** (status exists; admin void TBD)
 - **Ledger-accurate opening balances** (future ledger improvements)
 
 ## Future plans
 
 1. **PDF export** — server-side render (Playwright or PDFKit) from statement template
-2. **Monthly automation** — scheduled job on last business day; optional email to authorized representatives
+2. **Email delivery** — optional monthly statement email to account holders
 3. **Ledger snapshots** — daily balance checkpoints for exact opening/closing without reverse calculation
 4. **Statement void & reissue** — operator tools with audit trail

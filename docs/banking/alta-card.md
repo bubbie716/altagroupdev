@@ -385,9 +385,9 @@ Tracks fee lifecycle: `ACTIVE` → `PAID` / `WAIVED`. Linked to statement and tr
 2. `applyLateFeesForDueStatements()`
 3. `applyInterestForDueStatements()`
 
-Cron hook (TODO wire in production scheduler): `GET|POST /api/cron/alta-card-billing` (requires `CRON_SECRET`)
+Schedulers invoke this via `runAltaCardBillingSchedulerJob()` — see **Billing Scheduler** below.
 
-Internal admin: preview interest, apply manually, run billing batch, waive fees.
+Internal admin: preview interest, apply manually per statement, run billing batch, waive fees.
 
 ### Interest & fee audit events
 
@@ -399,12 +399,105 @@ Internal admin: preview interest, apply manually, run billing batch, waive fees.
 | `ALTA_CARD_FEE_WAIVED` | Admin waived a fee |
 | `ALTA_CARD_RATE_CHANGED` | Card APR updated |
 
-### Scheduler hooks
+## Billing Scheduler
 
-| Hook | Endpoint |
-|------|----------|
-| Statement generation | `/api/cron/alta-card-statements` |
-| Overdue + fees + interest | `/api/cron/alta-card-billing` |
+Architecture separates scheduling from business logic:
+
+```
+Cron → API route → alta-card-billing-scheduler.service → existing services → database
+```
+
+Orchestration: `src/server/alta-card-billing-scheduler.service.ts`  
+HTTP helpers: `src/lib/cron/cron-http.ts`  
+Admin server functions: `src/lib/bank/alta-card-scheduler.functions.ts`
+
+### Statement Scheduler
+
+**Endpoint:** `GET|POST /api/cron/alta-card-statements` (requires `CRON_SECRET`)
+
+**Schedule:** Daily (intended production: once per day via external cron or Vercel Cron)
+
+**Behavior:**
+
+1. If today is **not** the last calendar day of the month → exit successfully with `skipped: true`
+2. If month-end → call `generateStatement()` per eligible card (same logic as `generateStatementsForEligibleCards()`)
+3. Per-card failures are collected; other cards continue processing
+4. Writes `OpsJobRun` key `ALTA_CARD_STATEMENTS` and structured JSON logs
+
+**Manual execution:** `/internal/alta-card` → **Run statement generation** (admin only, `force: true` skips month-end check)
+
+### Daily Billing Processing
+
+**Endpoint:** `GET|POST /api/cron/alta-card-billing` (requires `CRON_SECRET`)
+
+**Schedule:** Daily
+
+**Behavior:** Calls `processAltaCardBilling()` — overdue detection, late fees, interest — without changing calculation rules.
+
+**Manual execution:** `/internal/alta-card` → **Run billing processing** (admin only)
+
+### Idempotency
+
+Existing service guards make repeat runs safe:
+
+| Action | Protection |
+|--------|------------|
+| Statement generation | Only closes OPEN cycles; eligible cards use `nextStatementDate ≤ now` |
+| Interest | `interestAppliedAt` prevents duplicate interest per statement |
+| Late fees | One late fee per overdue statement |
+| Paid statements | Payment allocation and status updates do not re-open paid statements |
+
+A second scheduler run on the same day should mostly no-op or skip already-processed work.
+
+### Job history (`OpsJobRun`)
+
+| `jobKey` | Label |
+|----------|-------|
+| `ALTA_CARD_STATEMENTS` | Alta Card statement generation |
+| `ALTA_CARD_BILLING` | Alta Card billing processing |
+
+`lastMessage` stores JSON: `startedAt`, `completedAt`, `durationMs`, `processedCount`, `successCount`, `failureCount`, `errorSummary`.
+
+Operators can view last run on `/internal/alta-card`. Only admins can trigger manual runs.
+
+### Scheduler audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_STATEMENT_JOB_STARTED` | Statement batch started |
+| `ALTA_CARD_STATEMENT_JOB_COMPLETED` | Statement batch finished or skipped |
+| `ALTA_CARD_BILLING_JOB_STARTED` | Billing batch started |
+| `ALTA_CARD_BILLING_JOB_COMPLETED` | Billing batch finished |
+| `ALTA_CARD_BILLING_JOB_FAILED` | Billing batch catastrophic failure |
+
+### Future Vercel Cron deployment
+
+**TODO — not configured in this repo.** In production, Alta Card jobs run as part of the shared bank cron:
+
+| Path | Schedule | Notes |
+|------|----------|-------|
+| `/api/cron/scheduled-transfers` | Daily (or more frequent) | Includes transfers, payroll, loan servicing, **and** Alta Card statements + billing |
+
+Authenticate with `Authorization: Bearer $CRON_SECRET` or `?secret=$CRON_SECRET`.
+
+The statement scheduler no-ops on non–month-end days, so a single daily cron is sufficient.
+
+**Optional standalone endpoints** (testing or split schedules only):
+
+| Path | Purpose |
+|------|---------|
+| `/api/cron/alta-card-statements` | Statement generation only |
+| `/api/cron/alta-card-billing` | Billing processing only |
+
+Example `vercel.json` (deployment TODO) — **one job is enough**:
+
+```json
+{
+  "crons": [
+    { "path": "/api/cron/scheduled-transfers", "schedule": "0 6 * * *" }
+  ]
+}
+```
 
 ### PDF (placeholder)
 
