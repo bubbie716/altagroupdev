@@ -14,6 +14,7 @@ import { RouteButton } from "@/components/bank/route-button";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { altaCardStatementsLink } from "@/lib/bank/alta-card-navigation";
+import { altaCardNavButtonClassName } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -94,7 +95,7 @@ export function AltaCardStatementDocument({
         <RouteButton
           to={backTo.to}
           params={"params" in backTo ? backTo.params : undefined}
-          className="shrink-0 rounded-md border border-border bg-surface-2/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground"
+          className={altaCardNavButtonClassName}
         >
           ← {backTo.label}
         </RouteButton>

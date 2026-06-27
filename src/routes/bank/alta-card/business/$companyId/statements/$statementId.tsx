@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardStatementDocument } from "@/components/bank/alta-card/alta-card-statement-document";
+import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { fetchCardStatementDetail } from "@/lib/bank/alta-card-statement.functions";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
 
@@ -43,6 +44,9 @@ function BusinessAltaCardStatementDetailPage() {
       hideFooter
     >
       <BankSubNav className="print:hidden" />
+      <AltaCardPageNav className="print:hidden">
+        <AltaCardBackToCardButton card={card} />
+      </AltaCardPageNav>
       <AltaCardStatementDocument statement={statement} card={card} />
     </PageShell>
   );

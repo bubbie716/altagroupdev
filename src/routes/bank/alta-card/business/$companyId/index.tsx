@@ -1,8 +1,9 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardBusinessPanel } from "@/components/bank/alta-card/alta-card-business-panel";
+import { AltaCardBackToAllBusinessesButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
 import { fetchCompanyBillingSummaryRecord } from "@/lib/bank/alta-card-interest.functions";
@@ -46,16 +47,11 @@ function BankAltaCardBusinessDetail() {
     <PageShell
       eyebrow="Alta Bank · Alta Card"
       title={companyName}
-      action={
-        <Link
-          to="/bank/alta-card/business"
-          className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
-        >
-          ← All business cards
-        </Link>
-      }
     >
       <BankSubNav />
+      <AltaCardPageNav>
+        <AltaCardBackToAllBusinessesButton />
+      </AltaCardPageNav>
       <AltaCardBusinessPanel
         companyId={companyId}
         companyName={companyName}

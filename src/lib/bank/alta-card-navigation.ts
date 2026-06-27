@@ -63,6 +63,16 @@ export function altaCardDashboardBackLink(
   };
 }
 
+export function altaCardAllBusinessesBackLink(): {
+  to: "/bank/alta-card/business";
+  label: string;
+} {
+  return {
+    to: "/bank/alta-card/business",
+    label: "← All business cards",
+  };
+}
+
 export function altaCardStatementsLink(
   card: Pick<AltaCardRow, "id" | "cardType" | "companyId">,
 ): AltaCardStatementsLink {
