@@ -245,7 +245,6 @@ export function mapAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardA
     approvedTier: row.approvedTier ? toAltaCardTierCode(row.approvedTier) : null,
     approvedLimit: row.approvedLimit ? decimalToNumber(row.approvedLimit) : null,
     approvedInterestRate: row.approvedInterestRate ? decimalToNumber(row.approvedInterestRate) : null,
-    billingCycleDay: row.billingCycleDay ?? null,
     purpose: row.purpose,
     paymentSourceAccountId: row.paymentSourceAccountId,
     expectedMonthlySpend: row.expectedMonthlySpend ? decimalToNumber(row.expectedMonthlySpend) : null,

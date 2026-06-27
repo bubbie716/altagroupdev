@@ -55,11 +55,11 @@ export function PortfolioDashboard({
   signInRedirect?: string;
 }) {
   return (
-    <div className="relative rounded-xl bg-background p-5">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <div className="flex items-center gap-3">
-          <AltaLogo className="h-4 w-4" />
-          <span className="type-meta">
+    <div className="relative min-w-0 overflow-hidden rounded-xl bg-background p-4 sm:p-5">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <AltaLogo className="h-4 w-4 shrink-0" />
+          <span className="type-meta truncate">
             {headerLabel}
           </span>
         </div>
@@ -79,20 +79,20 @@ export function PortfolioDashboard({
 
       <div
         className={cn(
-          "grid gap-5 pt-5 lg:grid-cols-[1.6fr_1fr]",
+          "grid min-w-0 gap-5 pt-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]",
           locked && "pointer-events-none select-none",
         )}
         aria-hidden={locked || undefined}
       >
-        <div>
-          <div className="flex items-baseline gap-4">
-            <div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <div className="min-w-0">
               <div className="type-meta">
                 Net Worth
               </div>
               <div
                 className={cn(
-                  "tabular mt-1 text-3xl font-semibold tracking-tight",
+                  "tabular mt-1 text-2xl font-semibold tracking-tight sm:text-3xl",
                   locked && LOCKED_BLUR,
                 )}
               >
@@ -101,7 +101,7 @@ export function PortfolioDashboard({
             </div>
             <div
               className={cn(
-                "type-finance text-xs",
+                "type-finance min-w-0 text-xs",
                 changePositive ? "ticker-up" : "ticker-down",
                 locked && LOCKED_BLUR,
               )}
@@ -109,7 +109,7 @@ export function PortfolioDashboard({
               {changeLabel}
             </div>
           </div>
-          <div className={cn("mt-4 h-56", locked && LOCKED_BLUR)}>
+          <div className={cn("mt-4 h-48 min-w-0 w-full overflow-hidden sm:h-56", locked && LOCKED_BLUR)}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -144,15 +144,15 @@ export function PortfolioDashboard({
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           {stats.map((k) => (
-            <div key={k.label} className="rounded-lg border border-border bg-surface-1 p-3">
+            <div key={k.label} className="min-w-0 rounded-lg border border-border bg-surface-1 p-3">
               <div className="type-meta-sm">
                 {k.label}
               </div>
               <div
                 className={cn(
-                  "tabular mt-1.5 text-base font-semibold",
+                  "tabular mt-1.5 truncate text-base font-semibold",
                   k.up ? "text-[var(--success)]" : "",
                   locked && LOCKED_BLUR,
                 )}
@@ -161,7 +161,7 @@ export function PortfolioDashboard({
               </div>
             </div>
           ))}
-          <div className="col-span-2 rounded-lg border border-border bg-surface-1 p-3">
+          <div className="min-w-0 rounded-lg border border-border bg-surface-1 p-3 sm:col-span-2">
             <div className="type-meta-sm">
               Top Movers
             </div>
@@ -186,8 +186,8 @@ export function PortfolioDashboard({
       </div>
 
       {locked && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-background/55 via-background/70 to-background/80 backdrop-blur-[1px]">
-          <div className="mx-auto max-w-md px-6 py-8 text-center">
+        <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-background/55 via-background/70 to-background/80 backdrop-blur-[1px]">
+          <div className="mx-auto w-full max-w-md px-4 py-8 text-center sm:px-6">
             <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-full border border-gold/25 bg-[color-mix(in_oklch,var(--gold)_8%,var(--background))] shadow-sm">
               <Lock className="size-[18px] text-gold" strokeWidth={1.75} aria-hidden />
             </div>

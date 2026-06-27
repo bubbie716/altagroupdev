@@ -97,7 +97,7 @@ function BankDashboardLiveContent({
             No transactions yet.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1">
             <BankAccountTransactions transactions={transactions} showAccount />
           </div>
         )}

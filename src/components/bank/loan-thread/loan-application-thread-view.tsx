@@ -343,7 +343,7 @@ export function LoanApplicationThreadView({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-col bg-[#f8f7f4] text-[#0f1729] dark:bg-background dark:text-foreground",
+        "flex min-h-0 min-w-0 flex-col overflow-x-clip bg-[#f8f7f4] text-[#0f1729] dark:bg-background dark:text-foreground",
         className,
       )}
     >
@@ -390,7 +390,7 @@ export function LoanApplicationThreadView({
 
         {showMeta && (
           <div className="border-t border-border/60 bg-surface-1/60 px-4 py-3 sm:px-6">
-            <dl className="mx-auto grid max-w-3xl grid-cols-2 gap-x-6 gap-y-3 text-[12px] sm:grid-cols-4">
+            <dl className="mx-auto grid max-w-3xl grid-cols-1 gap-x-6 gap-y-3 text-[12px] min-[480px]:grid-cols-2 sm:grid-cols-4">
               <MetaCell label={copy.requestedMetaLabel}>
                 <span className="tabular-nums">
                   <Florin value={ctx.requestedAmount} fractionDigits={0} />

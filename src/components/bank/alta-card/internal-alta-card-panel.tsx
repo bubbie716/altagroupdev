@@ -94,7 +94,7 @@ function ApplicationActions({
   }
 
   return (
-    <div className="flex min-w-[220px] flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2 sm:min-w-[220px]">
       <input
         type="number"
         value={limit}

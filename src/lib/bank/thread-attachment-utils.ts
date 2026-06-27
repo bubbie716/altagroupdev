@@ -30,3 +30,29 @@ export function threadAttachmentOpensInNewTab(attachment: {
 export function isThreadAttachmentLink(attachment: { type?: string }): boolean {
   return attachment.type === "LINK";
 }
+
+export type ThreadAttachmentPreviewKind = "image" | "pdf" | "download";
+
+export function threadAttachmentPreviewKind(attachment: {
+  type?: string;
+  mimeType?: string;
+  fileName?: string;
+}): ThreadAttachmentPreviewKind {
+  if (attachment.type === "IMAGE") return "image";
+  const mime = attachment.mimeType ?? "";
+  const ext = (attachment.fileName?.split(".").pop() ?? "").toLowerCase();
+  if (mime === "application/pdf" || ext === "pdf") return "pdf";
+  if (mime.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) {
+    return "image";
+  }
+  return "download";
+}
+
+/** Internal deal-room attachments preview in an overlay; external links open in a new tab. */
+export function threadAttachmentUsesOverlayPreview(attachment: {
+  type?: string;
+  downloadPath?: string;
+  url?: string;
+}): boolean {
+  return !threadAttachmentOpensInNewTab(attachment);
+}

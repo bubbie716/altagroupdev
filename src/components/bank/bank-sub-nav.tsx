@@ -4,6 +4,7 @@ import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
+import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
@@ -222,12 +223,8 @@ export function BankSubNav({ className }: { className?: string }) {
 
   return (
     <LayoutGroup id="bank-sub-nav">
-      <nav
-        className={cn(
-          "-mx-4 mb-8 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-10 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap",
-          className,
-        )}
-      >
+      <BankSubNavScroll className="sm:mb-10">
+        <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0", className)}>
         {visibleLinks.map((link) => {
           if (link.to === "/bank/lending") {
             return (
@@ -257,7 +254,8 @@ export function BankSubNav({ className }: { className?: string }) {
             </motion.div>
           );
         })}
-      </nav>
+        </nav>
+      </BankSubNavScroll>
     </LayoutGroup>
   );
 }

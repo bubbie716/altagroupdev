@@ -48,7 +48,7 @@ export function BusinessCompanyPicker({
               search: (prev: { companyId?: string }) => ({ ...prev, companyId: e.target.value }),
             });
           }}
-          className="mt-2 block min-w-[220px] rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
+          className="mt-2 block w-full max-w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40"
         >
           {companies.map((c) => (
             <option key={c.companyId} value={c.companyId}>

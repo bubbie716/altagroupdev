@@ -52,11 +52,11 @@ export function PageShell({
     : (footerVariant ?? resolveFooterVariant(pathname));
 
   return (
-    <div className={cn("min-h-screen bg-background", printDocument && "statement-print-page")}>
+    <div className={cn("min-h-screen overflow-x-clip bg-background", printDocument && "statement-print-page")}>
       <SiteNav />
       <div
         className={cn(
-          "mx-auto max-w-[1400px] px-4 sm:px-6 pt-8 sm:pt-14",
+          "mx-auto min-w-0 max-w-[1400px] px-4 sm:px-6 pt-8 sm:pt-14",
           printDocument && "print:max-w-none print:px-0 print:pt-0",
         )}
       >
@@ -79,7 +79,7 @@ export function PageShell({
             {action ? <div className="shrink-0">{action}</div> : null}
           </div>
         </motion.div>
-        <main className={cn("py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
+        <main className={cn("min-w-0 py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
       <PageFooter variant={resolvedVariant} pathname={pathname} />
     </div>
@@ -98,7 +98,7 @@ export function Section({
   className?: string;
 }) {
   return (
-    <section className={className}>
+    <section className={cn("min-w-0", className)}>
       {title && (
         <div className="mb-4 flex items-end justify-between">
           <h2 className={type.sectionTitle}>{title}</h2>
@@ -120,7 +120,7 @@ export function Card({
   return (
     <div
       className={
-        "rounded-xl border border-border bg-surface-1/80 p-5 sm:p-6 transition-colors duration-200 hover:border-border-strong " +
+        "min-w-0 max-w-full rounded-xl border border-border bg-surface-1/80 p-5 sm:p-6 transition-colors duration-200 hover:border-border-strong " +
         className
       }
     >

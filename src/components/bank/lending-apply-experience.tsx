@@ -188,7 +188,7 @@ export function LendingApplyExperience({
           aria-label="Application progress"
           className="sticky top-[64px] z-10 -mx-4 mb-8 border-b border-border bg-background/85 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-md sm:border sm:px-4"
         >
-          <ol className="flex items-center gap-2 overflow-x-auto">
+          <ol className="flex min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain pb-1">
             {STEPS.map((step, i) => {
               const active = activeStep === step.id;
               const passed = STEPS.findIndex((s) => s.id === activeStep) > i;

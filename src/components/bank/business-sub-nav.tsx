@@ -2,6 +2,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
 import { RouteButton } from "@/components/bank/route-button";
+import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 
 const links = [
   { to: "/bank/business", label: "Overview", exact: true },
@@ -21,8 +22,9 @@ export function BusinessSubNav({ companyId }: { companyId?: string }) {
   const search = companyId ? { companyId } : undefined;
 
   return (
-    <nav className="-mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-border/60 px-4 pb-3 sm:mx-0 sm:mb-8 sm:flex-wrap sm:px-0 sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap">
-      {links.map((l) => (
+    <BankSubNavScroll>
+      <nav className={bankSubNavClass}>
+        {links.map((l) => (
         <RouteButton
           key={l.to}
           to={l.to}
@@ -36,7 +38,8 @@ export function BusinessSubNav({ companyId }: { companyId?: string }) {
         >
           {l.label}
         </RouteButton>
-      ))}
-    </nav>
+        ))}
+      </nav>
+    </BankSubNavScroll>
   );
 }

@@ -168,7 +168,6 @@ async function createCardFromApplication(
   tier: AltaCardTierCode,
   approvedLimit: number,
   interestRate: number,
-  billingCycleDay: number | null,
   activate: boolean,
 ): Promise<Prisma.AltaCardGetPayload<{ include: typeof altaCardInclude }>> {
   if (application.cardType === "PERSONAL") {
@@ -204,7 +203,6 @@ async function createCardFromApplication(
       creditLimit: toDecimal(approvedLimit),
       availableCredit: toDecimal(approvedLimit),
       interestRate: toDecimal(interestRate),
-      billingCycleDay,
       cardLastFour: randomCardLastFour(),
       openedAt: activate ? new Date() : null,
     },
@@ -213,11 +211,7 @@ async function createCardFromApplication(
 
   if (activate) {
     const { initializeBillingCycleForCard } = await import("@/server/alta-card-statement.service");
-    const now = new Date();
-    const anchor = billingCycleDay
-      ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), Math.min(billingCycleDay, 28)))
-      : now;
-    await initializeBillingCycleForCard(tx, created.id, anchor);
+    await initializeBillingCycleForCard(tx, created.id, new Date());
   }
 
   return created;
@@ -276,9 +270,6 @@ export async function approveAltaCardApplication(
 
   if (input.approvedLimit <= 0) badRequest("Approved limit must be greater than zero");
   if (input.interestRate < 0) badRequest("Interest rate cannot be negative");
-  if (input.billingCycleDay != null && (input.billingCycleDay < 1 || input.billingCycleDay > 28)) {
-    badRequest("Billing cycle day must be between 1 and 28");
-  }
 
   await assertNoOpenAltaCardForApplication(application);
 
@@ -304,7 +295,6 @@ export async function approveAltaCardApplication(
         approvedTier: toDbAltaCardTier(tier),
         approvedLimit: toDecimal(input.approvedLimit),
         approvedInterestRate: toDecimal(input.interestRate),
-        billingCycleDay: input.billingCycleDay ?? null,
         reviewNote: input.reviewNote,
         goldOverride: input.goldOverride ?? false,
         reviewedById: adminUserId,
@@ -322,7 +312,6 @@ export async function approveAltaCardApplication(
         tier,
         input.approvedLimit,
         input.interestRate,
-        input.billingCycleDay ?? null,
         true,
       );
     }
@@ -332,7 +321,12 @@ export async function approveAltaCardApplication(
 
   await postAltaCardApplicationSystemMessage(
     application.id,
-    buildAltaCardApplicationAcceptedSystemMessage(),
+    buildAltaCardApplicationAcceptedSystemMessage({
+      tier,
+      approvedLimit: input.approvedLimit,
+      interestRate: input.interestRate,
+      reviewNote: input.reviewNote,
+    }),
     true,
   );
 
@@ -458,7 +452,6 @@ export async function acceptAltaCardApplication(
       tier,
       approvedLimit,
       interestRate,
-      application.billingCycleDay,
       true,
     );
 

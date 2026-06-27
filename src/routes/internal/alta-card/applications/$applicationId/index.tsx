@@ -43,7 +43,6 @@ function InternalAltaCardApplicationDetail() {
   const [tier, setTier] = useState(app.approvedTier ?? app.requestedTier);
   const [limit, setLimit] = useState(String(app.approvedLimit ?? app.requestedLimit ?? 5000));
   const [rate, setRate] = useState(String(app.approvedInterestRate ?? 19.99));
-  const [billingDay, setBillingDay] = useState(String(app.billingCycleDay ?? 1));
   const [notes, setNotes] = useState(app.reviewNote ?? "");
   const [denialReason, setDenialReason] = useState("");
   const [goldOverride, setGoldOverride] = useState(false);
@@ -217,15 +216,6 @@ function InternalAltaCardApplicationDetail() {
                   className="rounded border border-border px-2 py-1 font-mono text-[12px]"
                   placeholder="Interest rate %"
                 />
-                <input
-                  type="number"
-                  min={1}
-                  max={28}
-                  value={billingDay}
-                  onChange={(e) => setBillingDay(e.target.value)}
-                  className="rounded border border-border px-2 py-1 font-mono text-[12px]"
-                  placeholder="Billing cycle day"
-                />
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -263,7 +253,6 @@ function InternalAltaCardApplicationDetail() {
                         approvedLimit: Number(limit),
                         interestRate: Number(rate),
                         tier,
-                        billingCycleDay: Number(billingDay),
                         reviewNote: notes || undefined,
                         goldOverride: goldOverride || undefined,
                         approveAndActivate: activateNow || undefined,

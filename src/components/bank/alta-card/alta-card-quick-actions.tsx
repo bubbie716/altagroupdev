@@ -28,7 +28,7 @@ export function AltaCardQuickActions({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid min-w-0 grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <AltaCardQuickActionCell>
           {canPay ? (
             <AltaCardPaymentPanel card={card} variant="quick" />

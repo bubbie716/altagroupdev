@@ -16,6 +16,12 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
 import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
+import {
+  BankMobileStack,
+  BankMobileStackField,
+  BankMobileStackRow,
+  BankTableScroll,
+} from "@/components/bank/bank-scroll-contain";
 import { Textarea } from "@/components/ui/textarea";
 
 const fieldClass =
@@ -491,8 +497,53 @@ function TransferHistoryTable({
   }
 
   return (
-    <div className={`${compact ? "mt-4" : "mt-6"} overflow-x-auto`}>
-      <div className="w-full overflow-x-auto"><table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
+    <div className={`${compact ? "mt-4" : "mt-6"} min-w-0 overflow-hidden`}>
+      <BankMobileStack>
+        {payments.map((p) => {
+          const sourceAccount = lookupSourceAccount(p, sourceAccounts);
+          return (
+            <BankMobileStackRow key={p.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium break-words">{p.recipientName}</p>
+                  {!compact && <p className="mt-0.5 text-[12px] text-muted-foreground">{p.paymentTypeLabel}</p>}
+                </div>
+                <span className="tabular-nums shrink-0 font-medium">{florin(p.amount)}</span>
+              </div>
+              {showSourceAccount && sourceAccount ? (
+                <BankMobileStackField label="From account">
+                  <BankAccountActivityLink
+                    accountId={sourceAccount.id}
+                    accountName={sourceAccount.accountName}
+                    accountNumber={sourceAccount.accountNumber}
+                  />
+                </BankMobileStackField>
+              ) : null}
+              <BankMobileStackField label="Status">{p.statusLabel}</BankMobileStackField>
+              <BankMobileStackField label="Scheduled">{formatRunAt(paymentNextRun(p))}</BankMobileStackField>
+              {p.memo?.trim() ? (
+                <BankMobileStackField label="Memo">{p.memo.trim()}</BankMobileStackField>
+              ) : null}
+              {compact && canManage &&
+                (p.status === "pending_review" || p.status === "approved" || p.status === "paused") ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onCancel(p.id);
+                    await router.invalidate();
+                  }}
+                  className="mt-1 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </BankMobileStackRow>
+          );
+        })}
+      </BankMobileStack>
+
+      <BankTableScroll>
+      <table className={`alta-table w-full text-sm ${compact ? "min-w-0" : "min-w-[640px]"}`}>
         <thead>
           <tr>
             {showSourceAccount ? <th>From account</th> : null}
@@ -592,7 +643,8 @@ function TransferHistoryTable({
             );
           })}
         </tbody>
-      </table></div>
+      </table>
+      </BankTableScroll>
     </div>
   );
 }

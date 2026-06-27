@@ -1,5 +1,12 @@
 /** Institutional SYSTEM message copy for V1 Secure Deal Rooms. */
 
+import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
+import {
+  ALTA_CARD_TIER_LABELS,
+  formatAltaCardCurrency,
+  formatAltaCardRate,
+} from "@/lib/bank/alta-card-types";
+
 export const SECURE_DEAL_ROOM_CONTACT_LINE =
   "If additional information is required, Alta Credit Desk will contact you through this Secure Deal Room.";
 
@@ -49,11 +56,28 @@ export function buildLendingApplicationDeniedSystemMessage(reviewNote?: string |
   ].join("\n\n") + formatAltaCreditDeskReason(reviewNote);
 }
 
-export function buildAltaCardApplicationAcceptedSystemMessage(): string {
-  return [
+export function buildAltaCardApplicationAcceptedSystemMessage(input: {
+  tier: AltaCardTierCode;
+  approvedLimit: number;
+  interestRate: number;
+  reviewNote?: string | null;
+}): string {
+  const sections = [
     "Your Alta Card application has been accepted.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n");
+    "",
+    "Approved terms:",
+    `• Card tier: ${ALTA_CARD_TIER_LABELS[input.tier]}`,
+    `• Credit limit: ${formatAltaCardCurrency(input.approvedLimit)}`,
+    `• Interest rate: ${formatAltaCardRate(input.interestRate)}`,
+  ];
+
+  const note = input.reviewNote?.trim();
+  if (note) {
+    sections.push("", `Note from Alta Credit Desk:\n\n${note}`);
+  }
+
+  return sections.join("\n");
 }
 
 export function buildAltaCardApplicationDeniedSystemMessage(denialReason?: string | null): string {

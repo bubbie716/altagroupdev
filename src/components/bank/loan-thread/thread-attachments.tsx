@@ -1,6 +1,14 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import type { ThreadAttachment } from "@/lib/bank/loan-application-thread-types";
-import { threadAttachmentHref, threadAttachmentOpensInNewTab, isThreadAttachmentLink } from "@/lib/bank/thread-attachment-utils";
+import {
+  threadAttachmentHref,
+  threadAttachmentOpensInNewTab,
+  threadAttachmentUsesOverlayPreview,
+  isThreadAttachmentLink,
+} from "@/lib/bank/thread-attachment-utils";
+import { ThreadAttachmentPreviewDialog } from "@/components/bank/loan-thread/thread-attachment-preview";
 import { cn } from "@/lib/utils";
 import { FileText, Link2, Paperclip, ImageIcon, FileSpreadsheet, FileImage, File } from "lucide-react";
 
@@ -37,79 +45,138 @@ export function ThreadAttachmentList({
   attachments: ThreadAttachment[];
   tone?: "light" | "dark";
 }) {
+  const [previewAttachment, setPreviewAttachment] = useState<ThreadAttachment | null>(null);
+
   if (attachments.length === 0) return null;
   const images = attachments.filter((a) => a.type === "IMAGE");
   const others = attachments.filter((a) => a.type !== "IMAGE");
+
+  const openPreview = (attachment: ThreadAttachment) => setPreviewAttachment(attachment);
+
   return (
-    <div className="mt-3 flex flex-col gap-2">
-      {images.length > 0 && (
-        <div
-          className={cn(
-            "grid gap-1.5",
-            images.length === 1 ? "grid-cols-1" : "grid-cols-2",
-          )}
-        >
-          {images.map((a, i) => {
-            const href = threadAttachmentHref(a);
-            const openInNewTab = threadAttachmentOpensInNewTab(a);
-            return (
-            <a
-              key={`${a.id ?? href}-${i}`}
-              href={href}
-              target={openInNewTab ? "_blank" : undefined}
-              rel={openInNewTab ? "noopener noreferrer" : undefined}
-              className={cn(
-                "group relative block w-full max-w-sm self-start overflow-hidden rounded-xl border",
-                images.length === 1 && "max-w-xs",
-                tone === "dark" ? "border-white/15" : "border-border/60",
-              )}
-            >
-              <img
-                src={href}
-                alt={a.fileName ?? "Image attachment"}
-                loading="lazy"
-                className="block h-auto max-h-64 w-full object-contain"
+    <>
+      <div className="mt-3 flex flex-col gap-2">
+        {images.length > 0 && (
+          <div
+            className={cn(
+              "grid gap-1.5",
+              images.length === 1 ? "grid-cols-1" : "grid-cols-2",
+            )}
+          >
+            {images.map((a, i) => (
+              <ThreadAttachmentImageTile
+                key={`${a.id ?? threadAttachmentHref(a)}-${i}`}
+                attachment={a}
+                tone={tone}
+                compact={images.length === 1}
+                onPreview={openPreview}
               />
-            </a>
-            );
-          })}
-        </div>
-      )}
-      {others.map((a, i) => (
-        <ThreadAttachmentChip key={`${a.id ?? threadAttachmentHref(a)}-${i}`} attachment={a} tone={tone} />
-      ))}
-    </div>
+            ))}
+          </div>
+        )}
+        {others.map((a, i) => (
+          <ThreadAttachmentChip
+            key={`${a.id ?? threadAttachmentHref(a)}-${i}`}
+            attachment={a}
+            tone={tone}
+            onPreview={openPreview}
+          />
+        ))}
+      </div>
+      <ThreadAttachmentPreviewDialog
+        attachment={previewAttachment}
+        open={previewAttachment !== null}
+        onOpenChange={(open) => {
+          if (!open) setPreviewAttachment(null);
+        }}
+      />
+    </>
   );
 }
 
-function ThreadAttachmentChip({
+function ThreadAttachmentImageTile({
   attachment,
   tone,
+  compact,
+  onPreview,
 }: {
   attachment: ThreadAttachment;
   tone: "light" | "dark";
+  compact?: boolean;
+  onPreview: (attachment: ThreadAttachment) => void;
 }) {
-  const isLink = isThreadAttachmentLink(attachment);
   const href = threadAttachmentHref(attachment);
   const openInNewTab = threadAttachmentOpensInNewTab(attachment);
-  const label = attachment.fileName ?? (isLink ? attachment.url : undefined) ?? href;
-  const subtitle = isLink && attachment.url
-    ? safeHostname(attachment.url)
-    : formatBytes(attachment.fileSizeBytes);
-  const Icon = isLink ? Link2 : pickFileIcon(attachment.fileName, attachment.mimeType);
+  const useOverlay = threadAttachmentUsesOverlayPreview(attachment);
+  const className = cn(
+    "group relative block w-full max-w-sm self-start overflow-hidden rounded-xl border",
+    compact && "max-w-xs",
+    tone === "dark" ? "border-white/15" : "border-border/60",
+    useOverlay && "cursor-pointer",
+  );
+  const image = (
+    <img
+      src={href}
+      alt={attachment.fileName ?? "Image attachment"}
+      loading="lazy"
+      className="block h-auto max-h-64 w-full object-contain"
+    />
+  );
+
+  if (useOverlay) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPreview(attachment)}
+        className={cn(className, "text-left")}
+        aria-label={`Preview ${attachment.fileName ?? "image attachment"}`}
+      >
+        {image}
+      </button>
+    );
+  }
 
   return (
     <a
       href={href}
       target={openInNewTab ? "_blank" : undefined}
       rel={openInNewTab ? "noopener noreferrer" : undefined}
-      className={cn(
-        "group inline-flex max-w-full items-center gap-3 rounded-xl border px-3 py-2.5 transition",
-        tone === "dark"
-          ? "border-white/15 bg-white/[0.04] text-white hover:border-white/30 hover:bg-white/[0.07]"
-          : "border-border/70 bg-surface-1 text-foreground hover:border-foreground/30 hover:bg-surface-2",
-      )}
+      className={className}
     >
+      {image}
+    </a>
+  );
+}
+
+function ThreadAttachmentChip({
+  attachment,
+  tone,
+  onPreview,
+}: {
+  attachment: ThreadAttachment;
+  tone: "light" | "dark";
+  onPreview: (attachment: ThreadAttachment) => void;
+}) {
+  const isLink = isThreadAttachmentLink(attachment);
+  const href = threadAttachmentHref(attachment);
+  const openInNewTab = threadAttachmentOpensInNewTab(attachment);
+  const useOverlay = threadAttachmentUsesOverlayPreview(attachment);
+  const label = attachment.fileName ?? (isLink ? attachment.url : undefined) ?? href;
+  const subtitle = isLink && attachment.url
+    ? safeHostname(attachment.url)
+    : formatBytes(attachment.fileSizeBytes);
+  const Icon = isLink ? Link2 : pickFileIcon(attachment.fileName, attachment.mimeType);
+
+  const className = cn(
+    "group inline-flex max-w-full items-center gap-3 rounded-xl border px-3 py-2.5 transition",
+    tone === "dark"
+      ? "border-white/15 bg-white/[0.04] text-white hover:border-white/30 hover:bg-white/[0.07]"
+      : "border-border/70 bg-surface-1 text-foreground hover:border-foreground/30 hover:bg-surface-2",
+    useOverlay && "cursor-pointer text-left",
+  );
+
+  const content = (
+    <>
       <span
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
@@ -131,6 +198,30 @@ function ThreadAttachmentChip({
           </span>
         )}
       </span>
+    </>
+  );
+
+  if (useOverlay) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPreview(attachment)}
+        className={className}
+        aria-label={`Preview ${label}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
+      className={className}
+    >
+      {content}
     </a>
   );
 }

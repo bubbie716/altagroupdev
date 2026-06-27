@@ -76,7 +76,7 @@ function BankLendingOverview() {
           </div>
         </div>
         <div className="h-px w-full bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-        <dl className="grid grid-cols-2 divide-x divide-border/60 sm:grid-cols-4">
+        <dl className="grid min-w-0 grid-cols-1 divide-y divide-border/60 overflow-hidden sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="px-6 py-4">
               <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -113,10 +113,10 @@ function BankLendingOverview() {
                 </span>
               </div>
 
-              <dl className="mt-6 grid grid-cols-2 gap-y-4 gap-x-6">
+              <dl className="mt-6 grid min-w-0 grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-2">
                 <Spec label="Limit" value={p.limit} />
                 <Spec label="Rate" value={p.rate} />
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <Spec label="Repayment" value={p.repayment} />
                 </div>
               </dl>

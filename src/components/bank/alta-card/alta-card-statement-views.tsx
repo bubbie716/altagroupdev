@@ -146,7 +146,7 @@ function StatementRowMobile({
         </div>
         <span className="text-[12px]">{ALTA_CARD_STATEMENT_STATUS_LABELS[row.status]}</span>
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+      <dl className="mt-3 grid min-w-0 grid-cols-1 gap-2 text-[12px] min-[400px]:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">Balance</dt>
           <dd className="font-mono tabular-nums">{formatAltaCardCurrency(row.remainingBalance)}</dd>

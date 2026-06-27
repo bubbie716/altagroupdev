@@ -4,7 +4,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
-import { ALTA_CARD_APPLICATION_THREAD_WELCOME_MESSAGE } from "@/lib/bank/secure-deal-room-system-copy";
+import { ALTA_CARD_APPLICATION_THREAD_WELCOME_MESSAGE, buildAltaCardApplicationAcceptedSystemMessage } from "@/lib/bank/secure-deal-room-system-copy";
 import {
   canManageBusinessTreasury,
   isAdmin,
@@ -458,4 +458,85 @@ export async function assertAltaCardThreadAccessForDownload(
   applicationId: string,
 ): Promise<{ user: AltaUser; thread: ThreadRecord }> {
   return assertThreadAccess(userId, applicationId);
+}
+
+const APPROVAL_TERMS_NEEDLE = "Approved terms:";
+
+const LEGACY_ALTA_CARD_APPROVAL_PREFIXES = [
+  "Your Alta Card application has been approved",
+  "Your Alta Card application has been accepted",
+] as const;
+
+export function altaCardApplicationApprovalMessageNeedsTermsBackfill(
+  body: string | null | undefined,
+): boolean {
+  const trimmed = body?.trim();
+  if (!trimmed) return false;
+  if (trimmed.includes(APPROVAL_TERMS_NEEDLE)) return false;
+  return LEGACY_ALTA_CARD_APPROVAL_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+}
+
+/** Rewrite legacy Alta Card application approval SYSTEM messages with approved terms. */
+export async function backfillAltaCardApplicationApprovalMessages(): Promise<{
+  updated: number;
+  skipped: number;
+}> {
+  const messages = await prisma.altaCardApplicationThreadMessage.findMany({
+    where: {
+      senderRole: "SYSTEM",
+      deletedAt: null,
+      OR: LEGACY_ALTA_CARD_APPROVAL_PREFIXES.map((prefix) => ({
+        body: { startsWith: prefix },
+      })),
+      thread: { application: { status: "APPROVED" } },
+    },
+    select: {
+      id: true,
+      body: true,
+      thread: {
+        select: {
+          application: {
+            select: {
+              approvedTier: true,
+              approvedLimit: true,
+              approvedInterestRate: true,
+              reviewNote: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  let updated = 0;
+  let skipped = 0;
+
+  for (const message of messages) {
+    if (!altaCardApplicationApprovalMessageNeedsTermsBackfill(message.body)) continue;
+
+    const application = message.thread.application;
+    if (
+      !application.approvedTier ||
+      application.approvedLimit == null ||
+      application.approvedInterestRate == null
+    ) {
+      skipped += 1;
+      continue;
+    }
+
+    const body = buildAltaCardApplicationAcceptedSystemMessage({
+      tier: toAltaCardTierCode(application.approvedTier),
+      approvedLimit: Number(application.approvedLimit.toString()),
+      interestRate: Number(application.approvedInterestRate.toString()),
+      reviewNote: application.reviewNote,
+    });
+
+    await prisma.altaCardApplicationThreadMessage.update({
+      where: { id: message.id },
+      data: { body },
+    });
+    updated += 1;
+  }
+
+  return { updated, skipped };
 }

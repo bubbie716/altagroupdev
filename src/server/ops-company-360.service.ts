@@ -1,7 +1,7 @@
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { getInternalCompanyDetail } from "@/server/company.service";
-import { fromDbCompanyRole } from "@/server/enum-map";
+import { fromDbCompanyRole, formatDbCompanyStatus, formatDbVerificationStatus } from "@/server/enum-map";
 import { COMPANY_ROLE_LABELS } from "@/lib/bank/business-banking-types";
 import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
 import { fromDbBankAccountType } from "@/server/bank-mapper";
@@ -53,8 +53,8 @@ export async function getInternalCompany360(companyId: string) {
       ticker: company.ticker,
       type: company.type,
       sector: company.sector,
-      status: company.status,
-      verificationStatus: company.verificationStatus,
+      status: formatDbCompanyStatus(company.status),
+      verificationStatus: formatDbVerificationStatus(company.verificationStatus),
       createdAt: company.createdAt.toISOString(),
       updatedAt: company.updatedAt.toISOString(),
       members: company.memberships.map((m) => ({
@@ -75,7 +75,7 @@ export async function getInternalCompany360(companyId: string) {
         at: company.createdAt.toISOString(),
       },
       {
-        label: `Verification: ${company.verificationStatus}`,
+        label: `Verification: ${formatDbVerificationStatus(company.verificationStatus)}`,
         at: company.updatedAt.toISOString(),
       },
     ],

@@ -40,7 +40,7 @@ export function BankStatStrip({
   return (
     <dl
       className={cn(
-        "grid auto-rows-fr grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80",
+        "grid min-w-0 auto-rows-fr grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-2 sm:divide-x sm:divide-y-0",
         cols,
         rows,
         className,
@@ -49,14 +49,14 @@ export function BankStatStrip({
       {items.map((item) => (
         <div
           key={item.label}
-          className={cn(cellPadding, "flex h-full min-h-[5.75rem] flex-col justify-center sm:min-h-0")}
+          className={cn(cellPadding, "flex h-full min-h-[5.75rem] min-w-0 flex-col justify-center sm:min-h-0")}
         >
           <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             {item.label}
           </dt>
           <dd
             className={cn(
-              "mt-1 tabular font-semibold tracking-tight",
+              "mt-1 min-w-0 truncate tabular font-semibold tracking-tight",
               valueSize,
               item.accent && "text-gold",
             )}

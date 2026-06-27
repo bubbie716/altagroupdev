@@ -135,3 +135,13 @@ export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" }
     await rejectCompanyVerification(admin.id, data.companyId, data.reviewNote);
     return { ok: true as const };
   });
+
+export const revokeCompanyVerificationRecord = createServerFn({ method: "POST" })
+  .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
+  .handler(async ({ data }) => {
+    const { revokeCompanyVerification } = await import("@/server/company.service");
+    const { requireOperator } = await import("@/server/permissions.service");
+    const admin = await requireOperator();
+    await revokeCompanyVerification(admin.id, data.companyId, data.reviewNote);
+    return { ok: true as const };
+  });

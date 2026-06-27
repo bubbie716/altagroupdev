@@ -1,8 +1,10 @@
 import { BankReviewButton } from "@/components/bank/bank-review-button";
 import {
   rejectCompanyVerificationRecord,
+  revokeCompanyVerificationRecord,
   verifyCompanyRecord,
 } from "@/lib/company/company.functions";
+import { normalizeCompanyVerificationStatus } from "@/lib/company/verification-status";
 
 export function CompanyVerificationActions({
   companyId,
@@ -11,26 +13,37 @@ export function CompanyVerificationActions({
   companyId: string;
   verificationStatus: string;
 }) {
-  const isVerified = verificationStatus === "Verified";
-  const isRejected = verificationStatus === "Rejected";
+  const state = normalizeCompanyVerificationStatus(verificationStatus);
+  const isVerified = state === "verified";
+  const isRejected = state === "rejected";
+  const canReview = state === "unverified" || state === "pending";
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {!isVerified && (
-        <BankReviewButton
-          label="Verify"
-          variant="primary"
-          onAction={async () => {
-            await verifyCompanyRecord({ data: { companyId } });
-          }}
-        />
+    <div className="flex flex-wrap items-center gap-2">
+      {canReview && (
+        <>
+          <BankReviewButton
+            label="Verify"
+            variant="primary"
+            onAction={async () => {
+              await verifyCompanyRecord({ data: { companyId } });
+            }}
+          />
+          <BankReviewButton
+            label="Reject verification"
+            variant="danger"
+            onAction={async () => {
+              await rejectCompanyVerificationRecord({ data: { companyId } });
+            }}
+          />
+        </>
       )}
-      {!isVerified && !isRejected && (
+      {isVerified && (
         <BankReviewButton
-          label="Reject verification"
+          label="Revoke verification"
           variant="danger"
           onAction={async () => {
-            await rejectCompanyVerificationRecord({ data: { companyId } });
+            await revokeCompanyVerificationRecord({ data: { companyId } });
           }}
         />
       )}

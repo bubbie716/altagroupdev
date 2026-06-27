@@ -169,7 +169,6 @@ export type AltaCardApplicationRow = {
   approvedTier: AltaCardTierCode | null;
   approvedLimit: number | null;
   approvedInterestRate: number | null;
-  billingCycleDay: number | null;
   purpose: string | null;
   paymentSourceAccountId: string | null;
   expectedMonthlySpend: number | null;
@@ -265,7 +264,6 @@ export type ApproveAltaCardApplicationInput = {
   approvedLimit: number;
   interestRate: number;
   tier?: AltaCardTierCode;
-  billingCycleDay?: number;
   reviewNote?: string;
   approveAndActivate?: boolean;
   goldOverride?: boolean;

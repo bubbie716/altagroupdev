@@ -65,7 +65,7 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
 
   return (
     <div className="space-y-6">
-      <dl className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-5 sm:divide-y-0">
+      <dl className="grid min-w-0 grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-5">
         <Stat label="Submitted" value={String(counts.total)} />
         <Stat label="Waiting on Alta" value={String(counts.waitingOnAlta)} />
         <Stat label="Waiting on You" value={String(counts.waitingOnYou)} />
@@ -73,7 +73,8 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
         <Stat label="Denied" value={String(counts.denied)} />
       </dl>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="min-w-0 overflow-x-auto overscroll-x-contain">
+        <div className="flex w-max min-w-full gap-2 pb-1 sm:w-auto sm:flex-wrap">
         {FILTERS.map((f) => {
           const active = filter === f.id;
           return (
@@ -92,6 +93,7 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
             </button>
           );
         })}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -175,9 +177,9 @@ function ApplicationRow({ a }: { a: LoanApplicationRow }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-5 py-4">
+    <div className="min-w-0 px-5 py-4">
       <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</dt>
-      <dd className="mt-1 font-serif text-[22px] tracking-tight tabular">{value}</dd>
+      <dd className="mt-1 truncate font-serif text-[22px] tracking-tight tabular">{value}</dd>
     </div>
   );
 }

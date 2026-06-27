@@ -430,7 +430,7 @@ function HeroRelationshipCard({ ctx }: { ctx: AltaPrivatePageContext }) {
         <div className="absolute right-0 bottom-0 h-16 w-px bg-gold/60" />
       </div>
 
-      <div className="grid gap-px bg-border/60 sm:grid-cols-[1.4fr_1fr]">
+      <div className="grid min-w-0 gap-px bg-border/60 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="bg-surface-1 px-6 py-8 sm:px-10 sm:py-12">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <PrestigeBadge>Invitation Only</PrestigeBadge>

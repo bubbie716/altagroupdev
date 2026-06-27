@@ -34,6 +34,10 @@ function notFound(): never {
   throw new Error("NOT_FOUND");
 }
 
+function badRequest(message: string): never {
+  throw new Error(`BAD_REQUEST:${message}`);
+}
+
 async function requireMembership(companyId: string, userId: string) {
   const membership = await prisma.companyMembership.findUnique({
     where: { userId_companyId: { userId, companyId } },
@@ -484,6 +488,12 @@ export async function getInternalCompanyDetail(companyId: string) {
 export async function verifyCompany(actorUserId: string, companyId: string, reviewNote?: string): Promise<void> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
+  if (company.verificationStatus === "VERIFIED") {
+    badRequest("This company is already verified.");
+  }
+  if (company.verificationStatus === "REJECTED") {
+    badRequest("Verification was rejected and cannot be approved again from this action.");
+  }
 
   await prisma.company.update({
     where: { id: companyId },
@@ -512,6 +522,12 @@ export async function rejectCompanyVerification(
 ): Promise<void> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
+  if (company.verificationStatus === "VERIFIED") {
+    badRequest("Verified companies cannot be rejected. Revoke verification first if needed.");
+  }
+  if (company.verificationStatus === "REJECTED") {
+    badRequest("This company verification is already rejected.");
+  }
 
   await prisma.company.update({
     where: { id: companyId },
@@ -526,6 +542,34 @@ export async function rejectCompanyVerification(
     entityId: companyId,
     targetCompanyId: companyId,
     description: `Rejected verification for ${company.name}`,
+    metadata: { reviewNote: reviewNote ?? null },
+  });
+}
+
+export async function revokeCompanyVerification(
+  actorUserId: string,
+  companyId: string,
+  reviewNote?: string,
+): Promise<void> {
+  const company = await prisma.company.findUnique({ where: { id: companyId } });
+  if (!company) notFound();
+  if (company.verificationStatus !== "VERIFIED") {
+    badRequest("Only verified companies can have verification revoked.");
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { verificationStatus: "UNVERIFIED" },
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_VERIFICATION_REVOKED",
+    entityType: "COMPANY",
+    entityId: companyId,
+    targetCompanyId: companyId,
+    description: `Revoked verification for ${company.name}`,
     metadata: { reviewNote: reviewNote ?? null },
   });
 }

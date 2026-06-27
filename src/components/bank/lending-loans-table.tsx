@@ -22,7 +22,13 @@ import type {
   LoanScheduleItemRow,
 } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { cn } from "@/lib/utils";
+import {
+  BankMobileStack,
+  BankMobileStackField,
+  BankMobileStackRow,
+  BankTableScroll,
+  bankTableShellClass,
+} from "@/components/bank/bank-scroll-contain";
 
 export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
   const router = useRouter();
@@ -74,9 +80,81 @@ export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
         ]}
       />
 
-      {/* Facility table — single <table> so header and row columns share widths */}
-      <div className="overflow-hidden rounded-xl border border-border bg-surface-1">
-        <div className="overflow-x-auto">
+      {/* Facility table — desktop; mobile uses stacked cards */}
+      <div className={bankTableShellClass}>
+        <BankMobileStack>
+          {loans.map((loan) => {
+            const next = nextInstallment(loan.paymentSchedule);
+            const isExpanded = expanded === loan.id;
+            return (
+              <div key={loan.id} className="border-b border-border last:border-0">
+                <button
+                  type="button"
+                  className="w-full text-left"
+                  onClick={() => setExpanded(isExpanded ? null : loan.id)}
+                  aria-expanded={isExpanded}
+                >
+                  <BankMobileStackRow>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                          {loan.id.slice(0, 10)}
+                        </p>
+                        <p className="mt-1 text-[14px] font-medium">{loan.productLabel}</p>
+                        {loan.companyName ? (
+                          <p className="mt-0.5 text-[12px] text-muted-foreground">{loan.companyName}</p>
+                        ) : null}
+                      </div>
+                      <StatusBadge status={loan.statusLabel} />
+                    </div>
+                    <BankMobileStackField label="Principal due">
+                      <Florin value={loan.principalOutstanding} fractionDigits={0} />
+                    </BankMobileStackField>
+                    <BankMobileStackField label="Next due">
+                      {next ? (
+                        <>
+                          {florin(next.scheduledAmount)} ·{" "}
+                          {new Date(next.dueDate).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </BankMobileStackField>
+                    <BankMobileStackField label="Rate">{loan.interestRateLabel}</BankMobileStackField>
+                    {loan.status === "active" ? (
+                      <BankMobileStackField label="Auto-pay">
+                        <AutoPayBadge enabled={loan.autoPay.enabled} />
+                      </BankMobileStackField>
+                    ) : null}
+                    <ChevronDown
+                      className={cn(
+                        "mx-auto mt-1 size-4 text-gold transition-transform",
+                        isExpanded && "rotate-180",
+                      )}
+                      aria-hidden
+                    />
+                  </BankMobileStackRow>
+                </button>
+                {isExpanded ? (
+                  <div className="border-t border-border bg-surface-2/30 px-4 py-5 sm:px-5">
+                    <FacilityExpandedWithAccounts
+                      loan={loan}
+                      active={isExpanded}
+                      onPaid={async () => {
+                        await router.invalidate();
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </BankMobileStack>
+
+        <BankTableScroll>
           <table className="alta-table w-full min-w-[920px] table-fixed text-sm">
             <thead className="bg-surface-2/40">
               <tr>
@@ -104,7 +182,7 @@ export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </BankTableScroll>
       </div>
     </div>
   );
@@ -112,6 +190,140 @@ export function LendingLoansTable({ loans }: { loans: LoanRow[] }) {
 
 function nextInstallment(schedule: LoanScheduleItemRow[]) {
   return schedule.find((i) => i.status === "pending" || i.status === "overdue");
+}
+
+function FacilityExpandedPanel({
+  loan,
+  onPaid,
+  sourceAccounts,
+  onRequestPay,
+}: {
+  loan: LoanRow;
+  onPaid: () => void | Promise<void>;
+  sourceAccounts?: LendingAccountOption[] | null;
+  onRequestPay?: () => void;
+}) {
+  return (
+    <>
+      <Section title="Repayment progress">
+        <LoanRepaymentProgressBar
+          principalAmount={loan.principalAmount}
+          principalRepaid={loan.principalRepaid}
+          principalPercentRepaid={loan.principalPercentRepaid}
+          currentPayoffAmount={loan.currentPayoffAmount}
+          guaranteedInterestOwed={loan.guaranteedInterestOwed}
+          statusLabel={loan.statusLabel}
+          compact
+        />
+        {loan.canMakePayment && onRequestPay && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestPay();
+            }}
+            className="mt-4 rounded-md border border-gold/40 bg-gold/10 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
+          >
+            Make payment
+          </button>
+        )}
+      </Section>
+
+      <div className="mt-6 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Original principal" value={florin(loan.principalAmount)} />
+        <Metric label="Outstanding principal" value={florin(loan.principalOutstanding)} />
+        <Metric label="Guaranteed interest owed" value={florin(loan.guaranteedInterestOwed)} />
+        <Metric label="Remaining potential interest" value={florin(loan.remainingPotentialInterest)} />
+        <Metric label="Current payoff amount" value={florin(loan.currentPayoffAmount)} emphasize />
+        <Metric label="Projected full-term cost" value={florin(loan.projectedFullTermCost)} />
+        <Metric label="Interest rate" value={loan.interestRateLabel} />
+        <Metric label="Next payment estimate" value={loan.nextPaymentDueLabel} />
+        <Metric label="Loan status" value={loan.statusLabel} />
+        {loan.termMonths != null && (
+          <Metric
+            label="Term"
+            value={`${loan.termMonths} mo · ${loan.monthlyPrincipalPercent?.toFixed(0) ?? "—"}%/mo`}
+          />
+        )}
+      </div>
+
+      <Section title="Interest guarantee schedule" className="mt-8">
+        <LoanInterestGuaranteeScheduleTable schedule={loan.interestGuaranteeSchedule} />
+      </Section>
+
+      <Section title="Payment schedule" className="mt-8">
+        <LoanPaymentScheduleTable
+          schedule={loan.paymentSchedule}
+          termMonths={loan.termMonths}
+          monthlyPrincipalPercent={loan.monthlyPrincipalPercent}
+        />
+      </Section>
+
+      {sourceAccounts && (
+        <Section title="Automatic payments" className="mt-8">
+          <LoanAutoPayForm loan={loan} sourceAccounts={sourceAccounts} onUpdated={onPaid} />
+        </Section>
+      )}
+
+      <Section title="Payment history" className="mt-8">
+        {loan.recentPayments.length === 0 ? (
+          <p className="text-[13px] text-muted-foreground">No payments recorded yet.</p>
+        ) : (
+          <AdminDataTable
+            columns={paymentPreviewColumns()}
+            rows={loan.recentPayments}
+            rowKey={(p) => p.id}
+          />
+        )}
+      </Section>
+    </>
+  );
+}
+
+function FacilityExpandedWithAccounts({
+  loan,
+  onPaid,
+  active,
+}: {
+  loan: LoanRow;
+  onPaid: () => void | Promise<void>;
+  active: boolean;
+}) {
+  const [payOpen, setPayOpen] = useState(false);
+  const loadContext = useServerFn(fetchLoanPaymentContext);
+  const [sourceAccounts, setSourceAccounts] = useState<LendingAccountOption[] | null>(null);
+
+  useEffect(() => {
+    if (!active || sourceAccounts) return;
+    let cancelled = false;
+    void loadContext({ data: loan.id })
+      .then((ctx) => {
+        if (!cancelled) setSourceAccounts(ctx.sourceAccounts);
+      })
+      .catch(() => {
+        if (!cancelled) setSourceAccounts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [active, loan.id, loadContext, sourceAccounts]);
+
+  return (
+    <>
+      <FacilityExpandedPanel
+        loan={loan}
+        onPaid={onPaid}
+        sourceAccounts={sourceAccounts}
+        onRequestPay={() => setPayOpen(true)}
+      />
+      <LoanRepaymentDialog
+        loan={loan}
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        onPaid={onPaid}
+      />
+    </>
+  );
 }
 
 function FacilityRow({
@@ -126,24 +338,6 @@ function FacilityRow({
   onPaid: () => void | Promise<void>;
 }) {
   const next = nextInstallment(loan.paymentSchedule);
-  const [payOpen, setPayOpen] = useState(false);
-  const loadContext = useServerFn(fetchLoanPaymentContext);
-  const [sourceAccounts, setSourceAccounts] = useState<LendingAccountOption[] | null>(null);
-
-  useEffect(() => {
-    if (!isExpanded || sourceAccounts) return;
-    let cancelled = false;
-    void loadContext({ data: loan.id })
-      .then((ctx) => {
-        if (!cancelled) setSourceAccounts(ctx.sourceAccounts);
-      })
-      .catch(() => {
-        if (!cancelled) setSourceAccounts([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isExpanded, loan.id, loadContext, sourceAccounts]);
 
   return (
     <>
@@ -217,94 +411,7 @@ function FacilityRow({
         <tr className="bg-surface-2/30">
           <td colSpan={8} className="!p-0">
             <div className="border-t border-border px-5 py-6 sm:px-6">
-          <Section title="Repayment progress">
-            <LoanRepaymentProgressBar
-              principalAmount={loan.principalAmount}
-              principalRepaid={loan.principalRepaid}
-              principalPercentRepaid={loan.principalPercentRepaid}
-              currentPayoffAmount={loan.currentPayoffAmount}
-              guaranteedInterestOwed={loan.guaranteedInterestOwed}
-              statusLabel={loan.statusLabel}
-              compact
-            />
-            {loan.canMakePayment && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPayOpen(true);
-                }}
-                className="mt-4 rounded-md border border-gold/40 bg-gold/10 px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
-              >
-                Make payment
-              </button>
-            )}
-          </Section>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="Original principal" value={florin(loan.principalAmount)} />
-            <Metric label="Outstanding principal" value={florin(loan.principalOutstanding)} />
-            <Metric label="Guaranteed interest owed" value={florin(loan.guaranteedInterestOwed)} />
-            <Metric
-              label="Remaining potential interest"
-              value={florin(loan.remainingPotentialInterest)}
-            />
-            <Metric
-              label="Current payoff amount"
-              value={florin(loan.currentPayoffAmount)}
-              emphasize
-            />
-            <Metric
-              label="Projected full-term cost"
-              value={florin(loan.projectedFullTermCost)}
-            />
-            <Metric label="Interest rate" value={loan.interestRateLabel} />
-            <Metric label="Next payment estimate" value={loan.nextPaymentDueLabel} />
-            <Metric label="Loan status" value={loan.statusLabel} />
-            {loan.termMonths != null && (
-              <Metric
-                label="Term"
-                value={`${loan.termMonths} mo · ${loan.monthlyPrincipalPercent?.toFixed(0) ?? "—"}%/mo`}
-              />
-            )}
-          </div>
-
-          <Section title="Interest guarantee schedule" className="mt-8">
-            <LoanInterestGuaranteeScheduleTable schedule={loan.interestGuaranteeSchedule} />
-          </Section>
-
-          <Section title="Payment schedule" className="mt-8">
-            <LoanPaymentScheduleTable
-              schedule={loan.paymentSchedule}
-              termMonths={loan.termMonths}
-              monthlyPrincipalPercent={loan.monthlyPrincipalPercent}
-            />
-          </Section>
-
-          {sourceAccounts && (
-            <Section title="Automatic payments" className="mt-8">
-              <LoanAutoPayForm loan={loan} sourceAccounts={sourceAccounts} onUpdated={onPaid} />
-            </Section>
-          )}
-
-          <Section title="Payment history" className="mt-8">
-            {loan.recentPayments.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No payments recorded yet.</p>
-            ) : (
-              <AdminDataTable
-                columns={paymentPreviewColumns()}
-                rows={loan.recentPayments}
-                rowKey={(p) => p.id}
-              />
-            )}
-          </Section>
-
-          <LoanRepaymentDialog
-            loan={loan}
-            open={payOpen}
-            onOpenChange={setPayOpen}
-            onPaid={onPaid}
-          />
+              <FacilityExpandedWithAccounts loan={loan} onPaid={onPaid} active={isExpanded} />
             </div>
           </td>
         </tr>

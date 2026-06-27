@@ -16,7 +16,12 @@ import {
 } from "@/lib/bank/scheduled-transfer.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import type { UserBankTransfer } from "@/lib/bank/backend-types";
-import { useServerFn } from "@tanstack/react-start";
+import {
+  BankMobileStack,
+  BankMobileStackField,
+  BankMobileStackRow,
+  BankTableScroll,
+} from "@/components/bank/bank-scroll-contain";
 
 type BankIntrabankSearch = {
   accountId?: string;
@@ -147,8 +152,32 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
   }
 
   return (
-    <Card className="!p-0">
-      <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
+    <Card className="min-w-0 !p-0 overflow-hidden">
+      <BankMobileStack>
+        {transfers.map((transfer) => (
+          <BankMobileStackRow key={`${transfer.id}-${transfer.direction}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] capitalize">{transfer.direction}</p>
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                  {formatActivityDateTime(transfer.createdAt)}
+                </p>
+              </div>
+              <span className="tabular shrink-0 font-medium">{florin(transfer.amount)}</span>
+            </div>
+            <BankMobileStackField label="From">
+              {transfer.fromAccountName} · {transfer.fromAccountNumber}
+            </BankMobileStackField>
+            <BankMobileStackField label="To">
+              {transfer.toAccountName} · {transfer.toAccountNumber}
+            </BankMobileStackField>
+            <BankMobileStackField label="Reference">{transfer.referenceCode}</BankMobileStackField>
+          </BankMobileStackRow>
+        ))}
+      </BankMobileStack>
+
+      <BankTableScroll>
+        <table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b border-border text-left type-meta">
             <th className="px-5 py-3">Date & time</th>
@@ -188,7 +217,8 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
             </tr>
           ))}
         </tbody>
-      </table></div>
+      </table>
+      </BankTableScroll>
     </Card>
   );
 }

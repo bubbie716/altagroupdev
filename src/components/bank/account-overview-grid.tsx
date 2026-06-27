@@ -20,7 +20,7 @@ export function AccountOverviewGrid({ accounts }: { accounts: DashboardAccount[]
   );
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <OpenAccountCard />
       {visibleAccounts.map((account) => (
         <AccountCard

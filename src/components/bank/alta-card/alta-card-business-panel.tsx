@@ -272,7 +272,7 @@ export function AltaCardBusinessPanel({
                 label={row.authorizedUsername}
                 lastFour={row.cardLastFour}
               />
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+              <dl className="mt-3 grid grid-cols-1 gap-2 text-[12px] min-[400px]:grid-cols-3">
                 <div>
                   <dt className="text-muted-foreground">Limit</dt>
                   <dd className="font-mono tabular-nums">{formatAltaCardCurrency(row.employeeSpendLimit)}</dd>

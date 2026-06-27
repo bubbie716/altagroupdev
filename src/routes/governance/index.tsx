@@ -90,14 +90,14 @@ function GovernanceStructure() {
           </Card>
         </div>
 
-        <Section title="Group hierarchy">
+        <Section title="Group hierarchy" className="hidden md:block">
           <GroupHierarchy nodes={groupHierarchy} />
         </Section>
 
         <Section title="Entity overview" className="mt-12">
           <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-            Division mandates, service lines, and exchange products. The hierarchy above reflects
-            ownership and reporting relationships only.
+            Division mandates, service lines, and exchange products. Ownership and reporting
+            relationships are detailed in each entity profile below.
           </p>
           <EntityOverview entities={entityOverviewItems} />
         </Section>

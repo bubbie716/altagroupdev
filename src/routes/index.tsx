@@ -54,7 +54,7 @@ function Hero() {
   const showMarketPreview = isPublicSimulatedMarketDataEnabled();
 
   const valueProps = [
-    { title: "Private Banking", desc: "Institutional-grade accounts and treasury." },
+    { title: "Seamless Banking", desc: "Institutional-grade accounts and treasury." },
     { title: "Invest with Confidence", desc: "Unified portfolio and market access." },
     { title: "Global Markets", desc: "Republic-wide listings and execution." },
     { title: "Built for Privacy", desc: "Your data stays yours until you sign in." },
@@ -110,10 +110,10 @@ function Hero() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mx-auto mt-20 max-w-[1180px]"
+          className="relative mx-auto mt-20 max-w-[1180px] min-w-0 overflow-hidden"
         >
           <div
-            className="grain-dark animate-rise rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
+            className="grain-dark animate-rise min-w-0 overflow-hidden rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur"
           >
             {portfolioLocked ? (
               <PortfolioDashboard
