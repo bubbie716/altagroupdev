@@ -1,3 +1,4 @@
+import { SECURE_DEAL_ROOM_CLOSED_LINE } from "@/lib/bank/secure-deal-room-system-copy";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_TIER_LABELS,
@@ -44,20 +45,29 @@ export const ALTA_CARD_REVIEW_ACTIVE_MESSAGE =
   "You already have an active account review in progress.";
 
 export const ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE =
-  "You may submit a new account review request immediately — no cooldown applies.";
+  "This review has been closed. You may submit a new account review request immediately.";
 
-export const ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE = `You must wait ${ALTA_CARD_REVIEW_COOLDOWN_DAYS} days before submitting another account review request.`;
+export const ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE =
+  "You may submit another account review request after 30 days.";
 
 export function formatReviewCancelledThreadMessage(reason: string): string {
   const trimmed = reason.trim();
-  const lead = trimmed ? `Account review cancelled. ${trimmed}` : "Account review cancelled.";
-  return `${lead} ${ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE}`;
+  const sections = ["This account review has been cancelled.", SECURE_DEAL_ROOM_CLOSED_LINE];
+  if (trimmed) {
+    sections.push(`Reason from Alta Credit Desk:\n\n${trimmed}`);
+  }
+  sections.push(ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE);
+  return sections.join("\n\n");
 }
 
 export function formatReviewDeniedThreadMessage(reason: string): string {
   const trimmed = reason.trim();
-  const lead = trimmed ? `Account review denied. ${trimmed}` : "Account review denied.";
-  return `${lead} ${ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE}`;
+  const sections = ["Your account review has been denied.", SECURE_DEAL_ROOM_CLOSED_LINE];
+  if (trimmed) {
+    sections.push(`Reason from Alta Credit Desk:\n\n${trimmed}`);
+  }
+  sections.push(ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE);
+  return sections.join("\n\n");
 }
 
 /** Eligible tier targets for account review (strictly higher tiers; Black/Gold have no upgrade path here). */
@@ -118,10 +128,10 @@ export function formatReviewDecisionThreadMessage(input: ReviewDecisionThreadInp
   const reason = input.reason.trim();
   const headline =
     input.finalStatus === "APPROVED"
-      ? "Account review approved."
+      ? "Your account review has been accepted."
       : input.finalStatus === "PARTIALLY_APPROVED"
-        ? "Account review partially approved."
-        : "Account review denied.";
+        ? "Your account review has been partially accepted."
+        : "Your account review has been denied.";
 
   const approvedLines: string[] = [];
   if (input.approvedLimitIncrease && input.approvedLimit != null) {
@@ -151,7 +161,7 @@ export function formatReviewDecisionThreadMessage(input: ReviewDecisionThreadInp
     declinedLines.push("Card tier upgrade");
   }
 
-  const sections = [headline];
+  const sections = [headline, SECURE_DEAL_ROOM_CLOSED_LINE];
   if (approvedLines.length > 0) {
     sections.push("", "Approved terms:", ...approvedLines.map((line) => `• ${line}`));
   }
@@ -159,7 +169,7 @@ export function formatReviewDecisionThreadMessage(input: ReviewDecisionThreadInp
     sections.push("", "Not approved:", ...declinedLines.map((line) => `• ${line}`));
   }
   if (reason) {
-    sections.push("", `Note: ${reason}`);
+    sections.push("", `Note from Alta Credit Desk:\n\n${reason}`);
   }
   if (input.finalStatus === "APPROVED" || input.finalStatus === "PARTIALLY_APPROVED") {
     sections.push("", ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE);

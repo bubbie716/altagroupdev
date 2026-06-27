@@ -32,6 +32,7 @@ import {
   formatReviewCooldownRemaining,
   reviewStatusTriggersCooldown,
 } from "@/lib/bank/alta-card-review-helpers";
+import { formatReviewNeedsInformationThreadMessage } from "@/lib/bank/secure-deal-room-system-copy";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
 import type { AltaCardReviewThreadStatusCode } from "@/lib/bank/alta-card-review-thread-types";
 import { resolveAltaCardThreadAttachmentMime } from "@/lib/storage/alta-card-thread-attachment.constants";
@@ -602,7 +603,7 @@ export async function processReviewDecision(
     });
     await postReviewSystemMessage(
       review.id,
-      `Additional information requested: ${input.reason.trim()}`,
+      formatReviewNeedsInformationThreadMessage(input.reason.trim()),
     );
     const { updateReviewThreadStatus } = await import("@/server/alta-card-review-thread.service");
     await updateReviewThreadStatus(staffUserId, {

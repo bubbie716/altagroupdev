@@ -12,6 +12,10 @@ import type {
 } from "@/lib/bank/alta-card-types";
 import { isAdmin, isOperator, isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import {
+  buildAltaCardApplicationAcceptedSystemMessage,
+  buildAltaCardApplicationDeniedSystemMessage,
+} from "@/lib/bank/secure-deal-room-system-copy";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -328,7 +332,7 @@ export async function approveAltaCardApplication(
 
   await postAltaCardApplicationSystemMessage(
     application.id,
-    "Your Alta Card application has been approved.",
+    buildAltaCardApplicationAcceptedSystemMessage(),
     true,
   );
 
@@ -394,7 +398,7 @@ export async function denyAltaCardApplication(
 
   await postAltaCardApplicationSystemMessage(
     application.id,
-    "Your Alta Card application was not approved.",
+    buildAltaCardApplicationDeniedSystemMessage(input.denialReason),
     true,
   );
 

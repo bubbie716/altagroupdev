@@ -4,6 +4,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE } from "@/lib/bank/secure-deal-room-system-copy";
 import {
   canManageBusinessTreasury,
   isAdmin,
@@ -227,7 +228,7 @@ async function assertThreadAccess(
 export async function createThreadForReviewRequest(
   actorUserId: string,
   reviewRequestId: string,
-  systemMessage = "Your secure deal room is ready. A relationship banker will review your account here.",
+  systemMessage = ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE,
 ): Promise<{ threadId: string; reviewRequestId: string }> {
   const review = await prisma.altaCardReviewRequest.findUnique({ where: { id: reviewRequestId } });
   if (!review) notFound();
@@ -288,7 +289,7 @@ export async function ensureReviewThreadExists(
         data: {
           threadId: created.id,
           senderRole: "SYSTEM",
-          body: "Your secure deal room is ready. A relationship banker will review your account here.",
+          body: ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE,
         },
       });
     }
@@ -485,25 +486,48 @@ export async function assertReviewThreadAccessForDownload(
   return assertThreadAccess(userId, reviewRequestId);
 }
 
-const CANCELLED_REAPPLY_NEEDLE = "no cooldown applies";
-const COOLDOWN_APPLIES_NEEDLE = "days before submitting";
+const CANCELLED_REAPPLY_NEEDLES = ["no cooldown applies", "submit a new account review request immediately"];
+const COOLDOWN_APPLIES_NEEDLES = ["days before submitting", "after 30 days"];
+
+const LEGACY_CANCELLED_PREFIX = "Account review cancelled";
+const CANCELLED_PREFIX = "This account review has been cancelled";
+
+const LEGACY_REVIEW_DECISION_PREFIXES = [
+  "Account review approved",
+  "Account review partially approved",
+  "Account review denied",
+] as const;
+
+const REVIEW_DECISION_PREFIXES = [
+  "Your account review has been accepted",
+  "Your account review has been partially accepted",
+  "Your account review has been denied",
+] as const;
+
+function isCancelledReviewMessage(body: string): boolean {
+  const trimmed = body.trim();
+  return trimmed.startsWith(CANCELLED_PREFIX) || trimmed.startsWith(LEGACY_CANCELLED_PREFIX);
+}
+
+function isReviewDecisionMessage(body: string): boolean {
+  const trimmed = body.trim();
+  return (
+    LEGACY_REVIEW_DECISION_PREFIXES.some((prefix) => trimmed.startsWith(prefix)) ||
+    REVIEW_DECISION_PREFIXES.some((prefix) => trimmed.startsWith(prefix))
+  );
+}
 
 export function cancelledReviewMessageNeedsReapplyNote(body: string | null | undefined): boolean {
-  if (!body?.trim().startsWith("Account review cancelled")) return false;
-  return !body.toLowerCase().includes(CANCELLED_REAPPLY_NEEDLE);
+  if (!body?.trim() || !isCancelledReviewMessage(body)) return false;
+  const lower = body.toLowerCase();
+  return !CANCELLED_REAPPLY_NEEDLES.some((needle) => lower.includes(needle));
 }
 
 export function reviewMessageNeedsCooldownNote(body: string | null | undefined): boolean {
   const trimmed = body?.trim();
-  if (!trimmed) return false;
-  if (
-    !trimmed.startsWith("Account review approved") &&
-    !trimmed.startsWith("Account review partially approved") &&
-    !trimmed.startsWith("Account review denied")
-  ) {
-    return false;
-  }
-  return !trimmed.toLowerCase().includes(COOLDOWN_APPLIES_NEEDLE);
+  if (!trimmed || !isReviewDecisionMessage(trimmed)) return false;
+  const lower = trimmed.toLowerCase();
+  return !COOLDOWN_APPLIES_NEEDLES.some((needle) => lower.includes(needle));
 }
 
 /** Append the immediate reapply note to legacy cancellation system messages. */
@@ -512,7 +536,10 @@ export async function backfillCancelledReviewThreadMessages(): Promise<{ updated
     where: {
       senderRole: "SYSTEM",
       deletedAt: null,
-      body: { startsWith: "Account review cancelled" },
+      OR: [
+        { body: { startsWith: LEGACY_CANCELLED_PREFIX } },
+        { body: { startsWith: CANCELLED_PREFIX } },
+      ],
       thread: { reviewRequest: { status: "CANCELLED" } },
     },
     select: { id: true, body: true },
@@ -539,9 +566,12 @@ export async function backfillCooldownReviewThreadMessages(): Promise<{ updated:
       senderRole: "SYSTEM",
       deletedAt: null,
       OR: [
-        { body: { startsWith: "Account review approved" } },
-        { body: { startsWith: "Account review partially approved" } },
-        { body: { startsWith: "Account review denied" } },
+        { body: { startsWith: LEGACY_REVIEW_DECISION_PREFIXES[0] } },
+        { body: { startsWith: LEGACY_REVIEW_DECISION_PREFIXES[1] } },
+        { body: { startsWith: LEGACY_REVIEW_DECISION_PREFIXES[2] } },
+        { body: { startsWith: REVIEW_DECISION_PREFIXES[0] } },
+        { body: { startsWith: REVIEW_DECISION_PREFIXES[1] } },
+        { body: { startsWith: REVIEW_DECISION_PREFIXES[2] } },
       ],
       thread: {
         reviewRequest: { status: { in: ["APPROVED", "PARTIALLY_APPROVED", "DENIED"] } },

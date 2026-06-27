@@ -1,0 +1,280 @@
+Secure Deal Room — Automatic System Messages Audit
+==================================================
+
+Read-only audit of SYSTEM messages (not staff/applicant chat) across the three
+V1 Secure Thread products. Personal and business use the same message text; only
+routing and header context differ.
+
+
+How system messages work
+------------------------
+
+Mechanism                          | Closes thread?              | Posts SYSTEM message?
+-----------------------------------|-----------------------------|------------------------
+Room open (thread created)         | No — starts WAITING_ON_ALTA | Yes — welcome message
+Terminal decision (approve/deny/   | Yes — CLOSED                | Yes — decision message
+  cancel/partial)
+Staff "Close Secure Deal Room"     | Yes — CLOSED                | No
+  (thread controls)
+Staff reopen thread                | Reopens                     | No
+Status-only changes (e.g. Alta     | No                          | No (except review
+  Card app → needs_info)           |                             | needs_information below)
+
+Decision messages are sent then the thread is closed in one transaction
+(closeThreadForApplicationIfOpen, postAltaCardApplicationSystemMessage(..., true),
+finalizeReviewThreadDecision).
+
+
+1. Lending Secure Deal Rooms
+----------------------------
+
+Service: loan-application-thread.service.ts
+Triggered from: lending.service.ts (submit) · loan.service.ts (approve/deny)
+
+When the room opens
+-------------------
+Trigger: createThreadForLoanApplication on application submit (or first visit via
+ensureThreadExists).
+
+Message (single SYSTEM post, default thread status WAITING_ON_ALTA):
+
+  Your application has been successfully received and is now under review.
+  If additional information is required, Alta will contact you through your Secure Deal Room.
+  You'll receive updates within Alta Bank and, if your Discord account is connected, through the Alta Bot.
+  If your Discord account is connected, you'll also receive notifications from the Alta Bot when new updates are available.
+
+(First three sentences = LOAN_APPLICATION_SUBMITTED_MESSAGE; last =
+LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE — Discord note appears twice in substance.)
+
+When the room closes — Accepted
+-------------------------------
+Trigger: approveLoanApplication → closeThreadForApplicationIfOpen +
+buildApplicationApprovedSystemMessage(reviewNote).
+
+Message:
+
+  Your credit application has been accepted.
+  This Secure Deal Room is now closed. Your approved facility will proceed through Alta Bank servicing.
+
+Optional third block if staff left a review note:
+
+  Note from Alta Credit Desk: {reviewNote}
+
+When the room closes — Denied
+-----------------------------
+Trigger: denyLoanApplication → closeThreadForApplicationIfOpen +
+buildApplicationDeniedSystemMessage(reviewNote).
+
+Message:
+
+  Your credit application was not approved.
+  This Secure Deal Room is now closed.
+
+Optional:
+
+  Note from Alta Credit Desk: {reviewNote}
+
+Not implemented for lending threads
+-------------------------------------
+- No SYSTEM message on cancelled applications (no cancel+close path found).
+- No SYSTEM message on staff manual close (closeThread / internal "Close Secure Deal Room").
+- No SYSTEM message on reopen.
+- No SYSTEM message when thread status is set to "Waiting on applicant" / "Waiting on Alta"
+  (status changes are silent; only the header updates).
+
+
+2. Alta Card Application Threads
+--------------------------------
+
+Service: alta-card-application-thread.service.ts · postAltaCardApplicationSystemMessage
+Triggered from: alta-card.service.ts (submit) · alta-card-application.service.ts (approve/deny)
+
+When the room opens
+-------------------
+Trigger: createThreadForAltaCardApplication on personal/business application submit
+(or ensureThreadExists on first visit).
+
+Message:
+
+  Your secure deal room is ready. Alta Credit Desk will review your application here.
+
+Thread status: WAITING_ON_ALTA.
+
+When the room closes — Approved
+---------------------------------
+Trigger: approveAltaCardApplication → postAltaCardApplicationSystemMessage(...,
+closeThread: true).
+
+Message:
+
+  Your Alta Card application has been approved.
+
+No staff note, tier/limit details, or cooldown text in the SYSTEM message (those live on
+the application record / UI).
+
+When the room closes — Denied
+-----------------------------
+Trigger: denyAltaCardApplication.
+
+Message:
+
+  Your Alta Card application was not approved.
+
+Gap: denialReason is stored on the application but not included in the deal room SYSTEM
+message (unlike lending deny notes).
+
+Not implemented for Alta Card application threads
+-------------------------------------------------
+- No SYSTEM message on cancelled (updateAltaCardApplicationStatus → cancelled is audit-only).
+- No SYSTEM message on needs_info status change.
+- No SYSTEM message on staff manual close/reopen (closeAltaCardApplicationThread /
+  reopenAltaCardApplicationThread — status only).
+- No partial-approval concept (binary approve/deny).
+
+
+3. Alta Card Account Review Threads
+-----------------------------------
+
+Service: alta-card-review-thread.service.ts · helpers in alta-card-review-helpers.ts
+Triggered from: alta-card-review.service.ts (processReviewDecision, submitReviewRequest)
+
+When the room opens
+-------------------
+Trigger: createThreadForReviewRequest on review submit.
+
+Message:
+
+  Your secure deal room is ready. A relationship banker will review your account here.
+
+Thread status: WAITING_ON_ALTA.
+
+Also on submit (not SYSTEM): If the cardholder included notes or attachments, an applicant
+message is sent (body = notes or "Supporting documents attached.") — not an automatic
+system message.
+
+Backfill edge case: ensureReviewThreadExists(..., { silent: true }) (used when closing a
+review that had no thread) creates a closed thread with no welcome message — only the
+decision SYSTEM message appears.
+
+When the room closes — Approved
+-------------------------------
+Trigger: Approve action → formatReviewDecisionThreadMessage → finalizeReviewThreadDecision.
+
+Message structure:
+
+  Account review approved.
+
+  Approved terms:
+  • Credit limit: {amount} (previously {amount})     [if approved]
+  • Interest rate: {rate} (previously {rate})       [if approved]
+  • Card tier: {tier} (previously {tier})           [if approved]
+
+  Not approved:                                      [if partial]
+  • Credit limit increase
+  • Interest rate reduction
+  • Card tier upgrade
+
+  Note: {staff reason}                               [if reason provided]
+
+  You must wait 30 days before submitting another account review request.
+
+Card terms are applied to the card before the message is sent.
+
+When the room closes — Partially approved
+-----------------------------------------
+Same formatter with headline:
+
+  Account review partially approved.
+
+Same approved / not-approved blocks and 30-day cooldown footer.
+
+When the room closes — Denied
+-----------------------------
+Trigger: Deny button → formatReviewDeniedThreadMessage(reason).
+
+Message:
+
+  Account review denied. {reason}
+  You must wait 30 days before submitting another account review request.
+
+(If reason empty: "Account review denied." + cooldown line.)
+
+When the room closes — Cancelled ("Close review")
+-------------------------------------------------
+Trigger: Cancel action → formatReviewCancelledThreadMessage(reason).
+
+Message:
+
+  Account review cancelled. {reason}
+  You may submit a new account review request immediately — no cooldown applies.
+
+(Default reason from staff UI: "Review closed" if none entered.)
+
+While room stays open — Needs information
+-----------------------------------------
+Trigger: needs_information action (still in backend; removed from internal UI in recent work).
+
+Message (does not close thread; sets review to NEEDS_INFORMATION, thread to
+waiting_on_applicant):
+
+  Additional information requested: {reason}
+
+Not implemented for review threads
+----------------------------------
+- No SYSTEM message on staff manual "Close Secure Deal Room" (closeReviewThread — thread
+  CLOSED only; review stays open unless separately cancelled).
+- No SYSTEM message on reopen (blocked anyway if review is terminal).
+- Approve path cannot produce "denied with zero approvals" (server requires at least one
+  approved term); deny always uses the dedicated deny formatter above.
+
+
+Cross-product comparison
+------------------------
+
+Event                  | Lending                          | Alta Card App                    | Account Review
+-----------------------|----------------------------------|----------------------------------|----------------------------------
+Open welcome           | Long submit + Discord note       | Short Credit Desk welcome        | Short relationship banker welcome
+Accepted / approved    | Accept + closed + optional note  | One-line approved                | Full terms + optional note + 30-day cooldown
+Partial approval       | N/A                              | N/A                              | Headline + approved/declined lists + cooldown
+Denied                 | Not approved + closed + optional | One-line not approved (no reason | Denied + reason + cooldown
+                       | note                             | in thread)                       |
+Cancelled              | N/A                              | N/A                              | Cancelled + reason + no cooldown
+Needs info             | N/A (silent status)              | N/A (silent status)              | SYSTEM message, room stays open
+Staff close thread only| No message                       | No message                       | No message
+Reopen                 | No message                       | No message                       | No message
+
+
+Audit findings (informational)
+------------------------------
+
+1. Lending welcome duplicates Discord guidance — submission copy and Discord note overlap
+   in the opening SYSTEM message.
+
+2. Alta Card deny — denial reason is not echoed in the deal room (lending and review
+   denials include staff text).
+
+3. Alta Card approve — no approved terms in the SYSTEM message (limit/tier/rate only
+   elsewhere).
+
+4. Review cancel vs staff thread close — "Close review" (cancel) posts a rich SYSTEM
+   message and ends the review; "Close Secure Deal Room" only closes the thread with no
+   SYSTEM post.
+
+5. needs_information — still generates a SYSTEM message in code though the internal button
+   was removed.
+
+6. No automatic messages for application/review cancel on lending or Alta Card apps (only
+   review cancel is wired).
+
+7. Personal = business — same strings and flows; company name only affects deal room
+   header metadata, not SYSTEM bodies.
+
+
+What is NOT a deal room SYSTEM message
+--------------------------------------
+
+- Staff and applicant chat messages (including review submit notes/attachments).
+- Audit log descriptions (e.g. "Secure Deal Room closed after acceptance.") — internal
+  only, not shown in the thread.
+- Legacy DealRoom model (deal-room.service.ts) — separate from V1 Secure Threads; not used
+  by the three thread UIs above.

@@ -20,14 +20,7 @@ export const LOAN_APPLICATION_STATUS_DEFINITIONS: Record<
   Denied: "Your application was not approved.",
 };
 
-export const LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE =
-  "If your Discord account is connected, you'll also receive notifications from the Alta Bot when new updates or messages are available.";
-
-export const LOAN_APPLICATION_SUBMITTED_MESSAGE = [
-  "Your application has been successfully received and is now under review.",
-  "If additional information is required, Alta will contact you through your Secure Deal Room.",
-  "You'll receive updates within Alta Bank and, if your Discord account is connected, through the Alta Bot.",
-].join(" ");
+export { LOAN_APPLICATION_SUBMITTED_MESSAGE } from "@/lib/bank/secure-deal-room-system-copy";
 
 export const LOAN_APPLICATION_WHAT_HAPPENS_NEXT = [
   "You submit · your application enters review.",

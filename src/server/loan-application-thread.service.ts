@@ -22,9 +22,10 @@ import type {
   UpdateThreadStatusInput,
 } from "@/lib/bank/loan-application-thread-types";
 import {
-  LOAN_APPLICATION_SUBMITTED_MESSAGE,
-  LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE,
-} from "@/lib/bank/lending-application-status-copy";
+  buildLendingApplicationAcceptedSystemMessage,
+  buildLendingApplicationDeniedSystemMessage,
+  LENDING_THREAD_WELCOME_MESSAGE,
+} from "@/lib/bank/secure-deal-room-system-copy";
 import { applicationListStatusLabel, THREAD_STATUS_LABELS, THREAD_STATUS_LABELS_INTERNAL } from "@/lib/bank/loan-application-thread-types";
 import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
 import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
@@ -38,28 +39,16 @@ import {
   SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
 } from "@/server/secure-thread-attachment-access";
 
-const INITIAL_SYSTEM_MESSAGE = `${LOAN_APPLICATION_SUBMITTED_MESSAGE} ${LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE}`;
+const INITIAL_SYSTEM_MESSAGE = LENDING_THREAD_WELCOME_MESSAGE;
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
 
 export function buildApplicationApprovedSystemMessage(reviewNote?: string | null): string {
-  const lines = [
-    "Your credit application has been accepted.",
-    "This Secure Deal Room is now closed. Your approved facility will proceed through Alta Bank servicing.",
-  ];
-  const note = reviewNote?.trim();
-  if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
-  return lines.join("\n");
+  return buildLendingApplicationAcceptedSystemMessage(reviewNote);
 }
 
 export function buildApplicationDeniedSystemMessage(reviewNote?: string | null): string {
-  const lines = [
-    "Your credit application was not approved.",
-    "This Secure Deal Room is now closed.",
-  ];
-  const note = reviewNote?.trim();
-  if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
-  return lines.join("\n");
+  return buildLendingApplicationDeniedSystemMessage(reviewNote);
 }
 
 const STATUS_FROM_DB: Record<DbThreadStatus, LoanApplicationThreadStatusCode> = {

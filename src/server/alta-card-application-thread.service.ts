@@ -4,6 +4,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { ALTA_CARD_APPLICATION_THREAD_WELCOME_MESSAGE } from "@/lib/bank/secure-deal-room-system-copy";
 import {
   canManageBusinessTreasury,
   isAdmin,
@@ -228,7 +229,7 @@ export async function ensureThreadExists(userId: string, applicationId: string):
 export async function createThreadForAltaCardApplication(
   actorUserId: string,
   applicationId: string,
-  systemMessage = "Your secure deal room is ready. Alta Credit Desk will review your application here.",
+  systemMessage = ALTA_CARD_APPLICATION_THREAD_WELCOME_MESSAGE,
 ): Promise<{ threadId: string; applicationId: string }> {
   const application = await prisma.altaCardApplication.findUnique({ where: { id: applicationId } });
   if (!application) notFound();

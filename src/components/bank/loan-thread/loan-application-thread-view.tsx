@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Florin } from "@/components/ui/florin";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,8 @@ import {
   isOwnThreadMessage,
   normalizeThreadMessage,
 } from "@/lib/bank/thread-message-utils";
+import { pollSecureThreadLive } from "@/lib/bank/secure-thread-live.functions";
+import { useSecureThreadLiveUpdates } from "@/hooks/use-secure-thread-live-updates";
 
 type ApplicationThreadProduct = "loan" | "alta-card" | "alta-card-review";
 
@@ -140,15 +142,44 @@ export function LoanApplicationThreadView({
   className?: string;
   product?: ApplicationThreadProduct;
 }) {
-  const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isBusyRef = useRef(false);
+  const scrollToLatestOnNextUpdateRef = useRef(false);
   const [messages, setMessages] = useState(initialMessages);
   const [ctx, setCtx] = useState(context);
   const [body, setBody] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMeta, setShowMeta] = useState(false);
+
+  isBusyRef.current = pending;
+
+  const pollSecureThread = useServerFn(pollSecureThreadLive);
+  const threadKey = `${product}:${variant}:${context.applicationId}`;
+
+  const fetchSnapshot = useCallback(async () => {
+    return pollSecureThread({
+      data: {
+        product,
+        threadId: context.applicationId,
+        variant,
+      },
+    });
+  }, [context.applicationId, pollSecureThread, product, variant]);
+
+  const { newMessagesAvailable, scrollToLatest } = useSecureThreadLiveUpdates({
+    threadKey,
+    fetchSnapshot,
+    initialContext: context,
+    initialMessages,
+    onContextChange: setCtx,
+    onMessagesChange: setMessages,
+    messages,
+    scrollerRef,
+    isBusyRef,
+    scrollToLatestOnNextUpdateRef,
+  });
 
   const copy = THREAD_PRODUCT_COPY[product];
   const decisionFinal = isTerminalThreadDecisionStatus(ctx.applicationStatus);
@@ -223,17 +254,6 @@ export function LoanApplicationThreadView({
     setCtx(next as LoanApplicationThreadContext);
   }
 
-  useEffect(() => {
-    setMessages(initialMessages);
-    setCtx(context);
-  }, [initialMessages, context]);
-
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
   // Auto-grow composer textarea
   useEffect(() => {
     const ta = textareaRef.current;
@@ -241,10 +261,6 @@ export function LoanApplicationThreadView({
     ta.style.height = "0px";
     ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
   }, [body]);
-
-  async function refresh() {
-    await router.invalidate();
-  }
 
   async function submitMessage() {
     const text = body.trim();
@@ -257,6 +273,7 @@ export function LoanApplicationThreadView({
         data: { applicationId: ctx.applicationId, body: text },
       });
       const msg = normalizeThreadMessage(product, raw);
+      scrollToLatestOnNextUpdateRef.current = true;
       setMessages((prev) => [...prev, msg]);
       setBody("");
       if (product !== "alta-card-review") {
@@ -266,6 +283,7 @@ export function LoanApplicationThreadView({
           statusLabel: variant === "internal" ? "Waiting on You" : "Waiting on Alta",
         }));
       }
+      requestAnimationFrame(() => scrollToLatest());
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Failed to send.");
     } finally {
@@ -311,9 +329,10 @@ export function LoanApplicationThreadView({
         },
       });
       const msg = normalizeThreadMessage(product, raw);
+      scrollToLatestOnNextUpdateRef.current = true;
       setMessages((prev) => [...prev, msg]);
       setBody("");
-      await refresh();
+      requestAnimationFrame(() => scrollToLatest());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
@@ -408,9 +427,21 @@ export function LoanApplicationThreadView({
       </header>
 
       {/* Messages */}
+      <div className="relative min-h-0 flex-1 flex flex-col">
+        {newMessagesAvailable ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+            <button
+              type="button"
+              onClick={scrollToLatest}
+              className="pointer-events-auto rounded-full border border-border bg-[#0f1729] px-4 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white shadow-lg transition hover:bg-[#0f1729]/90 dark:border-gold/40 dark:bg-gold dark:text-[#0f1729]"
+            >
+              New messages
+            </button>
+          </div>
+        ) : null}
       <div
         ref={scrollerRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
+        className="h-full overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
         style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-3xl">
@@ -431,6 +462,7 @@ export function LoanApplicationThreadView({
             renderMessageStream(messages, variant, ctx.viewerUserId, ctx.applicantAvatarUrl, copy)
           )}
         </div>
+      </div>
       </div>
 
       {/* Composer */}
