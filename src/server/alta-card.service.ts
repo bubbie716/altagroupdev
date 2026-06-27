@@ -48,6 +48,7 @@ import {
   toDbAltaCardTier,
   toDbAltaCardType,
 } from "@/server/alta-card-mapper";
+import { mapAutopaySettingsForCard } from "@/server/alta-card-autopay.service";
 import {
   BLOCKING_ALTA_CARD_APPLICATION_STATUSES,
   blockingBusinessApplicationWhere,
@@ -92,8 +93,34 @@ function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function earliestPaymentDueDate(cards: AltaCardRow[]): string | null {
+  return earliestIsoDate(cards.map((card) => card.paymentDueDate ?? card.dueDate));
+}
+
+function earliestIsoDate(values: Array<string | null | undefined>): string | null {
+  const dates = values.filter((value): value is string => !!value).sort();
+  return dates[0] ?? null;
+}
+
+async function enrichAltaCardRowBillingDates(row: AltaCardRow): Promise<AltaCardRow> {
+  const { resolveAltaCardBillingDates } = await import("@/server/alta-card-statement.service");
+  const billingDates = await resolveAltaCardBillingDates(prisma, row.id);
+
+  return {
+    ...row,
+    paymentDueDate: billingDates.paymentDueDate?.toISOString() ?? null,
+    dueDate: billingDates.paymentDueDate?.toISOString() ?? null,
+    nextStatementDate: billingDates.nextStatementDate?.toISOString() ?? null,
+    currentBillingCycleStart: billingDates.billingPeriodStart?.toISOString() ?? row.currentBillingCycleStart,
+    currentBillingCycleEnd: billingDates.billingPeriodEnd?.toISOString() ?? row.currentBillingCycleEnd,
+  };
+}
+
 function aggregateCompanyBusinessCardRow(primary: AltaCardRow, cards: AltaCardRow[]): AltaCardRow {
   if (cards.length <= 1) return primary;
+
+  const paymentDueDate = earliestPaymentDueDate(cards);
+  const nextStatementDate = earliestIsoDate(cards.map((card) => card.nextStatementDate));
 
   return {
     ...primary,
@@ -102,6 +129,9 @@ function aggregateCompanyBusinessCardRow(primary: AltaCardRow, cards: AltaCardRo
     creditLimit: roundMoney(cards.reduce((sum, card) => sum + card.creditLimit, 0)),
     statementBalance: roundMoney(cards.reduce((sum, card) => sum + card.statementBalance, 0)),
     minimumPaymentDue: roundMoney(cards.reduce((sum, card) => sum + card.minimumPaymentDue, 0)),
+    paymentDueDate,
+    dueDate: paymentDueDate,
+    nextStatementDate,
   };
 }
 
@@ -127,7 +157,7 @@ async function loadAggregatedCompanyBusinessCard(
     include: altaCardInclude,
     orderBy: { createdAt: "asc" },
   });
-  const mappedCards = refreshedCards.map(mapAltaCardRow);
+  const mappedCards = await Promise.all(refreshedCards.map((card) => enrichAltaCardRowBillingDates(mapAltaCardRow(card))));
   const primaryDb =
     refreshedCards.find((card) => card.id === primaryCardId) ??
     refreshedCards.find((card) => card.employeeCards.some((employee) => employee.status !== "CLOSED")) ??
@@ -607,110 +637,34 @@ export async function closeAltaCard(actorUserId: string, cardId: string): Promis
   return mapAltaCardRow(updated);
 }
 
+/** @deprecated Do not call from UI. Use alta-card-admin.service.ts (updateAltaCardLimitAdmin). */
 export async function updateAltaCardLimit(
   adminUserId: string,
   input: UpdateAltaCardLimitInput,
 ): Promise<AltaCardRow> {
-  const admin = await getAltaUser(adminUserId);
-  assertOperatorOrAdmin(admin);
-
-  const card = await getCardOrThrow(input.cardId);
-  if (input.creditLimit <= 0) badRequest("Credit limit must be greater than zero");
-
-  const balance = Number(card.currentBalance);
-  const availableCredit = Math.max(0, input.creditLimit - balance);
-
-  const updated = await prisma.altaCard.update({
-    where: { id: input.cardId },
-    data: {
-      creditLimit: toDecimal(input.creditLimit),
-      availableCredit: toDecimal(availableCredit),
-    },
-    include: altaCardInclude,
-  });
-
-  await auditCardEvent(
-    adminUserId,
-    "ALTA_CARD_LIMIT_CHANGED",
-    `Alta Card limit changed to ${input.creditLimit}`,
-    input.cardId,
-    {
-      previousLimit: Number(card.creditLimit),
-      newLimit: input.creditLimit,
-    },
-    card.ownerUserId,
-    card.companyId,
-  );
-
-  return mapAltaCardRow(updated);
+  void adminUserId;
+  void input;
+  badRequest("Use the internal card detail ops panel to change credit limits.");
 }
 
+/** @deprecated Do not call from UI. Use alta-card-admin.service.ts (updateAltaCardRateAdmin). */
 export async function updateAltaCardRate(
   adminUserId: string,
   input: UpdateAltaCardRateInput,
 ): Promise<AltaCardRow> {
-  const admin = await getAltaUser(adminUserId);
-  assertOperatorOrAdmin(admin);
-
-  const card = await getCardOrThrow(input.cardId);
-  if (input.interestRate < 0) badRequest("Interest rate cannot be negative");
-
-  const updated = await prisma.altaCard.update({
-    where: { id: input.cardId },
-    data: { interestRate: toDecimal(input.interestRate) },
-    include: altaCardInclude,
-  });
-
-  await auditCardEvent(
-    adminUserId,
-    "ALTA_CARD_RATE_CHANGED",
-    `Alta Card rate changed to ${input.interestRate}%`,
-    input.cardId,
-    {
-      previousRate: Number(card.interestRate),
-      newRate: input.interestRate,
-    },
-    card.ownerUserId,
-    card.companyId,
-  );
-
-  return mapAltaCardRow(updated);
+  void adminUserId;
+  void input;
+  badRequest("Use the internal card detail ops panel to change interest rates.");
 }
 
+/** @deprecated Do not call from UI. Use alta-card-admin.service.ts (changeAltaCardTierAdmin). */
 export async function changeAltaCardTier(
   adminUserId: string,
   input: ChangeAltaCardTierInput,
 ): Promise<AltaCardRow> {
-  const admin = await getAltaUser(adminUserId);
-  assertOperatorOrAdmin(admin);
-
-  const card = await getCardOrThrow(input.cardId);
-
-  if (input.tier === "gold" && card.ownerUserId) {
-    const owner = await getAltaUser(card.ownerUserId);
-    assertGoldTierAllowed(owner, input.tier);
-  }
-
-  const updated = await prisma.altaCard.update({
-    where: { id: input.cardId },
-    data: { tier: toDbAltaCardTier(input.tier) },
-    include: altaCardInclude,
-  });
-
-  await auditCardEvent(
-    adminUserId,
-    "ALTA_CARD_TIER_CHANGED",
-    `Alta Card tier changed to ${input.tier}`,
-    input.cardId,
-    {
-      previousTier: card.tier.toLowerCase(),
-      newTier: input.tier,
-    },
-    card.ownerUserId,
-    card.companyId,
-  );
-
-  return mapAltaCardRow(updated);
+  void adminUserId;
+  void input;
+  badRequest("Use the internal card detail ops panel to change card tier.");
 }
 
 export async function createEmployeeCard(
@@ -1118,7 +1072,19 @@ export async function listUserBusinessAltaCardCompanies(userId: string): Promise
 const employeeCardListInclude = {
   authorizedUser: { select: { discordUsername: true } },
   company: { select: { name: true } },
-  parentBusinessCard: { select: { tier: true } },
+  parentBusinessCard: {
+    select: {
+      tier: true,
+      autopayEnabled: true,
+      autopaySourceAccountId: true,
+      autopayType: true,
+      autopayFixedAmount: true,
+      autopayLastRunAt: true,
+      autopayLastStatus: true,
+      autopayFailureReason: true,
+      autopaySourceAccount: { select: { accountName: true, accountNumber: true } },
+    },
+  },
 } as const;
 
 export async function listUserEmployeeAltaCards(userId: string): Promise<UserEmployeeAltaCardSummary[]> {
@@ -1164,5 +1130,6 @@ export async function getUserEmployeeAltaCardDetail(
     ...mapAltaEmployeeCardRow(refreshedEmployee),
     parentTier: toAltaCardTierCode(refreshedEmployee.parentBusinessCard.tier),
     recentTransactions,
+    parentAutopay: mapAutopaySettingsForCard(refreshedEmployee.parentBusinessCard, { canManage: false }),
   };
 }

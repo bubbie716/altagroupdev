@@ -9,6 +9,7 @@ import {
   runAltaCardStatementSchedulerJob,
 } from "@/server/alta-card-billing-scheduler.service";
 import { runBankAccountStatementSchedulerJob } from "@/server/bank-statement-scheduler.service";
+import { runDepositInterestSchedulerJob } from "@/server/deposit-interest-scheduler.service";
 import { executeDuePayrollRuns } from "@/server/payroll-executor.service";
 import { executeDueScheduledTransfers } from "@/server/scheduled-transfer-executor.service";
 
@@ -28,15 +29,29 @@ async function executeBankStatementServicing() {
   return runBankAccountStatementSchedulerJob({ trigger: "cron" });
 }
 
+async function executeDepositInterestServicing() {
+  return runDepositInterestSchedulerJob({ trigger: "cron" });
+}
+
 async function runExecutor() {
-  const [scheduledTransfers, payroll, loanServicing, altaCard, bankStatements] = await Promise.all([
-    executeDueScheduledTransfers(),
-    executeDuePayrollRuns(),
-    executeLoanServicing(),
-    executeAltaCardServicing(),
-    executeBankStatementServicing(),
-  ]);
-  return cronResponse({ ok: true, scheduledTransfers, payroll, loanServicing, altaCard, bankStatements });
+  const [scheduledTransfers, payroll, loanServicing, altaCard, bankStatements, depositInterest] =
+    await Promise.all([
+      executeDueScheduledTransfers(),
+      executeDuePayrollRuns(),
+      executeLoanServicing(),
+      executeAltaCardServicing(),
+      executeBankStatementServicing(),
+      executeDepositInterestServicing(),
+    ]);
+  return cronResponse({
+    ok: true,
+    scheduledTransfers,
+    payroll,
+    loanServicing,
+    altaCard,
+    bankStatements,
+    depositInterest,
+  });
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({

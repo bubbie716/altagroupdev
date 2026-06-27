@@ -6,11 +6,15 @@ All amounts are in **Florins (ƒ)**. All advertised rates are **monthly interest
 
 ## Products
 
-| Product | Limit | Monthly rate | Repayment |
-|---------|-------|--------------|-----------|
-| Personal Credit Line | Up to ƒ1.5M | 7.5% monthly | Minimum 10% monthly |
-| Business Credit Line | Up to ƒ10M | 6% monthly | Minimum 8% monthly |
-| Private Liquidity Line | Up to ƒ25M | Negotiated monthly | Custom terms |
+| Product | Limit | Monthly rate | Typical term |
+|---------|-------|--------------|--------------|
+| Personal Credit Line | Up to ƒ1.5M | 7.5% monthly | Up to 6 months |
+| Business Credit Line | Up to ƒ10M | 6% monthly | Up to 8 months |
+| Private Liquidity Line | Up to ƒ25M | Negotiated monthly | Negotiated terms |
+
+Product pages show **typical** repayment terms only. Applicants may request terms from **1–120 months** on the application form. The **final repayment schedule** (installment amounts and cadence) is determined during underwriting and encoded in the loan payment schedule at acceptance.
+
+At servicing, each approved loan accrues **monthly interest** on outstanding balance and generates equal principal installments over the approved `termMonths`.
 
 ### Eligibility
 
@@ -23,12 +27,37 @@ All amounts are in **Florins (ƒ)**. All advertised rates are **monthly interest
 ## Lifecycle
 
 ```
-Application (PENDING) → Under Review → Approved → Disbursement → Active loan
+Application (PENDING) → Under Review → Accepted → Disbursement → Active loan
                                                               ↓
                                     Payments ← Monthly interest accrual
                                                               ↓
                                                          PAID_OFF
 ```
+
+### Application display statuses (user-facing)
+
+| Status | Meaning |
+|--------|---------|
+| **Waiting on Alta** | Alta is reviewing the application or preparing the next step. |
+| **Waiting on You** | Alta requires additional information, documents, or action from the applicant. |
+| **Accepted** | Application approved; facility proceeds through servicing. |
+| **Denied** | Application not approved. |
+
+Backend stores `PENDING`, `UNDER_REVIEW`, `APPROVED`, `DENIED`, and `CANCELLED`. `CANCELLED` displays as **Denied**. In-review applications use thread status (`WAITING_ON_APPLICANT` → Waiting on You; otherwise Waiting on Alta).
+
+Communication during review happens in the **Secure Deal Room** (application thread at `/bank/lending/applications/$applicationId/thread`).
+
+V1 Secure Deal Rooms are **Applicant ↔ Alta Credit Desk** threads. There is no individual banker assignment; any operator may reply. Staff messages appear as **Alta Credit Desk** to applicants. Internal audit logs still record which admin/operator performed each action.
+
+## Relationship Intelligence (future)
+
+Do **not** build on legacy `DealRoom` tables. Integrate with:
+
+- `LoanApplicationThread` / `loan-application-thread.service.ts`
+- `lending-application-status-copy.ts` (display statuses)
+- Alta Card review request threads where applicable
+
+See [deal-rooms.md](./lending/deal-rooms.md) and [legacy-deal-room-infrastructure.md](./lending/legacy-deal-room-infrastructure.md).
 
 ## Interest accrual (monthly)
 
@@ -59,7 +88,7 @@ Legacy loans with `ANNUAL_PERCENT` still accrue using annual ÷ 12.
 
 ## Payment schedule
 
-When a loan is approved, a schedule is generated from `termMonths` (from the application):
+When a loan is accepted, a schedule is generated from `termMonths` (from the application, as finalized at acceptance):
 
 - **Equal principal per month** plus **projected monthly interest** on the remaining balance (e.g. 4 months on ƒ100,000 at 5.25% monthly → ƒ25,000 principal + ƒ5,250 interest in month 1)
 - First installment due **one month after approval** (aligned with first interest accrual)
@@ -94,9 +123,9 @@ Atomic: debit account → `LOAN_PAYMENT` bank txn → `LoanPayment` → ledger �
 
 Interest accrues on the remaining outstanding balance; scheduled installments include both principal and projected interest for each period.
 
-## Approval & disbursement
+## Acceptance & disbursement
 
-Operator sets **monthly rate %** at approval (defaults pre-filled from product). Creates `Loan`, optional disbursement to linked account, `DISBURSEMENT` ledger entry.
+Operators set **monthly rate %** at acceptance (defaults pre-filled from product). Creates `Loan`, optional disbursement to linked account, `DISBURSEMENT` ledger entry.
 
 ## Repayment progress
 

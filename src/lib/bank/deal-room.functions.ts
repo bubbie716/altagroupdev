@@ -1,4 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+/**
+ * Legacy deal room RPC wrappers. V1 lending application review uses
+ * `loan-application-thread.functions.ts`. Kept for historical deal room records,
+ * notifications (`fetchUserNotifications`), and agreement execution APIs.
+ */
 import type {
   AddDealRoomSystemUpdateInput,
   AssignDealRoomOfficerInput,
@@ -22,6 +27,7 @@ async function requireInternalActorId(): Promise<string> {
 }
 
 export const fetchUserDealRooms = createServerFn({ method: "GET" }).handler(async () => {
+  /** @deprecated Legacy DealRoom model. Use LoanApplicationThread / Secure Deal Room instead. */
   const { getUserDealRooms } = await import("@/server/deal-room.service");
   const userId = await actorId();
   return getUserDealRooms(userId);
@@ -99,6 +105,7 @@ export const deleteDealRoomMessageRecord = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** @deprecated Legacy DealRoom model. Use LoanApplicationThread / Secure Deal Room instead. */
 export const createDealRoomForApplication = createServerFn({ method: "POST" })
   .inputValidator((loanApplicationId: string) => loanApplicationId)
   .handler(async ({ data: loanApplicationId }) => {
@@ -107,7 +114,7 @@ export const createDealRoomForApplication = createServerFn({ method: "POST" })
     return createDealRoomForLoanApplication(userId, loanApplicationId);
   });
 
-/** Internal ops: open a deal room for an existing application (idempotent). */
+/** @deprecated Legacy DealRoom model. Use LoanApplicationThread / Secure Deal Room instead. */
 export const createInternalDealRoomForApplication = createServerFn({ method: "POST" })
   .inputValidator((loanApplicationId: string) => loanApplicationId)
   .handler(async ({ data: loanApplicationId }) => {
@@ -116,6 +123,7 @@ export const createInternalDealRoomForApplication = createServerFn({ method: "PO
     return createDealRoomForLoanApplication(userId, loanApplicationId);
   });
 
+/** @deprecated Legacy DealRoom staff assignment. V1 Secure Deal Rooms are not staff-assigned. */
 export const assignDealRoomOfficerRecord = createServerFn({ method: "POST" })
   .inputValidator((input: AssignDealRoomOfficerInput) => input)
   .handler(async ({ data }) => {

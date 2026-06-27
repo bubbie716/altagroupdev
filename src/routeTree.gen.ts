@@ -128,6 +128,7 @@ import { Route as InternalLendingDealRoomsIndexRouteImport } from './routes/inte
 import { Route as InternalBankTransactionsIndexRouteImport } from './routes/internal/bank/transactions/index'
 import { Route as InternalBankAltaPayIndexRouteImport } from './routes/internal/bank/alta-pay/index'
 import { Route as InternalBankAccountsIndexRouteImport } from './routes/internal/bank/accounts/index'
+import { Route as InternalAltaCardReviewsIndexRouteImport } from './routes/internal/alta-card/reviews/index'
 import { Route as InternalAltaCardApplicationsIndexRouteImport } from './routes/internal/alta-card/applications/index'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
@@ -141,11 +142,9 @@ import { Route as InternalLendingLoansLoanIdRouteImport } from './routes/interna
 import { Route as InternalLendingDealRoomsDealRoomIdRouteImport } from './routes/internal/lending/deal-rooms/$dealRoomId'
 import { Route as InternalBankTransactionsTransactionIdRouteImport } from './routes/internal/bank/transactions/$transactionId'
 import { Route as InternalBankAccountsAccountIdRouteImport } from './routes/internal/bank/accounts/$accountId'
-import { Route as InternalAltaCardApplicationsApplicationIdRouteImport } from './routes/internal/alta-card/applications/$applicationId'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
 import { Route as BankAltaCardBusinessApplyRouteImport } from './routes/bank/alta-card/business/apply'
-import { Route as BankAltaCardApplicationsApplicationIdRouteImport } from './routes/bank/alta-card/applications/$applicationId'
 import { Route as BankAccountsAccountIdStatementsRouteImport } from './routes/bank/accounts/$accountId/statements'
 import { Route as BankAccountsAccountIdSettingsRouteImport } from './routes/bank/accounts/$accountId/settings'
 import { Route as BankAccountsAccountIdScheduledRouteImport } from './routes/bank/accounts/$accountId/scheduled'
@@ -164,19 +163,40 @@ import { Route as ApiLoanThreadsApplicationIdAttachmentsRouteImport } from './ro
 import { Route as ApiInternalDiscordEmbedRouteImport } from './routes/api/internal/discord/embed'
 import { Route as ApiDealRoomsDealRoomIdDocumentsRouteImport } from './routes/api/deal-rooms/$dealRoomId/documents'
 import { Route as ApiAuthDiscordCallbackRouteImport } from './routes/api/auth/discord/callback'
+import { Route as ApiAltaCardThreadsApplicationIdAttachmentsRouteImport } from './routes/api/alta-card-threads/$applicationId/attachments'
+import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport } from './routes/api/alta-card-review-threads/$reviewId/attachments'
+import { Route as InternalAltaCardApplicationsApplicationIdRouteRouteImport } from './routes/internal/alta-card/applications/$applicationId/route'
 import { Route as BankAltaCardBusinessCompanyIdRouteRouteImport } from './routes/bank/alta-card/business/$companyId/route'
+import { Route as BankAltaCardApplicationsApplicationIdRouteRouteImport } from './routes/bank/alta-card/applications/$applicationId/route'
+import { Route as InternalAltaCardReviewsReviewIdIndexRouteImport } from './routes/internal/alta-card/reviews/$reviewId/index'
+import { Route as InternalAltaCardApplicationsApplicationIdIndexRouteImport } from './routes/internal/alta-card/applications/$applicationId/index'
 import { Route as BankAltaCardBusinessCompanyIdIndexRouteImport } from './routes/bank/alta-card/business/$companyId/index'
+import { Route as BankAltaCardApplicationsApplicationIdIndexRouteImport } from './routes/bank/alta-card/applications/$applicationId/index'
 import { Route as BankAltaCardCardIdStatementsIndexRouteImport } from './routes/bank/alta-card/$cardId/statements/index'
+import { Route as BankAltaCardCardIdReviewIndexRouteImport } from './routes/bank/alta-card/$cardId/review/index'
 import { Route as InternalLendingApplicationsApplicationIdThreadRouteImport } from './routes/internal/lending/applications/$applicationId/thread'
+import { Route as InternalAltaCardReviewsReviewIdThreadRouteImport } from './routes/internal/alta-card/reviews/$reviewId/thread'
+import { Route as InternalAltaCardApplicationsApplicationIdThreadRouteImport } from './routes/internal/alta-card/applications/$applicationId/thread'
 import { Route as BankLendingApplicationsApplicationIdThreadRouteImport } from './routes/bank/lending/applications/$applicationId/thread'
 import { Route as BankAltaCardBusinessEmployeeEmployeeCardIdRouteImport } from './routes/bank/alta-card/business/employee/$employeeCardId'
-import { Route as BankAltaCardBusinessApplicationsApplicationIdRouteImport } from './routes/bank/alta-card/business/applications/$applicationId'
+import { Route as BankAltaCardApplicationsApplicationIdThreadRouteImport } from './routes/bank/alta-card/applications/$applicationId/thread'
 import { Route as BankAltaCardCardIdStatementsStatementIdRouteImport } from './routes/bank/alta-card/$cardId/statements/$statementId'
 import { Route as ApiDealRoomsDocumentsDocumentIdDownloadRouteImport } from './routes/api/deal-rooms/documents/$documentId/download'
 import { Route as ApiDealRoomsAgreementDraftsDraftIdDownloadRouteImport } from './routes/api/deal-rooms/agreement-drafts/$draftId/download'
 import { Route as ApiDealRoomsDealRoomIdAgreementPreviewRouteImport } from './routes/api/deal-rooms/$dealRoomId/agreement/preview'
+import { Route as BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/route'
+import { Route as BankAltaCardBusinessApplicationsApplicationIdIndexRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/index'
 import { Route as BankAltaCardBusinessCompanyIdStatementsIndexRouteImport } from './routes/bank/alta-card/business/$companyId/statements/index'
+import { Route as BankAltaCardBusinessCompanyIdReviewIndexRouteImport } from './routes/bank/alta-card/business/$companyId/review/index'
+import { Route as BankAltaCardCardIdReviewReviewIdIndexRouteImport } from './routes/bank/alta-card/$cardId/review/$reviewId/index'
+import { Route as BankAltaCardBusinessApplicationsApplicationIdThreadRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/thread'
 import { Route as BankAltaCardBusinessCompanyIdStatementsStatementIdRouteImport } from './routes/bank/alta-card/business/$companyId/statements/$statementId'
+import { Route as BankAltaCardCardIdReviewReviewIdThreadRouteImport } from './routes/bank/alta-card/$cardId/review/$reviewId/thread'
+import { Route as ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+import { Route as ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+import { Route as BankAltaCardBusinessCompanyIdReviewReviewIdIndexRouteImport } from './routes/bank/alta-card/business/$companyId/review/$reviewId/index'
+import { Route as BankAltaCardBusinessCompanyIdReviewReviewIdThreadRouteImport } from './routes/bank/alta-card/business/$companyId/review/$reviewId/thread'
 
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
@@ -791,6 +811,12 @@ const InternalBankAccountsIndexRoute =
     path: '/accounts/',
     getParentRoute: () => InternalBankRouteRoute,
   } as any)
+const InternalAltaCardReviewsIndexRoute =
+  InternalAltaCardReviewsIndexRouteImport.update({
+    id: '/alta-card/reviews/',
+    path: '/alta-card/reviews/',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
 const InternalAltaCardApplicationsIndexRoute =
   InternalAltaCardApplicationsIndexRouteImport.update({
     id: '/alta-card/applications/',
@@ -867,12 +893,6 @@ const InternalBankAccountsAccountIdRoute =
     path: '/accounts/$accountId',
     getParentRoute: () => InternalBankRouteRoute,
   } as any)
-const InternalAltaCardApplicationsApplicationIdRoute =
-  InternalAltaCardApplicationsApplicationIdRouteImport.update({
-    id: '/alta-card/applications/$applicationId',
-    path: '/alta-card/applications/$applicationId',
-    getParentRoute: () => InternalRouteRoute,
-  } as any)
 const ExchangeCompanyTickerOwnerRoute =
   ExchangeCompanyTickerOwnerRouteImport.update({
     id: '/owner',
@@ -889,12 +909,6 @@ const BankAltaCardBusinessApplyRoute =
   BankAltaCardBusinessApplyRouteImport.update({
     id: '/bank/alta-card/business/apply',
     path: '/bank/alta-card/business/apply',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const BankAltaCardApplicationsApplicationIdRoute =
-  BankAltaCardApplicationsApplicationIdRouteImport.update({
-    id: '/bank/alta-card/applications/$applicationId',
-    path: '/bank/alta-card/applications/$applicationId',
     getParentRoute: () => rootRouteImport,
   } as any)
 const BankAccountsAccountIdStatementsRoute =
@@ -1003,11 +1017,47 @@ const ApiAuthDiscordCallbackRoute = ApiAuthDiscordCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => ApiAuthDiscordRoute,
 } as any)
+const ApiAltaCardThreadsApplicationIdAttachmentsRoute =
+  ApiAltaCardThreadsApplicationIdAttachmentsRouteImport.update({
+    id: '/api/alta-card-threads/$applicationId/attachments',
+    path: '/api/alta-card-threads/$applicationId/attachments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAltaCardReviewThreadsReviewIdAttachmentsRoute =
+  ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport.update({
+    id: '/api/alta-card-review-threads/$reviewId/attachments',
+    path: '/api/alta-card-review-threads/$reviewId/attachments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const InternalAltaCardApplicationsApplicationIdRouteRoute =
+  InternalAltaCardApplicationsApplicationIdRouteRouteImport.update({
+    id: '/alta-card/applications/$applicationId',
+    path: '/alta-card/applications/$applicationId',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
 const BankAltaCardBusinessCompanyIdRouteRoute =
   BankAltaCardBusinessCompanyIdRouteRouteImport.update({
     id: '/bank/alta-card/business/$companyId',
     path: '/bank/alta-card/business/$companyId',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const BankAltaCardApplicationsApplicationIdRouteRoute =
+  BankAltaCardApplicationsApplicationIdRouteRouteImport.update({
+    id: '/bank/alta-card/applications/$applicationId',
+    path: '/bank/alta-card/applications/$applicationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const InternalAltaCardReviewsReviewIdIndexRoute =
+  InternalAltaCardReviewsReviewIdIndexRouteImport.update({
+    id: '/alta-card/reviews/$reviewId/',
+    path: '/alta-card/reviews/$reviewId/',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalAltaCardApplicationsApplicationIdIndexRoute =
+  InternalAltaCardApplicationsApplicationIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => InternalAltaCardApplicationsApplicationIdRouteRoute,
   } as any)
 const BankAltaCardBusinessCompanyIdIndexRoute =
   BankAltaCardBusinessCompanyIdIndexRouteImport.update({
@@ -1015,10 +1065,22 @@ const BankAltaCardBusinessCompanyIdIndexRoute =
     path: '/',
     getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
   } as any)
+const BankAltaCardApplicationsApplicationIdIndexRoute =
+  BankAltaCardApplicationsApplicationIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => BankAltaCardApplicationsApplicationIdRouteRoute,
+  } as any)
 const BankAltaCardCardIdStatementsIndexRoute =
   BankAltaCardCardIdStatementsIndexRouteImport.update({
     id: '/statements/',
     path: '/statements/',
+    getParentRoute: () => BankAltaCardCardIdRouteRoute,
+  } as any)
+const BankAltaCardCardIdReviewIndexRoute =
+  BankAltaCardCardIdReviewIndexRouteImport.update({
+    id: '/review/',
+    path: '/review/',
     getParentRoute: () => BankAltaCardCardIdRouteRoute,
   } as any)
 const InternalLendingApplicationsApplicationIdThreadRoute =
@@ -1026,6 +1088,18 @@ const InternalLendingApplicationsApplicationIdThreadRoute =
     id: '/applications/$applicationId/thread',
     path: '/applications/$applicationId/thread',
     getParentRoute: () => InternalLendingRouteRoute,
+  } as any)
+const InternalAltaCardReviewsReviewIdThreadRoute =
+  InternalAltaCardReviewsReviewIdThreadRouteImport.update({
+    id: '/alta-card/reviews/$reviewId/thread',
+    path: '/alta-card/reviews/$reviewId/thread',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalAltaCardApplicationsApplicationIdThreadRoute =
+  InternalAltaCardApplicationsApplicationIdThreadRouteImport.update({
+    id: '/thread',
+    path: '/thread',
+    getParentRoute: () => InternalAltaCardApplicationsApplicationIdRouteRoute,
   } as any)
 const BankLendingApplicationsApplicationIdThreadRoute =
   BankLendingApplicationsApplicationIdThreadRouteImport.update({
@@ -1039,11 +1113,11 @@ const BankAltaCardBusinessEmployeeEmployeeCardIdRoute =
     path: '/bank/alta-card/business/employee/$employeeCardId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const BankAltaCardBusinessApplicationsApplicationIdRoute =
-  BankAltaCardBusinessApplicationsApplicationIdRouteImport.update({
-    id: '/bank/alta-card/business/applications/$applicationId',
-    path: '/bank/alta-card/business/applications/$applicationId',
-    getParentRoute: () => rootRouteImport,
+const BankAltaCardApplicationsApplicationIdThreadRoute =
+  BankAltaCardApplicationsApplicationIdThreadRouteImport.update({
+    id: '/thread',
+    path: '/thread',
+    getParentRoute: () => BankAltaCardApplicationsApplicationIdRouteRoute,
   } as any)
 const BankAltaCardCardIdStatementsStatementIdRoute =
   BankAltaCardCardIdStatementsStatementIdRouteImport.update({
@@ -1069,16 +1143,88 @@ const ApiDealRoomsDealRoomIdAgreementPreviewRoute =
     path: '/api/deal-rooms/$dealRoomId/agreement/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const BankAltaCardBusinessApplicationsApplicationIdRouteRoute =
+  BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport.update({
+    id: '/bank/alta-card/business/applications/$applicationId',
+    path: '/bank/alta-card/business/applications/$applicationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BankAltaCardBusinessApplicationsApplicationIdIndexRoute =
+  BankAltaCardBusinessApplicationsApplicationIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () =>
+      BankAltaCardBusinessApplicationsApplicationIdRouteRoute,
+  } as any)
 const BankAltaCardBusinessCompanyIdStatementsIndexRoute =
   BankAltaCardBusinessCompanyIdStatementsIndexRouteImport.update({
     id: '/statements/',
     path: '/statements/',
     getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
   } as any)
+const BankAltaCardBusinessCompanyIdReviewIndexRoute =
+  BankAltaCardBusinessCompanyIdReviewIndexRouteImport.update({
+    id: '/review/',
+    path: '/review/',
+    getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
+  } as any)
+const BankAltaCardCardIdReviewReviewIdIndexRoute =
+  BankAltaCardCardIdReviewReviewIdIndexRouteImport.update({
+    id: '/review/$reviewId/',
+    path: '/review/$reviewId/',
+    getParentRoute: () => BankAltaCardCardIdRouteRoute,
+  } as any)
+const BankAltaCardBusinessApplicationsApplicationIdThreadRoute =
+  BankAltaCardBusinessApplicationsApplicationIdThreadRouteImport.update({
+    id: '/thread',
+    path: '/thread',
+    getParentRoute: () =>
+      BankAltaCardBusinessApplicationsApplicationIdRouteRoute,
+  } as any)
 const BankAltaCardBusinessCompanyIdStatementsStatementIdRoute =
   BankAltaCardBusinessCompanyIdStatementsStatementIdRouteImport.update({
     id: '/statements/$statementId',
     path: '/statements/$statementId',
+    getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
+  } as any)
+const BankAltaCardCardIdReviewReviewIdThreadRoute =
+  BankAltaCardCardIdReviewReviewIdThreadRouteImport.update({
+    id: '/review/$reviewId/thread',
+    path: '/review/$reviewId/thread',
+    getParentRoute: () => BankAltaCardCardIdRouteRoute,
+  } as any)
+const ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute =
+  ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport.update({
+    id: '/$attachmentId/download',
+    path: '/$attachmentId/download',
+    getParentRoute: () => ApiLoanThreadsApplicationIdAttachmentsRoute,
+  } as any)
+const ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute =
+  ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport.update(
+    {
+      id: '/$attachmentId/download',
+      path: '/$attachmentId/download',
+      getParentRoute: () => ApiAltaCardThreadsApplicationIdAttachmentsRoute,
+    } as any,
+  )
+const ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute =
+  ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRouteImport.update(
+    {
+      id: '/$attachmentId/download',
+      path: '/$attachmentId/download',
+      getParentRoute: () => ApiAltaCardReviewThreadsReviewIdAttachmentsRoute,
+    } as any,
+  )
+const BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute =
+  BankAltaCardBusinessCompanyIdReviewReviewIdIndexRouteImport.update({
+    id: '/review/$reviewId/',
+    path: '/review/$reviewId/',
+    getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
+  } as any)
+const BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute =
+  BankAltaCardBusinessCompanyIdReviewReviewIdThreadRouteImport.update({
+    id: '/review/$reviewId/thread',
+    path: '/review/$reviewId/thread',
     getParentRoute: () => BankAltaCardBusinessCompanyIdRouteRoute,
   } as any)
 
@@ -1198,11 +1344,15 @@ export interface FileRoutesByFullPath {
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
+  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren
+  '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
+  '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
-  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRoute
+  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
   '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
   '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
   '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
@@ -1217,11 +1367,9 @@ export interface FileRoutesByFullPath {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
-  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
-  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
@@ -1235,22 +1383,40 @@ export interface FileRoutesByFullPath {
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/reviews/': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
+  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
-  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRoute
+  '/bank/alta-card/applications/$applicationId/thread': typeof BankAltaCardApplicationsApplicationIdThreadRoute
   '/bank/alta-card/business/employee/$employeeCardId': typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
   '/bank/lending/applications/$applicationId/thread': typeof BankLendingApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements/': typeof BankAltaCardCardIdStatementsIndexRoute
+  '/bank/alta-card/applications/$applicationId/': typeof BankAltaCardApplicationsApplicationIdIndexRoute
   '/bank/alta-card/business/$companyId/': typeof BankAltaCardBusinessCompanyIdIndexRoute
+  '/internal/alta-card/applications/$applicationId/': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
+  '/internal/alta-card/reviews/$reviewId/': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
+  '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
+  '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review/$reviewId/': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
+  '/bank/alta-card/business/$companyId/review/': typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
   '/bank/alta-card/business/$companyId/statements/': typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
+  '/bank/alta-card/business/applications/$applicationId/': typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId/thread': typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId/': typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1350,10 +1516,12 @@ export interface FileRoutesByTo {
   '/internal/companies': typeof InternalCompaniesIndexRoute
   '/internal/lending': typeof InternalLendingIndexRoute
   '/internal/users': typeof InternalUsersIndexRoute
+  '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
+  '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
-  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRoute
+  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
   '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
   '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
   '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
@@ -1368,11 +1536,9 @@ export interface FileRoutesByTo {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
-  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
-  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
@@ -1386,6 +1552,7 @@ export interface FileRoutesByTo {
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/reviews': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions': typeof InternalBankTransactionsIndexRoute
@@ -1394,14 +1561,30 @@ export interface FileRoutesByTo {
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
-  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRoute
+  '/bank/alta-card/applications/$applicationId/thread': typeof BankAltaCardApplicationsApplicationIdThreadRoute
   '/bank/alta-card/business/employee/$employeeCardId': typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
   '/bank/lending/applications/$applicationId/thread': typeof BankLendingApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements': typeof BankAltaCardCardIdStatementsIndexRoute
+  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdIndexRoute
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdIndexRoute
+  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
+  '/internal/alta-card/reviews/$reviewId': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
+  '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
+  '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review/$reviewId': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
+  '/bank/alta-card/business/$companyId/review': typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
   '/bank/alta-card/business/$companyId/statements': typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
+  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId/thread': typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId': typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1520,11 +1703,15 @@ export interface FileRoutesById {
   '/internal/companies/': typeof InternalCompaniesIndexRoute
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
+  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren
+  '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
+  '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
-  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRoute
+  '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
   '/bank/account/$accountId/activity': typeof BankAccountAccountIdActivityRoute
   '/bank/account/$accountId/payments': typeof BankAccountAccountIdPaymentsRoute
   '/bank/account/$accountId/payroll': typeof BankAccountAccountIdPayrollRoute
@@ -1539,11 +1726,9 @@ export interface FileRoutesById {
   '/bank/accounts/$accountId/scheduled': typeof BankAccountsAccountIdScheduledRoute
   '/bank/accounts/$accountId/settings': typeof BankAccountsAccountIdSettingsRoute
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
-  '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
-  '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
@@ -1557,22 +1742,40 @@ export interface FileRoutesById {
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/reviews/': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
+  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
-  '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRoute
+  '/bank/alta-card/applications/$applicationId/thread': typeof BankAltaCardApplicationsApplicationIdThreadRoute
   '/bank/alta-card/business/employee/$employeeCardId': typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
   '/bank/lending/applications/$applicationId/thread': typeof BankLendingApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
+  '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements/': typeof BankAltaCardCardIdStatementsIndexRoute
+  '/bank/alta-card/applications/$applicationId/': typeof BankAltaCardApplicationsApplicationIdIndexRoute
   '/bank/alta-card/business/$companyId/': typeof BankAltaCardBusinessCompanyIdIndexRoute
+  '/internal/alta-card/applications/$applicationId/': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
+  '/internal/alta-card/reviews/$reviewId/': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
+  '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
+  '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/bank/alta-card/$cardId/review/$reviewId/': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
+  '/bank/alta-card/business/$companyId/review/': typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
   '/bank/alta-card/business/$companyId/statements/': typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
+  '/bank/alta-card/business/applications/$applicationId/': typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId/thread': typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
+  '/bank/alta-card/business/$companyId/review/$reviewId/': typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1692,7 +1895,11 @@ export interface FileRouteTypes {
     | '/internal/companies/'
     | '/internal/lending/'
     | '/internal/users/'
+    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
+    | '/internal/alta-card/applications/$applicationId'
+    | '/api/alta-card-review-threads/$reviewId/attachments'
+    | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -1711,11 +1918,9 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
-    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
-    | '/internal/alta-card/applications/$applicationId'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
     | '/internal/lending/deal-rooms/$dealRoomId'
@@ -1729,22 +1934,40 @@ export interface FileRouteTypes {
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
+    | '/internal/alta-card/reviews/'
     | '/internal/bank/accounts/'
     | '/internal/bank/alta-pay/'
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
+    | '/bank/alta-card/business/applications/$applicationId'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/alta-card/$cardId/statements/$statementId'
-    | '/bank/alta-card/business/applications/$applicationId'
+    | '/bank/alta-card/applications/$applicationId/thread'
     | '/bank/alta-card/business/employee/$employeeCardId'
     | '/bank/lending/applications/$applicationId/thread'
+    | '/internal/alta-card/applications/$applicationId/thread'
+    | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review/'
     | '/bank/alta-card/$cardId/statements/'
+    | '/bank/alta-card/applications/$applicationId/'
     | '/bank/alta-card/business/$companyId/'
+    | '/internal/alta-card/applications/$applicationId/'
+    | '/internal/alta-card/reviews/$reviewId/'
+    | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+    | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
+    | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review/$reviewId/'
+    | '/bank/alta-card/business/$companyId/review/'
     | '/bank/alta-card/business/$companyId/statements/'
+    | '/bank/alta-card/business/applications/$applicationId/'
+    | '/bank/alta-card/business/$companyId/review/$reviewId/thread'
+    | '/bank/alta-card/business/$companyId/review/$reviewId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1844,6 +2067,8 @@ export interface FileRouteTypes {
     | '/internal/companies'
     | '/internal/lending'
     | '/internal/users'
+    | '/api/alta-card-review-threads/$reviewId/attachments'
+    | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -1862,11 +2087,9 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
-    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
-    | '/internal/alta-card/applications/$applicationId'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
     | '/internal/lending/deal-rooms/$dealRoomId'
@@ -1880,6 +2103,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/internal/alta-card/applications'
+    | '/internal/alta-card/reviews'
     | '/internal/bank/accounts'
     | '/internal/bank/alta-pay'
     | '/internal/bank/transactions'
@@ -1888,14 +2112,30 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/alta-card/$cardId/statements/$statementId'
-    | '/bank/alta-card/business/applications/$applicationId'
+    | '/bank/alta-card/applications/$applicationId/thread'
     | '/bank/alta-card/business/employee/$employeeCardId'
     | '/bank/lending/applications/$applicationId/thread'
+    | '/internal/alta-card/applications/$applicationId/thread'
+    | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review'
     | '/bank/alta-card/$cardId/statements'
+    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
+    | '/internal/alta-card/applications/$applicationId'
+    | '/internal/alta-card/reviews/$reviewId'
+    | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+    | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
+    | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review/$reviewId'
+    | '/bank/alta-card/business/$companyId/review'
     | '/bank/alta-card/business/$companyId/statements'
+    | '/bank/alta-card/business/applications/$applicationId'
+    | '/bank/alta-card/business/$companyId/review/$reviewId/thread'
+    | '/bank/alta-card/business/$companyId/review/$reviewId'
   id:
     | '__root__'
     | '/'
@@ -2013,7 +2253,11 @@ export interface FileRouteTypes {
     | '/internal/companies/'
     | '/internal/lending/'
     | '/internal/users/'
+    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
+    | '/internal/alta-card/applications/$applicationId'
+    | '/api/alta-card-review-threads/$reviewId/attachments'
+    | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -2032,11 +2276,9 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/scheduled'
     | '/bank/accounts/$accountId/settings'
     | '/bank/accounts/$accountId/statements'
-    | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/exchange/company/$ticker/owner'
-    | '/internal/alta-card/applications/$applicationId'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
     | '/internal/lending/deal-rooms/$dealRoomId'
@@ -2050,22 +2292,40 @@ export interface FileRouteTypes {
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
+    | '/internal/alta-card/reviews/'
     | '/internal/bank/accounts/'
     | '/internal/bank/alta-pay/'
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
+    | '/bank/alta-card/business/applications/$applicationId'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/alta-card/$cardId/statements/$statementId'
-    | '/bank/alta-card/business/applications/$applicationId'
+    | '/bank/alta-card/applications/$applicationId/thread'
     | '/bank/alta-card/business/employee/$employeeCardId'
     | '/bank/lending/applications/$applicationId/thread'
+    | '/internal/alta-card/applications/$applicationId/thread'
+    | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review/'
     | '/bank/alta-card/$cardId/statements/'
+    | '/bank/alta-card/applications/$applicationId/'
     | '/bank/alta-card/business/$companyId/'
+    | '/internal/alta-card/applications/$applicationId/'
+    | '/internal/alta-card/reviews/$reviewId/'
+    | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+    | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
+    | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/bank/alta-card/$cardId/review/$reviewId/'
+    | '/bank/alta-card/business/$companyId/review/'
     | '/bank/alta-card/business/$companyId/statements/'
+    | '/bank/alta-card/business/applications/$applicationId/'
+    | '/bank/alta-card/business/$companyId/review/$reviewId/thread'
+    | '/bank/alta-card/business/$companyId/review/$reviewId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2115,17 +2375,19 @@ export interface RootRouteChildren {
   BankAltaCardIndexRoute: typeof BankAltaCardIndexRoute
   BankLendingIndexRoute: typeof BankLendingIndexRoute
   BankStatementsIndexRoute: typeof BankStatementsIndexRoute
+  BankAltaCardApplicationsApplicationIdRouteRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   BankAltaCardBusinessCompanyIdRouteRoute: typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
+  ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
+  ApiAltaCardThreadsApplicationIdAttachmentsRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   ApiDealRoomsDealRoomIdDocumentsRoute: typeof ApiDealRoomsDealRoomIdDocumentsRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
-  ApiLoanThreadsApplicationIdAttachmentsRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRoute
-  BankAltaCardApplicationsApplicationIdRoute: typeof BankAltaCardApplicationsApplicationIdRoute
+  ApiLoanThreadsApplicationIdAttachmentsRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
   BankAltaCardBusinessApplyRoute: typeof BankAltaCardBusinessApplyRoute
   BankAltaCardBusinessIndexRoute: typeof BankAltaCardBusinessIndexRoute
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   ApiDealRoomsDealRoomIdAgreementPreviewRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute: typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   ApiDealRoomsDocumentsDocumentIdDownloadRoute: typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
-  BankAltaCardBusinessApplicationsApplicationIdRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRoute
   BankAltaCardBusinessEmployeeEmployeeCardIdRoute: typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
 }
 
@@ -2964,6 +3226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalBankAccountsIndexRouteImport
       parentRoute: typeof InternalBankRouteRoute
     }
+    '/internal/alta-card/reviews/': {
+      id: '/internal/alta-card/reviews/'
+      path: '/alta-card/reviews'
+      fullPath: '/internal/alta-card/reviews/'
+      preLoaderRoute: typeof InternalAltaCardReviewsIndexRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/alta-card/applications/': {
       id: '/internal/alta-card/applications/'
       path: '/alta-card/applications'
@@ -3055,13 +3324,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalBankAccountsAccountIdRouteImport
       parentRoute: typeof InternalBankRouteRoute
     }
-    '/internal/alta-card/applications/$applicationId': {
-      id: '/internal/alta-card/applications/$applicationId'
-      path: '/alta-card/applications/$applicationId'
-      fullPath: '/internal/alta-card/applications/$applicationId'
-      preLoaderRoute: typeof InternalAltaCardApplicationsApplicationIdRouteImport
-      parentRoute: typeof InternalRouteRoute
-    }
     '/exchange/company/$ticker/owner': {
       id: '/exchange/company/$ticker/owner'
       path: '/owner'
@@ -3081,13 +3343,6 @@ declare module '@tanstack/react-router' {
       path: '/bank/alta-card/business/apply'
       fullPath: '/bank/alta-card/business/apply'
       preLoaderRoute: typeof BankAltaCardBusinessApplyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bank/alta-card/applications/$applicationId': {
-      id: '/bank/alta-card/applications/$applicationId'
-      path: '/bank/alta-card/applications/$applicationId'
-      fullPath: '/bank/alta-card/applications/$applicationId'
-      preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bank/accounts/$accountId/statements': {
@@ -3216,12 +3471,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthDiscordCallbackRouteImport
       parentRoute: typeof ApiAuthDiscordRoute
     }
+    '/api/alta-card-threads/$applicationId/attachments': {
+      id: '/api/alta-card-threads/$applicationId/attachments'
+      path: '/api/alta-card-threads/$applicationId/attachments'
+      fullPath: '/api/alta-card-threads/$applicationId/attachments'
+      preLoaderRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/alta-card-review-threads/$reviewId/attachments': {
+      id: '/api/alta-card-review-threads/$reviewId/attachments'
+      path: '/api/alta-card-review-threads/$reviewId/attachments'
+      fullPath: '/api/alta-card-review-threads/$reviewId/attachments'
+      preLoaderRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/alta-card/applications/$applicationId': {
+      id: '/internal/alta-card/applications/$applicationId'
+      path: '/alta-card/applications/$applicationId'
+      fullPath: '/internal/alta-card/applications/$applicationId'
+      preLoaderRoute: typeof InternalAltaCardApplicationsApplicationIdRouteRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/bank/alta-card/business/$companyId': {
       id: '/bank/alta-card/business/$companyId'
       path: '/bank/alta-card/business/$companyId'
       fullPath: '/bank/alta-card/business/$companyId'
       preLoaderRoute: typeof BankAltaCardBusinessCompanyIdRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/bank/alta-card/applications/$applicationId': {
+      id: '/bank/alta-card/applications/$applicationId'
+      path: '/bank/alta-card/applications/$applicationId'
+      fullPath: '/bank/alta-card/applications/$applicationId'
+      preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/alta-card/reviews/$reviewId/': {
+      id: '/internal/alta-card/reviews/$reviewId/'
+      path: '/alta-card/reviews/$reviewId'
+      fullPath: '/internal/alta-card/reviews/$reviewId/'
+      preLoaderRoute: typeof InternalAltaCardReviewsReviewIdIndexRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/alta-card/applications/$applicationId/': {
+      id: '/internal/alta-card/applications/$applicationId/'
+      path: '/'
+      fullPath: '/internal/alta-card/applications/$applicationId/'
+      preLoaderRoute: typeof InternalAltaCardApplicationsApplicationIdIndexRouteImport
+      parentRoute: typeof InternalAltaCardApplicationsApplicationIdRouteRoute
     }
     '/bank/alta-card/business/$companyId/': {
       id: '/bank/alta-card/business/$companyId/'
@@ -3230,11 +3527,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAltaCardBusinessCompanyIdIndexRouteImport
       parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
     }
+    '/bank/alta-card/applications/$applicationId/': {
+      id: '/bank/alta-card/applications/$applicationId/'
+      path: '/'
+      fullPath: '/bank/alta-card/applications/$applicationId/'
+      preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdIndexRouteImport
+      parentRoute: typeof BankAltaCardApplicationsApplicationIdRouteRoute
+    }
     '/bank/alta-card/$cardId/statements/': {
       id: '/bank/alta-card/$cardId/statements/'
       path: '/statements'
       fullPath: '/bank/alta-card/$cardId/statements/'
       preLoaderRoute: typeof BankAltaCardCardIdStatementsIndexRouteImport
+      parentRoute: typeof BankAltaCardCardIdRouteRoute
+    }
+    '/bank/alta-card/$cardId/review/': {
+      id: '/bank/alta-card/$cardId/review/'
+      path: '/review'
+      fullPath: '/bank/alta-card/$cardId/review/'
+      preLoaderRoute: typeof BankAltaCardCardIdReviewIndexRouteImport
       parentRoute: typeof BankAltaCardCardIdRouteRoute
     }
     '/internal/lending/applications/$applicationId/thread': {
@@ -3243,6 +3554,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/internal/lending/applications/$applicationId/thread'
       preLoaderRoute: typeof InternalLendingApplicationsApplicationIdThreadRouteImport
       parentRoute: typeof InternalLendingRouteRoute
+    }
+    '/internal/alta-card/reviews/$reviewId/thread': {
+      id: '/internal/alta-card/reviews/$reviewId/thread'
+      path: '/alta-card/reviews/$reviewId/thread'
+      fullPath: '/internal/alta-card/reviews/$reviewId/thread'
+      preLoaderRoute: typeof InternalAltaCardReviewsReviewIdThreadRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/alta-card/applications/$applicationId/thread': {
+      id: '/internal/alta-card/applications/$applicationId/thread'
+      path: '/thread'
+      fullPath: '/internal/alta-card/applications/$applicationId/thread'
+      preLoaderRoute: typeof InternalAltaCardApplicationsApplicationIdThreadRouteImport
+      parentRoute: typeof InternalAltaCardApplicationsApplicationIdRouteRoute
     }
     '/bank/lending/applications/$applicationId/thread': {
       id: '/bank/lending/applications/$applicationId/thread'
@@ -3258,12 +3583,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAltaCardBusinessEmployeeEmployeeCardIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/bank/alta-card/business/applications/$applicationId': {
-      id: '/bank/alta-card/business/applications/$applicationId'
-      path: '/bank/alta-card/business/applications/$applicationId'
-      fullPath: '/bank/alta-card/business/applications/$applicationId'
-      preLoaderRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/bank/alta-card/applications/$applicationId/thread': {
+      id: '/bank/alta-card/applications/$applicationId/thread'
+      path: '/thread'
+      fullPath: '/bank/alta-card/applications/$applicationId/thread'
+      preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdThreadRouteImport
+      parentRoute: typeof BankAltaCardApplicationsApplicationIdRouteRoute
     }
     '/bank/alta-card/$cardId/statements/$statementId': {
       id: '/bank/alta-card/$cardId/statements/$statementId'
@@ -3293,6 +3618,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank/alta-card/business/applications/$applicationId': {
+      id: '/bank/alta-card/business/applications/$applicationId'
+      path: '/bank/alta-card/business/applications/$applicationId'
+      fullPath: '/bank/alta-card/business/applications/$applicationId'
+      preLoaderRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank/alta-card/business/applications/$applicationId/': {
+      id: '/bank/alta-card/business/applications/$applicationId/'
+      path: '/'
+      fullPath: '/bank/alta-card/business/applications/$applicationId/'
+      preLoaderRoute: typeof BankAltaCardBusinessApplicationsApplicationIdIndexRouteImport
+      parentRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRoute
+    }
     '/bank/alta-card/business/$companyId/statements/': {
       id: '/bank/alta-card/business/$companyId/statements/'
       path: '/statements'
@@ -3300,11 +3639,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAltaCardBusinessCompanyIdStatementsIndexRouteImport
       parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
     }
+    '/bank/alta-card/business/$companyId/review/': {
+      id: '/bank/alta-card/business/$companyId/review/'
+      path: '/review'
+      fullPath: '/bank/alta-card/business/$companyId/review/'
+      preLoaderRoute: typeof BankAltaCardBusinessCompanyIdReviewIndexRouteImport
+      parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
+    }
+    '/bank/alta-card/$cardId/review/$reviewId/': {
+      id: '/bank/alta-card/$cardId/review/$reviewId/'
+      path: '/review/$reviewId'
+      fullPath: '/bank/alta-card/$cardId/review/$reviewId/'
+      preLoaderRoute: typeof BankAltaCardCardIdReviewReviewIdIndexRouteImport
+      parentRoute: typeof BankAltaCardCardIdRouteRoute
+    }
+    '/bank/alta-card/business/applications/$applicationId/thread': {
+      id: '/bank/alta-card/business/applications/$applicationId/thread'
+      path: '/thread'
+      fullPath: '/bank/alta-card/business/applications/$applicationId/thread'
+      preLoaderRoute: typeof BankAltaCardBusinessApplicationsApplicationIdThreadRouteImport
+      parentRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRoute
+    }
     '/bank/alta-card/business/$companyId/statements/$statementId': {
       id: '/bank/alta-card/business/$companyId/statements/$statementId'
       path: '/statements/$statementId'
       fullPath: '/bank/alta-card/business/$companyId/statements/$statementId'
       preLoaderRoute: typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRouteImport
+      parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
+    }
+    '/bank/alta-card/$cardId/review/$reviewId/thread': {
+      id: '/bank/alta-card/$cardId/review/$reviewId/thread'
+      path: '/review/$reviewId/thread'
+      fullPath: '/bank/alta-card/$cardId/review/$reviewId/thread'
+      preLoaderRoute: typeof BankAltaCardCardIdReviewReviewIdThreadRouteImport
+      parentRoute: typeof BankAltaCardCardIdRouteRoute
+    }
+    '/api/loan-threads/$applicationId/attachments/$attachmentId/download': {
+      id: '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+      path: '/$attachmentId/download'
+      fullPath: '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+      preLoaderRoute: typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport
+      parentRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRoute
+    }
+    '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': {
+      id: '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+      path: '/$attachmentId/download'
+      fullPath: '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
+      preLoaderRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport
+      parentRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRoute
+    }
+    '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': {
+      id: '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+      path: '/$attachmentId/download'
+      fullPath: '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
+      preLoaderRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRouteImport
+      parentRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRoute
+    }
+    '/bank/alta-card/business/$companyId/review/$reviewId/': {
+      id: '/bank/alta-card/business/$companyId/review/$reviewId/'
+      path: '/review/$reviewId'
+      fullPath: '/bank/alta-card/business/$companyId/review/$reviewId/'
+      preLoaderRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRouteImport
+      parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
+    }
+    '/bank/alta-card/business/$companyId/review/$reviewId/thread': {
+      id: '/bank/alta-card/business/$companyId/review/$reviewId/thread'
+      path: '/review/$reviewId/thread'
+      fullPath: '/bank/alta-card/business/$companyId/review/$reviewId/thread'
+      preLoaderRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRouteImport
       parentRoute: typeof BankAltaCardBusinessCompanyIdRouteRoute
     }
   }
@@ -3480,6 +3882,24 @@ const InternalLendingRouteRouteChildren: InternalLendingRouteRouteChildren = {
 const InternalLendingRouteRouteWithChildren =
   InternalLendingRouteRoute._addFileChildren(InternalLendingRouteRouteChildren)
 
+interface InternalAltaCardApplicationsApplicationIdRouteRouteChildren {
+  InternalAltaCardApplicationsApplicationIdThreadRoute: typeof InternalAltaCardApplicationsApplicationIdThreadRoute
+  InternalAltaCardApplicationsApplicationIdIndexRoute: typeof InternalAltaCardApplicationsApplicationIdIndexRoute
+}
+
+const InternalAltaCardApplicationsApplicationIdRouteRouteChildren: InternalAltaCardApplicationsApplicationIdRouteRouteChildren =
+  {
+    InternalAltaCardApplicationsApplicationIdThreadRoute:
+      InternalAltaCardApplicationsApplicationIdThreadRoute,
+    InternalAltaCardApplicationsApplicationIdIndexRoute:
+      InternalAltaCardApplicationsApplicationIdIndexRoute,
+  }
+
+const InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren =
+  InternalAltaCardApplicationsApplicationIdRouteRoute._addFileChildren(
+    InternalAltaCardApplicationsApplicationIdRouteRouteChildren,
+  )
+
 interface InternalRouteRouteChildren {
   InternalBankRouteRoute: typeof InternalBankRouteRouteWithChildren
   InternalLendingRouteRoute: typeof InternalLendingRouteRouteWithChildren
@@ -3501,8 +3921,11 @@ interface InternalRouteRouteChildren {
   InternalAltaCardIndexRoute: typeof InternalAltaCardIndexRoute
   InternalCompaniesIndexRoute: typeof InternalCompaniesIndexRoute
   InternalUsersIndexRoute: typeof InternalUsersIndexRoute
-  InternalAltaCardApplicationsApplicationIdRoute: typeof InternalAltaCardApplicationsApplicationIdRoute
+  InternalAltaCardApplicationsApplicationIdRouteRoute: typeof InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren
   InternalAltaCardApplicationsIndexRoute: typeof InternalAltaCardApplicationsIndexRoute
+  InternalAltaCardReviewsIndexRoute: typeof InternalAltaCardReviewsIndexRoute
+  InternalAltaCardReviewsReviewIdThreadRoute: typeof InternalAltaCardReviewsReviewIdThreadRoute
+  InternalAltaCardReviewsReviewIdIndexRoute: typeof InternalAltaCardReviewsReviewIdIndexRoute
 }
 
 const InternalRouteRouteChildren: InternalRouteRouteChildren = {
@@ -3526,10 +3949,15 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalAltaCardIndexRoute: InternalAltaCardIndexRoute,
   InternalCompaniesIndexRoute: InternalCompaniesIndexRoute,
   InternalUsersIndexRoute: InternalUsersIndexRoute,
-  InternalAltaCardApplicationsApplicationIdRoute:
-    InternalAltaCardApplicationsApplicationIdRoute,
+  InternalAltaCardApplicationsApplicationIdRouteRoute:
+    InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren,
   InternalAltaCardApplicationsIndexRoute:
     InternalAltaCardApplicationsIndexRoute,
+  InternalAltaCardReviewsIndexRoute: InternalAltaCardReviewsIndexRoute,
+  InternalAltaCardReviewsReviewIdThreadRoute:
+    InternalAltaCardReviewsReviewIdThreadRoute,
+  InternalAltaCardReviewsReviewIdIndexRoute:
+    InternalAltaCardReviewsReviewIdIndexRoute,
 }
 
 const InternalRouteRouteWithChildren = InternalRouteRoute._addFileChildren(
@@ -3673,7 +4101,10 @@ const BankAccountAccountIdRouteRouteWithChildren =
 interface BankAltaCardCardIdRouteRouteChildren {
   BankAltaCardCardIdIndexRoute: typeof BankAltaCardCardIdIndexRoute
   BankAltaCardCardIdStatementsStatementIdRoute: typeof BankAltaCardCardIdStatementsStatementIdRoute
+  BankAltaCardCardIdReviewIndexRoute: typeof BankAltaCardCardIdReviewIndexRoute
   BankAltaCardCardIdStatementsIndexRoute: typeof BankAltaCardCardIdStatementsIndexRoute
+  BankAltaCardCardIdReviewReviewIdThreadRoute: typeof BankAltaCardCardIdReviewReviewIdThreadRoute
+  BankAltaCardCardIdReviewReviewIdIndexRoute: typeof BankAltaCardCardIdReviewReviewIdIndexRoute
 }
 
 const BankAltaCardCardIdRouteRouteChildren: BankAltaCardCardIdRouteRouteChildren =
@@ -3681,8 +4112,13 @@ const BankAltaCardCardIdRouteRouteChildren: BankAltaCardCardIdRouteRouteChildren
     BankAltaCardCardIdIndexRoute: BankAltaCardCardIdIndexRoute,
     BankAltaCardCardIdStatementsStatementIdRoute:
       BankAltaCardCardIdStatementsStatementIdRoute,
+    BankAltaCardCardIdReviewIndexRoute: BankAltaCardCardIdReviewIndexRoute,
     BankAltaCardCardIdStatementsIndexRoute:
       BankAltaCardCardIdStatementsIndexRoute,
+    BankAltaCardCardIdReviewReviewIdThreadRoute:
+      BankAltaCardCardIdReviewReviewIdThreadRoute,
+    BankAltaCardCardIdReviewReviewIdIndexRoute:
+      BankAltaCardCardIdReviewReviewIdIndexRoute,
   }
 
 const BankAltaCardCardIdRouteRouteWithChildren =
@@ -3748,10 +4184,31 @@ const ApiAuthDiscordRouteWithChildren = ApiAuthDiscordRoute._addFileChildren(
   ApiAuthDiscordRouteChildren,
 )
 
+interface BankAltaCardApplicationsApplicationIdRouteRouteChildren {
+  BankAltaCardApplicationsApplicationIdThreadRoute: typeof BankAltaCardApplicationsApplicationIdThreadRoute
+  BankAltaCardApplicationsApplicationIdIndexRoute: typeof BankAltaCardApplicationsApplicationIdIndexRoute
+}
+
+const BankAltaCardApplicationsApplicationIdRouteRouteChildren: BankAltaCardApplicationsApplicationIdRouteRouteChildren =
+  {
+    BankAltaCardApplicationsApplicationIdThreadRoute:
+      BankAltaCardApplicationsApplicationIdThreadRoute,
+    BankAltaCardApplicationsApplicationIdIndexRoute:
+      BankAltaCardApplicationsApplicationIdIndexRoute,
+  }
+
+const BankAltaCardApplicationsApplicationIdRouteRouteWithChildren =
+  BankAltaCardApplicationsApplicationIdRouteRoute._addFileChildren(
+    BankAltaCardApplicationsApplicationIdRouteRouteChildren,
+  )
+
 interface BankAltaCardBusinessCompanyIdRouteRouteChildren {
   BankAltaCardBusinessCompanyIdIndexRoute: typeof BankAltaCardBusinessCompanyIdIndexRoute
   BankAltaCardBusinessCompanyIdStatementsStatementIdRoute: typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
+  BankAltaCardBusinessCompanyIdReviewIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
   BankAltaCardBusinessCompanyIdStatementsIndexRoute: typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
+  BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
+  BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
 }
 
 const BankAltaCardBusinessCompanyIdRouteRouteChildren: BankAltaCardBusinessCompanyIdRouteRouteChildren =
@@ -3760,13 +4217,82 @@ const BankAltaCardBusinessCompanyIdRouteRouteChildren: BankAltaCardBusinessCompa
       BankAltaCardBusinessCompanyIdIndexRoute,
     BankAltaCardBusinessCompanyIdStatementsStatementIdRoute:
       BankAltaCardBusinessCompanyIdStatementsStatementIdRoute,
+    BankAltaCardBusinessCompanyIdReviewIndexRoute:
+      BankAltaCardBusinessCompanyIdReviewIndexRoute,
     BankAltaCardBusinessCompanyIdStatementsIndexRoute:
       BankAltaCardBusinessCompanyIdStatementsIndexRoute,
+    BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute:
+      BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute,
+    BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute:
+      BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute,
   }
 
 const BankAltaCardBusinessCompanyIdRouteRouteWithChildren =
   BankAltaCardBusinessCompanyIdRouteRoute._addFileChildren(
     BankAltaCardBusinessCompanyIdRouteRouteChildren,
+  )
+
+interface ApiAltaCardReviewThreadsReviewIdAttachmentsRouteChildren {
+  ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
+}
+
+const ApiAltaCardReviewThreadsReviewIdAttachmentsRouteChildren: ApiAltaCardReviewThreadsReviewIdAttachmentsRouteChildren =
+  {
+    ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute:
+      ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute,
+  }
+
+const ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren =
+  ApiAltaCardReviewThreadsReviewIdAttachmentsRoute._addFileChildren(
+    ApiAltaCardReviewThreadsReviewIdAttachmentsRouteChildren,
+  )
+
+interface ApiAltaCardThreadsApplicationIdAttachmentsRouteChildren {
+  ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+}
+
+const ApiAltaCardThreadsApplicationIdAttachmentsRouteChildren: ApiAltaCardThreadsApplicationIdAttachmentsRouteChildren =
+  {
+    ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute:
+      ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute,
+  }
+
+const ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren =
+  ApiAltaCardThreadsApplicationIdAttachmentsRoute._addFileChildren(
+    ApiAltaCardThreadsApplicationIdAttachmentsRouteChildren,
+  )
+
+interface ApiLoanThreadsApplicationIdAttachmentsRouteChildren {
+  ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute: typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+}
+
+const ApiLoanThreadsApplicationIdAttachmentsRouteChildren: ApiLoanThreadsApplicationIdAttachmentsRouteChildren =
+  {
+    ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute:
+      ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute,
+  }
+
+const ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren =
+  ApiLoanThreadsApplicationIdAttachmentsRoute._addFileChildren(
+    ApiLoanThreadsApplicationIdAttachmentsRouteChildren,
+  )
+
+interface BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren {
+  BankAltaCardBusinessApplicationsApplicationIdThreadRoute: typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  BankAltaCardBusinessApplicationsApplicationIdIndexRoute: typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
+}
+
+const BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren: BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren =
+  {
+    BankAltaCardBusinessApplicationsApplicationIdThreadRoute:
+      BankAltaCardBusinessApplicationsApplicationIdThreadRoute,
+    BankAltaCardBusinessApplicationsApplicationIdIndexRoute:
+      BankAltaCardBusinessApplicationsApplicationIdIndexRoute,
+  }
+
+const BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren =
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute._addFileChildren(
+    BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren,
   )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -3817,24 +4343,28 @@ const rootRouteChildren: RootRouteChildren = {
   BankAltaCardIndexRoute: BankAltaCardIndexRoute,
   BankLendingIndexRoute: BankLendingIndexRoute,
   BankStatementsIndexRoute: BankStatementsIndexRoute,
+  BankAltaCardApplicationsApplicationIdRouteRoute:
+    BankAltaCardApplicationsApplicationIdRouteRouteWithChildren,
   BankAltaCardBusinessCompanyIdRouteRoute:
     BankAltaCardBusinessCompanyIdRouteRouteWithChildren,
+  ApiAltaCardReviewThreadsReviewIdAttachmentsRoute:
+    ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren,
+  ApiAltaCardThreadsApplicationIdAttachmentsRoute:
+    ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren,
   ApiDealRoomsDealRoomIdDocumentsRoute: ApiDealRoomsDealRoomIdDocumentsRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
   ApiLoanThreadsApplicationIdAttachmentsRoute:
-    ApiLoanThreadsApplicationIdAttachmentsRoute,
-  BankAltaCardApplicationsApplicationIdRoute:
-    BankAltaCardApplicationsApplicationIdRoute,
+    ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren,
   BankAltaCardBusinessApplyRoute: BankAltaCardBusinessApplyRoute,
   BankAltaCardBusinessIndexRoute: BankAltaCardBusinessIndexRoute,
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute:
+    BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren,
   ApiDealRoomsDealRoomIdAgreementPreviewRoute:
     ApiDealRoomsDealRoomIdAgreementPreviewRoute,
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute:
     ApiDealRoomsAgreementDraftsDraftIdDownloadRoute,
   ApiDealRoomsDocumentsDocumentIdDownloadRoute:
     ApiDealRoomsDocumentsDocumentIdDownloadRoute,
-  BankAltaCardBusinessApplicationsApplicationIdRoute:
-    BankAltaCardBusinessApplicationsApplicationIdRoute,
   BankAltaCardBusinessEmployeeEmployeeCardIdRoute:
     BankAltaCardBusinessEmployeeEmployeeCardIdRoute,
 }

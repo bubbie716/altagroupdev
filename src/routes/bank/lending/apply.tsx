@@ -38,7 +38,7 @@ function BankLendingApply() {
     <PageShell
       eyebrow="Alta Bank · Lending"
       title="Apply for credit"
-      description="Submit a facility request for manual review by Alta Bank credit operations."
+      description="Submit a facility request for manual review. After submission, your application enters review and a Secure Deal Room opens for communication with Alta."
     >
       <BankSubNav />
       <LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />

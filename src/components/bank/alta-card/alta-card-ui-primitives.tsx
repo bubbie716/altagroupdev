@@ -1,5 +1,69 @@
 import type { ReactNode } from "react";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+
+export type AltaCardQuickActionVariant = "default" | "primary" | "ghost";
+
+/** Shared tile styling for Alta Card dashboard quick actions. */
+export function altaCardQuickActionClass(
+  variant: AltaCardQuickActionVariant = "default",
+  opts?: { disabled?: boolean },
+): string {
+  const disabled = opts?.disabled ?? false;
+
+  return cn(
+    "inline-flex min-h-11 w-full items-center justify-center rounded-lg border px-3 py-2.5",
+    "text-center font-mono text-[10px] leading-snug uppercase tracking-[0.14em] transition-colors sm:text-[11px] sm:tracking-[0.16em]",
+    variant === "primary" &&
+      !disabled &&
+      "border-foreground bg-foreground text-background shadow-sm hover:bg-foreground/90",
+    variant === "default" &&
+      !disabled &&
+      "border-border bg-surface-2 text-foreground hover:border-foreground/20 hover:bg-surface-1",
+    variant === "ghost" &&
+      !disabled &&
+      "border-border/60 bg-transparent text-muted-foreground hover:border-border hover:bg-surface-2 hover:text-foreground",
+    disabled &&
+      "cursor-not-allowed border-border/60 bg-surface-2/50 text-muted-foreground opacity-60",
+  );
+}
+
+export function AltaCardQuickActionLink({
+  label,
+  variant = "default",
+  disabled,
+  className,
+  ...linkProps
+}: {
+  label: string;
+  variant?: AltaCardQuickActionVariant;
+  disabled?: boolean;
+  className?: string;
+} & LinkProps) {
+  if (disabled) {
+    return (
+      <span
+        className={cn(altaCardQuickActionClass(variant, { disabled: true }), className)}
+        aria-disabled
+      >
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      {...linkProps}
+      className={cn(altaCardQuickActionClass(variant), className)}
+    >
+      {label}
+    </Link>
+  );
+}
+
+export function AltaCardQuickActionCell({ children }: { children: ReactNode }) {
+  return <div className="min-w-0">{children}</div>;
+}
 
 export function AltaCardProductEyebrow({ children }: { children: ReactNode }) {
   return (
@@ -93,12 +157,15 @@ export function AltaCardActionButton({
   variant = "default",
   disabled,
   className,
+  tile = false,
 }: {
   label: string;
   onClick?: () => void;
-  variant?: "default" | "primary" | "ghost";
+  variant?: AltaCardQuickActionVariant;
   disabled?: boolean;
   className?: string;
+  /** Use dashboard quick-action tile sizing (full width, min height). */
+  tile?: boolean;
 }) {
   return (
     <button
@@ -106,10 +173,21 @@ export function AltaCardActionButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded-lg border px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors disabled:opacity-50",
-        variant === "primary" && "border-foreground bg-foreground text-background",
-        variant === "default" && "border-border bg-surface-2 text-foreground hover:bg-surface-1",
-        variant === "ghost" && "border-transparent bg-transparent text-muted-foreground hover:text-foreground",
+        tile
+          ? altaCardQuickActionClass(variant, { disabled })
+          : cn(
+              "rounded-lg border px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors",
+              variant === "primary" &&
+                !disabled &&
+                "border-foreground bg-foreground text-background hover:bg-foreground/90",
+              variant === "default" &&
+                !disabled &&
+                "border-border bg-surface-2 text-foreground hover:bg-surface-1",
+              variant === "ghost" &&
+                !disabled &&
+                "border-transparent bg-transparent text-muted-foreground hover:text-foreground",
+              disabled && "cursor-not-allowed opacity-50",
+            ),
         className,
       )}
     >

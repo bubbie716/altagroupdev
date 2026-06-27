@@ -10,6 +10,51 @@ import { prisma } from "@/server/db";
 import { requireAdmin } from "@/server/permissions.service";
 
 const MAINTENANCE_ENTITY_ID = "platform-maintenance";
+const MAINTENANCE_KEYS = [
+  PLATFORM_SETTING_KEYS.maintenanceModeEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeMessage,
+  PLATFORM_SETTING_KEYS.maintenanceModeStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById,
+] as const;
+
+const GATE_CACHE_TTL_MS = 15_000;
+const FULL_CACHE_TTL_MS = 10_000;
+
+let maintenanceGateCache: { enabled: boolean; expiresAt: number } | null = null;
+let maintenanceFullCache: { value: MaintenanceModeState; expiresAt: number } | null = null;
+
+export function clearMaintenanceModeCache(): void {
+  maintenanceGateCache = null;
+  maintenanceFullCache = null;
+}
+
+async function readMaintenanceSettings(): Promise<
+  Map<(typeof MAINTENANCE_KEYS)[number], { value: unknown; updatedAt: Date }>
+> {
+  const rows = await prisma.platformSetting.findMany({
+    where: { key: { in: [...MAINTENANCE_KEYS] } },
+    select: { key: true, value: true, updatedAt: true },
+  });
+  return new Map(
+    rows.map((row) => [row.key as (typeof MAINTENANCE_KEYS)[number], { value: row.value, updatedAt: row.updatedAt }]),
+  );
+}
+
+/** Lightweight gate for root routing — cached, single DB read. */
+export async function getMaintenanceModeGate(): Promise<boolean> {
+  if (maintenanceGateCache && Date.now() < maintenanceGateCache.expiresAt) {
+    return maintenanceGateCache.enabled;
+  }
+  try {
+    const raw = await readSetting(PLATFORM_SETTING_KEYS.maintenanceModeEnabled);
+    const enabled = parseBoolean(raw);
+    maintenanceGateCache = { enabled, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
+    return enabled;
+  } catch (error) {
+    console.error("[maintenance] Failed to read maintenance gate; defaulting to OFF", error);
+    return false;
+  }
+}
 
 function badRequest(msg: string): never {
   throw new Error(`BAD_REQUEST:${msg}`);
@@ -52,13 +97,16 @@ export function isMaintenanceBypassUser(user: AltaUser | null | undefined): bool
  * On read failure, defaults to disabled so admins are not locked out accidentally.
  */
 export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
+  if (maintenanceFullCache && Date.now() < maintenanceFullCache.expiresAt) {
+    return maintenanceFullCache.value;
+  }
+
   try {
-    const [enabledRaw, messageRaw, startedAtRaw, updatedByIdRaw] = await Promise.all([
-      readSetting(PLATFORM_SETTING_KEYS.maintenanceModeEnabled),
-      readSetting(PLATFORM_SETTING_KEYS.maintenanceModeMessage),
-      readSetting(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt),
-      readSetting(PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById),
-    ]);
+    const settings = await readMaintenanceSettings();
+    const enabledRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeEnabled)?.value;
+    const messageRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMessage)?.value;
+    const startedAtRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt)?.value;
+    const updatedByIdRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById)?.value;
 
     const updatedById = parseString(updatedByIdRaw) || null;
     let updatedByUsername: string | null = null;
@@ -72,24 +120,12 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
       updatedByUsername = updater?.discordUsername ?? null;
     }
 
-    const rows = await prisma.platformSetting.findMany({
-      where: {
-        key: {
-          in: [
-            PLATFORM_SETTING_KEYS.maintenanceModeEnabled,
-            PLATFORM_SETTING_KEYS.maintenanceModeMessage,
-            PLATFORM_SETTING_KEYS.maintenanceModeStartedAt,
-            PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById,
-          ],
-        },
-      },
-      select: { key: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-      take: 1,
-    });
-    updatedAt = rows[0]?.updatedAt.toISOString() ?? null;
+    const latestRow = [...settings.values()].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    )[0];
+    updatedAt = latestRow?.updatedAt.toISOString() ?? null;
 
-    return {
+    const value: MaintenanceModeState = {
       enabled: parseBoolean(enabledRaw),
       message: parseString(messageRaw) || DEFAULT_MAINTENANCE_MESSAGE,
       startedAt: parseIsoDate(startedAtRaw),
@@ -97,6 +133,10 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
       updatedById,
       updatedByUsername,
     };
+
+    maintenanceFullCache = { value, expiresAt: Date.now() + FULL_CACHE_TTL_MS };
+    maintenanceGateCache = { enabled: value.enabled, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
+    return value;
   } catch (error) {
     console.error("[maintenance] Failed to read maintenance mode; defaulting to OFF", error);
     return {
@@ -138,6 +178,8 @@ export async function setMaintenanceMode(
     writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt, startedAt, actorUserId),
     writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById, actorUserId, actorUserId),
   ]);
+
+  clearMaintenanceModeCache();
 
   const { writeAuditLog } = await import("@/server/audit.service");
   const metadata = {

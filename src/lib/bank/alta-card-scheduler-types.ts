@@ -31,6 +31,10 @@ export type AltaCardBillingSchedulerResult = {
   durationMs: number;
   cardsProcessed: number;
   overdueStatementsMarked: number;
+  autopayDue: number;
+  autopaySucceeded: number;
+  autopayFailed: number;
+  autopaySkipped: number;
   interestApplied: number;
   lateFeesApplied: number;
   successCount: number;

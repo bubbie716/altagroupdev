@@ -145,7 +145,7 @@ export function emptyAgreementFieldData(): AgreementFieldData {
     bondId: "N/A - Not Securitised",
     additionalTerms: "",
     lenderOfficerName: "",
-    lenderOfficerTitle: "Loan Officer",
+    lenderOfficerTitle: "Authorized Signatory · Alta Bank",
     witnessName: "",
     officerNotes: "",
     internalNotes: "",
@@ -172,8 +172,8 @@ export function buildAgreementChecklist(fields: AgreementFieldData): AgreementCh
     useRestrictions: "Use restrictions",
     bondId: "Bond ID",
     additionalTerms: "Additional terms",
-    lenderOfficerName: "Loan officer",
-    lenderOfficerTitle: "Officer title",
+    lenderOfficerName: "Authorized signatory",
+    lenderOfficerTitle: "Authorized Signatory · Alta Bank",
     witnessName: "Witness",
     officerNotes: "Officer notes",
     internalNotes: "Internal notes",
@@ -227,7 +227,7 @@ export function suggestAgreementFieldsFromDealRoom(input: {
     bondId: "N/A - Not Securitised",
     additionalTerms: input.acceptedSpecialConditions ?? "",
     lenderOfficerName: input.assignedOfficerName ?? "",
-    lenderOfficerTitle: "Loan Officer · Alta Bank",
+    lenderOfficerTitle: "Authorized Signatory · Alta Bank",
   };
 }
 

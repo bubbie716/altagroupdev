@@ -1,6 +1,6 @@
 # Secure Deal Rooms (Application Threads)
 
-Secure Deal Rooms are **simple asynchronous message threads** tied to each Alta Bank loan application. The premium "Deal Room" label remains in the UI, but the product is intentionally lightweight: one thread per application, applicant ↔ Alta staff messaging, and optional file or link attachments.
+Secure Deal Rooms are **simple asynchronous message threads** tied to each Alta Bank loan application. Applicants communicate with **Alta Credit Desk** — not a named banker. There is no staff assignment, case ownership, or officer workload in V1.
 
 There is **no** built-in term negotiation, contract generation, e-signatures, or automatic loan execution in V1.
 
@@ -12,8 +12,7 @@ There is **no** built-in term negotiation, contract generation, e-signatures, or
 | Applicant and staff messages | Agreement workspace / PDF generation |
 | System welcome message on submit | E-signatures |
 | Text, images, files, pasted links | Automatic contract creation |
-| Thread status (open / waiting / closed) | Task system, SLA tracking, ops dashboards |
-| Staff assignment | Complex workflow stages |
+| Thread status (open / waiting / closed) | Staff assignment or case ownership |
 | Audit events | Discord/email notifications (TODO hooks only) |
 
 ## Data model
@@ -26,7 +25,7 @@ There is **no** built-in term negotiation, contract generation, e-signatures, or
 | `applicantUserId` | Primary applicant |
 | `companyId` | Optional company facility |
 | `status` | `OPEN`, `WAITING_ON_APPLICANT`, `WAITING_ON_ALTA`, `CLOSED` |
-| `assignedStaffId` | Optional operator/admin |
+| `assignedStaffId` | **Deprecated / unused in V1** — column retained for schema compatibility |
 | `closedAt` | Set when closed |
 
 ### `LoanApplicationThreadMessage`
@@ -45,8 +44,8 @@ Attachment types: `FILE`, `IMAGE`, `LINK`.
 
 1. User submits a loan application (`createLoanApplication`).
 2. System creates `LoanApplicationThread` (idempotent).
-3. System posts: *"Your application has been received. Alta Bank may reply here if more information is needed."*
-4. Applicant and staff exchange messages asynchronously.
+3. System posts the application submitted message (see `LOAN_APPLICATION_SUBMITTED_MESSAGE` in `src/lib/bank/lending-application-status-copy.ts`).
+4. Applicant and staff exchange messages asynchronously in the Secure Deal Room.
 
 ### Status rules
 
@@ -66,7 +65,16 @@ Closed threads: applicants cannot send; staff may reopen.
 | `/bank/lending/applications/$applicationId/thread` | Applicant / company rep |
 | `/internal/lending/applications/$applicationId/thread` | Admin / operator |
 | `/bank/lending/applications` | Application list with thread links |
-| `/internal/lending` | Queue with **Open thread** per row |
+| `/internal/lending` | Queue with **Open Secure Deal Room** per row |
+
+### Application display statuses
+
+User-facing labels (see `src/lib/bank/lending-application-status-copy.ts`):
+
+- **Waiting on Alta** — Alta is reviewing or preparing the next step
+- **Waiting on You** — Applicant action required (`WAITING_ON_APPLICANT` thread status)
+- **Accepted** — `APPROVED`
+- **Denied** — `DENIED` or `CANCELLED`
 
 Legacy `/bank/lending/deal-rooms/*` and `/internal/lending/deal-rooms/*` redirect to applications / lending.
 
@@ -82,7 +90,7 @@ Legacy `/bank/lending/deal-rooms/*` and `/internal/lending/deal-rooms/*` redirec
 | Applicant | Own application thread |
 | Company `OWNER` / `EXECUTIVE` / `FINANCE_MANAGER` | View + send on company applications |
 | Company `VIEWER` | No send (view policy unchanged) |
-| `ADMIN` / `OPERATOR` | All threads; reply; assign; status; close/reopen |
+| `ADMIN` / `OPERATOR` | All threads; reply as Alta Credit Desk; status; close/reopen |
 
 ## Server API
 
@@ -94,8 +102,10 @@ File: `src/server/loan-application-thread.service.ts`
 | `ensureThreadExists` | Backfill thread for legacy applications |
 | `getThreadContext` / `getThreadMessages` | Thread UI data |
 | `sendThreadMessage` | Post message + update status |
-| `updateThreadStatus` / `assignThreadStaff` | Staff controls |
+| `updateThreadStatus` | Staff status controls |
 | `closeThread` / `reopenThread` | Thread lifecycle |
+
+`assignThreadStaff` is **deprecated** (no-op). V1 does not assign threads to individual staff.
 
 TanStack wrappers: `src/lib/bank/loan-application-thread.functions.ts`
 
@@ -106,9 +116,10 @@ Entity type: `LOAN_APPLICATION`
 - `LOAN_THREAD_CREATED`
 - `LOAN_THREAD_MESSAGE_SENT`
 - `LOAN_THREAD_STATUS_CHANGED`
-- `LOAN_THREAD_ASSIGNED`
 - `LOAN_THREAD_CLOSED`
 - `LOAN_THREAD_REOPENED`
+
+(`LOAN_THREAD_ASSIGNED` is legacy — no longer written in V1.)
 
 Message bodies are **not** stored in audit metadata.
 
@@ -116,8 +127,8 @@ Message bodies are **not** stored in audit metadata.
 
 TODO hooks in `sendThreadMessage` and `createThreadForLoanApplication`:
 
-- Discord notification to applicant when Alta replies
-- Discord/internal notification to staff when applicant replies
+- **Alta Bot** — DM applicant when Alta Credit Desk replies in the Secure Deal Room
+- **Alta Bot / staff Discord bridge** — notify staff when applicant sends a message
 
 ## Migration
 
@@ -134,4 +145,4 @@ Migration: `prisma/migrations/20250701220000_loan_application_threads/migration.
 - Rich link previews
 - Formal term sheets and agreement workflow (separate from V1 thread)
 
-Legacy deal room tables and services remain in the codebase for historical data but are **not** used by the application submission flow.
+Legacy deal room tables and services remain in the codebase for historical data but are **not** used by the application submission flow. See [legacy-deal-room-infrastructure.md](./legacy-deal-room-infrastructure.md).

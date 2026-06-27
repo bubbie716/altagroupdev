@@ -22,11 +22,11 @@ export const fetchCardStatementDetail = createServerFn({ method: "GET" })
 export const generateAltaCardStatementForPeriod = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateAltaCardStatementInput) => input)
   .handler(async ({ data }) => {
-    const { requireAuth } = await import("@/server/auth.service");
+    const { requireOperator } = await import("@/server/permissions.service");
     const { generateCardStatementForPeriod } = await import("@/server/alta-card-statement.service");
-    const user = await requireAuth();
+    const admin = await requireOperator();
     return generateCardStatementForPeriod(
-      user.id,
+      admin.id,
       data.cardId,
       data.periodStart,
       data.periodEnd,

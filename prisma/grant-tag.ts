@@ -9,6 +9,7 @@ const TAG_ALIASES: Record<string, UserTag> = {
   private: UserTag.PRIVATE_CLIENT,
   developer: UserTag.DEVELOPER,
   issuer: UserTag.ISSUER,
+  system: UserTag.SYSTEM,
 };
 
 const TAG_LABELS: Record<UserTag, string> = {
@@ -17,6 +18,7 @@ const TAG_LABELS: Record<UserTag, string> = {
   [UserTag.PRIVATE_CLIENT]: "private_client",
   [UserTag.DEVELOPER]: "developer",
   [UserTag.ISSUER]: "issuer",
+  [UserTag.SYSTEM]: "system",
 };
 
 function parseTag(value: string): UserTag {

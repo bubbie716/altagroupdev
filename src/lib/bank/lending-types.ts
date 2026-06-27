@@ -52,11 +52,28 @@ export function computeLoanTermEstimate(
   return estimateOutstandingAfterTerm(principal, monthlyRate, termMonths);
 }
 
-export const LOAN_PRODUCT_REPAYMENT_TERMS: Record<LoanProductTypeCode, string> = {
-  personal_credit_line: "6 months maximum",
-  business_credit_line: "8 months maximum",
-  private_liquidity_line: "Custom terms",
+/** Short repayment label for product cards and summary rows. */
+export const LOAN_PRODUCT_REPAYMENT_CARD: Record<LoanProductTypeCode, string> = {
+  personal_credit_line: "Typical term: up to 6 months",
+  business_credit_line: "Typical term: up to 8 months",
+  private_liquidity_line: "Negotiated terms",
 };
+
+/** Full repayment guidance for apply flows and help text. */
+export const LOAN_PRODUCT_REPAYMENT_GUIDANCE: Record<LoanProductTypeCode, string> = {
+  personal_credit_line:
+    "Typical repayment term: up to 6 months. Final repayment schedule is determined during underwriting.",
+  business_credit_line:
+    "Typical repayment term: up to 8 months. Final repayment schedule is determined during underwriting.",
+  private_liquidity_line:
+    "Negotiated terms. Final repayment schedule is determined during underwriting.",
+};
+
+export const LOAN_TERM_MONTHS_HELP =
+  "Requested term in months (1–120). Product pages show typical ranges only — final repayment schedule is determined during underwriting.";
+
+/** @deprecated Use LOAN_PRODUCT_REPAYMENT_CARD or LOAN_PRODUCT_REPAYMENT_GUIDANCE */
+export const LOAN_PRODUCT_REPAYMENT_TERMS = LOAN_PRODUCT_REPAYMENT_CARD;
 
 export const LENDING_V1_PRODUCTS: LendingProductInfo[] = [
   {
@@ -64,7 +81,7 @@ export const LENDING_V1_PRODUCTS: LendingProductInfo[] = [
     name: "Personal Credit Line",
     limit: "Up to ƒ1.5M",
     rate: "7.5% monthly",
-    repayment: "6 months maximum",
+    repayment: LOAN_PRODUCT_REPAYMENT_CARD.personal_credit_line,
     summary: "Revolving credit for established Alta Bank personal clients. Manual underwriting required.",
     status: "Apply",
   },
@@ -73,7 +90,7 @@ export const LENDING_V1_PRODUCTS: LendingProductInfo[] = [
     name: "Business Credit Line",
     limit: "Up to ƒ10M",
     rate: "6% monthly",
-    repayment: "8 months maximum",
+    repayment: LOAN_PRODUCT_REPAYMENT_CARD.business_credit_line,
     summary: "Operating credit lines for verified Newport companies with institutional cash flow.",
     status: "Apply",
   },
@@ -82,8 +99,8 @@ export const LENDING_V1_PRODUCTS: LendingProductInfo[] = [
     name: "Private Liquidity Line",
     limit: "Up to ƒ25M",
     rate: "Negotiated monthly",
-    repayment: "Custom terms",
-    summary: "Standby liquidity for Alta Private clients — relationship-based facilities subject to manual approval.",
+    repayment: LOAN_PRODUCT_REPAYMENT_CARD.private_liquidity_line,
+    summary: "Alta Private clients may receive relationship-based pricing, negotiated lending terms, and dedicated banker support.",
     status: "Alta Private",
   },
 ];

@@ -326,7 +326,7 @@ export async function unassignDealRoomOfficer(actorUserId: string, dealRoomId: s
 
   await prisma.dealRoom.update({ where: { id: dealRoomId }, data: { assignedOfficerId: null } });
   await prisma.$transaction(async (tx) => {
-    await insertDealRoomSystemUpdateInTx(tx, dealRoomId, "Loan officer unassigned.", { actorUserId });
+    await insertDealRoomSystemUpdateInTx(tx, dealRoomId, "Assigned banker unassigned.", { actorUserId });
   });
 
   await writeAuditLog({
@@ -334,7 +334,7 @@ export async function unassignDealRoomOfficer(actorUserId: string, dealRoomId: s
     action: "DEAL_ROOM_OFFICER_UNASSIGNED",
     entityType: "DEAL_ROOM",
     entityId: dealRoomId,
-    description: "Officer unassigned from deal room.",
+    description: "Banker unassigned from legacy deal room.",
     metadata: { previousOfficerUserId: room.assignedOfficerId },
   });
 }

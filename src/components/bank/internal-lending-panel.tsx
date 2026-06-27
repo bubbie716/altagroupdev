@@ -41,14 +41,14 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
         params={{ applicationId: row.id }}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
-        Open Chat
+        Open Secure Deal Room
       </Link>
     );
   }
 
   return (
     <BankReviewButton
-      label={pending ? "Opening chat…" : "Open Chat"}
+      label={pending ? "Opening deal room…" : "Open Secure Deal Room"}
       onAction={async () => {
         setPending(true);
         try {
@@ -143,7 +143,7 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
           <div className="flex flex-wrap gap-1 pt-1">
             {row.status === "pending" && (
               <BankReviewButton
-                label="Under review"
+                label="Begin review"
                 onAction={async () => {
                   await markLoanApplicationUnderReviewRecord({
                     data: { applicationId: row.id, reviewNote: reviewNote || undefined },
@@ -153,7 +153,7 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
               />
             )}
             <BankReviewButton
-              label="Approve"
+              label="Accept"
               variant="primary"
               onAction={async () => {
                 await approveLoanApplicationRecord({
@@ -255,7 +255,7 @@ export function internalLendingColumns() {
     },
     {
       key: "thread",
-      header: "Thread",
+      header: "Deal Room",
       cell: (row: InternalLoanApplicationRow) => <LoanApplicationThreadLink row={row} />,
     },
     {

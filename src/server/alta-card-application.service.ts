@@ -209,9 +209,10 @@ async function createCardFromApplication(
 
   if (activate) {
     const { initializeBillingCycleForCard } = await import("@/server/alta-card-statement.service");
+    const now = new Date();
     const anchor = billingCycleDay
-      ? new Date(new Date().getFullYear(), new Date().getMonth(), Math.min(billingCycleDay, 28))
-      : new Date();
+      ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), Math.min(billingCycleDay, 28)))
+      : now;
     await initializeBillingCycleForCard(tx, created.id, anchor);
   }
 

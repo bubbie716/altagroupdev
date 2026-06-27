@@ -323,9 +323,9 @@ export function AltaCardPaymentPanel({
           <AltaCardActionButton
             label="Make payment"
             variant="primary"
+            tile
             disabled={disabled}
             onClick={() => void openPanel()}
-            className="w-full"
           />
         ) : (
           <button

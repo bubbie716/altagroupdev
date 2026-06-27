@@ -62,6 +62,38 @@ export const fetchInternalAltaCardApplicationsFiltered = createServerFn({ method
     return listInternalAltaCardApplicationsFiltered(filters);
   });
 
+export const fetchAltaCardApplicationThread = createServerFn({ method: "GET" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { ensureThreadExists, getAltaCardThreadContext, getAltaCardThreadMessages } = await import(
+      "@/server/alta-card-application-thread.service"
+    );
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    await ensureThreadExists(user.id, applicationId);
+    const [context, messages] = await Promise.all([
+      getAltaCardThreadContext(user.id, applicationId, "user"),
+      getAltaCardThreadMessages(user.id, applicationId),
+    ]);
+    return { context, messages };
+  });
+
+export const fetchInternalAltaCardApplicationThread = createServerFn({ method: "GET" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { ensureThreadExists, getAltaCardThreadContext, getAltaCardThreadMessages } = await import(
+      "@/server/alta-card-application-thread.service"
+    );
+    const { requireOperator } = await import("@/server/permissions.service");
+    const staff = await requireOperator();
+    await ensureThreadExists(staff.id, applicationId);
+    const [context, messages] = await Promise.all([
+      getAltaCardThreadContext(staff.id, applicationId, "internal"),
+      getAltaCardThreadMessages(staff.id, applicationId),
+    ]);
+    return { context, messages };
+  });
+
 export const fetchAltaCardApplicationThreadContext = createServerFn({ method: "GET" })
   .inputValidator((input: { applicationId: string; variant: "user" | "internal" }) => input)
   .handler(async ({ data }) => {
@@ -128,6 +160,24 @@ export const closeAltaCardApplicationThreadRecord = createServerFn({ method: "PO
     const { requireOperator } = await import("@/server/permissions.service");
     const { closeAltaCardApplicationThread } = await import("@/server/alta-card-application-thread.service");
     const staff = await requireOperator();
-    await closeAltaCardApplicationThread(staff.id, applicationId);
+    return closeAltaCardApplicationThread(staff.id, applicationId);
+  });
+
+export const reopenAltaCardApplicationThreadRecord = createServerFn({ method: "POST" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { reopenAltaCardApplicationThread } = await import("@/server/alta-card-application-thread.service");
+    const staff = await requireOperator();
+    return reopenAltaCardApplicationThread(staff.id, applicationId);
+  });
+
+export const ensureInternalAltaCardApplicationThread = createServerFn({ method: "POST" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { ensureThreadExists } = await import("@/server/alta-card-application-thread.service");
+    const { requireOperator } = await import("@/server/permissions.service");
+    const staff = await requireOperator();
+    await ensureThreadExists(staff.id, applicationId);
     return { ok: true };
   });

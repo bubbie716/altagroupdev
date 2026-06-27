@@ -13,6 +13,7 @@ enum UserTag {
   PRIVATE_CLIENT
   DEVELOPER
   ISSUER
+  SYSTEM
 }
 
 enum AccountStatus {
@@ -92,6 +93,7 @@ model User {
   auditLogsActed             AuditLog[]          @relation("AuditActor")
   internalNotesAuthored      InternalNote[]      @relation("InternalNoteAuthor")
   bankInterestAccrualsProcessed BankInterestAccrual[] @relation("InterestAccrualProcessor")
+  scheduledManualInterestCreated ScheduledManualInterestApplication[] @relation("ScheduledManualInterestCreator")
   bankAccountHoldsCreated    BankAccountHold[]   @relation("BankAccountHoldCreator")
   bankAccountHoldsReleased   BankAccountHold[]   @relation("BankAccountHoldReleaser")
   platformSettingsUpdated    PlatformSetting[]   @relation("PlatformSettingUpdatedBy")
@@ -122,6 +124,11 @@ model User {
   altaCardApplicationThreads         AltaCardApplicationThread[]    @relation("AltaCardApplicationThreadApplicant")
   altaCardApplicationThreadsAssigned AltaCardApplicationThread[]    @relation("AltaCardApplicationThreadStaff")
   altaCardApplicationThreadMessages  AltaCardApplicationThreadMessage[] @relation("AltaCardApplicationThreadMessageSender")
+  altaCardReviewRequestsSubmitted    AltaCardReviewRequest[]          @relation("AltaCardReviewRequestApplicant")
+  altaCardReviewRequestsReviewed     AltaCardReviewRequest[]          @relation("AltaCardReviewRequestReviewer")
+  altaCardReviewThreads              AltaCardReviewThread[]           @relation("AltaCardReviewThreadApplicant")
+  altaCardReviewThreadsAssigned      AltaCardReviewThread[]           @relation("AltaCardReviewThreadStaff")
+  altaCardReviewThreadMessages       AltaCardReviewThreadMessage[]    @relation("AltaCardReviewThreadMessageSender")
   altaEmployeeCards              AltaEmployeeCard[]             @relation("AltaEmployeeCardUser")
   altaCardTransactionsCreated    AltaCardTransaction[]          @relation("AltaCardTransactionCreator")
   altaCardFeesWaived             AltaCardFee[]                  @relation("AltaCardFeeWaivedBy")
@@ -167,6 +174,8 @@ model Company {
   altaCards            AltaCard[]
   altaCardApplications AltaCardApplication[]
   altaCardApplicationThreads AltaCardApplicationThread[]
+  altaCardReviewRequests     AltaCardReviewRequest[]
+  altaCardReviewThreads      AltaCardReviewThread[]
   altaEmployeeCards    AltaEmployeeCard[]
   altaCardMerchantTransactions AltaCardTransaction[] @relation("AltaCardMerchantCompany")
 }
@@ -266,6 +275,13 @@ enum BankInterestAccrualStatus {
   FAILED
 }
 
+enum ScheduledManualInterestStatus {
+  PENDING
+  APPLIED
+  CANCELLED
+  FAILED
+}
+
 enum BankTransactionStatus {
   PENDING
   APPROVED
@@ -342,6 +358,7 @@ model BankAccount {
   loanApplications  LoanApplication[]
   loansLinked       Loan[]            @relation("LoanLinkedAccount")
   loansAutoPaySource Loan[]           @relation("LoanAutoPaySource")
+  altaCardAutopaySource AltaCard[]    @relation("AltaCardAutopaySource")
   loanPaymentsFrom  LoanPayment[]
   altaCardTransactions AltaCardTransaction[] @relation("AltaCardRelatedBankAccount")
   altaCardApplicationsPaymentSource AltaCardApplication[] @relation("AltaCardApplicationPaymentSource")
@@ -612,6 +629,26 @@ model BankInterestAccrual {
   @@index([status])
 }
 
+model ScheduledManualInterestApplication {
+  id               String                        @id @default(cuid())
+  createdByUserId  String
+  payload          Json
+  scheduledFor     DateTime
+  idempotencyKey   String                        @unique
+  status           ScheduledManualInterestStatus @default(PENDING)
+  batchReferenceId String?
+  appliedAt        DateTime?
+  failureReason    String?
+  applyResult      Json?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+
+  createdBy User @relation("ScheduledManualInterestCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@index([createdByUserId])
+}
+
 enum BankStatementStatus {
   DRAFT
   GENERATED
@@ -744,6 +781,7 @@ model LoanApplicationThread {
   applicantUserId   String
   companyId         String?
   status            LoanApplicationThreadStatus @default(OPEN)
+  /// Deprecated: unused in V1 (no staff assignment). Retained for schema compatibility.
   assignedStaffId   String?
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
@@ -1504,6 +1542,19 @@ enum AltaCardStatus {
   DELINQUENT
 }
 
+enum AltaCardAutopayType {
+  MINIMUM_PAYMENT
+  STATEMENT_BALANCE
+  FIXED_AMOUNT
+}
+
+enum AltaCardAutopayStatus {
+  NOT_RUN
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
 enum AltaCardApplicationStatus {
   SUBMITTED
   UNDER_REVIEW
@@ -1604,6 +1655,93 @@ model AltaCardApplicationThreadMessage {
   @@index([threadId, createdAt])
 }
 
+enum AltaCardReviewStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  NEEDS_INFORMATION
+  APPROVED
+  PARTIALLY_APPROVED
+  DENIED
+  CANCELLED
+}
+
+model AltaCardReviewRequest {
+  id                    String               @id @default(cuid())
+  altaCardId            String
+  applicantUserId       String
+  companyId             String?
+  requestLimitIncrease  Boolean              @default(false)
+  requestRateReduction  Boolean              @default(false)
+  requestTierUpgrade    Boolean              @default(false)
+  requestedLimit        Decimal?             @db.Decimal(18, 2)
+  requestedRate         Decimal?             @db.Decimal(10, 6)
+  requestedTier         AltaCardTier?
+  notes                 String?
+  status                AltaCardReviewStatus @default(SUBMITTED)
+  approvedLimit         Decimal?             @db.Decimal(18, 2)
+  approvedRate          Decimal?             @db.Decimal(10, 6)
+  approvedTier          AltaCardTier?
+  approvedLimitIncrease Boolean?
+  approvedRateReduction Boolean?
+  approvedTierUpgrade   Boolean?
+  decisionNote          String?
+  reviewedByUserId      String?
+  reviewedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  altaCard      AltaCard               @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
+  applicantUser User                   @relation("AltaCardReviewRequestApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company       Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  reviewer      User?                  @relation("AltaCardReviewRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  thread        AltaCardReviewThread?
+
+  @@index([altaCardId])
+  @@index([applicantUserId])
+  @@index([companyId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AltaCardReviewThread {
+  id              String                          @id @default(cuid())
+  reviewRequestId String                          @unique
+  applicantUserId String
+  companyId       String?
+  status          AltaCardApplicationThreadStatus @default(WAITING_ON_ALTA)
+  assignedStaffId String?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+  closedAt        DateTime?
+
+  reviewRequest AltaCardReviewRequest         @relation(fields: [reviewRequestId], references: [id], onDelete: Cascade)
+  applicantUser User                          @relation("AltaCardReviewThreadApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company       Company?                      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedStaff User?                         @relation("AltaCardReviewThreadStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages      AltaCardReviewThreadMessage[]
+
+  @@index([applicantUserId])
+  @@index([companyId])
+  @@index([status])
+  @@index([assignedStaffId])
+}
+
+model AltaCardReviewThreadMessage {
+  id           String                              @id @default(cuid())
+  threadId     String
+  senderUserId String?
+  senderRole   AltaCardApplicationThreadSenderRole
+  body         String?
+  attachments  Json?
+  createdAt    DateTime                            @default(now())
+  deletedAt    DateTime?
+
+  thread AltaCardReviewThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User?                @relation("AltaCardReviewThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+}
+
 model AltaCard {
   id                 String         @id @default(cuid())
   ownerUserId        String?
@@ -1627,6 +1765,13 @@ model AltaCard {
   paymentDueDate           DateTime?
   billingCycleDay          Int?
   cardLastFour       String         @default("0000")
+  autopayEnabled           Boolean               @default(false)
+  autopaySourceAccountId   String?
+  autopayType              AltaCardAutopayType?
+  autopayFixedAmount       Decimal?              @db.Decimal(18, 2)
+  autopayLastRunAt         DateTime?
+  autopayLastStatus        AltaCardAutopayStatus @default(NOT_RUN)
+  autopayFailureReason     String?
   openedAt           DateTime?
   closedAt           DateTime?
   createdAt          DateTime       @default(now())
@@ -1640,12 +1785,16 @@ model AltaCard {
   statements    AltaCardStatement[]
   fees          AltaCardFee[]
   currentStatement AltaCardStatement? @relation("AltaCardCurrentStatement", fields: [currentStatementId], references: [id], onDelete: SetNull)
+  autopaySourceAccount BankAccount? @relation("AltaCardAutopaySource", fields: [autopaySourceAccountId], references: [id], onDelete: SetNull)
+  reviewRequests       AltaCardReviewRequest[]
 
   @@index([ownerUserId])
   @@index([companyId])
   @@index([cardType])
   @@index([tier])
   @@index([status])
+  @@index([autopayEnabled])
+  @@index([autopaySourceAccountId])
 }
 
 model AltaEmployeeCard {

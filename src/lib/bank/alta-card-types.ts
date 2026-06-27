@@ -122,6 +122,7 @@ export type UserEmployeeAltaCardSummary = AltaEmployeeCardRow & {
 
 export type UserEmployeeAltaCardDetail = UserEmployeeAltaCardSummary & {
   recentTransactions: AltaCardTransactionRow[];
+  parentAutopay?: import("@/lib/bank/alta-card-autopay-types").AltaCardAutopaySettings | null;
 };
 
 export type AltaCardTransactionRow = {
@@ -531,4 +532,10 @@ export const ALTA_CARD_STATEMENT_STATUS_LABELS: Record<AltaCardStatementStatusCo
   partially_paid: "Partially paid",
   overdue: "Overdue",
   void: "Void",
+};
+
+/** Admin-facing labels — preview statements are not production-issued. */
+export const ALTA_CARD_STATEMENT_STATUS_LABELS_ADMIN: Record<AltaCardStatementStatusCode, string> = {
+  ...ALTA_CARD_STATEMENT_STATUS_LABELS,
+  generated: "Preview statement",
 };

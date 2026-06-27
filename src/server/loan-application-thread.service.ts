@@ -22,25 +22,30 @@ import type {
   UpdateThreadStatusInput,
 } from "@/lib/bank/loan-application-thread-types";
 import {
-  THREAD_STATUS_LABELS,
-  THREAD_STATUS_LABELS_INTERNAL,
-} from "@/lib/bank/loan-application-thread-types";
+  LOAN_APPLICATION_SUBMITTED_MESSAGE,
+  LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE,
+} from "@/lib/bank/lending-application-status-copy";
+import { applicationListStatusLabel, THREAD_STATUS_LABELS, THREAD_STATUS_LABELS_INTERNAL } from "@/lib/bank/loan-application-thread-types";
 import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
+import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { fromDbLoanProductType } from "@/server/lending-mapper";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
+import {
+  assertSecureThreadUploadAccess,
+  SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
+} from "@/server/secure-thread-attachment-access";
 
-const INITIAL_SYSTEM_MESSAGE =
-  "Your application has been received. Alta Credit Desk may reply here if more information is needed.";
+const INITIAL_SYSTEM_MESSAGE = `${LOAN_APPLICATION_SUBMITTED_MESSAGE} ${LOAN_SECURE_DEAL_ROOM_DISCORD_NOTE}`;
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
 
 export function buildApplicationApprovedSystemMessage(reviewNote?: string | null): string {
   const lines = [
-    "Your credit application has been approved by Alta Credit Desk.",
-    "This conversation is now closed. Your approved facility will proceed through Alta Bank.",
+    "Your credit application has been accepted.",
+    "This Secure Deal Room is now closed. Your approved facility will proceed through Alta Bank servicing.",
   ];
   const note = reviewNote?.trim();
   if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
@@ -49,8 +54,8 @@ export function buildApplicationApprovedSystemMessage(reviewNote?: string | null
 
 export function buildApplicationDeniedSystemMessage(reviewNote?: string | null): string {
   const lines = [
-    "Your credit application has been denied by Alta Credit Desk.",
-    "This conversation is now closed.",
+    "Your credit application was not approved.",
+    "This Secure Deal Room is now closed.",
   ];
   const note = reviewNote?.trim();
   if (note) lines.push("", `Note from Alta Credit Desk: ${note}`);
@@ -84,7 +89,6 @@ const threadInclude = {
       company: { select: { name: true } },
     },
   },
-  assignedStaff: { select: { id: true, discordUsername: true } },
 } satisfies Prisma.LoanApplicationThreadInclude;
 
 function discordAvatarUrl(discordId: string, avatar: string | null | undefined): string | null {
@@ -138,7 +142,12 @@ function parseAttachments(value: Prisma.JsonValue | null): ThreadAttachment[] {
   return value.filter((item): item is ThreadAttachment => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return false;
     const row = item as Record<string, unknown>;
-    return typeof row.url === "string" && typeof row.type === "string";
+    if (typeof row.type !== "string") return false;
+    if (row.type === "LINK") return typeof row.url === "string";
+    return (
+      typeof row.url === "string" ||
+      (typeof row.storageKey === "string" && typeof row.downloadPath === "string")
+    );
   });
 }
 
@@ -155,7 +164,7 @@ function mapMessageRow(
       msg.senderRole === "SYSTEM"
         ? ALTA_CREDIT_DESK_NAME
         : msg.senderRole === "ALTA_STAFF"
-          ? "Loan Officer"
+          ? ALTA_CREDIT_DESK_NAME
           : (msg.sender?.discordUsername ?? "Applicant"),
     senderAvatarUrl:
       msg.senderRole === "APPLICANT" && msg.sender
@@ -184,8 +193,8 @@ function mapThreadContext(
     viewerUserId: user.id,
     status,
     statusLabel: labels[status],
-    assignedStaffId: thread.assignedStaffId,
-    assignedStaffName: thread.assignedStaff?.discordUsername ?? null,
+    assignedStaffId: null,
+    assignedStaffName: null,
     canSend: isStaff(user)
       ? thread.status !== "CLOSED"
       : canSendAsApplicant(user, thread),
@@ -198,7 +207,14 @@ function mapThreadContext(
     productLabel: LOAN_PRODUCT_LABELS[productType],
     requestedAmount: Number(app.requestedAmount),
     applicationStatus: app.status.toLowerCase(),
-    applicationStatusLabel: app.status.replaceAll("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
+    applicationStatusLabel: applicationListStatusLabel(
+      {
+        status: app.status.toLowerCase(),
+        statusLabel: app.status,
+        threadStatus: STATUS_FROM_DB[thread.status],
+      },
+      variant,
+    ),
     submittedAt: app.createdAt.toISOString(),
     submittedAtLabel: formatActivityDateTime(app.createdAt),
   };
@@ -271,7 +287,7 @@ export async function createThreadForLoanApplication(
     metadata: { threadId: thread.id },
   });
 
-  // TODO: Discord notification to staff when new application thread opens.
+  // TODO: Alta Bot — notify staff (Discord bridge) when a new Secure Deal Room opens.
 
   return { threadId: thread.id, applicationId: application.id };
 }
@@ -320,7 +336,9 @@ export async function getThreadMessages(
     orderBy: { createdAt: "asc" },
   });
 
-  return messages.map(mapMessageRow);
+  return messages.map((msg) =>
+    enrichLegacyThreadMessage(mapMessageRow(msg), { applicantUserId: thread.applicantUserId }),
+  );
 }
 
 export async function sendThreadMessage(
@@ -376,8 +394,8 @@ export async function sendThreadMessage(
     metadata: { threadId: thread.id, messageId: message.id, senderRole },
   });
 
-  // TODO: Discord notification to applicant when Alta staff replies.
-  // TODO: Discord/internal notification to staff when applicant replies.
+  // TODO: Alta Bot — DM applicant when Alta Credit Desk replies in the Secure Deal Room.
+  // TODO: Alta Bot / staff Discord bridge when applicant sends a Secure Deal Room message.
 
   return mapMessageRow(message);
 }
@@ -415,6 +433,7 @@ export async function updateThreadStatus(
   return mapThreadContext(updated, actor, "internal");
 }
 
+/** @deprecated V1 Secure Deal Rooms are not staff-assigned. Returns current context without changes. */
 export async function assignThreadStaff(
   actorUserId: string,
   input: AssignThreadStaffInput,
@@ -423,30 +442,7 @@ export async function assignThreadStaff(
   if (!isStaff(actor)) forbidden();
 
   const thread = await getThreadByApplicationId(input.applicationId);
-
-  if (input.staffUserId) {
-    const staffUser = await prisma.user.findUnique({ where: { id: input.staffUserId } });
-    if (!staffUser) badRequest("Staff user not found.");
-  }
-
-  const updated = await prisma.loanApplicationThread.update({
-    where: { id: thread.id },
-    data: { assignedStaffId: input.staffUserId },
-    include: threadInclude,
-  });
-
-  await writeAuditLog({
-    actorUserId,
-    action: "LOAN_THREAD_ASSIGNED",
-    entityType: "LOAN_APPLICATION",
-    entityId: thread.loanApplicationId,
-    description: input.staffUserId
-      ? `Staff assigned to application thread.`
-      : `Staff unassigned from application thread.`,
-    metadata: { threadId: thread.id, staffUserId: input.staffUserId },
-  });
-
-  return mapThreadContext(updated, actor, "internal");
+  return mapThreadContext(thread, actor, "internal");
 }
 
 export async function closeThread(
@@ -544,19 +540,10 @@ export async function reopenThread(
     entityType: "LOAN_APPLICATION",
     entityId: applicationId,
     metadata: { threadId: thread.id },
-    description: `Application thread reopened.`,
+    description: `Secure Deal Room reopened.`,
   });
 
   return mapThreadContext(updated, actor, "internal");
-}
-
-export async function listThreadStaffOptions(): Promise<{ id: string; name: string }[]> {
-  const users = await prisma.user.findMany({
-    where: { tags: { some: { tag: { in: ["ADMIN", "OPERATOR"] } } } },
-    select: { id: true, discordUsername: true },
-    orderBy: { discordUsername: "asc" },
-  });
-  return users.map((u) => ({ id: u.id, name: u.discordUsername }));
 }
 
 export async function ensureThreadForApplication(
@@ -568,11 +555,26 @@ export async function ensureThreadForApplication(
   return createThreadForLoanApplication(actorUserId, applicationId);
 }
 
-export async function assertThreadAccessForUpload(userId: string, applicationId: string): Promise<void> {
+export async function assertThreadAccessForUpload(
+  userId: string,
+  applicationId: string,
+): Promise<ThreadRecord> {
   const { user, thread } = await assertThreadAccess(userId, applicationId);
-  if (isStaff(user)) {
-    if (thread.status === "CLOSED") badRequest("Thread is closed.");
-    return;
-  }
-  if (!canSendAsApplicant(user, thread)) forbidden();
+  assertSecureThreadUploadAccess({
+    user,
+    isStaff,
+    threadClosed: thread.status === "CLOSED",
+    canSendAsApplicant: canSendAsApplicant(user, thread),
+    closedMessage: SECURE_THREAD_CLOSED_UPLOAD_MESSAGES.loan,
+  });
+  return thread;
+}
+
+/** View/download attachments on open or closed threads. */
+export async function assertThreadAccessForDownload(
+  userId: string,
+  applicationId: string,
+): Promise<ThreadRecord> {
+  const { thread } = await assertThreadAccess(userId, applicationId);
+  return thread;
 }

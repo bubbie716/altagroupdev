@@ -5,17 +5,25 @@ import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardBusinessPanel } from "@/components/bank/alta-card/alta-card-business-panel";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
-import { fetchCardBillingSummaryRecord } from "@/lib/bank/alta-card-interest.functions";
+import { fetchCompanyBillingSummaryRecord } from "@/lib/bank/alta-card-interest.functions";
+import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
+import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
 
 export const Route = createFileRoute("/bank/alta-card/business/$companyId/")({
   beforeLoad: authBeforeLoad,
   loader: async ({ params }) => {
     try {
       const companyCards = await fetchCompanyAltaCards({ data: params.companyId });
-      const billingSummary = companyCards.businessCard
-        ? await fetchCardBillingSummaryRecord({ data: companyCards.businessCard.id })
+      const billingSummary = await fetchCompanyBillingSummaryRecord({ data: params.companyId }).catch(
+        () => null,
+      );
+      const autopayContext = companyCards.businessCard
+        ? await fetchAltaCardAutopayContext({ data: companyCards.businessCard.id }).catch(() => null)
         : null;
-      return { ...companyCards, billingSummary };
+      const reviewEligibility = companyCards.businessCard
+        ? await fetchAltaCardReviewEligibility({ data: companyCards.businessCard.id }).catch(() => null)
+        : null;
+      return { ...companyCards, billingSummary, autopayContext, reviewEligibility };
     } catch {
       throw redirect({ to: "/bank/alta-card/business" });
     }
@@ -28,7 +36,7 @@ export const Route = createFileRoute("/bank/alta-card/business/$companyId/")({
 
 function BankAltaCardBusinessDetail() {
   const { companyId } = Route.useParams();
-  const { businessCard, employeeCards, companyTransactions, pendingApplication, billingSummary, employeeMemberOptions, canManageTreasury, hasMultipleBusinessCards } =
+  const { businessCard, employeeCards, companyTransactions, pendingApplication, billingSummary, autopayContext, reviewEligibility, employeeMemberOptions, canManageTreasury, hasMultipleBusinessCards } =
     Route.useLoaderData();
   const router = useRouter();
   const companyName =
@@ -54,6 +62,8 @@ function BankAltaCardBusinessDetail() {
         businessCard={businessCard}
         pendingApplication={pendingApplication}
         billingSummary={billingSummary}
+        autopayContext={autopayContext}
+        reviewEligibility={reviewEligibility}
         employeeMemberOptions={employeeMemberOptions}
         employeeCards={employeeCards}
         companyTransactions={companyTransactions}

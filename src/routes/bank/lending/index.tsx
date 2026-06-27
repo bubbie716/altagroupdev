@@ -21,17 +21,17 @@ function BankLendingOverview() {
   const deskStats = Route.useLoaderData();
 
   const stats = [
-    { label: "Officers on desk", value: String(deskStats.officersOnDesk) },
+    { label: "Review team", value: String(deskStats.officersOnDesk) },
     { label: "Avg. response", value: formatLendingAvgResponse(deskStats.avgResponseHours) },
     { label: "Active facilities", value: String(deskStats.activeFacilities) },
-    { label: "Awaiting review", value: String(deskStats.pendingReview) },
+    { label: "Applications in review", value: String(deskStats.pendingReview) },
   ] as const;
 
   return (
     <PageShell
       eyebrow="Alta Bank · Credit Desk"
       title="Lending"
-      description="Relationship-led credit facilities for Newport citizens, founders, and institutions — every facility manually reviewed by Alta Bank credit operations."
+      description="Relationship-led credit facilities for Newport citizens, founders, and institutions — every application manually reviewed through your Secure Deal Room."
     >
       <BankSubNav />
 
@@ -43,12 +43,11 @@ function BankLendingOverview() {
               Credit applications · open
             </p>
             <h2 className="mt-3 font-serif text-[28px] leading-[1.1] tracking-tight sm:text-[34px]">
-              Speak to the Alta credit desk.
+              Request a credit facility.
             </h2>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
               Personal, business, and private liquidity lines structured one
-              facility at a time. No automated decisioning — a credit officer is
-              assigned the moment you apply.
+              facility at a time. No automated decisioning — after submission, your application enters review and a Secure Deal Room opens for communication with Alta.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -148,8 +147,8 @@ function BankLendingOverview() {
           />
           <Pillar
             kicker="Underwriting"
-            title="Reviewed by people who answer."
-            body="Every application is read by an Alta credit officer who becomes your point of contact through structuring, signature, and the life of the facility."
+            title="Reviewed through your Secure Deal Room."
+            body="Every application is reviewed manually by Alta Bank credit operations. Alta communicates with you asynchronously through your Secure Deal Room — if additional information is required, you'll receive updates within Alta Bank and, if your Discord account is connected, through the Alta Bot."
           />
         </div>
       </Section>

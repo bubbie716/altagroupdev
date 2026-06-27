@@ -15,12 +15,12 @@ export const Route = createFileRoute("/bank/lending/applications/$applicationId/
       throw error;
     }
   },
-  head: () => ({ meta: [{ title: "Application Thread — Alta Bank" }] }),
+  head: () => ({ meta: [{ title: "Secure Deal Room — Alta Bank" }] }),
   notFoundComponent: () => (
-    <PageShell eyebrow="Alta Bank" title="Thread not found">
+    <PageShell eyebrow="Alta Bank" title="Secure Deal Room not found">
       <EmptyState
         tag="404"
-        title="This application thread is not available"
+        title="This Secure Deal Room is not available"
         action={
           <Link to="/bank/lending/applications" className="text-gold hover:underline">
             Back to applications

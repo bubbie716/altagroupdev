@@ -246,7 +246,7 @@ export function mapDealRoomDetail(room: DealRoomRecord): DealRoom {
     applicantHandle: list.applicantHandle,
     company: list.company,
     assignedOfficer: list.assignedOfficer ?? "Unassigned",
-    officerTitle: list.assignedOfficer ? "Loan Officer · Alta Bank" : undefined,
+    officerTitle: list.assignedOfficer ? "Alta Credit Desk" : undefined,
     officerInitials: officerInitials(list.assignedOfficer),
     requestedAmount: list.requestedAmount,
     proposedAmount,

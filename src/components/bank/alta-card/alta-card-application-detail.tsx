@@ -7,22 +7,13 @@ import {
 } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
-import { AltaCardApplicationThreadView } from "@/components/bank/alta-card/alta-card-application-thread-view";
 import { acceptAltaCardApplicationRecord } from "@/lib/bank/alta-card-application.functions";
-import type {
-  AltaCardApplicationThreadContext,
-  AltaCardApplicationThreadMessageRow,
-} from "@/lib/bank/alta-card-application-thread-types";
 
 export function AltaCardApplicationDetailView({
   application,
-  threadContext,
-  messages,
   onAccepted,
 }: {
   application: AltaCardApplicationDetail;
-  threadContext: AltaCardApplicationThreadContext;
-  messages: AltaCardApplicationThreadMessageRow[];
   onAccepted?: () => Promise<void>;
 }) {
   const canAccept =
@@ -47,7 +38,7 @@ export function AltaCardApplicationDetailView({
             </p>
             <ol className="mt-2 list-decimal space-y-1 pl-4 text-[13px] text-muted-foreground">
               <li>Our team reviews your Alta relationship and requested terms.</li>
-              <li>Respond to any requests in your application thread below.</li>
+              <li>Respond to any requests in your secure deal room.</li>
               <li>When approved, accept your card to activate your credit line.</li>
             </ol>
           </div>
@@ -129,8 +120,7 @@ export function AltaCardApplicationDetailView({
             </Link>
           ) : (
             <Link
-              to="/bank/alta-card/$cardId"
-              params={{ cardId: application.cardId }}
+              to="/bank/alta-card"
               className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-gold"
             >
               View your card →
@@ -139,11 +129,26 @@ export function AltaCardApplicationDetailView({
         ) : null}
       </div>
 
-      <AltaCardApplicationThreadView
-        context={threadContext}
-        messages={messages}
-        variant="user"
-      />
+      <div className="rounded-xl border border-border bg-surface-1/80 p-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          Secure deal room
+        </p>
+        <p className="mt-2 text-[14px] text-muted-foreground">
+          Message Alta Card servicing, share documents, and track review updates in your secure
+          deal room.
+        </p>
+        <Link
+          to={
+            application.cardType === "business"
+              ? "/bank/alta-card/business/applications/$applicationId/thread"
+              : "/bank/alta-card/applications/$applicationId/thread"
+          }
+          params={{ applicationId: application.id }}
+          className="mt-4 inline-block rounded-md bg-foreground px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-background hover:bg-foreground/90"
+        >
+          Open secure deal room
+        </Link>
+      </div>
     </div>
   );
 }

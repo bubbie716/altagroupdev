@@ -9,9 +9,14 @@ export type ThreadSenderRoleCode = "applicant" | "alta_staff" | "system";
 export type ThreadAttachmentType = "FILE" | "IMAGE" | "LINK";
 
 export type ThreadAttachment = {
+  id?: string;
   type: ThreadAttachmentType;
   fileName?: string;
-  url: string;
+  /** Public blob URL — loan threads and legacy uploads */
+  url?: string;
+  /** Auth-gated app download path — Alta Card private attachments */
+  downloadPath?: string;
+  storageKey?: string;
   mimeType?: string;
   fileSizeBytes?: number;
 };
@@ -34,7 +39,9 @@ export type LoanApplicationThreadContext = {
   viewerUserId: string;
   status: LoanApplicationThreadStatusCode;
   statusLabel: string;
+  /** @deprecated V1 Secure Deal Rooms are not staff-assigned. Always null. */
   assignedStaffId: string | null;
+  /** @deprecated V1 Secure Deal Rooms are not staff-assigned. Always null. */
   assignedStaffName: string | null;
   canSend: boolean;
   applicantName: string;
@@ -59,6 +66,7 @@ export type UpdateThreadStatusInput = {
   status: LoanApplicationThreadStatusCode;
 };
 
+/** @deprecated V1 Secure Deal Rooms are not staff-assigned. No-op for compatibility. */
 export type AssignThreadStaffInput = {
   applicationId: string;
   staffUserId: string | null;
@@ -66,29 +74,19 @@ export type AssignThreadStaffInput = {
 
 export const THREAD_STATUS_LABELS: Record<LoanApplicationThreadStatusCode, string> = {
   open: "Waiting on Alta",
-  waiting_on_applicant: "Waiting on you",
+  waiting_on_applicant: "Waiting on You",
   waiting_on_alta: "Waiting on Alta",
   closed: "Waiting on Alta",
 };
 
 export const THREAD_STATUS_LABELS_INTERNAL: Record<LoanApplicationThreadStatusCode, string> = {
   open: "Waiting on Alta",
-  waiting_on_applicant: "Waiting on applicant",
+  waiting_on_applicant: "Waiting on You",
   waiting_on_alta: "Waiting on Alta",
   closed: "Waiting on Alta",
 };
 
-export function applicationListStatusLabel(
-  row: {
-    status: string;
-    statusLabel: string;
-    threadStatus: LoanApplicationThreadStatusCode | null;
-  },
-  variant: "user" | "internal" = "user",
-): string {
-  if (row.status === "pending" || row.status === "under_review") {
-    const labels = variant === "internal" ? THREAD_STATUS_LABELS_INTERNAL : THREAD_STATUS_LABELS;
-    return labels[row.threadStatus ?? "waiting_on_alta"];
-  }
-  return row.statusLabel;
-}
+export {
+  applicationListStatusLabel,
+  formatApplicationStatusLabel,
+} from "@/lib/bank/lending-application-status-copy";

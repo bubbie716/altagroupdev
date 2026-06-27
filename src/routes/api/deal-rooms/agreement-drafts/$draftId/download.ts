@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { downloadDealRoomDocument, DealRoomDocumentStorageError } from "@/server/document-storage.service";
-import { jsonError, requireAuthFromRequest } from "@/server/bank-request-auth";
+import { jsonError, requireAuthFromRequest, attachmentContentDisposition } from "@/server/bank-request-auth";
 
 export const Route = createFileRoute("/api/deal-rooms/agreement-drafts/$draftId/download")({
   server: {
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/deal-rooms/agreement-drafts/$draftId/
           const filename = `loan-agreement-v${draft.versionNumber}.pdf`;
           const headers = new Headers({
             "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+            "Content-Disposition": attachmentContentDisposition(request, "application/pdf", filename),
             "Cache-Control": "private, no-store",
           });
           if (payload.size > 0) headers.set("Content-Length", String(payload.size));

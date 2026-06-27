@@ -17,6 +17,7 @@ import type {
 } from "@/lib/bank/deal-room-types";
 import { DEAL_ROOM_CHECKLIST_TEMPLATE, DEAL_ROOM_DOCUMENT_TYPE_LABELS } from "@/lib/bank/deal-room-types";
 import { generateSignedDocumentUrl } from "@/server/document-storage.service";
+import { threadAttachmentHref } from "@/lib/bank/thread-attachment-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 
 export const dealRoomDocumentInclude = {
@@ -156,7 +157,11 @@ export function mapDealRoomDocumentRow(
     uploadedByUserId: doc.uploadedByUserId,
     uploadedByName: doc.uploadedBy.discordUsername,
     createdAt: doc.createdAt.toISOString(),
-    downloadUrl: generateSignedDocumentUrl(doc.id),
+    downloadUrl: threadAttachmentHref({
+      downloadPath: generateSignedDocumentUrl(doc.id),
+      mimeType: doc.mimeType,
+      fileName: doc.originalFileName,
+    }),
     ...permissions,
   };
 }

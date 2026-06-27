@@ -31,7 +31,8 @@ Intrabank transfers and payroll batches are **auto-approved on creation**. Inter
    - `runAltaCardStatementSchedulerJob()` — no-ops except on the last calendar day of the month (UTC), then closes eligible statements.
    - `runAltaCardBillingSchedulerJob()` — marks overdue statements, applies late fees and interest.
 6. **Bank account statements** — `runBankAccountStatementSchedulerJob()` no-ops except on the 1st of the month (UTC), then generates prior-month statements for eligible accounts.
-7. For each due transfer or payroll line:
+7. **Deposit interest** — `runDepositInterestSchedulerJob()` accrues due monthly deposit account interest and applies any scheduled manual interest batches whose run time has passed.
+8. For each due transfer or payroll line:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
    - Executes via `submitInternalTransfer` using the original creator’s permissions.

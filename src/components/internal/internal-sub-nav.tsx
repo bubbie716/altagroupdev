@@ -41,17 +41,6 @@ const groups: { id: string; label: string; links: Link[] }[] = [
     ],
   },
   {
-    id: "markets",
-    label: "Markets",
-    links: [
-      { to: "/internal/exchange", label: "Exchange Ops" },
-      { to: "/internal/ipos", label: "IPO Applications" },
-      { to: "/internal/listings", label: "Listings" },
-      { to: "/internal/terminal", label: "Terminal Activity" },
-      { to: "/internal/api-applications", label: "API Applications" },
-    ],
-  },
-  {
     id: "tools",
     label: "Tools",
     links: [

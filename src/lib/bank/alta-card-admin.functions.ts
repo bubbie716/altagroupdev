@@ -79,6 +79,14 @@ export const createAdminAltaCardAdjustmentWithAuditRecord = createServerFn({ met
     return createAdminAdjustmentWithAudit(userId, data);
   });
 
+export const reverseAltaCardTransactionAdminRecord = createServerFn({ method: "POST" })
+  .inputValidator((input: { transactionId: string; reason: string }) => input)
+  .handler(async ({ data }) => {
+    const { reverseAltaCardTransactionAdmin } = await import("@/server/alta-card-admin.service");
+    const userId = await actorId();
+    return reverseAltaCardTransactionAdmin(userId, data);
+  });
+
 export const unfreezeEmployeeCardRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { employeeCardId: string; reason: string }) => input)
   .handler(async ({ data }) => {

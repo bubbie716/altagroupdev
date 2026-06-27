@@ -19,7 +19,9 @@ import type {
 } from "@/lib/bank/lending-types";
 import {
   LOAN_PRODUCT_LABELS,
-  LOAN_PRODUCT_REPAYMENT_TERMS,
+  LOAN_PRODUCT_REPAYMENT_CARD,
+  LOAN_PRODUCT_REPAYMENT_GUIDANCE,
+  LOAN_TERM_MONTHS_HELP,
   LOAN_TERM_MONTHS_MAX,
   LOAN_TERM_MONTHS_MIN,
   computeLoanTermEstimate,
@@ -148,11 +150,11 @@ export function LendingApplyForm({
                 {" "}
                 Indicative monthly rate:{" "}
                 {productType === "personal_credit_line" ? "7.5%" : "6%"} · Repayment:{" "}
-                {LOAN_PRODUCT_REPAYMENT_TERMS[productType]}.
+                {LOAN_PRODUCT_REPAYMENT_GUIDANCE[productType]}
               </>
             )}
             {productType === "private_liquidity_line" && (
-              <> Negotiated monthly rate · {LOAN_PRODUCT_REPAYMENT_TERMS.private_liquidity_line}.</>
+              <> {LOAN_PRODUCT_REPAYMENT_GUIDANCE.private_liquidity_line}</>
             )}
           </p>
         </div>
@@ -217,9 +219,7 @@ export function LendingApplyForm({
             value={termMonths}
             onChange={(e) => setTermMonths(e.target.value)}
           />
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            How long you need the facility before full repayment. Used to estimate total outstanding with monthly interest.
-          </p>
+          <p className="mt-2 text-[12px] text-muted-foreground">{LOAN_TERM_MONTHS_HELP}</p>
         </div>
 
         {termEstimate && (
@@ -325,7 +325,7 @@ export function LendingApplyForm({
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/60 pt-6">
           <p className="text-[12px] text-muted-foreground">
-            Submitting creates a pending application. Typical review: 2–5 business days.
+            After submission, your application enters review. A Secure Deal Room opens for communication with Alta Bank credit operations.
           </p>
           <button
             type="submit"

@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
-import { AltaCardLandingDashboard } from "@/components/bank/alta-card/alta-card-detail-view";
+import { AltaCardPersonalPanel } from "@/components/bank/alta-card/alta-card-personal-panel";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   AltaCardLandingHero,
   AltaCardPendingApplicationBanner,
@@ -10,19 +11,24 @@ import {
 import { AltaCardTierComparison } from "@/components/bank/alta-card/alta-card-tier-comparison";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { authBeforeLoad } from "@/lib/auth/guards";
-import { fetchUserAltaCard } from "@/lib/bank/alta-card.functions";
+import { fetchUserAltaCard, fetchAltaCardDetail } from "@/lib/bank/alta-card.functions";
 import { fetchCardBillingSummaryRecord } from "@/lib/bank/alta-card-interest.functions";
 import { fetchUserPendingAltaCardApplication } from "@/lib/bank/alta-card-application.functions";
+import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
+import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
 
 export const Route = createFileRoute("/bank/alta-card/")({
   beforeLoad: authBeforeLoad,
   loader: async () => {
     const card = await fetchUserAltaCard();
-    const [billingSummary, pendingApplication] = await Promise.all([
+    const cardDetail = card ? await fetchAltaCardDetail({ data: card.id }).catch(() => null) : null;
+    const [billingSummary, pendingApplication, reviewEligibility, autopayContext] = await Promise.all([
       card ? fetchCardBillingSummaryRecord({ data: card.id }) : null,
       fetchUserPendingAltaCardApplication(),
+      card ? fetchAltaCardReviewEligibility({ data: card.id }).catch(() => null) : null,
+      card ? fetchAltaCardAutopayContext({ data: card.id }).catch(() => null) : null,
     ]);
-    return { card, billingSummary, pendingApplication };
+    return { card, cardDetail, billingSummary, pendingApplication, reviewEligibility, autopayContext };
   },
   head: () => ({
     meta: [{ title: "Alta Card — Alta Bank" }],
@@ -31,33 +37,31 @@ export const Route = createFileRoute("/bank/alta-card/")({
 });
 
 function BankAltaCardIndex() {
-  const { card, billingSummary, pendingApplication } = Route.useLoaderData();
+  const user = useCurrentUser();
+  const { card, cardDetail, billingSummary, pendingApplication, reviewEligibility, autopayContext } =
+    Route.useLoaderData();
+
+  const cardholderName =
+    user?.discordUsername ?? cardDetail?.ownerUsername ?? card?.ownerUsername ?? "Cardholder";
 
   return (
     <PageShell
       eyebrow="Alta Bank · Alta Card"
-      title="Alta Card"
-      description="Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
+      title={card ? cardholderName : "Alta Card"}
+      description={
+        card
+          ? undefined
+          : "Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
+      }
       action={
-        <div className="flex flex-wrap gap-2">
-          {!card && !pendingApplication ? (
-            <Link
-              to="/bank/alta-card/apply"
-              className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
-            >
-              Apply
-            </Link>
-          ) : null}
-          {card ? (
-            <Link
-              to="/bank/alta-card/$cardId"
-              params={{ cardId: card.id }}
-              className="rounded-md border border-border bg-surface-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em]"
-            >
-              Card details
-            </Link>
-          ) : null}
-        </div>
+        !card && !pendingApplication ? (
+          <Link
+            to="/bank/alta-card/apply"
+            className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
+          >
+            Apply
+          </Link>
+        ) : null
       }
     >
       <BankSubNav />
@@ -74,7 +78,14 @@ function BankAltaCardIndex() {
       ) : null}
 
       {card ? (
-        <AltaCardLandingDashboard card={card} billingSummary={billingSummary} />
+        <AltaCardPersonalPanel
+          card={cardDetail ?? card}
+          cardholderName={cardholderName}
+          billingSummary={billingSummary}
+          reviewEligibility={reviewEligibility}
+          autopayContext={autopayContext}
+          transactions={cardDetail?.recentTransactions ?? []}
+        />
       ) : !pendingApplication ? (
         <div className="space-y-10">
           <AltaCardLandingHero />

@@ -21,6 +21,32 @@ export type AltaCardStatementDetailLink =
       params: { companyId: string; statementId: string };
     };
 
+export type AltaCardReviewLink =
+  | { to: "/bank/alta-card/$cardId/review"; params: { cardId: string } }
+  | { to: "/bank/alta-card/business/$companyId/review"; params: { companyId: string } };
+
+export type AltaCardReviewDetailLink =
+  | {
+      to: "/bank/alta-card/$cardId/review/$reviewId";
+      params: { cardId: string; reviewId: string };
+    }
+  | {
+      to: "/bank/alta-card/business/$companyId/review/$reviewId";
+      params: { companyId: string; reviewId: string };
+    };
+
+export type AltaCardReviewThreadLink =
+  | {
+      to: "/bank/alta-card/$cardId/review/$reviewId/thread";
+      params: { cardId: string; reviewId: string };
+    }
+  | {
+      to: "/bank/alta-card/business/$companyId/review/$reviewId/thread";
+      params: { companyId: string; reviewId: string };
+    };
+
+type AltaCardReviewNavCard = Pick<AltaCardRow, "id" | "cardType" | "companyId">;
+
 export function altaCardDashboardBackLink(
   card: Pick<AltaCardRow, "cardType" | "companyId">,
 ): AltaCardBackLink {
@@ -65,6 +91,51 @@ export function altaCardStatementDetailLink(
   return {
     to: "/bank/alta-card/$cardId/statements/$statementId",
     params: { cardId: card.id, statementId },
+  };
+}
+
+export function altaCardReviewLink(card: AltaCardReviewNavCard): AltaCardReviewLink {
+  if (card.cardType === "business" && card.companyId) {
+    return {
+      to: "/bank/alta-card/business/$companyId/review",
+      params: { companyId: card.companyId },
+    };
+  }
+  return {
+    to: "/bank/alta-card/$cardId/review",
+    params: { cardId: card.id },
+  };
+}
+
+export function altaCardReviewDetailLink(
+  card: AltaCardReviewNavCard,
+  reviewId: string,
+): AltaCardReviewDetailLink {
+  if (card.cardType === "business" && card.companyId) {
+    return {
+      to: "/bank/alta-card/business/$companyId/review/$reviewId",
+      params: { companyId: card.companyId, reviewId },
+    };
+  }
+  return {
+    to: "/bank/alta-card/$cardId/review/$reviewId",
+    params: { cardId: card.id, reviewId },
+  };
+}
+
+export function altaCardReviewThreadLink(
+  card: AltaCardReviewNavCard,
+  reviewId: string,
+): AltaCardReviewThreadLink {
+  if (card.cardType === "business" && card.companyId) {
+    return {
+      to: "/bank/alta-card/business/$companyId/review/$reviewId/thread",
+      params: { companyId: card.companyId, reviewId },
+    };
+  }
+  return {
+    to: "/bank/alta-card/$cardId/review/$reviewId/thread",
+    params: { cardId: card.id, reviewId },
   };
 }
 

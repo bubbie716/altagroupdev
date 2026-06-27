@@ -15,6 +15,8 @@ export interface ManualInterestApplicationInput {
   internalNote?: string;
   /** Client-generated key to prevent duplicate batch submission. */
   idempotencyKey?: string;
+  /** Optional YYYY-MM-DD date to schedule application (9:00 AM Eastern). */
+  scheduledForDate?: string;
 }
 
 export interface ManualInterestPreviewAccountRow {

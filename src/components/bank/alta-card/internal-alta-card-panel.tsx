@@ -12,10 +12,10 @@ import type {
 import {
   ALTA_CARD_FEE_STATUS_LABELS,
   ALTA_CARD_FEE_TYPE_LABELS,
+  ALTA_CARD_STATEMENT_STATUS_LABELS_ADMIN,
   ALTA_CARD_TIER_LABELS,
   altaCardStatusLabel,
   formatAltaCardCurrency,
-  formatAltaCardRate,
 } from "@/lib/bank/alta-card-types";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -23,15 +23,7 @@ import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { AdminDataTable, type AdminTableColumn } from "@/components/internal/admin-data-table";
 import {
   approveAltaCardApplicationRecord,
-  changeAltaCardTierRecord,
-  closeAltaCardRecord,
-  createAdminAltaCardAdjustmentRecord,
   denyAltaCardApplicationRecord,
-  freezeAltaCardRecord,
-  reverseAltaCardTransactionRecord,
-  unfreezeAltaCardRecord,
-  updateAltaCardLimitRecord,
-  updateAltaCardRateRecord,
 } from "@/lib/bank/alta-card.functions";
 import {
   generateAltaCardStatementRecord,
@@ -45,8 +37,8 @@ import {
   runAltaCardBillingProcessRecord,
   waiveAltaCardFeeRecord,
 } from "@/lib/bank/alta-card-interest.functions";
-import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
 import { AltaCardStatementList } from "@/components/bank/alta-card/alta-card-statement-views";
+import { AltaCardStatementGenerateForm } from "@/components/bank/alta-card/alta-card-statement-generate-form";
 import { ALTA_CARD_BILLING_POLICY_LINES } from "@/lib/bank/alta-card-billing-cycle";
 
 function cardColumns(): AdminTableColumn<AltaCardRow>[] {
@@ -208,7 +200,7 @@ export function InternalAltaCardPanel({
           className="rounded border border-border bg-surface-1 px-2 py-1 text-[12px]"
         >
           <option value="">All statuses</option>
-          {(["pending", "active", "frozen", "closed", "delinquent"] as AltaCardStatusCode[]).map(
+          {(["pending", "active", "frozen", "closed", "delinquent", "lost"] as AltaCardStatusCode[]).map(
             (s) => (
               <option key={s} value={s}>
                 {altaCardStatusLabel(s)}
@@ -231,13 +223,15 @@ export function InternalAltaCardPanel({
         >
           Applications ({pendingApplications.length} pending)
         </Link>
+        <Link
+          to="/internal/alta-card/reviews"
+          className="rounded border border-border bg-surface-2 px-3 py-1 text-[12px]"
+        >
+          Account reviews
+        </Link>
       </div>
 
-      <AdminDataTable
-        columns={cardColumns()}
-        rows={filtered}
-        rowKey={(row) => row.id}
-      />
+      <AdminDataTable columns={cardColumns()} rows={filtered} rowKey={(row) => row.id} />
 
       <div>
         <h3 className="mb-4 font-serif text-[18px]">Pending applications</h3>
@@ -251,28 +245,22 @@ export function InternalAltaCardPanel({
   );
 }
 
+/** Billing-only panel — financial mutations live in InternalAltaCardOpsPanel. */
 export function InternalAltaCardDetailPanel({
   card,
   statements = [],
   fees = [],
-  billingOnly = false,
   onRefresh,
 }: {
   card: import("@/lib/bank/alta-card-types").AltaCardDetail;
   statements?: AltaCardStatementRow[];
   fees?: AltaCardFeeRow[];
-  billingOnly?: boolean;
   onRefresh: () => Promise<void>;
 }) {
   const user = useCurrentUser();
   const admin = user ? isAdmin(user) : false;
-  const [limit, setLimit] = useState(String(card.creditLimit));
-  const [rate, setRate] = useState(String(card.interestRate));
-  const [tier, setTier] = useState(card.tier);
-  const [adjKind, setAdjKind] = useState<"credit" | "debit">("credit");
-  const [adjAmount, setAdjAmount] = useState("");
-  const [adjReason, setAdjReason] = useState("");
   const [interestPreview, setInterestPreview] = useState<string | null>(null);
+  const [feeWaiveReason, setFeeWaiveReason] = useState("");
 
   const overdueStatements = statements.filter((s) => s.status === "overdue");
   const unpaidStatements = statements.filter(
@@ -281,168 +269,6 @@ export function InternalAltaCardDetailPanel({
 
   return (
     <div className="space-y-8">
-      {!billingOnly ? (
-        <>
-      <div>
-        <p className="font-serif text-[22px]">
-          {card.ownerUsername ?? card.companyName ?? "Alta Card"}
-        </p>
-        <p className="mt-1 text-[13px] text-muted-foreground">
-          {ALTA_CARD_TIER_LABELS[card.tier]} · {altaCardStatusLabel(card.status)} ·{" "}
-          {formatAltaCardCurrency(card.creditLimit)}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {card.status === "active" ? (
-          <BankReviewButton
-            label="Freeze"
-            onAction={async () => {
-              await freezeAltaCardRecord({ data: card.id });
-              await onRefresh();
-            }}
-          />
-        ) : null}
-        {card.status === "frozen" ? (
-          <BankReviewButton
-            label="Unfreeze"
-            variant="primary"
-            onAction={async () => {
-              await unfreezeAltaCardRecord({ data: card.id });
-              await onRefresh();
-            }}
-          />
-        ) : null}
-        {card.status !== "closed" ? (
-          <BankReviewButton
-            label="Close card"
-            variant="danger"
-            onAction={async () => {
-              await closeAltaCardRecord({ data: card.id });
-              await onRefresh();
-            }}
-          />
-        ) : null}
-      </div>
-
-      <div className="grid gap-4 rounded-xl border border-border bg-surface-1/80 p-5 md:grid-cols-3">
-        <label className="space-y-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Credit limit
-          </span>
-          <input
-            type="number"
-            value={limit}
-            onChange={(e) => setLimit(e.target.value)}
-            className="w-full rounded border border-border bg-surface-1 px-2 py-1 font-mono text-[13px]"
-          />
-          <BankReviewButton
-            label="Update limit"
-            onAction={async () => {
-              await updateAltaCardLimitRecord({
-                data: { cardId: card.id, creditLimit: Number(limit) },
-              });
-              await onRefresh();
-            }}
-          />
-        </label>
-        <label className="space-y-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Interest rate
-          </span>
-          <input
-            type="number"
-            step="0.01"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            className="w-full rounded border border-border bg-surface-1 px-2 py-1 font-mono text-[13px]"
-          />
-          <BankReviewButton
-            label="Update rate"
-            onAction={async () => {
-              await updateAltaCardRateRecord({
-                data: { cardId: card.id, interestRate: Number(rate) },
-              });
-              await onRefresh();
-            }}
-          />
-        </label>
-        <label className="space-y-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Tier
-          </span>
-          <select
-            value={tier}
-            onChange={(e) => setTier(e.target.value as AltaCardTierCode)}
-            className="w-full rounded border border-border bg-surface-1 px-2 py-1 text-[13px]"
-          >
-            {Object.entries(ALTA_CARD_TIER_LABELS).map(([code, label]) => (
-              <option key={code} value={code}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <BankReviewButton
-            label="Change tier"
-            onAction={async () => {
-              await changeAltaCardTierRecord({ data: { cardId: card.id, tier } });
-              await onRefresh();
-            }}
-          />
-        </label>
-      </div>
-
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Available
-          </dt>
-          <dd className="mt-1 font-mono tabular-nums">
-            {formatAltaCardCurrency(card.availableCredit)}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Balance
-          </dt>
-          <dd className="mt-1 font-mono tabular-nums">
-            {formatAltaCardCurrency(card.currentBalance)}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Statement
-          </dt>
-          <dd className="mt-1 font-mono tabular-nums">
-            {formatAltaCardCurrency(card.statementBalance)}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Rate
-          </dt>
-          <dd className="mt-1 font-mono tabular-nums">{formatAltaCardRate(card.interestRate)}</dd>
-        </div>
-      </dl>
-
-      {card.cardType === "business" && card.employeeCards.length > 0 ? (
-        <div>
-          <h3 className="mb-3 font-serif text-[18px]">Employee cards</h3>
-          <ul className="space-y-2 text-[13px]">
-            {card.employeeCards.map((e) => (
-              <li key={e.id} className="rounded border border-border px-3 py-2">
-                {e.authorizedUsername} · {formatAltaCardCurrency(e.employeeCurrentBalance)} spent ·{" "}
-                {altaCardStatusLabel(e.status)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <AltaCardTransactionHistory transactions={card.recentTransactions} title="All transactions" />
-        </>
-      ) : null}
-
       <section className="space-y-4 rounded-xl border border-border bg-surface-1/80 p-5">
         <h3 className="font-serif text-[18px]">Billing & statements</h3>
         <div className="rounded-lg border border-border/60 bg-surface-2/40 px-4 py-3">
@@ -462,18 +288,14 @@ export function InternalAltaCardDetailPanel({
             : "—"}
           {" · "}
           Next statement:{" "}
-          {card.nextStatementDate
-            ? new Date(card.nextStatementDate).toLocaleDateString()
-            : "—"}
+          {card.nextStatementDate ? new Date(card.nextStatementDate).toLocaleDateString() : "—"}
           {" · "}
           Payment due:{" "}
-          {card.paymentDueDate
-            ? new Date(card.paymentDueDate).toLocaleDateString()
-            : "—"}
+          {card.paymentDueDate ? new Date(card.paymentDueDate).toLocaleDateString() : "—"}
         </p>
         <div className="flex flex-wrap gap-2">
           <BankReviewButton
-            label="Generate statement"
+            label="Close billing cycle (issue statement)"
             variant="primary"
             onAction={async () => {
               await generateAltaCardStatementRecord({ data: card.id });
@@ -488,7 +310,24 @@ export function InternalAltaCardDetailPanel({
             }}
           />
         </div>
-        <AltaCardStatementList cardId={card.id} card={card} statements={statements} variant="admin" />
+        <div className="rounded-lg border border-dashed border-border/70 bg-surface-2/20 p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            Preview statement (admin only)
+          </p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            Preview statements do not trigger billing, interest, or due dates.
+          </p>
+          <div className="mt-4">
+            <AltaCardStatementGenerateForm cardId={card.id} card={card} />
+          </div>
+        </div>
+        <AltaCardStatementList
+          cardId={card.id}
+          card={card}
+          statements={statements}
+          variant="admin"
+          statusLabels={ALTA_CARD_STATEMENT_STATUS_LABELS_ADMIN}
+        />
         {statements
           .filter((s) => s.status === "issued" || s.status === "partially_paid")
           .map((s) => (
@@ -563,10 +402,6 @@ export function InternalAltaCardDetailPanel({
           <p className="font-mono text-[12px] text-muted-foreground">{interestPreview}</p>
         ) : null}
 
-        <p className="text-[12px] text-muted-foreground">
-          Waive interest via an adjustment credit. Fee waivers are admin-only below.
-        </p>
-
         {fees.length > 0 ? (
           <div className="overflow-hidden rounded-lg border border-border">
             <table className="alta-table w-full text-sm">
@@ -595,7 +430,10 @@ export function InternalAltaCardDetailPanel({
                             label="Waive"
                             variant="danger"
                             onAction={async () => {
-                              await waiveAltaCardFeeRecord({ data: { feeId: fee.id } });
+                              if (!feeWaiveReason.trim()) return;
+                              await waiveAltaCardFeeRecord({
+                                data: { feeId: fee.id, reason: feeWaiveReason.trim() },
+                              });
                               await onRefresh();
                             }}
                           />
@@ -606,79 +444,19 @@ export function InternalAltaCardDetailPanel({
                 ))}
               </tbody>
             </table>
+            {admin ? (
+              <input
+                value={feeWaiveReason}
+                onChange={(e) => setFeeWaiveReason(e.target.value)}
+                placeholder="Reason required to waive fees"
+                className="mt-3 w-full rounded border border-border bg-surface-1 px-2 py-1 text-[13px]"
+              />
+            ) : null}
           </div>
         ) : (
           <p className="text-[13px] text-muted-foreground">No fees on this card.</p>
         )}
       </section>
-
-      {!billingOnly ? (
-      <div className="rounded-xl border border-border bg-surface-1/80 p-5">
-        <h3 className="font-serif text-[18px]">Admin adjustment</h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <select
-            value={adjKind}
-            onChange={(e) => setAdjKind(e.target.value as "credit" | "debit")}
-            className="rounded border border-border bg-surface-1 px-2 py-1 text-[13px]"
-          >
-            <option value="credit">Credit (reduces balance)</option>
-            <option value="debit">Debit (increases balance)</option>
-          </select>
-          <input
-            type="number"
-            placeholder="Amount"
-            value={adjAmount}
-            onChange={(e) => setAdjAmount(e.target.value)}
-            className="rounded border border-border bg-surface-1 px-2 py-1 font-mono text-[13px]"
-          />
-          <input
-            placeholder="Reason (required)"
-            value={adjReason}
-            onChange={(e) => setAdjReason(e.target.value)}
-            className="rounded border border-border bg-surface-1 px-2 py-1 text-[13px]"
-          />
-        </div>
-        <BankReviewButton
-          label="Post adjustment"
-          variant="primary"
-          onAction={async () => {
-            await createAdminAltaCardAdjustmentRecord({
-              data: {
-                cardId: card.id,
-                kind: adjKind,
-                amount: Number(adjAmount),
-                reason: adjReason,
-              },
-            });
-            setAdjAmount("");
-            setAdjReason("");
-            await onRefresh();
-          }}
-        />
-      </div>
-      ) : null}
-
-      {!billingOnly && card.recentTransactions.some((t) => t.status === "completed" && t.type !== "reversal") ? (
-        <div className="rounded-xl border border-border bg-surface-1/80 p-5">
-          <h3 className="mb-3 font-serif text-[18px]">Reverse transaction</h3>
-          <div className="flex flex-wrap gap-2">
-            {card.recentTransactions
-              .filter((t) => t.status === "completed" && t.type !== "reversal")
-              .slice(0, 8)
-              .map((t) => (
-                <BankReviewButton
-                  key={t.id}
-                  label={`Reverse ${t.referenceCode.slice(-8)}`}
-                  variant="danger"
-                  onAction={async () => {
-                    await reverseAltaCardTransactionRecord({ data: { transactionId: t.id } });
-                    await onRefresh();
-                  }}
-                />
-              ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

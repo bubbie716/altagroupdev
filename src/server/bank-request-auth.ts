@@ -15,6 +15,24 @@ export function jsonError(message: string, status: number): Response {
   return Response.json({ ok: false, message }, { status });
 }
 
+/** Inline preview for images/PDFs in browser; attachment for explicit downloads. */
+export function attachmentContentDisposition(
+  request: Request,
+  contentType: string,
+  fileName: string,
+): string {
+  const url = new URL(request.url);
+  const dest = request.headers.get("sec-fetch-dest")?.toLowerCase();
+  const inline =
+    url.searchParams.get("inline") === "1" ||
+    dest === "image" ||
+    dest === "iframe" ||
+    dest === "document" ||
+    (contentType.startsWith("image/") && dest !== "download");
+  const mode = inline ? "inline" : "attachment";
+  return `${mode}; filename="${encodeURIComponent(fileName)}"`;
+}
+
 export function parseFormString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";

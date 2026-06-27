@@ -67,11 +67,25 @@ function formatStorageTimestamp(date: Date): string {
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
-export function normalizeDealRoomDocumentMimeType(type: string): AllowedDealRoomDocumentMimeType | null {
+export function normalizeDealRoomDocumentMimeType(
+  type: string,
+  fileName?: string,
+): AllowedDealRoomDocumentMimeType | null {
   const normalized = type.trim().toLowerCase();
   if (normalized === "image/jpg") return "image/jpeg";
-  if (ALLOWED_DEAL_ROOM_DOCUMENT_MIME_TYPES.includes(normalized as AllowedDealRoomDocumentMimeType)) {
+  if (
+    normalized &&
+    normalized !== "application/octet-stream" &&
+    ALLOWED_DEAL_ROOM_DOCUMENT_MIME_TYPES.includes(normalized as AllowedDealRoomDocumentMimeType)
+  ) {
     return normalized as AllowedDealRoomDocumentMimeType;
+  }
+  const ext = fileName?.split(".").pop()?.trim().toLowerCase();
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "png") return "image/png";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "docx") {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   }
   return null;
 }
@@ -88,7 +102,7 @@ export function validateDealRoomDocumentFile(file: DealRoomDocumentFileInput): {
     throw new DealRoomDocumentValidationError("Document must be 15MB or smaller.");
   }
 
-  const mimeType = normalizeDealRoomDocumentMimeType(file.type);
+  const mimeType = normalizeDealRoomDocumentMimeType(file.type, file.name);
   if (!mimeType) {
     throw new DealRoomDocumentValidationError("Only PDF, PNG, JPG, and DOCX files are accepted.");
   }

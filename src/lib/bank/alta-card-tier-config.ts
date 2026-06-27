@@ -67,3 +67,9 @@ export function getTierDefaultRate(tier: AltaCardTierCode): number | null {
 export function getTierBenefitsSummary(tier: AltaCardTierCode): string {
   return ALTA_CARD_TIER_CONFIG[tier].description;
 }
+
+export function getNextTierUpgrade(currentTier: AltaCardTierCode): AltaCardTierCode | null {
+  const index = ALTA_CARD_TIER_ORDER.indexOf(currentTier);
+  if (index < 0 || index >= ALTA_CARD_TIER_ORDER.length - 1) return null;
+  return ALTA_CARD_TIER_ORDER[index + 1];
+}

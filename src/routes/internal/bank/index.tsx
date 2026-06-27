@@ -21,27 +21,16 @@ import type { InternalBankAccountRow, InternalBankTransactionRow } from "@/lib/b
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 import { InternalStatementSchedulerPanel } from "@/components/bank/internal-statement-ops";
 import { RunDueTransfersButton } from "@/components/bank/internal-scheduled-transfers-panel";
-import { InternalAccountInterestOps } from "@/components/bank/internal-account-interest-ops";
-import { fetchAccountInterestOps } from "@/lib/bank/account-interest.functions";
-import type { AccountInterestOpsSummary } from "@/lib/bank/account-interest.functions";
 import { MockActionButton } from "@/components/internal/mock-action-button";
 import { getBankOpsTransfers } from "@/lib/internal/api";
 
 export const Route = createFileRoute("/internal/bank/")({
   loader: async () => {
-    const [bankOps, statementOps, interestOpsResult] = await Promise.all([
+    const [bankOps, statementOps] = await Promise.all([
       fetchInternalBankOps(),
       fetchInternalStatementOps(),
-      fetchAccountInterestOps().catch((): AccountInterestOpsSummary => ({
-        dueAccountCount: 0,
-        interestBearingActiveCount: 0,
-        estimatedTotalInterestDue: 0,
-        lastInterestRunAt: null,
-        totalInterestCreditedThisMonth: 0,
-        dueAccounts: [],
-      })),
     ]);
-    return { ...bankOps, statementOps, interestOps: interestOpsResult };
+    return { ...bankOps, statementOps };
   },
   head: () => ({ meta: [{ title: "Bank Ops — Alta Internal" }] }),
   component: InternalBank,
@@ -55,7 +44,6 @@ function InternalBank() {
     pendingDeposits,
     pendingWithdrawals,
     statementOps,
-    interestOps,
   } = Route.useLoaderData();
   const transfers = getBankOpsTransfers();
 
@@ -71,7 +59,7 @@ function InternalBank() {
         <NavPill to="/internal/bank/transfers">Transfers</NavPill>
         <NavPill to="/internal/bank/statements">Statements</NavPill>
         <NavPill to="/internal/bank/scheduled">Scheduled</NavPill>
-        <NavPill to="/internal/bank/interest">Manual interest</NavPill>
+        <NavPill to="/internal/bank/interest">Interest</NavPill>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <InternalStatCard label="Accounts" value={summary.totalAccounts.toLocaleString()} />
@@ -87,26 +75,18 @@ function InternalBank() {
         <InternalStatCard label="Loan Applications Pending" value={String(summary.lendingQueue)} alert={summary.lendingQueue > 0} />
       </div>
 
-      <Section title="Manual account interest" className="mt-10">
+      <Section title="Interest" className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-[13px] text-muted-foreground">
-            Apply promotional or adjustment interest credits by account category — percentage or
-            fixed amount, with preview and confirmation.
+            Manual category credits, scheduled interest applications, and monthly deposit accrual.
           </p>
           <Link
             to="/internal/bank/interest"
             className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold hover:underline"
           >
-            Open manual interest →
+            Open interest ops →
           </Link>
         </div>
-      </Section>
-
-      <Section title="Interest Operations" className="mt-10">
-        <p className="mb-4 text-[13px] text-muted-foreground">
-          Manual monthly deposit interest accrual for eligible Alta Bank accounts. Does not affect loan interest.
-        </p>
-        <InternalAccountInterestOps summary={interestOps} />
       </Section>
 
       <Section title="Lending" className="mt-10">

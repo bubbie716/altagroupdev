@@ -144,8 +144,7 @@ export function AltaCardApplyForm({
           </Link>
         ) : context.personalCard ? (
           <Link
-            to="/bank/alta-card/$cardId"
-            params={{ cardId: context.personalCard.id }}
+            to="/bank/alta-card"
             className="mt-4 inline-flex rounded-md border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em]"
           >
             View personal card

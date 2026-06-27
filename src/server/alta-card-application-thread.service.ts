@@ -24,13 +24,18 @@ import {
   ALTA_CARD_THREAD_STATUS_LABELS_INTERNAL,
 } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
+import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { toAltaCardApplicationStatusCode, toAltaCardTierCode, toAltaCardTypeCode } from "@/server/alta-card-mapper";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
+import {
+  assertSecureThreadUploadAccess,
+  SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
+} from "@/server/secure-thread-attachment-access";
 
-const ALTA_CARD_SERVICING_NAME = "Alta Card Servicing";
+const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
 
 const STATUS_FROM_DB: Record<DbThreadStatus, AltaCardApplicationThreadStatusCode> = {
   OPEN: "open",
@@ -113,7 +118,12 @@ function parseAttachments(value: Prisma.JsonValue | null): AltaCardThreadAttachm
   return value.filter((item): item is AltaCardThreadAttachment => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return false;
     const row = item as Record<string, unknown>;
-    return typeof row.url === "string" && typeof row.type === "string";
+    if (typeof row.type !== "string") return false;
+    if (row.type === "LINK") return typeof row.url === "string";
+    return (
+      typeof row.url === "string" ||
+      (typeof row.storageKey === "string" && typeof row.downloadPath === "string")
+    );
   });
 }
 
@@ -128,9 +138,9 @@ function mapMessageRow(
     senderRole: ROLE_FROM_DB[msg.senderRole],
     senderName:
       msg.senderRole === "SYSTEM"
-        ? ALTA_CARD_SERVICING_NAME
+        ? ALTA_CREDIT_DESK_NAME
         : msg.senderRole === "ALTA_STAFF"
-          ? "Card Specialist"
+          ? ALTA_CREDIT_DESK_NAME
           : (msg.sender?.discordUsername ?? "Applicant"),
     senderAvatarUrl:
       msg.senderRole === "APPLICANT" && msg.sender
@@ -159,8 +169,8 @@ function mapThreadContext(
     viewerUserId: user.id,
     status,
     statusLabel: labels[status],
-    assignedStaffId: thread.assignedStaffId,
-    assignedStaffName: thread.assignedStaff?.discordUsername ?? null,
+    assignedStaffId: null,
+    assignedStaffName: null,
     canSend: isStaff(user) ? thread.status !== "CLOSED" : canSendAsApplicant(user, thread),
     applicantName: app.applicant.discordUsername,
     applicantAvatarUrl: discordAvatarUrl(app.applicant.discordId, app.applicant.discordAvatar),
@@ -218,7 +228,7 @@ export async function ensureThreadExists(userId: string, applicationId: string):
 export async function createThreadForAltaCardApplication(
   actorUserId: string,
   applicationId: string,
-  systemMessage = "Your Alta Card application has been received.",
+  systemMessage = "Your secure deal room is ready. Alta Credit Desk will review your application here.",
 ): Promise<{ threadId: string; applicationId: string }> {
   const application = await prisma.altaCardApplication.findUnique({ where: { id: applicationId } });
   if (!application) notFound();
@@ -296,7 +306,9 @@ export async function getAltaCardThreadMessages(
     orderBy: { createdAt: "asc" },
   });
 
-  return messages.map(mapMessageRow);
+  return messages.map((msg) =>
+    enrichLegacyThreadMessage(mapMessageRow(msg), { applicantUserId: thread.applicantUserId }),
+  );
 }
 
 export async function sendAltaCardThreadMessage(
@@ -312,7 +324,7 @@ export async function sendAltaCardThreadMessage(
 
   if (as === "staff") {
     if (!isStaff(user)) forbidden();
-    if (thread.status === "CLOSED") badRequest("Thread is closed.");
+    if (thread.status === "CLOSED") badRequest("This secure deal room is closed.");
   } else {
     if (!canSendAsApplicant(user, thread)) forbidden();
   }
@@ -379,6 +391,7 @@ export async function updateAltaCardThreadStatus(
   return mapThreadContext(updated, user, "internal");
 }
 
+/** @deprecated V1 threads are not staff-assigned. Returns current context without changes. */
 export async function assignAltaCardThreadStaff(
   staffUserId: string,
   input: AssignAltaCardThreadStaffInput,
@@ -387,18 +400,61 @@ export async function assignAltaCardThreadStaff(
   if (!isStaff(user)) forbidden();
 
   const thread = await getThreadByApplicationId(input.applicationId);
-  const updated = await prisma.altaCardApplicationThread.update({
-    where: { id: thread.id },
-    data: { assignedStaffId: input.staffUserId },
-    include: threadInclude,
-  });
-
-  return mapThreadContext(updated, user, "internal");
+  return mapThreadContext(thread, user, "internal");
 }
 
 export async function closeAltaCardApplicationThread(
   staffUserId: string,
   applicationId: string,
-): Promise<void> {
-  await updateAltaCardThreadStatus(staffUserId, { applicationId, status: "closed" });
+): Promise<AltaCardApplicationThreadContext> {
+  return updateAltaCardThreadStatus(staffUserId, { applicationId, status: "closed" });
+}
+
+export async function reopenAltaCardApplicationThread(
+  staffUserId: string,
+  applicationId: string,
+): Promise<AltaCardApplicationThreadContext> {
+  const user = await getAltaUser(staffUserId);
+  if (!isStaff(user)) forbidden();
+
+  const thread = await getThreadByApplicationId(applicationId);
+  const updated = await prisma.altaCardApplicationThread.update({
+    where: { id: thread.id },
+    data: { status: "WAITING_ON_ALTA", closedAt: null },
+    include: threadInclude,
+  });
+
+  await writeAuditLog({
+    actorUserId: staffUserId,
+    action: "ALTA_CARD_APPLICATION_THREAD_REOPENED",
+    entityType: "ALTA_CARD",
+    entityId: applicationId,
+    description: "Alta Card application thread reopened",
+    metadata: { applicationId, threadId: thread.id },
+  });
+
+  return mapThreadContext(updated, user, "internal");
+}
+
+export async function assertAltaCardThreadAccessForUpload(
+  userId: string,
+  applicationId: string,
+): Promise<{ user: AltaUser; thread: ThreadRecord }> {
+  const { user, thread } = await assertThreadAccess(userId, applicationId);
+  assertSecureThreadUploadAccess({
+    user,
+    isStaff,
+    threadClosed: thread.status === "CLOSED",
+    canSendAsApplicant: canSendAsApplicant(user, thread),
+    closedMessage: SECURE_THREAD_CLOSED_UPLOAD_MESSAGES.application,
+  });
+  return { user, thread };
+}
+
+/** View/download attachments on open or closed threads. */
+export async function assertAltaCardThreadAccessForDownload(
+  userId: string,
+  applicationId: string,
+): Promise<{ user: AltaUser; thread: ThreadRecord }> {
+  return assertThreadAccess(userId, applicationId);
 }

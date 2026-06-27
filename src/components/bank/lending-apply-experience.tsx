@@ -19,11 +19,17 @@ import type {
 } from "@/lib/bank/lending-types";
 import {
   LOAN_PRODUCT_LABELS,
-  LOAN_PRODUCT_REPAYMENT_TERMS,
+  LOAN_PRODUCT_REPAYMENT_CARD,
+  LOAN_PRODUCT_REPAYMENT_GUIDANCE,
+  LOAN_TERM_MONTHS_HELP,
   LOAN_TERM_MONTHS_MAX,
   LOAN_TERM_MONTHS_MIN,
   computeLoanTermEstimate,
 } from "@/lib/bank/lending-types";
+import {
+  LOAN_APPLICATION_WHAT_HAPPENS_NEXT,
+  LOAN_PRIVATE_CLIENT_LENDING_NOTE,
+} from "@/lib/bank/lending-application-status-copy";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
@@ -167,7 +173,7 @@ export function LendingApplyExperience({
       productLabel={LOAN_PRODUCT_LABELS[productType]}
       principal={principalNum > 0 ? principalNum : null}
       termMonths={Number.isFinite(monthsNum) && monthsNum > 0 ? monthsNum : null}
-      repaymentCadence={LOAN_PRODUCT_REPAYMENT_TERMS[productType]}
+      repaymentCadence={LOAN_PRODUCT_REPAYMENT_CARD[productType]}
       indicativeRate={indicativeRate}
       estimatedTotal={termEstimate?.totalOutstanding ?? null}
       estimatedInterest={termEstimate?.totalInterest ?? null}
@@ -223,7 +229,7 @@ export function LendingApplyExperience({
             step="product"
             index="01"
             title="Product"
-            description="Choose the facility that matches the obligation. Officer can re-scope later."
+            description="Choose the facility that matches the obligation. Terms may be refined during review."
           >
             <div>
               <label className={labelClass}>Credit product</label>
@@ -244,8 +250,11 @@ export function LendingApplyExperience({
               </Select>
               <p className="mt-2 text-[12px] text-muted-foreground">
                 Reviewed manually by Alta Bank credit operations. Indicative rate {indicativeRate} ·
-                Repayment {LOAN_PRODUCT_REPAYMENT_TERMS[productType]}.
+                Repayment {LOAN_PRODUCT_REPAYMENT_GUIDANCE[productType]}
               </p>
+              {productType === "private_liquidity_line" && (
+                <p className="mt-2 text-[12px] text-muted-foreground">{LOAN_PRIVATE_CLIENT_LENDING_NOTE}</p>
+              )}
             </div>
 
             {productType === "business_credit_line" && (
@@ -285,7 +294,7 @@ export function LendingApplyExperience({
             step="amount"
             index="02"
             title="Amount & term"
-            description="State the facility size and the window before full repayment."
+            description="State the facility size and your requested repayment term."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
@@ -318,6 +327,7 @@ export function LendingApplyExperience({
                   value={termMonths}
                   onChange={(e) => setTermMonths(e.target.value)}
                 />
+                <p className="mt-2 text-[12px] text-muted-foreground">{LOAN_TERM_MONTHS_HELP}</p>
               </div>
             </div>
 
@@ -363,7 +373,7 @@ export function LendingApplyExperience({
             step="purpose"
             index="03"
             title="Purpose"
-            description="What the facility funds and how it will be repaid. Plain prose — your officer reads every line."
+            description="What the facility funds and how it will be repaid. Plain prose — Alta reads every line during review."
           >
             <div>
               <label className={labelClass} htmlFor="purpose">
@@ -411,8 +421,8 @@ export function LendingApplyExperience({
             }}
             step="notes"
             index="04"
-            title="Notes for the officer"
-            description="Anything else the desk should know before they call you back."
+            title="Notes for Alta"
+            description="Anything else Alta should know before review continues."
           >
             <div>
               <label className={labelClass} htmlFor="notes">
@@ -435,7 +445,7 @@ export function LendingApplyExperience({
 
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
             <p className="max-w-md text-[12px] text-muted-foreground">
-              Reviewed manually by Alta Bank credit operations · typical response &lt; 4h on desk hours.
+              After submission, your application enters review. A Secure Deal Room opens for communication with Alta Bank credit operations.
             </p>
             <button
               type="submit"
@@ -530,7 +540,7 @@ function ApplicationSummary({
         <h3 className="mt-2 font-serif text-[20px] leading-tight tracking-tight">
           {productLabel}
         </h3>
-        <p className="mt-1 text-[12px] text-muted-foreground">Indicative · subject to officer review</p>
+        <p className="mt-1 text-[12px] text-muted-foreground">Indicative · subject to review</p>
       </div>
       <dl className="divide-y divide-border/60">
         <SummaryRow label="Requested">
@@ -565,11 +575,7 @@ function ApplicationSummary({
           What happens next
         </p>
         <ol className="mt-3 space-y-2 text-[12px] text-muted-foreground">
-          {[
-            "You submit · application enters the desk queue.",
-            "A credit officer is assigned within hours.",
-            "A secure deal room opens for negotiation and signature.",
-          ].map((step, i) => (
+          {LOAN_APPLICATION_WHAT_HAPPENS_NEXT.map((step, i) => (
             <li key={i} className="flex gap-2">
               <span className="mt-[2px] inline-block size-1.5 shrink-0 rounded-full bg-gold/70" />
               <span>{step}</span>

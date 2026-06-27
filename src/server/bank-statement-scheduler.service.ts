@@ -43,12 +43,8 @@ export function isFirstCalendarDayOfMonth(date = new Date()): boolean {
 
 async function resolveActorUserId(actorUserId?: string): Promise<string> {
   if (actorUserId) return actorUserId;
-  const systemActor = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "ADMIN" } } },
-    select: { id: true },
-  });
-  if (!systemActor) throw new Error("NO_SYSTEM_ACTOR");
-  return systemActor.id;
+  const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+  return resolveSystemActorUserId();
 }
 
 async function writeSchedulerAudit(

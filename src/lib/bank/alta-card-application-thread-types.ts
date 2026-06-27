@@ -9,9 +9,13 @@ export type AltaCardThreadSenderRoleCode = "applicant" | "alta_staff" | "system"
 export type AltaCardThreadAttachmentType = "FILE" | "IMAGE" | "LINK";
 
 export type AltaCardThreadAttachment = {
+  id?: string;
   type: AltaCardThreadAttachmentType;
   fileName?: string;
-  url: string;
+  /** Public URL — legacy uploads or external LINK attachments only */
+  url?: string;
+  storageKey?: string;
+  downloadPath?: string;
   mimeType?: string;
   fileSizeBytes?: number;
 };

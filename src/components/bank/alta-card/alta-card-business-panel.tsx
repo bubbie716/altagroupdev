@@ -7,7 +7,7 @@ import type {
   AltaEmployeeCardRow,
   CompanyEmployeeCardMemberOption,
 } from "@/lib/bank/alta-card-types";
-import { ALTA_CARD_BILLING_HELPER_TEXT } from "@/lib/bank/alta-card-billing-cycle";
+import { ALTA_CARD_BILLING_HELPER_TEXT, formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
 import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
@@ -32,6 +32,9 @@ import {
   freezeEmployeeCardRecord,
 } from "@/lib/bank/alta-card.functions";
 import { unfreezeEmployeeCardRecord } from "@/lib/bank/alta-card-admin.functions";
+import { AltaCardAutopayPanel } from "@/components/bank/alta-card/alta-card-autopay-panel";
+import type { AltaCardAutopayContext } from "@/lib/bank/alta-card-autopay-types";
+import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
 
 type BusinessViewProps = {
   companyId: string;
@@ -39,6 +42,8 @@ type BusinessViewProps = {
   businessCard: AltaCardRow | null;
   pendingApplication?: AltaCardApplicationRow | null;
   billingSummary?: AltaCardBillingSummary | null;
+  autopayContext?: AltaCardAutopayContext | null;
+  reviewEligibility?: AltaCardReviewEligibility | null;
   employeeMemberOptions?: CompanyEmployeeCardMemberOption[];
   employeeCards: AltaEmployeeCardRow[];
   companyTransactions: AltaCardTransactionRow[];
@@ -46,9 +51,22 @@ type BusinessViewProps = {
   hasMultipleBusinessCards?: boolean;
 };
 
-function paymentDueLabel(card: AltaCardRow): string {
-  const date = card.paymentDueDate ?? card.dueDate;
-  return date ? new Date(date).toLocaleDateString() : "—";
+function paymentDueLabel(
+  card: AltaCardRow,
+  billingSummary?: AltaCardBillingSummary | null,
+): string {
+  return formatAltaCardBillingDate(
+    billingSummary?.paymentDueDate ?? card.paymentDueDate ?? card.dueDate,
+  );
+}
+
+function nextStatementLabel(
+  card: AltaCardRow,
+  billingSummary?: AltaCardBillingSummary | null,
+): string {
+  return formatAltaCardBillingDate(
+    billingSummary?.nextStatementDate ?? card.nextStatementDate,
+  );
 }
 
 function employeeColumns(
@@ -128,6 +146,8 @@ export function AltaCardBusinessPanel({
   businessCard,
   pendingApplication = null,
   billingSummary = null,
+  autopayContext = null,
+  reviewEligibility = null,
   employeeMemberOptions = [],
   employeeCards,
   companyTransactions,
@@ -214,14 +234,10 @@ export function AltaCardBusinessPanel({
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AltaCardMetric label="Statement balance" value={formatAltaCardCurrency(businessCard.statementBalance)} />
         <AltaCardMetric label="Minimum payment" value={formatAltaCardCurrency(businessCard.minimumPaymentDue)} />
-        <AltaCardMetric label="Payment due" value={paymentDueLabel(businessCard)} />
+        <AltaCardMetric label="Payment due" value={paymentDueLabel(businessCard, billingSummary)} />
         <AltaCardMetric
           label="Next statement date"
-          value={
-            businessCard.nextStatementDate
-              ? new Date(businessCard.nextStatementDate).toLocaleDateString()
-              : "—"
-          }
+          value={nextStatementLabel(businessCard, billingSummary)}
         />
         <AltaCardMetric label="Interest rate" value={formatAltaCardRate(businessCard.interestRate)} />
       </dl>
@@ -229,13 +245,22 @@ export function AltaCardBusinessPanel({
 
       <AltaCardSection title="Quick actions" description="Manage the company credit line.">
         {canManageTreasury ? (
-          <AltaCardQuickActions card={businessCard} />
+          <AltaCardQuickActions card={businessCard} reviewEligibility={reviewEligibility} />
         ) : (
           <p className="text-[13px] text-muted-foreground">
             You have view-only access to this company Alta Card.
           </p>
         )}
       </AltaCardSection>
+
+      {businessCard ? (
+        <AltaCardSection
+          title="Autopay"
+          description="Automatically pay the company statement from a business operating account on the payment due date."
+        >
+          <AltaCardAutopayPanel card={businessCard} initialContext={autopayContext ?? undefined} />
+        </AltaCardSection>
+      ) : null}
 
       <section className="space-y-4">
         <h3 className="font-serif text-[18px]">Employee cards</h3>

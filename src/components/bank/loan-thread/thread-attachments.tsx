@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { ThreadAttachment } from "@/lib/bank/loan-application-thread-types";
+import { threadAttachmentHref, threadAttachmentOpensInNewTab, isThreadAttachmentLink } from "@/lib/bank/thread-attachment-utils";
 import { cn } from "@/lib/utils";
 import { FileText, Link2, Paperclip, ImageIcon, FileSpreadsheet, FileImage, File } from "lucide-react";
 
@@ -48,12 +49,15 @@ export function ThreadAttachmentList({
             images.length === 1 ? "grid-cols-1" : "grid-cols-2",
           )}
         >
-          {images.map((a, i) => (
+          {images.map((a, i) => {
+            const href = threadAttachmentHref(a);
+            const openInNewTab = threadAttachmentOpensInNewTab(a);
+            return (
             <a
-              key={`${a.url}-${i}`}
-              href={a.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              key={`${a.id ?? href}-${i}`}
+              href={href}
+              target={openInNewTab ? "_blank" : undefined}
+              rel={openInNewTab ? "noopener noreferrer" : undefined}
               className={cn(
                 "group relative block w-full max-w-sm self-start overflow-hidden rounded-xl border",
                 images.length === 1 && "max-w-xs",
@@ -61,17 +65,18 @@ export function ThreadAttachmentList({
               )}
             >
               <img
-                src={a.url}
+                src={href}
                 alt={a.fileName ?? "Image attachment"}
                 loading="lazy"
                 className="block h-auto max-h-64 w-full object-contain"
               />
             </a>
-          ))}
+            );
+          })}
         </div>
       )}
       {others.map((a, i) => (
-        <ThreadAttachmentChip key={`${a.url}-${i}`} attachment={a} tone={tone} />
+        <ThreadAttachmentChip key={`${a.id ?? threadAttachmentHref(a)}-${i}`} attachment={a} tone={tone} />
       ))}
     </div>
   );
@@ -84,16 +89,20 @@ function ThreadAttachmentChip({
   attachment: ThreadAttachment;
   tone: "light" | "dark";
 }) {
-  const isLink = attachment.type === "LINK";
-  const label = attachment.fileName ?? attachment.url;
-  const subtitle = isLink ? safeHostname(attachment.url) : formatBytes(attachment.fileSizeBytes);
+  const isLink = isThreadAttachmentLink(attachment);
+  const href = threadAttachmentHref(attachment);
+  const openInNewTab = threadAttachmentOpensInNewTab(attachment);
+  const label = attachment.fileName ?? (isLink ? attachment.url : undefined) ?? href;
+  const subtitle = isLink && attachment.url
+    ? safeHostname(attachment.url)
+    : formatBytes(attachment.fileSizeBytes);
   const Icon = isLink ? Link2 : pickFileIcon(attachment.fileName, attachment.mimeType);
 
   return (
     <a
-      href={attachment.url}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={href}
+      target={openInNewTab ? "_blank" : undefined}
+      rel={openInNewTab ? "noopener noreferrer" : undefined}
       className={cn(
         "group inline-flex max-w-full items-center gap-3 rounded-xl border px-3 py-2.5 transition",
         tone === "dark"

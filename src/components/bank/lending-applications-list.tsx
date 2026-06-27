@@ -5,42 +5,52 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { RouteButton } from "@/components/bank/route-button";
 import { applicationListStatusLabel } from "@/lib/bank/loan-application-thread-types";
-import type { LoanApplicationRow, LoanApplicationStatusCode } from "@/lib/bank/lending-types";
+import type { LoanApplicationRow } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | LoanApplicationStatusCode;
+type DisplayFilter = "all" | "waiting_on_alta" | "waiting_on_you" | "accepted" | "denied";
 
-const FILTERS: Array<{ id: Filter; label: string }> = [
+const FILTERS: Array<{ id: DisplayFilter; label: string }> = [
   { id: "all", label: "All" },
-  { id: "pending", label: "Pending" },
-  { id: "under_review", label: "Under review" },
-  { id: "approved", label: "Approved" },
-  { id: "denied", label: "Declined" },
-  { id: "cancelled", label: "Cancelled" },
+  { id: "waiting_on_alta", label: "Waiting on Alta" },
+  { id: "waiting_on_you", label: "Waiting on You" },
+  { id: "accepted", label: "Accepted" },
+  { id: "denied", label: "Denied" },
 ];
 
+function matchesDisplayFilter(a: LoanApplicationRow, filter: DisplayFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "accepted") return a.status === "approved";
+  if (filter === "denied") return a.status === "denied" || a.status === "cancelled";
+  if (a.status !== "pending" && a.status !== "under_review") return false;
+  const thread = a.threadStatus ?? "waiting_on_alta";
+  if (filter === "waiting_on_you") return thread === "waiting_on_applicant";
+  return thread === "open" || thread === "waiting_on_alta" || thread === "closed";
+}
+
 export function LendingApplicationsList({ applications }: { applications: LoanApplicationRow[] }) {
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<DisplayFilter>("all");
 
   const counts = useMemo(() => {
-    const c = { total: applications.length, under: 0, approved: 0, denied: 0 };
+    const c = { total: applications.length, waitingOnAlta: 0, waitingOnYou: 0, accepted: 0, denied: 0 };
     for (const a of applications) {
-      if (a.status === "under_review" || a.status === "pending") c.under++;
-      if (a.status === "approved") c.approved++;
-      if (a.status === "denied") c.denied++;
+      if (a.status === "approved") c.accepted++;
+      else if (a.status === "denied" || a.status === "cancelled") c.denied++;
+      else if (matchesDisplayFilter(a, "waiting_on_you")) c.waitingOnYou++;
+      else if (matchesDisplayFilter(a, "waiting_on_alta")) c.waitingOnAlta++;
     }
     return c;
   }, [applications]);
 
-  const filtered = filter === "all" ? applications : applications.filter((a) => a.status === filter);
+  const filtered = applications.filter((a) => matchesDisplayFilter(a, filter));
 
   if (applications.length === 0) {
     return (
       <EmptyState
         tag="No applications"
         title="No facility requests on file"
-        description="When you submit a credit application it appears here with live review status from the Alta Bank desk."
+        description="When you submit a credit application it appears here with review status and a link to your Secure Deal Room."
         action={
           <RouteButton
             to="/bank/lending/apply"
@@ -55,15 +65,14 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
 
   return (
     <div className="space-y-6">
-      {/* Stat strip */}
-      <dl className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-4 sm:divide-y-0">
+      <dl className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1/80 sm:grid-cols-5 sm:divide-y-0">
         <Stat label="Submitted" value={String(counts.total)} />
-        <Stat label="In review" value={String(counts.under)} />
-        <Stat label="Approved" value={String(counts.approved)} />
-        <Stat label="Declined" value={String(counts.denied)} />
+        <Stat label="Waiting on Alta" value={String(counts.waitingOnAlta)} />
+        <Stat label="Waiting on You" value={String(counts.waitingOnYou)} />
+        <Stat label="Accepted" value={String(counts.accepted)} />
+        <Stat label="Denied" value={String(counts.denied)} />
       </dl>
 
-      {/* Filter chips */}
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {FILTERS.map((f) => {
           const active = filter === f.id;
@@ -118,7 +127,7 @@ function ApplicationRow({ a }: { a: LoanApplicationRow }) {
         <p className="mt-0.5 text-[13px] text-muted-foreground">{a.companyName ?? "Personal"}</p>
         {a.reviewNote && (
           <p className="mt-2 line-clamp-2 max-w-prose text-[12px] text-muted-foreground/90">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/80">Officer note · </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/80">Review note · </span>
             {a.reviewNote}
           </p>
         )}
@@ -150,7 +159,7 @@ function ApplicationRow({ a }: { a: LoanApplicationRow }) {
             params={{ applicationId: a.id }}
             className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
           >
-            {a.threadId ? "Open Chat" : "View application"}
+            {a.threadId ? "View Secure Deal Room" : "View application"}
           </Link>
         </div>
       </div>

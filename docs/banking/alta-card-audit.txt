@@ -1,0 +1,610 @@
+ALTA CARD PRODUCTION READINESS AUDIT
+======================================
+Date: 2025-06-25
+Scope: End-to-end audit (18 dimensions). Audit only — no implementation.
+
+VERDICT
+-------
+Alta Card is a strong V1 intrabank revolving credit product with real billing, interest,
+fees, autopay, Alta Pay funding, business/employee lines, relationship pricing, and
+extensive audit logging. It is NOT production-ready as a regulated consumer/business
+credit card without closing critical gaps in admin controls, customer communications,
+statement delivery, testing, attachment security, and card-network semantics.
+
+The codebase is unusually well-documented (docs/banking/alta-card.md, ~800 lines) and
+architecturally coherent for a simulated bank. The remaining work is mostly operational
+hardening and product completeness, not greenfield implementation.
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+Dimension                  Maturity      Notes
+---------------------------------------------------------------------------
+Product completeness       Medium-High   Full apply→activate→spend→bill→pay loop;
+                                         missing notifications, disputes
+Financial logic            High          Allocation order, min payment, interest-on-
+                                         overdue, idempotent cron — documented
+Admin functionality        Medium        Rich ops panel on detail route; weaker list-
+                                         panel path bypasses guardrails
+User experience            Medium-High   Polished dashboards, autopay, review flow;
+                                         currency/docs drift
+Business / employee cards  High          Parent rollup, employee caps, reconciliation
+Alta Pay integration       High          Real charge path with limit checks
+Private Banking            Medium-High   Gold tier, relationship scoring, review flow
+Relationship pricing       High          Multi-factor recommendation engine
+Statements                 High          Generation/void/paid lifecycle solid;
+                                         client-side PDF export works
+Billing / interest / fees  High          Daily cron, late fees, batch interest
+Autopay                    Medium-High   Logic + idempotency complete; no customer
+                                         notifications
+Security & permissions     Medium        Role checks present; public thread uploads,
+                                         dual admin APIs
+Audit logging              High          Broad coverage across card, billing, autopay
+Architecture               Medium        Clear service split; duplicate paths and
+                                         thread services
+Documentation              High          Excellent primary doc; cron deployment TODO,
+                                         manual test only
+Automated tests            CRITICAL GAP  Zero Alta Card test files
+
+
+================================================================================
+CRITICAL ISSUES
+================================================================================
+
+C1 — No card processor / authorization model
+Severity: Critical
+Description: PURCHASE transaction type exists but there is no authorization/capture
+flow, merchant network, or real-time decline semantics. Spending is simulated via
+admin adjustments, cash advance, Alta Pay charges, and manual ops—not POS/card-present
+behavior.
+Why it matters: A "production financial product" labeled Alta Card implies spend
+controls, merchant categories, holds, and dispute workflows. Without them, the product
+is intrabank credit simulation only.
+Recommended implementation: Define V1 scope explicitly (simulation vs network card).
+If simulation-only, remove/rename PURCHASE from user-facing copy and document supported
+spend channels. For production card behavior, integrate authorization service with
+hold/release, MCC rules, and dispute case management.
+
+C2 — Dual admin API paths with weaker validation on list panel
+Severity: Critical
+Description: Internal list view (internal-alta-card-panel.tsx) calls
+updateAltaCardLimitRecord, updateAltaCardRateRecord, etc. from alta-card.service.ts —
+no required reason, limit can be set below balance (available credit clamped to 0).
+Detail ops panel uses alta-card-admin.service.ts with required reason, balance
+validation, and admin override for edge cases.
+Why it matters: Operators can change credit terms without audit reason or balance
+checks from the main card list—violates credit ops controls and can create negative
+available credit / incoherent utilization.
+Recommended implementation: Deprecate admin mutations in alta-card.service.ts. Route
+all internal changes through alta-card-admin.service.ts + alta-card-admin.functions.ts.
+Single UI entry point: detail ops panel only.
+
+C3 — No automated test suite for billing/financial logic
+Severity: Critical
+Description: Docs explicitly state manual billing checklist only. No *.test.* /
+*.spec.* files cover Alta Card payment allocation, interest accrual, statement close,
+late fees, or autopay idempotency.
+Why it matters: Billing regressions are silent and expensive. Minimum payment rules,
+overdue interest, and payment waterfall are exactly the logic that needs regression
+protection in a financial product.
+Recommended implementation: Unit tests for alta-card-payment-allocation.ts,
+alta-card-minimum-payment.ts, alta-card-billing-cycle.ts. Integration tests for
+statement close → overdue → interest → late fee → autopay success/failure paths
+using fixed clocks.
+
+C4 — No customer notifications (autopay, due reminders)
+Severity: Critical
+Description: Documented TODOs in alta-card-autopay.service.ts and
+docs/banking/alta-card.md: autopay success, autopay failed, payment due reminder —
+not implemented.
+Why it matters: Customers miss due dates; failed autopay runs silently. Real banks
+treat these as compliance and delinquency-prevention requirements.
+Recommended implementation: Hook into existing notification infrastructure
+(Discord/email/in-app). Trigger on ALTA_CARD_AUTOPAY_SUCCESS / FAILED, and scheduled
+job N days before dueDate for open statements.
+
+C5 — Application/review thread attachments use public blob access
+Severity: Critical
+Description: Upload service sets access: "public" on Vercel Blob for Alta Card
+application thread files.
+Why it matters: Financial KYC/support documents (IDs, income proof) must not be
+world-readable URLs. High severity data exposure risk.
+Recommended implementation: Private blobs with signed URLs, auth-gated download API,
+virus scan hook if available. Audit every download.
+
+
+================================================================================
+HIGH ISSUES
+================================================================================
+
+H1 — DELINQUENT card status never set automatically
+Severity: High
+Description: Statements transition to OVERDUE via markOverdueStatements(), but card
+status is not promoted to DELINQUENT. Status allows payments/autopay on DELINQUENT but
+nothing assigns it.
+Why it matters: Delinquency workflows (collections, freeze escalation, rate changes)
+depend on card-level status. Operators must manually intervene.
+Recommended implementation: After overdue + grace period (or immediately per policy),
+update card status to DELINQUENT, audit ALTA_CARD_STATUS_CHANGED, optionally block new
+spend.
+
+H2 — EXPIRED status unused in automation
+Severity: High
+Description: Enum blocks transactions but no cron or lifecycle sets cards to EXPIRED
+(e.g., closed applications, term expiry, inactive reissue).
+Why it matters: Dead enum values confuse ops and allow inconsistent manual-only
+transitions.
+Recommended implementation: Define expiry rules (e.g., PENDING > 90 days → EXPIRED)
+and document manual EXPIRED use cases.
+
+H3 — GENERATED statement status creates operator confusion
+Severity: High
+Description: Users/admins can create preview/generate statements outside the OPEN →
+ISSUED month-end close flow. GENERATED appears in status taxonomy but is not clearly
+distinguished from production-issued statements in all UIs.
+Why it matters: Statement lists may clutter with non-official periods; interest/billing
+may not align with generated previews.
+Recommended implementation: Restrict GENERATED to admin-only preview tool, or remove
+from user-visible lists. Document lifecycle vs production ISSUED.
+
+H4 — Business card duplicate ledger reconciliation
+Severity: High
+Description: Application layer blocks second business card per company, but runtime
+paths include reconcileBusinessCardLedger and hasMultipleBusinessCards checks—
+suggesting duplicates can exist from legacy/data issues.
+Why it matters: Business line balances and employee rollup depend on single parent card
+invariant.
+Recommended implementation: DB unique constraint on (companyId) for active business
+cards where possible. Reconciliation job that flags/alerts duplicates. Admin tool to
+merge or close extras.
+
+H5 — No dispute / chargeback workflow
+Severity: High
+Description: No dispute case model, provisional credit, or merchant reversal flow for
+card transactions.
+Why it matters: Expected for any card product handling customer spend (including Alta
+Pay charges).
+Recommended implementation: V2: AltaCardDispute model, statuses, admin queue, link to
+original transaction, audit trail.
+
+H6 — Cron system actor falls back to first ADMIN user
+Severity: High
+Description: Scheduled jobs use a system user derived from first admin when no dedicated
+service account exists.
+Why it matters: Audit attribution is wrong; job fails entirely if no admin user exists.
+Recommended implementation: Dedicated SYSTEM or CRON service user in schema. Never
+depend on human admin roster.
+
+H7 — Staff assignment on Alta Card threads (inconsistent with lending)
+Severity: High
+Description: Alta Card application and review threads still support
+assignAltaCardThreadStaff / assignAltaCardReviewThreadStaff with UI on internal review
+pages. Lending recently deprecated individual banker assignment.
+Why it matters: Inconsistent ops model across products; may reintroduce "assigned
+banker" UX removed from lending.
+Recommended implementation: Align policy: either remove assignment from Alta Card
+threads (mirror lending) or document why review assignment remains for credit ops.
+
+H8 — Documentation currency inconsistency
+Severity: High
+Description: Tier default limits in docs/tables sometimes use $; platform currency is
+Florins (formatAltaCardCurrency → ƒ).
+Why it matters: Operator and customer confusion in a single-currency simulated economy.
+Recommended implementation: Global find/replace in docs and tier config comments to
+ƒ. Single currency formatter for docs generation if needed.
+
+
+================================================================================
+MEDIUM ISSUES
+================================================================================
+
+M1 — Two internal admin panels with overlapping scope
+Severity: Medium
+Description: internal-alta-card-panel.tsx (list + quick mutations) vs
+internal-alta-card-ops-panel.tsx (full ops on detail route). Different capabilities
+and validation rules.
+Why it matters: Operators use the wrong panel; weaker path becomes default.
+Recommended implementation: List panel read-only + links to detail ops. Consolidate
+mutations in ops panel only.
+
+M2 — Duplicate thread service architecture (~400 lines each)
+Severity: Medium
+Description: Parallel implementations for application threads vs review threads
+(upload, assign staff, messaging, audit).
+Why it matters: Bug fixes must be applied twice; behavior drifts.
+Recommended implementation: Extract shared secure-thread.service with product-
+specific metadata adapters.
+
+M3 — Limit/rate/tier/status mutations duplicated across services
+Severity: Medium
+Description: alta-card.service.ts and alta-card-admin.service.ts both expose limit,
+rate, tier, freeze, close, adjustments with different rules.
+Why it matters: See C2; architectural debt.
+Recommended implementation: Single write model in admin service; user-facing service
+read-only + user actions (activate, autopay, pay).
+
+M4 — Alta Pay volume analytics TODO
+Severity: Medium
+Description: Docs note centralized Alta Pay volume analytics not wired for
+relationship pricing factors.
+Why it matters: Relationship pricing underweights Alta Pay spend history.
+Recommended implementation: Add alta_pay_volume factor when analytics service exists.
+
+M5 — Cash advance without ATM/network semantics
+Severity: Medium
+Description: Cash advance posts as internal transaction type; no ATM limit, daily cap,
+or fee structure beyond generic charges.
+Why it matters: Real cards separate purchase APR vs cash APR and cash advance fees.
+Recommended implementation: Document V1 as "internal cash draw" or add cash-specific
+fee + rate rules.
+
+M6 — Employee card model vs unused EMPLOYEE card type enum
+Severity: Medium
+Description: Employee cards use AltaEmployeeCard model rolling to business parent, not
+AltaCardType.EMPLOYEE.
+Why it matters: Schema/API confusion for future features.
+Recommended implementation: Remove or document deprecated enum value; ensure all
+queries use employee card model consistently.
+
+M7 — Manual billing test checklist only in docs
+Severity: Medium
+Description: Comprehensive manual checklist exists but no CI enforcement.
+Why it matters: Checklist rot; human error on billing changes.
+Recommended implementation: Encode checklist as automated tests (see C3).
+
+M8 — Cron deployment documented as TODO
+Severity: Medium
+Description: vercel.json cron example marked deployment TODO; production relies on
+/api/cron/scheduled-transfers being triggered externally.
+Why it matters: Missing cron = no statements, interest, or autopay in production.
+Recommended implementation: Commit production cron config, monitor OpsJobRun failures,
+alert on missed runs.
+
+M9 — Review eligibility / upgrade path UX partially hidden
+Severity: Medium
+Description: Review form and BankReviewButton exist; eligibility rules and cooldowns
+may not be obvious on main dashboard.
+Why it matters: Private clients may not discover limit/rate review workflow.
+Recommended implementation: Persistent dashboard CTA when eligible; copy aligned with
+relationship pricing factors.
+
+
+================================================================================
+LOW ISSUES
+================================================================================
+
+L1 — Random cardLastFour on issue
+Severity: Low
+Description: Last four digits generated at card creation, not tied to a PAN (expected
+for simulation).
+Why it matters: Cosmetic only unless marketed as real card numbers.
+Recommended implementation: Document as display-only; optional user-chosen alias.
+
+L2 — LOST status allows some operations
+Severity: Low
+Description: LOST in active statuses for some paths; behavior vs FROZEN not always
+obvious in UI.
+Why it matters: Ops may use wrong status for stolen card scenario.
+Recommended implementation: Status transition matrix in docs + admin UI tooltips.
+
+L3 — Interest waiver via adjustment credits only
+Severity: Low
+Description: Docs say use adjustment credits to waive interest; no dedicated "waive
+interest" admin action.
+Why it matters: Works but non-obvious for operators.
+Recommended implementation: Admin "waive statement interest" with reason, tied to
+statement row.
+
+L4 — OpsJobRun visibility only on internal alta-card page
+Severity: Low
+Description: Job history not centralized in platform ops dashboard.
+Why it matters: Harder to correlate with other bank cron failures.
+Recommended implementation: Link from /internal hub or maintenance panel.
+
+L5 — Server-side PDF stub is dead code (client PDF works)
+Severity: Low
+Description: CORRECTION (2025-06-25): Alta Card statement PDF export IS implemented.
+AltaCardStatementDocument (src/components/bank/alta-card/alta-card-statement-document.tsx)
+provides a working "Download PDF" button on statement detail routes, using the same
+client-side html2canvas + jsPDF path as bank account statements
+(src/lib/bank/download-statement-pdf.ts). Print is also supported.
+What is NOT implemented: server-side generateStatementPdf() in
+src/server/alta-card-statement-pdf.ts and downloadAltaCardStatementPdfRecord — these
+return "not yet available" and are not wired to any UI.
+Why it matters: The audit originally flagged this as Critical incorrectly. docs/banking/
+alta-card.md still says "PDF (placeholder)" which is misleading. Dead server stub adds
+confusion.
+Recommended implementation: Update alta-card.md to document client-side PDF export.
+Remove or implement the unused server fn. Optional V2: server-rendered PDFs for email
+delivery and archival (not required for current UX).
+
+
+================================================================================
+AUDIT BY DIMENSION (18 AREAS)
+================================================================================
+================================================================================
+
+1. PRODUCT COMPLETENESS — Medium-High
+   Strengths: Apply (personal/business), approve/deny, activate, spend channels (Alta
+   Pay, cash advance, admin adj), pay, autopay, statements, fees, interest, review
+   requests, employee cards.
+   Gaps: Notifications (C4), disputes (H5), processor (C1), delinquency automation (H1).
+
+2. FINANCIAL LOGIC — High
+   Strengths: Payment allocation fees → interest → principal (alta-card-payment-
+   allocation.ts); minimum payment max(5%, ƒ100); month-end close + 15-day due; interest
+   on overdue unpaid statement balance only; late fee ƒ100; idempotent billing scheduler.
+   Gaps: No automated tests (C3); DELINQUENT not auto-set (H1); cash advance fee/APR
+   split (M5).
+
+3. ADMIN FUNCTIONALITY — Medium
+   Strengths: Detail ops panel: status, terms, payments, adjustments, reversals,
+   relationship pricing apply, manual fee waive, scheduler triggers.
+   Gaps: List panel weak mutations (C2); duplicate panels (M1); no dispute queue (H5).
+
+4. USER EXPERIENCE — Medium-High
+   Strengths: Mobile-first dashboard, utilization bar, tier benefits, transaction
+   history, autopay/payment panels, business rollup view, apply/review flows.
+   Gaps: No due reminders (C4); currency docs drift (H8); review discovery (M9).
+   Note: Statement PDF download works on statement detail pages (client-side export).
+
+5. BUSINESS CARDS — High
+   Strengths: One business line per company (application guard), employee cards with
+   limits, spend rolls to parent, company transaction view.
+   Gaps: Duplicate reconciliation paths (H4).
+
+6. EMPLOYEE CARDS — High
+   Strengths: AltaEmployeeCard model, freeze/close, limit updates, parent sync.
+   Gaps: Enum confusion (M6); no per-employee MCC/category controls (expected V2).
+
+7. ALTA PAY INTEGRATION — High
+   Strengths: chargeAltaCardForAltaPay in transaction service; integrated in
+   alta-pay.service.ts; limit and status checks.
+   Gaps: Volume not in relationship score (M4); no Alta Pay-specific dispute path (H5).
+
+8. PRIVATE BANKING INTEGRATION — Medium-High
+   Strengths: Gold tier private-only, isPrivateClient checks, review workflow, copy
+   for negotiated facilities.
+   Gaps: Relationship pricing doesn't yet use full private banking AUM/relationship
+   data if centralized elsewhere.
+
+9. RELATIONSHIP PRICING — High
+   Strengths: getAltaCardRelationshipRecommendation — balances, deposits, loans,
+   delinquency, tenure, tier scoring, admin apply from ops panel.
+   Gaps: Alta Pay volume (M4); scoring weights not externally validated/documented
+   for ops.
+
+10. STATEMENTS — High
+    Strengths: OPEN/GENERATED/ISSUED/PAID/PARTIALLY_PAID/OVERDUE/VOID lifecycle; void
+    rules; payment allocation to oldest unpaid; audit events; full statement document UI
+    with Download PDF + Print (AltaCardStatementDocument).
+    Gaps: GENERATED confusion (H3); misleading docs on PDF (L5); no automated email
+    delivery of PDFs.
+
+11. BILLING — High
+    Strengths: Daily cron via shared scheduled-transfers; overdue marking; late fees;
+    batch interest; OpsJobRun history.
+    Gaps: Cron deployment TODO (M8); no tests (C3).
+
+12. INTEREST — High
+    Strengths: Monthly APR/12 on overdue unpaid balance; interestAppliedAt idempotency;
+    admin manual apply documented.
+    Gaps: Waive UX (L3); delinquency rate changes not automated.
+
+13. FEES — High
+    Strengths: Late fee config, manual fees, waive with audit, active fee totals in
+    allocation.
+    Gaps: No cash advance fee schedule (M5).
+
+14. AUTOPAY — Medium-High
+    Strengths: Enable/disable, funding account, minimum vs full balance, cron
+    execution, idempotency via audit log, eligible statuses include DELINQUENT.
+    Gaps: Notifications (C4); insufficient funds = fail without partial pay (document if
+    intentional).
+
+15. SECURITY & PERMISSIONS — Medium
+    Strengths: assertAdmin / assertOperatorOrAdmin on mutations; card ownership checks
+    on user routes; cron secret validation.
+    Gaps: Public attachments (C5); dual admin APIs (C2); system actor (H6).
+
+16. AUDIT LOGGING — High
+    Strengths: Extensive writeAuditLog across applications, cards, transactions,
+    statements, autopay, billing jobs, admin overrides.
+    Gaps: Weak-path limit changes may lack reason metadata (C2); cron attributed to
+    wrong user (H6).
+
+17. ARCHITECTURE — Medium
+    Strengths: Clear service boundaries (transaction, statement, billing, autopay,
+    interest, fee, admin, scheduler); shared lib modules for financial rules; good
+    primary documentation.
+    Gaps: Duplicate services/panels (M1–M3); thread duplication (M2); 16+ service
+    files could merge orchestration layer.
+
+18. DOCUMENTATION — High
+    Strengths: docs/banking/alta-card.md is comprehensive: billing rules, audit tables,
+    cron behavior, manual test checklist, route map.
+    Gaps: Cron deployment TODO, notification TODOs, PDF section incorrectly says
+    placeholder (L5), currency inconsistency (H8), no test coverage mention as risk.
+
+
+================================================================================
+FEATURES THAT FEEL UNFINISHED
+================================================================================
+
+- Customer notifications (autopay + due reminders)
+- Server-side PDF generation / email delivery of statements (client download works)
+- Delinquency status automation
+- Card expiry lifecycle
+- Dispute/chargeback handling
+- Real purchase authorization (POS/online merchant)
+- Production cron configuration in repo
+- Automated test suite
+- Secure thread document storage
+
+
+================================================================================
+FEATURES THAT FEEL INCONSISTENT
+================================================================================
+
+- Two admin mutation paths with different validation (list vs detail)
+- Staff assignment on Alta Card threads vs removed lending assignment
+- Currency: ƒ in UI vs $ in some docs/tier references
+- GENERATED vs ISSUED statements — preview vs official
+- DELINQUENT enum used in payment rules but never auto-assigned
+- Employee model vs unused EMPLOYEE card type
+- Two internal panels with overlapping but unequal capabilities
+
+
+================================================================================
+DUPLICATE LOGIC
+================================================================================
+
+Area                          Locations                                    Risk
+--------------------------------------------------------------------------------
+Limit/rate/tier/status        alta-card.service.ts,                        C2
+changes                       alta-card-admin.service.ts
+
+Application vs review         alta-card-application-thread.service.ts,       M2
+threads                       alta-card-review-thread.service.ts
+
+Internal list vs ops UI       internal-alta-card-panel.tsx,                 M1
+                              internal-alta-card-ops-panel.tsx
+
+Business balance sync         Transaction service +                        H4
+                              reconcileBusinessCardLedger
+
+Statement generation          User-triggered, admin manual, month-end cron  H3
+
+
+================================================================================
+ARCHITECTURE SIMPLIFICATION OPPORTUNITIES
+================================================================================
+
+1. Single write path: All admin mutations → alta-card-admin.service.ts only.
+2. Unified secure thread module for application + review (upload, messages, audit).
+3. One internal alta-card admin route — list is read-only; all ops on $cardId.
+4. Billing orchestration facade — scheduler already exists; expose one
+   runAltaCardServicing() tested module.
+5. Dedicated system user for cron/audit instead of first-admin fallback.
+6. Consolidate financial pure functions under src/lib/bank/alta-card/ with co-located
+   tests.
+
+
+================================================================================
+MISSING FEATURES A REAL DIGITAL BANK WOULD HAVE
+================================================================================
+
+Feature                              Alta Card today
+---------------------------------------------------------------------------
+Card network authorization & declines  Simulation only
+Merchant category controls             No
+Disputes & chargebacks                 No
+Reg E-style error resolution timelines No
+Official statement PDF/email delivery  Partial (client PDF download yes; email no)
+Payment due / past due notifications   No
+Credit bureau reporting                N/A for sim
+SCRA / hardship programs               No
+Balance transfer                       No
+Rewards / cashback                     No
+Virtual card numbers                   No
+Apple Pay / wallet tokenization        No
+International / FX fees                No
+Penalty APR on delinquency             No
+Credit limit increase self-service     Partial (review flow)
+3-D Secure / CVC checks                No
+Fraud monitoring & velocity limits     Partial (limit only)
+Collections workflow                   No
+Regulatory disclosures at apply        No
+  (SCHumer box)
+
+Many are acceptable for an intrabank simulation; several are required if marketed as
+a real credit card.
+
+
+================================================================================
+PRIORITIZED REMAINING WORK
+================================================================================
+
+P0 — BLOCK PRODUCTION LAUNCH
+1. C2 — Consolidate admin mutations; require reason + balance validation everywhere
+2. C5 — Private attachment storage with auth-gated download
+3. C3 — Automated tests for billing allocation, interest, late fees, autopay idempotency
+4. C4 — Customer notifications (due reminder, autopay success/failure)
+5. C1 — Explicit product scope doc: simulation vs network card; align UX/copy
+
+P1 — PRODUCTION HARDENING (30–60 days)
+7. H1 — Auto DELINQUENT card status policy
+8. H4 — Business card uniqueness constraint + reconciliation alerts
+9. H6 — Dedicated cron/system service user
+10. M8 — Production cron config + OpsJobRun alerting
+11. H7 — Align thread assignment policy with lending
+12. H3 — Clarify/restrict GENERATED statement workflow
+13. M1–M3 — Retire duplicate panels and service write paths
+
+P2 — PRODUCT COMPLETENESS (60–90 days)
+14. H5 — Dispute case management (minimum viable)
+15. M5 — Cash advance fee/APR rules or rename to "internal draw"
+16. M4 — Alta Pay volume in relationship pricing
+17. H2 — EXPIRED lifecycle automation
+18. H8 — Documentation currency pass
+19. M9 — Review eligibility UX on dashboard
+
+P3 — NICE TO HAVE / V2
+20. Virtual cards, MCC controls, rewards, penalty APR, collections UI, fraud velocity,
+    balance transfer, wallet provisioning
+
+
+================================================================================
+PRODUCTION READINESS CONCLUSION
+================================================================================
+
+For intrabank revolving credit inside Alta Bank (Alta Pay funding, manual/cash-advance
+spend, automated billing, relationship-priced limits):
+  NEAR production-ready after P0 (especially admin consolidation, attachment security,
+  tests, notifications).
+
+For a regulated consumer/business credit card product:
+  NOT production-ready. Critical gaps in network semantics, disputes, regulatory
+  disclosures, statement email delivery, and customer communications must be closed OR
+  scope must be explicitly bounded to "simulated credit line" in all customer-facing
+  materials.
+
+Recommended next step: Treat P0 as a launch gate checklist; assign owners per item;
+do not enable maintenance-mode production cutover for Alta Card until C2, C5, C3, and
+C4 are resolved.
+
+
+KEY FILE REFERENCES
+================================================================================
+
+Documentation:
+  docs/banking/alta-card.md
+
+Services:
+  src/server/alta-card*.service.ts (16 services)
+
+Financial logic:
+  src/lib/bank/alta-card-payment-allocation.ts
+  src/lib/bank/alta-card-billing-cycle.ts
+  src/lib/bank/alta-card-minimum-payment.ts
+  src/lib/bank/alta-card-fee-config.ts
+  src/lib/bank/alta-card-tier-config.ts
+
+Admin UI:
+  src/components/bank/alta-card/internal-alta-card-panel.tsx
+  src/components/bank/alta-card/internal-alta-card-ops-panel.tsx
+
+Statement PDF (client-side — working):
+  src/components/bank/alta-card/alta-card-statement-document.tsx
+  src/lib/bank/download-statement-pdf.ts
+  src/routes/bank/alta-card/$cardId/statements/$statementId.tsx
+
+Integrations:
+  src/server/alta-pay.service.ts (card funding)
+  src/server/alta-card-relationship-pricing.service.ts
+  src/server/alta-card-statement-pdf.ts (unused server stub — not wired to UI)
+
+Cron:
+  src/routes/api/cron/scheduled-transfers.ts
+  src/server/alta-card-billing-scheduler.service.ts

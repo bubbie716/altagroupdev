@@ -67,3 +67,12 @@ export const fetchCardBillingSummaryRecord = createServerFn({ method: "GET" })
     const user = await requireAuth();
     return getCardBillingSummary(user.id, cardId);
   });
+
+export const fetchCompanyBillingSummaryRecord = createServerFn({ method: "GET" })
+  .inputValidator((companyId: string) => companyId)
+  .handler(async ({ data: companyId }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const { getCompanyBillingSummary } = await import("@/server/alta-card-billing.service");
+    const user = await requireAuth();
+    return getCompanyBillingSummary(user.id, companyId);
+  });

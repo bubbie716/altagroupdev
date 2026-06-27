@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AltaCardStatementsPageContent } from "@/components/bank/alta-card/alta-card-statements-page";
 import { authBeforeLoad } from "@/lib/auth/guards";
-import { fetchPreviousStatementPeriod } from "@/lib/bank/statement.functions";
 import { fetchCardStatements } from "@/lib/bank/alta-card-statement.functions";
 import { fetchAltaCardDetail } from "@/lib/bank/alta-card.functions";
 
@@ -15,11 +14,10 @@ export const Route = createFileRoute("/bank/alta-card/$cardId/statements/")({
         params: { companyId: card.companyId },
       });
     }
-    const [statements, defaultPeriod] = await Promise.all([
+    const [statements] = await Promise.all([
       fetchCardStatements({ data: params.cardId }),
-      fetchPreviousStatementPeriod(),
     ]);
-    return { card, statements, defaultPeriod };
+    return { card, statements };
   },
   head: () => ({ meta: [{ title: "Alta Card Statements — Alta Bank" }] }),
   component: AltaCardStatementsPage,
@@ -27,14 +25,13 @@ export const Route = createFileRoute("/bank/alta-card/$cardId/statements/")({
 
 function AltaCardStatementsPage() {
   const { cardId } = Route.useParams();
-  const { card, statements, defaultPeriod } = Route.useLoaderData();
+  const { card, statements } = Route.useLoaderData();
 
   return (
     <AltaCardStatementsPageContent
       cardId={cardId}
       card={card}
       statements={statements}
-      defaultPeriod={defaultPeriod}
     />
   );
 }

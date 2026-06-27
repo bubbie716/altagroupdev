@@ -339,9 +339,9 @@ export function AltaCardCashAdvancePanel({
         {variant === "quick" ? (
           <AltaCardActionButton
             label="Cash advance"
+            tile
             disabled={disabled}
             onClick={() => void openPanel()}
-            className="w-full"
           />
         ) : (
           <button

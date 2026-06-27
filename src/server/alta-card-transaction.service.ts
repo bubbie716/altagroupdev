@@ -925,6 +925,139 @@ export async function submitCardPayment(
   };
 }
 
+export async function submitCardAutopayPayment(
+  actorUserId: string,
+  input: SubmitCardPaymentInput & {
+    statementId?: string;
+    autopayType?: string;
+  },
+): Promise<{ transaction: AltaCardTransactionRow; bankTransactionId: string; referenceCode: string; amountPaid: number }> {
+  const card = await loadCard(input.cardId);
+  if (!PAYMENT_ALLOWED_STATUSES.includes(card.status)) {
+    badRequest("Payments are not allowed for this card status");
+  }
+
+  const { validateAutopaySourceAccountForCard } = await import("@/server/alta-card-autopay.service");
+  await validateAutopaySourceAccountForCard(card, input.sourceAccountId);
+  const source = await prisma.bankAccount.findUnique({
+    where: { id: input.sourceAccountId },
+    select: {
+      id: true,
+      accountName: true,
+      accountNumber: true,
+      restrictDeposits: true,
+      restrictWithdrawals: true,
+    },
+  });
+  if (!source) badRequest("Source account not found");
+  if (source.restrictWithdrawals) badRequest("Withdrawals are restricted on this account");
+
+  const currentBalance = decimalToNumber(card.currentBalance);
+  const paymentAmount = roundMoney(Math.min(input.amount, currentBalance));
+  if (paymentAmount <= 0) badRequest("Payment amount must be greater than zero");
+
+  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  const available = await getAccountAvailableBalance(source.id);
+  if (paymentAmount > available) badRequest("Insufficient balance in source account");
+
+  const referenceCode = generateCardTxReference("PAYMENT");
+  const memo = input.memo?.trim() || null;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const freshCard = await tx.altaCard.findUnique({ where: { id: card.id } });
+    if (!freshCard) notFound();
+
+    await applyPaymentInTx(tx, freshCard, paymentAmount);
+
+    await tx.bankAccount.update({
+      where: { id: source.id },
+      data: { balance: { decrement: paymentAmount } },
+    });
+
+    const bankTx = await tx.bankTransaction.create({
+      data: {
+        bankAccountId: source.id,
+        type: "WITHDRAWAL",
+        amount: paymentAmount,
+        status: "APPROVED",
+        description: `Alta Card autopay · •••• ${card.cardLastFour}`,
+        memo,
+        referenceCode: `${referenceCode}-WD`,
+        proofImageUrl: null,
+      },
+    });
+
+    const cardTx = await tx.altaCardTransaction.create({
+      data: {
+        altaCardId: card.id,
+        type: "PAYMENT",
+        status: "COMPLETED",
+        amount: toDecimal(paymentAmount),
+        description: `Autopay from ${source.accountName}`,
+        relatedBankAccountId: source.id,
+        relatedBankTransactionId: bankTx.id,
+        referenceCode,
+        createdByUserId: actorUserId,
+        settledAt: new Date(),
+        metadata: {
+          paymentKind: input.paymentKind,
+          memo,
+          autopay: true,
+          autopayType: input.autopayType ?? null,
+          statementId: input.statementId ?? null,
+        },
+      },
+      include: altaCardTransactionInclude,
+    });
+
+    const { allocatePaymentToStatements } = await import("@/server/alta-card-statement.service");
+    const paidNumbers = await allocatePaymentToStatements(tx, card.id, paymentAmount, actorUserId);
+
+    return { cardTx: mapAltaCardTransactionRow(cardTx), bankTx, paidNumbers };
+  });
+
+  for (const num of result.paidNumbers) {
+    await writeAuditLog({
+      actorUserId,
+      action: "ALTA_CARD_STATEMENT_PAID",
+      entityType: "ALTA_CARD",
+      entityId: card.id,
+      description: `Statement #${num} paid via autopay`,
+      metadata: {
+        cardId: card.id,
+        statementNumber: num,
+        amount: paymentAmount,
+        actorUserId,
+        autopay: true,
+      },
+    });
+  }
+
+  await auditTxEvent(
+    actorUserId,
+    "ALTA_CARD_PAYMENT_MADE",
+    `Autopay payment of ${paymentAmount}`,
+    card.id,
+    result.cardTx.id,
+    {
+      amount: paymentAmount,
+      type: "payment",
+      actorUserId,
+      autopay: true,
+      relatedBankTransactionId: result.bankTx.id,
+    },
+    card.ownerUserId,
+    card.companyId,
+  );
+
+  return {
+    transaction: result.cardTx,
+    bankTransactionId: result.bankTx.id,
+    referenceCode,
+    amountPaid: paymentAmount,
+  };
+}
+
 export async function createAdminAltaCardAdjustment(
   adminUserId: string,
   input: CreateAltaCardAdjustmentInput,

@@ -1,6 +1,6 @@
 # Manual account interest (Alta Bank)
 
-Internal admin tool for **manually** crediting interest to deposit accounts by category. This is separate from per-account scheduled accrual in Interest Operations and does **not** run automatically.
+Internal admin tool for **manually** crediting interest to deposit accounts by category. This is separate from per-account scheduled accrual in Interest Operations. Applications can run immediately or be **scheduled** for a future date (9:00 AM Eastern) via the shared platform cron.
 
 ## Purpose
 
@@ -69,12 +69,12 @@ Category selection replaces separate personal/business/private filters — choos
 
 Route: **`/internal/bank/interest`**
 
-1. **Form** — mode, rate/amount, categories, filters, reason, internal note
+1. **Form** — mode, rate/amount, categories, filters, reason, internal note, optional schedule date
 2. **Preview** — affected/skipped counts, totals, per-account table (server-calculated)
-3. **Confirmation** — admin must type `APPLY INTEREST`; displays permanent-record warning
-4. **Result** — processed/skipped/failed counts, total credited, batch reference ID
+3. **Confirmation** — admin must type `APPLY INTEREST`; displays permanent-record warning (or schedule confirmation when a date is set)
+4. **Result** — processed/skipped/failed counts, total credited, batch reference ID — or schedule confirmation with run date
 
-Preview is recalculated on the server immediately before apply. The frontend preview is never trusted for amounts at apply time.
+When a **schedule date** is set (YYYY-MM-DD), the application is stored as pending and applied at **9:00 AM Eastern** on that date by `runDepositInterestSchedulerJob()` via `/api/cron/scheduled-transfers`. Balances are evaluated at run time, not at preview time. Leave the date blank to apply immediately.
 
 ## Permissions
 

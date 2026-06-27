@@ -1076,7 +1076,7 @@ export async function approveLoanApplication(
   await closeThreadForApplicationIfOpen(
     adminId,
     application.id,
-    "Application thread closed after approval.",
+    "Secure Deal Room closed after acceptance.",
     buildApplicationApprovedSystemMessage(reviewNote),
   );
 }
@@ -1115,7 +1115,7 @@ export async function denyLoanApplication(
   await closeThreadForApplicationIfOpen(
     adminId,
     application.id,
-    "Application thread closed after denial.",
+    "Secure Deal Room closed after denial.",
     buildApplicationDeniedSystemMessage(reviewNote),
   );
 }

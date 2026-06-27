@@ -57,12 +57,14 @@ function InternalLoanDetailPage() {
         <InternalNotePanel targetType="LOAN" targetId={loan.id} initialNotes={notes} />
       </Section>
 
-      <Section title="Deal room" className="mt-10">
+      <Section title="Secure Deal Room" className="mt-10">
         <p className="text-[13px] text-muted-foreground">
-          Deal room integration is planned.{" "}
-          <Link to="/internal/lending/deal-rooms" className="text-gold hover:underline">
-            Deal rooms operations
-          </Link>
+          Application review and banker communication are handled through the Secure Deal Room on the
+          originating loan application record. Visit the{" "}
+          <Link to="/internal/lending" className="text-gold hover:underline">
+            lending queue
+          </Link>{" "}
+          to open the application Secure Deal Room.
         </p>
       </Section>
     </InternalPageShell>

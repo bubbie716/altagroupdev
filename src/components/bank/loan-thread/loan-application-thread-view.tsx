@@ -18,7 +18,108 @@ import {
   sendLoanApplicationThreadMessage,
   updateLoanApplicationThreadStatus,
 } from "@/lib/bank/loan-application-thread.functions";
+import {
+  closeAltaCardApplicationThreadRecord,
+  reopenAltaCardApplicationThreadRecord,
+  sendAltaCardApplicationThreadMessage,
+  sendInternalAltaCardApplicationThreadMessage,
+  updateAltaCardApplicationThreadStatus,
+} from "@/lib/bank/alta-card-application.functions";
+import {
+  closeAltaCardReviewThreadRecord,
+  reopenAltaCardReviewThreadRecord,
+  sendAltaCardReviewThreadMessage,
+  sendInternalAltaCardReviewThreadMessage,
+  updateAltaCardReviewThreadStatus,
+} from "@/lib/bank/alta-card-review.functions";
+import { mapAltaCardThreadContextToLoan } from "@/lib/bank/alta-card-thread-adapter";
+import { mapAltaCardReviewThreadContextToLoan } from "@/lib/bank/alta-card-review-thread-adapter";
 import { linkifyText, ThreadAttachmentList } from "@/components/bank/loan-thread/thread-attachments";
+import {
+  isTerminalThreadDecisionStatus,
+  threadClosedDecisionMessage,
+  threadDecisionTone,
+} from "@/lib/bank/thread-decision-utils";
+import {
+  isOwnThreadMessage,
+  normalizeThreadMessage,
+} from "@/lib/bank/thread-message-utils";
+
+type ApplicationThreadProduct = "loan" | "alta-card" | "alta-card-review";
+
+const THREAD_PRODUCT_COPY: Record<
+  ApplicationThreadProduct,
+  {
+    deskLabel: string;
+    staffSenderLabel: string;
+    systemDeskLabel: string;
+    requestedMetaLabel: string;
+    emptyStateTitle: string;
+    emptyStateUser: string;
+    emptyStateInternal: string;
+    closedComposerMessage: string;
+    blockedComposerMessage: string;
+    closeActionLabel: string;
+    reopenActionLabel: string;
+    footerHint: string;
+    attachmentPath: (applicationId: string) => string;
+  }
+> = {
+  loan: {
+    deskLabel: "Secure Deal Room",
+    staffSenderLabel: "Alta Credit Desk",
+    systemDeskLabel: "Secure Deal Room",
+    requestedMetaLabel: "Requested",
+    emptyStateTitle: "Application submitted",
+    emptyStateUser:
+      "Your application is under review. Ask a question, share a document, or respond to Alta here. If your Discord account is connected, you'll also receive notifications from the Alta Bot when new updates are available.",
+    emptyStateInternal: "Reply to the applicant or request additional documents through the Secure Deal Room.",
+    closedComposerMessage:
+      "This Secure Deal Room is closed. Alta Bank will reopen it if further discussion is needed.",
+    blockedComposerMessage: "You cannot send messages in this Secure Deal Room.",
+    closeActionLabel: "Close Secure Deal Room",
+    reopenActionLabel: "Reopen Secure Deal Room",
+    footerHint:
+      "Secure Deal Room · Enter to send · Shift + Enter for new line · Asynchronous messaging",
+    attachmentPath: (applicationId) => `/api/loan-threads/${applicationId}/attachments`,
+  },
+  "alta-card": {
+    deskLabel: "Secure Deal Room",
+    staffSenderLabel: "Alta Credit Desk",
+    systemDeskLabel: "Secure Deal Room",
+    requestedMetaLabel: "Requested limit",
+    emptyStateTitle: "Application submitted",
+    emptyStateUser:
+      "Your application is under review. Ask a question, share a document, or respond to Alta here. If your Discord account is connected, you'll also receive notifications from the Alta Bot when new updates are available.",
+    emptyStateInternal: "Reply to the applicant or request additional documents through the Secure Deal Room.",
+    closedComposerMessage:
+      "This Secure Deal Room is closed. Alta Bank will reopen it if further discussion is needed.",
+    blockedComposerMessage: "You cannot send messages in this Secure Deal Room.",
+    closeActionLabel: "Close Secure Deal Room",
+    reopenActionLabel: "Reopen Secure Deal Room",
+    footerHint:
+      "Secure Deal Room · Enter to send · Shift + Enter for new line · Asynchronous messaging",
+    attachmentPath: (applicationId) => `/api/alta-card-threads/${applicationId}/attachments`,
+  },
+  "alta-card-review": {
+    deskLabel: "Secure Deal Room",
+    staffSenderLabel: "Alta Credit Desk",
+    systemDeskLabel: "Secure Deal Room",
+    requestedMetaLabel: "Review",
+    emptyStateTitle: "Application submitted",
+    emptyStateUser:
+      "Your application is under review. Ask a question, share a document, or respond to Alta here. If your Discord account is connected, you'll also receive notifications from the Alta Bot when new updates are available.",
+    emptyStateInternal: "Reply to the applicant or request additional documents through the Secure Deal Room.",
+    closedComposerMessage:
+      "This Secure Deal Room is closed. Alta Bank will reopen it if further discussion is needed.",
+    blockedComposerMessage: "You cannot send messages in this Secure Deal Room.",
+    closeActionLabel: "Close Secure Deal Room",
+    reopenActionLabel: "Reopen Secure Deal Room",
+    footerHint:
+      "Secure Deal Room · Enter to send · Shift + Enter for new line · Asynchronous messaging",
+    attachmentPath: (applicationId) => `/api/alta-card-review-threads/${applicationId}/attachments`,
+  },
+};
 
 export function LoanApplicationThreadView({
   context,
@@ -26,14 +127,18 @@ export function LoanApplicationThreadView({
   variant,
   backTo,
   backLabel,
+  backParams,
   className,
+  product = "loan",
 }: {
   context: LoanApplicationThreadContext;
   messages: LoanApplicationThreadMessageRow[];
   variant: "user" | "internal";
   backTo: string;
   backLabel: string;
+  backParams?: Record<string, string>;
   className?: string;
+  product?: ApplicationThreadProduct;
 }) {
   const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -45,11 +150,83 @@ export function LoanApplicationThreadView({
   const [error, setError] = useState<string | null>(null);
   const [showMeta, setShowMeta] = useState(false);
 
-  const sendUser = useServerFn(sendLoanApplicationThreadMessage);
-  const sendInternal = useServerFn(sendInternalLoanApplicationThreadMessage);
-  const updateStatus = useServerFn(updateLoanApplicationThreadStatus);
-  const closeThread = useServerFn(closeLoanApplicationThread);
-  const reopen = useServerFn(reopenLoanApplicationThread);
+  const copy = THREAD_PRODUCT_COPY[product];
+  const decisionFinal = isTerminalThreadDecisionStatus(ctx.applicationStatus);
+  const headerStatusLabel = decisionFinal ? ctx.applicationStatusLabel : ctx.statusLabel;
+  const metaStatusLabel = decisionFinal ? ctx.applicationStatusLabel : ctx.statusLabel;
+  const closedComposerMessage = decisionFinal
+    ? threadClosedDecisionMessage(ctx.applicationStatusLabel)
+    : copy.closedComposerMessage;
+
+  const sendUserLoan = useServerFn(sendLoanApplicationThreadMessage);
+  const sendInternalLoan = useServerFn(sendInternalLoanApplicationThreadMessage);
+  const updateStatusLoan = useServerFn(updateLoanApplicationThreadStatus);
+  const closeThreadLoan = useServerFn(closeLoanApplicationThread);
+  const reopenLoan = useServerFn(reopenLoanApplicationThread);
+
+  const sendUserAltaCard = useServerFn(sendAltaCardApplicationThreadMessage);
+  const sendInternalAltaCard = useServerFn(sendInternalAltaCardApplicationThreadMessage);
+  const updateStatusAltaCard = useServerFn(updateAltaCardApplicationThreadStatus);
+  const closeThreadAltaCard = useServerFn(closeAltaCardApplicationThreadRecord);
+  const reopenAltaCard = useServerFn(reopenAltaCardApplicationThreadRecord);
+
+  const sendUserAltaCardReview = useServerFn(sendAltaCardReviewThreadMessage);
+  const sendInternalAltaCardReview = useServerFn(sendInternalAltaCardReviewThreadMessage);
+  const updateStatusAltaCardReview = useServerFn(updateAltaCardReviewThreadStatus);
+  const closeThreadAltaCardReview = useServerFn(closeAltaCardReviewThreadRecord);
+  const reopenAltaCardReview = useServerFn(reopenAltaCardReviewThreadRecord);
+
+  const sendUser =
+    product === "alta-card-review"
+      ? sendUserAltaCardReview
+      : product === "alta-card"
+        ? sendUserAltaCard
+        : sendUserLoan;
+  const sendInternal =
+    product === "alta-card-review"
+      ? sendInternalAltaCardReview
+      : product === "alta-card"
+        ? sendInternalAltaCard
+        : sendInternalLoan;
+  const updateStatus =
+    product === "alta-card-review"
+      ? updateStatusAltaCardReview
+      : product === "alta-card"
+        ? updateStatusAltaCard
+        : updateStatusLoan;
+  const closeThread =
+    product === "alta-card-review"
+      ? closeThreadAltaCardReview
+      : product === "alta-card"
+        ? closeThreadAltaCard
+        : closeThreadLoan;
+  const reopen =
+    product === "alta-card-review"
+      ? reopenAltaCardReview
+      : product === "alta-card"
+        ? reopenAltaCard
+        : reopenLoan;
+
+  async function applyContextUpdate(next: unknown) {
+    if (product === "alta-card-review") {
+      setCtx(
+        mapAltaCardReviewThreadContextToLoan(
+          next as import("@/lib/bank/alta-card-review-thread-types").AltaCardReviewThreadContext,
+        ),
+      );
+      return;
+    }
+    if (product === "alta-card") {
+      setCtx(mapAltaCardThreadContextToLoan(next as import("@/lib/bank/alta-card-application-thread-types").AltaCardApplicationThreadContext));
+      return;
+    }
+    setCtx(next as LoanApplicationThreadContext);
+  }
+
+  useEffect(() => {
+    setMessages(initialMessages);
+    setCtx(context);
+  }, [initialMessages, context]);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -76,16 +253,19 @@ export function LoanApplicationThreadView({
     setPending(true);
     try {
       const send = variant === "internal" ? sendInternal : sendUser;
-      const msg = await send({
+      const raw = await send({
         data: { applicationId: ctx.applicationId, body: text },
       });
+      const msg = normalizeThreadMessage(product, raw);
       setMessages((prev) => [...prev, msg]);
       setBody("");
-      setCtx((c) => ({
-        ...c,
-        status: variant === "internal" ? "waiting_on_applicant" : "waiting_on_alta",
-        statusLabel: variant === "internal" ? "Waiting on applicant" : "Waiting on Alta",
-      }));
+      if (product !== "alta-card-review") {
+        setCtx((c) => ({
+          ...c,
+          status: variant === "internal" ? "waiting_on_applicant" : "waiting_on_alta",
+          statusLabel: variant === "internal" ? "Waiting on You" : "Waiting on Alta",
+        }));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Failed to send.");
     } finally {
@@ -110,7 +290,7 @@ export function LoanApplicationThreadView({
     try {
       const form = new FormData();
       form.append("file", file);
-      const res = await fetch(`/api/loan-threads/${ctx.applicationId}/attachments`, {
+      const res = await fetch(copy.attachmentPath(ctx.applicationId), {
         method: "POST",
         body: form,
       });
@@ -123,13 +303,14 @@ export function LoanApplicationThreadView({
       }
       const attachment = responseBody as ThreadAttachment;
       const send = variant === "internal" ? sendInternal : sendUser;
-      const msg = await send({
+      const raw = await send({
         data: {
           applicationId: ctx.applicationId,
           body: body.trim() || undefined,
           attachments: [attachment],
         },
       });
+      const msg = normalizeThreadMessage(product, raw);
       setMessages((prev) => [...prev, msg]);
       setBody("");
       await refresh();
@@ -152,6 +333,7 @@ export function LoanApplicationThreadView({
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
           <Link
             to={backTo}
+            params={backParams}
             aria-label={backLabel}
             className="-ml-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
           >
@@ -170,10 +352,11 @@ export function LoanApplicationThreadView({
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-serif text-[16px] leading-tight tracking-tight sm:text-[17px]">
-              {variant === "internal" ? ctx.applicantName : "Alta Loan Desk"}
+              {variant === "internal" ? ctx.applicantName : copy.deskLabel}
             </h1>
             <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-              {ctx.productLabel} · {ctx.statusLabel}
+              {ctx.productLabel} · {headerStatusLabel}
+              {decisionFinal && ctx.status === "closed" ? " · Deal room closed" : null}
             </p>
           </div>
           <button
@@ -189,31 +372,34 @@ export function LoanApplicationThreadView({
         {showMeta && (
           <div className="border-t border-border/60 bg-surface-1/60 px-4 py-3 sm:px-6">
             <dl className="mx-auto grid max-w-3xl grid-cols-2 gap-x-6 gap-y-3 text-[12px] sm:grid-cols-4">
-              <MetaCell label="Requested">
+              <MetaCell label={copy.requestedMetaLabel}>
                 <span className="tabular-nums">
                   <Florin value={ctx.requestedAmount} fractionDigits={0} />
                 </span>
               </MetaCell>
               <MetaCell label="Submitted">{ctx.submittedAtLabel}</MetaCell>
               <MetaCell label="Applicant">{ctx.applicantName}</MetaCell>
-              <MetaCell label={ctx.companyName ? "Company" : "Status"}>
-                {ctx.companyName ?? ctx.applicationStatusLabel}
+              {ctx.companyName ? <MetaCell label="Company">{ctx.companyName}</MetaCell> : null}
+              <MetaCell label={decisionFinal ? "Decision" : "Status"}>
+                <ThreadDecisionStatus status={ctx.applicationStatus} label={metaStatusLabel} />
               </MetaCell>
             </dl>
             {variant === "internal" && (
               <InternalThreadControls
                 context={ctx}
+                copy={copy}
+                allowReopen={!decisionFinal}
                 onStatus={async (status) => {
                   const next = await updateStatus({ data: { applicationId: ctx.applicationId, status } });
-                  setCtx(next);
+                  await applyContextUpdate(next);
                 }}
                 onClose={async () => {
                   const next = await closeThread({ data: ctx.applicationId });
-                  setCtx(next);
+                  await applyContextUpdate(next);
                 }}
                 onReopen={async () => {
                   const next = await reopen({ data: ctx.applicationId });
-                  setCtx(next);
+                  await applyContextUpdate(next);
                 }}
               />
             )}
@@ -228,20 +414,21 @@ export function LoanApplicationThreadView({
         style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
         <div className="mx-auto max-w-3xl">
+          {decisionFinal ? (
+            <ThreadDecisionBanner status={ctx.applicationStatus} label={ctx.applicationStatusLabel} />
+          ) : null}
           {messages.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 bg-[#0f1729] dark:bg-gold/10">
                 <AltaLogo className="h-6 w-6 text-gold" />
               </div>
-              <p className="mt-4 font-serif text-[16px] tracking-tight">Start the conversation</p>
+              <p className="mt-4 font-serif text-[16px] tracking-tight">{copy.emptyStateTitle}</p>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                {variant === "internal"
-                  ? "Reply to the applicant or request additional documents."
-                  : "Ask a question, share a document, or request an update from your Alta loan officer."}
+                {variant === "internal" ? copy.emptyStateInternal : copy.emptyStateUser}
               </p>
             </div>
           ) : (
-            renderMessageStream(messages, variant, ctx.viewerUserId, ctx.applicantAvatarUrl)
+            renderMessageStream(messages, variant, ctx.viewerUserId, ctx.applicantAvatarUrl, copy)
           )}
         </div>
       </div>
@@ -259,8 +446,8 @@ export function LoanApplicationThreadView({
           {!ctx.canSend ? (
             <p className="rounded-xl border border-dashed border-border bg-surface-1 px-4 py-3 text-center text-[12.5px] text-muted-foreground">
               {ctx.status === "closed"
-                ? "This thread is closed. Alta Bank will reopen it if further discussion is needed."
-                : "You cannot send messages in this thread."}
+                ? closedComposerMessage
+                : copy.blockedComposerMessage}
             </p>
           ) : (
             <div className="group relative flex items-end gap-2 rounded-[22px] border border-border/70 bg-white px-2 py-2 shadow-[0_1px_0_rgba(15,23,41,0.04),0_8px_30px_-12px_rgba(15,23,41,0.18)] transition focus-within:border-foreground/30 focus-within:shadow-[0_1px_0_rgba(15,23,41,0.04),0_12px_40px_-12px_rgba(15,23,41,0.25)] dark:border-border dark:bg-surface-1">
@@ -316,7 +503,7 @@ export function LoanApplicationThreadView({
             </div>
           )}
           <p className="mt-2 hidden text-center font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/60 sm:block">
-            Enter to send · Shift + Enter for new line · Asynchronous messaging
+            {copy.footerHint}
           </p>
         </form>
       </footer>
@@ -338,6 +525,7 @@ function renderMessageStream(
   variant: "user" | "internal",
   viewerUserId: string,
   applicantAvatarUrl: string | null,
+  copy: (typeof THREAD_PRODUCT_COPY)[ApplicationThreadProduct],
 ) {
   const nodes: React.ReactNode[] = [];
   let lastDay = "";
@@ -360,6 +548,7 @@ function renderMessageStream(
         viewerUserId={viewerUserId}
         applicantAvatarUrl={applicantAvatarUrl}
         grouped={isGrouped}
+        copy={copy}
       />,
     );
     prevSenderKey = m.senderRole === "system" ? "" : senderKey;
@@ -394,12 +583,14 @@ function ThreadMessageBubble({
   viewerUserId,
   applicantAvatarUrl,
   grouped,
+  copy,
 }: {
   message: LoanApplicationThreadMessageRow;
   variant: "user" | "internal";
   viewerUserId: string;
   applicantAvatarUrl: string | null;
   grouped: boolean;
+  copy: (typeof THREAD_PRODUCT_COPY)[ApplicationThreadProduct];
 }) {
   if (message.senderRole === "system") {
     return (
@@ -408,7 +599,7 @@ function ThreadMessageBubble({
           <div className="mb-2 flex items-center justify-center gap-2">
             <ThreadAltaAvatar className="h-7 w-7" />
             <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
-              Alta Credit Desk
+              {copy.systemDeskLabel}
             </span>
           </div>
           <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">
@@ -420,13 +611,9 @@ function ThreadMessageBubble({
   }
 
   const isStaff = message.senderRole === "alta_staff";
-  const isOwnMessage =
-    variant === "internal"
-      ? isStaff
-      : message.senderRole === "applicant" ||
-        (message.senderUserId != null && message.senderUserId === viewerUserId);
+  const isOwnMessage = isOwnThreadMessage(message, variant, viewerUserId);
 
-  const senderName = isStaff ? "Alta Loan Desk" : (message.senderName ?? "Applicant");
+  const senderName = isStaff ? copy.staffSenderLabel : (message.senderName ?? "Applicant");
   const initials = getInitials(senderName);
   const avatarUrl = message.senderAvatarUrl ?? applicantAvatarUrl;
   const timeLabel = formatTimeOnly(message.createdAt) || message.createdAtLabel;
@@ -531,25 +718,65 @@ function ThreadUserAvatar({
   );
 }
 
+function ThreadDecisionStatus({ status, label }: { status: string; label: string }) {
+  const tone = threadDecisionTone(status);
+  const toneClass =
+    tone === "success"
+      ? "text-[var(--success)]"
+      : tone === "danger"
+        ? "text-[var(--destructive)]"
+        : tone === "warning"
+          ? "text-amber-700 dark:text-amber-300"
+          : "text-muted-foreground";
+
+  return <span className={cn("font-medium capitalize", toneClass)}>{label}</span>;
+}
+
+function ThreadDecisionBanner({ status, label }: { status: string; label: string }) {
+  const tone = threadDecisionTone(status);
+  const styles =
+    tone === "success"
+      ? "border-[var(--success)]/25 bg-[var(--success)]/8 text-[var(--success)]"
+      : tone === "danger"
+        ? "border-[var(--destructive)]/25 bg-[var(--destructive)]/8 text-[var(--destructive)]"
+        : tone === "warning"
+          ? "border-amber-500/25 bg-amber-500/8 text-amber-800 dark:text-amber-200"
+          : "border-border bg-surface-1 text-muted-foreground";
+
+  return (
+    <div className={cn("mb-6 rounded-xl border px-4 py-3 text-center", styles)}>
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-80">Decision</p>
+      <p className="mt-1 font-serif text-[18px] tracking-tight">{label}</p>
+      <p className="mt-1 text-[12px] opacity-80">This secure deal room is closed.</p>
+    </div>
+  );
+}
+
 function InternalThreadControls({
   context,
+  copy,
+  allowReopen = true,
   onStatus,
   onClose,
   onReopen,
 }: {
   context: LoanApplicationThreadContext;
+  copy: (typeof THREAD_PRODUCT_COPY)[ApplicationThreadProduct];
+  allowReopen?: boolean;
   onStatus: (status: LoanApplicationThreadStatusCode) => Promise<void>;
   onClose: () => Promise<void>;
   onReopen: () => Promise<void>;
 }) {
   return (
     <div className="mx-auto mt-3 flex max-w-3xl flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-      <ActionBtn label="Waiting on applicant" onClick={() => onStatus("waiting_on_applicant")} />
+      <ActionBtn label="Waiting on You" onClick={() => onStatus("waiting_on_applicant")} />
       <ActionBtn label="Waiting on Alta" onClick={() => onStatus("waiting_on_alta")} />
       {context.status === "closed" ? (
-        <ActionBtn label="Reopen" onClick={onReopen} accent />
+        allowReopen ? (
+          <ActionBtn label={copy.reopenActionLabel} onClick={onReopen} accent />
+        ) : null
       ) : (
-        <ActionBtn label="Close thread" onClick={onClose} />
+        <ActionBtn label={copy.closeActionLabel} onClick={onClose} />
       )}
     </div>
   );

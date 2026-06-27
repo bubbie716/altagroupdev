@@ -16,12 +16,12 @@ export const Route = createFileRoute("/internal/lending/applications/$applicatio
       throw error;
     }
   },
-  head: () => ({ meta: [{ title: "Application Thread — Alta Internal" }] }),
+  head: () => ({ meta: [{ title: "Secure Deal Room — Alta Internal" }] }),
   notFoundComponent: () => (
-    <InternalPageShell title="Thread not found">
+    <InternalPageShell title="Secure Deal Room not found">
       <EmptyState
         tag="404"
-        title="This application thread is not available"
+        title="This Secure Deal Room is not available"
         action={
           <Link to="/internal/lending" className="text-gold hover:underline">
             Back to lending

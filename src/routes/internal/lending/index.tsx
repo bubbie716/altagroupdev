@@ -30,7 +30,7 @@ function InternalLending() {
   return (
     <InternalPageShell
       title="Lending Review"
-      description="Manual credit facilities — applications, servicing, and monthly interest guarantees."
+      description="Manual credit facilities — application review, Secure Deal Rooms, servicing, and monthly interest guarantees."
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 flex-1">

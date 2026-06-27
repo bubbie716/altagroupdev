@@ -56,8 +56,29 @@ export function getNextBillingCycle(previousCycleEnd: Date): AltaCardBillingCycl
   return { billingPeriodStart, billingPeriodEnd, dueDate };
 }
 
+/** Payment due for a billing period, derived from its start (calendar month-end policy). */
+export function getCalendarPaymentDueForPeriodStart(periodStart: Date): Date {
+  return getAltaCardDueDate(getStatementCloseDate(periodStart));
+}
+
+/** Statement close for a billing period, derived from its start (calendar month-end policy). */
+export function getCalendarStatementCloseForPeriodStart(periodStart: Date): Date {
+  return getStatementCloseDate(periodStart);
+}
+
 export const ALTA_CARD_BILLING_HELPER_TEXT =
   "New purchases after your statement date appear on your next statement.";
+
+/** Format a billing calendar date stored as UTC end-of-day (avoids local TZ shifting month-end). */
+export function formatAltaCardBillingDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+}
 
 export const ALTA_CARD_BILLING_POLICY_LINES = [
   "Statement closes on the last day of every month.",

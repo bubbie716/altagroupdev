@@ -13,6 +13,8 @@ import {
 } from "@/lib/bank/alta-card-minimum-payment";
 import {
   getAltaCardDueDate,
+  getCalendarPaymentDueForPeriodStart,
+  getCalendarStatementCloseForPeriodStart,
   getInitialBillingCycle,
   getNextBillingCycle,
 } from "@/lib/bank/alta-card-billing-cycle";
@@ -169,6 +171,59 @@ async function nextStatementNumber(altaCardId: string): Promise<number> {
   return (last?.statementNumber ?? 0) + 1;
 }
 
+export type AltaCardResolvedBillingDates = {
+  paymentDueDate: Date | null;
+  nextStatementDate: Date | null;
+  billingPeriodStart: Date | null;
+  billingPeriodEnd: Date | null;
+};
+
+/** Resolve display dates from statement records (calendar policy, not stale card columns). */
+export async function resolveAltaCardBillingDates(
+  tx: Prisma.TransactionClient | typeof prisma,
+  altaCardId: string,
+): Promise<AltaCardResolvedBillingDates> {
+  const [currentUnpaid, openStatement] = await Promise.all([
+    tx.altaCardStatement.findFirst({
+      where: { altaCardId, status: { in: UNPAID_STATUSES } },
+      orderBy: { statementNumber: "asc" },
+    }),
+    tx.altaCardStatement.findFirst({
+      where: { altaCardId, status: "OPEN" },
+      orderBy: { statementNumber: "desc" },
+    }),
+  ]);
+
+  const nextStatementDate = openStatement
+    ? getCalendarStatementCloseForPeriodStart(openStatement.billingPeriodStart)
+    : null;
+  const billingPeriodStart = openStatement?.billingPeriodStart ?? null;
+  const billingPeriodEnd = openStatement
+    ? getCalendarStatementCloseForPeriodStart(openStatement.billingPeriodStart)
+    : null;
+
+  const paymentSource = currentUnpaid ?? openStatement;
+  const paymentDueDate = paymentSource
+    ? getCalendarPaymentDueForPeriodStart(paymentSource.billingPeriodStart)
+    : null;
+
+  return {
+    paymentDueDate,
+    nextStatementDate,
+    billingPeriodStart,
+    billingPeriodEnd,
+  };
+}
+
+/** Earliest payment due: unpaid statement first, otherwise the open billing cycle. */
+export async function resolveAltaCardPaymentDueDate(
+  tx: Prisma.TransactionClient | typeof prisma,
+  altaCardId: string,
+): Promise<Date | null> {
+  const { paymentDueDate } = await resolveAltaCardBillingDates(tx, altaCardId);
+  return paymentDueDate;
+}
+
 export async function syncCardBillingSummary(
   tx: Prisma.TransactionClient,
   altaCardId: string,
@@ -192,15 +247,18 @@ export async function syncCardBillingSummary(
       )
     : 0;
 
-  const paymentDueDate = currentUnpaid?.dueDate ?? null;
+  const billingDates = await resolveAltaCardBillingDates(tx, altaCardId);
 
   await tx.altaCard.update({
     where: { id: altaCardId },
     data: {
       statementBalance: toDecimal(totalRemaining),
       minimumPaymentDue: toDecimal(minimumPaymentDue),
-      paymentDueDate,
-      dueDate: paymentDueDate,
+      paymentDueDate: billingDates.paymentDueDate,
+      dueDate: billingDates.paymentDueDate,
+      nextStatementDate: billingDates.nextStatementDate,
+      currentBillingCycleStart: billingDates.billingPeriodStart,
+      currentBillingCycleEnd: billingDates.billingPeriodEnd,
     },
   });
 }
@@ -431,6 +489,17 @@ export async function generateCardStatementForPeriod(
   periodEndInput: string,
 ): Promise<AltaCardStatementDetail> {
   const { assertCardAccess } = await import("@/server/alta-card.service");
+
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithMembershipsInclude,
+  });
+  if (!userRecord) notFound();
+  const altaUser = mapDbUserToAltaUser(userRecord);
+  if (!isAdmin(altaUser) && !isOperator(altaUser)) {
+    forbidden();
+  }
+
   const card = await prisma.altaCard.findUnique({ where: { id: cardId } });
   if (!card) notFound();
   await assertCardAccess(userId, card);
@@ -685,6 +754,9 @@ export async function allocatePaymentToStatements(
 
   await syncCardBillingSummary(tx, altaCardId);
 
+  const { maybeRestoreActiveFromDelinquency } = await import("@/server/alta-card-delinquency.service");
+  await maybeRestoreActiveFromDelinquency(tx, altaCardId, actorUserId);
+
   return paidStatementNumbers;
 }
 
@@ -697,8 +769,18 @@ export async function listCardStatements(
   if (!card) notFound();
   await assertCardAccess(userId, card);
 
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithMembershipsInclude,
+  });
+  const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
+  const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
+
   const statements = await prisma.altaCardStatement.findMany({
-    where: { altaCardId: cardId, status: { notIn: ["OPEN"] } },
+    where: {
+      altaCardId: cardId,
+      status: { notIn: isStaffUser ? ["OPEN"] : ["OPEN", "GENERATED"] },
+    },
     orderBy: { statementNumber: "desc" },
   });
 
@@ -725,6 +807,14 @@ export async function getCardStatementDetail(
     },
   });
   if (!statement) notFound();
+
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    include: userWithMembershipsInclude,
+  });
+  const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
+  const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
+  if (statement.status === "GENERATED" && !isStaffUser) notFound();
 
   let transactions = statement.transactions;
   if (
@@ -760,17 +850,17 @@ export async function generateStatementsForEligibleCards(): Promise<{
   const generated: string[] = [];
   const skipped: string[] = [];
 
+  const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+  let systemActorId: string;
+  try {
+    systemActorId = await resolveSystemActorUserId();
+  } catch {
+    return { processed: cards.length, generated: [], skipped: cards.map((c) => c.id) };
+  }
+
   for (const card of cards) {
     try {
-      const systemActor = await prisma.user.findFirst({
-        where: { tags: { some: { tag: "ADMIN" } } },
-        select: { id: true },
-      });
-      if (!systemActor) {
-        skipped.push(card.id);
-        continue;
-      }
-      await generateStatement(systemActor.id, card.id);
+      await generateStatement(systemActorId, card.id);
       generated.push(card.id);
     } catch {
       skipped.push(card.id);

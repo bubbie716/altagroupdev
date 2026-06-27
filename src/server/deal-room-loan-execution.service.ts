@@ -432,8 +432,10 @@ export async function executeLoanFromExecutedAgreement(
     dealRoomId,
     "DEAL_ROOM_FUNDING_COMPLETE",
     "Loan funded",
-    "The deal room has been executed and funds have been disbursed.",
-    `/bank/lending/deal-rooms/${dealRoomId}`,
+    "Your facility has been accepted and funds have been disbursed.",
+    room.loanApplicationId
+      ? `/bank/lending/loans`
+      : `/bank/lending/applications`,
   );
 
   return {

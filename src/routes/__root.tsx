@@ -13,9 +13,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
-import { fetchCurrentUser } from "@/lib/auth/auth.functions";
+import { fetchRootSession } from "@/lib/auth/root-session.functions";
 import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
-import { fetchMaintenanceMode } from "@/lib/platform/platform-settings.functions";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
@@ -94,23 +93,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
     if (labUser) return { user: labUser };
 
     let user: AltaUser | null = null;
+    let maintenanceEnabled = false;
     try {
-      user = await fetchCurrentUser();
+      const session = await fetchRootSession();
+      user = session.user;
+      maintenanceEnabled = session.maintenanceEnabled;
     } catch (error) {
-      console.error("[auth] Failed to load current user", error);
+      console.error("[auth] Failed to load root session", error);
     }
 
     const pathname = location.pathname;
     const { shouldEnforceMaintenance } = await import("@/lib/platform/maintenance-guard");
-
-    let maintenanceEnabled = false;
-    try {
-      const maintenance = await fetchMaintenanceMode();
-      maintenanceEnabled = maintenance.enabled;
-    } catch (error) {
-      // Lockout prevention: if settings cannot be read, treat maintenance as OFF.
-      console.error("[maintenance] Failed to evaluate maintenance mode; defaulting to OFF", error);
-    }
 
     if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
       throw redirect({ to: "/" });

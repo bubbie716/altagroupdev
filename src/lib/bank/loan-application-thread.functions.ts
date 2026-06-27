@@ -71,6 +71,7 @@ export const updateLoanApplicationThreadStatus = createServerFn({ method: "POST"
     return updateThreadStatus(userId, data);
   });
 
+/** @deprecated V1 Secure Deal Rooms are not staff-assigned. No-op for compatibility. */
 export const assignLoanApplicationThreadStaff = createServerFn({ method: "POST" })
   .inputValidator((input: AssignThreadStaffInput) => input)
   .handler(async ({ data }) => {

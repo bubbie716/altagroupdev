@@ -16,6 +16,7 @@ import {
   changeAltaCardStatusRecord,
   changeAltaCardTierAdminRecord,
   createAdminAltaCardAdjustmentWithAuditRecord,
+  reverseAltaCardTransactionAdminRecord,
   submitAdminManualCardPaymentRecord,
   updateAltaCardLimitAdminRecord,
   updateAltaCardRateAdminRecord,
@@ -28,6 +29,7 @@ import {
 import { unfreezeEmployeeCardRecord } from "@/lib/bank/alta-card-admin.functions";
 import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
 import { AltaCardEmployeeCardCreateForm } from "@/components/bank/alta-card/alta-card-employee-card-create-form";
+import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
 
 function ReasonField({
   value,
@@ -562,6 +564,34 @@ export function InternalAltaCardOpsPanel({
           }}
         />
       </section>
+
+      <AltaCardTransactionHistory transactions={card.recentTransactions} title="All transactions" />
+
+      {card.recentTransactions.some((t) => t.status === "completed" && t.type !== "reversal") ? (
+        <section className="rounded-xl border border-border bg-surface-1/80 p-5">
+          <h3 className="mb-3 font-serif text-[18px]">Reverse transaction</h3>
+          <ReasonField value={actionReason} onChange={setActionReason} />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {card.recentTransactions
+              .filter((t) => t.status === "completed" && t.type !== "reversal")
+              .slice(0, 8)
+              .map((t) => (
+                <BankReviewButton
+                  key={t.id}
+                  label={`Reverse ${t.referenceCode.slice(-8)}`}
+                  variant="danger"
+                  onAction={async () => {
+                    if (!actionReason.trim()) return;
+                    await reverseAltaCardTransactionAdminRecord({
+                      data: { transactionId: t.id, reason: actionReason.trim() },
+                    });
+                    await onRefresh();
+                  }}
+                />
+              ))}
+          </div>
+        </section>
+      ) : null}
 
       {card.cardType === "business" ? (
         <section className="space-y-4 rounded-xl border border-border bg-surface-1/80 p-5">

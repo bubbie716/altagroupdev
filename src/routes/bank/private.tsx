@@ -1,23 +1,50 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { privateClientBeforeLoad } from "@/lib/auth/guards";
+import { authBeforeLoad } from "@/lib/auth/guards";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { getPrivateBanking } from "@/lib/bank/api";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { isPrivateClient } from "@/lib/auth/permissions";
+import { fetchUserAltaCard } from "@/lib/bank/alta-card.functions";
+import {
+  AltaGoldCardSection,
+  BespokeFinancialServicesSection,
+  DedicatedBankerSection,
+  HigherTransferLimitsSection,
+  NegotiatedLendingSection,
+  PriorityApplicationReviewSection,
+  RelationshipPricingSection,
+  type AltaPrivatePageContext,
+} from "@/components/bank/alta-private/alta-private-benefits";
 
 export const Route = createFileRoute("/bank/private")({
-  beforeLoad: privateClientBeforeLoad,
+  beforeLoad: authBeforeLoad,
+  loader: async () => {
+    const card = await fetchUserAltaCard().catch(() => null);
+    return { altaCardId: card?.id ?? null };
+  },
   head: () => ({
-    meta: [{ title: "Alta Private — Reserved for Alta's most sophisticated clients" }],
+    meta: [{ title: "Alta Private — Relationship-managed banking" }],
   }),
   component: BankPrivate,
 });
 
 function BankPrivate() {
-  const showMockData = isUserFinancialMockDataEnabled();
+  const user = useCurrentUser();
+  const { altaCardId } = Route.useLoaderData();
+  const privateClient = user ? isPrivateClient(user) : false;
+  const showMockData = isUserFinancialMockDataEnabled() && privateClient;
   const p = showMockData ? getPrivateBanking() : null;
+
+  const pageCtx: AltaPrivatePageContext = {
+    isPrivateClient: privateClient,
+    altaCardId,
+    bankerName: p?.banker ?? null,
+    bankerTitle: p?.bankerTitle ?? null,
+  };
 
   // Intentional placeholders — never expose a raw dash.
   const PENDING = "Pending Relationship Review";
@@ -62,70 +89,118 @@ function BankPrivate() {
     <PageShell
       eyebrow="Alta Bank · Private"
       title="Alta Private"
-      description="Reserved for Alta's most sophisticated clients."
+      description="Relationship-managed banking — negotiated credit, preferred pricing, priority review, and private client benefits including Alta Gold."
     >
       <BankSubNav />
 
-      {/* HERO RELATIONSHIP CARD */}
-      <HeroRelationshipCard />
+      <HeroRelationshipCard ctx={pageCtx} />
 
-      {/* RELATIONSHIP OVERVIEW */}
       <PrivateSection
         index="01"
-        title="Your relationship"
-        kicker="At a glance"
-        className="mt-16 sm:mt-24"
-        action={
-          <div className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-            Refreshed daily · 09:00 ET
-          </div>
-        }
+        title="Alta Gold Card"
+        kicker="Core private client benefit"
+        className="mt-12 sm:mt-16"
       >
-        <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
-          <DataCell label="Status" value={relationship.status} accent={!!p} />
-          <DataCell label="Private client since" value={relationship.since} muted={!p} />
-          <DataCell label="Active products" value={relationship.activeProducts} muted={!p} />
-          <DataCell label="Relationship tier" value={relationship.tier} />
-          <DataCell label="Banking relationship value" value={relationship.relationshipValue} muted={!p} />
-          <DataCell label="Client standing" value={relationship.standing} />
-        </div>
+        <AltaGoldCardSection ctx={pageCtx} />
       </PrivateSection>
 
-      {/* RELATIONSHIP MANAGEMENT */}
-      <PrivateSection
-        index="02"
-        title="Relationship management"
-        kicker="Your team"
-        className="mt-16 sm:mt-24"
-      >
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ContactCard
-            role="Dedicated Banker"
-            name={p?.banker ?? "To be assigned"}
-            title={p?.bankerTitle ?? "Managing Director · Private Banking"}
-            availability="Direct line · same-day response"
-          />
-          <ContactCard
-            role="Relationship Manager"
-            name="To be assigned"
-            title="Vice President · Client Coverage"
-            availability="Quarterly portfolio reviews"
-          />
-          <ContactCard
-            role="Private Banking Team"
-            name="Newport Private Group"
-            title="Concierge, lending & treasury specialists"
-            availability="Mon–Fri · 07:00–19:00 ET"
-          />
-        </div>
-      </PrivateSection>
-
-      {/* ALTA PRIVATE CHARTER */}
       <CharterSection />
+
+      {privateClient ? (
+        <PrivateSection
+          index="02"
+          title="Your relationship"
+          kicker="At a glance"
+          className="mt-16 sm:mt-24"
+          action={
+            <div className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
+              Refreshed daily · 09:00 ET
+            </div>
+          }
+        >
+          <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+            <DataCell label="Status" value={relationship.status} accent={!!p} />
+            <DataCell label="Private client since" value={relationship.since} muted={!p} />
+            <DataCell label="Active products" value={relationship.activeProducts} muted={!p} />
+            <DataCell label="Relationship tier" value={relationship.tier} />
+            <DataCell label="Banking relationship value" value={relationship.relationshipValue} muted={!p} />
+            <DataCell label="Client standing" value={relationship.standing} />
+          </div>
+        </PrivateSection>
+      ) : (
+        <PrivateSection
+          index="02"
+          title="Alta Private membership"
+          kicker="By invitation"
+          className="mt-16 sm:mt-24"
+        >
+          <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+            Alta Private clients receive access to relationship-managed financial services, including
+            negotiated credit, preferred pricing, priority review, and private banking benefits such
+            as the Alta Gold Card. Membership is extended by referral and maintained through active
+            participation in the Alta financial ecosystem.
+          </p>
+        </PrivateSection>
+      )}
+
+      <PrivateSection
+        index="03"
+        title="Relationship pricing"
+        kicker="Reviewed with your banker"
+        className="mt-16 sm:mt-24"
+      >
+        <RelationshipPricingSection />
+      </PrivateSection>
+
+      <PrivateSection
+        index="04"
+        title="Negotiated lending"
+        kicker="Custom credit facilities"
+        className="mt-16 sm:mt-24"
+      >
+        <NegotiatedLendingSection />
+      </PrivateSection>
+
+      <PrivateSection
+        index="05"
+        title="Dedicated banker"
+        kicker="Relationship-managed support"
+        className="mt-16 sm:mt-24"
+        id="dedicated-banker"
+      >
+        <DedicatedBankerSection ctx={pageCtx} />
+      </PrivateSection>
+
+      <PrivateSection
+        index="06"
+        title="Higher transfer limits"
+        kicker="Treasury & payments"
+        className="mt-16 sm:mt-24"
+      >
+        <HigherTransferLimitsSection />
+      </PrivateSection>
+
+      <PrivateSection
+        index="07"
+        title="Priority application review"
+        kicker="Front-of-queue routing"
+        className="mt-16 sm:mt-24"
+      >
+        <PriorityApplicationReviewSection />
+      </PrivateSection>
+
+      <PrivateSection
+        index="08"
+        title="Bespoke financial services"
+        kicker="Future capabilities"
+        className="mt-16 sm:mt-24"
+      >
+        <BespokeFinancialServicesSection />
+      </PrivateSection>
 
       {/* WEALTH OVERVIEW */}
       <PrivateSection
-        index="03"
+        index="09"
         title="Wealth overview"
         kicker="Consolidated position"
         className="mt-16 sm:mt-24"
@@ -148,7 +223,7 @@ function BankPrivate() {
 
       {/* EXCLUSIVE PRODUCTS */}
       <PrivateSection
-        index="04"
+        index="10"
         title="Exclusive products"
         kicker="By Alta Private"
         className="mt-16 sm:mt-24"
@@ -188,56 +263,9 @@ function BankPrivate() {
         </div>
       </PrivateSection>
 
-      {/* CLIENT BENEFITS — premium cards */}
-      <PrivateSection
-        index="05"
-        title="Client benefits"
-        kicker="What membership confers"
-        className="mt-16 sm:mt-24"
-      >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <BenefitCard
-            n="i"
-            tag="Operations"
-            title="Priority Review Processing"
-            description="Deposits, withdrawals, and wire approvals routed to the front of the operator queue."
-          />
-          <BenefitCard
-            n="ii"
-            tag="Treasury"
-            title="Enhanced Banking Limits"
-            description="Elevated daily, monthly, and transfer ceilings calibrated to your relationship."
-          />
-          <BenefitCard
-            n="iii"
-            tag="Credit"
-            title="Private Lending Access"
-            description="Direct access to portfolio-backed credit, business facilities, and bespoke structures."
-          />
-          <BenefitCard
-            n="iv"
-            tag="Pricing"
-            title="Relationship Pricing"
-            description="Negotiated yield, fee, and rate tiers reviewed quarterly with your banker."
-          />
-          <BenefitCard
-            n="v"
-            tag="Recognition"
-            title="Founding Client Recognition"
-            description="Permanent acknowledgement as an inaugural Alta Private relationship."
-          />
-          <BenefitCard
-            n="vi"
-            tag="Platform"
-            title="Early Product Access"
-            description="Preview new Alta Bank, Exchange, and Terminal capabilities before public release."
-          />
-        </div>
-      </PrivateSection>
-
       {/* PRIVATE CLIENT OFFERS */}
       <PrivateSection
-        index="06"
+        index="11"
         title="Private client offers"
         kicker="Exclusive benefits from Alta & partners"
         className="mt-16 sm:mt-24"
@@ -299,7 +327,7 @@ function BankPrivate() {
 
       {/* PRIVATE CLIENT NETWORK */}
       <PrivateSection
-        index="07"
+        index="12"
         title="Private client network"
         kicker="Access to people, not just products"
         className="mt-16 sm:mt-24"
@@ -340,7 +368,7 @@ function BankPrivate() {
 
       {/* OPPORTUNITIES */}
       <PrivateSection
-        index="08"
+        index="13"
         title="Client opportunities"
         kicker="Curated, discreet, limited"
         className="mt-16 sm:mt-24"
@@ -373,8 +401,8 @@ function BankPrivate() {
             </div>
             <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
               Alta Private is an invitation-only relationship within Alta Bank. Membership is
-              extended by referral. All figures and product terms are subject to your relationship
-              agreement and operator approval.
+              extended by referral. All figures, product terms, and card benefits — including Alta
+              Gold — are subject to relationship review and operator approval.
             </p>
           </div>
           <Link
@@ -391,7 +419,7 @@ function BankPrivate() {
 
 /* ---------- Layout primitives ---------- */
 
-function HeroRelationshipCard() {
+function HeroRelationshipCard({ ctx }: { ctx: AltaPrivatePageContext }) {
   return (
     <div className="relative -mt-2 mb-12 overflow-hidden rounded-xl border border-gold/30 bg-surface-1 sm:mb-16">
       {/* Hairline gold corner accents */}
@@ -413,26 +441,49 @@ function HeroRelationshipCard() {
             Alta Private Relationship
           </h2>
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-            Reserved for clients requiring bespoke banking, lending, treasury, and capital
-            markets access. Membership is extended by invitation and maintained through active
-            participation in the Alta financial ecosystem.
+            Alta Private clients receive access to relationship-managed financial services — including
+            negotiated credit, preferred pricing, priority review, and private banking benefits such
+            as the invitation-only Alta Gold Card.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              className="group inline-flex items-center gap-2 rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-gold/[0.14]"
-            >
-              Speak with your banker
-              <span aria-hidden className="text-gold transition-transform group-hover:translate-x-0.5">
-                →
-              </span>
-            </button>
-            <button
-              type="button"
+            {ctx.isPrivateClient && ctx.altaCardId ? (
+              <Link
+                to="/bank/alta-card/$cardId/review"
+                params={{ cardId: ctx.altaCardId }}
+                className="group inline-flex items-center gap-2 rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-gold/[0.14]"
+              >
+                Request Alta Gold Review
+                <span aria-hidden className="text-gold transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            ) : ctx.isPrivateClient ? (
+              <Link
+                to="/bank/alta-card"
+                className="group inline-flex items-center gap-2 rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-gold/[0.14]"
+              >
+                Request Account Review
+                <span aria-hidden className="text-gold transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/bank/products"
+                className="group inline-flex items-center gap-2 rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:bg-gold/[0.14]"
+              >
+                Learn about Alta Private
+                <span aria-hidden className="text-gold transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
+            )}
+            <a
+              href="#dedicated-banker"
               className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] text-foreground transition-colors hover:border-gold/40"
             >
-              View membership benefits
-            </button>
+              Speak with your banker
+            </a>
           </div>
         </div>
 
@@ -478,7 +529,8 @@ function CharterSection() {
         </div>
         <p className="mt-8 font-serif text-2xl leading-[1.35] tracking-tight text-foreground sm:text-[32px]">
           Alta Private exists to provide relationship-based banking, lending, treasury services,
-          and capital markets access to Newport's most sophisticated individuals and institutions.
+          capital markets access, and invitation-only credit products — including the Alta Gold Card
+          — to Newport's most sophisticated individuals and institutions.
         </p>
         <p className="mt-8 font-serif text-xl leading-[1.45] tracking-tight text-muted-foreground sm:text-2xl">
           Membership is extended by invitation and maintained through active participation in the
@@ -524,6 +576,7 @@ function PrivateSection({
   kicker,
   action,
   className,
+  id,
   children,
 }: {
   index: string;
@@ -531,10 +584,11 @@ function PrivateSection({
   kicker?: string;
   action?: ReactNode;
   className?: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
-    <section className={className}>
+    <section className={className} id={id}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4 sm:mb-8">
         <div className="flex items-baseline gap-4 sm:gap-6">
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">
@@ -619,47 +673,6 @@ function WealthCell({
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-function ContactCard({
-  role,
-  name,
-  title,
-  availability,
-}: {
-  role: string;
-  name: string;
-  title: string;
-  availability: string;
-}) {
-  const initials = name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-  return (
-    <div className="flex h-full flex-col rounded-lg border border-border bg-surface-1 p-6">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">{role}</div>
-      <div className="mt-5 flex items-center gap-4">
-        <div className="grid size-12 shrink-0 place-items-center rounded-full border border-gold/40 bg-gold/[0.06] font-serif text-base tracking-wide text-foreground">
-          {initials || "—"}
-        </div>
-        <div className="min-w-0">
-          <div className="truncate font-serif text-lg leading-tight">{name}</div>
-          <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{title}</div>
-        </div>
-      </div>
-      <div className="mt-6 border-t border-border/60 pt-4 text-[12px] text-muted-foreground">
-        {availability}
-      </div>
-      <div className="mt-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        <span>Request introduction</span>
-        <span aria-hidden>→</span>
-      </div>
     </div>
   );
 }

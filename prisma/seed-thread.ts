@@ -16,7 +16,7 @@ async function main() {
     {
       senderUserId: null,
       senderRole: "SYSTEM",
-      body: "Application submitted. An Alta loan officer will be with you shortly.",
+      body: "Application submitted. Alta may reply through your Secure Deal Room if additional information is required.",
       attachments: null,
     },
     {

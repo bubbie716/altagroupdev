@@ -31,12 +31,8 @@ function decimalToNumber(value: Prisma.Decimal): number {
 
 async function resolveActorUserId(actorUserId?: string): Promise<string> {
   if (actorUserId) return actorUserId;
-  const systemActor = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "ADMIN" } } },
-    select: { id: true },
-  });
-  if (!systemActor) badRequest("No system actor available for billing");
-  return systemActor.id;
+  const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+  return resolveSystemActorUserId();
 }
 
 function generateCardTxReference(prefix: string): string {

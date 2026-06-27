@@ -20,6 +20,7 @@ function formatDate(iso: string | null): string {
 function statementColumns(
   card: Pick<AltaCardRow, "id" | "cardType" | "companyId">,
   variant: "default" | "admin" = "default",
+  statusLabels: Record<import("@/lib/bank/alta-card-types").AltaCardStatementStatusCode, string> = ALTA_CARD_STATEMENT_STATUS_LABELS,
 ): AdminTableColumn<AltaCardStatementRow>[] {
   const columns: AdminTableColumn<AltaCardStatementRow>[] = [
     {
@@ -108,7 +109,7 @@ function statementColumns(
     {
       key: "status",
       header: "Status",
-      cell: (row) => ALTA_CARD_STATEMENT_STATUS_LABELS[row.status],
+      cell: (row) => statusLabels[row.status],
     },
     {
       key: "actions",
@@ -170,11 +171,13 @@ export function AltaCardStatementList({
   card,
   statements,
   variant = "default",
+  statusLabels = ALTA_CARD_STATEMENT_STATUS_LABELS,
 }: {
   cardId: string;
   card: Pick<AltaCardRow, "id" | "cardType" | "companyId">;
   statements: AltaCardStatementRow[];
   variant?: "default" | "admin";
+  statusLabels?: Record<import("@/lib/bank/alta-card-types").AltaCardStatementStatusCode, string>;
 }) {
   if (statements.length === 0) {
     return (
@@ -196,7 +199,7 @@ export function AltaCardStatementList({
       </ul>
       <div className="hidden md:block">
         <AdminDataTable
-          columns={statementColumns(card, variant)}
+          columns={statementColumns(card, variant, statusLabels)}
           rows={statements}
           rowKey={(row) => row.id}
         />

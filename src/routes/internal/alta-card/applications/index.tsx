@@ -57,6 +57,19 @@ function InternalAltaCardApplications() {
       cell: (row) => new Date(row.createdAt).toLocaleDateString(),
     },
     {
+      key: "dealRoom",
+      header: "",
+      cell: (row) => (
+        <Link
+          to="/internal/alta-card/applications/$applicationId/thread"
+          params={{ applicationId: row.id }}
+          className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+        >
+          Open deal room
+        </Link>
+      ),
+    },
+    {
       key: "view",
       header: "",
       cell: (row) => (

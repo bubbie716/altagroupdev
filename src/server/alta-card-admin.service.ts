@@ -524,6 +524,27 @@ export async function createAdminAdjustmentWithAudit(
   return row;
 }
 
+export async function reverseAltaCardTransactionAdmin(
+  adminUserId: string,
+  input: { transactionId: string; reason: string },
+): Promise<AltaCardTransactionRow> {
+  if (!input.reason.trim()) badRequest("Reason is required");
+  const { reverseAltaCardTransaction } = await import("@/server/alta-card-transaction.service");
+  const row = await reverseAltaCardTransaction(adminUserId, input.transactionId, input.reason.trim());
+
+  await auditAdminEvent(
+    adminUserId,
+    "ALTA_CARD_TRANSACTION_REVERSED",
+    row.altaCardId,
+    `Transaction ${input.transactionId} reversed`,
+    { transactionId: input.transactionId, reason: input.reason.trim() },
+    null,
+    null,
+  );
+
+  return row;
+}
+
 export async function unfreezeEmployeeCard(
   actorUserId: string,
   employeeCardId: string,

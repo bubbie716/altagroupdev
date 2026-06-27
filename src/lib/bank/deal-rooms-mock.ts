@@ -17,16 +17,16 @@ export type DealRoomStatus =
   | "closed";
 
 export const DEAL_ROOM_STATUS_LABELS: Record<DealRoomStatus, string> = {
-  under_review: "Under Review",
+  under_review: "Waiting on Alta",
   negotiating: "Negotiating Terms",
-  awaiting_applicant: "Awaiting Applicant",
-  awaiting_officer: "Awaiting Officer",
+  awaiting_applicant: "Waiting on You",
+  awaiting_officer: "Waiting on Alta",
   contract_drafting: "Contract Drafting",
   ready_for_signature: "Ready for Acceptance",
   accepted: "Terms Accepted",
-  approved: "Approved",
+  approved: "Accepted",
   executed: "Executed",
-  declined: "Declined",
+  declined: "Denied",
   closed: "Closed",
 };
 
@@ -237,8 +237,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
       {
         id: "a2",
         kind: "system",
-        title: "Loan Officer Assigned",
-        body: "Alex Morgan assigned as relationship officer.",
+        title: "Application Received",
+        body: "Application received by Alta Credit Desk.",
         timestamp: "2026-06-14T11:42:00Z",
       },
       {
@@ -247,8 +247,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
         title: "Additional Information Requested",
         body:
           "Please share the last two audited financial statements for Aurelia Maritime Holdings and a current insurance certificate for MV Aurelia I.",
-        author: "Alex Morgan",
-        authorRole: "Senior Credit Officer",
+        author: "Alta Credit Desk",
+        authorRole: "Alta Credit Desk",
         timestamp: "2026-06-15T13:20:00Z",
       },
       {
@@ -510,8 +510,8 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
       {
         id: "c2",
         kind: "system",
-        title: "Loan Officer Assigned",
-        body: "Routed to Private Bank desk — Alex Morgan.",
+        title: "Application Received",
+        body: "Routed to Alta Credit Desk for review.",
         timestamp: "2026-06-21T10:15:00Z",
       },
       {

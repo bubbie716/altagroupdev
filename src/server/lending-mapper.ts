@@ -108,16 +108,7 @@ export function fromDbLoanProductType(type: DbLoanProductType): LoanProductTypeC
   return PRODUCT_TYPE_FROM_DB[type];
 }
 
-function formatApplicationStatusLabel(status: LoanApplicationStatusCode): string {
-  const labels: Record<LoanApplicationStatusCode, string> = {
-    pending: "Pending",
-    under_review: "Under Review",
-    approved: "Approved",
-    denied: "Denied",
-    cancelled: "Cancelled",
-  };
-  return labels[status];
-}
+import { formatApplicationStatusLabel } from "@/lib/bank/lending-application-status-copy";
 
 function formatLoanStatusLabel(status: LoanStatusCode): string {
   const labels: Record<LoanStatusCode, string> = {

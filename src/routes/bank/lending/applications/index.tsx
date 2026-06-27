@@ -19,7 +19,7 @@ function BankLendingApplications() {
     <PageShell
       eyebrow="Alta Bank · Lending"
       title="Applications"
-      description="Track submitted credit facility requests and operator review outcomes."
+      description="Track submitted credit facility requests, review status, and Secure Deal Room communication."
     >
       <BankSubNav />
       <LendingApplicationsList applications={applications} />

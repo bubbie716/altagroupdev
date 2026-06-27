@@ -40,12 +40,8 @@ function logSchedulerEvent(event: string, payload: Record<string, unknown>): voi
 
 async function resolveActorUserId(actorUserId?: string): Promise<string> {
   if (actorUserId) return actorUserId;
-  const systemActor = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "ADMIN" } } },
-    select: { id: true },
-  });
-  if (!systemActor) throw new Error("NO_SYSTEM_ACTOR");
-  return systemActor.id;
+  const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+  return resolveSystemActorUserId();
 }
 
 async function writeSchedulerAudit(
@@ -299,7 +295,10 @@ export async function runAltaCardBillingSchedulerJob(options?: {
             select: { altaCardId: true },
           })
         : [];
-    const cardsProcessed = new Set(touchedStatements.map((row) => row.altaCardId)).size;
+    const cardsProcessed = new Set([
+      ...touchedStatements.map((row) => row.altaCardId),
+      ...(billing.autopay.dueCount > 0 ? ["autopay"] : []),
+    ]).size;
 
     const completedAt = new Date();
     const result: AltaCardBillingSchedulerResult = {
@@ -310,9 +309,14 @@ export async function runAltaCardBillingSchedulerJob(options?: {
       durationMs: completedAt.getTime() - startedAt.getTime(),
       cardsProcessed,
       overdueStatementsMarked: billing.overdueMarked.length,
+      autopayDue: billing.autopay.dueCount,
+      autopaySucceeded: billing.autopay.successCount,
+      autopayFailed: billing.autopay.failedCount,
+      autopaySkipped: billing.autopay.skippedCount,
       interestApplied: billing.interest.applied.length,
       lateFeesApplied: billing.lateFees.charged.length,
       successCount:
+        billing.autopay.successCount +
         billing.overdueMarked.length +
         billing.interest.applied.length +
         billing.lateFees.charged.length,
@@ -348,6 +352,10 @@ export async function runAltaCardBillingSchedulerJob(options?: {
         details: {
           trigger,
           overdueStatementsMarked: result.overdueStatementsMarked,
+          autopayDue: result.autopayDue,
+          autopaySucceeded: result.autopaySucceeded,
+          autopayFailed: result.autopayFailed,
+          autopaySkipped: result.autopaySkipped,
           interestApplied: result.interestApplied,
           lateFeesApplied: result.lateFeesApplied,
           failures: result.failures,

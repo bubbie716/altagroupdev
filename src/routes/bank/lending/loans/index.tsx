@@ -21,7 +21,7 @@ function BankLendingLoans() {
     <PageShell
       eyebrow="Alta Bank · Lending"
       title="Loans"
-      description="Approved credit facilities and servicing summary."
+      description="Active credit facilities and servicing summary."
     >
       <BankSubNav />
 
@@ -29,7 +29,7 @@ function BankLendingLoans() {
         <EmptyState
           eyebrow="Alta Bank · Lending"
           title="No loans on file"
-          description="Approved credit facilities and their servicing summary will appear here once a loan is originated."
+          description="Active credit facilities and their servicing summary will appear here once a loan is originated."
           actions={[{ label: "Apply for credit", to: "/bank/lending/apply" }]}
         />
       ) : (

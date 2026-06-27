@@ -193,33 +193,6 @@ export const denyAltaCardApplicationRecord = createServerFn({ method: "POST" })
     return denyAltaCardApplication(admin.id, data);
   });
 
-export const updateAltaCardLimitRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: UpdateAltaCardLimitInput) => input)
-  .handler(async ({ data }) => {
-    const { requireOperator } = await import("@/server/permissions.service");
-    const { updateAltaCardLimit } = await import("@/server/alta-card.service");
-    const admin = await requireOperator();
-    return updateAltaCardLimit(admin.id, data);
-  });
-
-export const updateAltaCardRateRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: UpdateAltaCardRateInput) => input)
-  .handler(async ({ data }) => {
-    const { requireOperator } = await import("@/server/permissions.service");
-    const { updateAltaCardRate } = await import("@/server/alta-card.service");
-    const admin = await requireOperator();
-    return updateAltaCardRate(admin.id, data);
-  });
-
-export const changeAltaCardTierRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: ChangeAltaCardTierInput) => input)
-  .handler(async ({ data }) => {
-    const { requireOperator } = await import("@/server/permissions.service");
-    const { changeAltaCardTier } = await import("@/server/alta-card.service");
-    const admin = await requireOperator();
-    return changeAltaCardTier(admin.id, data);
-  });
-
 export const fetchInternalAltaCardDetail = createServerFn({ method: "GET" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
@@ -291,24 +264,6 @@ export const submitCardPaymentRecord = createServerFn({ method: "POST" })
     const { submitCardPayment } = await import("@/server/alta-card-transaction.service");
     const user = await requireAuth();
     return submitCardPayment(user.id, data);
-  });
-
-export const createAdminAltaCardAdjustmentRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: import("@/lib/bank/alta-card-types").CreateAltaCardAdjustmentInput) => input)
-  .handler(async ({ data }) => {
-    const { requireOperator } = await import("@/server/permissions.service");
-    const { createAdminAltaCardAdjustment } = await import("@/server/alta-card-transaction.service");
-    const admin = await requireOperator();
-    return createAdminAltaCardAdjustment(admin.id, data);
-  });
-
-export const reverseAltaCardTransactionRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reason?: string }) => input)
-  .handler(async ({ data }) => {
-    const { requireOperator } = await import("@/server/permissions.service");
-    const { reverseAltaCardTransaction } = await import("@/server/alta-card-transaction.service");
-    const admin = await requireOperator();
-    return reverseAltaCardTransaction(admin.id, data.transactionId, data.reason);
   });
 
 export const fetchEmployeeCardTransactions = createServerFn({ method: "GET" })

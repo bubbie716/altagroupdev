@@ -1,6 +1,6 @@
 # Alta Card
 
-Alta Card is Alta Bank's revolving credit product — separate from term lending facilities. V1 establishes data models, application workflow, card servicing, business employee cards, and internal admin controls. Rewards, Discord bot integration, NCC, and payment processing are out of scope for this foundation.
+Alta Card is Alta Bank's **intrabank revolving credit line** — separate from term lending facilities. V1 supports Alta Pay funding, internal cash advances, statement billing, relationship pricing, and secure review threads with Alta Credit Desk. Card artwork is display-only; there is no merchant network, physical card, or POS authorization in V1.
 
 ## Products
 
@@ -16,9 +16,9 @@ Order: **White** < **Navy** < **Black** < **Gold**
 
 | Tier | Default limit | Default APR | Notes |
 |------|---------------|-------------|-------|
-| Alta White | $5,000 | 24.99% | Entry tier |
-| Alta Navy | $15,000 | 19.99% | |
-| Alta Black | $50,000 | 15.99% | |
+| Alta White | ƒ5,000 | 24.99% | Entry tier |
+| Alta Navy | ƒ15,000 | 19.99% | |
+| Alta Black | ƒ50,000 | 15.99% | |
 | Alta Gold | Negotiable | Negotiable | Alta Private only (`private_client` tag) |
 
 Admins may override tier, limit, and rate on approval or after issuance.
@@ -29,9 +29,9 @@ Centralized defaults — **recommendation only**. Approved limit and rate are st
 
 | Tier | Role | Default limit | Default APR |
 |------|------|---------------|-------------|
-| Alta White | Entry | $5,000 | 24.99% |
-| Alta Navy | Standard | $15,000 | 19.99% |
-| Alta Black | Premium public | $50,000 | 15.99% |
+| Alta White | Entry | ƒ5,000 | 24.99% |
+| Alta Navy | Standard | ƒ15,000 | 19.99% |
+| Alta Black | Premium public | ƒ50,000 | 15.99% |
 | Alta Gold | Private banking | Negotiable | Negotiable |
 
 Gold is `private_client` only unless admin override. Changing tier does not change limit/rate unless admin selects **Apply tier defaults**.
@@ -125,8 +125,18 @@ Rules:
 Simplified messaging thread (mirrors loan application thread pattern):
 
 - Applicant, Alta staff, and system messages
-- Attachments via JSON (`FILE`, `IMAGE`, `LINK`)
+- Attachments via JSON (`FILE`, `IMAGE`, `LINK`) and file upload API
+- Full-screen thread routes matching loan deal room UX
 - No offers, contracts, or e-sign
+
+Thread routes:
+
+| Audience | Personal | Business |
+|----------|----------|----------|
+| Applicant | `/bank/alta-card/applications/$applicationId/thread` | `/bank/alta-card/business/applications/$applicationId/thread` |
+| Internal | `/internal/alta-card/applications/$applicationId/thread` | same |
+
+Attachment upload: `POST /api/alta-card-threads/$applicationId/attachments`
 
 ### `AltaCard`
 
@@ -168,7 +178,7 @@ Treasury managers submit company application with expected spend and employee ca
 - Applicant **Accept card** creates active card (unless admin used approve-and-activate)
 - Gold requires admin; non–private Gold requires override audit
 
-Routes: `/bank/alta-card/applications/$applicationId`, `/internal/alta-card/applications/$applicationId`
+Routes: `/bank/alta-card/applications/$applicationId`, `/bank/alta-card/applications/$applicationId/thread`, `/internal/alta-card/applications/$applicationId`, `/internal/alta-card/applications/$applicationId/thread`
 
 ## Transaction service
 
@@ -381,11 +391,88 @@ Tracks fee lifecycle: `ACTIVE` → `PAID` / `WAIVED`. Linked to statement and tr
 
 `processAltaCardBilling()` in `src/server/alta-card-billing.service.ts`:
 
-1. `markOverdueStatements()`
-2. `applyLateFeesForDueStatements()`
-3. `applyInterestForDueStatements()`
+1. `runAutopayForDueStatements()` — attempt automatic card payments on due dates
+2. `markOverdueStatements()`
+3. `applyLateFeesForDueStatements()`
+4. `applyInterestForDueStatements()`
+
+Autopay runs **before** overdue marking so a successful payment on the due date prevents late fees and interest on that cycle.
 
 Schedulers invoke this via `runAltaCardBillingSchedulerJob()` — see **Billing Scheduler** below.
+
+## Autopay
+
+Service: `src/server/alta-card-autopay.service.ts`
+
+Cardholders (personal) or company treasury managers (business) can enable automatic statement payments from an Alta Bank account.
+
+### Settings (on `AltaCard`)
+
+| Field | Purpose |
+|-------|---------|
+| `autopayEnabled` | Master switch |
+| `autopaySourceAccountId` | Debit account |
+| `autopayType` | `MINIMUM_PAYMENT`, `STATEMENT_BALANCE`, or `FIXED_AMOUNT` |
+| `autopayFixedAmount` | Required when type is `FIXED_AMOUNT` |
+| `autopayLastRunAt` / `autopayLastStatus` / `autopayFailureReason` | Last run tracking |
+
+Employee cards inherit autopay from the parent business card (read-only in UI).
+
+### Payment types
+
+- **Minimum payment** — remaining minimum due on the oldest unpaid statement (5% or ƒ100 rule, capped at remaining balance). Skips when minimum is already satisfied.
+- **Statement balance** — remaining balance on the oldest unpaid statement.
+- **Fixed amount** — configured fixed amount, capped at remaining statement balance.
+
+Amount calculation: `calculateAltaCardAutopayAmount(cardId, statementId)`.
+
+Autopay never partially pays when funds are insufficient (V1). The run fails and records a failure reason.
+
+### Source account rules
+
+| Card type | Source account |
+|-----------|----------------|
+| Personal | Active personal Alta account owned by cardholder |
+| Business | Active `BUSINESS_OPERATING` account for the company |
+
+Closed, frozen, or withdrawal-restricted accounts are rejected.
+
+### Scheduler behavior
+
+Daily billing cron calls `runAutopayForDueStatements()` first. For each enabled card with a due unpaid statement:
+
+1. Calculate autopay amount
+2. Verify source balance
+3. Execute payment via `submitCardAutopayPayment()` (same ledger path as manual payments)
+4. Update autopay run status on the card
+
+Idempotency: one autopay attempt per card/statement per UTC day (audit-log keyed).
+
+### Failure handling
+
+Common failure reasons: missing/inactive source account, insufficient funds, invalid settings, card not active, statement already paid, payment service error. Failures are shown in user and internal admin UI via `autopayFailureReason`.
+
+### Admin controls
+
+Route: `/internal/alta-card/$cardId` — view/override settings, manual run with required reason, autopay audit history.
+
+### Autopay audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_AUTOPAY_ENABLED` | Autopay turned on |
+| `ALTA_CARD_AUTOPAY_DISABLED` | Autopay turned off |
+| `ALTA_CARD_AUTOPAY_SETTINGS_UPDATED` | Settings changed |
+| `ALTA_CARD_AUTOPAY_RUN` | Run started (cron or manual) |
+| `ALTA_CARD_AUTOPAY_SUCCESS` | Payment posted |
+| `ALTA_CARD_AUTOPAY_FAILED` | Run failed |
+| `ALTA_CARD_AUTOPAY_SKIPPED` | No payment due or not yet due |
+
+### Notifications (TODO)
+
+- Autopay success notification
+- Autopay failed notification
+- Payment due reminder
 
 Internal admin: preview interest, apply manually per statement, run billing batch, waive fees.
 
@@ -499,9 +586,20 @@ Example `vercel.json` (deployment TODO) — **one job is enough**:
 }
 ```
 
-### PDF (placeholder)
+### PDF export
 
-`generateStatementPdf(statementId)` in `src/server/alta-card-statement-pdf.ts` — returns not-yet-available message.
+Customer statement detail pages include **Download PDF** via client-side export (`AltaCardStatementDocument` + `downloadElementAsPdf`). The server stub in `alta-card-statement-pdf.ts` is unused — do not wire UI to it.
+
+### Statement lifecycle
+
+| Status | Customer-visible | Billing |
+|--------|------------------|---------|
+| `OPEN` | No | Current cycle only |
+| `GENERATED` | **No** (admin preview only) | Does not trigger interest, due dates, or autopay |
+| `ISSUED` | Yes | Production statement |
+| `PARTIALLY_PAID` / `PAID` / `OVERDUE` / `VOID` | Yes | Standard rules |
+
+Preview statements: internal ops panel only (`AltaCardStatementGenerateForm`). Customers see issued statements on `/bank/alta-card/$cardId/statements`.
 
 ### Statement routes
 
@@ -520,7 +618,7 @@ Example `vercel.json` (deployment TODO) — **one job is enough**:
 
 ### Billing test checklist (manual)
 
-No automated test suite — verify manually when changing billing logic:
+No automated test suite in repo — verify manually when changing billing logic:
 
 1. `calculateAltaCardMinimumPayment` returns ƒ80 / ƒ100 / ƒ250 / ƒ1,000 for ƒ80 / ƒ400 / ƒ5,000 / ƒ20,000
 2. Statement closes on last calendar day; `dueDate` is 15 days later
@@ -528,10 +626,37 @@ No automated test suite — verify manually when changing billing logic:
 4. Payment applies to oldest unpaid statement first; status → `PARTIALLY_PAID` or `PAID`
 5. After `dueDate`, unpaid statements → `OVERDUE`; interest only on unpaid statement `remainingBalance`
 6. Full payment by `dueDate` → no interest for that statement
+7. When a statement becomes `OVERDUE`, card status → `DELINQUENT` (spending blocked; payments/autopay allowed)
+8. When all overdue statements are paid, `DELINQUENT` → `ACTIVE` unless manually frozen/closed/lost
+9. `GENERATED` preview statements never appear in customer statement lists
+10. Cron/billing jobs attribute audit events to `Alta System (Cron)` (`SYSTEM` tag), not a human admin
+11. Payment allocation order: fees → interest → principal (same payment, idempotent re-run)
+12. Late fee and interest batch jobs are idempotent on second run same day
+13. Autopay cron uses system actor; duplicate run same day should no-op via audit idempotency
 
 ## Service
 
 `src/server/alta-card.service.ts`
+
+### Admin mutations
+
+All financial card mutations (limit, rate, tier, status, fees, payments, adjustments, reversals) route through:
+
+- `src/server/alta-card-admin.service.ts`
+- `src/lib/bank/alta-card-admin.functions.ts`
+- `/internal/alta-card/$cardId` → `InternalAltaCardOpsPanel`
+
+The card list at `/internal/alta-card` is read-only for card terms. Billing batch tools live in `InternalAltaCardDetailPanel` on the same detail page.
+
+Deprecated: `updateAltaCardLimit`, `updateAltaCardRate`, `changeAltaCardTier` in `alta-card.service.ts` (throw if called).
+
+### System actor
+
+Scheduled jobs use `resolveSystemActorUserId()` from `src/server/system-actor.service.ts` — dedicated user `alta-system-cron` with `SYSTEM` tag. Never impersonates a human admin.
+
+### Thread attachments
+
+Application and review thread uploads use **private** blob storage. Download via auth-gated API routes. Audit: `ALTA_CARD_THREAD_ATTACHMENT_UPLOADED`, `ALTA_CARD_THREAD_ATTACHMENT_DOWNLOADED`.
 
 ### Admin adjustments
 
@@ -616,6 +741,77 @@ Metadata includes: `cardId`, `userId`, `companyId`, `oldValue`, `newValue`, `rea
 
 Entity type: `ALTA_CARD`
 
+## Request Account Review
+
+Relationship review workflow for **existing** Alta Card holders — separate from the application flow.
+
+### User flow
+
+1. Alta Card dashboard → **Request Account Review**
+2. Form at `/bank/alta-card/$cardId/review`
+3. Submit → review request created + secure review thread opened
+4. Status at `/bank/alta-card/$cardId/review/$reviewId` · thread at `…/thread`
+
+Cardholders may request one or more of:
+
+- Higher credit limit (optional requested limit)
+- Lower interest rate (optional requested rate)
+- Card tier upgrade (single-step: White→Navy, Navy→Black, Black→Gold)
+
+One open review per card (`SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFORMATION`).
+
+**Cooldown:** After a completed review (`APPROVED`, `PARTIALLY_APPROVED`, `DENIED`, `CANCELLED`), cardholders must wait **30 days** before submitting another request. Eligibility is computed in `getCardReviewEligibility` (`alta-card-review.service.ts`). Admins bypass the cooldown on submit.
+
+**UI:** Quick actions disable **Request Account Review** and show the block message when ineligible. The review form page shows the same eligibility state plus relationship recommendations.
+
+### Gold eligibility
+
+- Alta Gold is **Alta Private-only** — see [Alta Private banking](./private-banking.md)
+- Alta Gold is **not** publicly selectable
+- Non–Private clients at Black tier see Alta Private upsell (`/bank/private`)
+- Private clients may request Black→Gold via Request Account Review; approvals remain manual
+- Negotiated limits and rates are subject to relationship review — not guaranteed
+
+### Review workflow
+
+| Status | Meaning |
+|--------|---------|
+| `SUBMITTED` | Just submitted |
+| `UNDER_REVIEW` | Staff engaged |
+| `NEEDS_INFORMATION` | Awaiting cardholder |
+| `APPROVED` | All requested items approved |
+| `PARTIALLY_APPROVED` | Some items approved |
+| `DENIED` | No items approved |
+| `CANCELLED` | Closed by staff |
+
+Staff queue: `/internal/alta-card/reviews`
+
+Admin may independently approve/deny limit, rate, and tier. Approved changes apply immediately via `alta-card-admin.service.ts`.
+
+### Partial approvals
+
+When status is `PARTIALLY_APPROVED`, the review detail shows requested vs approved terms side by side (limit, rate, tier).
+
+### Secure review thread
+
+Models: `AltaCardReviewThread`, `AltaCardReviewThreadMessage` — reuses application thread status/sender enums. Not a deal room / application thread.
+
+Upload API: `/api/alta-card-review-threads/$reviewId/attachments`
+
+### Audit events
+
+| Action | When |
+|--------|------|
+| `ALTA_CARD_REVIEW_REQUEST_CREATED` | Cardholder submits |
+| `ALTA_CARD_REVIEW_APPROVED` | Full approval |
+| `ALTA_CARD_REVIEW_PARTIALLY_APPROVED` | Partial approval |
+| `ALTA_CARD_REVIEW_DENIED` | Denied |
+| `ALTA_CARD_LIMIT_UPDATED` | Limit applied on approval |
+| `ALTA_CARD_RATE_UPDATED` | Rate applied on approval |
+| `ALTA_CARD_TIER_UPDATED` | Tier applied on approval |
+
+Metadata: `reviewId`, `cardId`, requested/approved terms, `actorUserId`, `reason`.
+
 ## Migration
 
 ```bash
@@ -630,16 +826,19 @@ Migrations:
 - `prisma/migrations/20250702010000_alta_card_statements/migration.sql`
 - `prisma/migrations/20250702020000_alta_card_interest_fees/migration.sql`
 - `prisma/migrations/20250702030000_alta_card_application_workflow/migration.sql`
+- `prisma/migrations/20250702170000_alta_card_review_requests/migration.sql`
 
 ## V1 limitations
 
 - No rewards program
-- No Discord bot card commands
+- No Discord bot notifications (TODO hooks in autopay service only)
 - No NCC integration
-- No merge with term loan lending UI or servicing
+- No disputes/chargebacks
+- No card-network / POS authorization
+- No fraud detection / collections workflows
 - Alta Pay volume not yet in relationship score
 - Interest waiver / fee waiver as distinct adjustment types use fee waive + credit adjustment paths
 - No daily interest accrual — monthly charge only
 - No repeated daily late fees
-- PDF statements not yet generated (placeholder only)
-- Purchases (non–Alta Pay) model exists; POS authorization not built
+- Server-side PDF generation stub unused (client PDF export works)
+- Spending outside Alta Pay/cash advance/adjustments is admin-only in V1

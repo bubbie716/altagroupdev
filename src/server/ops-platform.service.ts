@@ -8,6 +8,7 @@ import type {
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
+import { formatOpsJobRunHealthDetail } from "@/lib/internal/ops-job-run-display";
 import { getInternalDashboardMetrics } from "@/server/internal-dashboard.service";
 import { getMaintenanceMode } from "@/server/platform-settings.service";
 
@@ -30,7 +31,7 @@ export async function getOpsHealth(): Promise<OpsHealthItem[]> {
       key,
       label: j?.label ?? key,
       status: j?.lastStatus === "SUCCESS" ? "operational" : j?.lastStatus === "FAILED" ? "degraded" : "unknown",
-      detail: j?.lastMessage ?? fallback,
+      detail: formatOpsJobRunHealthDetail(key, j?.lastMessage, fallback),
       lastSuccessAt: j?.lastSuccessAt?.toISOString() ?? null,
     };
   };
@@ -53,7 +54,7 @@ export async function getOpsHealth(): Promise<OpsHealthItem[]> {
       lastSuccessAt: new Date().toISOString(),
     },
     jobStatus("scheduled_transfers", `${metrics.pendingScheduledTransfers} pending · ${metrics.failedScheduledTransfers} failed`),
-    jobStatus("deposit_interest", "Manual accrual — schedule via admin batch or cron"),
+    jobStatus("deposit_interest", "Deposit accrual and scheduled manual interest via cron"),
     jobStatus("loan_servicing", `${metrics.activeLoans} active loans`),
     jobStatus("BANK_ACCOUNT_STATEMENTS", "Bank account monthly statements"),
     jobStatus("ALTA_CARD_STATEMENTS", "Alta Card statement generation"),
@@ -357,6 +358,11 @@ export async function buildActivityTimeline(
 
   const { resolveAccountsByAuditLogId } = await import("@/server/audit.service");
   const auditAccounts = await resolveAccountsByAuditLogId(audit);
+  const {
+    formatLendingAuditActionTitle,
+    formatLendingAuditDescription,
+    isLendingAuditAction,
+  } = await import("@/lib/bank/lending-audit-display");
 
   for (const a of audit) {
     const account = auditAccounts.get(a.id);
@@ -364,8 +370,12 @@ export async function buildActivityTimeline(
     events.push({
       id: a.id,
       kind: a.action,
-      title: a.action.replace(/_/g, " "),
-      detail: a.description,
+      title: isLendingAuditAction(a.action)
+        ? formatLendingAuditActionTitle(a.action)
+        : a.action.replace(/_/g, " "),
+      detail: isLendingAuditAction(a.action)
+        ? formatLendingAuditDescription(a.description)
+        : a.description,
       actorLabel: a.actor.discordUsername,
       createdAt: a.createdAt.toISOString(),
       href: null,

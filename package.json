@@ -19,6 +19,7 @@
     "db:backfill-loan-interest": "tsx prisma/backfill-loan-interest.ts",
     "db:backfill-loan-balance-split": "tsx prisma/backfill-loan-balance-split.ts",
     "db:backfill-loan-interest-guarantee": "tsx prisma/backfill-loan-interest-guarantee.ts",
+    "db:backfill-cancelled-review-messages": "tsx prisma/backfill-cancelled-review-messages.ts",
     "db:activate-pending-private-accounts": "tsx prisma/activate-pending-private-accounts.ts",
     "db:liquidate-revoked-private-banking": "tsx prisma/liquidate-revoked-private-banking.ts",
     "db:migrate-account-numbers": "tsx prisma/migrate-legacy-account-numbers.ts",

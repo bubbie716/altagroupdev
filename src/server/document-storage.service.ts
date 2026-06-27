@@ -38,12 +38,22 @@ function getBlobToken(): string {
   return token;
 }
 
+export type BlobAccessMode = "public" | "private";
+
+/** Must match the Vercel Blob store type. Defaults to public for dev/public stores. */
+export function resolveBlobAccessMode(): BlobAccessMode {
+  const configured = process.env.BLOB_ACCESS?.trim().toLowerCase();
+  if (configured === "private" || configured === "public") return configured;
+  return "public";
+}
+
 /** Vercel Blob implementation — swap backend here without changing deal-room services. */
 export const vercelBlobDocumentStorage: DocumentStorageBackend = {
   async upload(pathname, body, contentType) {
     const token = getBlobToken();
+    const access = resolveBlobAccessMode();
     const blob = await put(pathname, body, {
-      access: "private",
+      access,
       contentType,
       token,
       addRandomSuffix: false,
@@ -58,7 +68,8 @@ export const vercelBlobDocumentStorage: DocumentStorageBackend = {
 
   async fetch(pathname) {
     const token = getBlobToken();
-    const result = await get(pathname, { access: "private", token });
+    const access = resolveBlobAccessMode();
+    const result = await get(pathname, { access, token });
     if (!result || result.statusCode !== 200 || !result.stream) return null;
     return {
       stream: result.stream,

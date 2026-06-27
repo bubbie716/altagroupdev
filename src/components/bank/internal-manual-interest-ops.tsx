@@ -7,8 +7,10 @@ import { florin } from "@/lib/bank/api";
 import {
   applyManualInterestApplicationRecord,
   previewManualInterestApplicationRecord,
+  scheduleManualInterestApplicationRecord,
   type ManualInterestApplyResult,
   type ManualInterestPreviewResult,
+  type ScheduleManualInterestResult,
 } from "@/lib/bank/manual-interest.functions";
 import {
   MANUAL_INTEREST_CATEGORY_OPTIONS,
@@ -27,7 +29,7 @@ const fieldLabel = "type-meta";
 const inputClass =
   "mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-[13px]";
 
-type Step = "form" | "preview" | "confirm" | "result";
+type Step = "form" | "preview" | "confirm" | "result" | "scheduled";
 
 export function InternalManualInterestOps() {
   const router = useRouter();
@@ -36,6 +38,7 @@ export function InternalManualInterestOps() {
 
   const previewFn = useServerFn(previewManualInterestApplicationRecord);
   const applyFn = useServerFn(applyManualInterestApplicationRecord);
+  const scheduleFn = useServerFn(scheduleManualInterestApplicationRecord);
 
   const [step, setStep] = useState<Step>("form");
   const [mode, setMode] = useState<ManualInterestMode>("PERCENTAGE");
@@ -46,10 +49,12 @@ export function InternalManualInterestOps() {
   ]);
   const [reason, setReason] = useState("");
   const [internalNote, setInternalNote] = useState("");
+  const [scheduledForDate, setScheduledForDate] = useState("");
   const [confirmationPhrase, setConfirmationPhrase] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [preview, setPreview] = useState<ManualInterestPreviewResult | null>(null);
   const [result, setResult] = useState<ManualInterestApplyResult | null>(null);
+  const [scheduleResult, setScheduleResult] = useState<ScheduleManualInterestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -63,6 +68,7 @@ export function InternalManualInterestOps() {
       accountTypes: allSelected ? ["all"] : selectedCategories,
       reason: reason.trim(),
       internalNote: internalNote.trim() || undefined,
+      scheduledForDate: scheduledForDate.trim() || undefined,
       idempotencyKey: idempotencyKey ?? undefined,
     };
   }, [
@@ -73,6 +79,7 @@ export function InternalManualInterestOps() {
     selectedCategories,
     reason,
     internalNote,
+    scheduledForDate,
     idempotencyKey,
   ]);
 
@@ -110,23 +117,31 @@ export function InternalManualInterestOps() {
     setStep("confirm");
   }
 
+  const isScheduling = Boolean(scheduledForDate.trim());
+
   async function handleApply() {
     if (!idempotencyKey) return;
     setPending(true);
     setError(null);
     try {
-      const applyResult = await applyFn({
-        data: {
-          ...formInput,
-          idempotencyKey,
-          confirmationPhrase,
-        },
-      });
-      setResult(applyResult);
-      setStep("result");
+      const payload = {
+        ...formInput,
+        idempotencyKey,
+        confirmationPhrase,
+      };
+
+      if (isScheduling) {
+        const scheduled = await scheduleFn({ data: payload });
+        setScheduleResult(scheduled);
+        setStep("scheduled");
+      } else {
+        const applyResult = await applyFn({ data: payload });
+        setResult(applyResult);
+        setStep("result");
+      }
       await router.invalidate();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Apply failed");
+      setError(e instanceof Error ? e.message : isScheduling ? "Schedule failed" : "Apply failed");
     } finally {
       setPending(false);
     }
@@ -136,6 +151,7 @@ export function InternalManualInterestOps() {
     setStep("form");
     setPreview(null);
     setResult(null);
+    setScheduleResult(null);
     setError(null);
     setConfirmationPhrase("");
     setIdempotencyKey(null);
@@ -148,7 +164,8 @@ export function InternalManualInterestOps() {
           <div>
             <h3 className="text-base font-medium tracking-tight">Interest application form</h3>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Manually credit interest to selected account categories. Preview before applying.
+              Manually credit interest to selected account categories. Preview before applying, or
+              pick a schedule date to run automatically via the platform cron.
             </p>
           </div>
 
@@ -249,6 +266,19 @@ export function InternalManualInterestOps() {
                 placeholder="Ops reference or campaign ID"
               />
             </div>
+            <div>
+              <label className={fieldLabel}>Schedule date (optional)</label>
+              <input
+                type="date"
+                className={inputClass}
+                value={scheduledForDate}
+                onChange={(e) => setScheduledForDate(e.target.value)}
+              />
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Leave blank to apply immediately. When set, credits run at 9:00 AM Eastern on that
+                date via the shared cron job.
+              </p>
+            </div>
           </div>
 
           {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
@@ -277,13 +307,29 @@ export function InternalManualInterestOps() {
         <section className="space-y-4 rounded-lg border border-gold/30 bg-gold/5 p-5">
           <h3 className="text-base font-medium tracking-tight">Confirm application</h3>
           <p className="text-[13px] leading-relaxed text-muted-foreground">
-            You are about to credit interest to{" "}
-            <span className="font-medium text-foreground">{preview.affectedAccountCount}</span>{" "}
-            account(s) totaling{" "}
-            <span className="type-finance font-medium text-foreground">
-              {florin(preview.totalInterestToCredit)}
-            </span>
-            . This will create permanent transaction records.
+            {isScheduling ? (
+              <>
+                You are about to schedule an interest credit for{" "}
+                <span className="font-medium text-foreground">{preview.affectedAccountCount}</span>{" "}
+                account(s) totaling{" "}
+                <span className="type-finance font-medium text-foreground">
+                  {florin(preview.totalInterestToCredit)}
+                </span>{" "}
+                on{" "}
+                <span className="font-medium text-foreground">{scheduledForDate}</span> (9:00 AM
+                Eastern). Balances will be evaluated when the job runs.
+              </>
+            ) : (
+              <>
+                You are about to credit interest to{" "}
+                <span className="font-medium text-foreground">{preview.affectedAccountCount}</span>{" "}
+                account(s) totaling{" "}
+                <span className="type-finance font-medium text-foreground">
+                  {florin(preview.totalInterestToCredit)}
+                </span>
+                . This will create permanent transaction records.
+              </>
+            )}
           </p>
           {!canApply ? (
             <p className="text-[13px] text-muted-foreground">
@@ -320,7 +366,13 @@ export function InternalManualInterestOps() {
                   onClick={() => void handleApply()}
                   className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
                 >
-                  {pending ? "Applying…" : "Apply interest credit"}
+                  {pending
+                    ? isScheduling
+                      ? "Scheduling…"
+                      : "Applying…"
+                    : isScheduling
+                      ? "Schedule interest credit"
+                      : "Apply interest credit"}
                 </button>
               </div>
             </>
@@ -330,6 +382,28 @@ export function InternalManualInterestOps() {
 
       {step === "result" && result && (
         <ResultSection result={result} onReset={resetFlow} />
+      )}
+
+      {step === "scheduled" && scheduleResult && (
+        <section className="space-y-4 rounded-lg border border-border/60 bg-surface-2/20 p-5">
+          <div>
+            <h3 className="text-base font-medium tracking-tight">Interest application scheduled</h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              This batch will run automatically at 9:00 AM Eastern on{" "}
+              {scheduleResult.scheduledFor.slice(0, 10)}.
+            </p>
+          </div>
+          <p className="font-mono text-[12px] text-muted-foreground">
+            Reference: <span className="text-foreground">{scheduleResult.id}</span>
+          </p>
+          <button
+            type="button"
+            onClick={resetFlow}
+            className="rounded-md border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em]"
+          >
+            Start new application
+          </button>
+        </section>
       )}
     </div>
   );

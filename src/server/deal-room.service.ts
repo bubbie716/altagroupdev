@@ -1,4 +1,12 @@
 import type { DealRoomStatus as DbDealRoomStatus, Prisma } from "@prisma/client";
+/**
+ * Legacy full-feature deal room service (Prisma `DealRoom` model).
+ *
+ * V1 lending uses `LoanApplicationThread` (Secure Deal Room) via
+ * `loan-application-thread.service.ts`. This module remains for historical
+ * records, dashboard metrics, notifications, and agreement execution paths.
+ * UI routes under `/bank/lending/deal-rooms/*` redirect to applications.
+ */
 import type { AltaUser } from "@/lib/auth/types";
 import {
   canAccessInternal,
@@ -202,19 +210,19 @@ export async function createDealRoomForLoanApplication(
   await createUserNotification({
     userId: room.borrowerUserId,
     type: "DEAL_ROOM_CREATED",
-    title: "Deal room opened",
-    body: "Your secure deal room is ready. Alta Bank will review your application here.",
-    linkUrl: `/bank/lending/deal-rooms/${room.id}`,
-    metadata: { dealRoomId: room.id },
+    title: "Secure Deal Room opened",
+    body: "Your Secure Deal Room is ready. Alta Bank will review your application here.",
+    linkUrl: `/bank/lending/applications/${application.id}/thread`,
+    metadata: { dealRoomId: room.id, loanApplicationId: application.id },
   });
   if (room.assignedOfficerId) {
     await createUserNotification({
       userId: room.assignedOfficerId,
       type: "DEAL_ROOM_CREATED",
-      title: "New deal room opened",
-      body: "A secure deal room is ready for review.",
-      linkUrl: `/internal/lending/deal-rooms/${room.id}`,
-      metadata: { dealRoomId: room.id },
+      title: "Secure Deal Room opened",
+      body: "A Secure Deal Room is ready for application review.",
+      linkUrl: `/internal/lending/applications/${application.id}/thread`,
+      metadata: { dealRoomId: room.id, loanApplicationId: application.id },
     });
   }
 
@@ -303,7 +311,7 @@ export async function assignDealRoomOfficer(
     await insertDealRoomSystemUpdateInTx(
       tx,
       dealRoomId,
-      `Loan officer ${label}: ${officer.discordUsername}.`,
+      `Assigned banker ${label}: ${officer.discordUsername}.`,
       { actorUserId, metadata: { officerUserId, previousOfficerUserId: existing.assignedOfficerId } },
     );
 
@@ -314,9 +322,11 @@ export async function assignDealRoomOfficer(
   await createUserNotification({
     userId: officerUserId,
     type: "DEAL_ROOM_OFFICER_ASSIGNED",
-    title: existing.assignedOfficerId ? "Deal room reassigned to you" : "Deal room assigned to you",
-    body: `You are now the assigned officer for deal room ${dealRoomId.slice(0, 12)}.`,
-    linkUrl: `/internal/lending/deal-rooms/${dealRoomId}`,
+    title: existing.assignedOfficerId ? "Secure Deal Room reassigned to you" : "Secure Deal Room assigned to you",
+    body: `You have access to review this legacy Secure Deal Room ${dealRoomId.slice(0, 12)}.`,
+    linkUrl: room.loanApplicationId
+      ? `/internal/lending/applications/${room.loanApplicationId}/thread`
+      : `/internal/lending`,
     metadata: { dealRoomId },
   });
 
@@ -327,7 +337,7 @@ export async function assignDealRoomOfficer(
     entityId: room.id,
     targetUserId: room.borrowerUserId,
     targetCompanyId: room.companyId ?? undefined,
-    description: `Assigned ${officer.discordUsername} as loan officer for deal room ${room.id}.`,
+    description: `Assigned ${officer.discordUsername} as banker for legacy deal room ${room.id}.`,
     metadata: {
       officerUserId,
       previousOfficerUserId: existing.assignedOfficerId,
