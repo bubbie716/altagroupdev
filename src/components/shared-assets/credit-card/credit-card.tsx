@@ -181,6 +181,22 @@ const calculateScale = (desiredWidth: number, originalWidth: number, originalHei
     };
 };
 
+function cardHolderTypography(name: string): string {
+    const len = name.length;
+    if (len > 44) return "text-[8px] tracking-[0.3px]";
+    if (len > 34) return "text-[9px] tracking-[0.35px]";
+    if (len > 26) return "text-[10px] tracking-[0.45px]";
+    return "text-xs tracking-[0.6px]";
+}
+
+function isAltaCardType(type: CreditCardType): type is (typeof ALTA_CARD_TYPES)[number] {
+    return ALTA_CARD_TYPES.includes(type as (typeof ALTA_CARD_TYPES)[number]);
+}
+
+/** Alta Card bottom-row spacing in the 316px card coordinate system (scales with card width). */
+const ALTA_CARD_NUMBER_EXP_GAP_PX = 38;
+const ALTA_CARD_EXP_LOGO_MIN_GAP_PX = 28;
+
 export const CreditCard = ({
     company = "Untitled.",
     tierLabel,
@@ -265,49 +281,116 @@ export const CreditCard = ({
                     <PaypassIcon className={styles[type].paypassIcon} />
                 </div>
 
-                <div className="relative flex items-end justify-between gap-3">
-                    <div className="flex min-w-0 flex-col gap-2">
-                        <div className="flex items-end gap-1">
-                            <p
-                                style={{
-                                    wordBreak: "break-word",
-                                }}
-                                className={cx("text-xs leading-snug font-semibold tracking-[0.6px] uppercase", styles[type].footerText)}
-                            >
-                                {cardHolder}
-                            </p>
+                <div className="relative px-1 pb-0">
+                    {isAltaCardType(type) ? (
+                        <div className="flex min-w-0 flex-col">
                             <p
                                 className={cx(
-                                    "ml-auto text-right text-xs leading-[normal] font-semibold tracking-[0.6px] tabular-nums",
+                                    "mb-[2px] max-w-full break-words font-semibold uppercase leading-none whitespace-normal",
+                                    cardHolderTypography(cardHolder),
                                     styles[type].footerText,
                                 )}
                             >
-                                {cardExpiration}
+                                {cardHolder}
                             </p>
+                            <div className="flex min-w-0 w-full items-end">
+                                <p
+                                    className={cx(
+                                        "shrink-0 font-semibold leading-none tracking-[1px] tabular-nums",
+                                        styles[type].footerText,
+                                        cardNumber.length > 22 ? "text-sm" : "text-md",
+                                    )}
+                                >
+                                    {cardNumber}
+                                </p>
+                                <div
+                                    className="flex h-7 shrink-0 flex-col items-start justify-end leading-none"
+                                    style={{ marginLeft: `${ALTA_CARD_NUMBER_EXP_GAP_PX}px` }}
+                                >
+                                    <span
+                                        className={cx(
+                                            "mb-[2px] text-[8px] font-medium uppercase tracking-[0.2em] opacity-75",
+                                            styles[type].footerText,
+                                        )}
+                                    >
+                                        EXP
+                                    </span>
+                                    <span
+                                        className={cx(
+                                            "text-[10px] font-semibold tracking-[0.4px] tabular-nums",
+                                            styles[type].footerText,
+                                        )}
+                                    >
+                                        {cardExpiration}
+                                    </span>
+                                </div>
+                                <div
+                                    className="min-w-0 flex-1"
+                                    style={{ minWidth: `${ALTA_CARD_EXP_LOGO_MIN_GAP_PX}px` }}
+                                    aria-hidden
+                                />
+                                <div
+                                    className={cx(
+                                        "flex h-7 w-9 shrink-0 items-center justify-center rounded",
+                                        styles[type].cardTypeRoot,
+                                    )}
+                                >
+                                    <AltaLogo
+                                        className={cx(
+                                            "h-5 w-5",
+                                            type === "alta-white" ? "text-[#2c2824]" : "text-white",
+                                            type === "alta-gold" && "text-[oklch(0.78_0.1_78)]",
+                                        )}
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div className={cx("text-md leading-[normal] font-semibold tracking-[1px] tabular-nums", styles[type].footerText)}>
-                            {cardNumber}
+                    ) : (
+                        <div className="flex items-end justify-between gap-3">
+                            <div className="flex min-w-0 flex-col gap-2">
+                                <div className="flex items-end gap-1">
+                                    <p
+                                        style={{
+                                            wordBreak: "break-word",
+                                        }}
+                                        className={cx("text-xs leading-snug font-semibold tracking-[0.6px] uppercase", styles[type].footerText)}
+                                    >
+                                        {cardHolder}
+                                    </p>
+                                    <p
+                                        className={cx(
+                                            "ml-auto text-right text-xs leading-[normal] font-semibold tracking-[0.6px] tabular-nums",
+                                            styles[type].footerText,
+                                        )}
+                                    >
+                                        {cardExpiration}
+                                    </p>
+                                </div>
+                                <div className={cx("text-md leading-[normal] font-semibold tracking-[1px] tabular-nums", styles[type].footerText)}>
+                                    {cardNumber}
 
-                            {/* This is just a placeholder to always keep the space for card number even if there's no card number yet. */}
-                            <span className="pointer-events-none invisible inline-block w-0 max-w-0 opacity-0">1</span>
-                        </div>
-                    </div>
+                                    {/* This is just a placeholder to always keep the space for card number even if there's no card number yet. */}
+                                    <span className="pointer-events-none invisible inline-block w-0 max-w-0 opacity-0">1</span>
+                                </div>
+                            </div>
 
-                    <div className={cx("flex h-8 w-11.5 shrink-0 items-center justify-center rounded", styles[type].cardTypeRoot)}>
-                        {brandMark === "alta" || ALTA_CARD_TYPES.includes(type as (typeof ALTA_CARD_TYPES)[number]) ? (
-                            <AltaLogo
-                                className={cx(
-                                    "h-6 w-6",
-                                    type === "alta-white" ? "text-[#2c2824]" : "text-white",
-                                    type === "alta-gold" && "text-[oklch(0.78_0.1_78)]",
+                            <div className={cx("flex h-8 w-11.5 shrink-0 items-center justify-center rounded", styles[type].cardTypeRoot)}>
+                                {brandMark === "alta" ? (
+                                    <AltaLogo
+                                        className={cx(
+                                            "h-6 w-6",
+                                            type === "alta-white" ? "text-[#2c2824]" : "text-white",
+                                            type === "alta-gold" && "text-[oklch(0.78_0.1_78)]",
+                                        )}
+                                    />
+                                ) : CARD_WITH_COLOR_LOGO.includes(type as (typeof CARD_WITH_COLOR_LOGO)[number]) ? (
+                                    <MastercardIcon />
+                                ) : (
+                                    <MastercardIconWhite />
                                 )}
-                            />
-                        ) : CARD_WITH_COLOR_LOGO.includes(type as (typeof CARD_WITH_COLOR_LOGO)[number]) ? (
-                            <MastercardIcon />
-                        ) : (
-                            <MastercardIconWhite />
-                        )}
-                    </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
