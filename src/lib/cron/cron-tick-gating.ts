@@ -1,9 +1,7 @@
-import { RELATIONSHIP_INTELLIGENCE_JOB_KEY } from "@/lib/bank/relationship-intelligence-config";
 import { getOpsJobRun } from "@/server/ops-job-run.service";
 import { prisma } from "@/server/db";
 
-const HEAVY_CRON_LOCK_KEY = "cron_heavy_bundle_lock";
-const HEAVY_CRON_LOCK_TTL_MS = 15 * 60 * 1000;
+const DAILY_CRON_LOCK_TTL_MS = 15 * 60 * 1000;
 
 export function isSameUtcDay(a: Date, b: Date): boolean {
   return (
@@ -13,18 +11,19 @@ export function isSameUtcDay(a: Date, b: Date): boolean {
   );
 }
 
-export type HeavyCronSkipReason = "already_ran_today" | "in_progress";
+export type DailyCronSkipReason = "already_ran_today" | "in_progress";
 
-export type HeavyCronGateResult =
-  | { run: true }
-  | { run: false; reason: HeavyCronSkipReason };
+export type DailyCronGateResult = { run: true } | { run: false; reason: DailyCronSkipReason };
 
-/** Heavy cron work (RI, billing, statements, deposit interest) runs at most once per UTC day. */
-export async function evaluateHeavyCronGate(): Promise<HeavyCronGateResult> {
+/** Runs at most once per UTC day; uses OpsJobRun lastSuccessAt on completionJobKey. */
+export async function evaluateDailyCronGate(options: {
+  completionJobKey: string;
+  lockKey: string;
+}): Promise<DailyCronGateResult> {
   const now = new Date();
 
   const lock = await prisma.platformSetting.findUnique({
-    where: { key: HEAVY_CRON_LOCK_KEY },
+    where: { key: options.lockKey },
     select: { value: true },
   });
   const lockValue = lock?.value;
@@ -35,7 +34,7 @@ export async function evaluateHeavyCronGate(): Promise<HeavyCronGateResult> {
     }
   }
 
-  const lastRun = await getOpsJobRun(RELATIONSHIP_INTELLIGENCE_JOB_KEY);
+  const lastRun = await getOpsJobRun(options.completionJobKey);
   if (lastRun?.lastSuccessAt && isSameUtcDay(lastRun.lastSuccessAt, now)) {
     return { run: false, reason: "already_ran_today" };
   }
@@ -43,25 +42,28 @@ export async function evaluateHeavyCronGate(): Promise<HeavyCronGateResult> {
   return { run: true };
 }
 
-export async function acquireHeavyCronLock(): Promise<void> {
-  const expiresAt = new Date(Date.now() + HEAVY_CRON_LOCK_TTL_MS).toISOString();
+export async function acquireDailyCronLock(lockKey: string): Promise<void> {
+  const expiresAt = new Date(Date.now() + DAILY_CRON_LOCK_TTL_MS).toISOString();
   await prisma.platformSetting.upsert({
-    where: { key: HEAVY_CRON_LOCK_KEY },
-    create: { key: HEAVY_CRON_LOCK_KEY, value: { expiresAt } },
+    where: { key: lockKey },
+    create: { key: lockKey, value: { expiresAt } },
     update: { value: { expiresAt } },
   });
 }
 
-export async function releaseHeavyCronLock(): Promise<void> {
-  await prisma.platformSetting.deleteMany({ where: { key: HEAVY_CRON_LOCK_KEY } });
+export async function releaseDailyCronLock(lockKey: string): Promise<void> {
+  await prisma.platformSetting.deleteMany({ where: { key: lockKey } });
 }
 
-export function heavyCronSkippedPayload(reason: HeavyCronSkipReason): Record<string, unknown> {
+export function dailyCronSkippedPayload(reason: DailyCronSkipReason): Record<string, unknown> {
   return {
     skipped: true,
     skipReason:
       reason === "already_ran_today"
-        ? "Heavy cron bundle already completed today"
-        : "Heavy cron bundle already in progress",
+        ? "Already completed today"
+        : "Already in progress",
   };
 }
+
+export const DAILY_SERVICING_LOCK_KEY = "cron_daily_servicing_lock";
+export const RELATIONSHIP_INTELLIGENCE_CRON_LOCK_KEY = "cron_relationship_intelligence_lock";

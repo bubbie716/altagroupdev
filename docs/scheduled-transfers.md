@@ -23,16 +23,22 @@ Intrabank transfers and payroll batches are **auto-approved on creation**. Inter
 
 ## How execution works
 
-1. A scheduler (cron-job.org, manual operator, etc.) calls `GET /api/cron/scheduled-transfers`.
+Production uses **three cron-job.org jobs** so every HTTP request finishes within the **30-second timeout**:
+
+| Job | Endpoint | Schedule | What runs |
+|-----|----------|----------|-----------|
+| **Transfers** | `/api/cron/scheduled-transfers` | Every **1–15 minutes** | Due intrabank transfers + payroll (~1–2s) |
+| **Daily banking** | `/api/cron/daily-servicing` | **Once daily** (e.g. 06:00 UTC) | Loan interest/auto-pay, Alta Card billing, bank statements, deposit interest (~5–15s) |
+| **Relationship intelligence** | `/api/cron/relationship-intelligence` | **Once daily** (e.g. 06:05 UTC) | Profile + recommendation refresh (~15–25s) |
+
+Each daily endpoint is idempotent — safe to retry; it no-ops with `skipped: true` after a successful run the same UTC day.
+
+### Transfers job (`/api/cron/scheduled-transfers`)
+
+1. A scheduler calls `GET /api/cron/scheduled-transfers` every 1–15 minutes.
 2. `executeDueScheduledTransfers()` finds due `ScheduledPayment` rows (intrabank, approved).
 3. `executeDuePayrollRuns()` finds due `PayrollRun` rows (`status = APPROVED`, `payDate` due).
-4. `accrueInterestForDueLoans()` then `executeDueLoanAutoPayments()` run loan interest accrual and auto-pay (in that order).
-5. **Alta Card servicing** runs in parallel with the above:
-   - `runAltaCardStatementSchedulerJob()` — no-ops except on the last calendar day of the month (UTC), then closes eligible statements.
-   - `runAltaCardBillingSchedulerJob()` — marks overdue statements, applies late fees and interest.
-6. **Bank account statements** — `runBankAccountStatementSchedulerJob()` no-ops except on the 1st of the month (UTC), then generates prior-month statements for eligible accounts.
-7. **Deposit interest** — `runDepositInterestSchedulerJob()` accrues due monthly deposit account interest and applies any scheduled manual interest batches whose run time has passed.
-8. For each due transfer or payroll line:
+4. For each due transfer or payroll line:
    - Creates a `ScheduledTransferExecution` row (`PENDING`) keyed by `(scheduledPaymentId, scheduledRunAt)`.
    - Validates source/destination accounts are `ACTIVE` and source has sufficient balance.
    - Executes via `submitInternalTransfer` using the original creator’s permissions.
@@ -113,9 +119,11 @@ Set the same value in **Vercel → Project → Environment Variables**.
 }
 ```
 
-**One cron for bank automation:** You do not need separate cron jobs for loans, Alta Card, or bank account statements in production. Point a single daily (or more frequent) scheduler at `/api/cron/scheduled-transfers` only.
+**One cron for transfers only:** Point a 1–15 minute scheduler at `/api/cron/scheduled-transfers`.
 
-Standalone endpoints (`/api/cron/loan-interest`, `/api/cron/alta-card-*`, `/api/cron/bank-statements`) remain available for isolated testing or split schedules, but are optional.
+**Daily banking automation:** Add two separate once-daily jobs for `/api/cron/daily-servicing` and `/api/cron/relationship-intelligence` (stagger by a few minutes). Do **not** bundle daily work into the transfers job — it exceeds cron-job.org's 30-second timeout.
+
+Standalone endpoints (`/api/cron/loan-interest`, `/api/cron/alta-card-*`, `/api/cron/bank-statements`) remain available for isolated testing.
 
 ## cron-job.org setup (recommended)
 
@@ -125,15 +133,36 @@ Standalone endpoints (`/api/cron/loan-interest`, `/api/cron/alta-card-*`, `/api/
 
 Sign up at [console.cron-job.org](https://console.cron-job.org).
 
-### 2. Create a cron job
+### 2. Create cron jobs
+
+**Job A — Transfers (every 1–15 minutes)**
 
 | Field | Value |
 |-------|--------|
 | **Title** | Alta scheduled transfers |
 | **URL** | `https://YOUR_DOMAIN.vercel.app/api/cron/scheduled-transfers` |
-| **Schedule** | Every **1–15 minutes** for scheduled transfers and payroll (see below) |
+| **Schedule** | Every **1 minute** (or every 15 minutes) |
 | **Request method** | `GET` or `POST` |
+| **Request timeout** | 30 seconds |
 | **Enabled** | Yes |
+
+**Job B — Daily banking (once daily)**
+
+| Field | Value |
+|-------|--------|
+| **Title** | Alta daily banking |
+| **URL** | `https://YOUR_DOMAIN.vercel.app/api/cron/daily-servicing` |
+| **Schedule** | Once daily (e.g. **06:00 UTC**) |
+| **Request timeout** | 30 seconds |
+
+**Job C — Relationship intelligence (once daily)**
+
+| Field | Value |
+|-------|--------|
+| **Title** | Alta relationship intelligence |
+| **URL** | `https://YOUR_DOMAIN.vercel.app/api/cron/relationship-intelligence` |
+| **Schedule** | Once daily (e.g. **06:05 UTC**, after Job B) |
+| **Request timeout** | 30 seconds |
 
 ### 3. Add authentication (required)
 
@@ -160,18 +189,10 @@ Check **Execution history** — failed runs show status codes and response bodie
 ### 5. Limits (free tier)
 
 - **Minimum interval:** once per minute per job
-- **Request timeout:** 30 seconds
+- **Request timeout:** 30 seconds (hard limit on cron-job.org)
 - **Fair use:** unlimited jobs per account under normal use
 
-**Every-minute schedule:** Safe for scheduled transfers and payroll. The endpoint runs those on every tick (~1–2 seconds). Heavier work (loan servicing, Alta Card billing, bank statements, deposit interest, relationship intelligence) runs **at most once per UTC day** and is skipped on other ticks, so you stay under the 30-second timeout.
-
-### Example schedule choices
-
-| Goal | cron-job.org setting |
-|------|----------------------|
-| Check every 15 minutes | Every 15 minutes |
-| Check every 5 minutes | Custom / every 5 minutes (if UI allows; still under 60/hour) |
-| Maximum responsiveness (transfers/payroll) | Every 1 minute |
+Each endpoint is sized to finish within 30 seconds. Use **three jobs** (transfers + two daily) — do not combine daily work into the every-minute transfers job.
 
 ## Vercel Cron (optional alternative)
 

@@ -15,3 +15,22 @@ export function cronResponse(body: Record<string, unknown>, status = 200): Respo
     headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" },
   });
 }
+
+export async function handleCronRoute(
+  request: Request,
+  label: string,
+  handler: () => Promise<Record<string, unknown>>,
+): Promise<Response> {
+  if (!validateCronSecret(request)) {
+    return cronResponse({ ok: false, message: "Unauthorized." }, 401);
+  }
+
+  try {
+    const body = await handler();
+    return cronResponse({ ok: true, ...body });
+  } catch (error) {
+    console.error(`[cron] ${label} failed`, error);
+    const message = error instanceof Error ? error.message : "Cron execution failed.";
+    return cronResponse({ ok: false, message }, 500);
+  }
+}
