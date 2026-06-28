@@ -37,13 +37,14 @@ function InternalOperationsCenter() {
     >
 
       {maintenance.enabled ? (
-        <div className="mb-8 rounded-lg border border-amber-400/40 bg-amber-400/10 px-5 py-4">
+        <div className="mb-6 rounded border-l-2 border-l-amber-400 border-y border-r border-amber-400/30 bg-amber-400/[0.06] px-5 py-3">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200">
+              <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200">
+                <span className="size-1.5 animate-pulse rounded-full bg-amber-300" aria-hidden />
                 Maintenance mode active
               </div>
-              <p className="mt-2 text-[14px] text-foreground">
+              <p className="mt-1.5 text-[13px] text-foreground">
                 Public platform pages are offline for normal users.
               </p>
               <p className="mt-1 text-[12px] text-muted-foreground">

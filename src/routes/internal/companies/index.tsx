@@ -3,7 +3,7 @@ import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
-import { OpsSection } from "@/components/internal/console";
+import { OpsSection, OpsStatStrip } from "@/components/internal/console";
 import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { fetchInternalCompaniesFromDb } from "@/lib/company/company.functions";
 import type { InternalCompanyRow } from "@/lib/company/types";
@@ -44,7 +44,17 @@ function InternalCompanies() {
         { label: "Companies" },
       ])}
     >
-      <OpsSection title={`Registered entities (${companies.length})`}>
+      <OpsStatStrip
+        stats={[
+          { label: "Registered", value: companies.length.toLocaleString() },
+          { label: "Verified", value: companies.filter((c) => c.verificationStatus === "verified").length, tone: "ok" },
+          { label: "Pending", value: companies.filter((c) => c.verificationStatus === "pending").length, tone: "warn" },
+          { label: "Rejected", value: companies.filter((c) => c.verificationStatus === "rejected").length, tone: "alert" },
+          { label: "Representatives", value: companies.reduce((acc, c) => acc + c.representativeCount, 0) },
+        ]}
+      />
+
+      <OpsSection title={`Registered entities · ${companies.length}`}>
         <AdminDataTable
           columns={[
             {

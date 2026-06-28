@@ -35,20 +35,30 @@ export function OpsQueueCard({
     <Link
       to={to}
       className={cn(
-        "group flex items-center justify-between gap-3 rounded border border-border bg-surface-1/60 px-3 py-2 transition-colors hover:border-border-strong hover:bg-surface-2/40",
+        "group relative flex items-center justify-between gap-3 rounded border border-border bg-surface-1/60 px-3 py-2.5 transition-colors hover:border-border-strong hover:bg-surface-2/40",
       )}
     >
+      <span
+        className="pointer-events-none absolute inset-y-1 left-0 w-px bg-gold/0 transition-colors group-hover:bg-gold/70"
+        aria-hidden
+      />
       <div className="flex min-w-0 items-center gap-2">
         <span className={cn("size-1.5 shrink-0 rounded-full", t.dot)} aria-hidden />
-        <span className="truncate text-[12px] text-foreground">{label}</span>
+        <div className="min-w-0">
+          <div className="truncate text-[12px] text-foreground">{label}</div>
+          {helper ? (
+            <div className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">
+              {helper}
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <span className={cn("tabular text-[13px] font-semibold leading-none", t.count)}>
           {count.toLocaleString()}
         </span>
-        <ChevronRight className="size-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        <ChevronRight className="size-3 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-gold" aria-hidden />
       </div>
-      {helper ? <span className="sr-only">{helper}</span> : null}
     </Link>
   );
 }

@@ -20,3 +20,5 @@ export {
 export { OpsEmptyState } from "./ops-empty-state";
 export { OpsFilterBar, OpsFilterField, OPS_FILTER_FIELD_CLASS, OPS_FILTER_LABEL_CLASS } from "./ops-filter-bar";
 export { OpsTableSkeleton } from "./ops-table-skeleton";
+export { OpsStatStrip } from "./ops-stat-strip";
+export type { OpsStat } from "./ops-stat-strip";
