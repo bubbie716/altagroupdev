@@ -17,6 +17,14 @@ const toneClass: Record<NonNullable<OpsStat["tone"]>, string> = {
 };
 
 /** Hairline-divided stat row for internal page headers. */
+const LG_COLS: Record<number, string> = {
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+  5: "lg:grid-cols-5",
+  6: "lg:grid-cols-6",
+};
+
 export function OpsStatStrip({
   stats,
   className,
@@ -24,11 +32,12 @@ export function OpsStatStrip({
   stats: OpsStat[];
   className?: string;
 }) {
+  const cols = LG_COLS[Math.min(Math.max(stats.length, 2), 6)] ?? "lg:grid-cols-4";
   return (
     <div
       className={cn(
-        "mb-4 grid grid-cols-2 divide-x divide-border rounded border border-border bg-surface-1/40 sm:grid-cols-3 lg:grid-cols-" +
-          Math.min(stats.length, 6),
+        "mb-4 grid grid-cols-2 divide-x divide-border rounded border border-border bg-surface-1/40 sm:grid-cols-3",
+        cols,
         className,
       )}
     >
