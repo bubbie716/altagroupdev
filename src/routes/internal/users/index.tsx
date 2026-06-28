@@ -3,7 +3,7 @@ import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { InternalUserFilters } from "@/components/internal/internal-user-filters";
-import { OpsSection } from "@/components/internal/console";
+import { OpsSection, OpsStatStrip } from "@/components/internal/console";
 import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
 import type { AccountStatus, UserTag } from "@/lib/auth/types";
@@ -159,9 +159,19 @@ function InternalUsers() {
         { label: "Customers" },
       ])}
     >
+      <OpsStatStrip
+        stats={[
+          { label: "Total shown", value: users.length.toLocaleString() + (users.length >= 200 ? "+" : "") },
+          { label: "Restricted", value: users.filter((u) => u.accountStatus === "restricted").length, tone: "warn" },
+          { label: "Frozen", value: users.filter((u) => u.accountStatus === "frozen").length, tone: "alert" },
+          { label: "Pending review", value: users.filter((u) => u.accountStatus === "pending_review").length, tone: "warn" },
+          { label: "Combined balance", value: florin(users.reduce((acc, u) => acc + u.totalBankBalance, 0)) },
+        ]}
+      />
+
       <InternalUserFilters search={search} />
 
-      <OpsSection title={`Customers (${users.length}${users.length >= 200 ? "+" : ""})`}>
+      <OpsSection title={`Customers · ${users.length}${users.length >= 200 ? "+" : ""}`}>
         <AdminDataTable
           columns={columns}
           rows={users}
