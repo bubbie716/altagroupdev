@@ -7,12 +7,14 @@ export function InternalSidebar() {
 
   return (
     <aside className="internal-sidebar flex h-full w-[13.5rem] shrink-0 flex-col border-r border-border/80 bg-surface-1/40">
-      <div className="border-b border-border/60 px-3 py-2.5">
-        <Link to="/internal" className="block font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-          Alta Internal
+      <div className="border-b border-border/60 px-3 py-3">
+        <Link to="/internal" className="flex items-center gap-2">
+          <span className="block h-3.5 w-px bg-gold" aria-hidden />
+          <span className="font-serif text-[13px] tracking-tight text-foreground">Alta</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold/80">Internal</span>
         </Link>
-        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-          Bank console
+        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          Operations console
         </p>
       </div>
 
@@ -22,7 +24,7 @@ export function InternalSidebar() {
             <p className="px-2 pb-1 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">
               {group.label}
             </p>
-            <ul className="space-y-0.5">
+            <ul className="space-y-px">
               {group.links.map((link) => {
                 const active = isInternalNavActive(pathname, link);
                 return (
@@ -30,9 +32,9 @@ export function InternalSidebar() {
                     <Link
                       to={link.to}
                       className={cn(
-                        "block rounded px-2 py-1.5 text-[12px] leading-snug transition-colors",
+                        "relative block rounded-sm px-2 py-1.5 pl-3 text-[12px] leading-snug transition-colors",
                         active
-                          ? "bg-surface-2 font-medium text-foreground"
+                          ? "bg-surface-2 font-medium text-foreground before:absolute before:inset-y-1 before:left-0 before:w-[2px] before:rounded-full before:bg-gold"
                           : "text-muted-foreground hover:bg-surface-2/60 hover:text-foreground",
                       )}
                     >

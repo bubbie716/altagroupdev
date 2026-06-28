@@ -16,7 +16,7 @@ export function OpsFilterBar({
   return (
     <div
       className={cn(
-        "mb-4 grid gap-3 rounded border border-border/60 bg-surface-1/40 p-3 md:grid-cols-2 lg:grid-cols-4",
+        "mb-3 grid gap-x-4 gap-y-2 border-y border-border/60 bg-surface-1/30 px-3 py-2.5 md:grid-cols-2 lg:grid-cols-4",
         className,
       )}
     >
@@ -26,7 +26,7 @@ export function OpsFilterBar({
           <button
             type="button"
             onClick={onClear}
-            className="h-8 w-full rounded border border-border px-2.5 text-[12px] text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+            className="h-8 w-full rounded-sm border border-border/70 px-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-gold/40 hover:bg-surface-2 hover:text-foreground"
           >
             {clearLabel}
           </button>
@@ -37,7 +37,7 @@ export function OpsFilterBar({
 }
 
 export const OPS_FILTER_FIELD_CLASS =
-  "h-8 w-full rounded border border-border bg-surface-1 px-2.5 text-[12px] outline-none focus:border-gold/40";
+  "h-8 w-full rounded-sm border border-border/70 bg-surface-1 px-2.5 text-[12px] outline-none transition-colors focus:border-gold focus:ring-1 focus:ring-gold/30";
 
 export const OPS_FILTER_LABEL_CLASS =
   "mb-1 block font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground";

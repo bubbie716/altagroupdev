@@ -14,6 +14,7 @@ import { LoanAutoPayForm } from "@/components/bank/loan-autopay-form";
 import { AutoPayBadge } from "@/components/bank/auto-pay-badge";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { florin } from "@/lib/bank/api";
+import { cn } from "@/lib/utils";
 import { fetchLoanPaymentContext } from "@/lib/bank/lending.functions";
 import type {
   LendingAccountOption,

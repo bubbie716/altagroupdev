@@ -101,7 +101,7 @@ export function OpsTable<T extends { id?: string }>({
         </div>
       )}
 
-      <div className="overflow-x-auto overscroll-x-contain rounded border border-border/80 bg-surface-1/30">
+      <div className="max-h-[calc(100dvh-14rem)] overflow-auto overscroll-contain rounded border border-border/80 bg-surface-1/30">
         {loading ? (
           <OpsTableSkeleton rows={4} cols={columns.length} />
         ) : rows.length === 0 ? (
@@ -111,8 +111,8 @@ export function OpsTable<T extends { id?: string }>({
           />
         ) : (
         <table className="w-full min-w-[640px] border-collapse text-[12px]">
-          <thead>
-            <tr className="border-b border-border/80 bg-surface-2/40 text-left">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-border/80 bg-surface-2/80 text-left backdrop-blur">
               {selectable ? (
                 <th className="w-8 px-2 py-2">
                   <input
@@ -128,7 +128,7 @@ export function OpsTable<T extends { id?: string }>({
                 <th
                   key={col.key}
                   className={cn(
-                    "px-3 py-2 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground",
+                    "px-3 py-2.5 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90",
                     col.sortable && onSortChange && "cursor-pointer select-none hover:text-foreground",
                     col.className,
                   )}
@@ -152,8 +152,9 @@ export function OpsTable<T extends { id?: string }>({
                   <tr
                     key={id}
                     className={cn(
-                      "border-b border-border/40 last:border-0",
-                      onRowClick && "cursor-pointer hover:bg-surface-2/40",
+                      "border-b border-border/40 last:border-0 transition-colors",
+                      index % 2 === 1 && !selected && "bg-surface-1/20",
+                      onRowClick && "cursor-pointer hover:bg-gold/[0.04]",
                       selected && "bg-gold/5",
                     )}
                     onClick={
