@@ -364,13 +364,13 @@ async function upsertLoans() {
     create: {
       id: "LN-LAB-ACTIVE", loanApplicationId: "LA-LAB-ACTIVE", borrowerUserId: USER_ID,
       productType: LoanProductType.PERSONAL_CREDIT_LINE,
-      principalAmount: "24000.00", outstandingBalance: "18000.00",
+      principalAmount: "24000.00", outstandingBalance: "18000.00", principalOutstanding: "18000.00",
       interestRate: "1.25", interestRateType: LoanInterestRateType.MONTHLY_PERCENT,
       termMonths: 12, status: LoanStatus.ACTIVE,
       linkedBankAccountId: "BA-LAB-CHK", autoPayEnabled: true, autoPaySourceBankAccountId: "BA-LAB-CHK",
       approvedById: USER_ID, approvedAt: daysAgo(120),
     },
-    update: { outstandingBalance: "18000.00", status: LoanStatus.ACTIVE },
+    update: { outstandingBalance: "18000.00", principalOutstanding: "18000.00", status: LoanStatus.ACTIVE },
   });
   // schedule: 12 installments, first 3 paid
   for (let i = 1; i <= 12; i++) {
@@ -429,13 +429,13 @@ async function upsertLoans() {
     create: {
       id: "LN-LAB-PAID", loanApplicationId: "LA-LAB-PAID", borrowerUserId: USER_ID,
       productType: LoanProductType.PERSONAL_CREDIT_LINE,
-      principalAmount: "6000.00", outstandingBalance: "0.00",
+      principalAmount: "6000.00", outstandingBalance: "0.00", principalOutstanding: "0.00",
       interestRate: "1.00", interestRateType: LoanInterestRateType.MONTHLY_PERCENT,
       termMonths: 6, status: LoanStatus.PAID_OFF,
       linkedBankAccountId: "BA-LAB-CHK",
       approvedById: USER_ID, approvedAt: daysAgo(300),
     },
-    update: { outstandingBalance: "0.00", status: LoanStatus.PAID_OFF },
+    update: { outstandingBalance: "0.00", principalOutstanding: "0.00", status: LoanStatus.PAID_OFF },
   });
 
   // 5) Business credit line — active, NPC
@@ -455,13 +455,13 @@ async function upsertLoans() {
     create: {
       id: "LN-LAB-NPC", loanApplicationId: "LA-LAB-NPC", borrowerUserId: USER_ID, companyId: "CO-NPC",
       productType: LoanProductType.BUSINESS_CREDIT_LINE,
-      principalAmount: "500000.00", outstandingBalance: "440000.00",
+      principalAmount: "500000.00", outstandingBalance: "440000.00", principalOutstanding: "440000.00",
       interestRate: "0.85", interestRateType: LoanInterestRateType.MONTHLY_PERCENT,
       termMonths: 24, status: LoanStatus.ACTIVE,
       linkedBankAccountId: "BA-LAB-NPC-OP", autoPayEnabled: true, autoPaySourceBankAccountId: "BA-LAB-NPC-OP",
       approvedById: USER_ID, approvedAt: daysAgo(60),
     },
-    update: { outstandingBalance: "440000.00", status: LoanStatus.ACTIVE },
+    update: { outstandingBalance: "440000.00", principalOutstanding: "440000.00", status: LoanStatus.ACTIVE },
   });
 
   // 6) Private liquidity line — active
@@ -480,7 +480,7 @@ async function upsertLoans() {
     create: {
       id: "LN-LAB-PRV", loanApplicationId: "LA-LAB-PRV", borrowerUserId: USER_ID,
       productType: LoanProductType.PRIVATE_LIQUIDITY_LINE,
-      principalAmount: "250000.00", outstandingBalance: "250000.00",
+      principalAmount: "250000.00", outstandingBalance: "250000.00", principalOutstanding: "250000.00",
       interestRate: "0.65", interestRateType: LoanInterestRateType.MONTHLY_PERCENT,
       termMonths: 12, status: LoanStatus.ACTIVE,
       linkedBankAccountId: "BA-LAB-PRV",
