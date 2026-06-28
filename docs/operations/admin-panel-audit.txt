@@ -1,0 +1,576 @@
+Alta Bank Admin Panel Audit
+============================
+Date: 2026-06-25
+Scope: /internal and all operator/admin areas
+Purpose: Plan rebuild into a simple, dense, operational bank console (Stripe / Mercury / Linear / Retool style)
+Status: Audit only — no implementation
+
+EXECUTIVE SUMMARY
+-----------------
+
+The internal console mixes three incompatible products:
+
+1. Live operational tooling (bank queues, lending, Alta Card, audit, customer 360) — real DB, mostly workable
+2. Marketing-style page chrome (PageShell hero, eyebrow, descriptions, stat cards) — wrong density for ops
+3. Mock preview pages (exchange, terminal, IPOs, listings, API apps) — fake data with action buttons
+
+The biggest usability problems are duplicated queues, hub pages that repeat dedicated pages, two action UX patterns (safe OpsConfirmDialog vs one-click BankReviewButton), and no single workspace model (list → detail with audit, notes, related records).
+
+
+FINDINGS BY SEVERITY
+====================
+
+CRITICAL
+--------
+
+1. One-click money actions without confirmation or reason
+   - BankReviewButton on deposits, withdrawals, account freeze/close, lending approve/deny/freeze/waive, company verify, Alta Card status changes
+   - Operator error risk; weak audit trail (reviewNote usually omitted)
+   - Files: src/components/bank/bank-review-button.tsx, most internal queue pages
+
+2. Same queues rendered in 2–3 places
+   - /internal/bank embeds pending deposits, withdrawals, account openings
+   - Also /internal/bank/deposits, /withdrawals
+   - Dedicated deposits page has bulk approve + filter; hub does not
+
+3. Mock data mixed with live ops
+   - Routes: /internal/exchange, /terminal, /ipos, /listings, /api-applications
+   - Mock transfers section on /internal/bank
+   - Mock feature flags on /internal/settings
+   - Companies DB fallback to @/lib/internal/api on loader failure
+
+4. Customer marketing shell on every admin page
+   - InternalPageShell → PageShell with eyebrow, large title, description, hero animation
+   - Wastes vertical space; feels like marketing site, not ops console
+
+5. No admin vs operator route separation
+   - canAccessInternal = admin OR operator; same nav and pages for both
+   - Operators reach maintenance UI, tag grants, manual interest triggers (some blocked server-side only)
+
+6. Global search statement links go to customer route
+   - ops-global-search.service.ts → /bank/statements/${id}
+   - Operators leave admin context on search
+
+
+HIGH
+----
+
+1. /internal/bank/transfers ≈ /internal/bank/scheduled
+   - Both load fetchInternalScheduledTransfers(); overlapping panels
+
+2. Dual customer workspaces
+   - /internal/users/$userId vs /internal/relationships/$userId
+   - Company detail vs /companies/$companyId/relationship
+
+3. Lending index is a wall of inline loan cards
+   - /internal/lending renders full InternalActiveLoanCard for every active loan
+   - Loan workspace exists at /loans/$loanId but queue doesn't link cleanly
+
+4. Alta Card hub duplicates sub-routes
+   - /internal/alta-card embeds applications + cards
+   - Also /applications, /reviews
+
+5. Audit missing on high-risk workspaces
+   - Loan detail, Alta Card detail, bank hub queues — no entity audit panel
+
+6. Activity feed ≠ audit log
+   - Dashboard "Activity feed" vs /internal/audit
+
+7. No centralized system jobs view
+   - Cron split across API routes
+   - Alta Card scheduler panel only on Alta Card hub
+   - Bank statement scheduler on statements page
+   - Lending batch buttons on lending index
+
+8. Inconsistent confirm UX
+   - OpsConfirmDialog (good) vs BankReviewButton vs window.confirm / window.prompt
+
+9. Deal room URLs redirect to lending
+   - /internal/lending/deal-rooms/* → redirect to /internal/lending
+
+10. Deposits route double-wraps shell
+    - InternalDepositsQueue renders its own InternalPageShell inside route
+
+
+MEDIUM
+------
+
+1. Nav too wide; hidden sub-routes (scheduled, interest, Alta Card apps/reviews/card detail not in nav)
+2. Lending nav highlight breaks on detail (exact: true on Lending link)
+3. Status labels inconsistent (StatusBadge maps free-form strings; domain enums differ per product)
+4. Reports page is stat cards only — no drill-down
+5. Compliance is signal dashboard only — no cases; overlaps Exceptions + Dashboard
+6. Private banking has no dedicated queue (privateReview search param on user page only)
+7. Global search gaps (no Alta Card, application, review, company relationship, cron job)
+8. Tables often lack row → workspace links
+9. Settings feature flags are fake but presented as Active/Suspended
+10. User tag/status UI says audit "planned" but server already audits
+11. Loan freeze may skip audit log (freezeLoan / unfreezeLoan in loan.service)
+12. Interbank transfers section is mock on otherwise live bank ops page
+
+
+LOW
+---
+
+1. Legacy /bank/admin/* redirects (→ /internal/users, /internal/bank)
+2. Embeds page in Tools — niche, OK
+3. Notifications bell — deal-room only, not documented in nav
+4. Duplicate global search on dashboard (hideSearch + inline duplicate)
+5. VITE_UI_LAB_MODE auth bypass — dangerous if misconfigured in prod
+
+
+AREA-BY-AREA AUDIT
+==================
+
+/internal (Operations Center)
+-----------------------------
+Exists:     Queue cards, health tiles, platform vitals, activity feed, maintenance banner
+Confusing:  Queue counts duplicate nav; "Activity feed" looks like audit
+Duplicated: Same metrics as Bank Ops, Reports, Compliance
+Missing:    Alta Card pending apps/reviews queue cards; cron last-run summary; assigned-to-me
+Unsafe:     None directly (read-only)
+Remove:     Platform vitals stat cards (or collapse to one row)
+Consolidate: All queue counts → link only to canonical queue pages
+Read-only:  Health/cron status
+Workspace:  Dashboard should be queue launcher only, not a second Bank Ops
+Priority:   P1
+
+
+Users / Customers (/internal/users)
+-----------------------------------
+Exists:     Filterable list, Customer 360 (accounts, loans, cards, Alta Pay, tags, notes, timeline, audit snippet, RI operator panel)
+Confusing:  RI split to /internal/relationships/$userId; privateReview via ?privateReview=true
+Duplicated: RI operator panel overlaps full relationship workspace
+Missing:    Unified workspace layout; full audit on page; reason on tag/status changes
+Unsafe:     Tag grant/revoke, account status changes — no reason, minimal confirm
+Remove:     Embedded RI detail (link out instead)
+Consolidate: User 360 = identity + links; RI = separate workspace tab
+Workspace:  /internal/users/$userId should be the customer workspace
+Priority:   P1
+
+
+Companies (/internal/companies)
+-------------------------------
+Exists:     List with verification actions; Company 360; company relationship page
+Confusing:  Mock fallback on loader failure; verification actions inline in table
+Duplicated: Relationship summary on detail + full /relationship route
+Missing:    Verification queue (filter pending); treasury/card cross-links
+Unsafe:     Verify/reject/revoke — one-click, no reason
+Remove:     Mock fallback
+Consolidate: Company workspace with tabs: Overview, Members, Accounts, Lending, Card, RI
+Workspace:  /internal/companies/$companyId
+Priority:   P2
+
+
+Bank accounts (/internal/bank/accounts)
+---------------------------------------
+Exists:     Filterable list; account workspace (balance, ops panel, adjustment, transactions, audit, notes, timeline)
+Confusing:  Approve/freeze/close via BankReviewButton; hold/release uses different UX
+Duplicated: Pending openings on Bank Ops hub and accounts list
+Missing:    Link from every queue row; statement list; related Alta Pay
+Unsafe:     Freeze/close without confirm; hardcoded freeze reason ("Frozen via account detail")
+Remove:     Inline actions from hub — link to account workspace
+Consolidate: All account lifecycle actions in workspace ops panel with OpsConfirmDialog
+Read-only:  List page
+Workspace:  /internal/bank/accounts/$accountId — keep and strengthen
+Priority:   P1
+
+
+Deposits / Withdrawals
+----------------------
+Exists:     Dedicated queues; hub copies; deposits has bulk approve + filter
+Confusing:  Hub vs /deposits feature parity
+Duplicated: Full tables on /internal/bank
+Missing:    Shared queue component; assignment; SLA age column
+Unsafe:     Hub: one-click approve/deny; dedicated deposits: bulk OK, row actions still one-click
+Remove:     Queue tables from Bank Ops hub
+Consolidate: Single DepositQueue and WithdrawalQueue pages
+Workspace:  Row → transaction detail or account
+Priority:   P0 (safety + dedup)
+
+
+Transfers / Scheduled
+-------------------
+Exists:     /transfers, /scheduled, hub section, RunDueTransfersButton
+Confusing:  Two URLs, same data model
+Duplicated: Yes
+Missing:    Payroll run history; failure retry audit
+Unsafe:     Manual "run due transfers" without confirm (batch financial)
+Remove:     One of transfers/scheduled
+Consolidate: Transfers page: scheduled list + executor + failures
+Priority:   P2
+
+
+Transactions (/internal/bank/transactions)
+------------------------------------------
+Exists:     Explorer with search; transaction detail with audit + notes
+Missing:    Saved filters; export; link from all queues
+Unsafe:     Read-only (good)
+Workspace:  /transactions/$transactionId — keep
+Priority:   P2
+
+
+Alta Pay (/internal/bank/alta-pay)
+----------------------------------
+Exists:     Search by q/ref; reverse with OpsConfirmDialog
+Missing:    Queue of disputed/failed
+Unsafe:     Reverse is well gated (good pattern — template for other mutations)
+Priority:   P3 (mostly OK)
+
+
+Lending (/internal/lending)
+---------------------------
+Exists:     Application queue, inline active/frozen/paid-off cards, batch job buttons, deal room threads
+Confusing:  Index tries to be queue + servicing + batch runner
+Duplicated: Applications also on dashboard; deal-room redirects
+Missing:    Application detail route (only thread); audit on loan workspace; queues by status
+Unsafe:     Approve/deny/freeze/waive/accrue/backfill — mostly one-click
+Remove:     Inline full loan cards from index
+Consolidate: Queues: Applications | Active | Frozen | Paid off
+Workspace:  /loans/$loanId, application thread
+Priority:   P1
+
+
+Secure Deal Rooms
+-----------------
+Exists:     Thread routes under lending + Alta Card apps/reviews; relationship context bar
+Confusing:  /deal-rooms redirects away
+Missing:    Deal room index/queue; unread/assigned filter
+Remove:     Redirect stub routes (after URL migration)
+Consolidate: Inbox queue: all open deal rooms across products
+Workspace:  Thread pages — keep
+Priority:   P2
+
+
+Alta Card (/internal/alta-card)
+-------------------------------
+Exists:     Hub with cards + apps + scheduler; dedicated applications/reviews; card detail
+Confusing:  Hub is three products in one scroll
+Duplicated: Applications on hub and /applications
+Missing:    Review queue in nav; audit on card detail; unified status vocabulary
+Unsafe:     Approve/deny, void/regenerate statement, billing batch buttons
+Remove:     Full tables from hub
+Consolidate: Queues: Applications | Reviews | Cards
+Workspace:  /alta-card/$cardId, application/review detail + thread
+Priority:   P1
+
+
+Statements (/internal/bank/statements)
+--------------------------------------
+Exists:     Statement ops + scheduler panel
+Duplicated: Scheduler surfaced in multiple places; also on Bank Ops hub
+Missing:    Global search internal URL for statements
+Unsafe:     Manual generate/regenerate
+Consolidate: Statements + bank statement cron under Jobs
+Priority:   P2
+
+
+Relationship Intelligence
+-------------------------
+Exists:     Index rankings; user RI workspace; company RI; integration blocks on lending/card
+Confusing:  Overlaps user 360; operator vs customer-facing data mixed
+Duplicated: User page + relationship page
+Missing:    Queue for stale profiles; refresh SLA
+Consolidate: RI workspace tab on user/company (not separate route tree)
+Priority:   P2
+
+
+Private banking
+---------------
+Exists:     Tag private_client; RI private panel; ?privateReview=true; customer /bank/private
+Missing:    Pending private account openings queue; enrollment workflow
+Unsafe:     Tag grant without reason
+Consolidate: Private banking queue under Identity or Lending
+Priority:   P2
+
+
+System jobs / Cron
+------------------
+Exists:     API cron routes; Alta Card scheduler panel; statement scheduler; lending batch buttons; dashboard health
+Missing:    /internal/jobs — last run, next run, errors, logs
+Unsafe:     Manual batch triggers without confirm
+Consolidate: System Jobs page; remove scatter manual triggers from product pages
+Priority:   P1
+
+
+Audit logs (/internal/audit)
+----------------------------
+Exists:     Global searchable audit log; entity audit on account, user, company, transaction
+Confusing:  vs activity feed on dashboard
+Missing:    Export UI; entity filter; actor filter; link from every workspace
+Read-only:  Always
+Consolidate: Standard Audit tab on all workspaces
+Priority:   P1
+
+
+Settings / Maintenance (/internal/settings)
+-----------------------------------------
+Exists:     Maintenance mode (good OpsConfirmDialog); live ops status; fake feature flags
+Remove:     Fake feature flags section
+Consolidate: Settings = maintenance + platform config only
+Priority:   P2
+
+
+Mock legacy areas (Exchange, Terminal, IPOs, Listings, API apps)
+----------------------------------------------------------------
+Exists:     Full pages with stat cards, tables, MockActionButton
+Remove:     Deprecate entire cluster until real backends exist
+Priority:   P0
+
+
+1. RECOMMENDED NEW ADMIN INFORMATION ARCHITECTURE
+=================================================
+
+Internal Console
+├── Home (queues only)
+├── Search (global ⌘K)
+├── Workspaces
+│   ├── User
+│   ├── Company
+│   ├── Bank Account
+│   ├── Transaction
+│   └── Loan / Card / Application (product workspaces)
+├── Queues
+│   ├── Deposits
+│   ├── Withdrawals
+│   ├── Account openings
+│   ├── Company verifications
+│   ├── Lending applications
+│   ├── Deal room inbox
+│   ├── Alta Card applications
+│   ├── Alta Card reviews
+│   ├── Exceptions
+│   └── Private banking (new)
+├── Explorer
+│   ├── Accounts
+│   ├── Transactions
+│   ├── Alta Pay
+│   └── Users / Companies (lists)
+├── Jobs & Health
+│   ├── Cron / scheduler runs
+│   ├── Manual batch actions (admin)
+│   └── Platform health
+├── Compliance & Audit
+│   ├── Audit log (global)
+│   ├── Reports
+│   └── Compliance signals
+└── Settings (admin)
+    └── Maintenance mode
+
+Principle: List pages are dense tables with filters. Actions happen in workspace side panels with confirm + reason. Hub pages don't embed queues.
+
+
+2. RECOMMENDED ADMIN NAVIGATION
+===============================
+
+Left sidebar (or top compact nav), max ~8 groups:
+
+  Home
+    Dashboard
+
+  Queues
+    Deposits, Withdrawals, Accounts (pending), Companies (pending), Lending,
+    Deal rooms, Alta Card, Exceptions
+
+  Explore
+    Accounts, Transactions, Alta Pay, Users, Companies
+
+  Products
+    Lending, Alta Card (sub: Apps, Reviews, Cards)
+
+  Intel
+    Relationships, Reports
+
+  System
+    Jobs, Audit, Settings
+
+  Tools
+    Embeds (optional)
+
+Remove from nav until real: Exchange, Terminal, IPOs, Listings, API applications.
+
+Global: ⌘K search always visible; notifications for deal rooms.
+
+
+3. RECOMMENDED PAGE LIST
+========================
+
+  /internal                              Queue board (no embedded tables)
+  /internal/queues/deposits              Queue (rename from /bank/deposits)
+  /internal/queues/withdrawals             Queue
+  /internal/queues/account-openings      Queue (split from bank hub)
+  /internal/queues/company-verifications Queue
+  /internal/queues/lending-applications  Queue
+  /internal/queues/deal-rooms            Inbox (replace redirect)
+  /internal/queues/alta-card-applications Queue
+  /internal/queues/alta-card-reviews     Queue
+  /internal/queues/exceptions            Queue (keep)
+  /internal/queues/private-banking       Queue (new)
+  /internal/explore/accounts             Explorer
+  /internal/explore/transactions         Explorer
+  /internal/explore/alta-pay             Explorer
+  /internal/users                        Explorer
+  /internal/users/$id                      Workspace (tabs: Overview, Accounts, Products, RI, Audit, Notes)
+  /internal/companies/$id                  Workspace (tabs)
+  /internal/bank/accounts/$id            Workspace (keep)
+  /internal/bank/transactions/$id        Workspace (keep)
+  /internal/lending/loans/$id            Workspace (add audit tab)
+  /internal/alta-card/$id                Workspace (add audit tab)
+  /internal/lending/applications/$id/thread  Workspace (keep)
+  /internal/alta-card/.../thread         Workspace (keep)
+  /internal/jobs                         System (new)
+  /internal/audit                        Audit (keep, enhance filters)
+  /internal/reports                      Reports (add drill-down)
+  /internal/compliance                   Signals (until cases exist)
+  /internal/settings                     Admin (strip fake flags)
+  /internal/relationships/*              Merge into user/company workspace tabs
+
+Delete/deprecate:
+  /internal/bank hub
+  /internal/bank/transfers OR /scheduled (keep one)
+  Mock routes (exchange, terminal, ipos, listings, api-applications)
+  /internal/lending/deal-rooms redirects
+  Duplicate RI routes
+
+
+4. RECOMMENDED REBUILD PHASES
+=============================
+
+Phase 0 — Stop the bleeding (1–2 weeks)
+  - Remove or quarantine mock internal routes
+  - Remove queue tables from /internal/bank hub
+  - Migrate all BankReviewButton financial actions to OpsConfirmDialog + mandatory reason
+  - Fix global search statement links → internal
+  - Remove companies mock fallback
+  - Remove fake feature flags from settings
+
+Phase 1 — Console shell (2–3 weeks)
+  - Replace InternalPageShell marketing hero with dense ops header (title + breadcrumbs + actions, no animation)
+  - New sidebar nav structure
+  - Canonical queue pages only
+  - Standard workspace layout: header / tabs / audit+notes column
+
+Phase 2 — Workspaces (3–4 weeks)
+  - User workspace tabs (absorb RI)
+  - Company workspace tabs
+  - Loan + Alta Card workspace audit tabs
+  - Deal room inbox
+  - /internal/jobs centralized cron UI
+
+Phase 3 — Compliance & polish (2 weeks)
+  - Audit export, actor/entity filters
+  - Compliance case model (or defer)
+  - Admin vs operator nav profiles
+  - Reports drill-down
+
+Phase 4 — Exchange/terminal (when ready)
+  - Reintroduce only with real APIs, same ops chrome
+
+
+5. PAGES/COMPONENTS TO DELETE OR DEPRECATE
+==========================================
+
+Routes (delete or 410):
+  /internal/exchange, /terminal, /ipos, /listings, /api-applications
+  /internal/bank hub (replace with redirect to dashboard)
+  /internal/bank/transfers or /scheduled (keep one)
+  /internal/lending/deal-rooms/* redirects
+
+Components:
+  MockActionButton (when mock routes gone)
+  InternalStatCard overuse on ops pages (replace with table metadata)
+  Duplicate queue rendering in bank/index.tsx
+  getBankOpsTransfers() mock section
+
+Libs:
+  @/lib/internal/api.ts mock layer (or move to dev-only)
+
+
+6. PAGES/COMPONENTS TO KEEP
+===========================
+
+  InternalPageShell structure          Refactor chrome, keep sub-nav + search + bell
+  OpsConfirmDialog                     Target mutation pattern
+  AdminDataTable                       Core list UI (needs row links)
+  InternalAuditTable                   Compliance
+  InternalNotePanel                    Workspace standard
+  InternalAccountOpsPanel              Good ops pattern (holds, transfers)
+  Account / transaction / loan workspaces   Right granularity
+  Deal room thread views               Core workflow
+  RelationshipQueueCell                Queue context (keep compact)
+  MaintenanceModePanel                 Well built
+  Global search service                Extend coverage
+  Dashboard queue cards                After dedup, keep as launcher
+
+
+7. FEATURES THAT MUST BE CENTRALIZED
+====================================
+
+1. Mutation UX — one OpsAction pattern: confirm + reason + audit metadata
+2. Audit visibility — every workspace gets audit tab; global log for search
+3. Queues — one canonical page per queue type
+4. Status vocabulary — product enums → single OpsStatus display map
+5. Global search — users, companies, accounts, transactions, loans, cards, apps, reviews, statements (internal URLs)
+6. System jobs — all cron + manual batch triggers + last-run status
+7. Permissions — route-level admin vs operator; hide destructive UI
+8. Related-record links — account ↔ user ↔ company ↔ transaction ↔ loan ↔ card
+
+
+8. FINAL REBUILD CHECKLIST
+==========================
+
+Shell & nav
+  [ ] Dense ops layout (no hero, no eyebrow, minimal padding)
+  [ ] Sidebar nav ≤ 8 top-level groups
+  [ ] ⌘K global search on every page
+  [ ] Breadcrumbs on all workspace pages
+  [ ] Active nav state on detail routes
+
+Queues
+  [ ] One page per queue; no hub duplicates
+  [ ] Row links to workspace
+  [ ] Filters + sort + age/SLA columns
+  [ ] Bulk actions only with confirm + reason
+
+Workspaces
+  [ ] User, company, account, transaction, loan, card workspaces
+  [ ] Tabs: Overview | Activity | Audit | Notes | Products
+  [ ] RI as tab, not separate route tree
+
+Safety
+  [ ] Zero BankReviewButton for financial mutations
+  [ ] Mandatory reason on all approve/deny/freeze/void/waive/adjust
+  [ ] Admin-only actions hidden from operators
+  [ ] Manual batch/cron triggers admin-only + confirm
+
+Data integrity
+  [ ] No mock data on internal routes
+  [ ] No mock fallback loaders
+  [ ] Activity feed labeled separately from audit
+
+System ops
+  [ ] /internal/jobs with all cron endpoints
+  [ ] Dashboard health links to jobs detail
+  [ ] Export audit log
+
+Cleanup
+  [ ] Remove mock exchange cluster
+  [ ] Merge transfers/scheduled
+  [ ] Fix deal-room index
+  [ ] Remove fake feature flags
+  [ ] Update misleading "audit planned" copy on user tag/status panels
+
+
+KEY FILE REFERENCES
+===================
+
+Routes:           src/routes/internal/** (49 route files)
+Shell:            src/components/internal/internal-page-shell.tsx
+Nav:              src/components/internal/internal-sub-nav.tsx
+Search:           src/components/internal/internal-global-search.tsx
+                  src/server/ops-global-search.service.ts
+Safe mutations:   src/components/internal/ops-confirm-dialog.tsx
+Unsafe mutations: src/components/bank/bank-review-button.tsx
+Permissions:      src/lib/auth/permissions.ts, src/server/permissions.service.ts
+Mock layer:       src/lib/internal/api.ts, src/lib/internal/data.ts
+Audit:            src/routes/internal/audit.tsx, src/server/audit.service.ts

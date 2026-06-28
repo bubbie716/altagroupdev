@@ -4,7 +4,7 @@ import { AltaCardProductEyebrow } from "@/components/bank/alta-card/alta-card-ui
 
 export function AltaCardLandingHero() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-surface-1">
+    <div className="relative min-w-0 overflow-hidden rounded-2xl border border-border bg-surface-1">
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-gold/8 via-transparent to-transparent" />
       <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
         <div className="relative max-w-xl">

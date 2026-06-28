@@ -11,6 +11,7 @@ import {
   previewAccountInterest,
 } from "@/lib/bank/account-interest.functions";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
+import { OpsAction } from "@/components/internal/ops-action";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 
 export function InternalAccountInterestOps({ summary }: { summary: AccountInterestOpsSummary }) {
@@ -42,14 +43,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
     }
   }
 
-  async function handleAccrueOne(accountId: string) {
-    if (
-      !window.confirm(
-        "Credit monthly interest for this account? This creates an INTEREST_CREDIT transaction and updates the balance.",
-      )
-    ) {
-      return;
-    }
+  async function handleAccrueOne(accountId: string, _reason: string) {
     setPending("one");
     setActionResult(null);
     try {
@@ -69,14 +63,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
     }
   }
 
-  async function handleAccrueAll() {
-    if (
-      !window.confirm(
-        `Accrue interest for all ${summary.dueAccountCount} due account(s)? Estimated total: ${florin(summary.estimatedTotalInterestDue)}.`,
-      )
-    ) {
-      return;
-    }
+  async function handleAccrueAll(_reason: string) {
     setPending("all");
     setActionResult(null);
     try {
@@ -139,14 +126,15 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
         >
           {pending === "preview" ? "Previewing…" : "Preview interest"}
         </button>
-        <button
-          type="button"
+        <OpsAction
+          label={pending === "all" ? "Accruing…" : "Accrue all due interest"}
+          variant="primary"
+          title="Accrue all due interest"
+          description="Credits monthly interest for every due account."
+          impact={`${summary.dueAccountCount} account(s) · est. ${florin(summary.estimatedTotalInterestDue)}`}
           disabled={pending !== null || summary.dueAccountCount === 0}
-          onClick={() => void handleAccrueAll()}
-          className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {pending === "all" ? "Accruing…" : "Accrue all due interest"}
-        </button>
+          onConfirm={handleAccrueAll}
+        />
       </div>
 
       {(previewResult || actionResult) && (
@@ -192,14 +180,16 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
               key: "actions",
               header: "",
               cell: (a) => (
-                <button
-                  type="button"
+                <OpsAction
+                  label="Accrue"
+                  title="Credit monthly interest"
+                  description="Creates an INTEREST_CREDIT transaction for this account."
+                  impact={florin(a.estimatedInterest)}
                   disabled={pending !== null}
-                  onClick={() => void handleAccrueOne(a.accountId)}
-                  className="rounded border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-wider disabled:opacity-50"
-                >
-                  Accrue
-                </button>
+                  onConfirm={async (reason) => {
+                    await handleAccrueOne(a.accountId, reason);
+                  }}
+                />
               ),
             },
           ]}

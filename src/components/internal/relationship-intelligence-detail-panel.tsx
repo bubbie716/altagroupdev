@@ -73,7 +73,7 @@ export function RelationshipIntelligenceDetailPanel({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Relationship profile</p>
@@ -97,7 +97,7 @@ export function RelationshipIntelligenceDetailPanel({
       {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
 
       {timelineSummary ? (
-        <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+        <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
           <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             Relationship history summary
           </h3>
@@ -128,7 +128,7 @@ export function RelationshipIntelligenceDetailPanel({
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Overview</h3>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Relationship score" value={String(display.relationshipScore)} />
@@ -142,7 +142,7 @@ export function RelationshipIntelligenceDetailPanel({
         </dl>
       </section>
 
-      <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Lifetime activity</h3>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Lifetime deposits" value={florin(display.lifetimeDeposits)} />
@@ -155,7 +155,7 @@ export function RelationshipIntelligenceDetailPanel({
         </dl>
       </section>
 
-      <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current exposure</h3>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Metric label="Active loan balance" value={florin(display.activeLoanBalance)} />
@@ -167,9 +167,33 @@ export function RelationshipIntelligenceDetailPanel({
         </dl>
       </section>
 
-      <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Factor breakdown</h3>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 space-y-3 md:hidden">
+          {calculated.factors.map((factor) => (
+            <div
+              key={factor.key}
+              className="rounded-lg border border-border/60 bg-surface-2/20 px-3 py-3 text-[13px]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 break-words font-medium">{factor.label}</p>
+                <span
+                  className={`shrink-0 tabular-nums ${
+                    factor.impact > 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : factor.impact < 0
+                        ? "text-destructive"
+                        : ""
+                  }`}
+                >
+                  {factor.impact > 0 ? `+${factor.impact}` : factor.impact}
+                </span>
+              </div>
+              <p className="mt-1 break-words text-muted-foreground">{factor.value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain md:block">
           <table className="min-w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border/60 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">

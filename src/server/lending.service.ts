@@ -298,6 +298,16 @@ export async function listInternalLoanApplications(): Promise<InternalLoanApplic
   return records.map(mapInternalLoanApplicationRow);
 }
 
+export async function getInternalLoanApplicationById(
+  applicationId: string,
+): Promise<InternalLoanApplicationRow | null> {
+  const record = await prisma.loanApplication.findUnique({
+    where: { id: applicationId },
+    include: loanApplicationInclude,
+  });
+  return record ? mapInternalLoanApplicationRow(record) : null;
+}
+
 export async function markLoanApplicationUnderReview(
   adminId: string,
   applicationId: string,

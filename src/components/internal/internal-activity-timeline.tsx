@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { TimelineEvent } from "@/lib/internal/ops-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { AccountActivityLink } from "@/components/internal/internal-audit-table";
@@ -12,7 +13,15 @@ export function InternalActivityTimeline({ events }: { events: TimelineEvent[] }
       {events.map((e) => (
         <li key={e.id} className="relative">
           <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-gold/70" />
-          <div className="text-[13px] font-medium">{e.title}</div>
+          <div className="text-[13px] font-medium">
+            {e.href ? (
+              <Link to={e.href} className="hover:text-gold">
+                {e.title}
+              </Link>
+            ) : (
+              e.title
+            )}
+          </div>
           <div className="text-[12px] text-muted-foreground">{e.detail}</div>
           {e.accountId && e.accountLabel ? (
             <div className="mt-1">

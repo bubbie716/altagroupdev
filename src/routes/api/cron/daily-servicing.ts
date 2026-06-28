@@ -7,10 +7,7 @@ import {
   evaluateDailyCronGate,
   releaseDailyCronLock,
 } from "@/lib/cron/cron-tick-gating";
-import {
-  accrueInterestForDueLoans,
-  executeDueLoanAutoPayments,
-} from "@/server/loan.service";
+import { runLoanServicingJob } from "@/server/loan-servicing-job.service";
 import {
   runAltaCardBillingSchedulerJob,
   runAltaCardStatementSchedulerJob,
@@ -31,11 +28,7 @@ async function runDailyServicing() {
 
   try {
     const [loanServicing, altaCard, bankStatements, depositInterest] = await Promise.all([
-      (async () => {
-        const interest = await accrueInterestForDueLoans();
-        const autoPay = await executeDueLoanAutoPayments();
-        return { interest, autoPay };
-      })(),
+      runLoanServicingJob(),
       (async () => {
         const statements = await runAltaCardStatementSchedulerJob({ trigger: "cron" });
         const billing = await runAltaCardBillingSchedulerJob({ trigger: "cron" });

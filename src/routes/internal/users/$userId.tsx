@@ -1,349 +1,43 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
-import { InternalPageShell } from "@/components/internal/internal-page-shell";
-import { StatusBadge } from "@/components/internal/status-badge";
-import { InternalUserTagPanel } from "@/components/internal/internal-user-tag-panel";
-import { InternalUserAccountStatusPanel } from "@/components/internal/internal-user-account-status-panel";
-import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
-import { florin } from "@/lib/bank/api";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { createFileRoute } from "@tanstack/react-router";
+import { CustomerWorkspaceView, parseWorkspaceTab } from "@/components/internal/workspace";
 import { fetchCustomer360 } from "@/lib/internal/ops-platform.functions";
-import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
-import { InternalAuditTable, AccountActivityLink } from "@/components/internal/internal-audit-table";
-import { InternalNotePanel } from "@/components/internal/internal-note-panel";
-import { RelationshipIntelligenceOperatorPanel } from "@/components/internal/relationship-intelligence-operator-panel";
+import { fetchOpsReviewFlagsForCustomer } from "@/lib/internal/ops-v1.functions";
 import { fetchRelationshipOperatorPanel } from "@/lib/internal/relationship-intelligence.functions";
+
+const TABS = [
+  "overview",
+  "accounts",
+  "alta-card",
+  "lending",
+  "relationship",
+  "companies",
+  "activity",
+  "flags",
+  "audit",
+  "notes",
+];
 
 export const Route = createFileRoute("/internal/users/$userId")({
   validateSearch: (search: Record<string, unknown>) => ({
+    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
     privateReview: search.privateReview === true || search.privateReview === "true",
   }),
   loader: async ({ params }) => {
-    const [customer360, operatorPanel] = await Promise.all([
+    const [customer360, operatorPanel, reviewFlags] = await Promise.all([
       fetchCustomer360({ data: params.userId }),
       fetchRelationshipOperatorPanel({ data: params.userId }),
+      fetchOpsReviewFlagsForCustomer({ data: params.userId }),
     ]);
-    return { ...customer360, operatorPanel };
+    return { ...customer360, operatorPanel, reviewFlags };
   },
   head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.user.discordUsername ?? "User"} — Alta Internal` }],
+    meta: [{ title: `${loaderData?.user.discordUsername ?? "Customer"} — Alta Internal` }],
   }),
-  component: InternalUserDetailPage,
+  component: CustomerWorkspaceRoute,
 });
 
-function InternalUserDetailPage() {
-  const { user, notes, timeline, altaPayActivity, isPrivateClient, operatorPanel } = Route.useLoaderData();
-  const { privateReview } = Route.useSearch();
-
-  return (
-    <InternalPageShell
-      title={user.discordUsername}
-      description={`Discord ID ${user.discordId} · User record ${user.id}`}
-    >
-      <Link
-        to="/internal/users"
-        className="mb-6 inline-block font-mono text-[12px] text-gold hover:underline"
-      >
-        ← Back to users
-      </Link>
-
-      <div className="mb-8 flex flex-wrap items-start gap-6">
-        {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt=""
-            className="size-16 rounded-full border border-border bg-surface-2"
-          />
-        ) : (
-          <div className="flex size-16 items-center justify-center rounded-full border border-border bg-surface-2 font-mono text-lg text-muted-foreground">
-            {user.discordUsername.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <StatusBadge status={formatAccountStatus(user.accountStatus)} />
-            {isPrivateClient && (
-              <span className="inline-flex rounded bg-gold/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
-                Private banking
-              </span>
-            )}
-            {user.tags.map((tag: any) => (
-              <span
-                key={tag}
-                className="inline-flex rounded bg-surface-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
-              >
-                {formatUserTag(tag)}
-              </span>
-            ))}
-          </div>
-          <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Email
-              </dt>
-              <dd className="mt-1">{user.email ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Minecraft
-              </dt>
-              <dd className="mt-1 font-mono text-[12px]">{user.minecraftUsername ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Last login
-              </dt>
-              <dd className="mt-1 font-mono text-[12px]">{user.lastLoginAt.slice(0, 19).replace("T", " ")}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Created
-              </dt>
-              <dd className="mt-1 font-mono text-[12px]">{user.createdAt.slice(0, 10)}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Companies
-              </dt>
-              <dd className="mt-1 type-finance">{user.companyCount}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                Total bank balance
-              </dt>
-              <dd className="mt-1 type-finance">{florin(user.totalBankBalance)}</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {privateReview ? (
-        <div className="mb-8 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
-          Private banking enrollment review — use Access tags below to grant{" "}
-          <span className="font-medium">private_client</span> after manual approval. Recommendations do not auto-enroll.
-        </div>
-      ) : null}
-
-      <Section title="Relationship intelligence" className="mb-10">
-        <RelationshipIntelligenceOperatorPanel
-          userId={user.id}
-          panel={operatorPanel.panel}
-          recommendations={operatorPanel.recommendations}
-          timelinePreview={operatorPanel.timelinePreview}
-          preApprovalReadiness={operatorPanel.preApprovalReadiness}
-          altaCardId={operatorPanel.altaCardId}
-        />
-      </Section>
-
-      <div className="grid gap-10 lg:grid-cols-2">
-        <Section title="Access tags">
-          <Card className="!p-6">
-            <InternalUserTagPanel user={user} />
-          </Card>
-        </Section>
-
-        <Section title="Account status">
-          <Card className="!p-6">
-            <InternalUserAccountStatusPanel user={user} />
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Linked companies" className="mt-10">
-        {user.companyMemberships.length === 0 ? (
-          <Card className="!p-6 text-[13px] text-muted-foreground">No company memberships.</Card>
-        ) : (
-          <Card className="!p-0">
-            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left type-meta">
-                  <th className="px-4 py-3">Company</th>
-                  <th className="px-4 py-3">Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {user.companyMemberships.map((m: any) => (
-                  <tr key={m.companyId} className="border-b border-border/50 last:border-0">
-                    <td className="px-4 py-3">
-                      <Link
-                        to="/internal/companies/$companyId"
-                        params={{ companyId: m.companyId }}
-                        className="hover:text-gold"
-                      >
-                        {m.companyName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">{m.roleLabel}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </Card>
-        )}
-      </Section>
-
-      <Section title="Bank accounts" className="mt-10">
-        {user.bankAccounts.length === 0 ? (
-          <Card className="!p-6 text-[13px] text-muted-foreground">No bank accounts.</Card>
-        ) : (
-          <Card className="!p-0">
-            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left type-meta">
-                  <th className="px-4 py-3">Account</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {user.bankAccounts.map((a: any) => (
-                  <tr key={a.id} className="border-b border-border/50 last:border-0">
-                    <td className="px-4 py-3">
-                      <Link to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} className="hover:text-gold">
-                        <div>{a.accountName}</div>
-                        <div className="font-mono text-[11px] text-muted-foreground">
-                          {a.accountNumber}
-                          {a.companyName ? ` · ${a.companyName}` : ""}
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-[12px]">{a.accountTypeLabel}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={a.statusLabel} />
-                    </td>
-                    <td className="tabular px-4 py-3 text-right">{florin(a.balance)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </Card>
-        )}
-      </Section>
-
-      {user.recentTransactions.length > 0 && (
-        <Section title="Recent bank activity" className="mt-10">
-          <Card className="!p-0">
-            <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left type-meta">
-                  <th className="px-4 py-3">Date & time</th>
-                  <th className="px-4 py-3">Account</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {user.recentTransactions.map((tx: any) => (
-                  <tr key={tx.id} className="border-b border-border/50 last:border-0">
-                    <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
-                      {formatActivityDateTime(tx.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <AccountActivityLink
-                        accountId={tx.accountId}
-                        accountName={tx.accountName}
-                        accountNumber={tx.accountNumber}
-                      />
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{tx.description}</td>
-                    <td className="px-4 py-3">{tx.type}</td>
-                    <td className="tabular px-4 py-3 text-right">{florin(tx.amount)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={tx.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </Card>
-        </Section>
-      )}
-
-      {(user.loanApplications.length > 0 || user.activeLoans.length > 0) && (
-        <Section title="Lending" className="mt-10">
-          <Card className="!p-5 space-y-4">
-            {user.activeLoans.map((loan) => (
-              <div key={loan.id} className="flex flex-wrap justify-between gap-2 border-b border-border/50 pb-3 last:border-0 last:pb-0">
-                <div>
-                  <Link to="/internal/lending/loans/$loanId" params={{ loanId: loan.id }} className="font-mono text-[11px] text-gold hover:underline">
-                    {loan.id.slice(0, 10)}
-                  </Link>
-                  <div className="text-[13px]">{loan.productLabel}</div>
-                </div>
-                <div className="text-right text-[13px]">
-                  <div>{florin(loan.currentPayoffAmount)} payoff today</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {florin(loan.principalOutstanding)} principal remaining
-                  </div>
-                  <StatusBadge status={loan.statusLabel} />
-                </div>
-              </div>
-            ))}
-            {user.loanApplications.map((app) => (
-              <div key={app.id} className="text-[13px] text-muted-foreground">
-                Application {app.id.slice(0, 8)} · {app.productLabel} · {florin(app.requestedAmount)} ·{" "}
-                <StatusBadge status={app.statusLabel} />
-              </div>
-            ))}
-          </Card>
-        </Section>
-      )}
-
-      {altaPayActivity.length > 0 && (
-        <Section title="Alta Pay activity" className="mt-10">
-          <Card className="!p-0">
-            <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left type-meta">
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Direction</th>
-                    <th className="px-4 py-3">Reference</th>
-                    <th className="px-4 py-3">Account</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {altaPayActivity.map((tx) => (
-                    <tr key={tx.id} className="border-b border-border/50 last:border-0">
-                      <td className="px-4 py-3 font-mono text-[11px]">{formatActivityDateTime(tx.createdAt)}</td>
-                      <td className="px-4 py-3 capitalize">{tx.direction}</td>
-                      <td className="px-4 py-3">
-                        <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: tx.id }} className="font-mono text-[11px] text-gold hover:underline">
-                          {tx.referenceCode}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <AccountActivityLink
-                          accountId={tx.accountId}
-                          accountName={tx.accountName}
-                          accountNumber={tx.accountNumber}
-                        />
-                      </td>
-                      <td className="tabular px-4 py-3 text-right">{florin(tx.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </Section>
-      )}
-
-      <Section title="Activity timeline" className="mt-10">
-        <InternalActivityTimeline events={timeline} />
-      </Section>
-
-      <Section title="Internal notes" className="mt-10">
-        <InternalNotePanel targetType="USER" targetId={user.id} initialNotes={notes} />
-      </Section>
-
-      <Section title="Recent admin actions" className="mt-10">
-        <InternalAuditTable rows={user.recentAuditLogs} />
-      </Section>
-    </InternalPageShell>
-  );
+function CustomerWorkspaceRoute() {
+  const data = Route.useLoaderData();
+  const { tab, privateReview } = Route.useSearch();
+  return <CustomerWorkspaceView data={data} activeTab={tab} privateReview={privateReview} />;
 }

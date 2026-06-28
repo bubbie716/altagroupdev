@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export function OpsConfirmDialog({
   open,
@@ -26,12 +26,32 @@ export function OpsConfirmDialog({
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !pending) onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, pending, onCancel]);
+
+  useEffect(() => {
+    if (open) {
+      setReason("");
+      setError(null);
+      dialogRef.current?.focus();
+    }
+  }, [open]);
 
   if (!open) return null;
 
   async function handleConfirm() {
     if (requireReason && !reason.trim()) {
-      setError("Reason is required.");
+      setError("A reason is required for this action.");
       return;
     }
     setPending(true);
@@ -41,40 +61,70 @@ export function OpsConfirmDialog({
       setReason("");
       onCancel();
     } catch (e) {
-      setError(e instanceof Error ? e.message.replace(/^BAD_REQUEST:/, "") : "Action failed.");
+      setError(
+        e instanceof Error
+          ? e.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN$/, "Admin permission required.")
+          : "This action could not be completed. Try again.",
+      );
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-background p-5 shadow-elevated">
-        <h3 className="text-base font-medium tracking-tight">{title}</h3>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !pending) onCancel();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-lg border border-border bg-background p-5 shadow-elevated outline-none"
+      >
+        <h3 id={titleId} className="text-[15px] font-medium tracking-tight">
+          {title}
+        </h3>
         {description ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+          <p id={descId} className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         ) : null}
         {children ? <div className="mt-4 space-y-3">{children}</div> : null}
         {requireReason ? (
           <div className="mt-4">
-            <label className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <label
+              htmlFor="ops-confirm-reason"
+              className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground"
+            >
               Reason (required)
             </label>
             <textarea
-              className="mt-1 min-h-[72px] w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm"
+              id="ops-confirm-reason"
+              className="mt-1 min-h-[72px] w-full rounded border border-border bg-surface-1 px-3 py-2 text-[13px] outline-none focus:border-gold/40"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Document why this action is being taken"
             />
           </div>
         ) : null}
-        {error ? <p className="mt-2 text-[12px] text-destructive">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-[12px] text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             disabled={pending}
             onClick={onCancel}
-            className="rounded-md border border-border px-3 py-2 text-[12px]"
+            className="h-8 rounded border border-border px-3 text-[12px] text-muted-foreground hover:bg-surface-2 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -84,8 +134,8 @@ export function OpsConfirmDialog({
             onClick={() => void handleConfirm()}
             className={
               variant === "danger"
-                ? "rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive"
-                : "rounded-md border border-gold/40 bg-gold/10 px-3 py-2 text-[12px] text-gold"
+                ? "h-8 rounded border border-destructive/40 bg-destructive/10 px-3 text-[12px] font-medium text-destructive hover:bg-destructive/15 disabled:opacity-50"
+                : "h-8 rounded border border-gold/40 bg-gold/10 px-3 text-[12px] font-medium text-gold hover:bg-gold/15 disabled:opacity-50"
             }
           >
             {pending ? "Processing…" : confirmLabel}

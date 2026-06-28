@@ -7,6 +7,7 @@ import {
   cancelScheduledManualInterestApplicationRecord,
   type ScheduledManualInterestRow,
 } from "@/lib/bank/manual-interest.functions";
+import { OpsAction } from "@/components/internal/ops-action";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -26,8 +27,7 @@ export function InternalScheduledManualInterestPanel({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCancel(id: string) {
-    if (!window.confirm("Cancel this scheduled interest application?")) return;
+  async function handleCancel(id: string, _reason: string) {
     setPendingId(id);
     setError(null);
     try {
@@ -94,14 +94,16 @@ export function InternalScheduledManualInterestPanel({
             header: "",
             cell: (row: ScheduledManualInterestRow) =>
               canCancel && row.status === "PENDING" ? (
-                <button
-                  type="button"
+                <OpsAction
+                  label={pendingId === row.id ? "Cancelling…" : "Cancel"}
+                  variant="danger"
+                  title="Cancel scheduled interest"
+                  description="Removes this pending scheduled interest application."
                   disabled={pendingId === row.id}
-                  onClick={() => void handleCancel(row.id)}
-                  className="font-mono text-[10px] uppercase tracking-[0.14em] text-destructive hover:underline disabled:opacity-50"
-                >
-                  {pendingId === row.id ? "Cancelling…" : "Cancel"}
-                </button>
+                  onConfirm={async (reason) => {
+                    await handleCancel(row.id, reason);
+                  }}
+                />
               ) : null,
           },
         ]}

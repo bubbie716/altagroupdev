@@ -10,7 +10,7 @@ export function AltaCardRelationshipRecommendationPanel({
 }) {
   return (
     <section
-      className={`rounded-xl border border-gold/30 bg-gold/5 p-6 ${className ?? ""}`}
+      className={`min-w-0 max-w-full rounded-xl border border-gold/30 bg-gold/5 p-6 ${className ?? ""}`}
     >
       <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         Relationship recommendations

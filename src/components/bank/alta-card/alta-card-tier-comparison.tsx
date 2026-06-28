@@ -22,7 +22,7 @@ export function AltaCardTierComparison({
   const tiers = ALTA_CARD_TIER_ORDER;
 
   return (
-    <div className={cn("grid gap-4", compact ? "sm:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-4")}>
+    <div className={cn("grid min-w-0 gap-4", compact ? "sm:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-4")}>
       {tiers.map((code) => {
         const config = ALTA_CARD_TIER_CONFIG[code];
         const isGold = code === "gold";
@@ -97,7 +97,7 @@ export function AltaCardTierComparison({
 
 export function AltaCardTierComparisonInline({ selectedTier }: { selectedTier?: AltaCardTierCode }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {ALTA_CARD_TIER_ORDER.map((code) => (
         <div
           key={code}

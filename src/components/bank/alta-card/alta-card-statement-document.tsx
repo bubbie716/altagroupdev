@@ -68,7 +68,7 @@ export function AltaCardStatementDocument({
   }
 
   return (
-    <div className="statement-document">
+    <div className="statement-document min-w-0 max-w-full">
       <div className="mb-8 flex flex-col gap-4 print:hidden sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap gap-2">
@@ -103,7 +103,7 @@ export function AltaCardStatementDocument({
 
       <article
         ref={pageRef}
-        className="statement-document__page mx-auto max-w-[820px] border border-border/80 bg-surface-1 px-8 py-10 shadow-card print:mx-0 print:max-w-none print:border-0 print:bg-white print:px-0 print:py-0 print:shadow-none"
+        className="statement-document__page mx-auto min-w-0 max-w-[820px] border border-border/80 bg-surface-1 px-4 py-8 shadow-card sm:px-8 sm:py-10 print:mx-0 print:max-w-none print:border-0 print:bg-white print:px-0 print:py-0 print:shadow-none"
       >
         <header className="border-b-2 border-foreground/80 pb-8 print:border-black">
           <div className="flex flex-wrap items-start justify-between gap-6">
@@ -202,7 +202,34 @@ export function AltaCardStatementDocument({
               No transactions in this billing period.
             </p>
           ) : (
-            <div className="mt-4 overflow-x-auto print:overflow-visible">
+            <>
+              <ul className="mt-4 divide-y divide-border/60 md:hidden">
+                {statement.transactions.map((tx) => {
+                  const signed = altaCardTransactionSignedAmount(tx.type, tx.amount);
+                  const prefix = signed > 0 ? "+" : signed < 0 ? "−" : "";
+                  return (
+                    <li key={tx.id} className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium">{altaCardTransactionLabel(tx.type)}</p>
+                        <p className="break-words text-[12px] text-muted-foreground">{tx.description}</p>
+                        {showEmployeeColumn ? (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            {altaCardEmployeeTransactionAttribution(tx) ?? "Company line"}
+                          </p>
+                        ) : null}
+                        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                          {formatActivityDateTime(tx.createdAt)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-mono text-[13px] tabular-nums">
+                        {prefix}
+                        {formatAltaCardCurrency(Math.abs(tx.amount))}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="mt-4 hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain md:block print:overflow-visible">
               <table className="w-full min-w-[560px] border-collapse text-[12px] print:text-[11px]">
                 <thead>
                   <tr className="border-b border-border print:border-black">
@@ -264,7 +291,8 @@ export function AltaCardStatementDocument({
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </section>
       </article>

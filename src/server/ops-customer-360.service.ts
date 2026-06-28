@@ -1,7 +1,7 @@
 import { getInternalUserDetail } from "@/server/internal-user-management.service";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
-import { buildActivityTimeline } from "@/server/ops-platform.service";
+import { buildUniversalCustomerTimeline } from "@/server/ops-universal-timeline.service";
 import { listInternalNotes } from "@/server/internal-note.service";
 
 function decimalToNumber(value: { toString(): string }): number {
@@ -13,7 +13,7 @@ export async function getInternalCustomer360(userId: string) {
   const [user, notes, timeline, altaPaySent, altaPayReceived] = await Promise.all([
     getInternalUserDetail(userId),
     listInternalNotes("USER", userId),
-    buildActivityTimeline("USER", userId, 40),
+    buildUniversalCustomerTimeline(userId, 60),
     prisma.bankTransaction.findMany({
       where: {
         bankAccount: { userId },

@@ -42,6 +42,16 @@ function mapAuditRow(
 }
 
 export async function writeAuditLog(input: WriteAuditLogInput): Promise<void> {
+  const metadata =
+    input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)
+      ? {
+          source: (input.metadata as Record<string, unknown>).source ?? "OPERATOR",
+          severity: (input.metadata as Record<string, unknown>).severity ?? "info",
+          timestamp: new Date().toISOString(),
+          ...input.metadata,
+        }
+      : { source: "OPERATOR", severity: "info", timestamp: new Date().toISOString() };
+
   await prisma.auditLog.create({
     data: {
       actorUserId: input.actorUserId,
@@ -54,7 +64,7 @@ export async function writeAuditLog(input: WriteAuditLogInput): Promise<void> {
       entityType: input.entityType,
       entityId: input.entityId ?? null,
       description: input.description,
-      metadata: input.metadata ?? undefined,
+      metadata,
     },
   });
 }
@@ -75,6 +85,7 @@ function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {
 
   if (filters.action) and.push({ action: filters.action });
   if (filters.entityType) and.push({ entityType: filters.entityType });
+  if (filters.entityId) and.push({ entityId: filters.entityId });
   if (filters.actorUserId) and.push({ actorUserId: filters.actorUserId });
   if (filters.targetUserId) and.push({ targetUserId: filters.targetUserId });
   if (filters.targetAccountId) and.push({ targetAccountId: filters.targetAccountId });

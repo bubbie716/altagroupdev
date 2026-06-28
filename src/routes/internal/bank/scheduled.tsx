@@ -30,8 +30,14 @@ function InternalScheduledTransfersPage() {
         </Link>
       </p>
 
-      <Section title="Run executor" className="mt-8">
-        <InternalScheduledTransfersPanel transfers={[]} showRunButton />
+      <Section title="Batch execution" className="mt-8">
+        <p className="text-[13px] text-muted-foreground">
+          Due transfer and payroll execution runs via cron. Admins can trigger manual runs from{" "}
+          <Link to="/internal/jobs" className="text-gold hover:underline">
+            System Jobs
+          </Link>
+          .
+        </p>
       </Section>
 
       <Section title={`Active scheduled transfers (${active.length})`} className="mt-10">

@@ -63,6 +63,15 @@ export async function bulkDenyDeposits(
     }
   }
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "BULK_DEPOSITS_DENIED",
+    entityType: "BANK_TRANSACTION",
+    description: `Bulk denied ${processed} deposit(s)`,
+    metadata: { processed, failed, reviewNote: reviewNote ?? null },
+  });
+
   return { processed, failed, results };
 }
 
@@ -113,6 +122,15 @@ export async function bulkDenyWithdrawals(
     }
   }
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "BULK_WITHDRAWALS_DENIED",
+    entityType: "BANK_TRANSACTION",
+    description: `Bulk denied ${processed} withdrawal(s)`,
+    metadata: { processed, failed, reviewNote: reviewNote ?? null },
+  });
+
   return { processed, failed, results };
 }
 
@@ -141,12 +159,7 @@ export async function bulkFreezeAccounts(
   return { processed, failed, results };
 }
 
-export async function exportAuditLogsCsv(filters: {
-  q?: string;
-  action?: string;
-  from?: string;
-  to?: string;
-}): Promise<string> {
+export async function exportAuditLogsCsv(filters: import("@/lib/internal/audit.types").AuditLogFilters): Promise<string> {
   await requireOperator();
   const { queryAuditLogs } = await import("@/server/audit.service");
   const rows = await queryAuditLogs({ ...filters }, 5000);

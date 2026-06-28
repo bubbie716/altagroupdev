@@ -21,9 +21,10 @@ export const runDueScheduledTransfersManual = createServerFn({ method: "POST" })
     scheduledTransfers: ExecuteDueScheduledTransfersResult;
     payroll: ExecuteDuePayrollRunsResult;
   }> => {
-    const user = await requireOperator();
+    const { requireAdmin } = await import("@/server/permissions.service");
+    const admin = await requireAdmin();
     const { runDueInternalScheduledTransfers } = await import("@/server/scheduled-transfer-admin.service");
-    return runDueInternalScheduledTransfers(user);
+    return runDueInternalScheduledTransfers(admin);
   },
 );
 

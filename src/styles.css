@@ -693,3 +693,24 @@
     }
   }
 }
+
+/* Alta Internal Console — dense ops layout */
+.internal-shell {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.internal-console-content .internal-page > section + section,
+.internal-console-content .internal-page > div + section {
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 767px) {
+  .internal-sidebar {
+    display: none;
+  }
+
+  .internal-shell {
+    flex-direction: column;
+  }
+}

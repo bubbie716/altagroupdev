@@ -11,9 +11,21 @@ export type GlobalSearchResultType =
   | "company"
   | "account"
   | "transaction"
+  | "deposit"
+  | "withdrawal"
   | "loan"
+  | "lending_application"
   | "statement"
-  | "alta_pay";
+  | "alta_card"
+  | "alta_card_application"
+  | "alta_card_review"
+  | "alta_card_statement"
+  | "alta_pay"
+  | "deal_room"
+  | "relationship_profile"
+  | "company_relationship"
+  | "audit"
+  | "job_run";
 
 export type GlobalSearchResult = {
   id: string;
@@ -21,6 +33,9 @@ export type GlobalSearchResult = {
   label: string;
   sublabel: string;
   href: string;
+  status?: string;
+  amount?: string;
+  date?: string;
 };
 
 export type OpsHealthItem = {
@@ -40,6 +55,8 @@ export type ExceptionItem = {
   href: string;
   amount?: number;
   createdAt: string;
+  dispositionStatus?: "OPEN" | "RESOLVED" | "ESCALATED" | "DISMISSED";
+  dispositionReason?: string | null;
 };
 
 export type ActivityFeedItem = {

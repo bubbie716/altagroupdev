@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
+import { OpsSection } from "@/components/internal/console";
+import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { InternalManualInterestOps } from "@/components/bank/internal-manual-interest-ops";
 import { InternalScheduledManualInterestPanel } from "@/components/bank/internal-scheduled-manual-interest-panel";
 import { InternalAccountInterestOps } from "@/components/bank/internal-account-interest-ops";
@@ -37,37 +38,51 @@ function InternalInterestPage() {
     <InternalPageShell
       title="Interest"
       description="Manual category credits, scheduled interest applications, and monthly deposit account accrual."
+      breadcrumbs={buildBreadcrumbs([
+        { label: "Dashboard", to: "/internal" },
+        { label: "Bank", to: "/internal/bank" },
+        { label: "Interest" },
+      ])}
     >
-      <Link
-        to="/internal/bank"
-        className="mb-6 inline-block font-mono text-[12px] text-gold hover:underline"
-      >
-        ← Bank ops
-      </Link>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <NavPill to="/internal/bank">Bank ops</NavPill>
+        <NavPill to="/internal/bank/accounts">Accounts</NavPill>
+        <NavPill to="/internal/jobs">System jobs</NavPill>
+      </div>
 
-      <Section title="Manual interest application">
-        <p className="mb-6 text-[13px] leading-relaxed text-muted-foreground">
-          Credit interest manually by percentage or fixed amount across one or more account
-          categories. Preview affected accounts before applying, or set an optional schedule date to
-          run via the shared platform cron (same endpoint as scheduled transfers).
+      <OpsSection title="Manual interest application">
+        <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
+          Credit interest manually by percentage or fixed amount across one or more account categories.
+          Preview affected accounts before applying, or schedule a future run via platform cron.
         </p>
         <InternalManualInterestOps />
-      </Section>
+      </OpsSection>
 
-      <Section title="Scheduled manual interest" className="mt-10">
+      <OpsSection title="Scheduled manual interest" className="mt-8">
         <p className="mb-4 text-[13px] text-muted-foreground">
           Pending category-based interest batches waiting for their scheduled run time.
         </p>
         <InternalScheduledManualInterestPanel initialRows={scheduledManualInterest} />
-      </Section>
+      </OpsSection>
 
-      <Section title="Deposit account accrual" className="mt-10">
+      <OpsSection title="Deposit account accrual" className="mt-8">
         <p className="mb-4 text-[13px] text-muted-foreground">
           Monthly interest accrual for eligible Alta Bank deposit accounts. Due accounts are also
           processed automatically by the platform cron job.
         </p>
         <InternalAccountInterestOps summary={interestOps} />
-      </Section>
+      </OpsSection>
     </InternalPageShell>
+  );
+}
+
+function NavPill({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="rounded border border-border bg-surface-1 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:border-gold/40 hover:text-gold"
+    >
+      {children}
+    </Link>
   );
 }

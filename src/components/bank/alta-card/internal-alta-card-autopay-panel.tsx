@@ -18,7 +18,7 @@ import {
   altaCardAutopayStatusLabel,
   altaCardAutopayTypeLabel,
 } from "@/lib/bank/alta-card-autopay-types";
-import { BankReviewButton } from "@/components/bank/bank-review-button";
+import { OpsAction } from "@/components/internal/ops-action";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { cn } from "@/lib/utils";
 
@@ -200,7 +200,15 @@ export function InternalAltaCardAutopayPanel({
               ) : null}
             </>
           ) : null}
-          <BankReviewButton label="Save autopay settings" variant="primary" onAction={handleSave} />
+          <OpsAction
+            label="Save autopay settings"
+            variant="primary"
+            title="Save autopay settings"
+            description="Updates autopay configuration for this card."
+            onConfirm={async () => {
+              await handleSave();
+            }}
+          />
         </div>
 
         <div className="space-y-3">
@@ -211,7 +219,18 @@ export function InternalAltaCardAutopayPanel({
             placeholder="Reason (required)"
             className="w-full rounded border border-border px-3 py-2 text-[13px]"
           />
-          <BankReviewButton label="Run autopay now" onAction={handleManualRun} />
+          <OpsAction
+            label="Run autopay now"
+            variant="primary"
+            title="Run autopay now"
+            description="Triggers an immediate autopay attempt."
+            impact={manualReason.trim() || "Uses reason from dialog if field empty"}
+            disabled={!manualReason.trim()}
+            onConfirm={async (reason) => {
+              if (!manualReason.trim()) setManualReason(reason);
+              await handleManualRun();
+            }}
+          />
         </div>
       </div>
 

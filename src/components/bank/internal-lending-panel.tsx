@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { BankReviewButton } from "@/components/bank/bank-review-button";
+import { OpsAction } from "@/components/internal/ops-action";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
@@ -40,8 +40,9 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
   if (row.threadId) {
     return (
       <Link
-        to="/internal/lending/applications/$applicationId/thread"
+        to="/internal/lending/applications/$applicationId"
         params={{ applicationId: row.id }}
+        search={{ tab: "thread" }}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Open Secure Deal Room
@@ -50,15 +51,19 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
   }
 
   return (
-    <BankReviewButton
-      label={pending ? "Opening deal room…" : "Open Secure Deal Room"}
-      onAction={async () => {
+    <OpsAction
+      label={pending ? "Opening…" : "Open Secure Deal Room"}
+      title="Open secure deal room"
+      description="Creates the applicant thread and opens the deal room workspace."
+      disabled={pending}
+      onConfirm={async () => {
         setPending(true);
         try {
           await openThread({ data: row.id });
           await router.navigate({
-            to: "/internal/lending/applications/$applicationId/thread",
+            to: "/internal/lending/applications/$applicationId",
             params: { applicationId: row.id },
+            search: { tab: "thread" },
           });
         } finally {
           setPending(false);
@@ -145,38 +150,45 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
           </div>
           <div className="flex flex-wrap gap-1 pt-1">
             {row.status === "pending" && (
-              <BankReviewButton
+              <OpsAction
                 label="Begin review"
-                onAction={async () => {
+                title="Begin application review"
+                description="Marks the application under review."
+                onConfirm={async (reason) => {
                   await markLoanApplicationUnderReviewRecord({
-                    data: { applicationId: row.id, reviewNote: reviewNote || undefined },
+                    data: { applicationId: row.id, reviewNote: reviewNote.trim() || reason },
                   });
                   await invalidate();
                 }}
               />
             )}
-            <BankReviewButton
+            <OpsAction
               label="Accept"
               variant="primary"
-              onAction={async () => {
+              title="Approve loan application"
+              description="Creates the loan with the terms below."
+              impact={`${florin(Number(principalAmount) || 0)} · ${termMonths} mo`}
+              onConfirm={async (reason) => {
                 await approveLoanApplicationRecord({
                   data: {
                     applicationId: row.id,
                     interestRate: Number(interestRate),
                     principalAmount: Number(principalAmount),
                     termMonths: Number(termMonths),
-                    reviewNote: reviewNote || undefined,
+                    reviewNote: reviewNote.trim() || reason,
                   },
                 });
                 await invalidate();
               }}
             />
-            <BankReviewButton
+            <OpsAction
               label="Deny"
               variant="danger"
-              onAction={async () => {
+              title="Deny loan application"
+              description="Closes the application."
+              onConfirm={async (reason) => {
                 await denyLoanApplicationRecord({
-                  data: { applicationId: row.id, reviewNote: reviewNote || undefined },
+                  data: { applicationId: row.id, reviewNote: reviewNote.trim() || reason },
                 });
                 await invalidate();
               }}

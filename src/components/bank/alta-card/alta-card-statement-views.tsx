@@ -192,12 +192,12 @@ export function AltaCardStatementList({
 
   return (
     <>
-      <ul className="overflow-hidden rounded-xl border border-border bg-surface-1/80 md:hidden">
+      <ul className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 md:hidden">
         {statements.map((row) => (
           <StatementRowMobile key={row.id} row={row} card={card} />
         ))}
       </ul>
-      <div className="hidden md:block">
+      <div className="hidden min-w-0 max-w-full md:block">
         <AdminDataTable
           columns={statementColumns(card, variant, statusLabels)}
           rows={statements}

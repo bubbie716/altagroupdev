@@ -38,6 +38,7 @@ import { Route as InternalTerminalRouteImport } from './routes/internal/terminal
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
 import { Route as InternalReportsRouteImport } from './routes/internal/reports'
 import { Route as InternalListingsRouteImport } from './routes/internal/listings'
+import { Route as InternalJobsRouteImport } from './routes/internal/jobs'
 import { Route as InternalIposRouteImport } from './routes/internal/ipos'
 import { Route as InternalExchangeRouteImport } from './routes/internal/exchange'
 import { Route as InternalExceptionsRouteImport } from './routes/internal/exceptions'
@@ -86,6 +87,16 @@ import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/in
 import { Route as BankAltaCardIndexRouteImport } from './routes/bank/alta-card/index'
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalRelationshipsUserIdRouteImport } from './routes/internal/relationships/$userId'
+import { Route as InternalQueuesWithdrawalsRouteImport } from './routes/internal/queues/withdrawals'
+import { Route as InternalQueuesPrivateBankingRouteImport } from './routes/internal/queues/private-banking'
+import { Route as InternalQueuesLendingApplicationsRouteImport } from './routes/internal/queues/lending-applications'
+import { Route as InternalQueuesExceptionsRouteImport } from './routes/internal/queues/exceptions'
+import { Route as InternalQueuesDepositsRouteImport } from './routes/internal/queues/deposits'
+import { Route as InternalQueuesDealRoomsRouteImport } from './routes/internal/queues/deal-rooms'
+import { Route as InternalQueuesCompanyVerificationsRouteImport } from './routes/internal/queues/company-verifications'
+import { Route as InternalQueuesAltaCardReviewsRouteImport } from './routes/internal/queues/alta-card-reviews'
+import { Route as InternalQueuesAltaCardApplicationsRouteImport } from './routes/internal/queues/alta-card-applications'
+import { Route as InternalQueuesAccountOpeningsRouteImport } from './routes/internal/queues/account-openings'
 import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/internal/companies/$companyId'
 import { Route as InternalBankWithdrawalsRouteImport } from './routes/internal/bank/withdrawals'
 import { Route as InternalBankTransfersRouteImport } from './routes/internal/bank/transfers'
@@ -135,6 +146,7 @@ import { Route as InternalBankTransactionsIndexRouteImport } from './routes/inte
 import { Route as InternalBankAltaPayIndexRouteImport } from './routes/internal/bank/alta-pay/index'
 import { Route as InternalBankAccountsIndexRouteImport } from './routes/internal/bank/accounts/index'
 import { Route as InternalAltaCardReviewsIndexRouteImport } from './routes/internal/alta-card/reviews/index'
+import { Route as InternalAltaCardCardsIndexRouteImport } from './routes/internal/alta-card/cards/index'
 import { Route as InternalAltaCardApplicationsIndexRouteImport } from './routes/internal/alta-card/applications/index'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
@@ -175,6 +187,7 @@ import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport } from 
 import { Route as InternalAltaCardApplicationsApplicationIdRouteRouteImport } from './routes/internal/alta-card/applications/$applicationId/route'
 import { Route as BankAltaCardBusinessCompanyIdRouteRouteImport } from './routes/bank/alta-card/business/$companyId/route'
 import { Route as BankAltaCardApplicationsApplicationIdRouteRouteImport } from './routes/bank/alta-card/applications/$applicationId/route'
+import { Route as InternalLendingApplicationsApplicationIdIndexRouteImport } from './routes/internal/lending/applications/$applicationId/index'
 import { Route as InternalAltaCardReviewsReviewIdIndexRouteImport } from './routes/internal/alta-card/reviews/$reviewId/index'
 import { Route as InternalAltaCardApplicationsApplicationIdIndexRouteImport } from './routes/internal/alta-card/applications/$applicationId/index'
 import { Route as BankAltaCardBusinessCompanyIdIndexRouteImport } from './routes/bank/alta-card/business/$companyId/index'
@@ -348,6 +361,11 @@ const InternalReportsRoute = InternalReportsRouteImport.update({
 const InternalListingsRoute = InternalListingsRouteImport.update({
   id: '/listings',
   path: '/listings',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalJobsRoute = InternalJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
   getParentRoute: () => InternalRouteRoute,
 } as any)
 const InternalIposRoute = InternalIposRouteImport.update({
@@ -590,6 +608,64 @@ const InternalRelationshipsUserIdRoute =
   InternalRelationshipsUserIdRouteImport.update({
     id: '/relationships/$userId',
     path: '/relationships/$userId',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesWithdrawalsRoute =
+  InternalQueuesWithdrawalsRouteImport.update({
+    id: '/queues/withdrawals',
+    path: '/queues/withdrawals',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesPrivateBankingRoute =
+  InternalQueuesPrivateBankingRouteImport.update({
+    id: '/queues/private-banking',
+    path: '/queues/private-banking',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesLendingApplicationsRoute =
+  InternalQueuesLendingApplicationsRouteImport.update({
+    id: '/queues/lending-applications',
+    path: '/queues/lending-applications',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesExceptionsRoute =
+  InternalQueuesExceptionsRouteImport.update({
+    id: '/queues/exceptions',
+    path: '/queues/exceptions',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesDepositsRoute = InternalQueuesDepositsRouteImport.update({
+  id: '/queues/deposits',
+  path: '/queues/deposits',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalQueuesDealRoomsRoute = InternalQueuesDealRoomsRouteImport.update({
+  id: '/queues/deal-rooms',
+  path: '/queues/deal-rooms',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalQueuesCompanyVerificationsRoute =
+  InternalQueuesCompanyVerificationsRouteImport.update({
+    id: '/queues/company-verifications',
+    path: '/queues/company-verifications',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesAltaCardReviewsRoute =
+  InternalQueuesAltaCardReviewsRouteImport.update({
+    id: '/queues/alta-card-reviews',
+    path: '/queues/alta-card-reviews',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesAltaCardApplicationsRoute =
+  InternalQueuesAltaCardApplicationsRouteImport.update({
+    id: '/queues/alta-card-applications',
+    path: '/queues/alta-card-applications',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
+const InternalQueuesAccountOpeningsRoute =
+  InternalQueuesAccountOpeningsRouteImport.update({
+    id: '/queues/account-openings',
+    path: '/queues/account-openings',
     getParentRoute: () => InternalRouteRoute,
   } as any)
 const InternalCompaniesCompanyIdRoute =
@@ -858,6 +934,12 @@ const InternalAltaCardReviewsIndexRoute =
     path: '/alta-card/reviews/',
     getParentRoute: () => InternalRouteRoute,
   } as any)
+const InternalAltaCardCardsIndexRoute =
+  InternalAltaCardCardsIndexRouteImport.update({
+    id: '/alta-card/cards/',
+    path: '/alta-card/cards/',
+    getParentRoute: () => InternalRouteRoute,
+  } as any)
 const InternalAltaCardApplicationsIndexRoute =
   InternalAltaCardApplicationsIndexRouteImport.update({
     id: '/alta-card/applications/',
@@ -1094,6 +1176,12 @@ const BankAltaCardApplicationsApplicationIdRouteRoute =
     path: '/bank/alta-card/applications/$applicationId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const InternalLendingApplicationsApplicationIdIndexRoute =
+  InternalLendingApplicationsApplicationIdIndexRouteImport.update({
+    id: '/applications/$applicationId/',
+    path: '/applications/$applicationId/',
+    getParentRoute: () => InternalLendingRouteRoute,
+  } as any)
 const InternalAltaCardReviewsReviewIdIndexRoute =
   InternalAltaCardReviewsReviewIdIndexRouteImport.update({
     id: '/alta-card/reviews/$reviewId/',
@@ -1321,6 +1409,7 @@ export interface FileRoutesByFullPath {
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
+  '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
@@ -1382,6 +1471,16 @@ export interface FileRoutesByFullPath {
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRouteWithChildren
+  '/internal/queues/account-openings': typeof InternalQueuesAccountOpeningsRoute
+  '/internal/queues/alta-card-applications': typeof InternalQueuesAltaCardApplicationsRoute
+  '/internal/queues/alta-card-reviews': typeof InternalQueuesAltaCardReviewsRoute
+  '/internal/queues/company-verifications': typeof InternalQueuesCompanyVerificationsRoute
+  '/internal/queues/deal-rooms': typeof InternalQueuesDealRoomsRoute
+  '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
+  '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
+  '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
+  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
+  '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
@@ -1437,6 +1536,7 @@ export interface FileRoutesByFullPath {
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/cards/': typeof InternalAltaCardCardsIndexRoute
   '/internal/alta-card/reviews/': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
@@ -1459,6 +1559,7 @@ export interface FileRoutesByFullPath {
   '/bank/alta-card/business/$companyId/': typeof BankAltaCardBusinessCompanyIdIndexRoute
   '/internal/alta-card/applications/$applicationId/': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
   '/internal/alta-card/reviews/$reviewId/': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/internal/lending/applications/$applicationId/': typeof InternalLendingApplicationsApplicationIdIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
@@ -1508,6 +1609,7 @@ export interface FileRoutesByTo {
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
+  '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
@@ -1561,6 +1663,16 @@ export interface FileRoutesByTo {
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRouteWithChildren
+  '/internal/queues/account-openings': typeof InternalQueuesAccountOpeningsRoute
+  '/internal/queues/alta-card-applications': typeof InternalQueuesAltaCardApplicationsRoute
+  '/internal/queues/alta-card-reviews': typeof InternalQueuesAltaCardReviewsRoute
+  '/internal/queues/company-verifications': typeof InternalQueuesCompanyVerificationsRoute
+  '/internal/queues/deal-rooms': typeof InternalQueuesDealRoomsRoute
+  '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
+  '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
+  '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
+  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
+  '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/alta-card': typeof BankAltaCardIndexRoute
@@ -1613,6 +1725,7 @@ export interface FileRoutesByTo {
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/cards': typeof InternalAltaCardCardsIndexRoute
   '/internal/alta-card/reviews': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay': typeof InternalBankAltaPayIndexRoute
@@ -1634,6 +1747,7 @@ export interface FileRoutesByTo {
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdIndexRoute
   '/internal/alta-card/applications/$applicationId': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
   '/internal/alta-card/reviews/$reviewId': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/internal/lending/applications/$applicationId': typeof InternalLendingApplicationsApplicationIdIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
@@ -1694,6 +1808,7 @@ export interface FileRoutesById {
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRoute
   '/internal/ipos': typeof InternalIposRoute
+  '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
@@ -1755,6 +1870,16 @@ export interface FileRoutesById {
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
   '/internal/companies/$companyId': typeof InternalCompaniesCompanyIdRouteWithChildren
+  '/internal/queues/account-openings': typeof InternalQueuesAccountOpeningsRoute
+  '/internal/queues/alta-card-applications': typeof InternalQueuesAltaCardApplicationsRoute
+  '/internal/queues/alta-card-reviews': typeof InternalQueuesAltaCardReviewsRoute
+  '/internal/queues/company-verifications': typeof InternalQueuesCompanyVerificationsRoute
+  '/internal/queues/deal-rooms': typeof InternalQueuesDealRoomsRoute
+  '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
+  '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
+  '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
+  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
+  '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
@@ -1810,6 +1935,7 @@ export interface FileRoutesById {
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
+  '/internal/alta-card/cards/': typeof InternalAltaCardCardsIndexRoute
   '/internal/alta-card/reviews/': typeof InternalAltaCardReviewsIndexRoute
   '/internal/bank/accounts/': typeof InternalBankAccountsIndexRoute
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
@@ -1832,6 +1958,7 @@ export interface FileRoutesById {
   '/bank/alta-card/business/$companyId/': typeof BankAltaCardBusinessCompanyIdIndexRoute
   '/internal/alta-card/applications/$applicationId/': typeof InternalAltaCardApplicationsApplicationIdIndexRoute
   '/internal/alta-card/reviews/$reviewId/': typeof InternalAltaCardReviewsReviewIdIndexRoute
+  '/internal/lending/applications/$applicationId/': typeof InternalLendingApplicationsApplicationIdIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
@@ -1893,6 +2020,7 @@ export interface FileRouteTypes {
     | '/internal/exceptions'
     | '/internal/exchange'
     | '/internal/ipos'
+    | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
     | '/internal/settings'
@@ -1954,6 +2082,16 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
+    | '/internal/queues/account-openings'
+    | '/internal/queues/alta-card-applications'
+    | '/internal/queues/alta-card-reviews'
+    | '/internal/queues/company-verifications'
+    | '/internal/queues/deal-rooms'
+    | '/internal/queues/deposits'
+    | '/internal/queues/exceptions'
+    | '/internal/queues/lending-applications'
+    | '/internal/queues/private-banking'
+    | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/users/$userId'
     | '/bank/alta-card/'
@@ -2009,6 +2147,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
+    | '/internal/alta-card/cards/'
     | '/internal/alta-card/reviews/'
     | '/internal/bank/accounts/'
     | '/internal/bank/alta-pay/'
@@ -2031,6 +2170,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/$companyId/'
     | '/internal/alta-card/applications/$applicationId/'
     | '/internal/alta-card/reviews/$reviewId/'
+    | '/internal/lending/applications/$applicationId/'
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
@@ -2080,6 +2220,7 @@ export interface FileRouteTypes {
     | '/internal/exceptions'
     | '/internal/exchange'
     | '/internal/ipos'
+    | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
     | '/internal/settings'
@@ -2133,6 +2274,16 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
+    | '/internal/queues/account-openings'
+    | '/internal/queues/alta-card-applications'
+    | '/internal/queues/alta-card-reviews'
+    | '/internal/queues/company-verifications'
+    | '/internal/queues/deal-rooms'
+    | '/internal/queues/deposits'
+    | '/internal/queues/exceptions'
+    | '/internal/queues/lending-applications'
+    | '/internal/queues/private-banking'
+    | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/users/$userId'
     | '/bank/alta-card'
@@ -2185,6 +2336,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/internal/alta-card/applications'
+    | '/internal/alta-card/cards'
     | '/internal/alta-card/reviews'
     | '/internal/bank/accounts'
     | '/internal/bank/alta-pay'
@@ -2206,6 +2358,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/$companyId'
     | '/internal/alta-card/applications/$applicationId'
     | '/internal/alta-card/reviews/$reviewId'
+    | '/internal/lending/applications/$applicationId'
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
@@ -2265,6 +2418,7 @@ export interface FileRouteTypes {
     | '/internal/exceptions'
     | '/internal/exchange'
     | '/internal/ipos'
+    | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
     | '/internal/settings'
@@ -2326,6 +2480,16 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
     | '/internal/companies/$companyId'
+    | '/internal/queues/account-openings'
+    | '/internal/queues/alta-card-applications'
+    | '/internal/queues/alta-card-reviews'
+    | '/internal/queues/company-verifications'
+    | '/internal/queues/deal-rooms'
+    | '/internal/queues/deposits'
+    | '/internal/queues/exceptions'
+    | '/internal/queues/lending-applications'
+    | '/internal/queues/private-banking'
+    | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/users/$userId'
     | '/bank/alta-card/'
@@ -2381,6 +2545,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
+    | '/internal/alta-card/cards/'
     | '/internal/alta-card/reviews/'
     | '/internal/bank/accounts/'
     | '/internal/bank/alta-pay/'
@@ -2403,6 +2568,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/$companyId/'
     | '/internal/alta-card/applications/$applicationId/'
     | '/internal/alta-card/reviews/$reviewId/'
+    | '/internal/lending/applications/$applicationId/'
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
@@ -2686,6 +2852,13 @@ declare module '@tanstack/react-router' {
       path: '/listings'
       fullPath: '/internal/listings'
       preLoaderRoute: typeof InternalListingsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/jobs': {
+      id: '/internal/jobs'
+      path: '/jobs'
+      fullPath: '/internal/jobs'
+      preLoaderRoute: typeof InternalJobsRouteImport
       parentRoute: typeof InternalRouteRoute
     }
     '/internal/ipos': {
@@ -3022,6 +3195,76 @@ declare module '@tanstack/react-router' {
       path: '/relationships/$userId'
       fullPath: '/internal/relationships/$userId'
       preLoaderRoute: typeof InternalRelationshipsUserIdRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/withdrawals': {
+      id: '/internal/queues/withdrawals'
+      path: '/queues/withdrawals'
+      fullPath: '/internal/queues/withdrawals'
+      preLoaderRoute: typeof InternalQueuesWithdrawalsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/private-banking': {
+      id: '/internal/queues/private-banking'
+      path: '/queues/private-banking'
+      fullPath: '/internal/queues/private-banking'
+      preLoaderRoute: typeof InternalQueuesPrivateBankingRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/lending-applications': {
+      id: '/internal/queues/lending-applications'
+      path: '/queues/lending-applications'
+      fullPath: '/internal/queues/lending-applications'
+      preLoaderRoute: typeof InternalQueuesLendingApplicationsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/exceptions': {
+      id: '/internal/queues/exceptions'
+      path: '/queues/exceptions'
+      fullPath: '/internal/queues/exceptions'
+      preLoaderRoute: typeof InternalQueuesExceptionsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/deposits': {
+      id: '/internal/queues/deposits'
+      path: '/queues/deposits'
+      fullPath: '/internal/queues/deposits'
+      preLoaderRoute: typeof InternalQueuesDepositsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/deal-rooms': {
+      id: '/internal/queues/deal-rooms'
+      path: '/queues/deal-rooms'
+      fullPath: '/internal/queues/deal-rooms'
+      preLoaderRoute: typeof InternalQueuesDealRoomsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/company-verifications': {
+      id: '/internal/queues/company-verifications'
+      path: '/queues/company-verifications'
+      fullPath: '/internal/queues/company-verifications'
+      preLoaderRoute: typeof InternalQueuesCompanyVerificationsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/alta-card-reviews': {
+      id: '/internal/queues/alta-card-reviews'
+      path: '/queues/alta-card-reviews'
+      fullPath: '/internal/queues/alta-card-reviews'
+      preLoaderRoute: typeof InternalQueuesAltaCardReviewsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/alta-card-applications': {
+      id: '/internal/queues/alta-card-applications'
+      path: '/queues/alta-card-applications'
+      fullPath: '/internal/queues/alta-card-applications'
+      preLoaderRoute: typeof InternalQueuesAltaCardApplicationsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/queues/account-openings': {
+      id: '/internal/queues/account-openings'
+      path: '/queues/account-openings'
+      fullPath: '/internal/queues/account-openings'
+      preLoaderRoute: typeof InternalQueuesAccountOpeningsRouteImport
       parentRoute: typeof InternalRouteRoute
     }
     '/internal/companies/$companyId': {
@@ -3367,6 +3610,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalAltaCardReviewsIndexRouteImport
       parentRoute: typeof InternalRouteRoute
     }
+    '/internal/alta-card/cards/': {
+      id: '/internal/alta-card/cards/'
+      path: '/alta-card/cards'
+      fullPath: '/internal/alta-card/cards/'
+      preLoaderRoute: typeof InternalAltaCardCardsIndexRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/alta-card/applications/': {
       id: '/internal/alta-card/applications/'
       path: '/alta-card/applications'
@@ -3646,6 +3896,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/alta-card/applications/$applicationId'
       preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/internal/lending/applications/$applicationId/': {
+      id: '/internal/lending/applications/$applicationId/'
+      path: '/applications/$applicationId'
+      fullPath: '/internal/lending/applications/$applicationId/'
+      preLoaderRoute: typeof InternalLendingApplicationsApplicationIdIndexRouteImport
+      parentRoute: typeof InternalLendingRouteRoute
     }
     '/internal/alta-card/reviews/$reviewId/': {
       id: '/internal/alta-card/reviews/$reviewId/'
@@ -4011,6 +4268,7 @@ interface InternalLendingRouteRouteChildren {
   InternalLendingIndexRoute: typeof InternalLendingIndexRoute
   InternalLendingLoansLoanIdRoute: typeof InternalLendingLoansLoanIdRoute
   InternalLendingApplicationsApplicationIdThreadRoute: typeof InternalLendingApplicationsApplicationIdThreadRoute
+  InternalLendingApplicationsApplicationIdIndexRoute: typeof InternalLendingApplicationsApplicationIdIndexRoute
 }
 
 const InternalLendingRouteRouteChildren: InternalLendingRouteRouteChildren = {
@@ -4020,6 +4278,8 @@ const InternalLendingRouteRouteChildren: InternalLendingRouteRouteChildren = {
   InternalLendingLoansLoanIdRoute: InternalLendingLoansLoanIdRoute,
   InternalLendingApplicationsApplicationIdThreadRoute:
     InternalLendingApplicationsApplicationIdThreadRoute,
+  InternalLendingApplicationsApplicationIdIndexRoute:
+    InternalLendingApplicationsApplicationIdIndexRoute,
 }
 
 const InternalLendingRouteRouteWithChildren =
@@ -4068,6 +4328,7 @@ interface InternalRouteRouteChildren {
   InternalExceptionsRoute: typeof InternalExceptionsRoute
   InternalExchangeRoute: typeof InternalExchangeRoute
   InternalIposRoute: typeof InternalIposRoute
+  InternalJobsRoute: typeof InternalJobsRoute
   InternalListingsRoute: typeof InternalListingsRoute
   InternalReportsRoute: typeof InternalReportsRoute
   InternalSettingsRoute: typeof InternalSettingsRoute
@@ -4075,6 +4336,16 @@ interface InternalRouteRouteChildren {
   InternalIndexRoute: typeof InternalIndexRoute
   InternalAltaCardCardIdRoute: typeof InternalAltaCardCardIdRoute
   InternalCompaniesCompanyIdRoute: typeof InternalCompaniesCompanyIdRouteWithChildren
+  InternalQueuesAccountOpeningsRoute: typeof InternalQueuesAccountOpeningsRoute
+  InternalQueuesAltaCardApplicationsRoute: typeof InternalQueuesAltaCardApplicationsRoute
+  InternalQueuesAltaCardReviewsRoute: typeof InternalQueuesAltaCardReviewsRoute
+  InternalQueuesCompanyVerificationsRoute: typeof InternalQueuesCompanyVerificationsRoute
+  InternalQueuesDealRoomsRoute: typeof InternalQueuesDealRoomsRoute
+  InternalQueuesDepositsRoute: typeof InternalQueuesDepositsRoute
+  InternalQueuesExceptionsRoute: typeof InternalQueuesExceptionsRoute
+  InternalQueuesLendingApplicationsRoute: typeof InternalQueuesLendingApplicationsRoute
+  InternalQueuesPrivateBankingRoute: typeof InternalQueuesPrivateBankingRoute
+  InternalQueuesWithdrawalsRoute: typeof InternalQueuesWithdrawalsRoute
   InternalRelationshipsUserIdRoute: typeof InternalRelationshipsUserIdRoute
   InternalUsersUserIdRoute: typeof InternalUsersUserIdRoute
   InternalAltaCardIndexRoute: typeof InternalAltaCardIndexRoute
@@ -4083,6 +4354,7 @@ interface InternalRouteRouteChildren {
   InternalUsersIndexRoute: typeof InternalUsersIndexRoute
   InternalAltaCardApplicationsApplicationIdRouteRoute: typeof InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren
   InternalAltaCardApplicationsIndexRoute: typeof InternalAltaCardApplicationsIndexRoute
+  InternalAltaCardCardsIndexRoute: typeof InternalAltaCardCardsIndexRoute
   InternalAltaCardReviewsIndexRoute: typeof InternalAltaCardReviewsIndexRoute
   InternalAltaCardReviewsReviewIdThreadRoute: typeof InternalAltaCardReviewsReviewIdThreadRoute
   InternalAltaCardReviewsReviewIdIndexRoute: typeof InternalAltaCardReviewsReviewIdIndexRoute
@@ -4098,6 +4370,7 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalExceptionsRoute: InternalExceptionsRoute,
   InternalExchangeRoute: InternalExchangeRoute,
   InternalIposRoute: InternalIposRoute,
+  InternalJobsRoute: InternalJobsRoute,
   InternalListingsRoute: InternalListingsRoute,
   InternalReportsRoute: InternalReportsRoute,
   InternalSettingsRoute: InternalSettingsRoute,
@@ -4105,6 +4378,19 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalIndexRoute: InternalIndexRoute,
   InternalAltaCardCardIdRoute: InternalAltaCardCardIdRoute,
   InternalCompaniesCompanyIdRoute: InternalCompaniesCompanyIdRouteWithChildren,
+  InternalQueuesAccountOpeningsRoute: InternalQueuesAccountOpeningsRoute,
+  InternalQueuesAltaCardApplicationsRoute:
+    InternalQueuesAltaCardApplicationsRoute,
+  InternalQueuesAltaCardReviewsRoute: InternalQueuesAltaCardReviewsRoute,
+  InternalQueuesCompanyVerificationsRoute:
+    InternalQueuesCompanyVerificationsRoute,
+  InternalQueuesDealRoomsRoute: InternalQueuesDealRoomsRoute,
+  InternalQueuesDepositsRoute: InternalQueuesDepositsRoute,
+  InternalQueuesExceptionsRoute: InternalQueuesExceptionsRoute,
+  InternalQueuesLendingApplicationsRoute:
+    InternalQueuesLendingApplicationsRoute,
+  InternalQueuesPrivateBankingRoute: InternalQueuesPrivateBankingRoute,
+  InternalQueuesWithdrawalsRoute: InternalQueuesWithdrawalsRoute,
   InternalRelationshipsUserIdRoute: InternalRelationshipsUserIdRoute,
   InternalUsersUserIdRoute: InternalUsersUserIdRoute,
   InternalAltaCardIndexRoute: InternalAltaCardIndexRoute,
@@ -4115,6 +4401,7 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
     InternalAltaCardApplicationsApplicationIdRouteRouteWithChildren,
   InternalAltaCardApplicationsIndexRoute:
     InternalAltaCardApplicationsIndexRoute,
+  InternalAltaCardCardsIndexRoute: InternalAltaCardCardsIndexRoute,
   InternalAltaCardReviewsIndexRoute: InternalAltaCardReviewsIndexRoute,
   InternalAltaCardReviewsReviewIdThreadRoute:
     InternalAltaCardReviewsReviewIdThreadRoute,

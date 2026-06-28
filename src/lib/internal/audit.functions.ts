@@ -25,3 +25,10 @@ export const fetchAuditLogsForEntity = createServerFn({ method: "GET" })
     await import("@/server/permissions.service").then((m) => m.requireOperator());
     return listAuditLogsForTarget(data.entityType, data.entityId);
   });
+
+export const exportAuditLogsOps = createServerFn({ method: "GET" })
+  .inputValidator((filters: AuditLogFilters) => filters)
+  .handler(async ({ data }) => {
+    const { exportAuditLogsCsv } = await import("@/server/ops-bulk.service");
+    return exportAuditLogsCsv(data);
+  });

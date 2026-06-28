@@ -1,4 +1,4 @@
-import { BankReviewButton } from "@/components/bank/bank-review-button";
+import { OpsAction } from "@/components/internal/ops-action";
 import {
   rejectCompanyVerificationRecord,
   revokeCompanyVerificationRecord,
@@ -9,41 +9,56 @@ import { normalizeCompanyVerificationStatus } from "@/lib/company/verification-s
 export function CompanyVerificationActions({
   companyId,
   verificationStatus,
+  companyName,
 }: {
   companyId: string;
   verificationStatus: string;
+  companyName?: string;
 }) {
   const state = normalizeCompanyVerificationStatus(verificationStatus);
   const isVerified = state === "verified";
   const isRejected = state === "rejected";
   const canReview = state === "unverified" || state === "pending";
+  const label = companyName ?? companyId;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {canReview && (
         <>
-          <BankReviewButton
+          <OpsAction
             label="Verify"
             variant="primary"
-            onAction={async () => {
-              await verifyCompanyRecord({ data: { companyId } });
+            title="Verify company"
+            description="This will mark the company as verified and enable full institutional operations."
+            impact={label}
+            confirmLabel="Confirm verification"
+            onConfirm={async (reason) => {
+              await verifyCompanyRecord({ data: { companyId, reviewNote: reason } });
             }}
           />
-          <BankReviewButton
-            label="Reject verification"
+          <OpsAction
+            label="Reject"
             variant="danger"
-            onAction={async () => {
-              await rejectCompanyVerificationRecord({ data: { companyId } });
+            title="Reject company verification"
+            description="This will reject the verification request."
+            impact={label}
+            confirmLabel="Confirm rejection"
+            onConfirm={async (reason) => {
+              await rejectCompanyVerificationRecord({ data: { companyId, reviewNote: reason } });
             }}
           />
         </>
       )}
       {isVerified && (
-        <BankReviewButton
-          label="Revoke verification"
+        <OpsAction
+          label="Revoke"
           variant="danger"
-          onAction={async () => {
-            await revokeCompanyVerificationRecord({ data: { companyId } });
+          title="Revoke company verification"
+          description="This will revoke verified status."
+          impact={label}
+          confirmLabel="Confirm revocation"
+          onConfirm={async (reason) => {
+            await revokeCompanyVerificationRecord({ data: { companyId, reviewNote: reason } });
           }}
         />
       )}

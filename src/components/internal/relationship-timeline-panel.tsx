@@ -67,7 +67,7 @@ export function RelationshipTimelinePanel({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface-1/80 p-6">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -106,9 +106,9 @@ export function RelationshipTimelinePanel({
                     {formatActivityDateTime(event.occurredAt)}
                   </time>
                 </div>
-                <h4 className="mt-1 text-[15px] font-medium">{event.title}</h4>
+                <h4 className="mt-1 break-words text-[15px] font-medium">{event.title}</h4>
                 {event.description ? (
-                  <p className="mt-1 text-[13px] text-muted-foreground whitespace-pre-wrap">{event.description}</p>
+                  <p className="mt-1 break-words text-[13px] text-muted-foreground whitespace-pre-wrap">{event.description}</p>
                 ) : null}
                 {link ? (
                   <Link

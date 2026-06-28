@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { internalBeforeLoad } from "@/lib/auth/guards";
+import { InternalShell } from "@/components/internal/console";
 
 export const Route = createFileRoute("/internal")({
   beforeLoad: internalBeforeLoad,
@@ -7,5 +8,9 @@ export const Route = createFileRoute("/internal")({
 });
 
 function InternalLayout() {
-  return <Outlet />;
+  return (
+    <InternalShell>
+      <Outlet />
+    </InternalShell>
+  );
 }

@@ -138,6 +138,9 @@ model User {
   relationshipRecommendationsReviewed RelationshipRecommendation[] @relation("RelationshipRecommendationReviewer")
   relationshipTimelineEvents     RelationshipTimelineEvent[]
   companyRelationshipRecommendationsReviewed CompanyRelationshipRecommendation[] @relation("CompanyRelationshipRecommendationReviewer")
+  opsReviewFlagsCreated          OpsReviewFlag[] @relation("OpsReviewFlagCreatedBy")
+  opsReviewFlagsResolved         OpsReviewFlag[] @relation("OpsReviewFlagResolvedBy")
+  opsExceptionDispositionsActed  OpsExceptionDisposition[] @relation("OpsExceptionDispositionActor")
 }
 
 model UserTagAssignment {
@@ -1527,6 +1530,72 @@ model PlatformSetting {
   updatedBy   User?    @relation("PlatformSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@index([updatedById])
+}
+
+enum OpsReviewFlagTargetType {
+  USER
+  COMPANY
+  BANK_ACCOUNT
+  BANK_TRANSACTION
+  LOAN
+  ALTA_CARD
+}
+
+enum OpsReviewFlagReason {
+  SUSPICIOUS_ACTIVITY
+  IDENTITY_CONCERN
+  MANUAL_REVIEW
+  HIGH_RISK
+  COMPLIANCE_REVIEW
+  CUSTOM
+}
+
+enum OpsReviewFlagStatus {
+  ACTIVE
+  RESOLVED
+}
+
+enum OpsExceptionDispositionStatus {
+  OPEN
+  RESOLVED
+  ESCALATED
+  DISMISSED
+}
+
+model OpsReviewFlag {
+  id               String                  @id @default(cuid())
+  targetType       OpsReviewFlagTargetType
+  targetId         String
+  reason           OpsReviewFlagReason
+  customReason     String?
+  status           OpsReviewFlagStatus     @default(ACTIVE)
+  createdByUserId  String
+  resolvedByUserId String?
+  resolveReason    String?
+  createdAt        DateTime                @default(now())
+  resolvedAt       DateTime?
+
+  createdBy  User  @relation("OpsReviewFlagCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  resolvedBy User? @relation("OpsReviewFlagResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OpsExceptionDisposition {
+  id              String                        @id @default(cuid())
+  exceptionKey    String                        @unique
+  status          OpsExceptionDispositionStatus @default(OPEN)
+  lastReason      String?
+  lastActorUserId String?
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+
+  lastActor User? @relation("OpsExceptionDispositionActor", fields: [lastActorUserId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([updatedAt])
 }
 
 enum AltaCardType {

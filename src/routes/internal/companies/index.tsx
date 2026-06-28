@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
+import { OpsSection } from "@/components/internal/console";
+import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { fetchInternalCompaniesFromDb } from "@/lib/company/company.functions";
 import type { InternalCompanyRow } from "@/lib/company/types";
 
@@ -37,10 +38,13 @@ function InternalCompanies() {
 
   return (
     <InternalPageShell
-      title="Company & Institution Accounts"
-      description="Registered entities on Alta. Companies do not log in directly — authorized representatives act on their behalf."
+      title="Companies"
+      breadcrumbs={buildBreadcrumbs([
+        { label: "Dashboard", to: "/internal" },
+        { label: "Companies" },
+      ])}
     >
-      <Section title="Registered Entities">
+      <OpsSection title={`Registered entities (${companies.length})`}>
         <AdminDataTable
           columns={[
             {
@@ -80,14 +84,16 @@ function InternalCompanies() {
                 <CompanyVerificationActions
                   companyId={c.id}
                   verificationStatus={c.verificationStatus}
+                  companyName={c.name}
                 />
               ),
             },
           ]}
           rows={companies}
           rowKey={(c) => c.id}
+          emptyState="No companies registered."
         />
-      </Section>
+      </OpsSection>
     </InternalPageShell>
   );
 }

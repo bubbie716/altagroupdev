@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
@@ -60,11 +59,11 @@ export function PageShell({
           printDocument && "print:max-w-none print:px-0 print:pt-0",
         )}
       >
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className={cn("page-shell-hero border-b border-border/60 pb-6 sm:pb-10", printDocument && "print:hidden")}
+        <div
+          className={cn(
+            "page-shell-hero animate-rise border-b border-border/60 pb-6 sm:pb-10",
+            printDocument && "print:hidden",
+          )}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -78,7 +77,7 @@ export function PageShell({
             </div>
             {action ? <div className="shrink-0">{action}</div> : null}
           </div>
-        </motion.div>
+        </div>
         <main className={cn("min-w-0 py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
       <PageFooter variant={resolvedVariant} pathname={pathname} />

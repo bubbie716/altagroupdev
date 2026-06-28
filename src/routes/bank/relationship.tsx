@@ -10,6 +10,8 @@ import {
   RELATIONSHIP_METRIC_LABEL,
   RELATIONSHIP_METRIC_VALUE,
   RELATIONSHIP_SECTION_GAP,
+  RELATIONSHIP_STAT_CELL,
+  RELATIONSHIP_STAT_GRID,
 } from "@/components/bank/customer-relationship-shared";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { florin } from "@/lib/bank/api";
@@ -42,21 +44,21 @@ function BankRelationshipPage() {
       <BankSubNav />
 
       <Section title="Relationship overview">
-        <Card className="!p-5 sm:!p-6 hover:!border-border">
-          <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2 lg:col-span-1">
+        <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
+          <dl className={RELATIONSHIP_STAT_GRID}>
+            <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Relationship tier</dt>
               <dd className="mt-2">
                 <RelationshipTierPill label={view.relationshipTierLabel} />
               </dd>
             </div>
-            <div className="sm:col-span-2 lg:col-span-1">
+            <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Total Alta assets</dt>
               <dd className="mt-1.5">
                 <RelationshipAssetValue>{florin(view.totalAltaAssets)}</RelationshipAssetValue>
               </dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Relationship since</dt>
               <dd className={cn(RELATIONSHIP_METRIC_VALUE, "font-medium")}>
                 {formatDueDate(view.relationshipSince)}
@@ -65,7 +67,7 @@ function BankRelationshipPage() {
                 <p className="mt-0.5 text-[12px] text-muted-foreground">{memberDuration}</p>
               ) : null}
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Products held</dt>
               <dd className="mt-2">
                 <ProductTags labels={productLabels} />
@@ -100,7 +102,7 @@ function BankRelationshipPage() {
               {view.opportunities.map((opportunity) => (
                 <div
                   key={opportunity.id}
-                  className="rounded-lg border border-border bg-surface-2/40 px-4 py-3 text-[14px]"
+                  className="min-w-0 break-words rounded-lg border border-border bg-surface-2/40 px-4 py-3 text-[14px]"
                 >
                   {opportunity.message}
                 </div>
@@ -111,27 +113,27 @@ function BankRelationshipPage() {
       </Section>
 
       <Section title="Lifetime activity" className={RELATIONSHIP_SECTION_GAP}>
-        <Card className="!p-5 sm:!p-6 hover:!border-border">
-          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+        <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
+          <dl className={RELATIONSHIP_STAT_GRID}>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Deposits</dt>
               <dd className={cn(RELATIONSHIP_METRIC_VALUE, "type-finance")}>
                 {florin(view.lifetimeDeposits)}
               </dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Withdrawals</dt>
               <dd className={cn(RELATIONSHIP_METRIC_VALUE, "type-finance")}>
                 {florin(view.lifetimeWithdrawals)}
               </dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Alta Pay volume</dt>
               <dd className={cn(RELATIONSHIP_METRIC_VALUE, "type-finance")}>
                 {florin(view.lifetimeAltaPayVolume)}
               </dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Interest earned</dt>
               <dd className={cn(RELATIONSHIP_METRIC_VALUE, "type-finance")}>
                 {florin(view.lifetimeInterestEarned)}
@@ -142,21 +144,21 @@ function BankRelationshipPage() {
       </Section>
 
       <Section title="Your products" className={RELATIONSHIP_SECTION_GAP}>
-        <Card className="!p-5 sm:!p-6 hover:!border-border">
-          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+        <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
+          <dl className={RELATIONSHIP_STAT_GRID}>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Bank accounts</dt>
               <dd className={RELATIONSHIP_METRIC_VALUE}>{view.productsHeld.activeBankAccounts}</dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Active loans</dt>
               <dd className={RELATIONSHIP_METRIC_VALUE}>{view.productsHeld.activeLoans}</dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Active Alta Cards</dt>
               <dd className={RELATIONSHIP_METRIC_VALUE}>{view.productsHeld.activeAltaCards}</dd>
             </div>
-            <div>
+            <div className={RELATIONSHIP_STAT_CELL}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Paid-off loans</dt>
               <dd className={RELATIONSHIP_METRIC_VALUE}>{view.productsHeld.paidOffLoans}</dd>
             </div>
@@ -165,7 +167,7 @@ function BankRelationshipPage() {
       </Section>
 
       <Section title="Your relationship timeline" className="mt-10 sm:mt-11">
-        <Card className="!p-5 sm:!p-6 hover:!border-border">
+        <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
           <RelationshipTimelineList
             events={view.timeline}
             emptyMessage="Milestones from your Alta products and activity will appear here as your relationship grows."

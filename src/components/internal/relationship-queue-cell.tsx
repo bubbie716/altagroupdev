@@ -12,7 +12,7 @@ export function RelationshipQueueCell({
   summary?: RelationshipProfileSummary | null;
 }) {
   return (
-    <div className="min-w-[120px]">
+    <div className="min-w-0">
       {summary ? (
         <p className="text-[12px] tabular-nums">
           {summary.relationshipScore}{" "}
@@ -40,7 +40,7 @@ export function CompanyRelationshipQueueCell({
   summary?: CompanyRelationshipProfileSummary | null;
 }) {
   return (
-    <div className="min-w-[120px]">
+    <div className="min-w-0">
       {summary ? (
         <p className="text-[12px] tabular-nums">
           {summary.relationshipScore}{" "}

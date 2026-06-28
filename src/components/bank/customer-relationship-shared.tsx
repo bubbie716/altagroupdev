@@ -6,6 +6,9 @@ export const RELATIONSHIP_METRIC_LABEL =
   "font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground";
 export const RELATIONSHIP_METRIC_VALUE = "mt-1.5 text-[15px] tabular-nums";
 export const RELATIONSHIP_SECTION_GAP = "mt-8";
+export const RELATIONSHIP_STAT_GRID =
+  "flex min-w-0 flex-col divide-y divide-border/60 sm:grid sm:grid-cols-2 sm:divide-y-0 sm:gap-4 lg:grid-cols-4";
+export const RELATIONSHIP_STAT_CELL = "py-4 first:pt-0 last:pb-0 sm:py-0";
 
 export function RelationshipProgressBar({
   currentTierLabel,
@@ -17,7 +20,7 @@ export function RelationshipProgressBar({
   progressPercent: number;
 }) {
   return (
-    <div className="mt-6 border-t border-border/60 pt-5">
+    <div className="mt-6 min-w-0 border-t border-border/60 pt-5">
       <p className={RELATIONSHIP_METRIC_LABEL}>Relationship progress</p>
       <div
         className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2/80"
@@ -56,7 +59,7 @@ export function ProductTags({ labels }: { labels: string[] }) {
     return <span className="text-[15px] text-muted-foreground">—</span>;
   }
   return (
-    <ul className="flex flex-wrap gap-1.5">
+    <ul className="flex min-w-0 flex-wrap gap-1.5">
       {labels.map((label) => (
         <li
           key={label}
@@ -86,17 +89,17 @@ export function RelationshipTimelineList({
   }
 
   return (
-    <div className="max-h-[min(28rem,50vh)] overflow-y-auto overscroll-contain pr-1">
-      <ol className="ml-3 border-l border-border/60">
+    <div className="min-w-0 max-h-[min(28rem,50vh)] overflow-y-auto overscroll-contain pr-1">
+      <ol className="ml-3 min-w-0 border-l border-border/60">
         {events.map((event) => (
-          <li key={event.id} className="relative pb-6 pl-5 last:pb-0">
+          <li key={event.id} className="relative min-w-0 pb-6 pl-5 last:pb-0">
             <span
               aria-hidden
               className="absolute -left-px top-1.5 z-[1] h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-gold/50 bg-surface-1"
             />
-            <p className="text-[15px] font-medium leading-snug">{event.title}</p>
+            <p className="break-words text-[15px] font-medium leading-snug">{event.title}</p>
             {event.description ? (
-              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              <p className="mt-1 break-words text-[13px] leading-relaxed text-muted-foreground">
                 {event.description}
               </p>
             ) : null}
@@ -115,7 +118,7 @@ export function RelationshipTimelineList({
 
 export function RelationshipTierPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-border bg-surface-2/40 px-3.5 py-1.5 font-serif text-[18px] font-medium tracking-tight text-foreground">
+    <span className="inline-flex max-w-full items-center rounded-full border border-border bg-surface-2/40 px-3.5 py-1.5 font-serif text-[18px] font-medium tracking-tight text-foreground">
       {label}
     </span>
   );

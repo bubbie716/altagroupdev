@@ -106,6 +106,17 @@ export const fetchInternalLendingOps = createServerFn({ method: "GET" }).handler
   return { applications, activeLoans, paidOffLoans, frozenLoans };
 });
 
+export const fetchInternalLoanApplicationDetail = createServerFn({ method: "GET" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { getInternalLoanApplicationById } = await import("@/server/lending.service");
+    await requireOperator();
+    const application = await getInternalLoanApplicationById(applicationId);
+    if (!application) throw new Error("NOT_FOUND");
+    return application;
+  });
+
 export const markLoanApplicationUnderReviewRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { applicationId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {

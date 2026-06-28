@@ -167,6 +167,15 @@ export const fetchInternalAltaCardOps = createServerFn({ method: "GET" })
     return { cards, applications };
   });
 
+export const fetchInternalAltaCardsFiltered = createServerFn({ method: "GET" })
+  .inputValidator((filters: InternalAltaCardFilters) => filters)
+  .handler(async ({ data: filters }) => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { listInternalAltaCards } = await import("@/server/alta-card.service");
+    await requireOperator();
+    return listInternalAltaCards(filters);
+  });
+
 export const fetchInternalAltaCardApplications = createServerFn({ method: "GET" })
   .handler(async () => {
     const { requireOperator } = await import("@/server/permissions.service");

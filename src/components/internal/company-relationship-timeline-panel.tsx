@@ -9,7 +9,7 @@ export function CompanyRelationshipTimelinePanel({
   timeline: CompanyRelationshipTimelineEventRow[];
 }) {
   return (
-    <section className="rounded-xl border border-border bg-surface-1/80 p-5">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-surface-1/80 p-5">
       <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         Company relationship timeline
       </h3>
@@ -22,7 +22,7 @@ export function CompanyRelationshipTimelinePanel({
           {timeline.map((event) => (
             <li key={event.id} className="border-b border-border/50 pb-3 last:border-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-[14px] font-medium">{event.title}</p>
+                <p className="break-words text-[14px] font-medium">{event.title}</p>
                 <time className="font-mono text-[10px] text-muted-foreground">
                   {formatActivityDateTime(event.occurredAt)}
                 </time>

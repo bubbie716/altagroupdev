@@ -186,15 +186,15 @@ export function AltaCardBusinessPanel({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       {hasMultipleBusinessCards ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
           This company has more than one business Alta Card on file. Balances below combine all
           active cards so they match the transaction history.
         </div>
       ) : null}
-      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
-        <div className="mx-auto w-full max-w-[360px] lg:mx-0">
+      <div className="flex min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:items-start">
+        <div className="mx-auto w-full min-w-0 max-w-[360px] lg:mx-0">
           <AltaCardVisual
             tier={businessCard.tier}
             cardLastFour={businessCard.cardLastFour}
@@ -202,10 +202,10 @@ export function AltaCardBusinessPanel({
             responsive
           />
         </div>
-        <div className="space-y-5">
-          <div>
-            <p className="font-serif text-[24px] tracking-tight">{companyName}</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">
+        <div className="min-w-0 space-y-5">
+          <div className="min-w-0">
+            <p className="break-words font-serif text-[24px] tracking-tight">{companyName}</p>
+            <p className="mt-1 break-words text-[13px] text-muted-foreground">
               {ALTA_CARD_TIER_LABELS[businessCard.tier]} ·{" "}
               {altaCardStatusLabel(businessCard.status)} · Business credit line
             </p>
@@ -217,7 +217,7 @@ export function AltaCardBusinessPanel({
                 : 0
             }
           />
-          <dl className="grid gap-3 sm:grid-cols-3">
+          <dl className="grid min-w-0 gap-3 sm:grid-cols-3">
             <AltaCardMetric label="Credit limit" value={formatAltaCardCurrency(businessCard.creditLimit)} />
             <AltaCardMetric label="Current balance" value={formatAltaCardCurrency(businessCard.currentBalance)} emphasis />
             <AltaCardMetric label="Available credit" value={formatAltaCardCurrency(businessCard.availableCredit)} emphasis />
@@ -231,7 +231,7 @@ export function AltaCardBusinessPanel({
         </div>
       ) : null}
 
-      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <AltaCardMetric label="Statement balance" value={formatAltaCardCurrency(businessCard.statementBalance)} />
         <AltaCardMetric label="Minimum payment" value={formatAltaCardCurrency(businessCard.minimumPaymentDue)} />
         <AltaCardMetric label="Payment due" value={paymentDueLabel(businessCard, billingSummary)} />
@@ -262,7 +262,7 @@ export function AltaCardBusinessPanel({
         </AltaCardSection>
       ) : null}
 
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4">
         <h3 className="font-serif text-[18px]">Employee cards</h3>
         <div className="space-y-3 md:hidden">
           {employeeCards.map((row) => (

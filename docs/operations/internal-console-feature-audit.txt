@@ -1,0 +1,465 @@
+Alta Internal Console — Product Feature Audit
+==============================================
+
+Assumption: The console is stable and functionally correct. This evaluates
+operational completeness for a digital bank, not bugs or UI polish.
+
+Method: Review of routes, workspaces, queues, server capabilities, and docs
+against what banking ops, compliance, support, and risk teams typically need
+on day one.
+
+
+PERSPECTIVE SUMMARY
+-------------------
+
+Role                          | Verdict
+------------------------------|--------------------------------------------------
+Head of Banking Operations    | Core money-movement queues and account lifecycle
+                              | are solid. Missing workload management, SLA
+                              | visibility, historical reporting, and bulk deny.
+COO                           | Can run daily ops at modest scale. Cannot run a
+                              | full compliance/fraud program or management
+                              | reporting from the console alone.
+Operations Manager            | Operators can complete most tasks, but often via
+                              | extra clicks (queue → workspace, no approve-from-
+                              | transaction). No "my queue" or assignment.
+Compliance Officer            | Audit trail + export is good. No case workflow,
+                              | investigation narrative, or regulatory reporting
+                              | — signals only.
+Customer Support Lead         | Customer 360 + notes + cross-links work. No
+                              | unified case/ticket, dispute tracking, or customer
+                              | comms log outside deal rooms.
+Fraud/Risk Lead               | Largest gap. No fraud queue, flags, watchlists,
+                              | card disputes, or velocity controls in-console.
+
+
+AREA-BY-AREA ASSESSMENT
+-----------------------
+
+DASHBOARD
+Can operators work efficiently? Partially — good situational awareness (queue
+depths, health, activity feed).
+
+Missing: My assignments, overdue/aging items, fraud/compliance case counts,
+shift handoff summary.
+
+Extra clicks: Activity feed is read-only; operators must jump to queues manually.
+
+Expected but absent: Queue aging heatmap, "items waiting >24h," operator on-call
+roster.
+
+
+QUEUES
+Strong: Deposits, withdrawals (approve/deny + bulk approve), account openings,
+company verification, lending/Alta Card apps & reviews, deal room inbox,
+exceptions triage, private banking list.
+
+Gaps:
+- Bulk deny (server exists, UI does not)
+- Approve/deny from transaction workspace
+- Queue aging/SLA columns
+- Assignment (who owns this item)
+- Export queue results
+- Exceptions queue is read-only (no resolve/dismiss/assign)
+
+
+CUSTOMER / COMPANY / ACCOUNT WORKSPACES
+Strong: Tabbed 360, notes, audit, related records, holds/restrictions (account),
+tags/status (customer), company verify/reject, RI on customer/company.
+
+Gaps:
+- No KYC document review vault
+- No customer-level restriction (account-level only)
+- No case attached to customer
+- Company workspace doesn't deep-link business Alta Card ops inline
+
+
+TRANSACTION WORKSPACE
+Strong: Read-only detail, audit, notes, cross-links.
+
+Gap (important): No approve/deny/review actions — operators must find the item
+in deposit/withdrawal queues. Real banks expect transaction-centric review for
+escalations.
+
+
+ALTA CARD WORKSPACE + CARDS LIST
+Strong: Full card ops (status, limits, tier, payments, fees, adjustments,
+employee cards, autopay), cards browse list, notes via cardholder.
+
+Gaps: No disputes/chargebacks, fraud blocks, card-specific notes (uses USER
+target), no export.
+
+
+LOAN WORKSPACE
+Strong: Servicing actions (interest, freeze, waive, payoff, adjustment, manual
+payment), schedule, notes, audit.
+
+Gaps: No collections workflow, restructuring, write-off beyond interest waive;
+deal room tab is link-only from loan (no thread from active loan).
+
+
+SECURE DEAL ROOMS
+Strong: Thread-based deal rooms for lending + Alta Card (message, attachments,
+status, decision panels in workspaces).
+
+Gaps: No full negotiation workflow (offers, document checklist, officer
+assignment) in UI — backend DealRoom model exists but console uses application
+threads only. No SLA visibility.
+
+
+RELATIONSHIP INTELLIGENCE
+Strong: Score/tier, holdings, recommendations with prefill into underwriting,
+private banking signals, timeline.
+
+Gaps: Not a CRM — no manual tier override audit, recommendation dismiss/escalate,
+or company RI index page. Acceptable for V1 credit desk.
+
+
+GLOBAL SEARCH
+Strong: Cross-entity search (customers, accounts, txs, loans, cards, apps,
+audit refs, jobs).
+
+Gaps: No advanced filters, saved searches, or bulk actions from results. Fine
+for V1.
+
+
+JOBS
+Strong: Catalog, last run health, admin manual run + audit.
+
+Gaps: No per-run history drill-down, failed-item retry, or alerting config.
+
+
+AUDIT
+Strong: Filters, entity deep-links from workspaces, CSV export (5k rows).
+
+Gaps: No scheduled export, case attachment, retention/certification UI. Strong
+for V1.
+
+
+REPORTS
+Present: Today-only totals with drill-down to queues/transactions/audit.
+
+Gaps: No historical reporting, trends, regulatory extracts, or CSV export.
+COO/compliance will expect more for V1 bank ops.
+
+
+COMPLIANCE
+Present: Live risk signal cards with deep links.
+
+Gaps: Explicitly no case management. No fraud monitoring, watchlists, SAR
+workflow. Signals ≠ investigations.
+
+
+SETTINGS
+Present: Maintenance mode (admin), live ops status summary.
+
+Gaps: No role/permission UI, queue SLAs, notification routing, operator roster.
+
+
+FEATURE RECOMMENDATIONS
+-----------------------
+
+Critical / High — meaningful V1 gaps
+
+Feature: Compliance / ops case management
+Problem it solves: Investigations scattered across notes, audit, queues with
+  no owner or resolution state
+Why operators expect it: Every bank needs "open case → investigate → document →
+  close" for exceptions, complaints, and compliance
+Implementation complexity: High
+Priority: Critical
+Would you build it for V1? Yes
+
+Feature: Card dispute / chargeback workflow
+Problem it solves: No way to track customer disputes on Alta Card txns
+Why operators expect it: Card issuers must intake, investigate, and resolve
+  disputes; regulatory and network expectations
+Implementation complexity: High
+Priority: Critical
+Would you build it for V1? Yes (if cards are live product)
+
+Feature: Queue item aging & SLA indicators
+Problem it solves: Operators can't see what's stale or breaching policy
+Why operators expect it: Standard ops metric; prevents deposits/withdrawals/apps
+  sitting unnoticed
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? Yes
+
+Feature: Bulk deny (deposits/withdrawals)
+Problem it solves: High-volume deny requires row-by-row clicks
+Why operators expect it: Server already supports it; ops teams batch-reject bad
+  traffic
+Implementation complexity: Low
+Priority: High
+Would you build it for V1? Yes
+
+Feature: Transaction workspace review actions
+Problem it solves: Escalations require hunting the same txn in a queue
+Why operators expect it: Support and ops think "open transaction → act"
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? Yes
+
+Feature: Historical operational reports + export
+Problem it solves: "Today only" insufficient for management and compliance
+Why operators expect it: COO needs weekly/monthly volumes, adjustment totals,
+  denial rates
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? Yes
+
+Feature: Fraud / suspicious activity flagging
+Problem it solves: No way to mark customer/account/txn for enhanced review
+Why operators expect it: Risk ops need flags that persist and appear in
+  workspaces/queues
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? Yes (minimal: flag + reason + audit)
+
+Feature: Operator assignment on queue items
+Problem it solves: No ownership; duplicate work or items fall through
+Why operators expect it: Even without full CRM, "assigned to me" is baseline
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? No (V2 unless volume demands)
+
+Feature: KYC / document review for onboarding
+Problem it solves: Company verification is approve/reject without doc workflow
+Why operators expect it: Digital banks review uploaded ID/business docs in-console
+Implementation complexity: High
+Priority: High
+Would you build it for V1? Partial V1 (link + status; full vault V2)
+
+Feature: Exceptions queue resolution workflow
+Problem it solves: Read-only triage; no "resolved" or "escalated to case"
+Why operators expect it: Exception center should close the loop
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? Yes
+
+Feature: Loan / card collections case
+Problem it solves: Delinquent cards/loans lack structured follow-up
+Why operators expect it: Lending ops expect delinquency queue beyond
+  freeze/delinquent status
+Implementation complexity: Medium
+Priority: High
+Would you build it for V1? No (V2 if portfolio grows)
+
+Feature: Job run history & failure drill-down
+Problem it solves: Can't inspect individual failed items from last cron
+Why operators expect it: Ops needs "why did this payroll run fail?" without DB
+  access
+Implementation complexity: Medium
+Priority: Medium
+Would you build it for V1? Yes
+
+Feature: Queue / list CSV export
+Problem it solves: Audit export only; no export from deposits, customers, etc.
+Why operators expect it: Compliance and ops often need ad-hoc extracts
+Implementation complexity: Low
+Priority: Medium
+Would you build it for V1? Yes
+
+Feature: Customer comms log (non-deal-room)
+Problem it solves: Support history only in deal rooms or notes
+Why operators expect it: Support lead wants phone/email log separate from
+  underwriting threads
+Implementation complexity: Medium
+Priority: Medium
+Would you build it for V1? No (V2)
+
+Feature: Watchlist / enhanced monitoring list
+Problem it solves: No persistent high-risk customer list
+Why operators expect it: AML programs use watchlists; overlaps with flags but
+  distinct
+Implementation complexity: Medium
+Priority: Medium
+Would you build it for V1? No (V2)
+
+Feature: Role & permission admin UI
+Problem it solves: Role changes require engineering
+Why operators expect it: Growing ops teams need admin-controlled access
+Implementation complexity: Medium
+Priority: Medium
+Would you build it for V1? No (V2; small team OK via DB)
+
+Feature: Ops alert notifications (beyond deal room bell)
+Problem it solves: Bell is deal-room oriented, not "queue item aged 48h"
+Why operators expect it: Proactive ops reduces SLA breaches
+Implementation complexity: Medium
+Priority: Medium
+Would you build it for V1? No (V2)
+
+Feature: Saved searches / search filters
+Problem it solves: Power users re-type common lookups
+Why operators expect it: QoL for high-volume desks
+Implementation complexity: Low
+Priority: Low
+Would you build it for V1? No
+
+Feature: Manual RI tier override with audit
+Problem it solves: Edge cases need human tier correction
+Why operators expect it: Relationship desk occasionally overrides model
+Implementation complexity: Low
+Priority: Low
+Would you build it for V1? No
+
+
+1. MISSING CRITICAL OPERATOR CAPABILITIES
+-----------------------------------------
+
+1. Structured case management (assign, status, resolution, link to entities)
+2. Card dispute / chargeback intake and tracking (if Alta Card is production)
+3. Fraud / suspicious-activity flagging on customers, accounts, transactions
+4. Queue aging and SLA visibility across money-movement and application queues
+5. Historical reporting beyond "today" with export
+6. Transaction-level review actions outside deposit/withdrawal queues
+7. Exceptions resolution workflow (not just deep links)
+
+
+2. MISSING QUALITY-OF-LIFE IMPROVEMENTS
+---------------------------------------
+
+1. Bulk deny for deposits/withdrawals (backend ready)
+2. CSV export from queues and explore lists
+3. Approve/deny lending or Alta Card applications from queue (without opening
+   workspace)
+4. Job run failure drill-down
+5. Card-specific internal notes (today: cardholder USER notes only)
+6. Loan workspace → linked deal room thread when origination thread exists
+7. "My open items" filter on deal room inbox
+8. Audit metadata filters (source/severity) once standardized
+
+
+3. FEATURES THAT SHOULD NOT BE ADDED
+------------------------------------
+
+Feature                              | Why not
+-------------------------------------|------------------------------------------
+Marketing / executive dashboards     | Vanity metrics; ops need actionable queues
+Customer-facing UI in internal       | Scope creep; keep separation
+  console
+Full CRM (pipelines, campaigns)        | RI covers credit; CRM is different product
+ML fraud scoring UI                  | Premature without transaction volume and
+                                       labeled fraud
+Custom report builder                | High maintenance; fixed reports + CSV export
+                                       suffice for V1
+Real-time analytics charts on        | Fake-analytics territory; queue counts +
+  dashboard                          health are enough
+Banker assignment in deal rooms      | Already explicitly deferred; Applicant ↔
+                                       Credit Desk model is correct for Alta V1
+Interbank / wire ops mock surfaces   | Not Alta's V1 product scope
+Per-operator gamification /          | No operational value
+  leaderboards
+
+
+4. FEATURES THAT CAN WAIT UNTIL V2
+----------------------------------
+
+- Operator assignment and "my queue" across all work types
+- Full KYC document vault with versioning
+- Collections cases for loans and delinquent cards
+- Watchlists and enhanced monitoring programs
+- SAR/regulatory filing workflow
+- Role/permission self-service admin
+- Proactive ops alerting (email/Slack on SLA breach)
+- Full DealRoom negotiation UI (offers, counters, checklist) if thread model
+  stays sufficient
+- Customer support ticket system integrated with comms log
+- Company-level relationship intelligence index page
+- Saved searches and advanced search filters
+
+
+5. OVERALL SCORE: 72 / 100
+--------------------------
+
+Breakdown (approximate):
+- Core banking ops (deposits, withdrawals, accounts, holds, adjustments): 85
+- Credit ops (lending, Alta Card, RI, deal rooms): 80
+- Audit & jobs: 78
+- Reporting & compliance program: 45
+- Fraud / disputes / case management: 25
+- Operator productivity (assignment, SLA, bulk, exports): 60
+
+The console is strong for a focused digital bank with deposits, lending, and
+cards. It is not yet complete for a regulated institution that must run fraud,
+disputes, and compliance investigations entirely inside ops tooling.
+
+
+6. IS THE INTERNAL CONSOLE PRODUCTION-READY?
+--------------------------------------------
+
+Conditionally yes — for a controlled launch with:
+- Low-to-moderate transaction volume
+- Manual fraud/dispute handling outside the console (spreadsheet + audit log)
+- Compliance investigations documented in notes + external case tool
+- Ops team small enough that assignment is informal
+
+Not production-ready as a self-contained ops platform for a bank that must prove
+end-to-end investigation, dispute, and reporting capability to regulators or
+card networks without external tools.
+
+
+7. WOULD YOU OPERATE THIS BANK EVERY DAY?
+-----------------------------------------
+
+Yes, with reservations.
+
+Comfortable because:
+- Money-movement review is first-class (queues, reason, audit, bulk approve)
+- Customer/account 360 supports support and ops investigations
+- Underwriting (lending + Alta Card) with secure threads and RI is above average
+  for a V1
+- Audit export and job visibility reduce "what happened?" uncertainty
+- Maintenance mode and admin/operator separation exist
+
+Uncomfortable because:
+- I would run disputes and compliance cases in a parallel system
+- I could not answer "show me all items older than 48 hours" from the console
+  alone
+- Fraud escalation would be ad hoc (notes + tags, no formal flag workflow)
+- Management reporting would require pulling audit CSVs or DB reports, not
+  /internal/reports
+
+For Alta's stated V1 scope (internal digital bank, credit desk model, no full
+AML program yet), this is operable. For "we are a full retail/card bank," I would
+want case management, disputes, and aging on the critical path before calling
+V1 complete.
+
+
+8. PRIORITIZED REMAINING FEATURES (HIGHEST OPERATIONAL VALUE BEFORE V1 COMPLETE)
+---------------------------------------------------------------------------------
+
+Rank | Feature                                              | V1?
+-----|------------------------------------------------------|-----
+1    | Ops/compliance case management (entity-linked,       | Yes
+     | assignable, resolvable)
+2    | Card dispute workflow (intake → investigate →        | Yes (if cards live)
+     | resolve + audit)
+3    | Queue aging / SLA columns on deposits, withdrawals,  | Yes
+     | applications
+4    | Bulk deny for deposits & withdrawals                 | Yes
+5    | Transaction workspace approve/deny for pending items | Yes
+6    | Historical reports + CSV export (volumes, denials,   | Yes
+     | adjustments by period)
+7    | Fraud/suspicious flag on customer, account,          | Yes
+     | transaction (reason + audit)
+8    | Exceptions queue resolution (resolve/escalate to     | Yes
+     | case)
+9    | Job run history / failure detail view                | Yes
+10   | Queue & explore list export                          | Yes
+11   | Operator assignment / "my queue"                   | V2
+12   | Full KYC document review                             | V2
+13   | Collections workflow                                 | V2
+14   | Ops alerting                                         | V2
+
+
+BOTTOM LINE
+-----------
+
+Alta Internal Console is a credible V1 operations platform for core banking
+and credit products. The highest-value gap is not more dashboards — it is
+closing the loop on exceptions, disputes, and investigations with cases, aging,
+and historical reporting, so operators never need to leave the console to answer
+"what's open, who owns it, and what did we decide?"

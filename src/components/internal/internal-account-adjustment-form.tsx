@@ -1,7 +1,10 @@
+"use client";
+
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { adminAdjustBankAccountRecord } from "@/lib/bank/bank.functions";
 import { florin } from "@/lib/bank/api";
+import { OpsAction } from "@/components/internal/ops-action";
 
 export function InternalAccountAdjustmentForm({ accountId }: { accountId: string }) {
   const router = useRouter();
@@ -9,56 +12,34 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [allowOverdraft, setAllowOverdraft] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const parsed = Number(amount);
+  const validAmount = Number.isFinite(parsed) && parsed > 0;
+  const validReason = reason.trim().length > 0;
+  const canSubmit = validAmount && validReason;
+
+  async function runAdjustment(confirmReason: string) {
     setError(null);
     setSuccess(null);
-    const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setError("Enter a valid amount.");
-      return;
-    }
-    if (!reason.trim()) {
-      setError("Reason is required.");
-      return;
-    }
-    if (
-      direction === "debit" &&
-      allowOverdraft &&
-      !window.confirm("Admin override: allow debit below zero balance?")
-    ) {
-      return;
-    }
-    if (!window.confirm(`${direction === "credit" ? "Credit" : "Debit"} ${florin(parsed)}?`)) return;
-
-    setSubmitting(true);
-    try {
-      const result = await adminAdjustBankAccountRecord({
-        data: {
-          accountId,
-          direction,
-          amount: parsed,
-          reason: reason.trim(),
-          allowOverdraft: direction === "debit" ? allowOverdraft : undefined,
-        },
-      });
-      setSuccess(`Adjustment recorded (${result.referenceCode}).`);
-      setAmount("");
-      setReason("");
-      await router.invalidate();
-    } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Adjustment failed.");
-    } finally {
-      setSubmitting(false);
-    }
+    const result = await adminAdjustBankAccountRecord({
+      data: {
+        accountId,
+        direction,
+        amount: parsed,
+        reason: reason.trim() || confirmReason,
+        allowOverdraft: direction === "debit" ? allowOverdraft : undefined,
+      },
+    });
+    setSuccess(`Adjustment recorded (${result.referenceCode}).`);
+    setAmount("");
+    setReason("");
+    await router.invalidate();
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-border/60 bg-surface-2/30 p-5">
+    <div className="space-y-4 rounded-lg border border-border/60 bg-surface-2/30 p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-[13px]">
           <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -111,13 +92,26 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
       )}
       {error && <p className="text-[12px] text-destructive">{error}</p>}
       {success && <p className="text-[12px] text-emerald-600">{success}</p>}
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
-      >
-        {submitting ? "Processing…" : "Submit adjustment"}
-      </button>
-    </form>
+      <OpsAction
+        label="Submit adjustment"
+        variant="primary"
+        title={`${direction === "credit" ? "Credit" : "Debit"} account`}
+        description="Posts a manual balance adjustment. This action is audited."
+        impact={
+          validAmount
+            ? `${direction === "credit" ? "Credit" : "Debit"} ${florin(parsed)}${allowOverdraft && direction === "debit" ? " · overdraft allowed" : ""}`
+            : undefined
+        }
+        disabled={!canSubmit}
+        onConfirm={async (confirmReason) => {
+          try {
+            await runAdjustment(confirmReason);
+          } catch (err) {
+            setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Adjustment failed.");
+            throw err;
+          }
+        }}
+      />
+    </div>
   );
 }

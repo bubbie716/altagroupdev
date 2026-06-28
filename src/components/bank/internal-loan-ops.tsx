@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { useRouter, Link } from "@tanstack/react-router";
-import { BankReviewButton } from "@/components/bank/bank-review-button";
-import { LoanRepaymentProgressBar } from "@/components/bank/loan-repayment-progress";
-import { LoanInterestGuaranteeScheduleTable } from "@/components/bank/loan-interest-guarantee-schedule-table";
+"use client";
+
+import { Link } from "@tanstack/react-router";
+import { OpsAction } from "@/components/internal/ops-action";
 import { florin } from "@/lib/bank/api";
 import {
   accrueLoanInterestRecord,
@@ -13,47 +12,45 @@ import {
   waivePendingLoanInterestRecord,
 } from "@/lib/bank/lending.functions";
 import type { InternalActiveLoanRow } from "@/lib/bank/lending-types";
+import { LoanRepaymentProgressBar } from "@/components/bank/loan-repayment-progress";
+import { LoanInterestGuaranteeScheduleTable } from "@/components/bank/loan-interest-guarantee-schedule-table";
 import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
+import { useState } from "react";
 
-const fieldLabel = "type-meta";
+const fieldLabel = "font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground";
 const inputClass =
-  "mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-[12px]";
+  "mt-1 h-8 w-full rounded border border-border bg-surface-1 px-2.5 text-[12px]";
 
 export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }) {
-  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustDesc, setAdjustDesc] = useState("");
-
-  async function invalidate() {
-    await router.invalidate();
-  }
 
   return (
     <div className="rounded-lg border border-border/60 bg-surface-2/20 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="type-meta-accent">{loan.productLabel}</p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-gold">{loan.productLabel}</p>
           <p className="mt-1 font-mono text-[12px]">{loan.borrowerLabel}</p>
-          {loan.companyName && (
+          {loan.companyName ? (
             <p className="mt-0.5 text-[12px] text-muted-foreground">{loan.companyName}</p>
-          )}
-          {loan.linkedAccountNumber && (
+          ) : null}
+          {loan.linkedAccountNumber ? (
             <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{loan.linkedAccountNumber}</p>
-          )}
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             to="/internal/lending/loans/$loanId"
             params={{ loanId: loan.id }}
-            className="rounded border border-gold/30 bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
+            className="h-7 rounded border border-gold/30 bg-surface-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
           >
             Open workspace
           </Link>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="rounded border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
+            className="h-7 rounded border border-border bg-surface-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
           >
             {expanded ? "Hide actions" : "Quick actions"}
           </button>
@@ -97,64 +94,69 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
         />
       </div>
 
-      {expanded && (
+      {expanded ? (
         <div className="mt-4 space-y-4 border-t border-border/50 pt-4">
           <div className="flex flex-wrap gap-1">
-            {loan.status === "active" && (
+            {loan.status === "active" ? (
               <>
-                <BankReviewButton
+                <OpsAction
                   label="Guarantee due interest"
                   variant="primary"
-                  onAction={async () => {
+                  title="Guarantee due interest"
+                  description="Posts guaranteed monthly interest for this loan."
+                  impact={florin(loan.guaranteedInterestOwed)}
+                  onConfirm={async () => {
                     await accrueLoanInterestRecord({ data: loan.id });
-                    await invalidate();
                   }}
                 />
-                <BankReviewButton
+                <OpsAction
                   label="Freeze"
                   variant="danger"
-                  onAction={async () => {
+                  title="Freeze loan"
+                  description="Prevents further disbursements and payments until unfrozen."
+                  onConfirm={async () => {
                     await freezeLoanRecord({ data: loan.id });
-                    await invalidate();
                   }}
                 />
               </>
-            )}
-            {loan.status === "frozen" && (
-              <BankReviewButton
+            ) : null}
+            {loan.status === "frozen" ? (
+              <OpsAction
                 label="Unfreeze"
                 variant="primary"
-                onAction={async () => {
+                title="Unfreeze loan"
+                description="Restores active loan status."
+                onConfirm={async () => {
                   await unfreezeLoanRecord({ data: loan.id });
-                  await invalidate();
                 }}
               />
-            )}
+            ) : null}
             {(loan.status === "paid_off" || loan.status === "cancelled") &&
-              (loan.remainingPotentialInterest > 0 || loan.guaranteedInterestOwed > 0) && (
-                <BankReviewButton
-                  label="Waive unpaid interest"
-                  variant="default"
-                  onAction={async () => {
-                    await waivePendingLoanInterestRecord({ data: loan.id });
-                    await invalidate();
-                  }}
-                />
-              )}
-            {loan.currentPayoffAmount <= 0 && loan.status !== "paid_off" && (
-              <BankReviewButton
+            (loan.remainingPotentialInterest > 0 || loan.guaranteedInterestOwed > 0) ? (
+              <OpsAction
+                label="Waive unpaid interest"
+                title="Waive unpaid interest"
+                description="Clears remaining potential and guaranteed interest."
+                onConfirm={async () => {
+                  await waivePendingLoanInterestRecord({ data: loan.id });
+                }}
+              />
+            ) : null}
+            {loan.currentPayoffAmount <= 0 && loan.status !== "paid_off" ? (
+              <OpsAction
                 label="Mark paid off"
                 variant="primary"
-                onAction={async () => {
+                title="Mark loan paid off"
+                description="Closes the loan with zero payoff balance."
+                onConfirm={async () => {
                   await markLoanPaidOffRecord({ data: loan.id });
-                  await invalidate();
                 }}
               />
-            )}
+            ) : null}
           </div>
 
           <div>
-            <p className="type-meta-sm mb-2">Interest guarantee schedule</p>
+            <p className={`${fieldLabel} mb-2`}>Interest guarantee schedule</p>
             <LoanInterestGuaranteeScheduleTable schedule={loan.interestGuaranteeSchedule} />
           </div>
 
@@ -179,23 +181,26 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
               />
             </div>
           </div>
-          <BankReviewButton
+          <OpsAction
             label="Apply adjustment"
-            onAction={async () => {
+            variant="primary"
+            title="Apply loan adjustment"
+            description="Posts a manual principal adjustment to this loan."
+            impact={`${florin(Number(adjustAmount) || 0)} · ${adjustDesc || "No description"}`}
+            onConfirm={async (reason) => {
               await adminAdjustLoanRecord({
                 data: {
                   loanId: loan.id,
                   amount: Number(adjustAmount),
-                  description: adjustDesc,
+                  description: adjustDesc || reason,
                 },
               });
               setAdjustAmount("");
               setAdjustDesc("");
-              await invalidate();
             }}
           />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -211,9 +216,9 @@ function Metric({
 }) {
   return (
     <div className="rounded-md border border-border/50 px-3 py-2">
-      <div className="type-meta-sm">{label}</div>
+      <div className={fieldLabel}>{label}</div>
       <div
-        className={`mt-1 text-[12px] font-medium ${placeholder ? "font-mono uppercase tracking-[0.1em] text-gold/80" : "type-finance"}`}
+        className={`mt-1 text-[12px] font-medium ${placeholder ? "font-mono uppercase tracking-[0.1em] text-gold/80" : "tabular-nums"}`}
       >
         {value}
       </div>

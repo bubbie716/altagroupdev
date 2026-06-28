@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
+import { OpsSection } from "@/components/internal/console";
+import { OpsTable, type OpsTableColumn } from "@/components/internal/console/ops-table";
 import { OpsQueueCard } from "@/components/internal/ops-queue-card";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { AccountActivityLink } from "@/components/internal/internal-audit-table";
@@ -8,6 +9,7 @@ import { fetchEnhancedDashboard } from "@/lib/internal/ops-platform.functions";
 import { florin } from "@/lib/bank/api";
 import { Link } from "@tanstack/react-router";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { buildBreadcrumbs } from "@/components/internal/console";
 
 export const Route = createFileRoute("/internal/")({
   loader: () => fetchEnhancedDashboard(),
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/internal/")({
 });
 
 function InternalOperationsCenter() {
-  const { metrics: m, health, activity, negativeBalances, largeAdjustments, maintenance } =
+  const { metrics: m, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging } =
     Route.useLoaderData();
 
   const totalQueues =
@@ -31,10 +33,8 @@ function InternalOperationsCenter() {
   return (
     <InternalPageShell
       title="Operations Center"
-      description="Queues, platform health, and live activity for Alta Bank operations."
-      hideSearch
+      breadcrumbs={buildBreadcrumbs([{ label: "Dashboard" }])}
     >
-      <InternalGlobalSearchInline />
 
       {maintenance.enabled ? (
         <div className="mb-8 rounded-lg border border-amber-400/40 bg-amber-400/10 px-5 py-4">
@@ -63,22 +63,40 @@ function InternalOperationsCenter() {
         </div>
       ) : null}
 
-      <Section title={`Operational queues · ${totalQueues} items`}>
+      <OpsSection title={`Operational queues · ${totalQueues} items`}>
+        {(queueAging.olderThan24Hours > 0 || queueAging.olderThan72Hours > 0) ? (
+          <div className="mb-4 flex flex-wrap gap-3 rounded-lg border border-amber-400/30 bg-amber-400/5 px-4 py-3">
+            {queueAging.olderThan24Hours > 0 ? (
+              <span className="font-mono text-[11px] text-amber-200">
+                ⚠ {queueAging.olderThan24Hours} item{queueAging.olderThan24Hours === 1 ? "" : "s"} older than 24 hours
+              </span>
+            ) : null}
+            {queueAging.olderThan72Hours > 0 ? (
+              <span className="font-mono text-[11px] text-red-300">
+                🚨 {queueAging.olderThan72Hours} item{queueAging.olderThan72Hours === 1 ? "" : "s"} older than 72 hours
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <OpsQueueCard label="Pending deposits" count={m.pendingDeposits} to="/internal/bank/deposits" cta="Review" />
-          <OpsQueueCard label="Pending withdrawals" count={m.pendingWithdrawals} to="/internal/bank/withdrawals" cta="Review" />
-          <OpsQueueCard label="Loan applications" count={m.pendingLoanApplications} to="/internal/lending" cta="Lending" />
-          <OpsQueueCard label="Company verifications" count={m.pendingCompanyVerifications} to="/internal/companies" cta="Companies" tone={m.pendingCompanyVerifications > 0 ? "warn" : "neutral"} />
-          <OpsQueueCard label="Account openings" count={m.pendingAccountOpenings} to="/internal/bank" cta="Bank ops" />
+          <OpsQueueCard label="Pending deposits" count={m.pendingDeposits} to="/internal/queues/deposits" cta="Review" />
+          <OpsQueueCard label="Pending withdrawals" count={m.pendingWithdrawals} to="/internal/queues/withdrawals" cta="Review" />
+          <OpsQueueCard label="Loan applications" count={m.pendingLoanApplications} to="/internal/queues/lending-applications" cta="Review" />
+          <OpsQueueCard label="Company verifications" count={m.pendingCompanyVerifications} to="/internal/queues/company-verifications" cta="Review" tone={m.pendingCompanyVerifications > 0 ? "warn" : "neutral"} />
+          <OpsQueueCard label="Account openings" count={m.pendingAccountOpenings} to="/internal/queues/account-openings" cta="Review" />
           <OpsQueueCard label="Failed transfers" count={m.failedScheduledTransfers} to="/internal/bank/transfers" cta="Transfers" tone={m.failedScheduledTransfers > 0 ? "alert" : "neutral"} />
-          <OpsQueueCard label="Negative balances" count={negativeBalances} to="/internal/exceptions" cta="Exceptions" tone={negativeBalances > 0 ? "alert" : "neutral"} />
+          <OpsQueueCard label="Negative balances" count={negativeBalances} to="/internal/queues/exceptions" cta="Exceptions" tone={negativeBalances > 0 ? "alert" : "neutral"} />
           <OpsQueueCard label="Frozen accounts" count={m.frozenAccounts} to="/internal/bank/accounts?status=frozen" cta="Accounts" />
           <OpsQueueCard label="Restricted users" count={m.restrictedUsers} to="/internal/users?accountStatus=restricted" cta="Users" />
           <OpsQueueCard label="Large adjustments (30d)" count={largeAdjustments} to="/internal/reports" cta="Reports" tone={largeAdjustments > 0 ? "warn" : "neutral"} />
         </div>
-      </Section>
+      </OpsSection>
 
-      <Section title="Operational health" className="mt-10">
+      <OpsSection title="Operational health" className="mt-8">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-[12px] text-muted-foreground">Job and platform health snapshot.</p>
+          <QuickLink to="/internal/jobs">All jobs →</QuickLink>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {health.map((h) => (
             <div key={h.key} className="rounded-lg border border-border/60 bg-surface-1/60 px-4 py-3">
@@ -97,37 +115,35 @@ function InternalOperationsCenter() {
             </div>
           ))}
         </div>
-      </Section>
+      </OpsSection>
 
-      <Section title="Platform vitals" className="mt-10">
+      <OpsSection title="Platform vitals" className="mt-8">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <InternalStatCard label="Users" value={m.totalUsers.toLocaleString()} />
           <InternalStatCard label="Active accounts" value={m.activeBankAccounts.toLocaleString()} />
           <InternalStatCard label="Balances held" value={florin(m.totalBalancesHeld)} />
           <InternalStatCard label="Active loans" value={m.activeLoans.toLocaleString()} />
         </div>
-      </Section>
+      </OpsSection>
 
-      <Section title="Activity feed" className="mt-10">
+      <OpsSection title="Recent operational events" className="mt-8">
+        <p className="mb-3 text-[12px] text-muted-foreground">
+          Live operational activity — not the official compliance audit trail. For audit history see{" "}
+          <Link to="/internal/audit" className="text-gold hover:underline">
+            Audit Log
+          </Link>
+          .
+        </p>
         <ActivityFeedTable items={activity} />
         <div className="mt-4 flex flex-wrap gap-2">
           <QuickLink to="/internal/bank/transactions">Transaction explorer</QuickLink>
           <QuickLink to="/internal/bank/alta-pay">Alta Pay ops</QuickLink>
-          <QuickLink to="/internal/exceptions">Exception center</QuickLink>
+          <QuickLink to="/internal/queues/exceptions">Exception center</QuickLink>
           <QuickLink to="/internal/reports">Reports</QuickLink>
+          <QuickLink to="/internal/audit">Audit log</QuickLink>
         </div>
-      </Section>
+      </OpsSection>
     </InternalPageShell>
-  );
-}
-
-import { InternalGlobalSearch } from "@/components/internal/internal-global-search";
-
-function InternalGlobalSearchInline() {
-  return (
-    <div className="mb-8">
-      <InternalGlobalSearch />
-    </div>
   );
 }
 
@@ -136,50 +152,57 @@ function ActivityFeedTable({
 }: {
   items: Awaited<ReturnType<typeof fetchEnhancedDashboard>>["activity"];
 }) {
-  if (items.length === 0) {
-    return <p className="text-[13px] text-muted-foreground">No recent activity.</p>;
-  }
+  type ActivityRow = (typeof items)[number];
+  const columns: OpsTableColumn<ActivityRow>[] = [
+    {
+      key: "time",
+      header: "Time",
+      cell: (a) => (
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {a.createdAt.slice(0, 19).replace("T", " ")}
+        </span>
+      ),
+    },
+    {
+      key: "category",
+      header: "Category",
+      cell: (a) => <span className="font-mono text-[10px] uppercase">{a.category}</span>,
+    },
+    {
+      key: "account",
+      header: "Account",
+      cell: (a) => <AccountActivityLink accountId={a.accountId} label={a.accountLabel} />,
+    },
+    {
+      key: "event",
+      header: "Event",
+      cell: (a) => (
+        <>
+          {a.href ? (
+            <Link to={a.href} className="hover:text-gold">
+              {a.title}
+            </Link>
+          ) : (
+            a.title
+          )}
+          <div className="text-[12px] text-muted-foreground">{a.detail}</div>
+        </>
+      ),
+    },
+    {
+      key: "actor",
+      header: "Actor",
+      cell: (a) => <span className="font-mono text-[11px]">{a.actorLabel ?? "—"}</span>,
+    },
+  ];
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-border/60">
-      <table className="w-full min-w-[640px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-left type-meta">
-            <th className="px-4 py-3">Time</th>
-            <th className="px-4 py-3">Category</th>
-            <th className="px-4 py-3">Account</th>
-            <th className="px-4 py-3">Event</th>
-            <th className="px-4 py-3">Actor</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((a) => (
-            <tr key={a.id} className="border-b border-border/50 last:border-0">
-              <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
-                {a.createdAt.slice(0, 19).replace("T", " ")}
-              </td>
-              <td className="px-4 py-3 font-mono text-[10px] uppercase">{a.category}</td>
-              <td className="px-4 py-3 text-[13px]">
-                <AccountActivityLink
-                  accountId={a.accountId}
-                  label={a.accountLabel}
-                />
-              </td>
-              <td className="px-4 py-3">
-                {a.href ? (
-                  <Link to={a.href} className="hover:text-gold">
-                    {a.title}
-                  </Link>
-                ) : (
-                  a.title
-                )}
-                <div className="text-[12px] text-muted-foreground">{a.detail}</div>
-              </td>
-              <td className="px-4 py-3 font-mono text-[11px]">{a.actorLabel ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <OpsTable
+      columns={columns}
+      rows={items}
+      rowKey={(a) => a.id}
+      emptyState="No recent activity."
+    />
   );
 }
 

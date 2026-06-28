@@ -1,17 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
-import { InternalPageShell } from "@/components/internal/internal-page-shell";
-import { InternalActiveLoanCard } from "@/components/bank/internal-loan-ops";
-import { InternalNotePanel } from "@/components/internal/internal-note-panel";
-import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
+import { createFileRoute } from "@tanstack/react-router";
+import { LoanWorkspaceView, parseWorkspaceTab } from "@/components/internal/workspace";
 import { fetchInternalLoanDetailOps, fetchActivityTimeline } from "@/lib/internal/ops-platform.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
 import { fetchLoanBorrowerRelationshipSummary, fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
-import { ResolvedLendingRelationshipIntegrationBlock } from "@/components/internal/relationship-integration-blocks";
-import { LoanPaymentScheduleTable } from "@/components/bank/loan-payment-schedule-table";
-import { InternalLoanPaymentForm } from "@/components/internal/internal-loan-payment-form";
+
+const TABS = ["overview", "payments", "schedule", "deal-room", "relationship", "activity", "notes"];
 
 export const Route = createFileRoute("/internal/lending/loans/$loanId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
+  }),
   loader: async ({ params }) => {
     const [loan, notes, timeline, relationship] = await Promise.all([
       fetchInternalLoanDetailOps({ data: params.loanId }),
@@ -28,59 +26,23 @@ export const Route = createFileRoute("/internal/lending/loans/$loanId")({
       : null;
     return { loan, notes, timeline, relationship, integration };
   },
-  component: InternalLoanDetailPage,
+  head: ({ loaderData }) => ({
+    meta: [{ title: `Loan · ${loaderData?.loan.borrowerLabel ?? "Servicing"} — Alta Internal` }],
+  }),
+  component: LoanWorkspaceRoute,
 });
 
-function InternalLoanDetailPage() {
+function LoanWorkspaceRoute() {
   const { loan, notes, timeline, relationship, integration } = Route.useLoaderData();
-
+  const { tab } = Route.useSearch();
   return (
-    <InternalPageShell title="Loan servicing" description={loan.borrowerLabel}>
-      <Link to="/internal/lending" className="mb-6 inline-block font-mono text-[12px] text-gold hover:underline">
-        ← Lending queue
-      </Link>
-
-      {integration && relationship.userId ? (
-        <ResolvedLendingRelationshipIntegrationBlock integration={integration} />
-      ) : null}
-
-      <InternalActiveLoanCard loan={loan} />
-
-      <Section title="Repayment schedule" className="mt-10">
-        <LoanPaymentScheduleTable
-          schedule={loan.paymentSchedule}
-          termMonths={loan.termMonths}
-          monthlyPrincipalPercent={loan.monthlyPrincipalPercent}
-        />
-      </Section>
-
-      <Section title="Record manual payment" className="mt-10">
-        <InternalLoanPaymentForm
-          loanId={loan.id}
-          linkedBankAccountId={loan.linkedBankAccountId}
-          linkedAccountNumber={loan.linkedAccountNumber}
-          currentPayoffAmount={loan.currentPayoffAmount}
-        />
-      </Section>
-
-      <Section title="Activity timeline" className="mt-10">
-        <InternalActivityTimeline events={timeline} />
-      </Section>
-
-      <Section title="Internal notes" className="mt-10">
-        <InternalNotePanel targetType="LOAN" targetId={loan.id} initialNotes={notes} />
-      </Section>
-
-      <Section title="Secure Deal Room" className="mt-10">
-        <p className="text-[13px] text-muted-foreground">
-          Application review and banker communication are handled through the Secure Deal Room on the
-          originating loan application record. Visit the{" "}
-          <Link to="/internal/lending" className="text-gold hover:underline">
-            lending queue
-          </Link>{" "}
-          to open the application Secure Deal Room.
-        </p>
-      </Section>
-    </InternalPageShell>
+    <LoanWorkspaceView
+      loan={loan}
+      notes={notes}
+      timeline={timeline}
+      relationship={relationship}
+      integration={integration}
+      activeTab={tab}
+    />
   );
 }

@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { InternalUserFilters } from "@/components/internal/internal-user-filters";
+import { OpsSection } from "@/components/internal/console";
+import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { formatAccountStatus, formatUserTag } from "@/lib/auth/tags";
 import type { AccountStatus, UserTag } from "@/lib/auth/types";
 import { florin } from "@/lib/bank/api";
@@ -152,18 +153,22 @@ function InternalUsers() {
 
   return (
     <InternalPageShell
-      title="User Management"
-      description="Identity records, Alta access tags, and account status controls for Discord-authenticated users."
+      title="Customers"
+      breadcrumbs={buildBreadcrumbs([
+        { label: "Dashboard", to: "/internal" },
+        { label: "Customers" },
+      ])}
     >
       <InternalUserFilters search={search} />
 
-      <Section title={`Users (${users.length}${users.length >= 200 ? "+" : ""})`}>
-        {users.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">No users match the current filters.</p>
-        ) : (
-          <AdminDataTable columns={columns} rows={users} rowKey={(u) => u.id} />
-        )}
-      </Section>
+      <OpsSection title={`Customers (${users.length}${users.length >= 200 ? "+" : ""})`}>
+        <AdminDataTable
+          columns={columns}
+          rows={users}
+          rowKey={(u) => u.id}
+          emptyState="No customers match the current filters."
+        />
+      </OpsSection>
     </InternalPageShell>
   );
 }

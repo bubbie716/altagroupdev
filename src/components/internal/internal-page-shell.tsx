@@ -1,31 +1,41 @@
-import { PageShell } from "@/components/page-shell";
-import { InternalSubNav } from "./internal-sub-nav";
-import { InternalGlobalSearch } from "./internal-global-search";
-import { InternalNotificationsBell } from "./internal-notifications-bell";
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, type ReactNode } from "react";
+import {
+  buildBreadcrumbs,
+  useInternalShell,
+  type InternalBreadcrumbItem,
+} from "@/components/internal/console";
 
 export function InternalPageShell({
   title,
-  description,
+  description: _description,
+  breadcrumbs,
+  actions,
   children,
-  hideSearch,
+  hideSearch: _hideSearch,
 }: {
   title: string;
+  /** @deprecated Descriptions removed from internal console chrome. */
   description?: string;
+  breadcrumbs?: InternalBreadcrumbItem[];
+  actions?: ReactNode;
   children: ReactNode;
+  /** @deprecated Search lives in the fixed header. */
   hideSearch?: boolean;
 }) {
-  return (
-    <PageShell
-      eyebrow="Alta Internal"
-      title={title}
-      description={description}
-      hideFooter
-    >
-      <InternalSubNav />
-      <InternalNotificationsBell />
-      {!hideSearch ? <InternalGlobalSearch /> : null}
-      {children}
-    </PageShell>
-  );
+  const { setPage, resetPage } = useInternalShell();
+  const breadcrumbKey =
+    breadcrumbs?.map((b) => `${b.label}:${b.to ?? ""}`).join("|") ?? `title:${title}`;
+
+  useEffect(() => {
+    setPage({
+      title,
+      breadcrumbs: breadcrumbs ?? buildBreadcrumbs([{ label: title }]),
+      actions: actions ?? null,
+    });
+    return () => resetPage();
+  }, [title, breadcrumbKey, setPage, resetPage, breadcrumbs, actions]);
+
+  return <div className="internal-page min-w-0">{children}</div>;
 }

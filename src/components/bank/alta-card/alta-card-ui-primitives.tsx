@@ -83,7 +83,7 @@ export function AltaCardSection({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-xl border border-border bg-surface-1/80 p-5 sm:p-6", className)}>
+    <section className={cn("min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-surface-1/80 p-5 sm:p-6", className)}>
       <h3 className="font-serif text-[18px] tracking-tight sm:text-[20px]">{title}</h3>
       {description ? <p className="mt-1 text-[13px] text-muted-foreground">{description}</p> : null}
       <div className="mt-4">{children}</div>
@@ -103,7 +103,7 @@ export function AltaCardMetric({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-surface-1/80 p-4",
+        "min-w-0 rounded-lg border border-border bg-surface-1/80 p-4",
         emphasis && "border-gold/25 bg-gold/5",
       )}
     >
@@ -112,7 +112,7 @@ export function AltaCardMetric({
       </dt>
       <dd
         className={cn(
-          "mt-2 font-mono tabular-nums text-foreground",
+          "mt-2 break-words font-mono tabular-nums text-foreground",
           emphasis ? "text-[18px] sm:text-[20px]" : "text-[15px]",
         )}
       >

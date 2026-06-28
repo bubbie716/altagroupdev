@@ -169,7 +169,7 @@ export const bulkApproveWithdrawalsOps = createServerFn({ method: "POST" })
   });
 
 export const exportAuditLogsOps = createServerFn({ method: "GET" })
-  .inputValidator((filters: { q?: string; action?: string; from?: string; to?: string }) => filters)
+  .inputValidator((filters: import("@/lib/internal/audit.types").AuditLogFilters) => filters)
   .handler(async ({ data }) => {
     const { exportAuditLogsCsv } = await import("@/server/ops-bulk.service");
     return exportAuditLogsCsv(data);
@@ -205,7 +205,8 @@ export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(
   const { prisma } = await import("@/server/db");
   await import("@/server/permissions.service").then((m) => m.requireOperator());
 
-  const [metrics, health, activity, negativeBalances, largeAdjustments, maintenance] = await Promise.all([
+  const [metrics, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging] =
+    await Promise.all([
     getInternalDashboardMetrics(),
     getOpsHealth(),
     getOpsActivityFeed(25),
@@ -219,7 +220,8 @@ export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(
       },
     }),
     getMaintenanceMode(),
+    import("@/server/ops-queue-aging.service").then((m) => m.getQueueAgingMetrics()),
   ]);
 
-  return { metrics, health, activity, negativeBalances, largeAdjustments, maintenance };
+  return { metrics, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging };
 });

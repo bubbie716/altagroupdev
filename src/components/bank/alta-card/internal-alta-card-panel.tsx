@@ -403,8 +403,49 @@ export function InternalAltaCardDetailPanel({
         ) : null}
 
         {fees.length > 0 ? (
-          <div className="overflow-hidden rounded-lg border border-border">
-            <table className="alta-table w-full text-sm">
+          <>
+            <ul className="space-y-3 md:hidden">
+              {fees.map((fee) => (
+                <li
+                  key={fee.id}
+                  className="rounded-lg border border-border bg-surface-1/80 px-3 py-3 text-[13px]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 break-words font-medium">{ALTA_CARD_FEE_TYPE_LABELS[fee.type]}</p>
+                    <span className="shrink-0 font-mono tabular-nums">
+                      {formatAltaCardCurrency(fee.amount)}
+                    </span>
+                  </div>
+                  <dl className="mt-2 grid grid-cols-2 gap-2 text-[12px]">
+                    <div>
+                      <dt className="text-muted-foreground">Status</dt>
+                      <dd>{ALTA_CARD_FEE_STATUS_LABELS[fee.status]}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">Date</dt>
+                      <dd>{new Date(fee.createdAt).toLocaleDateString()}</dd>
+                    </div>
+                  </dl>
+                  {admin && fee.status === "active" ? (
+                    <div className="mt-3">
+                      <BankReviewButton
+                        label="Waive"
+                        variant="danger"
+                        onAction={async () => {
+                          if (!feeWaiveReason.trim()) return;
+                          await waiveAltaCardFeeRecord({
+                            data: { feeId: fee.id, reason: feeWaiveReason.trim() },
+                          });
+                          await onRefresh();
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border md:block">
+            <table className="alta-table w-full min-w-[480px] text-sm">
               <thead>
                 <tr>
                   <th>Type</th>
@@ -444,6 +485,7 @@ export function InternalAltaCardDetailPanel({
                 ))}
               </tbody>
             </table>
+            </div>
             {admin ? (
               <input
                 value={feeWaiveReason}
@@ -452,7 +494,7 @@ export function InternalAltaCardDetailPanel({
                 className="mt-3 w-full rounded border border-border bg-surface-1 px-2 py-1 text-[13px]"
               />
             ) : null}
-          </div>
+          </>
         ) : (
           <p className="text-[13px] text-muted-foreground">No fees on this card.</p>
         )}

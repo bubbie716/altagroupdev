@@ -20,16 +20,48 @@ function InternalRelationshipsIndexPage() {
       title="Relationship Intelligence"
       description="Central relationship profiles across Alta Bank, Card, lending, and business banking."
     >
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InternalStatCard label="Profiles on file" value={String(data.totalProfiles)} />
         <InternalStatCard label="Private eligible" value={String(data.privateEligibleCount)} />
         <InternalStatCard label="Preferred / Premier+" value={String(data.preferredOrPremierCount)} />
         <InternalStatCard label="Top tracked" value={String(data.topByAssets.length)} />
       </div>
 
-      <section className="mb-10 space-y-4">
+      <section className="mb-10 min-w-0 space-y-4">
         <h2 className="font-serif text-[22px]">Highest relationship value</h2>
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="min-w-0 divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
+          {data.topByAssets.map((row) => (
+            <div key={row.userId} className="space-y-2 px-4 py-4">
+              <Link
+                to="/internal/relationships/$userId"
+                params={{ userId: row.userId }}
+                className="break-words font-medium hover:text-gold"
+              >
+                {row.discordUsername}
+              </Link>
+              <dl className="grid grid-cols-2 gap-2 text-[12px]">
+                <div>
+                  <dt className="text-muted-foreground">Score</dt>
+                  <dd className="tabular-nums">{row.relationshipScore}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Tier</dt>
+                  <dd>{RELATIONSHIP_TIER_LABELS[row.relationshipTier]}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-muted-foreground">Total Alta assets</dt>
+                  <dd className="tabular-nums">{florin(row.totalAltaAssets)}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+          {data.topByAssets.length === 0 ? (
+            <p className="px-4 py-8 text-center text-muted-foreground">
+              No persisted profiles yet. Open a customer profile and refresh to create one.
+            </p>
+          ) : null}
+        </div>
+        <div className="hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-border md:block">
           <table className="min-w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border/60 bg-surface-1/60 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -68,9 +100,45 @@ function InternalRelationshipsIndexPage() {
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-4">
         <h2 className="font-serif text-[22px]">Recently changed scores</h2>
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="min-w-0 divide-y divide-border overflow-hidden rounded-xl border border-border md:hidden">
+          {data.recentlyChanged.map((row) => (
+            <div key={`${row.userId}-${row.calculatedAt}`} className="space-y-2 px-4 py-4">
+              <Link
+                to="/internal/relationships/$userId"
+                params={{ userId: row.userId }}
+                className="break-words font-medium hover:text-gold"
+              >
+                {row.discordUsername}
+              </Link>
+              <dl className="grid gap-2 text-[12px]">
+                <div>
+                  <dt className="text-muted-foreground">Score</dt>
+                  <dd className="tabular-nums">
+                    {row.oldScore} → {row.newScore}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Tier</dt>
+                  <dd>
+                    {RELATIONSHIP_TIER_LABELS[row.oldTier]} → {RELATIONSHIP_TIER_LABELS[row.newTier]}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Updated</dt>
+                  <dd className="text-muted-foreground">{formatActivityDateTime(row.calculatedAt)}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+          {data.recentlyChanged.length === 0 ? (
+            <p className="px-4 py-8 text-center text-muted-foreground">
+              No score changes recorded yet.
+            </p>
+          ) : null}
+        </div>
+        <div className="hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-border md:block">
           <table className="min-w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-border/60 bg-surface-1/60 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">

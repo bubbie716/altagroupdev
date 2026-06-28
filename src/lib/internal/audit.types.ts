@@ -24,6 +24,7 @@ export type AuditLogFilters = {
   q?: string;
   action?: string;
   entityType?: AuditEntityType;
+  entityId?: string;
   actorUserId?: string;
   targetUserId?: string;
   targetAccountId?: string;

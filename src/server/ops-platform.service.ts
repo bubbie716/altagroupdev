@@ -83,6 +83,9 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
   since.setDate(since.getDate() - 30);
   const items: ExceptionItem[] = [];
 
+  const { getExceptionDispositionMap } = await import("@/server/ops-exception-disposition.service");
+  const dispositions = await getExceptionDispositionMap();
+
   const negativeAccounts = await prisma.bankAccount.findMany({
     where: { balance: { lt: 0 } },
     include: { user: true, company: true },
@@ -162,10 +165,23 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
     });
   }
 
-  return items.sort((a, b) => {
-    const sev = { critical: 0, high: 1, medium: 2 };
-    return sev[a.severity] - sev[b.severity];
-  });
+  return items
+    .map((item) => {
+      const disp = dispositions.get(item.id);
+      return {
+        ...item,
+        dispositionStatus: disp?.status ?? "OPEN",
+        dispositionReason: disp?.lastReason ?? null,
+      };
+    })
+    .filter((item) => {
+      const status = item.dispositionStatus ?? "OPEN";
+      return status !== "RESOLVED" && status !== "DISMISSED";
+    })
+    .sort((a, b) => {
+      const sev = { critical: 0, high: 1, medium: 2 };
+      return sev[a.severity] - sev[b.severity];
+    });
 }
 
 function formatAccountLabel(account: { accountName: string; accountNumber: string }): string {

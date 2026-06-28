@@ -5,7 +5,7 @@ import { fromDbCompanyRole, formatDbCompanyStatus, formatDbVerificationStatus } 
 import { COMPANY_ROLE_LABELS } from "@/lib/bank/business-banking-types";
 import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
 import { fromDbBankAccountType } from "@/server/bank-mapper";
-import { buildActivityTimeline } from "@/server/ops-platform.service";
+import { buildUniversalCompanyTimeline } from "@/server/ops-universal-timeline.service";
 import { listInternalNotes } from "@/server/internal-note.service";
 
 function decimalToNumber(value: { toString(): string }): number {
@@ -19,7 +19,7 @@ export async function getInternalCompany360(companyId: string) {
 
   const [notes, timeline, accounts, loans, altaPay, statements, auditCount] = await Promise.all([
     listInternalNotes("COMPANY", companyId),
-    buildActivityTimeline("COMPANY", companyId, 40),
+    buildUniversalCompanyTimeline(companyId, 60),
     prisma.bankAccount.findMany({
       where: { companyId },
       orderBy: { createdAt: "desc" },

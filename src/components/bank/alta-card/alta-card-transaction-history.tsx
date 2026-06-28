@@ -11,8 +11,8 @@ function TransactionDescription({ row }: { row: AltaCardTransactionRow }) {
   const employeeAttribution = altaCardEmployeeTransactionAttribution(row);
 
   return (
-    <div>
-      <p>{row.description}</p>
+    <div className="min-w-0">
+      <p className="break-words">{row.description}</p>
       {employeeAttribution ? (
         <p className="text-[11px] text-muted-foreground">{employeeAttribution}</p>
       ) : null}
@@ -32,7 +32,7 @@ function TransactionRowMobile({ row }: { row: AltaCardTransactionRow }) {
     <li className="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-3 last:border-0">
       <div className="min-w-0">
         <p className="text-[13px] font-medium">{altaCardTransactionLabel(row.type)}</p>
-        <p className="truncate text-[12px] text-muted-foreground">{row.description}</p>
+        <p className="break-words text-[12px] text-muted-foreground">{row.description}</p>
         {employeeAttribution ? (
           <p className="mt-1 text-[11px] text-muted-foreground">{employeeAttribution}</p>
         ) : null}
@@ -124,7 +124,7 @@ export function AltaCardTransactionHistory({
   }
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 space-y-3">
       <div>
         <h3 className="font-serif text-[18px]">{title}</h3>
         {description ? (
@@ -138,7 +138,7 @@ export function AltaCardTransactionHistory({
         ))}
       </ul>
 
-      <div className="hidden md:block">
+      <div className="hidden min-w-0 max-w-full md:block">
         <AdminDataTable columns={transactionColumns()} rows={rows} rowKey={(row) => row.id} />
       </div>
     </section>
