@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankWithdrawForm } from "@/components/bank/bank-withdraw-form";
-import { fetchActiveBankAccounts } from "@/lib/bank/bank.functions";
+import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
+import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
+import { fetchActiveBankAccounts, fetchUserBankRequestsInProgress } from "@/lib/bank/bank.functions";
+import { WITHDRAW_PAGE_DESCRIPTION } from "@/lib/bank/bank-shared-copy";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 type BankWithdrawSearch = {
@@ -14,23 +18,42 @@ export const Route = createFileRoute("/bank/withdraw")({
   validateSearch: (search: Record<string, unknown>): BankWithdrawSearch => ({
     accountId: typeof search.accountId === "string" ? search.accountId : undefined,
   }),
-  loader: () => fetchActiveBankAccounts(),
+  loader: async () => {
+    const [accounts, requestsInProgress] = await Promise.all([
+      fetchActiveBankAccounts(),
+      fetchUserBankRequestsInProgress({ data: "withdrawal" }),
+    ]);
+    return { accounts, requestsInProgress };
+  },
   head: () => ({ meta: [{ title: "Withdraw — Alta Bank" }] }),
   component: BankWithdrawPage,
 });
 
 function BankWithdrawPage() {
-  const accounts = Route.useLoaderData();
+  const { accounts, requestsInProgress } = Route.useLoaderData();
   const { accountId } = Route.useSearch();
+  const [highlightReferenceCode, setHighlightReferenceCode] = useState<string | null>(null);
+
+  function handleSubmissionSuccess(result: BankRequestSubmissionResult) {
+    setHighlightReferenceCode(result.referenceCode);
+  }
 
   return (
     <PageShell
       eyebrow="Alta Bank · Withdrawals"
       title="Request a Withdrawal"
-      description="Submit a Florin withdrawal request. Balances are not reduced until an operator approves the request."
+      description={WITHDRAW_PAGE_DESCRIPTION}
     >
       <BankSubNav />
-      <BankWithdrawForm accounts={accounts} defaultAccountId={accountId} />
+      <BankWithdrawForm
+        accounts={accounts}
+        defaultAccountId={accountId}
+        onSubmissionSuccess={handleSubmissionSuccess}
+      />
+      <BankRequestsInProgress
+        requests={requestsInProgress}
+        highlightReferenceCode={highlightReferenceCode}
+      />
     </PageShell>
   );
 }

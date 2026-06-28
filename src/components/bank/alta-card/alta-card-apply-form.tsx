@@ -11,10 +11,7 @@ import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-applic
 import { ALTA_CARD_TIER_CONFIG } from "@/lib/bank/alta-card-tier-config";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
 import { AltaCardProductEyebrow } from "@/components/bank/alta-card/alta-card-ui-primitives";
-import {
-  submitBusinessAltaCardApplication,
-  submitPersonalAltaCardApplication,
-} from "@/lib/bank/alta-card.functions";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 type ApplyContext = Awaited<
   ReturnType<typeof import("@/lib/bank/alta-card.functions").fetchAltaCardApplyContext>
@@ -111,8 +108,7 @@ export function AltaCardApplyForm({
         });
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Application failed";
-      setError(message.replace(/^BAD_REQUEST:/, ""));
+      setError(formatCustomerActionError(err, "card_apply"));
     } finally {
       setLoading(false);
     }
@@ -126,7 +122,7 @@ export function AltaCardApplyForm({
     return (
       <div className="rounded-xl border border-border bg-surface-1/80 p-8">
         <AltaCardProductEyebrow>Alta Card application</AltaCardProductEyebrow>
-        <p className="mt-3 font-serif text-[20px]">No applications available right now</p>
+        <p className="mt-3 font-serif text-[20px]">No eligible Alta Card applications</p>
         <p className="mt-2 max-w-xl text-[14px] text-muted-foreground">
           {context.personalCard
             ? "You already have a personal Alta Card."
@@ -159,7 +155,7 @@ export function AltaCardApplyForm({
       <div className="mx-auto w-full max-w-[320px] lg:sticky lg:top-6 lg:self-start">
         <AltaCardVisual tier={tier} cardHolder="Applicant" responsive />
         <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Preview · terms set at approval
+          Terms set at approval
         </p>
       </div>
 
@@ -216,7 +212,7 @@ export function AltaCardApplyForm({
 
         {cardKind === "business" && !canApplyBusiness ? (
           <div className="rounded-lg border border-border bg-surface-1 px-4 py-3 text-[13px] text-muted-foreground">
-            Every company you manage already has a business Alta Card or an application awaiting review.
+            Every company you manage already has a business Alta Card or an application Waiting on Alta.
           </div>
         ) : null}
 

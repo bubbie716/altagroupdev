@@ -2,6 +2,10 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { LoanApplicationThreadView } from "@/components/bank/loan-thread/loan-application-thread-view";
 import { EmptyState } from "@/components/shared/empty-state";
+import {
+  SECURE_DEAL_ROOM_NOT_AVAILABLE_TITLE,
+  SECURE_DEAL_ROOM_NOT_FOUND_TITLE,
+} from "@/lib/bank/bank-shared-copy";
 import { fetchAltaCardApplicationThread } from "@/lib/bank/alta-card-application.functions";
 import {
   mapAltaCardThreadContextToLoan,
@@ -21,10 +25,10 @@ export const Route = createFileRoute("/bank/alta-card/applications/$applicationI
   },
   head: () => ({ meta: [{ title: "Secure Deal Room — Alta Bank" }] }),
   notFoundComponent: () => (
-    <PageShell eyebrow="Alta Bank" title="Secure deal room not found">
+    <PageShell eyebrow="Alta Bank" title={SECURE_DEAL_ROOM_NOT_FOUND_TITLE}>
       <EmptyState
         tag="404"
-        title="This secure deal room is not available"
+        title={SECURE_DEAL_ROOM_NOT_AVAILABLE_TITLE}
         action={
           <Link to="/bank/alta-card" className="text-gold hover:underline">
             Back to Alta Card

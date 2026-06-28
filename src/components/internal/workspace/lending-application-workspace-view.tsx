@@ -36,7 +36,7 @@ import type { InternalLoanApplicationRow, LoanProductTypeCode } from "@/lib/bank
 import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
 import type { ResolvedRelationshipIntegration } from "@/lib/internal/resolved-relationship-integration.types";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 
 function isActionable(status: InternalLoanApplicationRow["status"]) {
   return status === "pending" || status === "under_review";
@@ -117,7 +117,7 @@ function LendingApplicationDecisionPanel({ application }: { application: Interna
             <OpsAction
               label="Begin review"
               title="Begin application review"
-              description="Marks the application under review and notifies the applicant in the deal room."
+              description={OPS_COPY.lendingBeginReviewDescription}
               onConfirm={async (reason) => {
                 await markLoanApplicationUnderReviewRecord({
                   data: {
@@ -131,7 +131,7 @@ function LendingApplicationDecisionPanel({ application }: { application: Interna
           <OpsAction
             label="Accept"
             variant="primary"
-            title="Approve loan application"
+            title="Accept loan application"
             description="Creates the loan facility with the terms below."
             impact={`${florin(Number(principalAmount) || 0)} · ${termMonths} mo · ${interestRate}% monthly`}
             onConfirm={async (reason) => {
@@ -314,7 +314,7 @@ export function LendingApplicationWorkspaceView({
                 search={{ tab: "thread" }}
                 className="rounded border border-gold/30 px-2 py-1 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
               >
-                Open deal room
+                Open Secure Deal Room
               </Link>
               {isActionable(application.status) ? (
                 <Link

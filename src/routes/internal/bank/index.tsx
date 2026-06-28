@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { OpsSection } from "@/components/internal/console";
 import { OpsQueueCard } from "@/components/internal/ops-queue-card";
-import { fetchInternalBankOps } from "@/lib/bank/bank.functions";
+import { fetchInternalBankOpsSummary } from "@/lib/bank/bank.functions";
 
 export const Route = createFileRoute("/internal/bank/")({
-  loader: () => fetchInternalBankOps(),
+  loader: () => fetchInternalBankOpsSummary(),
   head: () => ({ meta: [{ title: "Bank Ops — Alta Internal" }] }),
   component: InternalBank,
 });

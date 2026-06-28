@@ -119,27 +119,25 @@ async function listEligibleAccountIds(
     select: { id: true, status: true },
   });
 
-  const eligible: string[] = [];
+  const inactiveIds = accounts.filter((a) => a.status !== "ACTIVE").map((a) => a.id);
+  const activeIds = accounts.filter((a) => a.status === "ACTIVE").map((a) => a.id);
 
-  for (const account of accounts) {
-    if (account.status === "ACTIVE") {
-      eligible.push(account.id);
-      continue;
-    }
+  if (inactiveIds.length === 0) return activeIds;
 
-    const transactionCount = await prisma.bankTransaction.count({
-      where: {
-        bankAccountId: account.id,
-        status: "APPROVED",
-        createdAt: { gte: periodStart, lte: periodEnd },
-      },
-    });
-    if (transactionCount > 0) {
-      eligible.push(account.id);
-    }
-  }
+  const activityRows = await prisma.bankTransaction.groupBy({
+    by: ["bankAccountId"],
+    where: {
+      bankAccountId: { in: inactiveIds },
+      status: "APPROVED",
+      createdAt: { gte: periodStart, lte: periodEnd },
+    },
+    _count: true,
+  });
+  const inactiveWithActivity = activityRows
+    .filter((row) => row._count > 0)
+    .map((row) => row.bankAccountId);
 
-  return eligible;
+  return [...activeIds, ...inactiveWithActivity];
 }
 
 export async function runBankAccountStatementSchedulerJob(options?: {

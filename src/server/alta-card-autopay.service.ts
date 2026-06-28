@@ -656,20 +656,33 @@ export async function runAutopayForDueStatements(
     select: { id: true },
   });
 
+  const cardIds = cards.map((c) => c.id);
+  const dueStatements =
+    cardIds.length === 0
+      ? []
+      : await prisma.altaCardStatement.findMany({
+          where: {
+            altaCardId: { in: cardIds },
+            status: { in: UNPAID_STATUSES },
+            remainingBalance: { gt: 0 },
+          },
+          orderBy: [{ altaCardId: "asc" }, { statementNumber: "asc" }],
+        });
+
+  const dueByCard = new Map<string, (typeof dueStatements)[number]>();
+  for (const statement of dueStatements) {
+    if (!dueByCard.has(statement.altaCardId)) {
+      dueByCard.set(statement.altaCardId, statement);
+    }
+  }
+
   let dueCount = 0;
   let successCount = 0;
   let failedCount = 0;
   let skippedCount = 0;
 
   for (const card of cards) {
-    const dueStatement = await prisma.altaCardStatement.findFirst({
-      where: {
-        altaCardId: card.id,
-        status: { in: UNPAID_STATUSES },
-        remainingBalance: { gt: 0 },
-      },
-      orderBy: { statementNumber: "asc" },
-    });
+    const dueStatement = dueByCard.get(card.id);
     if (!dueStatement || !isStatementDueForAutopay(dueStatement.dueDate, now)) continue;
 
     dueCount += 1;

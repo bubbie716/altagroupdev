@@ -42,9 +42,8 @@ export async function getOpsReports(filters: OpsReportFilters = {}): Promise<Ops
   const range = { gte: from, lte: to };
 
   const [
-    deposits,
-    withdrawals,
-    transfers,
+    txByType,
+    transferExecutions,
     altaPay,
     loanApplications,
     loanOriginations,
@@ -58,18 +57,20 @@ export async function getOpsReports(filters: OpsReportFilters = {}): Promise<Ops
     manualAdjustments,
     exceptionDispositions,
   ] = await Promise.all([
-    prisma.bankTransaction.aggregate({
-      where: { type: "DEPOSIT", status: "APPROVED", reviewedAt: range },
+    prisma.bankTransaction.groupBy({
+      by: ["type"],
+      where: {
+        status: "APPROVED",
+        reviewedAt: range,
+        type: { in: ["DEPOSIT", "WITHDRAWAL"] },
+      },
       _count: true,
       _sum: { amount: true },
     }),
-    prisma.bankTransaction.aggregate({
-      where: { type: "WITHDRAWAL", status: "APPROVED", reviewedAt: range },
-      _count: true,
-      _sum: { amount: true },
-    }),
-    prisma.scheduledTransferExecution.count({
+    prisma.scheduledTransferExecution.findMany({
       where: { status: "EXECUTED", executedAt: range },
+      include: { scheduledPayment: { select: { amount: true } } },
+      take: 5000,
     }),
     prisma.bankTransaction.aggregate({
       where: {
@@ -112,29 +113,31 @@ export async function getOpsReports(filters: OpsReportFilters = {}): Promise<Ops
     prisma.opsExceptionDisposition.count({ where: { createdAt: range } }),
   ]);
 
-  // Transfer amounts require a separate query — aggregate _sum on relation not supported cleanly
-  const transferExecutions = await prisma.scheduledTransferExecution.findMany({
-    where: { status: "EXECUTED", executedAt: range },
-    include: { scheduledPayment: { select: { amount: true } } },
-    take: 5000,
-  });
+  const txAgg = new Map(
+    txByType.map((row) => [row.type, { count: row._count, total: decimalToNumber(row._sum.amount) }]),
+  );
+  const deposits = txAgg.get("DEPOSIT") ?? { count: 0, total: 0 };
+  const withdrawals = txAgg.get("WITHDRAWAL") ?? { count: 0, total: 0 };
+  const transfers = transferExecutions.length;
   const transferTotal = transferExecutions.reduce(
     (s, e) => s + decimalToNumber(e.scheduledPayment.amount),
     0,
   );
+  const manualAdjustmentCount = manualAdjustments._count;
+  const manualAdjustmentTotal = decimalToNumber(manualAdjustments._sum.amount);
 
   const reports: OpsReportRow[] = [
     {
       key: "deposits",
       label: "Deposits",
-      count: deposits._count,
-      totalAmount: decimalToNumber(deposits._sum.amount),
+      count: deposits.count,
+      totalAmount: deposits.total,
     },
     {
       key: "withdrawals",
       label: "Withdrawals",
-      count: withdrawals._count,
-      totalAmount: decimalToNumber(withdrawals._sum.amount),
+      count: withdrawals.count,
+      totalAmount: withdrawals.total,
     },
     {
       key: "transfers",
@@ -193,8 +196,8 @@ export async function getOpsReports(filters: OpsReportFilters = {}): Promise<Ops
     {
       key: "manualAdjustments",
       label: "Manual adjustments",
-      count: manualAdjustments._count,
-      totalAmount: decimalToNumber(manualAdjustments._sum.amount),
+      count: manualAdjustmentCount,
+      totalAmount: manualAdjustmentTotal,
     },
     {
       key: "exceptions",

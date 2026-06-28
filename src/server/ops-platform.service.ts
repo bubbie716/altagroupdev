@@ -9,21 +9,19 @@ import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
 import { formatOpsJobRunHealthDetail } from "@/lib/internal/ops-job-run-display";
-import { getInternalDashboardMetrics } from "@/server/internal-dashboard.service";
+import type { InternalDashboardMetrics } from "@/server/internal-dashboard.service";
+import type { MaintenanceModeState } from "@/lib/platform/maintenance-types";
 import { getMaintenanceMode } from "@/server/platform-settings.service";
 
 function decimalToNumber(value: { toString(): string } | null | undefined): number {
   return value ? Number(value.toString()) : 0;
 }
 
-export async function getOpsHealth(): Promise<OpsHealthItem[]> {
-  await requireOperator();
-  const [metrics, jobs, maintenance] = await Promise.all([
-    getInternalDashboardMetrics(),
-    listOpsJobRuns(),
-    getMaintenanceMode(),
-  ]);
-
+export async function buildOpsHealthFromMetrics(
+  metrics: InternalDashboardMetrics,
+  maintenance: MaintenanceModeState,
+): Promise<OpsHealthItem[]> {
+  const jobs = await listOpsJobRuns();
   const jobMap = new Map(jobs.map((j) => [j.jobKey, j]));
   const jobStatus = (key: string, fallback: string): OpsHealthItem => {
     const j = jobMap.get(key);
@@ -75,6 +73,13 @@ export async function getOpsHealth(): Promise<OpsHealthItem[]> {
       lastSuccessAt: null,
     },
   ];
+}
+
+export async function getOpsHealth(): Promise<OpsHealthItem[]> {
+  await requireOperator();
+  const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
+  const [metrics, maintenance] = await Promise.all([getInternalDashboardMetrics(), getMaintenanceMode()]);
+  return buildOpsHealthFromMetrics(metrics, maintenance);
 }
 
 export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {

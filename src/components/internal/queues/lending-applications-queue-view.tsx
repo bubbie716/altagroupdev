@@ -20,6 +20,7 @@ import { ApplicationRelationshipQueueCell } from "@/components/internal/relation
 import type { InternalLoanApplicationRow } from "@/lib/bank/lending-types";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
 import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
+import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 
 export function LendingApplicationsQueueView({
   applications,
@@ -211,7 +212,7 @@ function LendingQueueActions({ row }: { row: InternalLoanApplicationRow }) {
         <OpsAction
           label="Begin review"
           title="Begin lending review"
-          description="Marks the application under review and notifies the applicant in the deal room."
+          description={OPS_COPY.lendingBeginReviewDescription}
           impact={`${row.applicantLabel} · ${florin(row.requestedAmount)}`}
           onConfirm={async (reason) => {
             await markLoanApplicationUnderReviewRecord({

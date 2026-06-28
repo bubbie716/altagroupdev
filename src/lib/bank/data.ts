@@ -315,7 +315,7 @@ export const adminClients: AdminClient[] = [
   { id: "CL-10021", name: "Whitford Family Office", tier: "Private I", relationshipValue: 12_127_276, accountStatus: "Active", privateInvite: "Extended" },
   { id: "CL-10044", name: "Meridian Holdings LLP", tier: "Business Premier", relationshipValue: 4_820_000, accountStatus: "Active", privateInvite: "Pending" },
   { id: "CL-10089", name: "Harbor Capital Partners", tier: "Institutional", relationshipValue: 28_400_000, accountStatus: "Active", privateInvite: "Extended" },
-  { id: "CL-10102", name: "Carter Whitford", tier: "Personal", relationshipValue: 890_000, accountStatus: "Pending Review", privateInvite: "None" },
+  { id: "CL-10102", name: "Carter Whitford", tier: "Personal", relationshipValue: 890_000, accountStatus: "Under Review", privateInvite: "None" },
 ];
 
 export const adminPrivateQueue = [

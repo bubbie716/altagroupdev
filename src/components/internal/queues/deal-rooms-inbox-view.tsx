@@ -235,7 +235,7 @@ export function DealRoomsInboxView({ rows }: { rows: DealRoomInboxRow[] }) {
         rows={filtered}
         rowKey={(r) => r.id}
         onRowClick={(r) => void dealRoomRowNavigate(router, r)}
-        emptyState="No open secure deal room threads."
+        emptyState="No open deal room threads."
         filterSlot={
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
             Applicant ↔ Alta Credit Desk · {filtered.length} thread{filtered.length === 1 ? "" : "s"}

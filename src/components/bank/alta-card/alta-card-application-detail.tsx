@@ -38,7 +38,7 @@ export function AltaCardApplicationDetailView({
             </p>
             <ol className="mt-2 list-decimal space-y-1 pl-4 text-[13px] text-muted-foreground">
               <li>Our team reviews your Alta relationship and requested terms.</li>
-              <li>Respond to any requests in your secure deal room.</li>
+              <li>Respond to any requests in your Secure Deal Room.</li>
               <li>When approved, accept your card to activate your credit line.</li>
             </ol>
           </div>
@@ -131,11 +131,11 @@ export function AltaCardApplicationDetailView({
 
       <div className="rounded-xl border border-border bg-surface-1/80 p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Secure deal room
+          Secure Deal Room
         </p>
         <p className="mt-2 text-[14px] text-muted-foreground">
-          Message Alta Card servicing, share documents, and track review updates in your secure
-          deal room.
+          Message Alta Card servicing, share documents, and track review updates in your Secure Deal
+          Room.
         </p>
         <Link
           to={
@@ -146,7 +146,7 @@ export function AltaCardApplicationDetailView({
           params={{ applicationId: application.id }}
           className="mt-4 inline-block rounded-md bg-foreground px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-background hover:bg-foreground/90"
         >
-          Open secure deal room
+          Open Secure Deal Room
         </Link>
       </div>
     </div>

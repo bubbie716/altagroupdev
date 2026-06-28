@@ -1,0 +1,501 @@
+Alta Bank V1 — Final Comprehensive Audit
+=========================================
+
+Scope: Feature-complete assumption. Evaluates launch readiness as a polished
+digital banking platform for customers and operators — not a line-by-line code
+review.
+
+Method: Codebase exploration across customer routes, server services, internal
+console, docs, cron/security patterns, and prior ops audits (updated for V1
+operational features now shipped).
+
+Context: Alta is a Discord-authenticated, in-game economy bank (FLR, manual
+operator review, Applicant ↔ Credit Desk deal rooms). Scores are against that
+ambition, not a full retail/card network bank.
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+Question                              Answer
+------------------------------------  ------------------------------------------
+Did we build it correctly?            Mostly yes. Core ledger, permissions,
+                                      audit, and operator workflows are
+                                      architecturally sound. Gaps are polish,
+                                      scale, doc drift, and customer-facing
+                                      honesty issues (stale "Coming Soon" on
+                                      live features).
+
+Did we build everything reasonably    Yes for a focused digital bank with
+expected for V1?                      deposits, cards, lending, Alta Pay, RI,
+                                      and business treasury. No if the bar is
+                                      full retail banking (P2P, wires,
+                                      disputes, private banking CRM,
+                                      customer notifications).
+
+Launch tomorrow with 10,000 users?    Not yet. No show-stopping architectural
+                                      blocker, but High issues around
+                                      performance at scale, confusing copy,
+                                      missing customer feedback loops, and
+                                      private banking placeholders would
+                                      generate heavy support load.
+
+Overall score                         74 / 100
+
+
+PERSPECTIVE SUMMARY
+-------------------
+
+Role                      Verdict
+----                      -------
+CEO                       Strong product breadth for V1; launchable in
+                          controlled beta, not broad public launch without
+                          notification layer and copy cleanup.
+COO                       Can run daily ops; internal console is credible
+                          post-V1 ops work.
+Head of Banking Ops       Money-movement queues, aging, bulk actions, reports
+                          — operable.
+CPO                       Customer journeys exist end-to-end; polish and
+                          discoverability uneven.
+Customer Support          Biggest launch risk: status opacity, no
+                          notifications, holds invisible to customers.
+Credit Ops                Lending + Alta Card underwriting with RI integration
+                          is above average for V1.
+Private Banking Director  Tag gating works; customer experience is mostly
+                          marketing + placeholders.
+Security Engineer         Defense-in-depth is good; rate limiting and
+                          assignment gaps remain.
+Senior Engineer           Solid Prisma/service layer; performance and doc debt
+                          before 10k users.
+UX Designer               Two UI generations coexist (AdminDataTable vs
+                          OpsTable); "Coming Soon" on live features hurts trust.
+Compliance Officer        Audit + flags help; no case management or regulatory
+                          reporting program.
+QA Lead                   Edge cases handled server-side better than in UI;
+                          cron failure visibility improved via jobs page.
+
+
+QUESTION 1: DID WE BUILD IT CORRECTLY?
+---------------------------------------
+
+Architecture — 82/100
+
+Strengths:
+  - Clear split: routes → server functions → services → Prisma
+  - Customer bank logic centralized in bank.service.ts; product services
+    (Alta Card, lending, Alta Pay, RI) are separate
+  - Internal console uses consistent workspace + queue pattern
+  - Cron bundle in daily-servicing with job run recording
+
+Weaknesses:
+  - Dual paths: full DealRoom model vs simplified application threads
+  - Explore pages still on legacy AdminDataTable while queues use OpsTable
+  - Dashboard loads getInternalDashboardMetrics() twice per request
+
+Business logic — 80/100
+
+Strengths:
+  - Deposits/withdrawals: pending → operator review → ledger post
+  - Intrabank transfers instant; holds reduce available balance server-side
+  - Alta Card billing, autopay, delinquency wired to cron
+  - Loan servicing + auto-pay in daily servicing
+
+Weaknesses:
+  - Scheduled interbank transfers can be created but cron only executes
+    intrabank
+  - restrictDeposits not fully enforced on incoming transfers (documented gap)
+  - Customer cannot see holds/restrictions despite server enforcement
+
+Permissions — 78/100
+
+Strengths:
+  - requireAuth / requireOperator / requireAdmin on server
+  - Route guard on /internal/*
+  - Business treasury role matrix (business-account-access.ts)
+  - Cron protected by CRON_SECRET
+
+Weaknesses:
+  - No route-level admin vs operator split in internal nav
+  - UI Lab bypass exists (dev-only, must stay off in prod)
+  - No API rate limiting on deposit/withdraw/search endpoints
+
+Workflows — 79/100
+
+Operator workflows are largely complete. Customer workflows work but lack
+feedback (notifications, status emails, in-app alerts for deposit
+approved/denied, loan decision, card approved).
+
+Consistency — 70/100
+
+Stale mock marketing (src/lib/bank/data.ts — "Payroll Coming Soon" while payroll
+is live), lending mapper "Coming Soon" for payment/risk status, private page
+"Pending Relationship Review" for all clients.
+
+Production readiness — 72/100
+
+Maintenance mode, audit, jobs registry, ops flags, exception disposition exist.
+Missing: runbooks, updated operator docs, performance validation at 10k users.
+
+
+QUESTION 2: DID WE BUILD EVERYTHING CUSTOMERS AND OPERATORS REASONABLY EXPECT?
+-------------------------------------------------------------------------------
+
+For Alta's stated V1 (manual-review digital bank, Discord community, credit desk
+model): yes, with gaps below.
+
+Not expected in V1 and correctly deferred: POS/card network, full AML program,
+interbank wire settlement, P2P Alta Pay, card disputes, operator assignment,
+case management.
+
+
+CUSTOMER PRODUCT REVIEW
+-----------------------
+
+Banking — 78/100
+
+Area                    Built correctly?  Customer expectation met?
+----------------------  ----------------  -----------------------------
+Account opening         Yes               Yes
+Checking / savings / MM Yes               Yes
+Business accounts       Yes               Yes
+Deposits                Yes               Yes (manual model)
+Withdrawals             Yes               Yes
+Transfers (intrabank)   Yes               Yes
+Scheduled transfers     Intrabank yes     Partial — interbank scheduled
+                                          misleading if created
+Statements              Yes               Yes
+Transaction history     Yes               Yes
+Interest                Yes               Yes
+Restrictions / holds    Enforced server   No customer UI
+
+
+Alta Card — 82/100
+
+Strong: applications, reviews, personal/business/employee cards, statements,
+billing cron, autopay, delinquency, tiers, limits, Alta Pay funding.
+
+Gaps: no disputes/chargebacks; no merchant authorization network (V1 scope);
+some card hub redirects rather than deep card URLs.
+
+
+Lending — 75/100
+
+Strong: apply, secure threads, operator approve/deny, loan payments, servicing
+cron, RI prefill.
+
+Gaps: customer deal-room routes redirect; paymentStatusLabel / riskStatusLabel
+show "Coming Soon"; lending product cards partly mock; DEFAULTED status
+without customer-facing collections UX.
+
+
+Alta Pay — 70/100
+
+Strong: B2B instant pay (bank or Alta Card), verified merchant, paired
+transactions, RI refresh on completion.
+
+Gaps: not P2P; no payment links/QR/refunds (documented TODOs); activity
+descriptions depend on operator/backend copy quality.
+
+
+Relationship Intelligence — 80/100
+
+Strong: personal + company profiles, tiers, timeline, sanitized customer
+recommendations, ops integration in underwriting.
+
+Gaps: batch RI refresh cron exists but docs note wiring concerns;
+recommendations don't auto-apply (by design); no customer-facing
+confidence/factors.
+
+
+Business Banking — 76/100
+
+Strong: companies, memberships, roles, business operating accounts, payroll,
+Alta Pay received, account-scoped treasury.
+
+Gaps: /bank/business marketing stale; settings placeholder on business account.
+
+
+Private Banking — 55/100
+
+Strong: private_client tag gates nav, reserve/Summit accounts, private liquidity
+lending, Gold card path, ops private banking queue.
+
+Gaps: no real relationship CRM — page shows "Pending Relationship Review";
+dedicated banker/bespoke services are placeholders; tag grant is CLI-only.
+
+
+INTERNAL CONSOLE — 85/100
+-------------------------
+
+Post-V1 ops features materially improved launch operability.
+
+Area                    Status
+----                    ------
+Dashboard               Queue counts, health, aging >24h/72h, maintenance banner
+Queues                  10 queues with age, actions, bulk approve/deny
+Workspaces              Customer, company, account, transaction, loan, Alta Card
+Transaction workspace   Approve/deny + flags
+Reports                 Historical periods + CSV
+Flags                   Active on customer, company, transaction
+Exceptions              Resolve / escalate / dismiss
+Audit                   Filters + CSV
+Jobs                    Catalog + manual run (admin)
+Global search           Cross-entity (heavy queries)
+Compliance              Signals only — no case DB
+
+Remaining ops gaps (V2): case management, card disputes, operator assignment,
+KYC vault, flags on all entity workspaces, job run drill-down.
+
+
+SECURITY — 78/100
+-----------------
+
+Control                 Status
+-------                 ------
+Authentication          Discord OAuth + sessions; frozen/restricted blocked
+Authorization           Server-side guards on internal + sensitive ops
+Dangerous actions       OpsConfirmDialog + required reason
+Audit                   Append-only log; bulk ops, flags, exceptions, jobs
+Role separation         Admin vs operator on maintenance/jobs; same nav otherwise
+Cron                    Secret-protected
+Data leakage            Global search returns internal routes only
+Rate limiting           Not implemented on customer mutation endpoints
+Edge cases              UI Lab mode must be disabled in production
+
+
+UX — 72/100
+-----------
+
+Strengths: Consistent bank sub-nav, workspace tab pattern internally, status
+badges, empty states on main bank dashboard when no accounts.
+
+Weaknesses:
+  - Desktop: Generally good on bank flows
+  - Tablet/mobile: Dense internal tables; bank forms usable but not optimized
+  - Copy: "Coming Soon" on live payroll/lending metrics erodes trust
+  - Terminology: "Deal room" vs "application thread" inconsistent
+  - Discoverability: Business banking is account-scoped but /bank/business
+    marketing misleads
+  - Loading/error states: Present on main flows; uneven on explore pages
+  - Activity descriptions: Audit exists; customer-facing txn descriptions vary
+
+
+PERFORMANCE — 68/100
+--------------------
+
+Area                    Concern
+----                    -------
+Dashboard               Duplicate metrics queries (~17 counts × 2)
+Queue aging             Unbounded findMany on all pending items
+Global search           ~18 parallel queries per search
+Customer 360            Universal timeline = many parallel queries
+RI refresh              Sequential per-user in batch job — won't scale to 10k
+Bulk ops                Sequential by design (safe, slow)
+Cron                    Daily servicing parallelized; job runs recorded
+
+Acceptable for hundreds of users and modest queues; needs tuning before 10,000.
+
+
+DOCUMENTATION — 65/100
+----------------------
+
+Good: docs/banking/alta-card.md, relationship-intelligence.md, admin-console.md,
+scheduled-transfers.md, alta-pay.md, ops audit txt files.
+
+Outdated: internal-admin.md, auth.md (permissions "not enforced"),
+mock-data-policy.md (internal "preview data"), feature audit txt (pre-V1 ops
+items now done).
+
+Missing: Post-V1 operator guide (flags, exceptions, reports), ops metrics
+definitions, performance runbook, customer-facing FAQ for manual review timelines.
+
+
+CONSISTENCY ISSUES
+------------------
+
+  - AdminDataTable (~18 files) vs OpsTable (queues, jobs, cards list)
+  - Dual customer paths: /internal/users/$userId vs /internal/relationships/$userId
+  - Legacy /bank/admin/* vs /internal/*
+  - Mock marketing pages vs live backend (data.ts, lending product cards)
+  - BankReviewButton vs OpsAction (partial migration on Alta Card/lending panels)
+
+
+EDGE CASES
+----------
+
+Scenario                        Handling
+--------                        --------
+Customer with no products       Empty states on dashboard — OK
+Company with no accounts        Blocked at business account open — OK
+Failed autopay / delinquent card Delinquency service — OK server-side
+Frozen loan / account           Server blocks — customer may not know why
+Negative balance                Exceptions queue — ops visibility OK
+Cron failure                    Jobs page + OpsJobRun — OK
+RI refresh failure              Best-effort hooks; batch cron may lag
+Statement regeneration          Manual generate exists
+Interest corrections            Operator manual interest — OK
+
+
+SUPPORT TICKET AUDIT (10,000 USERS LAUNCH)
+------------------------------------------
+
+Likelihood-ranked issues that would drive tickets:
+
+Rank  Issue                                           Likelihood
+----  -----                                           ----------
+  1   "How long until my deposit is approved?"        Very high
+      Manual review with no SLA comms or notifications
+  2   "Why was my withdrawal denied?"                 High
+      Review note may exist in audit but not surfaced to customer
+  3   "Payroll says Coming Soon but I heard it exists" High
+      Stale marketing copy
+  4   "My account says restricted / I can't transfer" High
+      Holds/restrictions invisible to customer
+  5   "Private banking page says Pending Review"      High (private clients)
+      Placeholder copy for paying relationship tier
+  6   "I scheduled a wire — nothing happened"         Medium
+      Interbank scheduled not executed
+  7   "Loan payment status Coming Soon"               Medium
+      Mapper placeholders on active loans
+  8   Alta Card delinquent / autopay failed           Medium
+      Limited customer guidance on remediation
+  9   Company verification stuck                      Medium
+      No customer-facing SLA or status timeline
+ 10   Alta Pay — paid wrong merchant / amount         Medium
+      No refund workflow
+
+
+MISSING FEATURES (MEANINGFUL ONLY)
+---------------------------------
+
+Feature                                      Problem solved          Complexity  Priority    V1?
+-------                                      ---------------         ----------  --------    ---
+Customer notifications                       #1 support driver       Medium      Critical    Yes
+(deposit/withdraw/loan/card decisions)
+
+Customer-visible holds/restrictions + reason "Why can't I move money?" Low         Critical    Yes
+
+Remove/fix stale "Coming Soon" on live       Trust erosion             Low         Critical    Yes
+features
+
+Private banking page — real data or          Private client            Low         High        Yes
+honest empty state                           embarrassment
+
+Disable or block interbank scheduled         False expectation         Low         High        Yes
+creation
+
+Deposit/withdrawal status page with          Self-service tracking     Medium      High        Yes
+timeline
+
+Card dispute workflow                        Card issuer expectation   High        High        No (V2)
+Case management                              Compliance investigations High        High        No (V2)
+P2P Alta Pay                                 Consumer expectation      High        Medium      No (V2)
+Interbank wire settlement                    Full bank expectation     High        Medium      No (V2)
+Customer email/SMS outside Discord           Broader reach             Medium      Medium      No (V2)
+Operator assignment                          Ops at scale              Medium      Medium      No (V2)
+
+
+PRODUCTION READINESS
+--------------------
+
+Is Alta Bank V1 production ready?
+
+Conditionally — for a controlled beta (hundreds of users, informed community),
+yes.
+
+For a polished public launch at 10,000 users, no — not due to missing products,
+but due to customer communication gaps, copy honesty, and scale performance.
+
+
+BLOCKERS
+--------
+
+Critical (must fix before broad launch):
+  1. No customer notifications for money-movement and credit decisions
+  2. Customer cannot see account holds/restrictions
+  3. Stale "Coming Soon" / placeholder copy on live or paid-tier features
+
+High:
+  4. Private banking page placeholders for tagged clients
+  5. Interbank scheduled transfers creatable but not executable — hide or block
+  6. Dashboard/search/RI performance at 10k users
+  7. Documentation sync (auth.md, internal-admin.md, operator V1 guide)
+
+Medium:
+  8. Flags UI not on account/loan/card workspaces (schema supports them)
+  9. No rate limiting on financial mutations
+ 10. Lending loan detail "Coming Soon" labels on active loans
+
+Low:
+ 11. Explore page AdminDataTable migration
+ 12. Dual relationships workspace path
+ 13. Job run history drill-down
+
+
+FINAL SCORES (0–100)
+--------------------
+
+Category                    Score
+--------                    -----
+Banking                     78
+Alta Card                   82
+Lending                     75
+Alta Pay                    70
+Relationship Intelligence   80
+Business Banking            76
+Private Banking             55
+Internal Console            85
+Security                    78
+UX                          72
+Performance                 68
+Documentation               65
+Overall Product             74
+
+
+FINAL VERDICT
+-------------
+
+Would you launch Alta Bank V1 tomorrow?
+
+No — not to 10,000 users without a short pre-launch hardening pass.
+
+Why yes internally:
+The bank is feature-complete for its scope. Core ledger, Alta Card lifecycle,
+lending with secure threads, Alta Pay, business payroll, statements, interest,
+RI, and a credible internal console (including V1 ops: aging, reports, flags,
+exceptions, bulk deny, transaction actions) mean operators can run the bank and
+customers can complete real financial journeys.
+
+Why not tomorrow at scale:
+Launch readiness is not only features — it is trust and support load. A
+customer who deposits FLR and waits days with no notification will open a
+ticket. A private client who sees "Pending Relationship Review" on every field
+will assume the product is unfinished. An operator at 10k users will feel
+dashboard and search latency before queue depth becomes the problem.
+
+Absolutely necessary before launch (everything else → V2):
+  1. In-app notifications (or Discord DM integration) for: deposit
+     approved/denied, withdrawal approved/denied, loan decision, Alta Card
+     decision, autopay failure, account restricted
+  2. Customer account status panel showing holds, restrictions, and plain-
+     language reason
+  3. Copy audit — remove "Coming Soon" from live payroll, lending status,
+     business metrics; fix private banking placeholders
+  4. Block interbank scheduled wire creation until execution exists (or show
+     explicit "preview only")
+  5. Performance pass — dedupe dashboard metrics, cap queue-aging queries, plan
+     RI batch strategy for 10k users
+  6. Update operator docs for V1 console (flags, exceptions, reports) and mark
+     outdated docs
+
+Defer to V2: disputes, case management, P2P, wires, operator assignment, KYC
+vault, full private banking CRM, explore-page table migration.
+
+
+BOTTOM LINE
+-----------
+
+Alta Bank V1 is complete as a product for a manual-review community digital
+bank. It is not yet complete as a polished launch until customer communication,
+honesty of UI copy, and modest scale performance are addressed. That is a 2–3
+week hardening scope, not a new product build.

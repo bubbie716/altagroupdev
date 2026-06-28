@@ -116,7 +116,7 @@ export function BankAccountOpenForm() {
           <p className="text-[13px] leading-relaxed text-muted-foreground">
             {createdAccount.instant
               ? "Your Alta Bank account is now active."
-              : "Your opening request has been submitted. An Alta Bank operator will review it shortly."}
+              : "Your opening request has been submitted. Alta will review it shortly."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">

@@ -41,7 +41,7 @@ function AccountStatementsPage() {
   return (
     <>
       {canGenerate && (
-        <Section title="Generate preview statement" className="mb-10">
+        <Section title="Generate statement" className="mb-10">
           <Card className="mx-auto max-w-xl !p-6">
             <StatementGenerateForm accountId={account.id} defaultPeriod={defaultPeriod} />
           </Card>

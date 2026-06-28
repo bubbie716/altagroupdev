@@ -23,6 +23,7 @@ import {
 } from "@/lib/bank/alta-card-review.functions";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { isTerminalThreadDecisionStatus } from "@/lib/bank/thread-decision-utils";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 function tierUpgradeLabel(current: AltaCardTierCode, target: AltaCardTierCode): string {
   return `${ALTA_CARD_TIER_LABELS[current]} → ${ALTA_CARD_TIER_LABELS[target]}`;
@@ -247,7 +248,7 @@ export function AltaCardReviewForm({
 
       await router.navigate(altaCardReviewDetailLink(reviewNavCard(context, cardId), reviewId));
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Submission failed.");
+      setError(formatCustomerActionError(err, "card_review"));
     } finally {
       setLoading(false);
     }
@@ -548,12 +549,12 @@ export function AltaCardReviewDetailView({
           {...altaCardReviewThreadLink(reviewNavCardFromReview(cardId, review), review.id)}
           className="mt-5 inline-block rounded-lg border border-border bg-surface-2 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] hover:bg-surface-1"
         >
-          {isTerminal ? "View secure deal room" : "Open secure deal room"}
+          {isTerminal ? "View Secure Deal Room" : "Open Secure Deal Room"}
         </Link>
         {isTerminal ? (
           <p className="mt-3 text-[13px] text-muted-foreground">
-            This secure deal room is closed. Your decision is recorded above and in the deal room
-            message history.
+            This Secure Deal Room is closed. Your decision is recorded above and in the Secure Deal
+            Room message history.
           </p>
         ) : null}
       </div>

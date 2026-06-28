@@ -38,8 +38,6 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
     companies,
     accounts,
     transactions,
-    deposits,
-    withdrawals,
     loans,
     statements,
     lendingApps,
@@ -97,30 +95,6 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
           { referenceCode: { contains: q, mode: "insensitive" } },
           { description: { contains: q, mode: "insensitive" } },
           ...(idMatch ? [{ id: idMatch }] : []),
-        ],
-      },
-      include: { bankAccount: { include: { user: true, company: true } } },
-      take: perType,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.bankTransaction.findMany({
-      where: {
-        type: "DEPOSIT",
-        OR: [
-          { referenceCode: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      include: { bankAccount: { include: { user: true, company: true } } },
-      take: perType,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.bankTransaction.findMany({
-      where: {
-        type: "WITHDRAWAL",
-        OR: [
-          { referenceCode: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
         ],
       },
       include: { bankAccount: { include: { user: true, company: true } } },
@@ -300,6 +274,32 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
     seenTx.add(tx.id);
     const isPay = tx.referenceCode.startsWith("PAY-");
     const owner = tx.bankAccount.company?.name ?? tx.bankAccount.user.discordUsername;
+    if (tx.type === "DEPOSIT") {
+      pushResult(results, {
+        id: tx.id,
+        type: "deposit",
+        label: tx.description || `Deposit ${tx.referenceCode}`,
+        sublabel: `${florin(decimalToNumber(tx.amount))} · ${tx.bankAccount.accountNumber}`,
+        href: `/internal/bank/transactions/${tx.id}`,
+        status: tx.status,
+        amount: florin(decimalToNumber(tx.amount)),
+        date: isoDate(tx.createdAt),
+      }, limit);
+      continue;
+    }
+    if (tx.type === "WITHDRAWAL" && !isPay) {
+      pushResult(results, {
+        id: tx.id,
+        type: "withdrawal",
+        label: tx.description || `Withdrawal ${tx.referenceCode}`,
+        sublabel: `${florin(decimalToNumber(tx.amount))} · ${tx.bankAccount.accountNumber}`,
+        href: `/internal/bank/transactions/${tx.id}`,
+        status: tx.status,
+        amount: florin(decimalToNumber(tx.amount)),
+        date: isoDate(tx.createdAt),
+      }, limit);
+      continue;
+    }
     pushResult(results, {
       id: tx.id,
       type: isPay ? "alta_pay" : "transaction",
@@ -308,36 +308,6 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
       href: isPay
         ? `/internal/bank/alta-pay?ref=${encodeURIComponent(tx.referenceCode.replace(/-OUT$|-IN$/, ""))}`
         : `/internal/bank/transactions/${tx.id}`,
-      status: tx.status,
-      amount: florin(decimalToNumber(tx.amount)),
-      date: isoDate(tx.createdAt),
-    }, limit);
-  }
-
-  for (const tx of deposits) {
-    if (seenTx.has(tx.id)) continue;
-    seenTx.add(tx.id);
-    pushResult(results, {
-      id: tx.id,
-      type: "deposit",
-      label: tx.description || `Deposit ${tx.referenceCode}`,
-      sublabel: `${florin(decimalToNumber(tx.amount))} · ${tx.bankAccount.accountNumber}`,
-      href: `/internal/bank/transactions/${tx.id}`,
-      status: tx.status,
-      amount: florin(decimalToNumber(tx.amount)),
-      date: isoDate(tx.createdAt),
-    }, limit);
-  }
-
-  for (const tx of withdrawals) {
-    if (seenTx.has(tx.id)) continue;
-    seenTx.add(tx.id);
-    pushResult(results, {
-      id: tx.id,
-      type: "withdrawal",
-      label: tx.description || `Withdrawal ${tx.referenceCode}`,
-      sublabel: `${florin(decimalToNumber(tx.amount))} · ${tx.bankAccount.accountNumber}`,
-      href: `/internal/bank/transactions/${tx.id}`,
       status: tx.status,
       amount: florin(decimalToNumber(tx.amount)),
       date: isoDate(tx.createdAt),

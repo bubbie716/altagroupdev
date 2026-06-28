@@ -16,16 +16,9 @@ async function actor() {
 }
 
 export const fetchBankDashboardBundle = createServerFn({ method: "GET" }).handler(async () => {
-  const { getUserBankDashboard, listUserBankAccounts, listUserRecentTransactions } = await import(
-    "@/server/bank.service"
-  );
+  const { getUserBankDashboardBundle } = await import("@/server/bank.service");
   const userId = await actorId();
-  const [dashboard, accounts, transactions] = await Promise.all([
-    getUserBankDashboard(userId),
-    listUserBankAccounts(userId),
-    listUserRecentTransactions(userId, 10),
-  ]);
-  return { dashboard, accounts, transactions };
+  return getUserBankDashboardBundle(userId);
 });
 
 export const fetchAccountPageBundle = createServerFn({ method: "GET" })
@@ -92,6 +85,14 @@ export const fetchUserBankTransactions = createServerFn({ method: "GET" })
     return listUserRecentTransactions(userId, limit);
   });
 
+export const fetchUserBankRequestsInProgress = createServerFn({ method: "GET" })
+  .inputValidator((type: "deposit" | "withdrawal") => type)
+  .handler(async ({ data: type }) => {
+    const { listUserBankRequestsInProgress } = await import("@/server/bank.service");
+    const userId = await actorId();
+    return listUserBankRequestsInProgress(userId, type);
+  });
+
 export const openBankAccountRecord = createServerFn({ method: "POST" })
   .inputValidator((input: OpenBankAccountInput) => input)
   .handler(async ({ data }) => {
@@ -155,6 +156,34 @@ export const deleteTransferContactRecord = createServerFn({ method: "POST" })
     await deleteTransferContact(userId, contactId);
     return { ok: true as const };
   });
+
+export const fetchInternalBankOpsSummary = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireOperator } = await import("@/server/permissions.service");
+  const { getInternalBankOpsSummary } = await import("@/server/bank.service");
+  await requireOperator();
+  return getInternalBankOpsSummary();
+});
+
+export const fetchPendingDepositsQueue = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireOperator } = await import("@/server/permissions.service");
+  const { listPendingBankTransactions } = await import("@/server/bank.service");
+  await requireOperator();
+  return listPendingBankTransactions("DEPOSIT");
+});
+
+export const fetchPendingWithdrawalsQueue = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireOperator } = await import("@/server/permissions.service");
+  const { listPendingBankTransactions } = await import("@/server/bank.service");
+  await requireOperator();
+  return listPendingBankTransactions("WITHDRAWAL");
+});
+
+export const fetchPendingAccountOpeningsQueue = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireOperator } = await import("@/server/permissions.service");
+  const { listPendingAccountOpenings } = await import("@/server/bank.service");
+  await requireOperator();
+  return listPendingAccountOpenings();
+});
 
 export const fetchInternalBankOps = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOperator } = await import("@/server/permissions.service");

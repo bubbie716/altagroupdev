@@ -1,0 +1,332 @@
+Alta Bank V1 — Copy & Microcopy Audit
+======================================
+Date: 2025-06-28
+Scope: Customer-facing Alta Bank + operator /internal console
+Method: Codebase review of routes, components, copy modules, empty states, errors, docs
+Constraints: Audit only — no UI redesign, no backend changes, no feature work
+
+Overall assessment
+------------------
+Alta Bank V1 is largely institutional and honest where copy modules exist
+(account-status-copy, lending-application-status-copy, secure-deal-room-system-copy,
+bank-request-status-copy, ops-copy). The main gaps are **terminology drift** across
+surfaces, **preview/V1 language on live paths**, and **generic error fallbacks**
+outside mapped domains. Tone is split between premium institutional (lending, deposits)
+and promotional marketing (bank dashboard headline, private banking).
+
+Recommended canonical customer vocabulary (V1)
+----------------------------------------------
+| Concept              | Use everywhere (customer)     | Avoid mixing in              |
+|----------------------|-------------------------------|------------------------------|
+| Manual review queue  | Waiting on Alta               | Pending Review, Under Review |
+| Customer action req. | Waiting on You                | Waiting on you (lowercase)   |
+| Lending approved     | Accepted                      | Approved (lending terminal)  |
+| Card approved        | Approved                      | Accepted (card terminal)     |
+| Deposit/withdraw no  | Denied / not approved         | Declined (activity only OK)  |
+| Async comms          | Secure Deal Room              | secure deal room, deal room  |
+| Staff                | Alta / Alta Bank              | operator (customer-facing)   |
+| RI product name      | Relationship Intelligence     | relationship intelligence    |
+
+Recommended canonical operator vocabulary (V1)
+----------------------------------------------
+| Action domain        | Primary verb | Status label |
+|----------------------|--------------|--------------|
+| Bank deposit/withdraw| Approve/Deny | Denied       |
+| Lending application  | Accept/Deny  | Accepted/Denied |
+| Alta Card application| Approve/Deny | Approved/Denied |
+| Company verification | Verify/Reject| Verified/Rejected |
+| Thread inbox         | Deal Rooms   | Secure Deal Room (customer-facing ref) |
+| Credit ops           | Alta Credit Desk | Credit Desk (nav OK) |
+
+Note: Accept vs Approve is **intentionally split by product** if documented;
+UI should not use both verbs for the same action (lending queue says Accept,
+dialog says Approve loan application).
+
+
+1. TERMINOLOGY STANDARDIZED (findings + recommendations)
+--------------------------------------------------------
+
+Customer — pending / review (HIGH)
+- Requests in Progress: "Waiting on Alta" (bank-request-status-copy.ts) ✓
+- Activity ledger: "Deposit · Pending Review" (customer-transaction-copy.ts)
+- Account pending badge: "Under Review" vs "Pending Review" (account-status-copy vs account-card.tsx)
+- Deposit page: "pending until manually reviewed"
+- Success card: "awaiting review"
+Fix: Pick ONE customer-facing pending label. Recommend **Waiting on Alta** for
+in-flight requests and **Under Review** only for account opening (different object).
+
+Customer — Accepted vs Approved (HIGH)
+- Lending filters/status: "Accepted" (lending-application-status-copy.ts)
+- Lending definition body: "Your application has been approved." under Accepted key
+- System messages: "Your application has been accepted." (secure-deal-room-system-copy.ts)
+- Alta Card status: "Approved" / CTA "Accept card"
+- Timeline: "Loan accepted" vs "Loan approved"
+Fix: Lending terminal = **Accepted** everywhere including system messages.
+Card terminal = **Approved**. Do not cross-use.
+
+Customer — Secure Deal Room capitalization (MEDIUM)
+- Branded correctly on lending routes and thread views
+- Lowercase on some Alta Card surfaces: "Open secure deal room"
+Fix: Always **Secure Deal Room** when referring to the product.
+
+Customer — operator vs Alta (LOW)
+- withdraw.tsx: "until an operator approves" — replace with Alta-facing language
+
+Operator — Accept vs Approve (HIGH)
+- Lending queue: Accept → / workspace button Accept / dialog "Approve loan application"
+- Bank queues: Approve
+- Alta Card queue: Approve →
+Fix: Align button + dialog title per product (Accept for lending, Approve for bank/card).
+
+Operator — Deny vs Reject (MEDIUM)
+- Bank: Deny (correct)
+- Company verification: Reject (correct)
+- Many Deny dialogs say "This will reject the application"
+Fix: Dialog body may say reject as verb; keep button **Deny** for bank/lending/card,
+**Reject** for company verification only.
+
+Operator — Deal Room naming (MEDIUM)
+- Nav: Deal Rooms / page title Deal Room Inbox / empty "secure deal room threads"
+- Workspace: Secure Deal Room / Alta Credit Desk
+Fix: Nav **Deal Rooms**; customer references **Secure Deal Room**; filter
+"Applicant ↔ Alta Credit Desk" is OK as desk label.
+
+Operator — Relationship Intelligence (LOW)
+- Nav "Relationships" vs page "Relationship Intelligence" vs lowercase in panels
+Fix: Page title **Relationship Intelligence**; nav short label **Relationships** OK;
+panel subtitles should capitalize product name.
+
+
+2. MISLEADING COPY REMOVED (findings — needs copy pass)
+-------------------------------------------------------
+
+Live customer paths still using preview / coming soon / V1 disclosure:
+- Credit profile tiles: "Coming Soon", "No scores or pre-approvals are calculated in V1"
+  (lending-progress.ts, alta-credit-profile-placeholder.tsx)
+- Statements: "Generate preview statement" (statement-generate-form.tsx, statements routes)
+- Alta Card apply visual: "Preview · terms set at approval"
+- Alta Card landing: "no merchant network... in V1"
+- Interbank: "Automatic payment execution coming in a future release" (business-future-notice)
+- Wire preview: "NCC-Net settlement is planned infrastructure" (transfer-form-preview.tsx)
+- Alta Card RI panel: "Relationship intelligence pending"
+
+Mock-mode only (OK if mock banner visible):
+- Bank dashboard "simulated preview data", intrabank "simulated in this preview"
+- transfer-form-preview wire simulation strings
+
+Operator visible not-yet-implemented:
+- Company RI: "Coming soon" treasury/exchange placeholders
+- Pre-approval panel: "Future pre-approval readiness", "Suggested products (placeholder)"
+- Compliance: "Full compliance case management is not yet implemented"
+- Discord embed: "preview-only until DISCORD_BOT_TOKEN"
+- Alta Card workspace: Prisma note exposed to operators
+
+Documentation accurately flags preview areas (metrics-policy.md) but some UI
+strings on live bank paths still say "preview" for real features (statements).
+
+Recommendation:
+- Statements: drop "preview" — use "Generate statement" if feature is live
+- Credit profile: hide section or "Not available yet" without V1 jargon
+- Replace "operator" on withdraw page
+- Move V1 limitation copy to docs/help, not primary CTAs
+
+
+3. CUSTOMER COPY IMPROVEMENTS
+-----------------------------
+
+Strong (keep)
+- account-status-copy.ts: customer-safe errors, blocked action messages
+- bank-request-submission-ui.tsx: calm success card, no receipt tone
+- lending-application-status-copy.ts: Waiting on Alta/You definitions
+- secure-deal-room-system-copy.ts: institutional system messages
+- Deposit/withdraw forms: clear manual review expectations
+
+Needs improvement
+- Bank dashboard title "Bank Like the 1%" — promotional vs rest of bank tone
+- Private banking: "unlock", "Exclusive products", superlative marketing
+- alta-card-tier-comparison: "Premium public tier", "Best public rate"
+- Duplicate Secure Deal Room + manual review paragraphs (~6 surfaces) — consolidate
+- Account pending: two stacked notices in buildCustomerAccountStatus
+- Declined vs Denied in activity descriptions vs request status
+
+Forms / microcopy samples to align:
+- deposit.tsx / withdraw.tsx page descriptions → match "Waiting on Alta" status
+- lending apply surfaces → single shared WHAT_HAPPENS_NEXT block (partially exists)
+
+
+4. OPERATOR COPY IMPROVEMENTS
+-----------------------------
+
+Strong (keep)
+- ops-copy.ts + ops-status.ts: badge normalization
+- Queue empty states: contextual ("No pending deposits.", etc.)
+- Confirm dialog patterns with required reason
+
+Needs improvement
+- Dashboard queue CTAs: "Review" vs bank index "Open queue" — pick one pattern
+- Generic errors: "Could not update recommendation", "Failed to save note" — use OPS_COPY.actionFailed pattern
+- OPS_COPY.noResults / actionFailed defined but rarely used in UI
+- Lending "begin review" description duplicated in queue + workspace
+- Company verification actions duplicated between queue view + shared component
+- Timeline preview label (relationship panel) — use "Timeline" if live data
+
+
+5. MICROCOPY IMPROVEMENTS
+-------------------------
+
+Buttons (generally good)
+- Submit Deposit / Submitting Deposit… ✓
+- Approve/Deny/Verify consistent within domains
+
+Search placeholders (good, specific)
+- deposits queue: "Search ref, account, customer, amount…"
+
+Inconsistencies
+- Queue row links: Accept → vs Approve → vs Decide →
+- Alta Card thread status: "Waiting on you" vs "Waiting on You"
+- Autopay last run: raw "Success" / "Failed" labels
+
+Validation
+- Many forms use inline business errors (good)
+- Some API fallbacks remain generic (see errors section)
+
+
+6. ERROR MESSAGE IMPROVEMENTS
+-----------------------------
+
+Strong pattern (extend)
+- formatBankActionError in account-status-copy.ts maps server errors to actionable copy
+- Used on deposit/withdraw/transfer forms
+
+Generic fallbacks to replace (customer):
+- "Something went wrong while submitting your request…" (bank-request-submission-ui)
+- "Request failed" (lending apply)
+- "Payment failed" (alta-pay, loan payment, card payment)
+- "Application failed" / "Submission failed." / "Generation failed."
+- "Unable to complete transfer." / "Upload failed." / "Failed to send."
+
+Generic fallbacks (operator):
+- Ad-hoc "Could not …" / "Failed to …" without next step
+- ops-confirm-dialog: "This action could not be completed. Try again."
+
+Recommendation: Extend formatBankActionError pattern to payments, lending submit,
+and card apply; wire OPS_COPY.actionFailed for operator mutations.
+
+
+7. SUCCESS MESSAGE IMPROVEMENTS
+-------------------------------
+
+Strong (recent work)
+- Deposit/Withdraw: "Deposit Submitted" + reassuring body (bank-request-submission-ui)
+- No generic "Success!" on bank submit paths
+
+Still generic elsewhere
+- Autopay: "Success" / "Failed" status labels
+- Some forms rely on green inline text without structured confirmation
+
+Recommendation: Use product-specific success titles everywhere submissions occur
+(Alta Pay Sent, Application Submitted, Statement Generated).
+
+
+8. EMPTY STATE IMPROVEMENTS
+---------------------------
+
+Strong
+- "No requests currently in progress." ✓
+- "No loans on file" with description ✓
+- Queue-specific operator empties ✓
+- empty-bank-state: "No Alta Bank accounts yet." with CTA ✓
+
+Weak / vague
+- "No applications available right now" (alta-card-apply-form)
+- "No eligible payment sources" (pay.tsx)
+- "No eligible accounts" (statement picker)
+- "Relationship intelligence pending" (reads as system state)
+- Table defaults: "No records." / "No records found."
+- OPS_COPY.noResults unused — could unify filter empty states
+
+Avoid: No Data, Empty, Nothing Here — not found in bank paths ✓
+
+
+9. DUPLICATE COPY CONSOLIDATED (existing + opportunities)
+---------------------------------------------------------
+
+Already centralized (good)
+- src/lib/bank/account-status-copy.ts
+- src/lib/bank/customer-transaction-copy.ts
+- src/lib/bank/lending-application-status-copy.ts
+- src/lib/bank/secure-deal-room-system-copy.ts
+- src/lib/bank/bank-request-status-copy.ts
+- src/lib/internal/console/ops-copy.ts
+- src/lib/bank/lending-audit-display.ts
+- src/lib/bank/relationship-timeline-display.ts
+
+Should consolidate (recommended V1.1 copy pass)
+- Secure Deal Room + manual review paragraph (6+ lending/alta-card surfaces)
+  → export from lending-application-status-copy or secure-deal-room-system-copy
+- Company verification queue + workspace actions → single component/copy module
+- Lending under-review action description (queue + workspace duplicate)
+- Filter empty states → OPS_COPY.noResults variants
+- Pending review explanations (deposit page + success card + activity + status badge)
+
+
+10. DOCUMENTATION UPDATED (findings)
+------------------------------------
+
+Docs generally match implementation and honestly label preview/mock areas:
+- docs/metrics-policy.md — preview labeling policy ✓
+- docs/banking/alta-card.md — V1 limitations documented ✓
+- docs/bank-backend.md — NOTE: says "placeholder URLs only" for proof; proof upload
+  is now implemented — doc outdated
+- docs/banking/relationship-intelligence.md — accurate V1 scope ✓
+- docs/lending/deal-rooms.md — Secure Deal Room canonical ✓
+
+Outdated doc items:
+- bank-backend.md proof flow section
+- Some V1 "not implemented" notes where features now ship (proof, statements)
+
+No documentation file changes made in this audit pass.
+
+
+11. INTENTIONALLY DEFERRED (product / tone decisions)
+-----------------------------------------------------
+
+Requires stakeholder choice, not copywriter-only:
+- Bank dashboard headline "Bank Like the 1%" — brand vs institutional tone
+- Private banking marketing superlatives — brand voice decision
+- Whether activity ledger keeps "Declined" while requests use "Denied"
+- Lending Accept vs Approve unification (may keep split with style guide)
+- Hiding vs soft-launching credit profile / interbank wire preview sections
+- Exchange/governance "Coming Soon" pages (out of Alta Bank V1 scope)
+- Consolidating Accept/Apply on relationship recommendations (operator)
+
+
+Priority copy pass (recommended order)
+--------------------------------------
+P0 — Customer confusion
+1. Unify pending status vocabulary (Waiting on Alta vs Pending Review vs Under Review)
+2. Remove "preview" from live statement generation copy
+3. Replace withdraw.tsx "operator" with Alta
+4. Standardize Secure Deal Room capitalization
+
+P1 — Trust / honesty
+5. Hide or rewrite credit profile "Coming Soon" / V1 tiles on live lending page
+6. Update bank-backend.md proof documentation
+7. Replace top generic payment/application error fallbacks
+
+P2 — Operator efficiency
+8. Align lending Accept button with dialog wording
+9. Wire OPS_COPY.actionFailed + noResults into tables/panels
+10. Deduplicate company verification + lending review copy
+
+P3 — Polish
+11. Autopay Success/Failed → human labels
+12. Empty state pass on pay + card apply
+13. Dashboard/promotional tone review with brand
+
+
+Files reviewed (representative)
+-------------------------------
+Customer: src/routes/bank/**, src/components/bank/**, src/lib/bank/*copy*
+Operator: src/routes/internal/**, src/components/internal/**, src/lib/internal/console/*
+Shared: src/components/data/empty-*.tsx, docs/metrics-policy.md, docs/banking/*

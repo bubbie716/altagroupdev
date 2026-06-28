@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { generateAltaCardStatementForPeriod } from "@/lib/bank/alta-card-statement.functions";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import { altaCardStatementDetailLink } from "@/lib/bank/alta-card-navigation";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -38,9 +39,9 @@ export function AltaCardStatementGenerateForm({
       await router.navigate(altaCardStatementDetailLink(card, statement.id));
     } catch (err) {
       const message =
-        err instanceof Error
-          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN$/, "You do not have permission to generate statements for this card.")
-          : "Generation failed.";
+        err instanceof Error && err.message === "FORBIDDEN"
+          ? "You do not have permission to generate statements for this card."
+          : formatCustomerActionError(err, "statement_generate");
       setError(message);
     } finally {
       setPending(false);
@@ -50,8 +51,8 @@ export function AltaCardStatementGenerateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Generate a preview statement from completed card transactions in the selected period.
-        Opening balances are estimated from available transaction history.
+        Generate a statement from completed card transactions in the selected period. Opening balances
+        are estimated from available transaction history.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -24,15 +24,15 @@ export function computeLoanRepaymentProgress(
     amountRepaid,
     percentRepaid,
     totalRepaymentObligation,
-    nextPaymentDueLabel: "Coming Soon",
+    nextPaymentDueLabel: "See payment schedule",
     includesAccruedInterest: totalRepaymentObligation > principalAmount,
   };
 }
 
 export const CREDIT_PROFILE_PLACEHOLDERS = [
   { label: "Estimated Net Worth", note: "Requires Terminal portfolio integration" },
-  { label: "Bank Cash", note: "Coming Soon" },
+  { label: "Bank Cash", note: "Not available yet" },
   { label: "Investment Value", note: "Requires Terminal portfolio integration" },
-  { label: "Alta Credit Score", note: "Coming Soon" },
-  { label: "Pre-Approved Credit", note: "Coming Soon" },
+  { label: "Alta Credit Score", note: "Not available yet" },
+  { label: "Pre-Approved Credit", note: "Not available yet" },
 ] as const;

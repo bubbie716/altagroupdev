@@ -3,10 +3,10 @@
 /** Separates primary label from detail in activity descriptions (middle dot, not em dash or period). */
 export const TX_DESC_SEP = " · ";
 
-export const DEPOSIT_PENDING_DESCRIPTION = `Deposit${TX_DESC_SEP}Pending Review`;
+export const DEPOSIT_PENDING_DESCRIPTION = `Deposit${TX_DESC_SEP}Waiting on Alta`;
 export const DEPOSIT_APPROVED_DESCRIPTION = "Deposit";
 export const DEPOSIT_DECLINED_DESCRIPTION = `Deposit${TX_DESC_SEP}Declined`;
-export const WITHDRAWAL_PENDING_DESCRIPTION = `Withdrawal${TX_DESC_SEP}Pending Review`;
+export const WITHDRAWAL_PENDING_DESCRIPTION = `Withdrawal${TX_DESC_SEP}Waiting on Alta`;
 export const WITHDRAWAL_APPROVED_DESCRIPTION = "Withdrawal";
 export const WITHDRAWAL_DECLINED_DESCRIPTION = `Withdrawal${TX_DESC_SEP}Declined`;
 

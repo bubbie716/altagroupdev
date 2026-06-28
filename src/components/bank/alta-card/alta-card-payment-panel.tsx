@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { florin } from "@/lib/bank/api";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import {
   fetchCardPaymentContext,
   submitCardPaymentRecord,
@@ -120,7 +120,7 @@ export function AltaCardPaymentPanel({
       setStep("done");
       await router.invalidate();
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Payment failed");
+      setError(formatCustomerActionError(err, "card_payment"));
     } finally {
       setPending(false);
     }

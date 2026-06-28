@@ -779,7 +779,7 @@ function ThreadDecisionBanner({ status, label }: { status: string; label: string
     <div className={cn("mb-6 rounded-xl border px-4 py-3 text-center", styles)}>
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] opacity-80">Decision</p>
       <p className="mt-1 font-serif text-[18px] tracking-tight">{label}</p>
-      <p className="mt-1 text-[12px] opacity-80">This secure deal room is closed.</p>
+      <p className="mt-1 text-[12px] opacity-80">This Secure Deal Room is closed.</p>
     </div>
   );
 }

@@ -37,7 +37,7 @@ export function RelationshipIntelligencePanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Relationship intelligence
+            Relationship Intelligence
           </h3>
           <p className="mt-1 text-[12px] text-muted-foreground">
             {context ? CONTEXT_LABELS[context] : "Read-only relationship profile"} — informs decisions only.

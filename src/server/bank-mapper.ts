@@ -19,6 +19,7 @@ import { hasStoredProof, getProofFileUrl } from "@/lib/storage/proof-upload.cons
 import { getRoutingNumber } from "@/lib/bank/routing";
 import { formatBankTransactionTypeLabel } from "@/lib/bank/transaction-display";
 import { formatMonthlyInterestRateLabel } from "@/lib/bank/account-interest-service";
+import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 
 const ACCOUNT_TYPE_TO_DB: Record<BankAccountTypeCode, DbBankAccountType> = {
   alta_access: "ALTA_ACCESS",
@@ -84,7 +85,7 @@ export function fromDbBankTransactionStatus(status: DbBankTransactionStatus): Ba
 }
 
 function formatStatusLabel(status: BankAccountStatusCode): string {
-  if (status === "pending") return "Pending Review";
+  if (status === "pending") return "Under Review";
   if (status === "active") return "Active";
   if (status === "frozen") return "Frozen";
   return "Closed";
@@ -113,6 +114,9 @@ type BankAccountRecord = {
   balance: { toNumber(): number };
   currency: string;
   openingNotes: string | null;
+  restrictDeposits?: boolean;
+  restrictWithdrawals?: boolean;
+  restrictTransfers?: boolean;
   createdAt: Date;
   interestAccrualEnabled?: boolean;
   interestRate?: { toNumber(): number };
@@ -147,6 +151,9 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
     companyName: account.company?.name ?? null,
     isCompanyAccount: Boolean(account.companyId),
     openingNotes: account.openingNotes,
+    restrictDeposits: account.restrictDeposits ?? false,
+    restrictWithdrawals: account.restrictWithdrawals ?? false,
+    restrictTransfers: account.restrictTransfers ?? false,
     createdAt: account.createdAt.toISOString(),
     recentActivity,
     name: account.accountName,
@@ -157,6 +164,14 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
       account.interestAccrualEnabled && account.interestRate
         ? formatMonthlyInterestRateLabel(decimalToNumber(account.interestRate))
         : null,
+    accountStatusInfo: buildCustomerAccountStatus({
+      status,
+      restrictDeposits: account.restrictDeposits ?? false,
+      restrictWithdrawals: account.restrictWithdrawals ?? false,
+      restrictTransfers: account.restrictTransfers ?? false,
+      heldFunds: 0,
+      pendingWithdrawals: 0,
+    }),
   };
 }
 
@@ -258,8 +273,8 @@ export function mapInternalBankTransactionRow(tx: BankTransactionRecord): Intern
   };
 }
 
-export function mapAccountCardStatus(status: BankAccountStatusCode): "Active" | "Restricted" | "Pending Review" {
+export function mapAccountCardStatus(status: BankAccountStatusCode): "Active" | "Restricted" | "Under Review" {
   if (status === "active") return "Active";
-  if (status === "pending") return "Pending Review";
+  if (status === "pending") return "Under Review";
   return "Restricted";
 }

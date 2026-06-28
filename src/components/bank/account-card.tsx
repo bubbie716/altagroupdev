@@ -32,7 +32,7 @@ export function AccountCard({
     account.status === "active"
       ? "Active"
       : account.status === "pending"
-        ? "Pending Review"
+        ? "Under Review"
         : account.status === "frozen"
           ? "Frozen"
           : isClosed

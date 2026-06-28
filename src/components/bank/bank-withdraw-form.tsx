@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -10,10 +11,23 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
+import { WITHDRAW_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
+import {
+  formatBankActionError,
+  withdrawalBlockedReason,
+} from "@/lib/bank/account-status-copy";
+import {
+  BankRequestErrorCard,
+  BankRequestSubmitButton,
+  BankRequestSuccessCard,
+  type BankRequestSubmissionResult,
+} from "@/components/bank/bank-request-submission-ui";
 
 const fieldLabel = "type-meta";
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+
+type FormView = "form" | "success" | "error";
 
 function resolveInitialAccountId(accounts: UserBankAccount[], preferredAccountId?: string) {
   if (preferredAccountId && accounts.some((account) => account.id === preferredAccountId)) {
@@ -25,29 +39,61 @@ function resolveInitialAccountId(accounts: UserBankAccount[], preferredAccountId
 export function BankWithdrawForm({
   accounts,
   defaultAccountId,
+  onSubmissionSuccess,
 }: {
   accounts: UserBankAccount[];
   defaultAccountId?: string;
+  onSubmissionSuccess?: (result: BankRequestSubmissionResult) => void;
 }) {
   const [bankAccountId, setBankAccountId] = useState(() =>
     resolveInitialAccountId(accounts, defaultAccountId),
   );
   const selectedAccount = accounts.find((account) => account.id === bankAccountId);
   const availableBalance = selectedAccount?.availableBalance ?? selectedAccount?.balance ?? 0;
+  const heldFunds = selectedAccount?.accountStatusInfo.heldFunds ?? 0;
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
+  const [view, setView] = useState<FormView>("form");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
+
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  function resetForm() {
+    setView("form");
+    setErrorReason(null);
+    setSubmission(null);
+    setAmount("");
+    setMemo("");
+    setBankAccountId(resolveInitialAccountId(accounts, defaultAccountId));
+    queueMicrotask(() => amountInputRef.current?.focus());
+  }
+
+  function showError(message: string) {
+    setErrorReason(message);
+    setView("error");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    if (submitting) return;
 
     const withdrawalAmount = Number(amount);
+    const blocked = selectedAccount
+      ? withdrawalBlockedReason(selectedAccount.accountStatusInfo)
+      : null;
+    if (blocked) {
+      showError(blocked);
+      return;
+    }
     if (withdrawalAmount > availableBalance) {
-      setError("Insufficient balance for this withdrawal.");
+      showError(
+        heldFunds > 0
+          ? "This withdrawal couldn't be completed because your available balance is reduced by held funds."
+          : "This withdrawal couldn't be completed because your available balance is insufficient.",
+      );
       return;
     }
 
@@ -75,13 +121,26 @@ export function BankWithdrawForm({
         throw new Error(payload.message ?? "Unable to submit withdrawal.");
       }
 
-      setSuccess(`Withdrawal pending manual review. Reference: ${payload.referenceCode ?? "—"}`);
-      setAmount("");
-      setMemo("");
+      const submittedAt = new Date().toISOString();
+      const result: BankRequestSubmissionResult = {
+        referenceCode: payload.referenceCode ?? "—",
+        amount: withdrawalAmount,
+        submittedAt,
+        accountName: selectedAccount?.accountName ?? "—",
+        accountNumber: selectedAccount?.accountNumber ?? "—",
+      };
+
+      setSubmission(result);
+      setView("success");
+      onSubmissionSuccess?.(result);
+      await router.invalidate();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unable to submit withdrawal.";
-      setError(message);
+      const raw = err instanceof Error ? err.message : "Unable to submit withdrawal.";
+      const formatted = formatBankActionError(raw, {
+        action: "withdraw",
+        accountId: bankAccountId,
+      });
+      showError(formatted.message);
     } finally {
       setSubmitting(false);
     }
@@ -95,78 +154,77 @@ export function BankWithdrawForm({
     );
   }
 
+  if (view === "success" && submission) {
+    return (
+      <BankRequestSuccessCard
+        kind="withdrawal"
+        result={submission}
+        onSubmitAnother={resetForm}
+      />
+    );
+  }
+
+  if (view === "error") {
+    return <BankRequestErrorCard reason={errorReason} onTryAgain={resetForm} />;
+  }
+
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
       <Card className="space-y-6 !p-6">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Request a Florin withdrawal. Funds are not deducted until an operator approves the request.
+          {WITHDRAW_FORM_INTRO}
         </p>
 
-        <label className="block">
-          <span className={fieldLabel}>Bank account</span>
-          <Select value={bankAccountId} onValueChange={setBankAccountId}>
-            <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.accountName} · {a.accountNumber} · {florin(a.balance)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
+        <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
+          <label className="block">
+            <span className={fieldLabel}>Bank account</span>
+            <Select value={bankAccountId} onValueChange={setBankAccountId} disabled={submitting}>
+              <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.accountName} · {a.accountNumber} · {florin(a.balance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
 
-        <label className="block">
-          <span className={fieldLabel}>Amount (ƒ)</span>
-          <input
-            type="number"
-            min="0.01"
-            max={availableBalance > 0 ? availableBalance : undefined}
-            step="0.01"
-            required
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className={`${inputClass} tabular`}
-          />
-        </label>
+          <label className="block">
+            <span className={fieldLabel}>Amount (ƒ)</span>
+            <input
+              ref={amountInputRef}
+              type="number"
+              min="0.01"
+              max={availableBalance > 0 ? availableBalance : undefined}
+              step="0.01"
+              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className={`${inputClass} tabular`}
+            />
+          </label>
 
-        <label className="block">
-          <span className={fieldLabel}>Memo</span>
-          <Textarea
-            autoResize
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="Optional notes for the reviewer…"
-            className={`${inputClass} min-h-[80px]`}
-          />
-        </label>
+          <label className="block">
+            <span className={fieldLabel}>Memo</span>
+            <Textarea
+              autoResize
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="Optional notes for the reviewer…"
+              className={`${inputClass} min-h-[80px]`}
+            />
+          </label>
+        </fieldset>
 
-        {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/5 px-4 py-3 text-[13px] text-[var(--success)]">
-            {success}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={
-            submitting ||
-            !amount ||
-            Number(amount) <= 0 ||
-            Number(amount) > availableBalance
-          }
-          className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "Submitting…" : "Submit withdrawal request"}
-        </button>
+        <BankRequestSubmitButton
+          kind="withdrawal"
+          submitting={submitting}
+          disabled={!amount || Number(amount) <= 0 || Number(amount) > availableBalance}
+        />
       </Card>
     </form>
   );

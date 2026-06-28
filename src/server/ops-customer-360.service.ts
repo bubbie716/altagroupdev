@@ -1,38 +1,18 @@
 import { getInternalUserDetail } from "@/server/internal-user-management.service";
-import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { buildUniversalCustomerTimeline } from "@/server/ops-universal-timeline.service";
 import { listInternalNotes } from "@/server/internal-note.service";
 
-function decimalToNumber(value: { toString(): string }): number {
-  return Number(value.toString());
-}
-
-export async function getInternalCustomer360(userId: string) {
+export async function getInternalCustomer360(
+  userId: string,
+  options?: { includeTimeline?: boolean },
+) {
   await requireOperator();
-  const [user, notes, timeline, altaPaySent, altaPayReceived] = await Promise.all([
+  const includeTimeline = options?.includeTimeline ?? true;
+  const [user, notes, timeline] = await Promise.all([
     getInternalUserDetail(userId),
     listInternalNotes("USER", userId),
-    buildUniversalCustomerTimeline(userId, 60),
-    prisma.bankTransaction.findMany({
-      where: {
-        bankAccount: { userId },
-        description: { contains: "Alta Pay", mode: "insensitive" },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: { bankAccount: true },
-    }),
-    prisma.bankTransaction.findMany({
-      where: {
-        bankAccount: { company: { memberships: { some: { userId } } } },
-        type: "DEPOSIT",
-        description: { contains: "Alta Pay", mode: "insensitive" },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: { bankAccount: { include: { company: true } } },
-    }),
+    includeTimeline ? buildUniversalCustomerTimeline(userId, 60) : Promise.resolve([]),
   ]);
 
   const isPrivateClient = user.tags.includes("private_client");
@@ -42,29 +22,16 @@ export async function getInternalCustomer360(userId: string) {
     notes,
     timeline,
     isPrivateClient,
-    altaPayActivity: [
-      ...altaPaySent.map((tx) => ({
-        id: tx.id,
-        accountId: tx.bankAccountId,
-        accountName: tx.bankAccount.accountName,
-        direction: "sent" as const,
-        referenceCode: tx.referenceCode,
-        amount: decimalToNumber(tx.amount),
-        accountNumber: tx.bankAccount.accountNumber,
-        description: tx.description,
-        createdAt: tx.createdAt.toISOString(),
-      })),
-      ...altaPayReceived.map((tx) => ({
-        id: tx.id,
-        accountId: tx.bankAccountId,
-        accountName: tx.bankAccount.accountName,
-        direction: "received" as const,
-        referenceCode: tx.referenceCode,
-        amount: decimalToNumber(tx.amount),
-        accountNumber: tx.bankAccount.accountNumber,
-        description: tx.description,
-        createdAt: tx.createdAt.toISOString(),
-      })),
-    ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    altaPayActivity: [] as Array<{
+      id: string;
+      accountId: string;
+      direction: "sent" | "received";
+      referenceCode: string;
+      amount: number;
+      accountName: string;
+      accountNumber: string;
+      description: string;
+      createdAt: string;
+    }>,
   };
 }

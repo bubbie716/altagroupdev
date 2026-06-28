@@ -9,6 +9,20 @@ export type BankAccountTypeCode =
 
 export type BankAccountStatusCode = "pending" | "active" | "frozen" | "closed";
 
+/** Customer-safe account status snapshot — no internal operator data. */
+export interface CustomerAccountStatus {
+  accountStatus: BankAccountStatusCode;
+  restrictDeposits: boolean;
+  restrictWithdrawals: boolean;
+  restrictTransfers: boolean;
+  heldFunds: number;
+  pendingWithdrawals: number;
+  inGoodStanding: boolean;
+  hasIssues: boolean;
+  headline: string;
+  notices: string[];
+}
+
 export type BankTransactionTypeCode =
   | "deposit"
   | "withdrawal"
@@ -35,6 +49,9 @@ export interface UserBankAccount {
   companyName: string | null;
   isCompanyAccount: boolean;
   openingNotes: string | null;
+  restrictDeposits: boolean;
+  restrictWithdrawals: boolean;
+  restrictTransfers: boolean;
   createdAt: string;
   recentActivity: string;
   /** UI-compat fields for AccountCard */
@@ -43,6 +60,7 @@ export interface UserBankAccount {
   type: string;
   interestAccrualEnabled: boolean;
   interestRateLabel: string | null;
+  accountStatusInfo: CustomerAccountStatus;
 }
 
 export interface AccountInterestInfo {
@@ -91,6 +109,23 @@ export interface UserBankTransaction {
   createdAt: string;
   reviewedAt: string | null;
   reviewNote: string | null;
+}
+
+/** Customer deposit/withdrawal request visible on Deposit and Withdraw pages. */
+export interface BankRequestInProgress {
+  id: string;
+  referenceCode: string;
+  bankAccountId: string;
+  accountName: string;
+  accountNumber: string;
+  amount: number;
+  status: Extract<BankTransactionStatusCode, "pending" | "denied">;
+  statusLabel: string;
+  denialMessage: string | null;
+  submittedAt: string;
+  lastUpdatedAt: string;
+  proofImageUrl: string | null;
+  hasProof: boolean;
 }
 
 export interface UserBankDashboard {

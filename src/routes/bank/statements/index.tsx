@@ -48,7 +48,7 @@ function BankStatementsPage() {
         ]}
       />
 
-      <Section title="Generate preview statement" className="mt-8 mb-10">
+      <Section title="Generate statement" className="mt-8 mb-10">
         <Card className="mx-auto max-w-xl !p-6">
           <StatementCenterGenerateForm accounts={generatableAccounts} defaultPeriod={defaultPeriod} />
         </Card>

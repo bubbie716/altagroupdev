@@ -163,7 +163,8 @@ export function rewriteBankTransactionDescription(
     if (
       d === "Deposit request" ||
       d === DEPOSIT_PENDING_DESCRIPTION ||
-      d === "Deposit — Pending Review"
+      d === "Deposit — Pending Review" ||
+      d === "Deposit · Waiting on Alta"
     ) {
       if (status === "APPROVED") return DEPOSIT_APPROVED_DESCRIPTION;
       if (status === "PENDING") return DEPOSIT_PENDING_DESCRIPTION;
@@ -176,7 +177,8 @@ export function rewriteBankTransactionDescription(
     if (
       d === "Withdrawal request" ||
       d === WITHDRAWAL_PENDING_DESCRIPTION ||
-      d === "Withdrawal — Pending Review"
+      d === "Withdrawal — Pending Review" ||
+      d === "Withdrawal · Waiting on Alta"
     ) {
       if (status === "APPROVED") return WITHDRAWAL_APPROVED_DESCRIPTION;
       if (status === "PENDING") return WITHDRAWAL_PENDING_DESCRIPTION;

@@ -33,11 +33,11 @@ export function AltaCardRelationshipRecommendationPanel({
       ) : (
         <div className="mt-5 rounded-lg border border-dashed border-border/70 bg-surface-1/40 px-4 py-6 text-center">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Relationship intelligence pending
+            Relationship Intelligence unavailable
           </p>
           <p className="mt-2 text-[13px] text-muted-foreground">
             Personalized tier, limit, and rate recommendations will appear here when your
-            relationship profile is available.
+            Relationship Intelligence profile is available.
           </p>
         </div>
       )}

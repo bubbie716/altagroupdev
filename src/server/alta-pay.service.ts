@@ -11,6 +11,7 @@ import type {
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
+import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 import {
   altaPayFromDescription,
   altaPayToDescription,
@@ -141,6 +142,7 @@ export async function listPayFundingSources(user: AltaUser): Promise<PayFundingS
       : account.accountName,
     detail: account.accountNumber,
     availableBalance: account.availableBalance ?? account.balance,
+    accountStatusInfo: account.accountStatusInfo,
   }));
 
   for (const card of cardSources) {
@@ -204,9 +206,19 @@ export async function listPaySourceAccounts(user: AltaUser) {
     const mapped = mapUserBankAccount(account);
     const holds = holdsByAccount.get(account.id) ?? 0;
     const pending = pendingByAccount.get(account.id) ?? 0;
+    const availableBalance = computeAvailableBalance(mapped.balance, pending, holds);
+    const accountStatusInfo = buildCustomerAccountStatus({
+      status: mapped.status,
+      restrictDeposits: mapped.restrictDeposits,
+      restrictWithdrawals: mapped.restrictWithdrawals,
+      restrictTransfers: mapped.restrictTransfers,
+      heldFunds: holds,
+      pendingWithdrawals: pending,
+    });
     return {
       ...mapped,
-      availableBalance: computeAvailableBalance(mapped.balance, pending, holds),
+      availableBalance,
+      accountStatusInfo,
     };
   });
 }
@@ -229,10 +241,10 @@ async function resolvePaySourceAccount(user: AltaUser, fromAccountId: string) {
   });
   if (!account) badRequest("Select a valid Alta Bank account.");
   if (account.status !== "ACTIVE") {
-    badRequest("Source account must be active to send Alta Pay payments.");
+    badRequest("This payment couldn't be completed because the source account is not active.");
   }
   if (account.restrictWithdrawals) {
-    badRequest("Withdrawals are restricted on this account.");
+    badRequest("Withdrawals are currently unavailable for this account.");
   }
 
   if (account.companyId === null) {
@@ -288,7 +300,7 @@ export async function submitAltaPayPayment(
     badRequest("This company does not have an active Business Operating Account.");
   }
   if (destination.restrictDeposits) {
-    badRequest("Deposits are restricted on the recipient account.");
+    badRequest("This payment couldn't be completed because deposits are currently restricted on the recipient account.");
   }
 
   const referenceBase = generatePayReferenceBase();
@@ -309,7 +321,9 @@ export async function submitAltaPayPayment(
     }
 
     const available = await getAvailableBalance(sourceAccount.id);
-    if (input.amount > available) badRequest("Insufficient balance for this payment.");
+    if (input.amount > available) {
+      badRequest("This payment couldn't be completed because your available balance is insufficient.");
+    }
 
     const outReference = `${referenceBase}-OUT`;
 

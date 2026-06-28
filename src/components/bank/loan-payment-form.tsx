@@ -12,16 +12,17 @@ import {
 import { florin } from "@/lib/bank/api";
 import { submitLoanPayment } from "@/lib/bank/lending.functions";
 import type { LendingAccountOption, LoanRow } from "@/lib/bank/lending-types";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
 function parseServerError(err: unknown): string {
-  const message = err instanceof Error ? err.message : "Payment failed";
-  if (message.startsWith("BAD_REQUEST:")) return message.slice("BAD_REQUEST:".length);
-  if (message === "FORBIDDEN") return "You do not have permission to pay this loan.";
-  return message;
+  if (err instanceof Error && err.message === "FORBIDDEN") {
+    return "You do not have permission to pay this loan.";
+  }
+  return formatCustomerActionError(err, "loan_payment");
 }
 
 export function LoanPaymentForm({

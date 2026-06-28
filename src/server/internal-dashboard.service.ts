@@ -19,6 +19,8 @@ export type InternalDashboardMetrics = {
   totalBankAccounts: number;
   activeBankAccounts: number;
   totalBalancesHeld: number;
+  negativeBalances: number;
+  largeAdjustmentsLast30Days: number;
 };
 
 function decimalSum(value: { toString(): string } | null | undefined): number {
@@ -27,6 +29,8 @@ function decimalSum(value: { toString(): string } | null | undefined): number {
 
 export async function getInternalDashboardMetrics(): Promise<InternalDashboardMetrics> {
   await requireOperator();
+  const adjustmentsSince = new Date();
+  adjustmentsSince.setDate(adjustmentsSince.getDate() - 30);
 
   const [
     pendingDeposits,
@@ -46,6 +50,8 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     totalBankAccounts,
     activeBankAccounts,
     balanceAgg,
+    negativeBalances,
+    largeAdjustmentsLast30Days,
   ] = await Promise.all([
     prisma.bankTransaction.count({ where: { type: "DEPOSIT", status: "PENDING" } }),
     prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
@@ -68,6 +74,15 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     prisma.bankAccount.count(),
     prisma.bankAccount.count({ where: { status: "ACTIVE" } }),
     prisma.bankAccount.aggregate({ where: { status: "ACTIVE" }, _sum: { balance: true } }),
+    prisma.bankAccount.count({ where: { balance: { lt: 0 } } }),
+    prisma.bankTransaction.count({
+      where: {
+        type: "ADJUSTMENT",
+        status: "APPROVED",
+        createdAt: { gte: adjustmentsSince },
+        amount: { gte: 100_000 },
+      },
+    }),
   ]);
 
   return {
@@ -88,6 +103,8 @@ export async function getInternalDashboardMetrics(): Promise<InternalDashboardMe
     totalBankAccounts,
     activeBankAccounts,
     totalBalancesHeld: decimalSum(balanceAgg._sum.balance),
+    negativeBalances,
+    largeAdjustmentsLast30Days,
   };
 }
 

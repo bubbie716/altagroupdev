@@ -925,7 +925,7 @@ export async function refreshAllRelationshipProfiles(actorUserId?: string): Prom
 
   for (const user of users) {
     try {
-      await refreshRelationshipProfile(user.id, actorUserId);
+      await refreshRelationshipProfile(user.id, actorUserId, { skipRecommendations: true });
       refreshed += 1;
     } catch {
       failed += 1;

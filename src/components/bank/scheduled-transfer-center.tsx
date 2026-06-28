@@ -12,6 +12,7 @@ import type {
   ScheduledPaymentTypeCode,
   ScheduledTransferScopeCode,
 } from "@/lib/bank/business-banking-types";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
@@ -250,7 +251,7 @@ function ScheduledTransferForm({
       setScheduledTime(DEFAULT_SCHEDULED_TIME_ET);
       setMemo("");
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Submission failed.");
+      setError(formatCustomerActionError(err, "scheduled_transfer"));
     } finally {
       setPending(false);
     }

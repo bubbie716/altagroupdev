@@ -118,7 +118,7 @@ export function AltaCardWorkspaceView(props: AltaCardWorkspaceProps) {
       id: "relationship",
       label: "Relationship",
       content: integration ? (
-        <WorkspaceSection title="Relationship intelligence">
+        <WorkspaceSection title="Relationship Intelligence">
           <p className="text-[12px] text-muted-foreground">
             See full RI in{" "}
             {ownerUserId ? (

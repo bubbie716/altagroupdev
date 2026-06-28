@@ -60,9 +60,9 @@ export function altaCardAutopayStatusLabel(status: AltaCardAutopayStatusCode): s
     case "not_run":
       return "Not run";
     case "success":
-      return "Success";
+      return "Payment processed";
     case "failed":
-      return "Failed";
+      return "Payment not processed";
     case "skipped":
       return "Skipped";
   }

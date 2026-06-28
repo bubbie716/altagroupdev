@@ -1,4 +1,4 @@
-export type BankAccountStatus = "Active" | "Restricted" | "Pending Review";
+export type BankAccountStatus = "Active" | "Restricted" | "Under Review";
 
 export interface BankAccount {
   id: string;

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/bank/")({
     return fetchBankDashboardBundle();
   },
   head: () => ({
-    meta: [{ title: "Bank Like the 1% — Alta Bank" }],
+    meta: [{ title: "Banking Overview — Alta Bank" }],
   }),
   component: BankDashboard,
 });
@@ -31,7 +31,7 @@ function BankDashboard() {
   return (
     <PageShell
       eyebrow="Alta Bank · Client"
-      title="Bank Like the 1%"
+      title="Banking Overview"
       description={
         showMockData
           ? "Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
@@ -66,9 +66,9 @@ function BankDashboardLiveContent({
           { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
           { label: "Private status", value: dashboard.privateStatus },
           {
-            label: "Pending reviews",
+            label: "Waiting on Alta",
             value: String(dashboard.pendingDeposits + dashboard.pendingWithdrawals),
-            sub: "Deposits + withdrawals",
+            sub: "Deposits and withdrawals",
           },
           { label: "Accounts", value: String(accounts.length) },
         ]}

@@ -22,9 +22,11 @@ export const Route = createFileRoute("/internal/users/$userId")({
     tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
     privateReview: search.privateReview === true || search.privateReview === "true",
   }),
-  loader: async ({ params }) => {
+  loaderDeps: ({ search }) => ({ tab: search.tab }),
+  loader: async ({ params, deps }) => {
+    const includeTimeline = deps.tab === "activity";
     const [customer360, operatorPanel, reviewFlags] = await Promise.all([
-      fetchCustomer360({ data: params.userId }),
+      fetchCustomer360({ data: { userId: params.userId, includeTimeline } }),
       fetchRelationshipOperatorPanel({ data: params.userId }),
       fetchOpsReviewFlagsForCustomer({ data: params.userId }),
     ]);

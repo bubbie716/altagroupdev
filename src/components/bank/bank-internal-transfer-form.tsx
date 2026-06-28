@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { submitBankInternalTransfer } from "@/lib/bank/bank.functions";
 import type { SubmitInternalTransferInput, TransferContact, UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
+import {
+  formatBankActionError,
+  transferBlockedReason,
+} from "@/lib/bank/account-status-copy";
 import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
 
 const fieldLabel = "type-meta";
@@ -51,6 +55,7 @@ export function BankInternalTransferForm({
 
   const fromAccount = accounts.find((account) => account.id === fromAccountId);
   const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
+  const heldFunds = fromAccount?.accountStatusInfo.heldFunds ?? 0;
   const destinationAccounts = accounts.filter((account) => account.id !== fromAccountId);
 
   const [amount, setAmount] = useState("");
@@ -83,8 +88,19 @@ export function BankInternalTransferForm({
     setSuccess(null);
 
     const transferAmount = Number(amount);
+    const blocked = fromAccount
+      ? transferBlockedReason(fromAccount.accountStatusInfo, "source")
+      : null;
+    if (blocked) {
+      setError(blocked);
+      return;
+    }
     if (transferAmount > availableBalance) {
-      setError("Insufficient balance for this transfer.");
+      setError(
+        heldFunds > 0
+          ? "This transfer couldn't be completed because your available balance is reduced by held funds."
+          : "This transfer couldn't be completed because your available balance is insufficient.",
+      );
       return;
     }
 
@@ -118,9 +134,13 @@ export function BankInternalTransferForm({
       if (transferMode === "player") setToAccountNumber("");
       onSuccess?.();
     } catch (err) {
-      const message =
+      const raw =
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unable to complete transfer.";
-      setError(message);
+      const formatted = formatBankActionError(raw, {
+        action: "transfer",
+        accountId: fromAccountId,
+      });
+      setError(formatted.message);
     } finally {
       setSubmitting(false);
     }

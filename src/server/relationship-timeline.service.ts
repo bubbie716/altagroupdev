@@ -133,17 +133,14 @@ async function resolveAuditActorId(actorUserId?: string): Promise<string> {
 }
 
 async function hasDedupeKey(userId: string, dedupeKey: string): Promise<boolean> {
-  const rows = await prisma.relationshipTimelineEvent.findMany({
-    where: { userId },
-    select: { metadata: true },
+  const existing = await prisma.relationshipTimelineEvent.findFirst({
+    where: {
+      userId,
+      metadata: { path: ["dedupeKey"], equals: dedupeKey },
+    },
+    select: { id: true },
   });
-  return rows.some(
-    (row) =>
-      row.metadata &&
-      typeof row.metadata === "object" &&
-      !Array.isArray(row.metadata) &&
-      (row.metadata as Record<string, unknown>).dedupeKey === dedupeKey,
-  );
+  return existing != null;
 }
 
 async function hasEntityEvent(
@@ -344,19 +341,13 @@ function roundMoney(value: number): number {
 }
 
 async function findTimelineEventByDedupeKey(userId: string, dedupeKey: string) {
-  const rows = await prisma.relationshipTimelineEvent.findMany({
-    where: { userId },
+  return prisma.relationshipTimelineEvent.findFirst({
+    where: {
+      userId,
+      metadata: { path: ["dedupeKey"], equals: dedupeKey },
+    },
     select: { id: true, occurredAt: true, metadata: true },
   });
-  return (
-    rows.find(
-      (row) =>
-        row.metadata &&
-        typeof row.metadata === "object" &&
-        !Array.isArray(row.metadata) &&
-        (row.metadata as Record<string, unknown>).dedupeKey === dedupeKey,
-    ) ?? null
-  );
 }
 
 async function updateTimelineEventOccurredAtByDedupeKey(

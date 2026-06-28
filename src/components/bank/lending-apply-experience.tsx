@@ -32,6 +32,7 @@ import {
 } from "@/lib/bank/lending-application-status-copy";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { cn } from "@/lib/utils";
 
 const inputClass =
@@ -40,10 +41,10 @@ const labelClass =
   "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
 function parseServerError(err: unknown): string {
-  const message = err instanceof Error ? err.message : "Request failed";
-  if (message.startsWith("BAD_REQUEST:")) return message.slice("BAD_REQUEST:".length);
-  if (message === "FORBIDDEN") return "You do not have permission to submit this application.";
-  return message;
+  if (err instanceof Error && err.message === "FORBIDDEN") {
+    return "You do not have permission to submit this application.";
+  }
+  return formatCustomerActionError(err, "lending_apply");
 }
 
 const STEPS = [

@@ -3,7 +3,7 @@ import type { AltaUser } from "@/lib/auth/types";
 /** Closed-thread copy for secure deal room uploads (by product). */
 export const SECURE_THREAD_CLOSED_UPLOAD_MESSAGES = {
   loan: "Thread is closed.",
-  application: "This secure deal room is closed.",
+  application: "This Secure Deal Room is closed.",
   review: "This secure review thread is closed.",
 } as const;
 

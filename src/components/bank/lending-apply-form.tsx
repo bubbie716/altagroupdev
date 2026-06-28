@@ -28,16 +28,17 @@ import {
 } from "@/lib/bank/lending-types";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
 function parseServerError(err: unknown): string {
-  const message = err instanceof Error ? err.message : "Request failed";
-  if (message.startsWith("BAD_REQUEST:")) return message.slice("BAD_REQUEST:".length);
-  if (message === "FORBIDDEN") return "You do not have permission to submit this application.";
-  return message;
+  if (err instanceof Error && err.message === "FORBIDDEN") {
+    return "You do not have permission to submit this application.";
+  }
+  return formatCustomerActionError(err, "lending_apply");
 }
 
 export function LendingApplyForm({

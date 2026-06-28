@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const TIER_HIGHLIGHTS: Record<AltaCardTierCode, string[]> = {
   white: ["Entry revolving credit", "Standard relationship rate", "Lower credit limits"],
   navy: ["Relationship card", "Better limits & rate", "For established Alta clients"],
-  black: ["Premium public tier", "Highest public limits", "Best public rate"],
+  black: ["Premium tier", "Highest standard limits", "Preferred standard rate"],
   gold: ["Alta Private banking", "Negotiated terms", "Invitation only"],
 };
 

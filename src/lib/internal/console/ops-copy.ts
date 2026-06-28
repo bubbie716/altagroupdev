@@ -79,4 +79,6 @@ export const OPS_COPY = {
   noResults: "No records match the current filters.",
   loading: "Loading…",
   actionFailed: "Action could not be completed. Try again or contact an administrator.",
+  lendingBeginReviewDescription:
+    "Marks the application Waiting on Alta and notifies the applicant in the Secure Deal Room.",
 } as const;

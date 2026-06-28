@@ -16,7 +16,7 @@ export const LOAN_APPLICATION_STATUS_DEFINITIONS: Record<
     "Alta is currently reviewing your application or preparing the next step.",
   "Waiting on You":
     "Alta requires additional information, documents, or another action from you before review can continue.",
-  Accepted: "Your application has been approved.",
+  Accepted: "Your application has been accepted.",
   Denied: "Your application was not approved.",
 };
 

@@ -13,6 +13,7 @@ import type {
   SubmitInternalTransferInput,
   SubmitWithdrawalInput,
   BankProofInput,
+  BankRequestInProgress,
   UserBankAccount,
   UserBankAccountDetail,
   UserBankDashboard,
@@ -33,6 +34,7 @@ import {
   isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
 import { getRoutingNumber } from "@/lib/bank/routing";
+import { getProofFileUrl, hasStoredProof } from "@/lib/storage/proof-upload.constants";
 import {
   creditAdjustmentDescription,
   debitAdjustmentDescription,
@@ -45,7 +47,13 @@ import {
   WITHDRAWAL_DECLINED_DESCRIPTION,
   WITHDRAWAL_PENDING_DESCRIPTION,
 } from "@/lib/bank/customer-transaction-copy";
+import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
+import {
+  formatBankRequestDenialMessage,
+  formatBankRequestDisplayStatus,
+} from "@/lib/bank/bank-request-status-copy";
 import { isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
+import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
 import {
   bankAccountAccessWhere,
@@ -53,6 +61,7 @@ import {
   loadAltaUserOrThrow,
 } from "@/server/bank-account-access.service";
 import {
+  fromDbBankTransactionStatus,
   mapInternalBankAccountRow,
   mapInternalBankTransactionRow,
   mapUserBankAccount,
@@ -161,6 +170,10 @@ const accountInclude = {
 
 export async function listUserBankAccounts(userId: string): Promise<UserBankAccount[]> {
   const user = await loadAltaUserOrThrow(userId);
+  return listUserBankAccountsForUser(user);
+}
+
+export async function listUserBankAccountsForUser(user: AltaUser): Promise<UserBankAccount[]> {
   const accounts = await prisma.bankAccount.findMany({
     where: bankAccountAccessWhere(user, "view"),
     include: accountInclude,
@@ -183,11 +196,104 @@ export async function listUserBankAccounts(userId: string): Promise<UserBankAcco
     const mapped = mapUserBankAccount(account);
     const holds = holdsByAccount.get(account.id) ?? 0;
     const pending = pendingByAccount.get(account.id) ?? 0;
+    const availableBalance = computeAvailableBalance(mapped.balance, pending, holds);
+    const accountStatusInfo = buildCustomerAccountStatus({
+      status: mapped.status,
+      restrictDeposits: mapped.restrictDeposits,
+      restrictWithdrawals: mapped.restrictWithdrawals,
+      restrictTransfers: mapped.restrictTransfers,
+      heldFunds: holds,
+      pendingWithdrawals: pending,
+    });
     return {
       ...mapped,
-      availableBalance: computeAvailableBalance(mapped.balance, pending, holds),
+      availableBalance,
+      accountStatusInfo,
     };
   });
+}
+
+function buildUserBankDashboardMetrics(
+  user: AltaUser,
+  accounts: UserBankAccount[],
+): UserBankDashboard {
+  let checkingBalance = 0;
+  let savingsBalance = 0;
+  let privateBalance = 0;
+  let moneyMarketBalance = 0;
+  let businessBalance = 0;
+  let totalRelationshipValue = 0;
+
+  for (const account of accounts) {
+    if (account.status !== "active") continue;
+    totalRelationshipValue += account.balance;
+    if (account.accountType === "checking" || account.accountType === "alta_access") {
+      checkingBalance += account.balance;
+    }
+    if (countsTowardSavingsCard(account)) savingsBalance += account.balance;
+    if (countsTowardPrivateBankCard(account)) privateBalance += account.balance;
+    if (countsTowardMoneyMarketCard(account)) moneyMarketBalance += account.balance;
+    if (account.accountType === "business_operating") businessBalance += account.balance;
+  }
+
+  const enrolledInPrivate = isPrivateClient(user);
+
+  return {
+    totalRelationshipValue,
+    checkingBalance,
+    savingsBalance,
+    privateBalance,
+    moneyMarketBalance,
+    businessBalance,
+    creditAvailable: 0,
+    privateStatus: enrolledInPrivate ? "Enrolled" : "Not enrolled",
+    enrolledInPrivate,
+    accountCount: accounts.length,
+    pendingDeposits: 0,
+    pendingWithdrawals: 0,
+  };
+}
+
+export async function getUserBankDashboardFromAccounts(
+  user: AltaUser,
+  accounts: UserBankAccount[],
+): Promise<UserBankDashboard> {
+  const [pendingDeposits, pendingWithdrawals] = await Promise.all([
+    prisma.bankTransaction.count({
+      where: {
+        type: "DEPOSIT",
+        status: "PENDING",
+        bankAccount: bankAccountAccessWhere(user, "view"),
+      },
+    }),
+    prisma.bankTransaction.count({
+      where: {
+        type: "WITHDRAWAL",
+        status: "PENDING",
+        bankAccount: bankAccountAccessWhere(user, "view"),
+      },
+    }),
+  ]);
+
+  return {
+    ...buildUserBankDashboardMetrics(user, accounts),
+    pendingDeposits,
+    pendingWithdrawals,
+  };
+}
+
+export async function getUserBankDashboardBundle(userId: string): Promise<{
+  dashboard: UserBankDashboard;
+  accounts: UserBankAccount[];
+  transactions: UserBankTransaction[];
+}> {
+  const user = await loadAltaUserOrThrow(userId);
+  const [accounts, transactions] = await Promise.all([
+    listUserBankAccountsForUser(user),
+    listUserRecentTransactionsForUser(user, 10),
+  ]);
+  const dashboard = await getUserBankDashboardFromAccounts(user, accounts);
+  return { dashboard, accounts, transactions };
 }
 
 export async function getUserBankAccountDetail(
@@ -239,11 +345,25 @@ export async function getUserBankAccountDetail(
   }
 
   const balance = decimalToNumber(account.balance);
-  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
-  const availableBalance = await getAccountAvailableBalance(accountId);
+  const { getAccountAvailableBalance, getActiveHoldTotal, getPendingWithdrawalTotal } = await import(
+    "@/server/account-balance.service"
+  );
+  const [availableBalance, heldFunds, pendingWithdrawals] = await Promise.all([
+    getAccountAvailableBalance(accountId),
+    getActiveHoldTotal(accountId),
+    getPendingWithdrawalTotal(accountId),
+  ]);
   const summary = mapUserBankAccount({
     ...account,
     transactions: recentTransactions.slice(0, 1),
+  });
+  const accountStatusInfo = buildCustomerAccountStatus({
+    status: summary.status,
+    restrictDeposits: summary.restrictDeposits,
+    restrictWithdrawals: summary.restrictWithdrawals,
+    restrictTransfers: summary.restrictTransfers,
+    heldFunds,
+    pendingWithdrawals,
   });
 
   const { buildAccountInterestInfo } = await import("@/lib/bank/account-interest-service");
@@ -267,6 +387,7 @@ export async function getUserBankAccountDetail(
     withdrawalsThisMonth,
     netChangeThisMonth: depositsThisMonth - withdrawalsThisMonth,
     availableBalance,
+    accountStatusInfo,
     recentTransactions: recentTransactions.map(mapUserBankTransaction),
     interestInfo,
   };
@@ -278,63 +399,9 @@ export async function listActiveDepositAccounts(userId: string): Promise<UserBan
 }
 
 export async function getUserBankDashboard(userId: string): Promise<UserBankDashboard> {
-  const accounts = await listUserBankAccounts(userId);
-  const activeAccounts = accounts.filter((a) => a.status === "active");
-
-  const checkingBalance = activeAccounts
-    .filter((a) => a.accountType === "checking" || a.accountType === "alta_access")
-    .reduce((sum, a) => sum + a.balance, 0);
-  const savingsBalance = activeAccounts
-    .filter((a) => countsTowardSavingsCard(a))
-    .reduce((sum, a) => sum + a.balance, 0);
-  const privateBalance = activeAccounts
-    .filter((a) => countsTowardPrivateBankCard(a))
-    .reduce((sum, a) => sum + a.balance, 0);
-  const moneyMarketBalance = activeAccounts
-    .filter((a) => countsTowardMoneyMarketCard(a))
-    .reduce((sum, a) => sum + a.balance, 0);
-  const businessBalance = activeAccounts
-    .filter((a) => a.accountType === "business_operating")
-    .reduce((sum, a) => sum + a.balance, 0);
-  const totalRelationshipValue = activeAccounts.reduce((sum, a) => sum + a.balance, 0);
-
   const user = await loadAltaUserOrThrow(userId);
-  const pendingDeposits = await prisma.bankTransaction.count({
-    where: {
-      type: "DEPOSIT",
-      status: "PENDING",
-      bankAccount: bankAccountAccessWhere(user, "view"),
-    },
-  });
-  const pendingWithdrawals = await prisma.bankTransaction.count({
-    where: {
-      type: "WITHDRAWAL",
-      status: "PENDING",
-      bankAccount: bankAccountAccessWhere(user, "view"),
-    },
-  });
-
-  const userRecord = await prisma.user.findUnique({
-    where: { id: userId },
-    include: userWithMembershipsInclude,
-  });
-  const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
-  const enrolledInPrivate = altaUser !== null && isPrivateClient(altaUser);
-
-  return {
-    totalRelationshipValue,
-    checkingBalance,
-    savingsBalance,
-    privateBalance,
-    moneyMarketBalance,
-    businessBalance,
-    creditAvailable: 0,
-    privateStatus: enrolledInPrivate ? "Enrolled" : "Not enrolled",
-    enrolledInPrivate,
-    accountCount: accounts.length,
-    pendingDeposits,
-    pendingWithdrawals,
-  };
+  const accounts = await listUserBankAccountsForUser(user);
+  return getUserBankDashboardFromAccounts(user, accounts);
 }
 
 export async function getUserBankSummary(userId: string): Promise<UserBankSummary> {
@@ -361,6 +428,13 @@ export async function getUserBankSummary(userId: string): Promise<UserBankSummar
 
 export async function listUserRecentTransactions(userId: string, limit = 10): Promise<UserBankTransaction[]> {
   const user = await loadAltaUserOrThrow(userId);
+  return listUserRecentTransactionsForUser(user, limit);
+}
+
+export async function listUserRecentTransactionsForUser(
+  user: AltaUser,
+  limit = 10,
+): Promise<UserBankTransaction[]> {
   const transactions = await prisma.bankTransaction.findMany({
     where: {
       status: { not: "PENDING" },
@@ -378,6 +452,67 @@ export async function listUserRecentTransactions(userId: string, limit = 10): Pr
     take: limit,
   });
   return transactions.map(mapUserBankTransaction);
+}
+
+const IN_PROGRESS_DENIED_DAYS = 7;
+
+export async function listUserBankRequestsInProgress(
+  userId: string,
+  type: "deposit" | "withdrawal",
+): Promise<BankRequestInProgress[]> {
+  const user = await loadAltaUserOrThrow(userId);
+  return listUserBankRequestsInProgressForUser(user, type);
+}
+
+export async function listUserBankRequestsInProgressForUser(
+  user: AltaUser,
+  type: "deposit" | "withdrawal",
+): Promise<BankRequestInProgress[]> {
+  const deniedSince = new Date();
+  deniedSince.setDate(deniedSince.getDate() - IN_PROGRESS_DENIED_DAYS);
+
+  const transactions = await prisma.bankTransaction.findMany({
+    where: {
+      type: type === "deposit" ? "DEPOSIT" : "WITHDRAWAL",
+      bankAccount: bankAccountAccessWhere(user, "view"),
+      OR: [{ status: "PENDING" }, { status: "DENIED", reviewedAt: { gte: deniedSince } }],
+    },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      referenceCode: true,
+      amount: true,
+      status: true,
+      reviewNote: true,
+      createdAt: true,
+      updatedAt: true,
+      reviewedAt: true,
+      bankAccountId: true,
+      proofImageUrl: true,
+      bankAccount: {
+        select: { accountName: true, accountNumber: true },
+      },
+    },
+  });
+
+  return transactions.map((tx) => {
+    const status = fromDbBankTransactionStatus(tx.status) as "pending" | "denied";
+    return {
+      id: tx.id,
+      referenceCode: tx.referenceCode,
+      bankAccountId: tx.bankAccountId,
+      accountName: tx.bankAccount.accountName,
+      accountNumber: tx.bankAccount.accountNumber,
+      amount: decimalToNumber(tx.amount),
+      status,
+      statusLabel: formatBankRequestDisplayStatus(status),
+      denialMessage: status === "denied" ? formatBankRequestDenialMessage(tx.reviewNote) : null,
+      submittedAt: tx.createdAt.toISOString(),
+      lastUpdatedAt: (tx.reviewedAt ?? tx.updatedAt).toISOString(),
+      proofImageUrl: getProofFileUrl(tx.proofImageUrl),
+      hasProof: hasStoredProof(tx.proofImageUrl),
+    };
+  });
 }
 
 export async function openBankAccount(
@@ -490,8 +625,12 @@ export async function submitDepositRequest(
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
   const account = await requireAccessibleAccount(input.bankAccountId, userId, "manage");
-  if (account.status !== "ACTIVE") badRequest("Account must be active to accept deposits");
-  if (account.restrictDeposits) badRequest("Deposits are restricted on this account");
+  if (account.status !== "ACTIVE") {
+    badRequest("This deposit couldn't be completed because this account is not active.");
+  }
+  if (account.restrictDeposits) {
+    badRequest("Deposits are currently unavailable for this account.");
+  }
 
   if (!proof.proofImageUrl?.trim()) badRequest("Screenshot proof is required");
 
@@ -518,12 +657,16 @@ export async function submitWithdrawalRequest(
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
   const account = await requireAccessibleAccount(input.bankAccountId, userId, "manage");
-  if (account.status !== "ACTIVE") badRequest("Account must be active for withdrawals");
-  if (account.restrictWithdrawals) badRequest("Withdrawals are restricted on this account");
+  if (account.status !== "ACTIVE") {
+    badRequest("This withdrawal couldn't be completed because this account is not active.");
+  }
+  if (account.restrictWithdrawals) {
+    badRequest("Withdrawals are currently unavailable for this account.");
+  }
 
   const availableBalance = await getAvailableBalance(account.id);
   if (input.amount > availableBalance) {
-    badRequest("Insufficient balance for this withdrawal");
+    badRequest("This withdrawal couldn't be completed because your available balance is insufficient.");
   }
 
   const transaction = await prisma.bankTransaction.create({
@@ -554,8 +697,12 @@ export async function submitInternalTransfer(
   }
 
   const fromAccount = await requireAccessibleAccount(input.fromAccountId, userId, "manage");
-  if (fromAccount.status !== "ACTIVE") badRequest("Source account must be active");
-  if (fromAccount.restrictTransfers) badRequest("Transfers are restricted on this account");
+  if (fromAccount.status !== "ACTIVE") {
+    badRequest("This transfer couldn't be completed because the source account is not active.");
+  }
+  if (fromAccount.restrictTransfers) {
+    badRequest("This transfer couldn't be completed because transfers are currently restricted on this account.");
+  }
 
   let toAccount: NonNullable<Awaited<ReturnType<typeof prisma.bankAccount.findUnique>>>;
 
@@ -578,12 +725,16 @@ export async function submitInternalTransfer(
     toAccount = recipient;
   }
 
-  if (toAccount.status !== "ACTIVE") badRequest("Destination account must be active");
-  if (toAccount.restrictDeposits) badRequest("Deposits are restricted on this account");
+  if (toAccount.status !== "ACTIVE") {
+    badRequest("This transfer couldn't be completed because the destination account is not active.");
+  }
+  if (toAccount.restrictDeposits) {
+    badRequest("This transfer couldn't be completed because deposits are currently restricted on the destination account.");
+  }
 
   const availableBalance = await getAvailableBalance(fromAccount.id);
   if (input.amount > availableBalance) {
-    badRequest("Insufficient balance for this transfer");
+    badRequest("This transfer couldn't be completed because your available balance is insufficient.");
   }
 
   const referenceBase = generateReferenceCode("TRF");

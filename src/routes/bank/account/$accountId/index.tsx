@@ -4,6 +4,8 @@ import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { BankAccountTransactions } from "@/components/bank/bank-account-transactions";
 import { AccountQuickActions } from "@/components/bank/account-quick-actions";
 import { ClosedAccountBanner } from "@/components/bank/closed-account-banner";
+import { AccountStatusPanel } from "@/components/bank/account-status-panel";
+import { AccountBalanceBreakdown } from "@/components/bank/account-balance-breakdown";
 import { RouteButton } from "@/components/bank/route-button";
 import { florin } from "@/lib/bank/api";
 import type { BankAccountStatusCode } from "@/lib/bank/backend-types";
@@ -44,12 +46,18 @@ function ProfileRow({
 function AccountOverviewPage() {
   const { account, businessContext, isBusinessOperating } = AccountRoute.useLoaderData();
   const isClosed = account.status === "closed";
+  const showBalanceBreakdown =
+    account.accountStatusInfo.heldFunds > 0 ||
+    account.accountStatusInfo.pendingWithdrawals > 0 ||
+    account.availableBalance < account.balance;
 
   return (
     <>
       {isClosed ? <ClosedAccountBanner accountId={account.id} /> : null}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <BankStatCard label="Current Balance" value={florin(account.balance)} accent />
+        <BankStatCard label="Available Balance" value={florin(account.availableBalance)} />
         <BankStatCard label="Deposits This Month" value={florin(account.depositsThisMonth)} />
         <BankStatCard label="Withdrawals This Month" value={florin(account.withdrawalsThisMonth)} />
         <BankStatCard
@@ -57,7 +65,6 @@ function AccountOverviewPage() {
           value={`${account.netChangeThisMonth >= 0 ? "+" : ""}${florin(account.netChangeThisMonth)}`}
           signedValue={account.netChangeThisMonth}
         />
-        <BankStatCard label="Available Balance" value={florin(account.availableBalance)} />
       </div>
 
       {isBusinessOperating && businessContext && (
@@ -129,6 +136,24 @@ function AccountOverviewPage() {
             <AccountQuickActions accountId={account.id} className="min-h-0 flex-1" />
           )}
         </Section>
+      </div>
+
+      <div
+        className={
+          showBalanceBreakdown
+            ? "mt-10 grid gap-6 lg:grid-cols-2"
+            : "mt-10"
+        }
+      >
+        <AccountStatusPanel status={account.accountStatusInfo} />
+        {showBalanceBreakdown ? (
+          <AccountBalanceBreakdown
+            currentBalance={account.balance}
+            availableBalance={account.availableBalance}
+            heldFunds={account.accountStatusInfo.heldFunds}
+            pendingWithdrawals={account.accountStatusInfo.pendingWithdrawals}
+          />
+        ) : null}
       </div>
 
       <Section title="Recent activity" className="mt-10">

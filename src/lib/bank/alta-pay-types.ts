@@ -34,6 +34,7 @@ export interface PayFundingSourceOption {
   detail: string;
   availableBalance: number;
   cardLastFour?: string;
+  accountStatusInfo?: import("@/lib/bank/backend-types").CustomerAccountStatus;
 }
 
 export interface AltaPayPaymentRow {

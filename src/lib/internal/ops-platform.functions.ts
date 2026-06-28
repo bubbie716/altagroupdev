@@ -73,17 +73,21 @@ export const reverseAltaPayAdmin = createServerFn({ method: "POST" })
   });
 
 export const fetchCustomer360 = createServerFn({ method: "GET" })
-  .inputValidator((userId: string) => userId)
-  .handler(async ({ data: userId }) => {
+  .inputValidator((payload: string | { userId: string; includeTimeline?: boolean }) => payload)
+  .handler(async ({ data }) => {
     const { getInternalCustomer360 } = await import("@/server/ops-customer-360.service");
-    return getInternalCustomer360(userId);
+    const userId = typeof data === "string" ? data : data.userId;
+    const includeTimeline = typeof data === "string" ? true : data.includeTimeline ?? true;
+    return getInternalCustomer360(userId, { includeTimeline });
   });
 
 export const fetchCompany360 = createServerFn({ method: "GET" })
-  .inputValidator((companyId: string) => companyId)
-  .handler(async ({ data: companyId }) => {
+  .inputValidator((payload: string | { companyId: string; includeTimeline?: boolean }) => payload)
+  .handler(async ({ data }) => {
     const { getInternalCompany360 } = await import("@/server/ops-company-360.service");
-    return getInternalCompany360(companyId);
+    const companyId = typeof data === "string" ? data : data.companyId;
+    const includeTimeline = typeof data === "string" ? true : data.includeTimeline ?? true;
+    return getInternalCompany360(companyId, { includeTimeline });
   });
 
 export const fetchAccountOpsSummary = createServerFn({ method: "GET" })
@@ -200,28 +204,25 @@ export const adminRecordLoanPaymentOps = createServerFn({ method: "POST" })
 
 export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(async () => {
   const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
-  const { getOpsHealth, getOpsActivityFeed } = await import("@/server/ops-platform.service");
+  const { buildOpsHealthFromMetrics, getOpsActivityFeed } = await import("@/server/ops-platform.service");
   const { getMaintenanceMode } = await import("@/server/platform-settings.service");
-  const { prisma } = await import("@/server/db");
   await import("@/server/permissions.service").then((m) => m.requireOperator());
 
-  const [metrics, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging] =
-    await Promise.all([
+  const [metrics, maintenance, activity, queueAging] = await Promise.all([
     getInternalDashboardMetrics(),
-    getOpsHealth(),
-    getOpsActivityFeed(25),
-    prisma.bankAccount.count({ where: { balance: { lt: 0 } } }),
-    prisma.bankTransaction.count({
-      where: {
-        type: "ADJUSTMENT",
-        status: "APPROVED",
-        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-        amount: { gte: 100_000 },
-      },
-    }),
     getMaintenanceMode(),
+    getOpsActivityFeed(25),
     import("@/server/ops-queue-aging.service").then((m) => m.getQueueAgingMetrics()),
   ]);
+  const health = await buildOpsHealthFromMetrics(metrics, maintenance);
 
-  return { metrics, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging };
+  return {
+    metrics,
+    health,
+    activity,
+    negativeBalances: metrics.negativeBalances,
+    largeAdjustments: metrics.largeAdjustmentsLast30Days,
+    maintenance,
+    queueAging,
+  };
 });

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 import { OpsEmptyState } from "@/components/internal/console/ops-empty-state";
 import { OpsTableSkeleton } from "@/components/internal/console/ops-table-skeleton";
 
@@ -14,7 +15,7 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
   columns,
   rows,
   rowKey,
-  emptyState = "No records found.",
+  emptyState = OPS_COPY.noResults,
   loading = false,
 }: {
   columns: AdminTableColumn<T>[];
@@ -30,7 +31,7 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
   if (rows.length === 0) {
     return (
       <OpsEmptyState
-        title={typeof emptyState === "string" ? emptyState : "No records found."}
+        title={typeof emptyState === "string" ? emptyState : OPS_COPY.noResults}
       />
     );
   }

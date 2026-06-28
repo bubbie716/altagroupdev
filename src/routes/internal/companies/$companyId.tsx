@@ -29,17 +29,29 @@ export const Route = createFileRoute("/internal/companies/$companyId")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
   }),
-  loader: async ({ params }) => {
-    const [data, auditLogs, relationship, relationshipRecommendations, relationshipTimeline, reviewFlags] =
+  loaderDeps: ({ search }) => ({ tab: search.tab }),
+  loader: async ({ params, deps }) => {
+    const tab = deps.tab;
+    const includeTimeline = tab === "activity";
+    const includeAudit = tab === "audit";
+    const includeRelationshipExtras = tab === "relationship";
+
+    const [data, reviewFlags, relationship, auditLogs, relationshipRecommendations, relationshipTimeline] =
       await Promise.all([
-        fetchCompany360({ data: params.companyId }),
-        fetchAuditLogsForEntity({
-          data: { entityType: "COMPANY", entityId: params.companyId },
-        }),
-        fetchAdminCompanyRelationshipDetail({ data: params.companyId }).catch(() => null),
-        fetchCompanyRelationshipRecommendations({ data: params.companyId }).catch(() => []),
-        fetchCompanyRelationshipTimeline({ data: params.companyId }).catch(() => []),
+        fetchCompany360({ data: { companyId: params.companyId, includeTimeline } }),
         fetchOpsReviewFlagsForCompany({ data: params.companyId }),
+        fetchAdminCompanyRelationshipDetail({ data: params.companyId }).catch(() => null),
+        includeAudit
+          ? fetchAuditLogsForEntity({
+              data: { entityType: "COMPANY", entityId: params.companyId },
+            })
+          : Promise.resolve([]),
+        includeRelationshipExtras
+          ? fetchCompanyRelationshipRecommendations({ data: params.companyId }).catch(() => [])
+          : Promise.resolve([]),
+        includeRelationshipExtras
+          ? fetchCompanyRelationshipTimeline({ data: params.companyId }).catch(() => [])
+          : Promise.resolve([]),
       ]);
     return { data, auditLogs, relationship, relationshipRecommendations, relationshipTimeline, reviewFlags };
   },

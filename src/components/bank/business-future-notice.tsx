@@ -5,7 +5,7 @@ export function BusinessFutureNotice({ variant = "default" }: { variant?: "defau
   const message =
     variant === "interbank"
       ? INTERBANK_EXECUTION_NOTICE
-      : `${FUTURE_EXECUTION_NOTICE} All submissions enter manual review until execution is enabled.`;
+      : `${FUTURE_EXECUTION_NOTICE} Submissions are reviewed by Alta before execution.`;
 
   return (
     <div className="mb-8 flex items-start gap-3 rounded-lg border border-gold/25 bg-gold/5 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">

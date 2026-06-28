@@ -8,18 +8,18 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 
 - `BankAccount` and `BankTransaction` models
 - User account opening (`/bank/accounts/open`)
-- Deposit requests with screenshot proof placeholder (`/bank/deposit`)
+- Deposit requests with screenshot proof upload (`/bank/deposit`)
 - Withdrawal requests (`/bank/withdraw`)
 - Admin review in `/internal/bank` (approve/deny deposits & withdrawals, approve/freeze/unfreeze accounts)
 - Real balances on `/bank`, and `/profile`
 - Business Operating Accounts with treasury features on `/bank/account/[accountId]` (see [business-banking.md](./business-banking.md))
+- Customer account status, holds, and restrictions (see [bank-account-status.md](./bank-account-status.md))
 
 **Not included (future)**
 
 - Automatic deposits
 - Minecraft economy API integration
-- NCC settlement / wires
-- Real file storage for proof images (placeholder URLs only)
+- NCC settlement / wires (live customer wire execution)
 
 ## Data models
 
@@ -56,7 +56,7 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 | `description` | Source note (deposit) or destination instructions (withdrawal) |
 | `memo` | Optional user memo |
 | `referenceCode` | Unique ref (`DEP-YYYYMMDD-…` / `WDR-…`) |
-| `proofImageUrl` | Placeholder URL until blob storage exists |
+| `proofImageUrl` | Stored proof image URL (uploaded via deposit form) |
 | `reviewedById` / `reviewedAt` / `reviewNote` | Admin review audit |
 
 ## Approval flows
@@ -92,12 +92,11 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 
 **Rule:** Balances only change when a `BankTransaction` is approved. Account status changes do not move money.
 
-## Screenshot proof flow (V1)
+## Screenshot proof flow
 
-- UI accepts image file selection
-- Server stores `pending-upload://{filename}` in `proofImageUrl`
-- Admin sees placeholder path in `/internal/bank`
-- **TODO:** Upload to Vercel Blob / S3 and store public URL
+- UI accepts image file selection on `/bank/deposit`
+- Server uploads proof to configured blob storage and stores the URL in `proofImageUrl`
+- Alta reviews the deposit in `/internal/bank`; proof is visible to the customer in Requests in Progress
 
 ## Permissions
 

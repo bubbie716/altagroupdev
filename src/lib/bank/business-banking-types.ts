@@ -198,4 +198,4 @@ export const INTERBANK_EXECUTION_NOTICE =
   "Interbank scheduled transfers require operator review before execution.";
 
 export const FUTURE_EXECUTION_NOTICE =
-  "Automatic payment execution coming in a future release.";
+  "Automatic payment execution is not available yet.";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Search } from "lucide-react";
@@ -37,22 +37,42 @@ export function InternalGlobalSearch({ variant = "page" }: { variant?: "page" | 
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const searchRequestRef = useRef(0);
 
-  async function runSearch(value: string) {
+  async function runSearch(value: string, requestId: number) {
     const trimmed = value.trim();
     if (trimmed.length < 2) {
-      setResults([]);
+      if (requestId === searchRequestRef.current) {
+        setResults([]);
+      }
       return;
     }
     setPending(true);
     try {
       const rows = await searchFn({ data: trimmed });
-      setResults(rows);
-      setOpen(true);
+      if (requestId === searchRequestRef.current) {
+        setResults(rows);
+        setOpen(true);
+      }
     } finally {
-      setPending(false);
+      if (requestId === searchRequestRef.current) {
+        setPending(false);
+      }
     }
   }
+
+  useEffect(() => {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      return;
+    }
+    const requestId = ++searchRequestRef.current;
+    const handle = window.setTimeout(() => {
+      void runSearch(trimmed, requestId);
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [q, searchFn]);
 
   const isHeader = variant === "header";
 
@@ -68,7 +88,6 @@ export function InternalGlobalSearch({ variant = "page" }: { variant?: "page" | 
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
-            void runSearch(e.target.value);
           }}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => window.setTimeout(() => setOpen(false), 150)}

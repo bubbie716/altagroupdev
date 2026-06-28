@@ -12,14 +12,18 @@ function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
 }
 
-export async function getInternalCompany360(companyId: string) {
+export async function getInternalCompany360(
+  companyId: string,
+  options?: { includeTimeline?: boolean },
+) {
   await requireOperator();
+  const includeTimeline = options?.includeTimeline ?? true;
   const company = await getInternalCompanyDetail(companyId);
   if (!company) throw new Error("NOT_FOUND");
 
-  const [notes, timeline, accounts, loans, altaPay, statements, auditCount] = await Promise.all([
+  const [notes, timeline, accounts, loans, altaPay] = await Promise.all([
     listInternalNotes("COMPANY", companyId),
-    buildUniversalCompanyTimeline(companyId, 60),
+    includeTimeline ? buildUniversalCompanyTimeline(companyId, 60) : Promise.resolve([]),
     prisma.bankAccount.findMany({
       where: { companyId },
       orderBy: { createdAt: "desc" },
@@ -38,12 +42,6 @@ export async function getInternalCompany360(companyId: string) {
       take: 25,
       include: { bankAccount: true },
     }),
-    prisma.bankStatement.findMany({
-      where: { bankAccount: { companyId } },
-      orderBy: { periodEnd: "desc" },
-      take: 10,
-    }),
-    prisma.auditLog.count({ where: { targetCompanyId: companyId } }),
   ]);
 
   return {
@@ -104,12 +102,6 @@ export async function getInternalCompany360(companyId: string) {
       description: tx.description,
       createdAt: tx.createdAt.toISOString(),
     })),
-    statements: statements.map((s) => ({
-      id: s.id,
-      statementNumber: s.statementNumber,
-      periodEnd: s.periodEnd.toISOString(),
-      status: s.status,
-    })),
-    auditCount,
+    statements: [],
   };
 }

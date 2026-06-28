@@ -25,6 +25,11 @@ import type {
   PayFundingSourceOption,
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
+import {
+  formatBankActionError,
+  withdrawalBlockedReason,
+} from "@/lib/bank/account-status-copy";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -132,8 +137,24 @@ export function AltaPayForm({
       return;
     }
     if (payAmount > availableBalance) {
-      setError("Insufficient available credit or balance for this payment.");
+      setError(
+        selectedFunding.kind === "bank_account" &&
+          selectedFunding.accountStatusInfo &&
+          selectedFunding.accountStatusInfo.heldFunds > 0
+          ? "This payment couldn't be completed because your available balance is reduced by held funds."
+          : "This payment couldn't be completed because your available balance is insufficient.",
+      );
       return;
+    }
+    if (
+      selectedFunding.kind === "bank_account" &&
+      selectedFunding.accountStatusInfo
+    ) {
+      const blocked = withdrawalBlockedReason(selectedFunding.accountStatusInfo);
+      if (blocked) {
+        setError(blocked);
+        return;
+      }
     }
     setStep("review");
   }
@@ -156,7 +177,15 @@ export function AltaPayForm({
       onSuccess?.();
       await router.invalidate();
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Payment failed.");
+      const raw =
+        err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "";
+      const accountId =
+        selectedFunding?.kind === "bank_account" ? selectedFunding.id : undefined;
+      setError(
+        raw
+          ? formatBankActionError(raw, { action: "pay", accountId }).message
+          : formatCustomerActionError(err, "pay", { accountId }),
+      );
     } finally {
       setPending(false);
     }

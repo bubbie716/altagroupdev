@@ -13,7 +13,7 @@ export const SECURE_DEAL_ROOM_CONTACT_LINE =
 export const SECURE_DEAL_ROOM_CLOSED_LINE = "This Secure Deal Room has been closed.";
 
 export const LENDING_THREAD_WELCOME_MESSAGE = [
-  "Your application has been received and is now under review.",
+  "Your application has been received. Status: Waiting on Alta.",
   SECURE_DEAL_ROOM_CONTACT_LINE,
 ].join("\n\n");
 
@@ -63,7 +63,7 @@ export function buildAltaCardApplicationAcceptedSystemMessage(input: {
   reviewNote?: string | null;
 }): string {
   const sections = [
-    "Your Alta Card application has been accepted.",
+    "Your Alta Card application has been approved.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
     "",
     "Approved terms:",

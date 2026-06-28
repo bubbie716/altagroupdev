@@ -68,7 +68,7 @@ function BankPrivate() {
       label: "Net worth",
       value: null,
       note: "Consolidated estimate",
-      fallback: "Connect additional Alta products to unlock.",
+      fallback: "Available when additional Alta products are connected.",
     },
     {
       label: "Banking assets",
@@ -108,7 +108,7 @@ function BankPrivate() {
         </div>
       ) : (
         <div className="mt-8 rounded-lg border border-border bg-surface-1/80 px-4 py-3 text-[14px] text-muted-foreground">
-          Alta Private is invitation-only. Deepen your Alta relationship to unlock a recommended review over time.
+          Alta Private is invitation-only. A deeper Alta relationship may make you eligible for Alta Private review over time.
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { generateAccountStatementsBatch } from "@/lib/bank/statement.functions";
 import type { StatementGeneratableAccount } from "@/lib/bank/statement-types";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -102,9 +103,9 @@ export function StatementCenterGenerateForm({
       }
     } catch (err) {
       const message =
-        err instanceof Error
-          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN$/, "You do not have permission to generate statements.")
-          : "Generation failed.";
+        err instanceof Error && err.message === "FORBIDDEN"
+          ? "You do not have permission to generate statements."
+          : formatCustomerActionError(err, "statement_generate");
       setError(message);
     } finally {
       setPending(false);
@@ -122,8 +123,8 @@ export function StatementCenterGenerateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Generate preview statements from approved transactions in the selected period. Opening balances
-        are estimated from available transaction history.
+        Generate statements from approved transactions in the selected period. Opening balances are
+        estimated from available transaction history.
       </p>
 
       <label className="block text-sm">
@@ -213,7 +214,7 @@ export function StatementCenterGenerateForm({
         disabled={pending || (!allAccounts && selected.size === 0)}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Generating…" : "Generate preview statement(s)"}
+        {pending ? "Generating…" : "Generate statement(s)"}
       </button>
     </form>
   );

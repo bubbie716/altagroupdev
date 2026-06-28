@@ -43,11 +43,17 @@ export function BankMobileStack({
 export function BankMobileStackRow({
   children,
   className,
+  id,
 }: {
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
-  return <div className={cn("space-y-2 px-4 py-4 sm:px-5", className)}>{children}</div>;
+  return (
+    <div id={id} className={cn("space-y-2 px-4 py-4 sm:px-5", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function BankMobileStackField({

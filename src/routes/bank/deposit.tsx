@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankDepositForm } from "@/components/bank/bank-deposit-form";
-import { fetchActiveBankAccounts } from "@/lib/bank/bank.functions";
+import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
+import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
+import { fetchActiveBankAccounts, fetchUserBankRequestsInProgress } from "@/lib/bank/bank.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { DEPOSIT_PAGE_DESCRIPTION } from "@/lib/bank/bank-shared-copy";
 
 type BankDepositSearch = {
   accountId?: string;
@@ -14,23 +18,43 @@ export const Route = createFileRoute("/bank/deposit")({
   validateSearch: (search: Record<string, unknown>): BankDepositSearch => ({
     accountId: typeof search.accountId === "string" ? search.accountId : undefined,
   }),
-  loader: () => fetchActiveBankAccounts(),
+  loader: async () => {
+    const [accounts, requestsInProgress] = await Promise.all([
+      fetchActiveBankAccounts(),
+      fetchUserBankRequestsInProgress({ data: "deposit" }),
+    ]);
+    return { accounts, requestsInProgress };
+  },
   head: () => ({ meta: [{ title: "Deposit — Alta Bank" }] }),
   component: BankDepositPage,
 });
 
 function BankDepositPage() {
-  const accounts = Route.useLoaderData();
+  const { accounts, requestsInProgress } = Route.useLoaderData();
   const { accountId } = Route.useSearch();
+  const [highlightReferenceCode, setHighlightReferenceCode] = useState<string | null>(null);
+
+  function handleSubmissionSuccess(result: BankRequestSubmissionResult) {
+    setHighlightReferenceCode(result.referenceCode);
+  }
 
   return (
     <PageShell
       eyebrow="Alta Bank · Deposits"
       title="Submit a Deposit"
-      description="Request a Florin deposit with screenshot proof. Deposits remain pending until manually reviewed."
+      description={DEPOSIT_PAGE_DESCRIPTION}
     >
       <BankSubNav />
-      <BankDepositForm accounts={accounts} defaultAccountId={accountId} />
+      <BankDepositForm
+        accounts={accounts}
+        defaultAccountId={accountId}
+        onSubmissionSuccess={handleSubmissionSuccess}
+      />
+      <BankRequestsInProgress
+        requests={requestsInProgress}
+        highlightReferenceCode={highlightReferenceCode}
+        showProof
+      />
     </PageShell>
   );
 }

@@ -45,7 +45,7 @@ export function AccountWorkspaceView({ data, activeTab }: { data: AccountWorkspa
 
   const headerActions = (
     <>
-      {account.status === "Pending Review" && (
+      {account.status === "Under Review" && (
         <OpsAction
           label="Approve"
           variant="primary"

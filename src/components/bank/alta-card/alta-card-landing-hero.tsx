@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
-import { AltaCardProductEyebrow } from "@/components/bank/alta-card/alta-card-ui-primitives";
+import { ALTA_CARD_APPLICATION_PENDING_BODY } from "@/lib/bank/bank-shared-copy";
 
 export function AltaCardLandingHero() {
   return (
@@ -13,10 +13,10 @@ export function AltaCardLandingHero() {
             A credit line designed for your Alta relationship
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-            Alta Card V1 is an intrabank revolving credit line inside Alta Bank — fund Alta Pay,
+            Alta Card is an intrabank revolving credit line inside Alta Bank — fund Alta Pay,
             request cash advances, and manage statement billing with relationship-based limits and
-            rates. Card artwork is display-only; there is no merchant network or physical card
-            processing in V1.
+            rates. Card artwork is for display; merchant network and physical card processing are not
+            included.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -100,7 +100,7 @@ export function AltaCardPendingApplicationBanner({
       <p className="mt-2 text-[13px] text-muted-foreground">
         {isApproved
           ? "Review your approved terms and accept your card to activate the business credit line."
-          : "Our team is reviewing your application. You can respond to requests and track progress in your secure deal room."}
+          : ALTA_CARD_APPLICATION_PENDING_BODY}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link

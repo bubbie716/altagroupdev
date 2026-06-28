@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { OpsTableSkeleton } from "@/components/internal/console/ops-table-skeleton";
 import { OpsEmptyState } from "@/components/internal/console/ops-empty-state";
+import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 
 export type OpsTableColumn<T> = {
   key: string;
@@ -30,7 +31,7 @@ export function OpsTable<T extends { id?: string }>({
   onSelectionChange,
   bulkActions,
   loading = false,
-  emptyState = "No records.",
+  emptyState = OPS_COPY.noResults,
   filterSlot,
   className,
 }: {
@@ -106,7 +107,7 @@ export function OpsTable<T extends { id?: string }>({
           <OpsTableSkeleton rows={4} cols={columns.length} />
         ) : rows.length === 0 ? (
           <OpsEmptyState
-            title={typeof emptyState === "string" ? emptyState : "No records found."}
+            title={typeof emptyState === "string" ? emptyState : OPS_COPY.noResults}
             className="border-0 bg-transparent"
           />
         ) : (

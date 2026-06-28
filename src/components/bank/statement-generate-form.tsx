@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { generateAccountStatement } from "@/lib/bank/statement.functions";
 
 const fieldClass =
@@ -38,9 +39,9 @@ export function StatementGenerateForm({
       });
     } catch (err) {
       const message =
-        err instanceof Error
-          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN$/, "You do not have permission to generate statements for this account.")
-          : "Generation failed.";
+        err instanceof Error && err.message === "FORBIDDEN"
+          ? "You do not have permission to generate statements for this account."
+          : formatCustomerActionError(err, "statement_generate");
       setError(message);
     } finally {
       setPending(false);
@@ -50,8 +51,8 @@ export function StatementGenerateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Generate a preview statement from approved transactions in the selected period. Opening balances
-        are estimated from available transaction history.
+        Generate a statement from approved transactions in the selected period. Opening balances are
+        estimated from available transaction history.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
@@ -81,7 +82,7 @@ export function StatementGenerateForm({
         disabled={pending}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Generating…" : "Generate preview statement"}
+        {pending ? "Generating…" : "Generate statement"}
       </button>
     </form>
   );

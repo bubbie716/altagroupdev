@@ -21,5 +21,5 @@ export function threadDecisionTone(status: string): ThreadDecisionTone {
 }
 
 export function threadClosedDecisionMessage(statusLabel: string): string {
-  return `This secure deal room is closed. Decision: ${statusLabel}.`;
+  return `This Secure Deal Room is closed. Decision: ${statusLabel}.`;
 }

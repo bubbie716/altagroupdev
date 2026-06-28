@@ -5,8 +5,8 @@ export function AltaCreditProfilePlaceholder({ className }: { className?: string
   return (
     <Section title="Alta Credit Profile" className={className}>
       <p className="mb-4 text-[13px] text-muted-foreground">
-        Future credit intelligence will aggregate bank cash, portfolio value, and repayment history.
-        No scores or pre-approvals are calculated in V1.
+        Credit profile metrics are not available yet. Alta will display aggregated relationship data
+        here when available.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {CREDIT_PROFILE_PLACEHOLDERS.map((item) => (
