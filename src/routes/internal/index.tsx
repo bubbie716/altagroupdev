@@ -65,20 +65,20 @@ function InternalOperationsCenter() {
 
       <OpsSection title={`Operational queues · ${totalQueues} items`}>
         {(queueAging.olderThan24Hours > 0 || queueAging.olderThan72Hours > 0) ? (
-          <div className="mb-4 flex flex-wrap gap-3 rounded-lg border border-amber-400/30 bg-amber-400/5 px-4 py-3">
+          <div className="mb-3 flex flex-wrap items-center gap-3 rounded border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-[11px]">
             {queueAging.olderThan24Hours > 0 ? (
-              <span className="font-mono text-[11px] text-amber-200">
-                ⚠ {queueAging.olderThan24Hours} item{queueAging.olderThan24Hours === 1 ? "" : "s"} older than 24 hours
+              <span className="font-mono text-amber-300">
+                {queueAging.olderThan24Hours} item{queueAging.olderThan24Hours === 1 ? "" : "s"} &gt; 24h
               </span>
             ) : null}
             {queueAging.olderThan72Hours > 0 ? (
-              <span className="font-mono text-[11px] text-red-300">
-                🚨 {queueAging.olderThan72Hours} item{queueAging.olderThan72Hours === 1 ? "" : "s"} older than 72 hours
+              <span className="font-mono text-rose-300">
+                {queueAging.olderThan72Hours} item{queueAging.olderThan72Hours === 1 ? "" : "s"} &gt; 72h
               </span>
             ) : null}
           </div>
         ) : null}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
           <OpsQueueCard label="Pending deposits" count={m.pendingDeposits} to="/internal/queues/deposits" cta="Review" />
           <OpsQueueCard label="Pending withdrawals" count={m.pendingWithdrawals} to="/internal/queues/withdrawals" cta="Review" />
           <OpsQueueCard label="Loan applications" count={m.pendingLoanApplications} to="/internal/queues/lending-applications" cta="Review" />
@@ -92,24 +92,27 @@ function InternalOperationsCenter() {
         </div>
       </OpsSection>
 
-      <OpsSection title="Operational health" className="mt-8">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-[12px] text-muted-foreground">Job and platform health snapshot.</p>
-          <QuickLink to="/internal/jobs">All jobs →</QuickLink>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <OpsSection title="Operational health" className="mt-6" action={<QuickLink to="/internal/jobs">All jobs</QuickLink>}>
+        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
           {health.map((h) => (
-            <div key={h.key} className="rounded-lg border border-border/60 bg-surface-1/60 px-4 py-3">
+            <div key={h.key} className="rounded border border-border bg-surface-1/60 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{h.label}</span>
-                <span className={`font-mono text-[10px] uppercase ${h.status === "operational" ? "text-emerald-400" : h.status === "degraded" ? "text-amber-300" : "text-muted-foreground"}`}>
+                <span className="truncate text-[12px] text-foreground">{h.label}</span>
+                <span className={cn(
+                  "inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em]",
+                  h.status === "operational" ? "text-emerald-400" : h.status === "degraded" ? "text-amber-300" : "text-muted-foreground"
+                )}>
+                  <span className={cn(
+                    "size-1.5 rounded-full",
+                    h.status === "operational" ? "bg-emerald-500" : h.status === "degraded" ? "bg-amber-500" : "bg-muted-foreground/50"
+                  )} aria-hidden />
                   {h.status}
                 </span>
               </div>
-              <p className="mt-2 text-[13px] text-muted-foreground">{h.detail}</p>
+              <p className="mt-1 truncate text-[11px] text-muted-foreground">{h.detail}</p>
               {h.lastSuccessAt ? (
-                <p className="mt-1 font-mono text-[10px] text-muted-foreground/70">
-                  Last success {h.lastSuccessAt.slice(0, 19).replace("T", " ")}
+                <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
+                  {h.lastSuccessAt.slice(0, 19).replace("T", " ")}
                 </p>
               ) : null}
             </div>
@@ -117,30 +120,33 @@ function InternalOperationsCenter() {
         </div>
       </OpsSection>
 
-      <OpsSection title="Platform vitals" className="mt-8">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <InternalStatCard label="Users" value={m.totalUsers.toLocaleString()} />
-          <InternalStatCard label="Active accounts" value={m.activeBankAccounts.toLocaleString()} />
-          <InternalStatCard label="Balances held" value={florin(m.totalBalancesHeld)} />
-          <InternalStatCard label="Active loans" value={m.activeLoans.toLocaleString()} />
+      <OpsSection title="Platform vitals" className="mt-6">
+        <div className="grid grid-cols-2 divide-x divide-border rounded border border-border bg-surface-1/40 lg:grid-cols-4">
+          {[
+            { label: "Users", value: m.totalUsers.toLocaleString() },
+            { label: "Active accounts", value: m.activeBankAccounts.toLocaleString() },
+            { label: "Balances held", value: florin(m.totalBalancesHeld) },
+            { label: "Active loans", value: m.activeLoans.toLocaleString() },
+          ].map((v) => (
+            <div key={v.label} className="px-3 py-2.5">
+              <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">{v.label}</div>
+              <div className="tabular mt-1 text-[15px] font-semibold">{v.value}</div>
+            </div>
+          ))}
         </div>
       </OpsSection>
 
-      <OpsSection title="Recent operational events" className="mt-8">
-        <p className="mb-3 text-[12px] text-muted-foreground">
-          Live operational activity — not the official compliance audit trail. For audit history see{" "}
-          <Link to="/internal/audit" className="text-gold hover:underline">
-            Audit Log
-          </Link>
-          .
-        </p>
+      <OpsSection
+        title="Recent operational events"
+        className="mt-6"
+        action={<QuickLink to="/internal/audit">Audit log</QuickLink>}
+      >
         <ActivityFeedTable items={activity} />
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           <QuickLink to="/internal/bank/transactions">Transaction explorer</QuickLink>
           <QuickLink to="/internal/bank/alta-pay">Alta Pay ops</QuickLink>
           <QuickLink to="/internal/queues/exceptions">Exception center</QuickLink>
           <QuickLink to="/internal/reports">Reports</QuickLink>
-          <QuickLink to="/internal/audit">Audit log</QuickLink>
         </div>
       </OpsSection>
     </InternalPageShell>
@@ -210,7 +216,7 @@ function QuickLink({ to, children }: { to: string; children: React.ReactNode }) 
   return (
     <Link
       to={to}
-      className="rounded-md border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] hover:border-gold/40 hover:text-gold"
+      className="inline-flex items-center rounded border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:border-border-strong hover:text-foreground"
     >
       {children}
     </Link>
