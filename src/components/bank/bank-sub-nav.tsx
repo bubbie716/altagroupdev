@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { memo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
@@ -34,6 +35,8 @@ const altaCardSubLinks = [
   { to: "/bank/alta-card", label: "Personal" },
   { to: "/bank/alta-card/business", label: "Business" },
 ] as const;
+
+const subNavEase = [0.22, 1, 0.36, 1] as const;
 
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/$/, "") || "/";
@@ -113,30 +116,27 @@ function LendingNavGroup({
     : lendingSubLinks.filter((link) => link.to !== "/bank/lending/apply");
 
   return (
-    <motion.div layout className="flex items-center gap-1">
-      <motion.div layout="position">
-        <NavLink to="/bank/lending" label="Lending" active={active} />
-      </motion.div>
+    <div className="flex items-center gap-1">
+      <NavLink to="/bank/lending" label="Lending" active={active} />
       <AnimatePresence initial={false}>
         {expanded ? (
           <motion.div
             key="lending-sublinks"
-            layout
             initial={{ opacity: 0, width: 0 }}
             animate={{ opacity: 1, width: "auto" }}
             exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: subNavEase }}
             className="flex items-center gap-1 overflow-hidden"
           >
             <motion.span
               initial={{ scaleY: 0, opacity: 0 }}
               animate={{ scaleY: 1, opacity: 1 }}
               exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ duration: 0.16 }}
+              transition={{ duration: 0.16, ease: subNavEase }}
               className="mx-0.5 h-4 w-px origin-center bg-border/80"
               aria-hidden
             />
-            {lendingSubLinks.map((subLink, index) => (
+            {subLinks.map((subLink, index) => (
               <motion.div
                 key={subLink.to}
                 initial={{ opacity: 0, x: -14 }}
@@ -145,7 +145,7 @@ function LendingNavGroup({
                 transition={{
                   duration: 0.22,
                   delay: index * 0.045,
-                  ease: [0.22, 1, 0.36, 1],
+                  ease: subNavEase,
                 }}
               >
                 <RouteButton
@@ -164,43 +164,37 @@ function LendingNavGroup({
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
 function AltaCardNavGroup({
   pathname,
   active,
-  showApply = true,
 }: {
   pathname: string;
   active: boolean;
-  showApply?: boolean;
 }) {
   const expanded = normalizePath(pathname).startsWith("/bank/alta-card");
-  void showApply;
 
   return (
-    <motion.div layout className="flex items-center gap-1">
-      <motion.div layout="position">
-        <NavLink to="/bank/alta-card" label="Alta Card" active={active} />
-      </motion.div>
+    <div className="flex items-center gap-1">
+      <NavLink to="/bank/alta-card" label="Alta Card" active={active} />
       <AnimatePresence initial={false}>
         {expanded ? (
           <motion.div
             key="alta-card-sublinks"
-            layout
             initial={{ opacity: 0, width: 0 }}
             animate={{ opacity: 1, width: "auto" }}
             exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: subNavEase }}
             className="flex items-center gap-1 overflow-hidden"
           >
             <motion.span
               initial={{ scaleY: 0, opacity: 0 }}
               animate={{ scaleY: 1, opacity: 1 }}
               exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ duration: 0.16 }}
+              transition={{ duration: 0.16, ease: subNavEase }}
               className="mx-0.5 h-4 w-px origin-center bg-border/80"
               aria-hidden
             />
@@ -213,7 +207,7 @@ function AltaCardNavGroup({
                 transition={{
                   duration: 0.22,
                   delay: index * 0.045,
-                  ease: [0.22, 1, 0.36, 1],
+                  ease: subNavEase,
                 }}
               >
                 <RouteButton
@@ -232,11 +226,11 @@ function AltaCardNavGroup({
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
-export function BankSubNav({ className }: { className?: string }) {
+export const BankSubNav = memo(function BankSubNav({ className }: { className?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
   const creditDeskNav = useCreditDeskCustomerNav();
@@ -257,20 +251,18 @@ export function BankSubNav({ className }: { className?: string }) {
   });
 
   return (
-    <LayoutGroup id="bank-sub-nav">
-      <BankSubNavScroll className="sm:mb-10">
-        <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0", className)}>
+    <BankSubNavScroll className="sm:mb-10">
+      <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0", className)}>
         {navLinks.map((link) => {
           if (link.to === "/bank/lending") {
             if (creditDeskNav.creditDeskClosed && creditDeskNav.showLendingNav) {
               return (
-                <motion.div layout="position" key="loans-servicing">
-                  <NavLink
-                    to="/bank/lending/loans"
-                    label="Loans"
-                    active={normalizePath(pathname).startsWith("/bank/lending")}
-                  />
-                </motion.div>
+                <NavLink
+                  key="loans-servicing"
+                  to="/bank/lending/loans"
+                  label="Loans"
+                  active={normalizePath(pathname).startsWith("/bank/lending")}
+                />
               );
             }
             return (
@@ -288,22 +280,19 @@ export function BankSubNav({ className }: { className?: string }) {
                 key={link.to}
                 pathname={pathname}
                 active={isNavLinkActive(pathname, link)}
-                showApply={creditDeskNav.showApplyEntryPoints}
               />
             );
           }
           return (
-            <motion.div layout="position" key={link.to}>
-              <NavLink
-                to={link.to}
-                label={link.label}
-                active={isNavLinkActive(pathname, link)}
-              />
-            </motion.div>
+            <NavLink
+              key={link.to}
+              to={link.to}
+              label={link.label}
+              active={isNavLinkActive(pathname, link)}
+            />
           );
         })}
-        </nav>
-      </BankSubNavScroll>
-    </LayoutGroup>
+      </nav>
+    </BankSubNavScroll>
   );
-}
+});

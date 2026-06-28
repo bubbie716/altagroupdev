@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankInternalTransferForm } from "@/components/bank/bank-internal-transfer-form";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
@@ -56,14 +56,13 @@ function BankIntrabankTransfers() {
   const router = useRouter();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Intrabank"
       description="Move funds instantly within Alta Bank — between your accounts or to another player."
-    >
-      <BankSubNav />
-
-      {showMockData ? (
+     />
+{showMockData ? (
         <>
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <Card className="!p-6">
@@ -106,7 +105,7 @@ function BankIntrabankTransfers() {
           </Section>
         </>
       )}
-    </PageShell>
+    </>
   );
 }
 

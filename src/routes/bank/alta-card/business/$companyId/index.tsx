@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardBusinessPanel } from "@/components/bank/alta-card/alta-card-business-panel";
 import { AltaCardBackToAllBusinessesButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
@@ -44,12 +43,12 @@ function BankAltaCardBusinessDetail() {
     businessCard?.companyName ?? pendingApplication?.companyName ?? "Company";
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title={companyName}
-    >
-      <BankSubNav />
-      <AltaCardPageNav>
+     />
+<AltaCardPageNav>
         <AltaCardBackToAllBusinessesButton />
       </AltaCardPageNav>
       <AltaCardBusinessPanel
@@ -69,6 +68,6 @@ function BankAltaCardBusinessDetail() {
           await router.invalidate();
         }}
       />
-    </PageShell>
+    </>
   );
 }

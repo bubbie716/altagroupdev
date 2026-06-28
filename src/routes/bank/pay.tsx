@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaPayForm, altaCardPayFundingKey, employeeCardPayFundingKey } from "@/components/bank/alta-pay-form";
 import { AltaPayHistoryTable } from "@/components/bank/alta-pay-received-panel";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
@@ -52,14 +52,13 @@ function AltaPayPage() {
       : undefined;
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Pay"
       title="Pay a Business"
       description="Send Florins to verified Newport companies instantly — from a bank account or your Alta Card."
-    >
-      <BankSubNav />
-
-      {fundingSources.length === 0 ? (
+     />
+{fundingSources.length === 0 ? (
         <EmptyBankState
           title="No eligible payment sources"
           description="Open a personal Alta Bank account or activate an Alta Card to pay businesses through Alta Pay."
@@ -75,6 +74,6 @@ function AltaPayPage() {
           </Section>
         </>
       )}
-    </PageShell>
+    </>
   );
 }

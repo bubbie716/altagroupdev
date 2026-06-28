@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
 import { useTheme } from "./theme";
 import { Sun, Moon, Menu } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +30,7 @@ function isNavLinkActive(
   return pathname.startsWith(link.to);
 }
 
-export function SiteNav() {
+export const SiteNav = memo(function SiteNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -113,6 +113,6 @@ export function SiteNav() {
       </div>
     </header>
   );
-}
+});
 
 export { PublicFooter, SiteFooter } from "./footers";

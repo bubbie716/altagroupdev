@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardStatementDocument } from "@/components/bank/alta-card/alta-card-statement-document";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchCardStatementDetail } from "@/lib/bank/alta-card-statement.functions";
@@ -31,16 +30,16 @@ function AltaCardStatementDetailPage() {
   const { card, statement } = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title={`Statement #${statement.statementNumber}`}
       description={cardSubtitle(card)}
       printDocument
       hideFooter
-    >
-      <BankSubNav className="print:hidden" />
-      <AltaCardStatementDocument statement={statement} card={card} />
-    </PageShell>
+     />
+<AltaCardStatementDocument statement={statement} card={card} />
+    </>
   );
 }
 

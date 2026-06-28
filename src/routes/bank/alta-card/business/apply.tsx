@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardApplyForm } from "@/components/bank/alta-card/alta-card-apply-form";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
@@ -29,13 +28,13 @@ function BankBusinessAltaCardApply() {
   const { companyId } = Route.useSearch();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title="Apply for business Alta Card"
       description="Company owners and treasury managers may apply for a business credit line."
-    >
-      <BankSubNav />
-      <AltaCardApplyForm context={context} defaultKind="business" defaultCompanyId={companyId} />
-    </PageShell>
+     />
+<AltaCardApplyForm context={context} defaultKind="business" defaultCompanyId={companyId} />
+    </>
   );
 }

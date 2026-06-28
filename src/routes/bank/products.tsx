@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { ProductCard } from "@/components/bank/product-card";
 import { getBankProducts } from "@/lib/bank/api";
 import type { BankProductCategory } from "@/lib/bank/types";
@@ -31,14 +31,13 @@ function BankProducts() {
   const products = getBankProducts();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Products"
       title="Bank Products"
       description="Alta Bank's retail, business, and Alta Private deposit products — public banking for Newport, with invitation-only private tiers."
-    >
-      <BankSubNav />
-
-      {PRODUCT_SECTIONS.map((section, index) => {
+     />
+{PRODUCT_SECTIONS.map((section, index) => {
         const sectionProducts = products.filter((p) => p.category === section.id);
         if (sectionProducts.length === 0) return null;
 
@@ -64,6 +63,6 @@ function BankProducts() {
           </Section>
         );
       })}
-    </PageShell>
+    </>
   );
 }

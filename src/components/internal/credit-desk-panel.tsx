@@ -9,6 +9,7 @@ import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { CreditDeskSettings, CreditDeskStatus } from "@/lib/platform/credit-desk-types";
 import { setCreditDeskStatusOps } from "@/lib/platform/platform-settings.functions";
+import { invalidateCreditDeskNavCache } from "@/hooks/use-credit-desk-nav";
 
 export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
   const router = useRouter();
@@ -97,6 +98,7 @@ export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
           try {
             await saveFn({ data: { status: "closed", reason } });
             setStatus("closed");
+            invalidateCreditDeskNavCache();
             setConfirmAction(null);
             await refreshSettings();
           } catch (e) {
@@ -117,6 +119,7 @@ export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
           try {
             await saveFn({ data: { status: "open", reason } });
             setStatus("open");
+            invalidateCreditDeskNavCache();
             setConfirmAction(null);
             await refreshSettings();
           } catch (e) {

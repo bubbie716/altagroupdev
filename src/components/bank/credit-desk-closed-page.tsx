@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { CREDIT_DESK_CLOSED_PAGE } from "@/lib/platform/credit-desk-copy";
 
 export function CreditDeskClosedPage() {
   return (
-    <PageShell eyebrow="Alta Bank · Credit Desk" title={CREDIT_DESK_CLOSED_PAGE.title}>
-      <BankSubNav />
-      <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-1/80 px-8 py-10 text-center">
+    <>
+      <BankPageMeta eyebrow="Alta Bank · Credit Desk" title={CREDIT_DESK_CLOSED_PAGE.title} />
+<div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-1/80 px-8 py-10 text-center">
         <p className="text-[15px] leading-relaxed text-muted-foreground">{CREDIT_DESK_CLOSED_PAGE.body}</p>
         <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">
           {CREDIT_DESK_CLOSED_PAGE.servicingNote}
@@ -20,6 +19,6 @@ export function CreditDeskClosedPage() {
           Back to Banking Overview
         </Link>
       </div>
-    </PageShell>
+    </>
   );
 }

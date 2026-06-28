@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import {
   ProductTags,
   RelationshipAssetValue,
@@ -36,14 +36,13 @@ function BankRelationshipPage() {
   const memberDuration = formatMembershipDuration(view.relationshipSince);
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank"
       title="Your Alta relationship"
       description="A consolidated view of your relationship with Alta Bank and affiliated products."
-    >
-      <BankSubNav />
-
-      <Section title="Relationship overview">
+     />
+<Section title="Relationship overview">
         <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
           <dl className={RELATIONSHIP_STAT_GRID}>
             <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
@@ -174,6 +173,6 @@ function BankRelationshipPage() {
           />
         </Card>
       </Section>
-    </PageShell>
+    </>
   );
 }

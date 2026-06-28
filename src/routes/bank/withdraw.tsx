@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { BankWithdrawForm } from "@/components/bank/bank-withdraw-form";
 import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
 import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
@@ -39,13 +38,13 @@ function BankWithdrawPage() {
   }
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Withdrawals"
       title="Request a Withdrawal"
       description={WITHDRAW_PAGE_DESCRIPTION}
-    >
-      <BankSubNav />
-      <BankWithdrawForm
+     />
+<BankWithdrawForm
         accounts={accounts}
         defaultAccountId={accountId}
         onSubmissionSuccess={handleSubmissionSuccess}
@@ -54,6 +53,6 @@ function BankWithdrawPage() {
         requests={requestsInProgress}
         highlightReferenceCode={highlightReferenceCode}
       />
-    </PageShell>
+    </>
   );
 }

@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardPersonalPanel } from "@/components/bank/alta-card/alta-card-personal-panel";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
@@ -47,7 +46,8 @@ function BankAltaCardIndex() {
     user?.discordUsername ?? cardDetail?.ownerUsername ?? card?.ownerUsername ?? "Cardholder";
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title={card ? cardholderName : "Alta Card"}
       description={
@@ -65,10 +65,8 @@ function BankAltaCardIndex() {
           </Link>
         ) : null
       }
-    >
-      <BankSubNav />
-
-      {pendingApplication && !card ? (
+    />
+{pendingApplication && !card ? (
         <div className="mb-8">
           <AltaCardPendingApplicationBanner
             statusLabel={ALTA_CARD_APPLICATION_STATUS_LABELS[pendingApplication.status]}
@@ -107,6 +105,6 @@ function BankAltaCardIndex() {
         </div>
         ) : null
       ) : null}
-    </PageShell>
+    </>
   );
 }

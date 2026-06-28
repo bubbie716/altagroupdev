@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { StatementDocument } from "@/components/bank/statement-document";
 import { fetchStatementDetail } from "@/lib/bank/statement.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
@@ -44,15 +43,15 @@ function StatementDetailPage() {
         };
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Statement"
       title={statement.statementNumber}
       description={`${statement.accountName} · ${statement.accountNumber}`}
       printDocument
       hideFooter
-    >
-      <BankSubNav className="print:hidden" />
-      <StatementDocument statement={statement} backTo={backTo} />
-    </PageShell>
+     />
+<StatementDocument statement={statement} backTo={backTo} />
+    </>
   );
 }

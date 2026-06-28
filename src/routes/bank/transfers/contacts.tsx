@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankTransferContactsManager } from "@/components/bank/bank-transfer-contacts-manager";
 import { fetchActiveBankAccounts, fetchAllTransferContacts } from "@/lib/bank/bank.functions";
@@ -27,13 +27,13 @@ function BankTransferContactsPage() {
   const router = useRouter();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Contacts"
       description="Saved recipients for intrabank transfers and future interbank wires."
-    >
-      <BankSubNav />
-      <TransferPageHeader />
+     />
+<TransferPageHeader />
 
       {showMockData ? (
         <div className="rounded-xl border border-dashed border-border bg-surface-1/40 px-6 py-10 text-center">
@@ -93,6 +93,6 @@ function BankTransferContactsPage() {
           </Section>
         </div>
       )}
-    </PageShell>
+    </>
   );
 }

@@ -1,5 +1,5 @@
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardStatementList } from "@/components/bank/alta-card/alta-card-statement-views";
 import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
@@ -17,11 +17,8 @@ export function AltaCardStatementsPageContent({
   void cardId;
 
   return (
-    <PageShell
-      eyebrow="Alta Bank · Alta Card"
-      title="Statements"
-    >
-      <BankSubNav />
+    <>
+      <BankPageMeta eyebrow="Alta Bank · Alta Card" title="Statements" />
       <AltaCardPageNav>
         <AltaCardBackToCardButton card={card} />
       </AltaCardPageNav>
@@ -29,6 +26,6 @@ export function AltaCardStatementsPageContent({
       <Section title="Statements on file">
         <AltaCardStatementList cardId={cardId} statements={statements} card={card} />
       </Section>
-    </PageShell>
+    </>
   );
 }

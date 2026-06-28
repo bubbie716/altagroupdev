@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCreditProfilePlaceholder } from "@/components/bank/alta-credit-profile-placeholder";
 import { LendingLoansTable } from "@/components/bank/lending-loans-table";
 import { EmptyState } from "@/components/data/empty-state";
@@ -20,14 +19,13 @@ function BankLendingLoans() {
   const creditDeskNav = useCreditDeskCustomerNav();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Lending"
       title="Loans"
       description="Active credit facilities and servicing summary."
-    >
-      <BankSubNav />
-
-      {loans.length === 0 ? (
+     />
+{loans.length === 0 ? (
         <EmptyState
           eyebrow="Alta Bank · Lending"
           title="No loans on file"
@@ -43,6 +41,6 @@ function BankLendingLoans() {
       )}
 
       <AltaCreditProfilePlaceholder className="mt-12" />
-    </PageShell>
+    </>
   );
 }

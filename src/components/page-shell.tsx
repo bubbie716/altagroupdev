@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
@@ -33,6 +33,7 @@ export function PageShell({
   hideFooter = false,
   footerVariant,
   printDocument = false,
+  animateHero = true,
 }: {
   eyebrow: string;
   title: string;
@@ -44,6 +45,8 @@ export function PageShell({
   footerVariant?: FooterVariant;
   /** Hides site chrome and page hero when printing (e.g. bank statements). */
   printDocument?: boolean;
+  /** When false, skips the hero entrance animation (used by persistent /bank layout). */
+  animateHero?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const resolvedVariant = hideFooter
@@ -61,7 +64,8 @@ export function PageShell({
       >
         <div
           className={cn(
-            "page-shell-hero animate-rise border-b border-border/60 pb-6 sm:pb-10",
+            "page-shell-hero border-b border-border/60 pb-6 sm:pb-10",
+            animateHero && "animate-rise",
             printDocument && "print:hidden",
           )}
         >

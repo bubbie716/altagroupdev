@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { RouteButton } from "@/components/bank/route-button";
 import { getLendingProducts } from "@/lib/bank/api";
 import { fetchLendingDeskStats } from "@/lib/bank/lending.functions";
@@ -31,14 +31,13 @@ function BankLendingOverview() {
   ] as const;
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Credit Desk"
       title="Lending"
       description="Relationship-led credit facilities for Newport citizens, founders, and institutions — every application manually reviewed through your Secure Deal Room."
-    >
-      <BankSubNav />
-
-      {/* Editorial CTA strip */}
+     />
+{/* Editorial CTA strip */}
       {showApply ? (
       <div className="mb-12 overflow-hidden rounded-xl border border-border bg-surface-1/80">
         <div className="grid gap-6 px-6 py-7 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-10 sm:px-8">
@@ -159,7 +158,7 @@ function BankLendingOverview() {
           />
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }
 

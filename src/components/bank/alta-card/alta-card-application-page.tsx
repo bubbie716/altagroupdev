@@ -1,6 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardApplicationDetailView } from "@/components/bank/alta-card/alta-card-application-detail";
 import { fetchAltaCardApplicationDetail } from "@/lib/bank/alta-card-application.functions";
 
@@ -15,8 +14,8 @@ export function AltaCardApplicationPage({
   const router = useRouter();
 
   return (
-    <PageShell eyebrow="Alta Bank · Alta Card" title="Application">
-      <BankSubNav />
+    <>
+      <BankPageMeta eyebrow="Alta Bank · Alta Card" title="Application" />
       <AltaCardApplicationDetailView
         application={application}
         onAccepted={async () => {
@@ -30,6 +29,6 @@ export function AltaCardApplicationPage({
           await router.invalidate();
         }}
       />
-    </PageShell>
+    </>
   );
 }

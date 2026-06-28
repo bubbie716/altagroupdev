@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { authBeforeLoad } from "@/lib/auth/guards";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { getPrivateBanking } from "@/lib/bank/api";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
@@ -91,14 +90,13 @@ function BankPrivate() {
   ];
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Private"
       title="Alta Private"
       description="Relationship-managed banking — negotiated credit, preferred pricing, priority review, and private client benefits including Alta Gold."
-    >
-      <BankSubNav />
-
-      {privateClient ? (
+     />
+{privateClient ? (
         <div className="mt-8 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
           Alta Private Client — relationship-managed banking with negotiated credit, preferred pricing, and priority review.
         </div>
@@ -432,7 +430,7 @@ function BankPrivate() {
           </Link>
         </div>
       </div>
-    </PageShell>
+    </>
   );
 }
 

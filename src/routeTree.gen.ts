@@ -20,6 +20,7 @@ import { Route as InternalRouteRouteImport } from './routes/internal/route'
 import { Route as GovernanceRouteRouteImport } from './routes/governance/route'
 import { Route as ExchangeRouteRouteImport } from './routes/exchange/route'
 import { Route as CompaniesRouteRouteImport } from './routes/companies/route'
+import { Route as BankRouteRouteImport } from './routes/bank/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
 import { Route as InternalIndexRouteImport } from './routes/internal/index'
@@ -274,6 +275,11 @@ const CompaniesRouteRoute = CompaniesRouteRouteImport.update({
   path: '/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BankRouteRoute = BankRouteRouteImport.update({
+  id: '/bank',
+  path: '/bank',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -305,9 +311,9 @@ const CompaniesIndexRoute = CompaniesIndexRouteImport.update({
   getParentRoute: () => CompaniesRouteRoute,
 } as any)
 const BankIndexRoute = BankIndexRouteImport.update({
-  id: '/bank/',
-  path: '/bank/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const TerminalWatchlistRoute = TerminalWatchlistRouteImport.update({
   id: '/watchlist',
@@ -460,59 +466,59 @@ const CompaniesCreateRoute = CompaniesCreateRouteImport.update({
   getParentRoute: () => CompaniesRouteRoute,
 } as any)
 const BankWithdrawRoute = BankWithdrawRouteImport.update({
-  id: '/bank/withdraw',
-  path: '/bank/withdraw',
-  getParentRoute: () => rootRouteImport,
+  id: '/withdraw',
+  path: '/withdraw',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankRelationshipRoute = BankRelationshipRouteImport.update({
-  id: '/bank/relationship',
-  path: '/bank/relationship',
-  getParentRoute: () => rootRouteImport,
+  id: '/relationship',
+  path: '/relationship',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankProductsRoute = BankProductsRouteImport.update({
-  id: '/bank/products',
-  path: '/bank/products',
-  getParentRoute: () => rootRouteImport,
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankPrivateRoute = BankPrivateRouteImport.update({
-  id: '/bank/private',
-  path: '/bank/private',
-  getParentRoute: () => rootRouteImport,
+  id: '/private',
+  path: '/private',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankPayRoute = BankPayRouteImport.update({
-  id: '/bank/pay',
-  path: '/bank/pay',
-  getParentRoute: () => rootRouteImport,
+  id: '/pay',
+  path: '/pay',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankOpenRoute = BankOpenRouteImport.update({
-  id: '/bank/open',
-  path: '/bank/open',
-  getParentRoute: () => rootRouteImport,
+  id: '/open',
+  path: '/open',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankDepositsRoute = BankDepositsRouteImport.update({
-  id: '/bank/deposits',
-  path: '/bank/deposits',
-  getParentRoute: () => rootRouteImport,
+  id: '/deposits',
+  path: '/deposits',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankDepositRoute = BankDepositRouteImport.update({
-  id: '/bank/deposit',
-  path: '/bank/deposit',
-  getParentRoute: () => rootRouteImport,
+  id: '/deposit',
+  path: '/deposit',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankDashboardRoute = BankDashboardRouteImport.update({
-  id: '/bank/dashboard',
-  path: '/bank/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankCreditDeskClosedRoute = BankCreditDeskClosedRouteImport.update({
-  id: '/bank/credit-desk-closed',
-  path: '/bank/credit-desk-closed',
-  getParentRoute: () => rootRouteImport,
+  id: '/credit-desk-closed',
+  path: '/credit-desk-closed',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAccountsRoute = BankAccountsRouteImport.update({
-  id: '/bank/accounts',
-  path: '/bank/accounts',
-  getParentRoute: () => rootRouteImport,
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const InternalLendingRouteRoute = InternalLendingRouteRouteImport.update({
   id: '/lending',
@@ -530,14 +536,14 @@ const CompaniesCompanyIdRouteRoute = CompaniesCompanyIdRouteRouteImport.update({
   getParentRoute: () => CompaniesRouteRoute,
 } as any)
 const BankTransfersRouteRoute = BankTransfersRouteRouteImport.update({
-  id: '/bank/transfers',
-  path: '/bank/transfers',
-  getParentRoute: () => rootRouteImport,
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankBusinessRouteRoute = BankBusinessRouteRouteImport.update({
-  id: '/bank/business',
-  path: '/bank/business',
-  getParentRoute: () => rootRouteImport,
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const InternalUsersIndexRoute = InternalUsersIndexRouteImport.update({
   id: '/users/',
@@ -586,14 +592,14 @@ const BankTransfersIndexRoute = BankTransfersIndexRouteImport.update({
   getParentRoute: () => BankTransfersRouteRoute,
 } as any)
 const BankStatementsIndexRoute = BankStatementsIndexRouteImport.update({
-  id: '/bank/statements/',
-  path: '/bank/statements/',
-  getParentRoute: () => rootRouteImport,
+  id: '/statements/',
+  path: '/statements/',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankLendingIndexRoute = BankLendingIndexRouteImport.update({
-  id: '/bank/lending/',
-  path: '/bank/lending/',
-  getParentRoute: () => rootRouteImport,
+  id: '/lending/',
+  path: '/lending/',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankBusinessIndexRoute = BankBusinessIndexRouteImport.update({
   id: '/',
@@ -601,9 +607,9 @@ const BankBusinessIndexRoute = BankBusinessIndexRouteImport.update({
   getParentRoute: () => BankBusinessRouteRoute,
 } as any)
 const BankAltaCardIndexRoute = BankAltaCardIndexRouteImport.update({
-  id: '/bank/alta-card/',
-  path: '/bank/alta-card/',
-  getParentRoute: () => rootRouteImport,
+  id: '/alta-card/',
+  path: '/alta-card/',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
   id: '/users/$userId',
@@ -755,14 +761,14 @@ const BankTransfersContactsRoute = BankTransfersContactsRouteImport.update({
 } as any)
 const BankStatementsStatementIdRoute =
   BankStatementsStatementIdRouteImport.update({
-    id: '/bank/statements/$statementId',
-    path: '/bank/statements/$statementId',
-    getParentRoute: () => rootRouteImport,
+    id: '/statements/$statementId',
+    path: '/statements/$statementId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankLendingApplyRoute = BankLendingApplyRouteImport.update({
-  id: '/bank/lending/apply',
-  path: '/bank/lending/apply',
-  getParentRoute: () => rootRouteImport,
+  id: '/lending/apply',
+  path: '/lending/apply',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankBusinessStatementsRoute = BankBusinessStatementsRouteImport.update({
   id: '/statements',
@@ -786,24 +792,24 @@ const BankBusinessPaymentsRoute = BankBusinessPaymentsRouteImport.update({
   getParentRoute: () => BankBusinessRouteRoute,
 } as any)
 const BankAltaCardApplyRoute = BankAltaCardApplyRouteImport.update({
-  id: '/bank/alta-card/apply',
-  path: '/bank/alta-card/apply',
-  getParentRoute: () => rootRouteImport,
+  id: '/alta-card/apply',
+  path: '/alta-card/apply',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAdminPrivateRoute = BankAdminPrivateRouteImport.update({
-  id: '/bank/admin/private',
-  path: '/bank/admin/private',
-  getParentRoute: () => rootRouteImport,
+  id: '/admin/private',
+  path: '/admin/private',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAdminLoansRoute = BankAdminLoansRouteImport.update({
-  id: '/bank/admin/loans',
-  path: '/bank/admin/loans',
-  getParentRoute: () => rootRouteImport,
+  id: '/admin/loans',
+  path: '/admin/loans',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAdminClientsRoute = BankAdminClientsRouteImport.update({
-  id: '/bank/admin/clients',
-  path: '/bank/admin/clients',
-  getParentRoute: () => rootRouteImport,
+  id: '/admin/clients',
+  path: '/admin/clients',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAccountsOpenRoute = BankAccountsOpenRouteImport.update({
   id: '/open',
@@ -877,26 +883,26 @@ const ExchangeCompanyTickerRouteRoute =
     getParentRoute: () => ExchangeRouteRoute,
   } as any)
 const BankLendingLoansRouteRoute = BankLendingLoansRouteRouteImport.update({
-  id: '/bank/lending/loans',
-  path: '/bank/lending/loans',
-  getParentRoute: () => rootRouteImport,
+  id: '/lending/loans',
+  path: '/lending/loans',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankLendingDealRoomsRouteRoute =
   BankLendingDealRoomsRouteRouteImport.update({
-    id: '/bank/lending/deal-rooms',
-    path: '/bank/lending/deal-rooms',
-    getParentRoute: () => rootRouteImport,
+    id: '/lending/deal-rooms',
+    path: '/lending/deal-rooms',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankLendingApplicationsRouteRoute =
   BankLendingApplicationsRouteRouteImport.update({
-    id: '/bank/lending/applications',
-    path: '/bank/lending/applications',
-    getParentRoute: () => rootRouteImport,
+    id: '/lending/applications',
+    path: '/lending/applications',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAltaCardCardIdRouteRoute = BankAltaCardCardIdRouteRouteImport.update({
-  id: '/bank/alta-card/$cardId',
-  path: '/bank/alta-card/$cardId',
-  getParentRoute: () => rootRouteImport,
+  id: '/alta-card/$cardId',
+  path: '/alta-card/$cardId',
+  getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAccountsAccountIdRouteRoute =
   BankAccountsAccountIdRouteRouteImport.update({
@@ -906,9 +912,9 @@ const BankAccountsAccountIdRouteRoute =
   } as any)
 const BankAccountAccountIdRouteRoute =
   BankAccountAccountIdRouteRouteImport.update({
-    id: '/bank/account/$accountId',
-    path: '/bank/account/$accountId',
-    getParentRoute: () => rootRouteImport,
+    id: '/account/$accountId',
+    path: '/account/$accountId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const InternalLendingDealRoomsIndexRoute =
   InternalLendingDealRoomsIndexRouteImport.update({
@@ -977,9 +983,9 @@ const BankLendingApplicationsIndexRoute =
   } as any)
 const BankAltaCardBusinessIndexRoute =
   BankAltaCardBusinessIndexRouteImport.update({
-    id: '/bank/alta-card/business/',
-    path: '/bank/alta-card/business/',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/business/',
+    path: '/alta-card/business/',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAltaCardCardIdIndexRoute = BankAltaCardCardIdIndexRouteImport.update({
   id: '/',
@@ -1042,9 +1048,9 @@ const BankLendingDealRoomsDealRoomIdRoute =
   } as any)
 const BankAltaCardBusinessApplyRoute =
   BankAltaCardBusinessApplyRouteImport.update({
-    id: '/bank/alta-card/business/apply',
-    path: '/bank/alta-card/business/apply',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/business/apply',
+    path: '/alta-card/business/apply',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAccountsAccountIdStatementsRoute =
   BankAccountsAccountIdStatementsRouteImport.update({
@@ -1172,15 +1178,15 @@ const InternalAltaCardApplicationsApplicationIdRouteRoute =
   } as any)
 const BankAltaCardBusinessCompanyIdRouteRoute =
   BankAltaCardBusinessCompanyIdRouteRouteImport.update({
-    id: '/bank/alta-card/business/$companyId',
-    path: '/bank/alta-card/business/$companyId',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/business/$companyId',
+    path: '/alta-card/business/$companyId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAltaCardApplicationsApplicationIdRouteRoute =
   BankAltaCardApplicationsApplicationIdRouteRouteImport.update({
-    id: '/bank/alta-card/applications/$applicationId',
-    path: '/bank/alta-card/applications/$applicationId',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/applications/$applicationId',
+    path: '/alta-card/applications/$applicationId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const InternalLendingApplicationsApplicationIdIndexRoute =
   InternalLendingApplicationsApplicationIdIndexRouteImport.update({
@@ -1250,9 +1256,9 @@ const BankLendingApplicationsApplicationIdThreadRoute =
   } as any)
 const BankAltaCardBusinessEmployeeEmployeeCardIdRoute =
   BankAltaCardBusinessEmployeeEmployeeCardIdRouteImport.update({
-    id: '/bank/alta-card/business/employee/$employeeCardId',
-    path: '/bank/alta-card/business/employee/$employeeCardId',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/business/employee/$employeeCardId',
+    path: '/alta-card/business/employee/$employeeCardId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAltaCardApplicationsApplicationIdThreadRoute =
   BankAltaCardApplicationsApplicationIdThreadRouteImport.update({
@@ -1286,9 +1292,9 @@ const ApiDealRoomsDealRoomIdAgreementPreviewRoute =
   } as any)
 const BankAltaCardBusinessApplicationsApplicationIdRouteRoute =
   BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport.update({
-    id: '/bank/alta-card/business/applications/$applicationId',
-    path: '/bank/alta-card/business/applications/$applicationId',
-    getParentRoute: () => rootRouteImport,
+    id: '/alta-card/business/applications/$applicationId',
+    path: '/alta-card/business/applications/$applicationId',
+    getParentRoute: () => BankRouteRoute,
   } as any)
 const BankAltaCardBusinessApplicationsApplicationIdIndexRoute =
   BankAltaCardBusinessApplicationsApplicationIdIndexRouteImport.update({
@@ -1371,6 +1377,7 @@ const BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bank': typeof BankRouteRouteWithChildren
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
   '/governance': typeof GovernanceRouteRouteWithChildren
@@ -1772,6 +1779,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bank': typeof BankRouteRouteWithChildren
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
   '/governance': typeof GovernanceRouteRouteWithChildren
@@ -1985,6 +1993,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bank'
     | '/companies'
     | '/exchange'
     | '/governance'
@@ -2385,6 +2394,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/bank'
     | '/companies'
     | '/exchange'
     | '/governance'
@@ -2597,6 +2607,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BankRouteRoute: typeof BankRouteRouteWithChildren
   CompaniesRouteRoute: typeof CompaniesRouteRouteWithChildren
   ExchangeRouteRoute: typeof ExchangeRouteRouteWithChildren
   GovernanceRouteRoute: typeof GovernanceRouteRouteWithChildren
@@ -2608,25 +2619,6 @@ export interface RootRouteChildren {
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
   ProfileRoute: typeof ProfileRoute
-  BankBusinessRouteRoute: typeof BankBusinessRouteRouteWithChildren
-  BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
-  BankAccountsRoute: typeof BankAccountsRouteWithChildren
-  BankCreditDeskClosedRoute: typeof BankCreditDeskClosedRoute
-  BankDashboardRoute: typeof BankDashboardRoute
-  BankDepositRoute: typeof BankDepositRoute
-  BankDepositsRoute: typeof BankDepositsRoute
-  BankOpenRoute: typeof BankOpenRoute
-  BankPayRoute: typeof BankPayRoute
-  BankPrivateRoute: typeof BankPrivateRoute
-  BankProductsRoute: typeof BankProductsRoute
-  BankRelationshipRoute: typeof BankRelationshipRoute
-  BankWithdrawRoute: typeof BankWithdrawRoute
-  BankIndexRoute: typeof BankIndexRoute
-  BankAccountAccountIdRouteRoute: typeof BankAccountAccountIdRouteRouteWithChildren
-  BankAltaCardCardIdRouteRoute: typeof BankAltaCardCardIdRouteRouteWithChildren
-  BankLendingApplicationsRouteRoute: typeof BankLendingApplicationsRouteRouteWithChildren
-  BankLendingDealRoomsRouteRoute: typeof BankLendingDealRoomsRouteRouteWithChildren
-  BankLendingLoansRouteRoute: typeof BankLendingLoansRouteRouteWithChildren
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
   ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
   ApiBankWithdrawalRequestRoute: typeof ApiBankWithdrawalRequestRoute
@@ -2637,29 +2629,14 @@ export interface RootRouteChildren {
   ApiCronLoanInterestRoute: typeof ApiCronLoanInterestRoute
   ApiCronRelationshipIntelligenceRoute: typeof ApiCronRelationshipIntelligenceRoute
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
-  BankAdminClientsRoute: typeof BankAdminClientsRoute
-  BankAdminLoansRoute: typeof BankAdminLoansRoute
-  BankAdminPrivateRoute: typeof BankAdminPrivateRoute
-  BankAltaCardApplyRoute: typeof BankAltaCardApplyRoute
-  BankLendingApplyRoute: typeof BankLendingApplyRoute
-  BankStatementsStatementIdRoute: typeof BankStatementsStatementIdRoute
-  BankAltaCardIndexRoute: typeof BankAltaCardIndexRoute
-  BankLendingIndexRoute: typeof BankLendingIndexRoute
-  BankStatementsIndexRoute: typeof BankStatementsIndexRoute
-  BankAltaCardApplicationsApplicationIdRouteRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
-  BankAltaCardBusinessCompanyIdRouteRoute: typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   ApiAltaCardThreadsApplicationIdAttachmentsRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   ApiDealRoomsDealRoomIdDocumentsRoute: typeof ApiDealRoomsDealRoomIdDocumentsRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
   ApiLoanThreadsApplicationIdAttachmentsRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
-  BankAltaCardBusinessApplyRoute: typeof BankAltaCardBusinessApplyRoute
-  BankAltaCardBusinessIndexRoute: typeof BankAltaCardBusinessIndexRoute
-  BankAltaCardBusinessApplicationsApplicationIdRouteRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   ApiDealRoomsDealRoomIdAgreementPreviewRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute: typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   ApiDealRoomsDocumentsDocumentIdDownloadRoute: typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
-  BankAltaCardBusinessEmployeeEmployeeCardIdRoute: typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2741,6 +2718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bank': {
+      id: '/bank'
+      path: '/bank'
+      fullPath: '/bank'
+      preLoaderRoute: typeof BankRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -2785,10 +2769,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/': {
       id: '/bank/'
-      path: '/bank'
+      path: '/'
       fullPath: '/bank/'
       preLoaderRoute: typeof BankIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/terminal/watchlist': {
       id: '/terminal/watchlist'
@@ -3002,80 +2986,80 @@ declare module '@tanstack/react-router' {
     }
     '/bank/withdraw': {
       id: '/bank/withdraw'
-      path: '/bank/withdraw'
+      path: '/withdraw'
       fullPath: '/bank/withdraw'
       preLoaderRoute: typeof BankWithdrawRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/relationship': {
       id: '/bank/relationship'
-      path: '/bank/relationship'
+      path: '/relationship'
       fullPath: '/bank/relationship'
       preLoaderRoute: typeof BankRelationshipRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/products': {
       id: '/bank/products'
-      path: '/bank/products'
+      path: '/products'
       fullPath: '/bank/products'
       preLoaderRoute: typeof BankProductsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/private': {
       id: '/bank/private'
-      path: '/bank/private'
+      path: '/private'
       fullPath: '/bank/private'
       preLoaderRoute: typeof BankPrivateRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/pay': {
       id: '/bank/pay'
-      path: '/bank/pay'
+      path: '/pay'
       fullPath: '/bank/pay'
       preLoaderRoute: typeof BankPayRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/open': {
       id: '/bank/open'
-      path: '/bank/open'
+      path: '/open'
       fullPath: '/bank/open'
       preLoaderRoute: typeof BankOpenRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/deposits': {
       id: '/bank/deposits'
-      path: '/bank/deposits'
+      path: '/deposits'
       fullPath: '/bank/deposits'
       preLoaderRoute: typeof BankDepositsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/deposit': {
       id: '/bank/deposit'
-      path: '/bank/deposit'
+      path: '/deposit'
       fullPath: '/bank/deposit'
       preLoaderRoute: typeof BankDepositRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/dashboard': {
       id: '/bank/dashboard'
-      path: '/bank/dashboard'
+      path: '/dashboard'
       fullPath: '/bank/dashboard'
       preLoaderRoute: typeof BankDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/credit-desk-closed': {
       id: '/bank/credit-desk-closed'
-      path: '/bank/credit-desk-closed'
+      path: '/credit-desk-closed'
       fullPath: '/bank/credit-desk-closed'
       preLoaderRoute: typeof BankCreditDeskClosedRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/accounts': {
       id: '/bank/accounts'
-      path: '/bank/accounts'
+      path: '/accounts'
       fullPath: '/bank/accounts'
       preLoaderRoute: typeof BankAccountsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/internal/lending': {
       id: '/internal/lending'
@@ -3100,17 +3084,17 @@ declare module '@tanstack/react-router' {
     }
     '/bank/transfers': {
       id: '/bank/transfers'
-      path: '/bank/transfers'
+      path: '/transfers'
       fullPath: '/bank/transfers'
       preLoaderRoute: typeof BankTransfersRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/business': {
       id: '/bank/business'
-      path: '/bank/business'
+      path: '/business'
       fullPath: '/bank/business'
       preLoaderRoute: typeof BankBusinessRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/internal/users/': {
       id: '/internal/users/'
@@ -3177,17 +3161,17 @@ declare module '@tanstack/react-router' {
     }
     '/bank/statements/': {
       id: '/bank/statements/'
-      path: '/bank/statements'
+      path: '/statements'
       fullPath: '/bank/statements/'
       preLoaderRoute: typeof BankStatementsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/lending/': {
       id: '/bank/lending/'
-      path: '/bank/lending'
+      path: '/lending'
       fullPath: '/bank/lending/'
       preLoaderRoute: typeof BankLendingIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/business/': {
       id: '/bank/business/'
@@ -3198,10 +3182,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/': {
       id: '/bank/alta-card/'
-      path: '/bank/alta-card'
+      path: '/alta-card'
       fullPath: '/bank/alta-card/'
       preLoaderRoute: typeof BankAltaCardIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/internal/users/$userId': {
       id: '/internal/users/$userId'
@@ -3394,17 +3378,17 @@ declare module '@tanstack/react-router' {
     }
     '/bank/statements/$statementId': {
       id: '/bank/statements/$statementId'
-      path: '/bank/statements/$statementId'
+      path: '/statements/$statementId'
       fullPath: '/bank/statements/$statementId'
       preLoaderRoute: typeof BankStatementsStatementIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/lending/apply': {
       id: '/bank/lending/apply'
-      path: '/bank/lending/apply'
+      path: '/lending/apply'
       fullPath: '/bank/lending/apply'
       preLoaderRoute: typeof BankLendingApplyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/business/statements': {
       id: '/bank/business/statements'
@@ -3436,31 +3420,31 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/apply': {
       id: '/bank/alta-card/apply'
-      path: '/bank/alta-card/apply'
+      path: '/alta-card/apply'
       fullPath: '/bank/alta-card/apply'
       preLoaderRoute: typeof BankAltaCardApplyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/admin/private': {
       id: '/bank/admin/private'
-      path: '/bank/admin/private'
+      path: '/admin/private'
       fullPath: '/bank/admin/private'
       preLoaderRoute: typeof BankAdminPrivateRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/admin/loans': {
       id: '/bank/admin/loans'
-      path: '/bank/admin/loans'
+      path: '/admin/loans'
       fullPath: '/bank/admin/loans'
       preLoaderRoute: typeof BankAdminLoansRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/admin/clients': {
       id: '/bank/admin/clients'
-      path: '/bank/admin/clients'
+      path: '/admin/clients'
       fullPath: '/bank/admin/clients'
       preLoaderRoute: typeof BankAdminClientsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/accounts/open': {
       id: '/bank/accounts/open'
@@ -3555,31 +3539,31 @@ declare module '@tanstack/react-router' {
     }
     '/bank/lending/loans': {
       id: '/bank/lending/loans'
-      path: '/bank/lending/loans'
+      path: '/lending/loans'
       fullPath: '/bank/lending/loans'
       preLoaderRoute: typeof BankLendingLoansRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/lending/deal-rooms': {
       id: '/bank/lending/deal-rooms'
-      path: '/bank/lending/deal-rooms'
+      path: '/lending/deal-rooms'
       fullPath: '/bank/lending/deal-rooms'
       preLoaderRoute: typeof BankLendingDealRoomsRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/lending/applications': {
       id: '/bank/lending/applications'
-      path: '/bank/lending/applications'
+      path: '/lending/applications'
       fullPath: '/bank/lending/applications'
       preLoaderRoute: typeof BankLendingApplicationsRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/alta-card/$cardId': {
       id: '/bank/alta-card/$cardId'
-      path: '/bank/alta-card/$cardId'
+      path: '/alta-card/$cardId'
       fullPath: '/bank/alta-card/$cardId'
       preLoaderRoute: typeof BankAltaCardCardIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/accounts/$accountId': {
       id: '/bank/accounts/$accountId'
@@ -3590,10 +3574,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/account/$accountId': {
       id: '/bank/account/$accountId'
-      path: '/bank/account/$accountId'
+      path: '/account/$accountId'
       fullPath: '/bank/account/$accountId'
       preLoaderRoute: typeof BankAccountAccountIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/internal/lending/deal-rooms/': {
       id: '/internal/lending/deal-rooms/'
@@ -3674,10 +3658,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/business/': {
       id: '/bank/alta-card/business/'
-      path: '/bank/alta-card/business'
+      path: '/alta-card/business'
       fullPath: '/bank/alta-card/business/'
       preLoaderRoute: typeof BankAltaCardBusinessIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/alta-card/$cardId/': {
       id: '/bank/alta-card/$cardId/'
@@ -3751,10 +3735,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/business/apply': {
       id: '/bank/alta-card/business/apply'
-      path: '/bank/alta-card/business/apply'
+      path: '/alta-card/business/apply'
       fullPath: '/bank/alta-card/business/apply'
       preLoaderRoute: typeof BankAltaCardBusinessApplyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/accounts/$accountId/statements': {
       id: '/bank/accounts/$accountId/statements'
@@ -3905,17 +3889,17 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/business/$companyId': {
       id: '/bank/alta-card/business/$companyId'
-      path: '/bank/alta-card/business/$companyId'
+      path: '/alta-card/business/$companyId'
       fullPath: '/bank/alta-card/business/$companyId'
       preLoaderRoute: typeof BankAltaCardBusinessCompanyIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/alta-card/applications/$applicationId': {
       id: '/bank/alta-card/applications/$applicationId'
-      path: '/bank/alta-card/applications/$applicationId'
+      path: '/alta-card/applications/$applicationId'
       fullPath: '/bank/alta-card/applications/$applicationId'
       preLoaderRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/internal/lending/applications/$applicationId/': {
       id: '/internal/lending/applications/$applicationId/'
@@ -3996,10 +3980,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/business/employee/$employeeCardId': {
       id: '/bank/alta-card/business/employee/$employeeCardId'
-      path: '/bank/alta-card/business/employee/$employeeCardId'
+      path: '/alta-card/business/employee/$employeeCardId'
       fullPath: '/bank/alta-card/business/employee/$employeeCardId'
       preLoaderRoute: typeof BankAltaCardBusinessEmployeeEmployeeCardIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/alta-card/applications/$applicationId/thread': {
       id: '/bank/alta-card/applications/$applicationId/thread'
@@ -4038,10 +4022,10 @@ declare module '@tanstack/react-router' {
     }
     '/bank/alta-card/business/applications/$applicationId': {
       id: '/bank/alta-card/business/applications/$applicationId'
-      path: '/bank/alta-card/business/applications/$applicationId'
+      path: '/alta-card/business/applications/$applicationId'
       fullPath: '/bank/alta-card/business/applications/$applicationId'
       preLoaderRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof BankRouteRoute
     }
     '/bank/alta-card/business/applications/$applicationId/': {
       id: '/bank/alta-card/business/applications/$applicationId/'
@@ -4129,6 +4113,337 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface BankBusinessRouteRouteChildren {
+  BankBusinessPaymentsRoute: typeof BankBusinessPaymentsRoute
+  BankBusinessPayrollRoute: typeof BankBusinessPayrollRoute
+  BankBusinessRepresentativesRoute: typeof BankBusinessRepresentativesRoute
+  BankBusinessStatementsRoute: typeof BankBusinessStatementsRoute
+  BankBusinessIndexRoute: typeof BankBusinessIndexRoute
+}
+
+const BankBusinessRouteRouteChildren: BankBusinessRouteRouteChildren = {
+  BankBusinessPaymentsRoute: BankBusinessPaymentsRoute,
+  BankBusinessPayrollRoute: BankBusinessPayrollRoute,
+  BankBusinessRepresentativesRoute: BankBusinessRepresentativesRoute,
+  BankBusinessStatementsRoute: BankBusinessStatementsRoute,
+  BankBusinessIndexRoute: BankBusinessIndexRoute,
+}
+
+const BankBusinessRouteRouteWithChildren =
+  BankBusinessRouteRoute._addFileChildren(BankBusinessRouteRouteChildren)
+
+interface BankTransfersRouteRouteChildren {
+  BankTransfersContactsRoute: typeof BankTransfersContactsRoute
+  BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
+  BankTransfersIntrabankRoute: typeof BankTransfersIntrabankRoute
+  BankTransfersIndexRoute: typeof BankTransfersIndexRoute
+}
+
+const BankTransfersRouteRouteChildren: BankTransfersRouteRouteChildren = {
+  BankTransfersContactsRoute: BankTransfersContactsRoute,
+  BankTransfersInterbankRoute: BankTransfersInterbankRoute,
+  BankTransfersIntrabankRoute: BankTransfersIntrabankRoute,
+  BankTransfersIndexRoute: BankTransfersIndexRoute,
+}
+
+const BankTransfersRouteRouteWithChildren =
+  BankTransfersRouteRoute._addFileChildren(BankTransfersRouteRouteChildren)
+
+interface BankAccountsAccountIdRouteRouteChildren {
+  BankAccountsAccountIdActivityRoute: typeof BankAccountsAccountIdActivityRoute
+  BankAccountsAccountIdPaymentsRoute: typeof BankAccountsAccountIdPaymentsRoute
+  BankAccountsAccountIdPayrollRoute: typeof BankAccountsAccountIdPayrollRoute
+  BankAccountsAccountIdRepresentativesRoute: typeof BankAccountsAccountIdRepresentativesRoute
+  BankAccountsAccountIdScheduledRoute: typeof BankAccountsAccountIdScheduledRoute
+  BankAccountsAccountIdSettingsRoute: typeof BankAccountsAccountIdSettingsRoute
+  BankAccountsAccountIdStatementsRoute: typeof BankAccountsAccountIdStatementsRoute
+  BankAccountsAccountIdIndexRoute: typeof BankAccountsAccountIdIndexRoute
+}
+
+const BankAccountsAccountIdRouteRouteChildren: BankAccountsAccountIdRouteRouteChildren =
+  {
+    BankAccountsAccountIdActivityRoute: BankAccountsAccountIdActivityRoute,
+    BankAccountsAccountIdPaymentsRoute: BankAccountsAccountIdPaymentsRoute,
+    BankAccountsAccountIdPayrollRoute: BankAccountsAccountIdPayrollRoute,
+    BankAccountsAccountIdRepresentativesRoute:
+      BankAccountsAccountIdRepresentativesRoute,
+    BankAccountsAccountIdScheduledRoute: BankAccountsAccountIdScheduledRoute,
+    BankAccountsAccountIdSettingsRoute: BankAccountsAccountIdSettingsRoute,
+    BankAccountsAccountIdStatementsRoute: BankAccountsAccountIdStatementsRoute,
+    BankAccountsAccountIdIndexRoute: BankAccountsAccountIdIndexRoute,
+  }
+
+const BankAccountsAccountIdRouteRouteWithChildren =
+  BankAccountsAccountIdRouteRoute._addFileChildren(
+    BankAccountsAccountIdRouteRouteChildren,
+  )
+
+interface BankAccountsRouteChildren {
+  BankAccountsAccountIdRouteRoute: typeof BankAccountsAccountIdRouteRouteWithChildren
+  BankAccountsOpenRoute: typeof BankAccountsOpenRoute
+}
+
+const BankAccountsRouteChildren: BankAccountsRouteChildren = {
+  BankAccountsAccountIdRouteRoute: BankAccountsAccountIdRouteRouteWithChildren,
+  BankAccountsOpenRoute: BankAccountsOpenRoute,
+}
+
+const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
+  BankAccountsRouteChildren,
+)
+
+interface BankAccountAccountIdRouteRouteChildren {
+  BankAccountAccountIdActivityRoute: typeof BankAccountAccountIdActivityRoute
+  BankAccountAccountIdPaymentsRoute: typeof BankAccountAccountIdPaymentsRoute
+  BankAccountAccountIdPayrollRoute: typeof BankAccountAccountIdPayrollRoute
+  BankAccountAccountIdRepresentativesRoute: typeof BankAccountAccountIdRepresentativesRoute
+  BankAccountAccountIdScheduledRoute: typeof BankAccountAccountIdScheduledRoute
+  BankAccountAccountIdSettingsRoute: typeof BankAccountAccountIdSettingsRoute
+  BankAccountAccountIdStatementsRoute: typeof BankAccountAccountIdStatementsRoute
+  BankAccountAccountIdIndexRoute: typeof BankAccountAccountIdIndexRoute
+}
+
+const BankAccountAccountIdRouteRouteChildren: BankAccountAccountIdRouteRouteChildren =
+  {
+    BankAccountAccountIdActivityRoute: BankAccountAccountIdActivityRoute,
+    BankAccountAccountIdPaymentsRoute: BankAccountAccountIdPaymentsRoute,
+    BankAccountAccountIdPayrollRoute: BankAccountAccountIdPayrollRoute,
+    BankAccountAccountIdRepresentativesRoute:
+      BankAccountAccountIdRepresentativesRoute,
+    BankAccountAccountIdScheduledRoute: BankAccountAccountIdScheduledRoute,
+    BankAccountAccountIdSettingsRoute: BankAccountAccountIdSettingsRoute,
+    BankAccountAccountIdStatementsRoute: BankAccountAccountIdStatementsRoute,
+    BankAccountAccountIdIndexRoute: BankAccountAccountIdIndexRoute,
+  }
+
+const BankAccountAccountIdRouteRouteWithChildren =
+  BankAccountAccountIdRouteRoute._addFileChildren(
+    BankAccountAccountIdRouteRouteChildren,
+  )
+
+interface BankAltaCardCardIdRouteRouteChildren {
+  BankAltaCardCardIdIndexRoute: typeof BankAltaCardCardIdIndexRoute
+  BankAltaCardCardIdStatementsStatementIdRoute: typeof BankAltaCardCardIdStatementsStatementIdRoute
+  BankAltaCardCardIdReviewIndexRoute: typeof BankAltaCardCardIdReviewIndexRoute
+  BankAltaCardCardIdStatementsIndexRoute: typeof BankAltaCardCardIdStatementsIndexRoute
+  BankAltaCardCardIdReviewReviewIdThreadRoute: typeof BankAltaCardCardIdReviewReviewIdThreadRoute
+  BankAltaCardCardIdReviewReviewIdIndexRoute: typeof BankAltaCardCardIdReviewReviewIdIndexRoute
+}
+
+const BankAltaCardCardIdRouteRouteChildren: BankAltaCardCardIdRouteRouteChildren =
+  {
+    BankAltaCardCardIdIndexRoute: BankAltaCardCardIdIndexRoute,
+    BankAltaCardCardIdStatementsStatementIdRoute:
+      BankAltaCardCardIdStatementsStatementIdRoute,
+    BankAltaCardCardIdReviewIndexRoute: BankAltaCardCardIdReviewIndexRoute,
+    BankAltaCardCardIdStatementsIndexRoute:
+      BankAltaCardCardIdStatementsIndexRoute,
+    BankAltaCardCardIdReviewReviewIdThreadRoute:
+      BankAltaCardCardIdReviewReviewIdThreadRoute,
+    BankAltaCardCardIdReviewReviewIdIndexRoute:
+      BankAltaCardCardIdReviewReviewIdIndexRoute,
+  }
+
+const BankAltaCardCardIdRouteRouteWithChildren =
+  BankAltaCardCardIdRouteRoute._addFileChildren(
+    BankAltaCardCardIdRouteRouteChildren,
+  )
+
+interface BankLendingApplicationsRouteRouteChildren {
+  BankLendingApplicationsIndexRoute: typeof BankLendingApplicationsIndexRoute
+  BankLendingApplicationsApplicationIdThreadRoute: typeof BankLendingApplicationsApplicationIdThreadRoute
+}
+
+const BankLendingApplicationsRouteRouteChildren: BankLendingApplicationsRouteRouteChildren =
+  {
+    BankLendingApplicationsIndexRoute: BankLendingApplicationsIndexRoute,
+    BankLendingApplicationsApplicationIdThreadRoute:
+      BankLendingApplicationsApplicationIdThreadRoute,
+  }
+
+const BankLendingApplicationsRouteRouteWithChildren =
+  BankLendingApplicationsRouteRoute._addFileChildren(
+    BankLendingApplicationsRouteRouteChildren,
+  )
+
+interface BankLendingDealRoomsRouteRouteChildren {
+  BankLendingDealRoomsDealRoomIdRoute: typeof BankLendingDealRoomsDealRoomIdRoute
+  BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
+}
+
+const BankLendingDealRoomsRouteRouteChildren: BankLendingDealRoomsRouteRouteChildren =
+  {
+    BankLendingDealRoomsDealRoomIdRoute: BankLendingDealRoomsDealRoomIdRoute,
+    BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
+  }
+
+const BankLendingDealRoomsRouteRouteWithChildren =
+  BankLendingDealRoomsRouteRoute._addFileChildren(
+    BankLendingDealRoomsRouteRouteChildren,
+  )
+
+interface BankLendingLoansRouteRouteChildren {
+  BankLendingLoansIndexRoute: typeof BankLendingLoansIndexRoute
+}
+
+const BankLendingLoansRouteRouteChildren: BankLendingLoansRouteRouteChildren = {
+  BankLendingLoansIndexRoute: BankLendingLoansIndexRoute,
+}
+
+const BankLendingLoansRouteRouteWithChildren =
+  BankLendingLoansRouteRoute._addFileChildren(
+    BankLendingLoansRouteRouteChildren,
+  )
+
+interface BankAltaCardApplicationsApplicationIdRouteRouteChildren {
+  BankAltaCardApplicationsApplicationIdThreadRoute: typeof BankAltaCardApplicationsApplicationIdThreadRoute
+  BankAltaCardApplicationsApplicationIdIndexRoute: typeof BankAltaCardApplicationsApplicationIdIndexRoute
+}
+
+const BankAltaCardApplicationsApplicationIdRouteRouteChildren: BankAltaCardApplicationsApplicationIdRouteRouteChildren =
+  {
+    BankAltaCardApplicationsApplicationIdThreadRoute:
+      BankAltaCardApplicationsApplicationIdThreadRoute,
+    BankAltaCardApplicationsApplicationIdIndexRoute:
+      BankAltaCardApplicationsApplicationIdIndexRoute,
+  }
+
+const BankAltaCardApplicationsApplicationIdRouteRouteWithChildren =
+  BankAltaCardApplicationsApplicationIdRouteRoute._addFileChildren(
+    BankAltaCardApplicationsApplicationIdRouteRouteChildren,
+  )
+
+interface BankAltaCardBusinessCompanyIdRouteRouteChildren {
+  BankAltaCardBusinessCompanyIdIndexRoute: typeof BankAltaCardBusinessCompanyIdIndexRoute
+  BankAltaCardBusinessCompanyIdStatementsStatementIdRoute: typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
+  BankAltaCardBusinessCompanyIdReviewIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
+  BankAltaCardBusinessCompanyIdStatementsIndexRoute: typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
+  BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
+  BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
+}
+
+const BankAltaCardBusinessCompanyIdRouteRouteChildren: BankAltaCardBusinessCompanyIdRouteRouteChildren =
+  {
+    BankAltaCardBusinessCompanyIdIndexRoute:
+      BankAltaCardBusinessCompanyIdIndexRoute,
+    BankAltaCardBusinessCompanyIdStatementsStatementIdRoute:
+      BankAltaCardBusinessCompanyIdStatementsStatementIdRoute,
+    BankAltaCardBusinessCompanyIdReviewIndexRoute:
+      BankAltaCardBusinessCompanyIdReviewIndexRoute,
+    BankAltaCardBusinessCompanyIdStatementsIndexRoute:
+      BankAltaCardBusinessCompanyIdStatementsIndexRoute,
+    BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute:
+      BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute,
+    BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute:
+      BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute,
+  }
+
+const BankAltaCardBusinessCompanyIdRouteRouteWithChildren =
+  BankAltaCardBusinessCompanyIdRouteRoute._addFileChildren(
+    BankAltaCardBusinessCompanyIdRouteRouteChildren,
+  )
+
+interface BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren {
+  BankAltaCardBusinessApplicationsApplicationIdThreadRoute: typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  BankAltaCardBusinessApplicationsApplicationIdIndexRoute: typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
+}
+
+const BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren: BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren =
+  {
+    BankAltaCardBusinessApplicationsApplicationIdThreadRoute:
+      BankAltaCardBusinessApplicationsApplicationIdThreadRoute,
+    BankAltaCardBusinessApplicationsApplicationIdIndexRoute:
+      BankAltaCardBusinessApplicationsApplicationIdIndexRoute,
+  }
+
+const BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren =
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute._addFileChildren(
+    BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren,
+  )
+
+interface BankRouteRouteChildren {
+  BankBusinessRouteRoute: typeof BankBusinessRouteRouteWithChildren
+  BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
+  BankAccountsRoute: typeof BankAccountsRouteWithChildren
+  BankCreditDeskClosedRoute: typeof BankCreditDeskClosedRoute
+  BankDashboardRoute: typeof BankDashboardRoute
+  BankDepositRoute: typeof BankDepositRoute
+  BankDepositsRoute: typeof BankDepositsRoute
+  BankOpenRoute: typeof BankOpenRoute
+  BankPayRoute: typeof BankPayRoute
+  BankPrivateRoute: typeof BankPrivateRoute
+  BankProductsRoute: typeof BankProductsRoute
+  BankRelationshipRoute: typeof BankRelationshipRoute
+  BankWithdrawRoute: typeof BankWithdrawRoute
+  BankIndexRoute: typeof BankIndexRoute
+  BankAccountAccountIdRouteRoute: typeof BankAccountAccountIdRouteRouteWithChildren
+  BankAltaCardCardIdRouteRoute: typeof BankAltaCardCardIdRouteRouteWithChildren
+  BankLendingApplicationsRouteRoute: typeof BankLendingApplicationsRouteRouteWithChildren
+  BankLendingDealRoomsRouteRoute: typeof BankLendingDealRoomsRouteRouteWithChildren
+  BankLendingLoansRouteRoute: typeof BankLendingLoansRouteRouteWithChildren
+  BankAdminClientsRoute: typeof BankAdminClientsRoute
+  BankAdminLoansRoute: typeof BankAdminLoansRoute
+  BankAdminPrivateRoute: typeof BankAdminPrivateRoute
+  BankAltaCardApplyRoute: typeof BankAltaCardApplyRoute
+  BankLendingApplyRoute: typeof BankLendingApplyRoute
+  BankStatementsStatementIdRoute: typeof BankStatementsStatementIdRoute
+  BankAltaCardIndexRoute: typeof BankAltaCardIndexRoute
+  BankLendingIndexRoute: typeof BankLendingIndexRoute
+  BankStatementsIndexRoute: typeof BankStatementsIndexRoute
+  BankAltaCardApplicationsApplicationIdRouteRoute: typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
+  BankAltaCardBusinessCompanyIdRouteRoute: typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
+  BankAltaCardBusinessApplyRoute: typeof BankAltaCardBusinessApplyRoute
+  BankAltaCardBusinessIndexRoute: typeof BankAltaCardBusinessIndexRoute
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute: typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
+  BankAltaCardBusinessEmployeeEmployeeCardIdRoute: typeof BankAltaCardBusinessEmployeeEmployeeCardIdRoute
+}
+
+const BankRouteRouteChildren: BankRouteRouteChildren = {
+  BankBusinessRouteRoute: BankBusinessRouteRouteWithChildren,
+  BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
+  BankAccountsRoute: BankAccountsRouteWithChildren,
+  BankCreditDeskClosedRoute: BankCreditDeskClosedRoute,
+  BankDashboardRoute: BankDashboardRoute,
+  BankDepositRoute: BankDepositRoute,
+  BankDepositsRoute: BankDepositsRoute,
+  BankOpenRoute: BankOpenRoute,
+  BankPayRoute: BankPayRoute,
+  BankPrivateRoute: BankPrivateRoute,
+  BankProductsRoute: BankProductsRoute,
+  BankRelationshipRoute: BankRelationshipRoute,
+  BankWithdrawRoute: BankWithdrawRoute,
+  BankIndexRoute: BankIndexRoute,
+  BankAccountAccountIdRouteRoute: BankAccountAccountIdRouteRouteWithChildren,
+  BankAltaCardCardIdRouteRoute: BankAltaCardCardIdRouteRouteWithChildren,
+  BankLendingApplicationsRouteRoute:
+    BankLendingApplicationsRouteRouteWithChildren,
+  BankLendingDealRoomsRouteRoute: BankLendingDealRoomsRouteRouteWithChildren,
+  BankLendingLoansRouteRoute: BankLendingLoansRouteRouteWithChildren,
+  BankAdminClientsRoute: BankAdminClientsRoute,
+  BankAdminLoansRoute: BankAdminLoansRoute,
+  BankAdminPrivateRoute: BankAdminPrivateRoute,
+  BankAltaCardApplyRoute: BankAltaCardApplyRoute,
+  BankLendingApplyRoute: BankLendingApplyRoute,
+  BankStatementsStatementIdRoute: BankStatementsStatementIdRoute,
+  BankAltaCardIndexRoute: BankAltaCardIndexRoute,
+  BankLendingIndexRoute: BankLendingIndexRoute,
+  BankStatementsIndexRoute: BankStatementsIndexRoute,
+  BankAltaCardApplicationsApplicationIdRouteRoute:
+    BankAltaCardApplicationsApplicationIdRouteRouteWithChildren,
+  BankAltaCardBusinessCompanyIdRouteRoute:
+    BankAltaCardBusinessCompanyIdRouteRouteWithChildren,
+  BankAltaCardBusinessApplyRoute: BankAltaCardBusinessApplyRoute,
+  BankAltaCardBusinessIndexRoute: BankAltaCardBusinessIndexRoute,
+  BankAltaCardBusinessApplicationsApplicationIdRouteRoute:
+    BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren,
+  BankAltaCardBusinessEmployeeEmployeeCardIdRoute:
+    BankAltaCardBusinessEmployeeEmployeeCardIdRoute,
+}
+
+const BankRouteRouteWithChildren = BankRouteRoute._addFileChildren(
+  BankRouteRouteChildren,
+)
 
 interface CompaniesCompanyIdRouteRouteChildren {
   CompaniesCompanyIdMembersRoute: typeof CompaniesCompanyIdMembersRoute
@@ -4459,188 +4774,6 @@ const TerminalRouteRouteWithChildren = TerminalRouteRoute._addFileChildren(
   TerminalRouteRouteChildren,
 )
 
-interface BankBusinessRouteRouteChildren {
-  BankBusinessPaymentsRoute: typeof BankBusinessPaymentsRoute
-  BankBusinessPayrollRoute: typeof BankBusinessPayrollRoute
-  BankBusinessRepresentativesRoute: typeof BankBusinessRepresentativesRoute
-  BankBusinessStatementsRoute: typeof BankBusinessStatementsRoute
-  BankBusinessIndexRoute: typeof BankBusinessIndexRoute
-}
-
-const BankBusinessRouteRouteChildren: BankBusinessRouteRouteChildren = {
-  BankBusinessPaymentsRoute: BankBusinessPaymentsRoute,
-  BankBusinessPayrollRoute: BankBusinessPayrollRoute,
-  BankBusinessRepresentativesRoute: BankBusinessRepresentativesRoute,
-  BankBusinessStatementsRoute: BankBusinessStatementsRoute,
-  BankBusinessIndexRoute: BankBusinessIndexRoute,
-}
-
-const BankBusinessRouteRouteWithChildren =
-  BankBusinessRouteRoute._addFileChildren(BankBusinessRouteRouteChildren)
-
-interface BankTransfersRouteRouteChildren {
-  BankTransfersContactsRoute: typeof BankTransfersContactsRoute
-  BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
-  BankTransfersIntrabankRoute: typeof BankTransfersIntrabankRoute
-  BankTransfersIndexRoute: typeof BankTransfersIndexRoute
-}
-
-const BankTransfersRouteRouteChildren: BankTransfersRouteRouteChildren = {
-  BankTransfersContactsRoute: BankTransfersContactsRoute,
-  BankTransfersInterbankRoute: BankTransfersInterbankRoute,
-  BankTransfersIntrabankRoute: BankTransfersIntrabankRoute,
-  BankTransfersIndexRoute: BankTransfersIndexRoute,
-}
-
-const BankTransfersRouteRouteWithChildren =
-  BankTransfersRouteRoute._addFileChildren(BankTransfersRouteRouteChildren)
-
-interface BankAccountsAccountIdRouteRouteChildren {
-  BankAccountsAccountIdActivityRoute: typeof BankAccountsAccountIdActivityRoute
-  BankAccountsAccountIdPaymentsRoute: typeof BankAccountsAccountIdPaymentsRoute
-  BankAccountsAccountIdPayrollRoute: typeof BankAccountsAccountIdPayrollRoute
-  BankAccountsAccountIdRepresentativesRoute: typeof BankAccountsAccountIdRepresentativesRoute
-  BankAccountsAccountIdScheduledRoute: typeof BankAccountsAccountIdScheduledRoute
-  BankAccountsAccountIdSettingsRoute: typeof BankAccountsAccountIdSettingsRoute
-  BankAccountsAccountIdStatementsRoute: typeof BankAccountsAccountIdStatementsRoute
-  BankAccountsAccountIdIndexRoute: typeof BankAccountsAccountIdIndexRoute
-}
-
-const BankAccountsAccountIdRouteRouteChildren: BankAccountsAccountIdRouteRouteChildren =
-  {
-    BankAccountsAccountIdActivityRoute: BankAccountsAccountIdActivityRoute,
-    BankAccountsAccountIdPaymentsRoute: BankAccountsAccountIdPaymentsRoute,
-    BankAccountsAccountIdPayrollRoute: BankAccountsAccountIdPayrollRoute,
-    BankAccountsAccountIdRepresentativesRoute:
-      BankAccountsAccountIdRepresentativesRoute,
-    BankAccountsAccountIdScheduledRoute: BankAccountsAccountIdScheduledRoute,
-    BankAccountsAccountIdSettingsRoute: BankAccountsAccountIdSettingsRoute,
-    BankAccountsAccountIdStatementsRoute: BankAccountsAccountIdStatementsRoute,
-    BankAccountsAccountIdIndexRoute: BankAccountsAccountIdIndexRoute,
-  }
-
-const BankAccountsAccountIdRouteRouteWithChildren =
-  BankAccountsAccountIdRouteRoute._addFileChildren(
-    BankAccountsAccountIdRouteRouteChildren,
-  )
-
-interface BankAccountsRouteChildren {
-  BankAccountsAccountIdRouteRoute: typeof BankAccountsAccountIdRouteRouteWithChildren
-  BankAccountsOpenRoute: typeof BankAccountsOpenRoute
-}
-
-const BankAccountsRouteChildren: BankAccountsRouteChildren = {
-  BankAccountsAccountIdRouteRoute: BankAccountsAccountIdRouteRouteWithChildren,
-  BankAccountsOpenRoute: BankAccountsOpenRoute,
-}
-
-const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
-  BankAccountsRouteChildren,
-)
-
-interface BankAccountAccountIdRouteRouteChildren {
-  BankAccountAccountIdActivityRoute: typeof BankAccountAccountIdActivityRoute
-  BankAccountAccountIdPaymentsRoute: typeof BankAccountAccountIdPaymentsRoute
-  BankAccountAccountIdPayrollRoute: typeof BankAccountAccountIdPayrollRoute
-  BankAccountAccountIdRepresentativesRoute: typeof BankAccountAccountIdRepresentativesRoute
-  BankAccountAccountIdScheduledRoute: typeof BankAccountAccountIdScheduledRoute
-  BankAccountAccountIdSettingsRoute: typeof BankAccountAccountIdSettingsRoute
-  BankAccountAccountIdStatementsRoute: typeof BankAccountAccountIdStatementsRoute
-  BankAccountAccountIdIndexRoute: typeof BankAccountAccountIdIndexRoute
-}
-
-const BankAccountAccountIdRouteRouteChildren: BankAccountAccountIdRouteRouteChildren =
-  {
-    BankAccountAccountIdActivityRoute: BankAccountAccountIdActivityRoute,
-    BankAccountAccountIdPaymentsRoute: BankAccountAccountIdPaymentsRoute,
-    BankAccountAccountIdPayrollRoute: BankAccountAccountIdPayrollRoute,
-    BankAccountAccountIdRepresentativesRoute:
-      BankAccountAccountIdRepresentativesRoute,
-    BankAccountAccountIdScheduledRoute: BankAccountAccountIdScheduledRoute,
-    BankAccountAccountIdSettingsRoute: BankAccountAccountIdSettingsRoute,
-    BankAccountAccountIdStatementsRoute: BankAccountAccountIdStatementsRoute,
-    BankAccountAccountIdIndexRoute: BankAccountAccountIdIndexRoute,
-  }
-
-const BankAccountAccountIdRouteRouteWithChildren =
-  BankAccountAccountIdRouteRoute._addFileChildren(
-    BankAccountAccountIdRouteRouteChildren,
-  )
-
-interface BankAltaCardCardIdRouteRouteChildren {
-  BankAltaCardCardIdIndexRoute: typeof BankAltaCardCardIdIndexRoute
-  BankAltaCardCardIdStatementsStatementIdRoute: typeof BankAltaCardCardIdStatementsStatementIdRoute
-  BankAltaCardCardIdReviewIndexRoute: typeof BankAltaCardCardIdReviewIndexRoute
-  BankAltaCardCardIdStatementsIndexRoute: typeof BankAltaCardCardIdStatementsIndexRoute
-  BankAltaCardCardIdReviewReviewIdThreadRoute: typeof BankAltaCardCardIdReviewReviewIdThreadRoute
-  BankAltaCardCardIdReviewReviewIdIndexRoute: typeof BankAltaCardCardIdReviewReviewIdIndexRoute
-}
-
-const BankAltaCardCardIdRouteRouteChildren: BankAltaCardCardIdRouteRouteChildren =
-  {
-    BankAltaCardCardIdIndexRoute: BankAltaCardCardIdIndexRoute,
-    BankAltaCardCardIdStatementsStatementIdRoute:
-      BankAltaCardCardIdStatementsStatementIdRoute,
-    BankAltaCardCardIdReviewIndexRoute: BankAltaCardCardIdReviewIndexRoute,
-    BankAltaCardCardIdStatementsIndexRoute:
-      BankAltaCardCardIdStatementsIndexRoute,
-    BankAltaCardCardIdReviewReviewIdThreadRoute:
-      BankAltaCardCardIdReviewReviewIdThreadRoute,
-    BankAltaCardCardIdReviewReviewIdIndexRoute:
-      BankAltaCardCardIdReviewReviewIdIndexRoute,
-  }
-
-const BankAltaCardCardIdRouteRouteWithChildren =
-  BankAltaCardCardIdRouteRoute._addFileChildren(
-    BankAltaCardCardIdRouteRouteChildren,
-  )
-
-interface BankLendingApplicationsRouteRouteChildren {
-  BankLendingApplicationsIndexRoute: typeof BankLendingApplicationsIndexRoute
-  BankLendingApplicationsApplicationIdThreadRoute: typeof BankLendingApplicationsApplicationIdThreadRoute
-}
-
-const BankLendingApplicationsRouteRouteChildren: BankLendingApplicationsRouteRouteChildren =
-  {
-    BankLendingApplicationsIndexRoute: BankLendingApplicationsIndexRoute,
-    BankLendingApplicationsApplicationIdThreadRoute:
-      BankLendingApplicationsApplicationIdThreadRoute,
-  }
-
-const BankLendingApplicationsRouteRouteWithChildren =
-  BankLendingApplicationsRouteRoute._addFileChildren(
-    BankLendingApplicationsRouteRouteChildren,
-  )
-
-interface BankLendingDealRoomsRouteRouteChildren {
-  BankLendingDealRoomsDealRoomIdRoute: typeof BankLendingDealRoomsDealRoomIdRoute
-  BankLendingDealRoomsIndexRoute: typeof BankLendingDealRoomsIndexRoute
-}
-
-const BankLendingDealRoomsRouteRouteChildren: BankLendingDealRoomsRouteRouteChildren =
-  {
-    BankLendingDealRoomsDealRoomIdRoute: BankLendingDealRoomsDealRoomIdRoute,
-    BankLendingDealRoomsIndexRoute: BankLendingDealRoomsIndexRoute,
-  }
-
-const BankLendingDealRoomsRouteRouteWithChildren =
-  BankLendingDealRoomsRouteRoute._addFileChildren(
-    BankLendingDealRoomsRouteRouteChildren,
-  )
-
-interface BankLendingLoansRouteRouteChildren {
-  BankLendingLoansIndexRoute: typeof BankLendingLoansIndexRoute
-}
-
-const BankLendingLoansRouteRouteChildren: BankLendingLoansRouteRouteChildren = {
-  BankLendingLoansIndexRoute: BankLendingLoansIndexRoute,
-}
-
-const BankLendingLoansRouteRouteWithChildren =
-  BankLendingLoansRouteRoute._addFileChildren(
-    BankLendingLoansRouteRouteChildren,
-  )
-
 interface ApiAuthDiscordRouteChildren {
   ApiAuthDiscordCallbackRoute: typeof ApiAuthDiscordCallbackRoute
 }
@@ -4652,54 +4785,6 @@ const ApiAuthDiscordRouteChildren: ApiAuthDiscordRouteChildren = {
 const ApiAuthDiscordRouteWithChildren = ApiAuthDiscordRoute._addFileChildren(
   ApiAuthDiscordRouteChildren,
 )
-
-interface BankAltaCardApplicationsApplicationIdRouteRouteChildren {
-  BankAltaCardApplicationsApplicationIdThreadRoute: typeof BankAltaCardApplicationsApplicationIdThreadRoute
-  BankAltaCardApplicationsApplicationIdIndexRoute: typeof BankAltaCardApplicationsApplicationIdIndexRoute
-}
-
-const BankAltaCardApplicationsApplicationIdRouteRouteChildren: BankAltaCardApplicationsApplicationIdRouteRouteChildren =
-  {
-    BankAltaCardApplicationsApplicationIdThreadRoute:
-      BankAltaCardApplicationsApplicationIdThreadRoute,
-    BankAltaCardApplicationsApplicationIdIndexRoute:
-      BankAltaCardApplicationsApplicationIdIndexRoute,
-  }
-
-const BankAltaCardApplicationsApplicationIdRouteRouteWithChildren =
-  BankAltaCardApplicationsApplicationIdRouteRoute._addFileChildren(
-    BankAltaCardApplicationsApplicationIdRouteRouteChildren,
-  )
-
-interface BankAltaCardBusinessCompanyIdRouteRouteChildren {
-  BankAltaCardBusinessCompanyIdIndexRoute: typeof BankAltaCardBusinessCompanyIdIndexRoute
-  BankAltaCardBusinessCompanyIdStatementsStatementIdRoute: typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
-  BankAltaCardBusinessCompanyIdReviewIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewIndexRoute
-  BankAltaCardBusinessCompanyIdStatementsIndexRoute: typeof BankAltaCardBusinessCompanyIdStatementsIndexRoute
-  BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute
-  BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute: typeof BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute
-}
-
-const BankAltaCardBusinessCompanyIdRouteRouteChildren: BankAltaCardBusinessCompanyIdRouteRouteChildren =
-  {
-    BankAltaCardBusinessCompanyIdIndexRoute:
-      BankAltaCardBusinessCompanyIdIndexRoute,
-    BankAltaCardBusinessCompanyIdStatementsStatementIdRoute:
-      BankAltaCardBusinessCompanyIdStatementsStatementIdRoute,
-    BankAltaCardBusinessCompanyIdReviewIndexRoute:
-      BankAltaCardBusinessCompanyIdReviewIndexRoute,
-    BankAltaCardBusinessCompanyIdStatementsIndexRoute:
-      BankAltaCardBusinessCompanyIdStatementsIndexRoute,
-    BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute:
-      BankAltaCardBusinessCompanyIdReviewReviewIdThreadRoute,
-    BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute:
-      BankAltaCardBusinessCompanyIdReviewReviewIdIndexRoute,
-  }
-
-const BankAltaCardBusinessCompanyIdRouteRouteWithChildren =
-  BankAltaCardBusinessCompanyIdRouteRoute._addFileChildren(
-    BankAltaCardBusinessCompanyIdRouteRouteChildren,
-  )
 
 interface ApiAltaCardReviewThreadsReviewIdAttachmentsRouteChildren {
   ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
@@ -4746,26 +4831,9 @@ const ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren =
     ApiLoanThreadsApplicationIdAttachmentsRouteChildren,
   )
 
-interface BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren {
-  BankAltaCardBusinessApplicationsApplicationIdThreadRoute: typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
-  BankAltaCardBusinessApplicationsApplicationIdIndexRoute: typeof BankAltaCardBusinessApplicationsApplicationIdIndexRoute
-}
-
-const BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren: BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren =
-  {
-    BankAltaCardBusinessApplicationsApplicationIdThreadRoute:
-      BankAltaCardBusinessApplicationsApplicationIdThreadRoute,
-    BankAltaCardBusinessApplicationsApplicationIdIndexRoute:
-      BankAltaCardBusinessApplicationsApplicationIdIndexRoute,
-  }
-
-const BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren =
-  BankAltaCardBusinessApplicationsApplicationIdRouteRoute._addFileChildren(
-    BankAltaCardBusinessApplicationsApplicationIdRouteRouteChildren,
-  )
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BankRouteRoute: BankRouteRouteWithChildren,
   CompaniesRouteRoute: CompaniesRouteRouteWithChildren,
   ExchangeRouteRoute: ExchangeRouteRouteWithChildren,
   GovernanceRouteRoute: GovernanceRouteRouteWithChildren,
@@ -4777,26 +4845,6 @@ const rootRouteChildren: RootRouteChildren = {
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
   ProfileRoute: ProfileRoute,
-  BankBusinessRouteRoute: BankBusinessRouteRouteWithChildren,
-  BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
-  BankAccountsRoute: BankAccountsRouteWithChildren,
-  BankCreditDeskClosedRoute: BankCreditDeskClosedRoute,
-  BankDashboardRoute: BankDashboardRoute,
-  BankDepositRoute: BankDepositRoute,
-  BankDepositsRoute: BankDepositsRoute,
-  BankOpenRoute: BankOpenRoute,
-  BankPayRoute: BankPayRoute,
-  BankPrivateRoute: BankPrivateRoute,
-  BankProductsRoute: BankProductsRoute,
-  BankRelationshipRoute: BankRelationshipRoute,
-  BankWithdrawRoute: BankWithdrawRoute,
-  BankIndexRoute: BankIndexRoute,
-  BankAccountAccountIdRouteRoute: BankAccountAccountIdRouteRouteWithChildren,
-  BankAltaCardCardIdRouteRoute: BankAltaCardCardIdRouteRouteWithChildren,
-  BankLendingApplicationsRouteRoute:
-    BankLendingApplicationsRouteRouteWithChildren,
-  BankLendingDealRoomsRouteRoute: BankLendingDealRoomsRouteRouteWithChildren,
-  BankLendingLoansRouteRoute: BankLendingLoansRouteRouteWithChildren,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
   ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,
   ApiBankWithdrawalRequestRoute: ApiBankWithdrawalRequestRoute,
@@ -4807,19 +4855,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronLoanInterestRoute: ApiCronLoanInterestRoute,
   ApiCronRelationshipIntelligenceRoute: ApiCronRelationshipIntelligenceRoute,
   ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
-  BankAdminClientsRoute: BankAdminClientsRoute,
-  BankAdminLoansRoute: BankAdminLoansRoute,
-  BankAdminPrivateRoute: BankAdminPrivateRoute,
-  BankAltaCardApplyRoute: BankAltaCardApplyRoute,
-  BankLendingApplyRoute: BankLendingApplyRoute,
-  BankStatementsStatementIdRoute: BankStatementsStatementIdRoute,
-  BankAltaCardIndexRoute: BankAltaCardIndexRoute,
-  BankLendingIndexRoute: BankLendingIndexRoute,
-  BankStatementsIndexRoute: BankStatementsIndexRoute,
-  BankAltaCardApplicationsApplicationIdRouteRoute:
-    BankAltaCardApplicationsApplicationIdRouteRouteWithChildren,
-  BankAltaCardBusinessCompanyIdRouteRoute:
-    BankAltaCardBusinessCompanyIdRouteRouteWithChildren,
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute:
     ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren,
   ApiAltaCardThreadsApplicationIdAttachmentsRoute:
@@ -4828,18 +4863,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
   ApiLoanThreadsApplicationIdAttachmentsRoute:
     ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren,
-  BankAltaCardBusinessApplyRoute: BankAltaCardBusinessApplyRoute,
-  BankAltaCardBusinessIndexRoute: BankAltaCardBusinessIndexRoute,
-  BankAltaCardBusinessApplicationsApplicationIdRouteRoute:
-    BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren,
   ApiDealRoomsDealRoomIdAgreementPreviewRoute:
     ApiDealRoomsDealRoomIdAgreementPreviewRoute,
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute:
     ApiDealRoomsAgreementDraftsDraftIdDownloadRoute,
   ApiDealRoomsDocumentsDocumentIdDownloadRoute:
     ApiDealRoomsDocumentsDocumentIdDownloadRoute,
-  BankAltaCardBusinessEmployeeEmployeeCardIdRoute:
-    BankAltaCardBusinessEmployeeEmployeeCardIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

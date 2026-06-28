@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { fetchUserLoanApplications } from "@/lib/bank/lending.functions";
 import { LendingApplicationsList } from "@/components/bank/lending-applications-list";
 
@@ -16,13 +15,13 @@ function BankLendingApplications() {
   const applications = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Lending"
       title="Applications"
       description="Track submitted credit facility requests, review status, and Secure Deal Room communication."
-    >
-      <BankSubNav />
-      <LendingApplicationsList applications={applications} />
-    </PageShell>
+     />
+<LendingApplicationsList applications={applications} />
+    </>
   );
 }

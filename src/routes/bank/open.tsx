@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { BankAccountOpenForm } from "@/components/bank/bank-account-open-form";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
@@ -12,13 +11,13 @@ export const Route = createFileRoute("/bank/open")({
 
 function OpenBankAccountPage() {
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Accounts"
       title="Open an Account"
       description="Create a personal or company Alta Bank account. Starter accounts activate immediately; premium accounts require review."
-    >
-      <BankSubNav />
-      <BankAccountOpenForm />
-    </PageShell>
+     />
+<BankAccountOpenForm />
+    </>
   );
 }

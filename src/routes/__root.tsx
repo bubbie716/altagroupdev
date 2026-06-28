@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
+import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { fetchRootSession } from "@/lib/auth/root-session.functions";
 import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
 import type { AltaUser } from "@/lib/auth/types";
@@ -173,6 +174,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         {isUiLabMode() && <UiLabBanner />}
+        <SiteReturnPathTracker />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </ThemeProvider>

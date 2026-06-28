@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { RouteButton } from "@/components/bank/route-button";
 import { EditorialCtaStrip } from "@/components/bank/editorial-cta-strip";
 
@@ -11,14 +11,13 @@ export const Route = createFileRoute("/bank/business/")({
 
 function BusinessBankingMarketingPage() {
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Business"
       title="Business Banking"
       description="Treasury, payroll, and Alta Pay for verified Newport companies — operated from your Business Operating Account."
-    >
-      <BankSubNav />
-
-      <EditorialCtaStrip
+     />
+<EditorialCtaStrip
         eyebrow="Business Operating Account"
         title="Account-scoped treasury."
         description="Payroll, scheduled transfers, Alta Pay received, authorized representatives, and statements all live on your company's Business Operating Account — never a separate global tab."
@@ -66,6 +65,6 @@ function BusinessBankingMarketingPage() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }

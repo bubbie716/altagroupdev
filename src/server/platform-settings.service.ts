@@ -434,16 +434,16 @@ export async function assertCreditDeskAcceptingApplications(): Promise<void> {
   }
 }
 
-const OPEN_LOAN_STATUSES = ["ACTIVE", "FROZEN", "DELINQUENT"] as const;
+const OPEN_LOAN_STATUSES = ["ACTIVE", "FROZEN"] as const;
 const OPEN_CARD_STATUSES = ["PENDING", "ACTIVE", "FROZEN", "LOST", "EXPIRED", "DELINQUENT"] as const;
 
 async function getCustomerCreditProductVisibility(userId: string): Promise<{
   hasLoans: boolean;
   hasCards: boolean;
 }> {
-  const { getAltaUser } = await import("@/server/auth.service");
+  const { loadAltaUserOrThrow } = await import("@/server/bank-account-access.service");
   const { canViewBusinessTreasury } = await import("@/lib/auth/permissions");
-  const user = await getAltaUser(userId);
+  const user = await loadAltaUserOrThrow(userId);
   const treasuryCompanyIds = user.companyMemberships
     .filter((m) => canViewBusinessTreasury(user, { companyId: m.companyId }))
     .map((m) => m.companyId);
@@ -495,8 +495,9 @@ export async function getCreditDeskCustomerNav(userId: string): Promise<CreditDe
 
   return {
     creditDeskClosed: closed,
-    showLendingNav: hasLoans,
-    showAltaCardNav: hasCards,
+    // Open Credit Desk: show product tabs for applications. Closed: only if customer has active products.
+    showLendingNav: !closed || hasLoans,
+    showAltaCardNav: !closed || hasCards,
     showApplyEntryPoints: !closed,
   };
 }

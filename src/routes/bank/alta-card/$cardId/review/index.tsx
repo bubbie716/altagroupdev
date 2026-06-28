@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardReviewForm } from "@/components/bank/alta-card/alta-card-review-form";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
@@ -36,13 +35,13 @@ function AltaCardReviewPage() {
   const { context, cardId } = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title="Account review"
       description="View past reviews or request improved credit limit, interest rate, or card tier."
-    >
-      <BankSubNav />
-      <AltaCardReviewForm context={context} cardId={cardId} />
-    </PageShell>
+     />
+<AltaCardReviewForm context={context} cardId={cardId} />
+    </>
   );
 }

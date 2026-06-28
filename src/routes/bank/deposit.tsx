@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { BankDepositForm } from "@/components/bank/bank-deposit-form";
 import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
 import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
@@ -39,13 +38,13 @@ function BankDepositPage() {
   }
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Deposits"
       title="Submit a Deposit"
       description={DEPOSIT_PAGE_DESCRIPTION}
-    >
-      <BankSubNav />
-      <BankDepositForm
+     />
+<BankDepositForm
         accounts={accounts}
         defaultAccountId={accountId}
         onSubmissionSuccess={handleSubmissionSuccess}
@@ -55,6 +54,6 @@ function BankDepositPage() {
         highlightReferenceCode={highlightReferenceCode}
         showProof
       />
-    </PageShell>
+    </>
   );
 }

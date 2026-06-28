@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { INTERNAL_NAV_GROUPS, isInternalNavActive } from "@/components/internal/console/internal-nav-config";
+import { BackToSiteButton } from "@/components/internal/console/back-to-site-button";
 
 export function InternalSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -47,6 +48,10 @@ export function InternalSidebar() {
           </div>
         ))}
       </nav>
+
+      <div className="shrink-0 border-t border-border/60 p-2">
+        <BackToSiteButton />
+      </div>
     </aside>
   );
 }

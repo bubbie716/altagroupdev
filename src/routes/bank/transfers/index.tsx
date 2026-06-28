@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Landmark, Users } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { RouteButton } from "@/components/bank/route-button";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
@@ -24,7 +23,8 @@ function BankTransfersHub() {
   const { accountId } = Route.useSearch();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Transfers"
       description={
@@ -32,10 +32,8 @@ function BankTransfersHub() {
           ? "Move funds within Alta Bank or send outbound wires via NCC-Net — preview interface."
           : "Choose how you want to move funds."
       }
-    >
-      <BankSubNav />
-
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+     />
+<div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
         <TransferTypeCard
           to="/bank/transfers/intrabank"
           accountId={accountId}
@@ -60,7 +58,7 @@ function BankTransfersHub() {
           detail="Use in transfers"
         />
       </div>
-    </PageShell>
+    </>
   );
 }
 

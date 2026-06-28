@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountOverviewGrid } from "@/components/bank/account-overview-grid";
 import { BankAccountTransactions } from "@/components/bank/bank-account-transactions";
@@ -29,7 +29,8 @@ function BankDashboard() {
   const data = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Client"
       title="Banking Overview"
       description={
@@ -37,17 +38,15 @@ function BankDashboard() {
           ? "Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
           : "Your Alta Bank relationship overview."
       }
-    >
-      <BankSubNav />
-
-      {showMockData ? (
+     />
+{showMockData ? (
         <BankDashboardMockContent />
       ) : !data || data.accounts.length === 0 ? (
         <EmptyBankState />
       ) : (
         <BankDashboardLiveContent data={data} />
       )}
-    </PageShell>
+    </>
   );
 }
 

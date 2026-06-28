@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { LendingApplyExperience } from "@/components/bank/lending-apply-experience";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
@@ -39,13 +38,13 @@ function BankLendingApply() {
   const { accounts, companies } = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Lending"
       title="Apply for credit"
       description="Submit a facility request for manual review. After submission, your application enters review and a Secure Deal Room opens for communication with Alta."
-    >
-      <BankSubNav />
-      <LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />
-    </PageShell>
+     />
+<LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />
+    </>
   );
 }

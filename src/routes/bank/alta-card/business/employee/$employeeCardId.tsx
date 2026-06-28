@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardEmployeeCardPanel } from "@/components/bank/alta-card/alta-card-employee-card-panel";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchUserEmployeeAltaCardDetail } from "@/lib/bank/alta-card.functions";
@@ -18,7 +17,8 @@ function EmployeeAltaCardDetailPage() {
   const card = Route.useLoaderData();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title={`${card.companyName} employee card`}
       description="Authorized spending against your company's business credit line."
@@ -30,9 +30,8 @@ function EmployeeAltaCardDetailPage() {
           ← Business cards
         </Link>
       }
-    >
-      <BankSubNav />
-      <AltaCardEmployeeCardPanel card={card} />
-    </PageShell>
+    />
+<AltaCardEmployeeCardPanel card={card} />
+    </>
   );
 }

@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardBusinessCompanyList } from "@/components/bank/alta-card/alta-card-business-panel";
 import { AltaCardEmployeeCardList } from "@/components/bank/alta-card/alta-card-employee-card-panel";
 import { AltaCardPendingApplicationBanner } from "@/components/bank/alta-card/alta-card-landing-hero";
@@ -29,7 +28,8 @@ function BankAltaCardBusinessIndex() {
   const hasEmployeeCards = employeeCards.length > 0;
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title="Business Alta Cards"
       description="Company revolving credit lines and employee cards authorized against your business limit."
@@ -43,10 +43,8 @@ function BankAltaCardBusinessIndex() {
           </Link>
         ) : null
       }
-    >
-      <BankSubNav />
-
-      {pendingApplications.length > 0 ? (
+    />
+{pendingApplications.length > 0 ? (
         <div className="mb-8 space-y-4">
           {pendingApplications.map((application) => (
             <AltaCardPendingApplicationBanner
@@ -84,6 +82,6 @@ function BankAltaCardBusinessIndex() {
           </p>
         )}
       </div>
-    </PageShell>
+    </>
   );
 }

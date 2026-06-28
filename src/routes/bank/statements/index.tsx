@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { StatementListTable } from "@/components/bank/statement-list-table";
 import { StatementCenterGenerateForm } from "@/components/bank/statement-center-generate-form";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
@@ -33,14 +33,13 @@ function BankStatementsPage() {
   const business = statements.filter((s: any) => s.isCompanyAccount);
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Statements"
       title="Statement Center"
       description="Monthly account statements for your personal and business Alta Bank accounts."
-    >
-      <BankSubNav />
-
-      <BankStatStrip
+     />
+<BankStatStrip
         items={[
           { label: "Personal statements", value: String(personal.length) },
           { label: "Business statements", value: String(business.length) },
@@ -97,6 +96,6 @@ function BankStatementsPage() {
           )}
         </>
       )}
-    </PageShell>
+    </>
   );
 }

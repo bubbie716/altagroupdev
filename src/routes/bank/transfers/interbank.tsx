@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { PageShell, Section } from "@/components/page-shell";
-import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { Section } from "@/components/page-shell";
+import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { TransferFormPreview } from "@/components/bank/transfer-form-preview";
 import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
@@ -45,14 +45,13 @@ function BankInterbankTransfers() {
   const { accountId } = Route.useSearch();
 
   return (
-    <PageShell
+    <>
+      <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Interbank"
       description="Outbound wires to external institutions via NCC-Net settlement."
-    >
-      <BankSubNav />
-
-      {showMockData ? (
+     />
+{showMockData ? (
         <>
           <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
           <Section>
@@ -96,7 +95,7 @@ function BankInterbankTransfers() {
           </Section>
         </>
       )}
-    </PageShell>
+    </>
   );
 }
 
