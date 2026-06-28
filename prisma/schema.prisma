@@ -132,6 +132,12 @@ model User {
   altaEmployeeCards              AltaEmployeeCard[]             @relation("AltaEmployeeCardUser")
   altaCardTransactionsCreated    AltaCardTransaction[]          @relation("AltaCardTransactionCreator")
   altaCardFeesWaived             AltaCardFee[]                  @relation("AltaCardFeeWaivedBy")
+  relationshipProfile            RelationshipProfile?
+  relationshipProfileSnapshots   RelationshipProfileSnapshot[]
+  relationshipRecommendations    RelationshipRecommendation[]
+  relationshipRecommendationsReviewed RelationshipRecommendation[] @relation("RelationshipRecommendationReviewer")
+  relationshipTimelineEvents     RelationshipTimelineEvent[]
+  companyRelationshipRecommendationsReviewed CompanyRelationshipRecommendation[] @relation("CompanyRelationshipRecommendationReviewer")
 }
 
 model UserTagAssignment {
@@ -178,6 +184,10 @@ model Company {
   altaCardReviewThreads      AltaCardReviewThread[]
   altaEmployeeCards    AltaEmployeeCard[]
   altaCardMerchantTransactions AltaCardTransaction[] @relation("AltaCardMerchantCompany")
+  relationshipProfile          CompanyRelationshipProfile?
+  relationshipSnapshots        CompanyRelationshipProfileSnapshot[]
+  relationshipRecommendations  CompanyRelationshipRecommendation[]
+  relationshipTimelineEvents   CompanyRelationshipTimelineEvent[]
 }
 
 model CompanyMembership {
@@ -1973,4 +1983,310 @@ model AltaCardFee {
   @@index([altaCardStatementId])
   @@index([type])
   @@index([status])
+}
+
+enum RelationshipTier {
+  NEW
+  STANDARD
+  PREFERRED
+  PREMIER
+  PRIVATE_ELIGIBLE
+  PRIVATE_CLIENT
+}
+
+model RelationshipProfile {
+  id                     String           @id @default(cuid())
+  userId                 String           @unique
+  relationshipSince      DateTime
+  relationshipScore      Int              @default(0)
+  relationshipTier       RelationshipTier @default(NEW)
+  privateBankingEligible Boolean          @default(false)
+  privateBankingClient   Boolean          @default(false)
+  totalBankAssets        Decimal          @default(0) @db.Decimal(18, 2)
+  totalInvestments       Decimal          @default(0) @db.Decimal(18, 2)
+  totalAltaAssets        Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeDeposits       Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeWithdrawals    Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeInterestEarned Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeInterestPaid   Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeAltaPayVolume  Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeLoanPayments   Decimal          @default(0) @db.Decimal(18, 2)
+  lifetimeCardPayments   Decimal          @default(0) @db.Decimal(18, 2)
+  activeLoanBalance      Decimal          @default(0) @db.Decimal(18, 2)
+  activeCardBalance      Decimal          @default(0) @db.Decimal(18, 2)
+  currentCreditExposure  Decimal          @default(0) @db.Decimal(18, 2)
+  lastCalculatedAt       DateTime         @default(now())
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  user       User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots  RelationshipProfileSnapshot[]
+  recommendations RelationshipRecommendation[]
+  timelineEvents RelationshipTimelineEvent[]
+
+  @@index([relationshipTier])
+  @@index([relationshipScore])
+  @@index([privateBankingEligible])
+  @@index([totalAltaAssets])
+  @@index([lastCalculatedAt])
+}
+
+model RelationshipProfileSnapshot {
+  id                     String           @id @default(cuid())
+  userId                 String
+  profileId              String
+  relationshipScore      Int
+  relationshipTier       RelationshipTier
+  totalBankAssets        Decimal          @db.Decimal(18, 2)
+  totalAltaAssets        Decimal          @db.Decimal(18, 2)
+  currentCreditExposure  Decimal          @db.Decimal(18, 2)
+  privateBankingEligible Boolean
+  calculatedAt           DateTime         @default(now())
+  metadata               Json?
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile RelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([userId, calculatedAt])
+  @@index([profileId])
+  @@index([relationshipTier])
+}
+
+enum RelationshipRecommendationType {
+  ALTA_CARD_TIER
+  ALTA_CARD_LIMIT
+  ALTA_CARD_RATE
+  LOAN_PRE_APPROVAL
+  PRIVATE_BANKING_INVITE
+  PRODUCT_OPPORTUNITY
+}
+
+enum RelationshipRecommendationStatus {
+  ACTIVE
+  REVIEWED
+  DISMISSED
+  ACCEPTED
+  EXPIRED
+}
+
+model RelationshipRecommendation {
+  id                 String                         @id @default(cuid())
+  userId             String
+  profileId          String
+  recommendationType RelationshipRecommendationType
+  status             RelationshipRecommendationStatus @default(ACTIVE)
+  title              String
+  summary            String
+  recommendedProduct String?
+  recommendedTier    String?
+  recommendedLimit   Decimal?                       @db.Decimal(18, 2)
+  recommendedRate    Decimal?                       @db.Decimal(10, 6)
+  confidenceScore    Int
+  reasons            Json
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  dismissedAt        DateTime?
+  acceptedAt         DateTime?
+  reviewedByUserId   String?
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile    RelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  reviewedBy User?               @relation("RelationshipRecommendationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([profileId])
+  @@index([recommendationType])
+  @@index([createdAt])
+}
+
+enum RelationshipTimelineEventType {
+  RELATIONSHIP_STARTED
+  BANK_ACCOUNT_OPENED
+  BUSINESS_ACCOUNT_OPENED
+  DEPOSIT_MILESTONE
+  WITHDRAWAL_MILESTONE
+  ALTA_PAY_MILESTONE
+  ALTA_CARD_OPENED
+  ALTA_CARD_TIER_CHANGED
+  ALTA_CARD_LIMIT_CHANGED
+  ALTA_CARD_PAID_ON_TIME
+  ALTA_CARD_DELINQUENT
+  LOAN_APPLICATION_SUBMITTED
+  LOAN_ACCEPTED
+  LOAN_DENIED
+  LOAN_FUNDED
+  LOAN_PAYMENT_MADE
+  LOAN_PAID_OFF
+  PRIVATE_BANKING_ELIGIBLE
+  PRIVATE_BANKING_CLIENT
+  RELATIONSHIP_SCORE_CHANGED
+  RELATIONSHIP_TIER_CHANGED
+  MANUAL_NOTE
+}
+
+model RelationshipTimelineEvent {
+  id                String                        @id @default(cuid())
+  userId            String
+  profileId         String?
+  eventType         RelationshipTimelineEventType
+  title             String
+  description       String?
+  occurredAt        DateTime
+  relatedEntityType String?
+  relatedEntityId   String?
+  metadata          Json?
+  createdAt         DateTime                      @default(now())
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile RelationshipProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([profileId])
+  @@index([eventType])
+  @@index([relatedEntityType, relatedEntityId])
+}
+
+enum CompanyRelationshipTier {
+  NEW
+  STANDARD
+  PREFERRED
+  PREMIER
+  COMMERCIAL_ELIGIBLE
+}
+
+enum CompanyRelationshipRecommendationType {
+  BUSINESS_ALTA_CARD_LIMIT
+  BUSINESS_ALTA_CARD_RATE
+  BUSINESS_LOAN_OPPORTUNITY
+  TREASURY_PRODUCT_OPPORTUNITY
+  COMMERCIAL_BANKING_ELIGIBILITY
+}
+
+enum CompanyRelationshipTimelineEventType {
+  RELATIONSHIP_STARTED
+  BUSINESS_ACCOUNT_OPENED
+  DEPOSIT_MILESTONE
+  WITHDRAWAL_MILESTONE
+  ALTA_PAY_MILESTONE
+  ALTA_CARD_OPENED
+  ALTA_CARD_TIER_CHANGED
+  ALTA_CARD_LIMIT_CHANGED
+  LOAN_APPLICATION_SUBMITTED
+  LOAN_FUNDED
+  LOAN_PAID_OFF
+  LOAN_PAYMENT_MADE
+  COMMERCIAL_BANKING_ELIGIBLE
+  RELATIONSHIP_SCORE_CHANGED
+  RELATIONSHIP_TIER_CHANGED
+  MANUAL_NOTE
+}
+
+model CompanyRelationshipProfile {
+  id                        String                  @id @default(cuid())
+  companyId                 String                  @unique
+  relationshipSince         DateTime
+  relationshipScore         Int                     @default(0)
+  relationshipTier          CompanyRelationshipTier @default(NEW)
+  commercialBankingEligible Boolean                 @default(false)
+  totalBusinessAssets       Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeDeposits          Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeWithdrawals       Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeInterestEarned    Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeInterestPaid      Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeAltaPayVolume     Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeLoanPayments      Decimal                 @default(0) @db.Decimal(18, 2)
+  lifetimeCardPayments      Decimal                 @default(0) @db.Decimal(18, 2)
+  activeLoanBalance         Decimal                 @default(0) @db.Decimal(18, 2)
+  activeCardBalance         Decimal                 @default(0) @db.Decimal(18, 2)
+  currentCreditExposure     Decimal                 @default(0) @db.Decimal(18, 2)
+  activeBusinessAccounts    Int                     @default(0)
+  activeBusinessLoans       Int                     @default(0)
+  activeBusinessCards       Int                     @default(0)
+  paidOffBusinessLoans      Int                     @default(0)
+  lastCalculatedAt          DateTime                @default(now())
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+
+  company         Company                              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  snapshots       CompanyRelationshipProfileSnapshot[]
+  recommendations CompanyRelationshipRecommendation[]
+  timelineEvents  CompanyRelationshipTimelineEvent[]
+
+  @@index([relationshipTier])
+  @@index([relationshipScore])
+  @@index([commercialBankingEligible])
+  @@index([totalBusinessAssets])
+  @@index([lastCalculatedAt])
+}
+
+model CompanyRelationshipProfileSnapshot {
+  id                        String                  @id @default(cuid())
+  companyId                 String
+  profileId                 String
+  relationshipScore         Int
+  relationshipTier          CompanyRelationshipTier
+  totalBusinessAssets       Decimal                 @db.Decimal(18, 2)
+  currentCreditExposure     Decimal                 @db.Decimal(18, 2)
+  commercialBankingEligible Boolean
+  calculatedAt              DateTime                @default(now())
+  metadata                  Json?
+
+  company Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  profile CompanyRelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, calculatedAt])
+  @@index([profileId])
+  @@index([relationshipTier])
+}
+
+model CompanyRelationshipRecommendation {
+  id                 String                              @id @default(cuid())
+  companyId          String
+  profileId          String
+  recommendationType CompanyRelationshipRecommendationType
+  status             RelationshipRecommendationStatus  @default(ACTIVE)
+  title              String
+  summary            String
+  recommendedProduct String?
+  recommendedTier    String?
+  recommendedLimit   Decimal?                            @db.Decimal(18, 2)
+  recommendedRate    Decimal?                            @db.Decimal(10, 6)
+  confidenceScore    Int
+  reasons            Json
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+  dismissedAt        DateTime?
+  acceptedAt         DateTime?
+  reviewedByUserId   String?
+
+  company    Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  profile    CompanyRelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  reviewedBy User?                     @relation("CompanyRelationshipRecommendationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([profileId])
+  @@index([recommendationType])
+  @@index([createdAt])
+}
+
+model CompanyRelationshipTimelineEvent {
+  id                String                               @id @default(cuid())
+  companyId         String
+  profileId         String?
+  eventType         CompanyRelationshipTimelineEventType
+  title             String
+  description       String?
+  occurredAt        DateTime
+  relatedEntityType String?
+  relatedEntityId   String?
+  metadata          Json?
+  createdAt         DateTime                             @default(now())
+
+  company Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  profile CompanyRelationshipProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, occurredAt])
+  @@index([profileId])
+  @@index([eventType])
+  @@index([relatedEntityType, relatedEntityId])
 }

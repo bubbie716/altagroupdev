@@ -12,16 +12,27 @@ import {
   executeDueLoanAutoPaymentsRecord,
   fetchInternalLendingOps,
 } from "@/lib/bank/lending.functions";
+import { fetchApplicationRelationshipSummaries } from "@/lib/internal/relationship-intelligence.functions";
+import { RelationshipQueueCallout } from "@/components/internal/relationship-queue-cell";
 import { useRouter } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/internal/lending/")({
-  loader: async () => fetchInternalLendingOps(),
+  loader: async () => {
+    const ops = await fetchInternalLendingOps();
+    const summaries = await fetchApplicationRelationshipSummaries({
+      data: ops.applications.map((a) => ({
+        companyId: a.companyId,
+        applicantUserId: a.applicantUserId,
+      })),
+    });
+    return { ...ops, summaries };
+  },
   head: () => ({ meta: [{ title: "Lending Review — Alta Internal" }] }),
   component: InternalLending,
 });
 
 function InternalLending() {
-  const { applications, activeLoans, paidOffLoans, frozenLoans } = Route.useLoaderData();
+  const { applications, activeLoans, paidOffLoans, frozenLoans, summaries } = Route.useLoaderData();
   const router = useRouter();
   const pending = applications.filter(
     (a: any) => a.status === "pending" || a.status === "under_review",
@@ -40,6 +51,8 @@ function InternalLending() {
         <InternalStatCard label="Paid off" value={String(paidOffLoans.length)} />
         </div>
       </div>
+
+      <RelationshipQueueCallout context="LENDING" />
 
       <Section title="Loan servicing" className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -68,7 +81,7 @@ function InternalLending() {
 
       <Section title="Loan application queue" className="mt-10">
         <AdminDataTable
-          columns={internalLendingColumns()}
+          columns={internalLendingColumns(summaries)}
           rows={applications}
           rowKey={(row) => row.id}
         />

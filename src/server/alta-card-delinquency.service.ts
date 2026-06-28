@@ -45,6 +45,14 @@ export async function markDelinquentCardsForOverdueStatements(
     });
 
     marked.push(cardId);
+
+    const { refreshFromAltaCardContextBestEffort } = await import(
+      "@/server/relationship-refresh-hooks.service"
+    );
+    await refreshFromAltaCardContextBestEffort(
+      { ownerUserId: card.ownerUserId, companyId: card.companyId },
+      "alta-card-delinquency-changed",
+    );
   }
 
   return marked;
@@ -90,6 +98,12 @@ export async function maybeRestoreActiveFromDelinquency(
       trigger: "overdue_cleared",
     },
   });
+
+  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromAltaCardContextBestEffort(
+    { ownerUserId: card.ownerUserId, companyId: card.companyId },
+    "alta-card-delinquency-cleared",
+  );
 
   return true;
 }

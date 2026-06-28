@@ -40,6 +40,13 @@ import type {
   SetLoanAutoPayInput,
 } from "@/lib/bank/lending-types";
 import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
+import {
+  LOAN_ADJUSTMENT_DESCRIPTION,
+  LOAN_FUNDING_DESCRIPTION,
+  LOAN_INTEREST_CHARGE_DESCRIPTION,
+  LOAN_PAYMENT_DESCRIPTION,
+  LOAN_PAYOFF_DESCRIPTION,
+} from "@/lib/bank/customer-transaction-copy";
 import type { LoanProductType as DbLoanProductType } from "@prisma/client";
 import { prisma } from "@/server/db";
 import {
@@ -451,7 +458,7 @@ async function processLoanPayment(
         type: "LOAN_PAYMENT",
         amount,
         status: "APPROVED",
-        description: `Loan payment · ${loanRecord.id.slice(0, 8)}`,
+        description: LOAN_PAYMENT_DESCRIPTION,
         memo: paymentMemo,
         referenceCode,
         reviewedAt: now,
@@ -526,7 +533,7 @@ async function processLoanPayment(
       type: "PAYMENT",
       amount: -amount,
       balanceAfter: newPayoff,
-      description: paymentMemo || (options.isAutoPay ? "Automatic loan payment" : "Loan payment"),
+      description: paymentMemo || LOAN_PAYMENT_DESCRIPTION,
       bankTransactionId: bankTx.id,
       createdById: actorUserId,
     });
@@ -538,7 +545,7 @@ async function processLoanPayment(
         type: "STATUS_CHANGE",
         amount: 0,
         balanceAfter: 0,
-        description: "Loan paid off",
+        description: LOAN_PAYOFF_DESCRIPTION,
         createdById: actorUserId,
       });
       await tx.loanPaymentScheduleItem.updateMany({
@@ -547,6 +554,12 @@ async function processLoanPayment(
       });
     }
   });
+
+  const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromLoanContextBestEffort(
+    { borrowerUserId: loanRecord.borrowerUserId, companyId: loanRecord.companyId },
+    paidOff ? "loan-paid-off" : "loan-payment-made",
+  );
 }
 
 export async function setLoanAutoPay(userId: string, input: SetLoanAutoPayInput): Promise<void> {
@@ -978,7 +991,7 @@ export async function approveLoanApplication(
           type: "ADJUSTMENT",
           amount: principalAmount,
           status: "APPROVED",
-          description: `Loan disbursement · ${application.id.slice(0, 8)}`,
+          description: LOAN_FUNDING_DESCRIPTION,
           memo: "Alta Bank lending disbursement",
           referenceCode,
           reviewedById: adminId,
@@ -997,7 +1010,7 @@ export async function approveLoanApplication(
         type: "DISBURSEMENT",
         amount: principalAmount,
         balanceAfter: principalAmount,
-        description: "Principal disbursed to linked account",
+        description: LOAN_FUNDING_DESCRIPTION,
         bankTransactionId,
         createdById: adminId,
       });
@@ -1048,7 +1061,7 @@ export async function approveLoanApplication(
           type: "INTEREST_CHARGE",
           amount: firstGuaranteedInterest,
           balanceAfter: newPayoff,
-          description: "Month 1 interest guaranteed at disbursement",
+          description: LOAN_INTEREST_CHARGE_DESCRIPTION,
           createdById: adminId,
         });
       }
@@ -1078,6 +1091,39 @@ export async function approveLoanApplication(
     application.id,
     "Secure Deal Room closed after acceptance.",
     buildApplicationApprovedSystemMessage(reviewNote),
+  );
+
+  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  await recordRelationshipTimelineEvent({
+    userId: application.applicantUserId,
+    eventType: "LOAN_ACCEPTED",
+    title: "Lending application accepted",
+    occurredAt: now,
+    relatedEntityType: "LOAN_APPLICATION",
+    relatedEntityId: application.id,
+    actorUserId: adminId,
+  });
+  if (loan) {
+    const { formatLoanApprovedTimelineCopy } = await import("@/lib/bank/relationship-timeline-historical");
+    const loanCopy = formatLoanApprovedTimelineCopy(principalAmount, {
+      business: !!application.companyId,
+    });
+    await recordRelationshipTimelineEvent({
+      userId: application.applicantUserId,
+      eventType: "LOAN_FUNDED",
+      title: loanCopy.title,
+      description: loanCopy.description ?? undefined,
+      occurredAt: loan.approvedAt ?? now,
+      relatedEntityType: "LOAN",
+      relatedEntityId: loan.id,
+      actorUserId: adminId,
+    });
+  }
+
+  const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromLoanContextBestEffort(
+    { borrowerUserId: application.applicantUserId, companyId: application.companyId },
+    loan ? "loan-funded" : "loan-application-accepted",
   );
 }
 
@@ -1118,6 +1164,22 @@ export async function denyLoanApplication(
     "Secure Deal Room closed after denial.",
     buildApplicationDeniedSystemMessage(reviewNote),
   );
+
+  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  await recordRelationshipTimelineEvent({
+    userId: application.applicantUserId,
+    eventType: "LOAN_DENIED",
+    title: "Lending application denied",
+    occurredAt: new Date(),
+    relatedEntityType: "LOAN_APPLICATION",
+    relatedEntityId: application.id,
+    actorUserId: adminId,
+  });
+
+  const { refreshUserRelationshipProfileBestEffort } = await import(
+    "@/server/relationship-refresh-hooks.service"
+  );
+  await refreshUserRelationshipProfileBestEffort(application.applicantUserId, "loan-application-denied");
 }
 
 export async function freezeLoan(adminId: string, loanId: string): Promise<void> {
@@ -1214,6 +1276,26 @@ export async function markLoanPaidOff(adminId: string, loanId: string): Promise<
       createdById: adminId,
     });
   });
+
+  if (loan.borrowerUserId) {
+    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+    await recordRelationshipTimelineEvent({
+      userId: loan.borrowerUserId,
+      eventType: "LOAN_PAID_OFF",
+      title: "Loan paid off",
+      description: "Loan balance fully repaid.",
+      occurredAt: new Date(),
+      relatedEntityType: "LOAN",
+      relatedEntityId: loanId,
+      actorUserId: adminId,
+    });
+  }
+
+  const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromLoanContextBestEffort(
+    { borrowerUserId: loan.borrowerUserId, companyId: loan.companyId },
+    "loan-paid-off",
+  );
 }
 
 export async function adminAdjustLoanBalance(
@@ -1247,7 +1329,7 @@ export async function adminAdjustLoanBalance(
       type: "ADJUSTMENT",
       amount: input.amount,
       balanceAfter: newPayoff,
-      description: input.description.trim() || "Operator balance adjustment",
+      description: input.description.trim() || LOAN_ADJUSTMENT_DESCRIPTION,
       createdById: adminId,
     });
   });

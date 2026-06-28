@@ -7,6 +7,7 @@ import { RouteButton } from "@/components/bank/route-button";
 import { EmptyState } from "@/components/data/empty-state";
 import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
 import {
+  BankActivityScroll,
   BankMobileStack,
   BankMobileStackField,
   BankMobileStackRow,
@@ -17,10 +18,13 @@ import {
 export function BankAccountTransactions({
   transactions,
   showAccount = false,
+  scrollable,
 }: {
   transactions: UserBankTransaction[];
   /** Show account column for multi-account views (e.g. bank dashboard). */
   showAccount?: boolean;
+  /** Constrain list height with vertical scroll instead of extending the page. */
+  scrollable?: "full" | "compact";
 }) {
   if (transactions.length === 0) {
     return (
@@ -33,8 +37,8 @@ export function BankAccountTransactions({
     );
   }
 
-  return (
-    <Card className={`${bankTableShellClass} !p-0`}>
+  const list = (
+    <>
       <BankMobileStack>
         {transactions.map((tx) => {
           const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
@@ -86,7 +90,7 @@ export function BankAccountTransactions({
 
       <BankTableScroll>
         <table className="alta-table w-full min-w-[820px] text-sm">
-          <thead>
+          <thead className="sticky top-0 z-[1] bg-surface-1 shadow-[0_1px_0_0_hsl(var(--border)/0.6)]">
             <tr>
               <th>Date & time</th>
               {showAccount ? <th>Account</th> : null}
@@ -152,6 +156,12 @@ export function BankAccountTransactions({
           </tbody>
         </table>
       </BankTableScroll>
+    </>
+  );
+
+  return (
+    <Card className={`${bankTableShellClass} !p-0`}>
+      {scrollable ? <BankActivityScroll size={scrollable}>{list}</BankActivityScroll> : list}
     </Card>
   );
 }

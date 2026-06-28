@@ -132,7 +132,7 @@ function AccountOverviewPage() {
       </div>
 
       <Section title="Recent activity" className="mt-10">
-        <BankAccountTransactions transactions={account.recentTransactions} />
+        <BankAccountTransactions transactions={account.recentTransactions} scrollable="compact" />
         <RouteButton
           to="/bank/account/$accountId/activity"
           params={{ accountId: account.id }}

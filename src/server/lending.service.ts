@@ -7,6 +7,7 @@ import type {
   LoanApplicationRow,
 } from "@/lib/bank/lending-types";
 import { LOAN_TERM_MONTHS_MAX, LOAN_TERM_MONTHS_MIN } from "@/lib/bank/lending-types";
+import { florin } from "@/lib/bank/api";
 import { prisma } from "@/server/db";
 import {
   bankAccountAccessWhere,
@@ -211,6 +212,17 @@ export async function createLoanApplication(
 
   const { createThreadForLoanApplication } = await import("@/server/loan-application-thread.service");
   const { threadId } = await createThreadForLoanApplication(userId, record.id);
+
+  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  await recordRelationshipTimelineEvent({
+    userId,
+    eventType: "LOAN_APPLICATION_SUBMITTED",
+    title: "Lending application submitted",
+    description: `Requested ${florin(Number(record.requestedAmount.toString()))}.`,
+    occurredAt: record.createdAt,
+    relatedEntityType: "LOAN_APPLICATION",
+    relatedEntityId: record.id,
+  });
 
   return { ...mapLoanApplicationRow(record), threadId };
 }

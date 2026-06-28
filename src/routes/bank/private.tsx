@@ -20,11 +20,16 @@ import {
   type AltaPrivatePageContext,
 } from "@/components/bank/alta-private/alta-private-benefits";
 
+import { fetchCustomerRelationshipView } from "@/lib/bank/relationship-intelligence.functions";
+
 export const Route = createFileRoute("/bank/private")({
   beforeLoad: authBeforeLoad,
   loader: async () => {
-    const card = await fetchUserAltaCard().catch(() => null);
-    return { altaCardId: card?.id ?? null };
+    const [card, relationshipView] = await Promise.all([
+      fetchUserAltaCard().catch(() => null),
+      fetchCustomerRelationshipView().catch(() => null),
+    ]);
+    return { altaCardId: card?.id ?? null, relationshipView };
   },
   head: () => ({
     meta: [{ title: "Alta Private — Relationship-managed banking" }],
@@ -34,7 +39,7 @@ export const Route = createFileRoute("/bank/private")({
 
 function BankPrivate() {
   const user = useCurrentUser();
-  const { altaCardId } = Route.useLoaderData();
+  const { altaCardId, relationshipView } = Route.useLoaderData();
   const privateClient = user ? isPrivateClient(user) : false;
   const showMockData = isUserFinancialMockDataEnabled() && privateClient;
   const p = showMockData ? getPrivateBanking() : null;
@@ -92,6 +97,20 @@ function BankPrivate() {
       description="Relationship-managed banking — negotiated credit, preferred pricing, priority review, and private client benefits including Alta Gold."
     >
       <BankSubNav />
+
+      {privateClient ? (
+        <div className="mt-8 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
+          Alta Private Client — relationship-managed banking with negotiated credit, preferred pricing, and priority review.
+        </div>
+      ) : relationshipView?.privateBankingEligible ? (
+        <div className="mt-8 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
+          You may be eligible for Alta Private review. Relationship Intelligence suggests a recommended review — enrollment requires Alta approval.
+        </div>
+      ) : (
+        <div className="mt-8 rounded-lg border border-border bg-surface-1/80 px-4 py-3 text-[14px] text-muted-foreground">
+          Alta Private is invitation-only. Deepen your Alta relationship to unlock a recommended review over time.
+        </div>
+      )}
 
       <HeroRelationshipCard ctx={pageCtx} />
 

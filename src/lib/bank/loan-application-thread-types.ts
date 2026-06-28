@@ -44,8 +44,10 @@ export type LoanApplicationThreadContext = {
   /** @deprecated V1 Secure Deal Rooms are not staff-assigned. Always null. */
   assignedStaffName: string | null;
   canSend: boolean;
+  applicantUserId: string;
   applicantName: string;
   applicantAvatarUrl: string | null;
+  companyId: string | null;
   companyName: string | null;
   productLabel: string;
   requestedAmount: number;

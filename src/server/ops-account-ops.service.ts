@@ -3,6 +3,7 @@ import { requireOperator } from "@/server/permissions.service";
 import { isAdmin } from "@/lib/auth/permissions";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { submitOperatorInternalTransfer } from "@/server/bank.service";
+import { reversalAdjustmentDescription } from "@/lib/bank/customer-transaction-copy";
 
 function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
@@ -228,14 +229,15 @@ export async function reverseAdjustment(
   }
 
   const amount = decimalToNumber(original.amount);
-  const direction = original.description.toLowerCase().includes("debit") ? "credit" : "debit";
+  const direction = /debit adjustment|admin debit/i.test(original.description) ? "credit" : "debit";
 
   const { adminAdjustBankAccount } = await import("@/server/bank.service");
   const result = await adminAdjustBankAccount(actorUserId, {
     accountId: original.bankAccountId,
     direction: direction as "credit" | "debit",
     amount,
-    reason: `Reversal of ${original.referenceCode}: ${trimmed}`,
+    reason: trimmed,
+    customerDescription: reversalAdjustmentDescription(original.description),
     allowOverdraft: isAdmin(actor),
   });
 
@@ -248,7 +250,11 @@ export async function reverseAdjustment(
     targetTransactionId: transactionId,
     targetAccountId: original.bankAccountId,
     description: `Reversed adjustment ${original.referenceCode}`,
-    metadata: { originalReference: original.referenceCode, reversalReference: result.referenceCode, reason: trimmed },
+    metadata: {
+      originalReference: original.referenceCode,
+      reversalReference: result.referenceCode,
+      reason: trimmed,
+    },
   });
 
   return { referenceCode: result.referenceCode };

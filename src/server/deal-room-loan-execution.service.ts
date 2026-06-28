@@ -10,6 +10,10 @@ import type {
 } from "@/lib/lending/loan-execution-types";
 import { LOAN_PRODUCT_LABELS, type LoanProductTypeCode } from "@/lib/bank/lending-types";
 import {
+  LOAN_FUNDING_DESCRIPTION,
+  LOAN_INTEREST_CHARGE_DESCRIPTION,
+} from "@/lib/bank/customer-transaction-copy";
+import {
   canAccessInternal,
   canViewCompanyDealRoom,
   isPrivateClient,
@@ -260,7 +264,7 @@ export async function executeLoanFromExecutedAgreement(
         type: "ADJUSTMENT",
         amount: terms.principalAmount,
         status: "APPROVED",
-        description: `Loan funding · Agreement ${fieldData.loanId}`,
+        description: LOAN_FUNDING_DESCRIPTION,
         memo: `Alta Bank loan disbursement · Deal ${dealRoomId.slice(0, 8)}`,
         referenceCode: disbursementReferenceCode,
         reviewedById: actorUserId,
@@ -283,7 +287,7 @@ export async function executeLoanFromExecutedAgreement(
       type: "DISBURSEMENT",
       amount: terms.principalAmount,
       balanceAfter: terms.principalAmount,
-      description: ledgerDescription("Loan receivable established — principal disbursed", auditCtx),
+      description: LOAN_FUNDING_DESCRIPTION,
       bankTransactionId: bankTx.id,
       createdById: actorUserId,
     });
@@ -326,7 +330,7 @@ export async function executeLoanFromExecutedAgreement(
         type: "INTEREST_CHARGE",
         amount: firstGuaranteedInterest,
         balanceAfter: newPayoff,
-        description: ledgerDescription("Month 1 interest guaranteed at funding", auditCtx),
+        description: LOAN_INTEREST_CHARGE_DESCRIPTION,
         createdById: actorUserId,
       });
     }

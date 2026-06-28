@@ -41,6 +41,22 @@ export const ALTA_CARD_TIER_LABELS: Record<AltaCardTierCode, string> = {
   gold: "Alta Gold",
 };
 
+export function altaCardTierLabel(tier: string): string {
+  return ALTA_CARD_TIER_LABELS[tier as AltaCardTierCode] ?? tier;
+}
+
+export function formatAltaCardTierUpgradeDescription(
+  previousTier: string | null | undefined,
+  newTier?: string | null | undefined,
+): string | null {
+  const prevLabel = previousTier ? altaCardTierLabel(previousTier) : null;
+  const newLabel = newTier ? altaCardTierLabel(newTier) : null;
+  if (prevLabel && newLabel) return `Upgraded from ${prevLabel} to ${newLabel}.`;
+  if (prevLabel) return `Previously ${prevLabel}.`;
+  if (newLabel) return `Upgraded to ${newLabel}.`;
+  return null;
+}
+
 export const ALTA_CARD_DEFAULT_LIMITS: Record<AltaCardTierCode, number | null> = {
   white: 5_000,
   navy: 15_000,
@@ -56,15 +72,15 @@ export const ALTA_CARD_DEFAULT_RATES: Record<AltaCardTierCode, number | null> = 
 };
 
 export const ALTA_CARD_TX_TYPE_LABELS: Record<AltaCardTransactionTypeCode, string> = {
-  purchase: "Purchase",
-  alta_pay: "Alta Pay Purchase",
-  cash_advance: "Cash Advance",
-  payment: "Payment",
-  interest: "Interest",
-  fee: "Fee",
-  adjustment_credit: "Adjustment",
-  adjustment_debit: "Adjustment",
-  reversal: "Reversal",
+  purchase: "Alta Card Purchase",
+  alta_pay: "Alta Pay",
+  cash_advance: "Alta Card Cash Advance",
+  payment: "Alta Card Payment",
+  interest: "Alta Card Interest",
+  fee: "Alta Card Fee",
+  adjustment_credit: "Alta Card Adjustment",
+  adjustment_debit: "Alta Card Adjustment",
+  reversal: "Alta Card Reversal",
 };
 
 export type AltaCardRow = {

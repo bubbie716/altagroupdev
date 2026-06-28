@@ -1,15 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRouter } from "@tanstack/react-router";
+import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
-import { InternalAltaCardDetailPanel } from "@/components/bank/alta-card/internal-alta-card-panel";
-import { InternalAltaCardOpsPanel } from "@/components/bank/alta-card/internal-alta-card-ops-panel";
+import { InternalAltaCardDetailIntegration } from "@/components/bank/alta-card/internal-alta-card-detail-integration";
 import { fetchInternalCardOperationsContext } from "@/lib/bank/alta-card-admin.functions";
 import { fetchCardStatements } from "@/lib/bank/alta-card-statement.functions";
 import { fetchInternalCardFeesRecord } from "@/lib/bank/alta-card-interest.functions";
 import { fetchInternalAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
-import { InternalAltaCardAutopayPanel } from "@/components/bank/alta-card/internal-alta-card-autopay-panel";
+import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 
 export const Route = createFileRoute("/internal/alta-card/$cardId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    suggestedTier:
+      typeof search.suggestedTier === "string" ? (search.suggestedTier as AltaCardTierCode) : undefined,
+    suggestedLimit:
+      search.suggestedLimit != null && search.suggestedLimit !== ""
+        ? Number(search.suggestedLimit)
+        : undefined,
+    suggestedRate:
+      search.suggestedRate != null && search.suggestedRate !== ""
+        ? Number(search.suggestedRate)
+        : undefined,
+    recommendationId:
+      typeof search.recommendationId === "string" ? search.recommendationId : undefined,
+  }),
   loader: async ({ params }) => {
     const [ops, statements, fees, autopay] = await Promise.all([
       fetchInternalCardOperationsContext({ data: params.cardId }),
@@ -20,15 +33,24 @@ export const Route = createFileRoute("/internal/alta-card/$cardId")({
         audit: [],
       })),
     ]);
-    return { ops, statements, fees, autopay };
+    const ownerUserId = ops.card.ownerUserId;
+    const companyId = ops.card.companyId;
+    const integration = ownerUserId
+      ? await fetchResolvedRelationshipIntegrationBestEffort({
+          userId: ownerUserId,
+          companyId,
+          context: "ALTA_CARD",
+        })
+      : null;
+    return { ops, statements, fees, autopay, integration, ownerUserId, companyId };
   },
   head: () => ({ meta: [{ title: "Alta Card Detail — Alta Internal" }] }),
   component: InternalAltaCardDetail,
 });
 
 function InternalAltaCardDetail() {
-  const { ops, statements, fees, autopay } = Route.useLoaderData();
-  const router = useRouter();
+  const { ops, statements, fees, autopay, integration, ownerUserId } = Route.useLoaderData();
+  const search = Route.useSearch();
 
   return (
     <InternalPageShell
@@ -41,26 +63,18 @@ function InternalAltaCardDetail() {
       >
         ← All cards
       </Link>
-      <InternalAltaCardOpsPanel
+      <InternalAltaCardDetailIntegration
         ops={ops}
-        onRefresh={async () => {
-          await router.invalidate();
-        }}
-      />
-      <InternalAltaCardAutopayPanel
-        cardId={ops.card.id}
-        initialContext={autopay.context}
-        initialAudit={autopay.audit}
-        onRefresh={async () => {
-          await router.invalidate();
-        }}
-      />
-      <InternalAltaCardDetailPanel
-        card={ops.card}
         statements={statements}
         fees={fees}
-        onRefresh={async () => {
-          await router.invalidate();
+        autopay={autopay}
+        integration={integration}
+        ownerUserId={ownerUserId}
+        searchDefaults={{
+          tier: search.suggestedTier,
+          limit: search.suggestedLimit,
+          rate: search.suggestedRate,
+          recommendationId: search.recommendationId,
         }}
       />
     </InternalPageShell>

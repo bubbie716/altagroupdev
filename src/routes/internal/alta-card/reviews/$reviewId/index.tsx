@@ -17,18 +17,25 @@ import {
 import { reviewDisplayStatusLabel } from "@/lib/bank/alta-card-review-helpers";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isAdmin } from "@/lib/auth/permissions";
+import { AltaCardReviewIntegrationWithHook } from "@/components/internal/relationship-integration-wrappers";
+import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 
 export const Route = createFileRoute("/internal/alta-card/reviews/$reviewId/")({
   loader: async ({ params }) => {
     const detail = await fetchInternalAltaCardReviewDetail({ data: params.reviewId });
-    return { detail, reviewId: params.reviewId };
+    const integration = await fetchResolvedRelationshipIntegrationBestEffort({
+      userId: detail.review.applicantUserId,
+      companyId: detail.review.companyId,
+      context: "ALTA_CARD",
+    });
+    return { detail, reviewId: params.reviewId, integration };
   },
   head: () => ({ meta: [{ title: "Account Review Detail — Alta Internal" }] }),
   component: InternalAltaCardReviewDetailPage,
 });
 
 function InternalAltaCardReviewDetailPage() {
-  const { detail, reviewId } = Route.useLoaderData();
+  const { detail, reviewId, integration } = Route.useLoaderData();
   const user = useCurrentUser();
   const admin = user ? isAdmin(user) : false;
   const review = detail.review;
@@ -80,6 +87,13 @@ function InternalAltaCardReviewDetailPage() {
         ← Reviews queue
       </Link>
 
+      <AltaCardReviewIntegrationWithHook
+        integration={integration}
+        setApprovedTier={setApprovedTier}
+        setApprovedLimit={setApprovedLimit}
+        setApprovedRate={setApprovedRate}
+      />
+
       <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
         <div className="space-y-6">
           <section className="rounded-xl border border-border bg-surface-1/80 p-5">
@@ -100,37 +114,6 @@ function InternalAltaCardReviewDetailPage() {
             >
               View card →
             </Link>
-          </section>
-
-          <section className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Relationship summary
-            </h4>
-            {rel ? (
-              <>
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Score {rel.relationshipScore}/100 — recommendation only
-                </p>
-                <dl className="mt-3 grid gap-2 sm:grid-cols-3 text-[13px]">
-                  <div>
-                    <dt className="text-muted-foreground">Tier</dt>
-                    <dd>{ALTA_CARD_TIER_LABELS[rel.recommendedTier]}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Limit</dt>
-                    <dd className="font-mono">{formatAltaCardCurrency(rel.recommendedCreditLimit)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Rate</dt>
-                    <dd className="font-mono">{formatAltaCardRate(rel.recommendedInterestRate)}</dd>
-                  </div>
-                </dl>
-              </>
-            ) : (
-              <p className="mt-3 text-[13px] text-muted-foreground">
-                Relationship intelligence not available.
-              </p>
-            )}
           </section>
 
           <section className="rounded-xl border border-border bg-surface-1/80 p-5">

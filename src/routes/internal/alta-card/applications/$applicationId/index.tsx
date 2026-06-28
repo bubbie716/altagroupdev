@@ -20,25 +20,29 @@ import {
 import { useState } from "react";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { AltaCardApplicationIntegration } from "@/components/internal/relationship-integration-wrappers";
+import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 
 export const Route = createFileRoute("/internal/alta-card/applications/$applicationId/")({
   loader: async ({ params }) => {
     const review = await fetchInternalAltaCardApplicationDetail({ data: params.applicationId });
-    return {
-      review,
-    };
+    const integration = await fetchResolvedRelationshipIntegrationBestEffort({
+      userId: review.application.applicantUserId,
+      companyId: review.application.companyId,
+      context: "ALTA_CARD",
+    });
+    return { review, integration };
   },
   head: () => ({ meta: [{ title: "Alta Card Application Review — Alta Internal" }] }),
   component: InternalAltaCardApplicationDetail,
 });
 
 function InternalAltaCardApplicationDetail() {
-  const { review } = Route.useLoaderData();
+  const { review, integration } = Route.useLoaderData();
   const router = useRouter();
   const user = useCurrentUser();
   const admin = user ? isAdmin(user) : false;
   const app = review.application;
-  const rel = review.relationship;
 
   const [tier, setTier] = useState(app.approvedTier ?? app.requestedTier);
   const [limit, setLimit] = useState(String(app.approvedLimit ?? app.requestedLimit ?? 5000));
@@ -59,6 +63,15 @@ function InternalAltaCardApplicationDetail() {
         ← Applications queue
       </Link>
 
+      <AltaCardApplicationIntegration
+        integration={integration}
+        onPrefill={({ tier, limit, rate }) => {
+          if (tier) setTier(tier);
+          if (limit) setLimit(limit);
+          if (rate) setRate(rate);
+        }}
+      />
+
       <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
         <div className="space-y-6">
           <section className="rounded-xl border border-border bg-surface-1/80 p-5">
@@ -73,51 +86,6 @@ function InternalAltaCardApplicationDetail() {
             {app.purpose ? <p className="mt-3 text-[13px]">{app.purpose}</p> : null}
           </section>
 
-          <section className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-            <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Relationship recommendation
-            </h4>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              Score {rel.relationshipScore}/100 — recommendation only, not auto-approval
-            </p>
-            <dl className="mt-3 grid gap-2 sm:grid-cols-3 text-[13px]">
-              <div>
-                <dt className="text-muted-foreground">Tier</dt>
-                <dd>{ALTA_CARD_TIER_LABELS[rel.recommendedTier]}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Limit</dt>
-                <dd className="font-mono">{formatAltaCardCurrency(rel.recommendedCreditLimit)}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Rate</dt>
-                <dd className="font-mono">{formatAltaCardRate(rel.recommendedInterestRate)}</dd>
-              </div>
-            </dl>
-            <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto text-[12px]">
-              {rel.relationshipFactors.map((f) => (
-                <li key={f.key}>
-                  {f.label}: {f.value}{" "}
-                  <span className="text-muted-foreground">
-                    ({f.impact >= 0 ? "+" : ""}
-                    {f.impact})
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {open ? (
-              <BankReviewButton
-                label="Apply recommendation"
-                variant="primary"
-                onAction={async () => {
-                  setTier(rel.recommendedTier);
-                  setLimit(String(rel.recommendedCreditLimit));
-                  setRate(String(rel.recommendedInterestRate));
-                }}
-              />
-            ) : null}
-          </section>
-
           <section className="rounded-xl border border-border bg-surface-1/80 p-5">
             <h4 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Terms comparison
@@ -130,14 +98,6 @@ function InternalAltaCardApplicationDetail() {
                   {formatAltaCardCurrency(app.requestedLimit ?? 0)}
                 </span>
               </div>
-              <div className="flex justify-between gap-4">
-                <span>Recommended</span>
-                <span>
-                  {ALTA_CARD_TIER_LABELS[rel.recommendedTier]} ·{" "}
-                  {formatAltaCardCurrency(rel.recommendedCreditLimit)} ·{" "}
-                  {formatAltaCardRate(rel.recommendedInterestRate)}
-                </span>
-              </div>
               <div className="flex justify-between gap-4 font-medium">
                 <span>Approved (form)</span>
                 <span>
@@ -146,6 +106,9 @@ function InternalAltaCardApplicationDetail() {
                 </span>
               </div>
             </dl>
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              Use Relationship Intelligence recommendations above for V2 scoring and suggested terms.
+            </p>
           </section>
 
           <section className="rounded-xl border border-border bg-surface-1/80 p-5">

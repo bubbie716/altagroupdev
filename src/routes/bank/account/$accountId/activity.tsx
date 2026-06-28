@@ -12,7 +12,7 @@ function AccountActivityPage() {
 
   return (
     <Section title="Account activity">
-      <BankAccountTransactions transactions={account.recentTransactions} />
+      <BankAccountTransactions transactions={account.recentTransactions} scrollable="full" />
     </Section>
   );
 }

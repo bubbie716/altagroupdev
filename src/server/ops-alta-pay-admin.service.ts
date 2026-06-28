@@ -1,5 +1,5 @@
 import type { AltaPayAdminRow, PaginatedResult } from "@/lib/internal/ops-types";
-import { prisma } from "@/server/db";
+import { altaPayReversalDescription } from "@/lib/bank/customer-transaction-copy";
 import { requireOperator } from "@/server/permissions.service";
 import type { Prisma } from "@prisma/client";
 
@@ -160,7 +160,7 @@ export async function reverseAltaPayPayment(
         type: "WITHDRAWAL",
         amount: outTx.amount,
         status: "APPROVED",
-        description: `Alta Pay reversal · ${payment.referenceCode}`,
+        description: altaPayReversalDescription(payment.merchantName),
         memo: trimmed,
         referenceCode: `${revBase}-OUT`,
         reviewedById: actorUserId,
@@ -174,7 +174,7 @@ export async function reverseAltaPayPayment(
         type: "DEPOSIT",
         amount: outTx.amount,
         status: "APPROVED",
-        description: `Alta Pay reversal credit · ${payment.referenceCode}`,
+        description: altaPayReversalDescription(payment.merchantName),
         memo: trimmed,
         referenceCode: `${revBase}-IN`,
         reviewedById: actorUserId,

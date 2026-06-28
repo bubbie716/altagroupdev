@@ -15,6 +15,9 @@ import {
 import type { InternalLoanApplicationRow, LoanProductTypeCode } from "@/lib/bank/lending-types";
 import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { ApplicationRelationshipQueueCell } from "@/components/internal/relationship-queue-cell";
+import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
+import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -185,13 +188,30 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
   );
 }
 
-export function internalLendingColumns() {
+export function internalLendingColumns(
+  summaries: {
+    personal: Record<string, RelationshipProfileSummary>;
+    company: Record<string, CompanyRelationshipProfileSummary>;
+  } = { personal: {}, company: {} },
+) {
   return [
     {
       key: "applicant",
       header: "Applicant",
       cell: (row: InternalLoanApplicationRow) => (
         <span className="font-mono text-[11px]">{row.applicantLabel}</span>
+      ),
+    },
+    {
+      key: "relationship",
+      header: "Relationship",
+      cell: (row: InternalLoanApplicationRow) => (
+        <ApplicationRelationshipQueueCell
+          applicantUserId={row.applicantUserId}
+          companyId={row.companyId}
+          personalSummary={summaries.personal[row.applicantUserId]}
+          companySummary={row.companyId ? summaries.company[row.companyId] : undefined}
+        />
       ),
     },
     {

@@ -1,6 +1,12 @@
 import { randomBytes } from "node:crypto";
 import type { BankAccount, BankAccountStatus, BankAccountType, InterestRatePeriod } from "@prisma/client";
 import type { BankAccountTypeCode, AccountInterestInfo } from "@/lib/bank/backend-types";
+import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
+import {
+  accountInterestPaymentDescription,
+  monthlyDecimalRateToPercent,
+  type InterestPaymentBasis,
+} from "@/lib/bank/customer-transaction-copy";
 import { fromDbBankAccountType } from "@/server/bank-mapper";
 import { prisma } from "@/server/db";
 
@@ -341,7 +347,13 @@ export async function accrueInterestForAccount(
           type: "INTEREST_CREDIT",
           amount: interestAmount,
           status: "APPROVED",
-          description: "Interest credit",
+          description: accountInterestPaymentDescription(
+            formatBankAccountTypeLabel(fromDbBankAccountType(account.accountType)),
+            {
+              mode: "percentage",
+              ratePercent: monthlyDecimalRateToPercent(rate),
+            },
+          ),
           referenceCode,
           reviewedById: actorUserId ?? null,
           reviewedAt: processedAt,

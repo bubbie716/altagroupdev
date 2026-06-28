@@ -18,6 +18,14 @@ import type {
   SubmitCashAdvanceInput,
   SubmitEmployeeCashAdvanceInput,
 } from "@/lib/bank/alta-card-types";
+import {
+  altaCardAdjustmentDescription,
+  altaCardCashAdvanceBankDescription,
+  altaCardCashAdvanceCardDescription,
+  altaCardPaymentDescription,
+  altaCardReversalDescription,
+  altaPayToDescription,
+} from "@/lib/bank/customer-transaction-copy";
 import { canManageCompanyAltaCard, isAdmin, isOperator } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
@@ -655,7 +663,7 @@ export async function submitCashAdvance(
       cardId: card.id,
       type: "cash_advance",
       amount: input.amount,
-      description: `Cash advance to ${destination.accountName}`,
+      description: altaCardCashAdvanceCardDescription(card.cardLastFour),
       actorUserId: userId,
       relatedBankAccountId: destination.id,
       referenceCode,
@@ -673,7 +681,7 @@ export async function submitCashAdvance(
         type: "DEPOSIT",
         amount: input.amount,
         status: "APPROVED",
-        description: `Alta Card cash advance · •••• ${card.cardLastFour}`,
+        description: altaCardCashAdvanceBankDescription(card.cardLastFour),
         memo,
         referenceCode: `${referenceCode}-DEP`,
         proofImageUrl: null,
@@ -751,7 +759,6 @@ export async function submitEmployeeCashAdvance(
 
   const referenceCode = generateCardTxReference("CASH");
   const memo = input.memo?.trim() || null;
-  const companyName = employeeCard.company?.name ?? "Company";
 
   const result = await prisma.$transaction(async (tx) => {
     const cardTx = await chargeAltaCardInTransaction(tx, {
@@ -759,7 +766,7 @@ export async function submitEmployeeCashAdvance(
       employeeCardId: employeeCard.id,
       type: "cash_advance",
       amount: input.amount,
-      description: `Employee cash advance to ${destination.accountName}`,
+      description: altaCardCashAdvanceCardDescription(employeeCard.cardLastFour),
       actorUserId: userId,
       relatedBankAccountId: destination.id,
       referenceCode,
@@ -781,7 +788,7 @@ export async function submitEmployeeCashAdvance(
         type: "DEPOSIT",
         amount: input.amount,
         status: "APPROVED",
-        description: `Alta Card employee cash advance · ${companyName} · •••• ${employeeCard.cardLastFour}`,
+        description: altaCardCashAdvanceBankDescription(employeeCard.cardLastFour),
         memo,
         referenceCode: `${referenceCode}-DEP`,
         proofImageUrl: null,
@@ -860,7 +867,7 @@ export async function submitCardPayment(
         type: "WITHDRAWAL",
         amount: paymentAmount,
         status: "APPROVED",
-        description: `Alta Card payment · •••• ${card.cardLastFour}`,
+        description: altaCardPaymentDescription(card.cardLastFour),
         memo,
         referenceCode: `${referenceCode}-WD`,
         proofImageUrl: null,
@@ -873,7 +880,7 @@ export async function submitCardPayment(
         type: "PAYMENT",
         status: "COMPLETED",
         amount: toDecimal(paymentAmount),
-        description: `Payment from ${source.accountName}`,
+        description: altaCardPaymentDescription(card.cardLastFour),
         relatedBankAccountId: source.id,
         relatedBankTransactionId: bankTx.id,
         referenceCode,
@@ -915,6 +922,12 @@ export async function submitCardPayment(
     },
     card.ownerUserId,
     card.companyId,
+  );
+
+  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromAltaCardContextBestEffort(
+    { ownerUserId: card.ownerUserId, companyId: card.companyId },
+    "alta-card-payment-made",
   );
 
   return {
@@ -980,7 +993,7 @@ export async function submitCardAutopayPayment(
         type: "WITHDRAWAL",
         amount: paymentAmount,
         status: "APPROVED",
-        description: `Alta Card autopay · •••• ${card.cardLastFour}`,
+        description: altaCardPaymentDescription(card.cardLastFour),
         memo,
         referenceCode: `${referenceCode}-WD`,
         proofImageUrl: null,
@@ -993,7 +1006,7 @@ export async function submitCardAutopayPayment(
         type: "PAYMENT",
         status: "COMPLETED",
         amount: toDecimal(paymentAmount),
-        description: `Autopay from ${source.accountName}`,
+        description: altaCardPaymentDescription(card.cardLastFour),
         relatedBankAccountId: source.id,
         relatedBankTransactionId: bankTx.id,
         referenceCode,
@@ -1088,7 +1101,7 @@ export async function createAdminAltaCardAdjustment(
         type: toDbAltaCardTransactionType(type),
         status: "COMPLETED",
         amount: toDecimal(input.amount),
-        description: `Admin adjustment: ${input.reason.trim()}`,
+        description: altaCardAdjustmentDescription(card.cardLastFour),
         referenceCode,
         createdByUserId: adminUserId,
         settledAt: new Date(),
@@ -1183,7 +1196,7 @@ export async function reverseAltaCardTransaction(
         type: "REVERSAL",
         status: "COMPLETED",
         amount: toDecimal(amount),
-        description: `Reversal: ${original.description}${reason ? ` — ${reason}` : ""}`,
+        description: altaCardReversalDescription(original.description),
         referenceCode,
         createdByUserId: adminUserId,
         settledAt: new Date(),
@@ -1391,18 +1404,11 @@ export async function chargeAltaCardForAltaPay(
       badRequest("Select a valid Alta Card");
     }
 
-    const company = card.companyId
-      ? await tx.company.findUnique({ where: { id: card.companyId }, select: { name: true } })
-      : null;
-
     const row = await chargeAltaCardInTransaction(tx, {
       cardId: card.id,
       type: "alta_pay",
       amount: params.amount,
-      description:
-        card.cardType === "BUSINESS"
-          ? `Alta Pay to ${params.companyName} (${company?.name ?? "Business"} card)`
-          : `Alta Pay to ${params.companyName}`,
+      description: altaPayToDescription(params.companyName),
       actorUserId: params.user.id,
       merchantCompanyId: params.companyId,
       relatedAltaPayPaymentId: params.altaPayReference,
@@ -1427,7 +1433,7 @@ export async function chargeAltaCardForAltaPay(
     employeeCardId: employeeCard.id,
     type: "alta_pay",
     amount: params.amount,
-    description: `Alta Pay to ${params.companyName} (${employeeCard.company.name} employee card)`,
+    description: altaPayToDescription(params.companyName),
     actorUserId: params.user.id,
     merchantCompanyId: params.companyId,
     relatedAltaPayPaymentId: params.altaPayReference,

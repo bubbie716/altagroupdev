@@ -10,6 +10,10 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import {
+  loanInterestChargePaymentDescription,
+  normalizeTransactionDescriptionSeparators,
+} from "@/lib/bank/customer-transaction-copy";
 import type {
   InternalLoanApplicationRow,
   InternalActiveLoanRow,
@@ -86,12 +90,53 @@ const LEDGER_TYPE_FROM_DB: Record<DbLoanLedgerEntryType, LoanLedgerEntryTypeCode
 };
 
 const LEDGER_TYPE_LABELS: Record<LoanLedgerEntryTypeCode, string> = {
-  disbursement: "Disbursement",
-  payment: "Payment",
-  interest_charge: "Interest charge",
-  adjustment: "Adjustment",
-  status_change: "Status change",
+  disbursement: "Loan Funding",
+  payment: "Loan Payment",
+  interest_charge: "Loan Interest Charge",
+  adjustment: "Loan Adjustment",
+  status_change: "Status Change",
 };
+
+const CUSTOMER_HIDDEN_LEDGER_DESCRIPTIONS = [
+  /^Loan frozen by operator$/i,
+  /^Loan unfrozen by operator$/i,
+  /^Loan approved — no linked disbursement account$/i,
+  /^Marked paid off by operator$/i,
+  /^Waived \d+ unpaid interest schedule item\(s\)$/i,
+  /^Loan receivable established/i,
+];
+
+function sanitizeCustomerLoanLedgerDescription(description: string): string {
+  const exact: Record<string, string> = {
+    "Automatic loan payment": "Loan Payment",
+    "Loan payment": "Loan Payment",
+    "Loan paid off": "Loan Payoff",
+    "Principal disbursed to linked account": "Loan Funding",
+    "Month 1 interest guaranteed at disbursement": "Loan Interest Charge",
+    "Month 1 interest guaranteed at funding": "Loan Interest Charge",
+    "Operator balance adjustment": "Loan Adjustment",
+  };
+  if (exact[description]) return exact[description];
+
+  const guaranteedMatch = description.match(/^Interest guaranteed · month (\d+)$/i);
+  if (guaranteedMatch) {
+    return loanInterestChargePaymentDescription(Number(guaranteedMatch[1]));
+  }
+
+  if (description.startsWith("Loan receivable established")) {
+    return "Loan Funding";
+  }
+
+  if (description.includes(" — ")) {
+    return normalizeTransactionDescriptionSeparators(description);
+  }
+
+  return description;
+}
+
+function isCustomerVisibleLoanLedgerEntry(description: string): boolean {
+  return !CUSTOMER_HIDDEN_LEDGER_DESCRIPTIONS.some((pattern) => pattern.test(description));
+}
 
 const PAYMENT_STATUS_FROM_DB: Record<DbLoanPaymentStatus, LoanPaymentStatusCode> = {
   PENDING: "pending",
@@ -417,13 +462,14 @@ export function mapLoanLedgerEntryRow(
   record: Prisma.LoanLedgerEntryGetPayload<object>,
 ): LoanLedgerEntryRow {
   const type = LEDGER_TYPE_FROM_DB[record.type as DbLoanLedgerEntryType];
+  const description = sanitizeCustomerLoanLedgerDescription(record.description);
   return {
     id: record.id,
     type,
     typeLabel: LEDGER_TYPE_LABELS[type],
     amount: decimalToNumber(record.amount),
     balanceAfter: decimalToNumber(record.balanceAfter),
-    description: record.description,
+    description,
     createdAt: record.createdAt.toISOString(),
   };
 }
@@ -553,7 +599,9 @@ export function mapLoanDetailRow(record: LoanDetailRecord, user?: AltaUser): Loa
   return {
     ...base,
     payments: record.payments.map(mapLoanPaymentRow),
-    ledgerEntries: record.ledgerEntries.map(mapLoanLedgerEntryRow),
+    ledgerEntries: record.ledgerEntries
+      .filter((entry) => isCustomerVisibleLoanLedgerEntry(entry.description))
+      .map(mapLoanLedgerEntryRow),
   };
 }
 

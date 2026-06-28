@@ -483,6 +483,26 @@ export async function acceptAltaCardApplication(
     application.companyId,
   );
 
+  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  const { formatAltaCardOpenedCustomerCopy } = await import("@/lib/bank/relationship-timeline-historical");
+  const openedCopy = formatAltaCardOpenedCustomerCopy(tier, { business: !!application.companyId });
+  await recordRelationshipTimelineEvent({
+    userId: application.applicantUserId,
+    eventType: "ALTA_CARD_OPENED",
+    title: openedCopy.title,
+    description: openedCopy.description,
+    occurredAt: card.openedAt ?? new Date(),
+    relatedEntityType: "ALTA_CARD",
+    relatedEntityId: card.id,
+    actorUserId: userId,
+  });
+
+  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromAltaCardContextBestEffort(
+    { ownerUserId: application.applicantUserId, companyId: application.companyId },
+    application.companyId ? "business-card-opened" : "alta-card-opened",
+  );
+
   return mapAltaCardRow(card);
 }
 

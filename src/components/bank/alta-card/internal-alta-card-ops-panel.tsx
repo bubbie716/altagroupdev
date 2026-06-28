@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { AltaCardStatusCode, AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_TIER_LABELS,
@@ -53,13 +53,20 @@ function ReasonField({
 export function InternalAltaCardOpsPanel({
   ops,
   onRefresh,
+  suggestedDefaults,
 }: {
   ops: InternalAltaCardOperationsContext;
   onRefresh: () => Promise<void>;
+  suggestedDefaults?: {
+    tier?: AltaCardTierCode;
+    limit?: number;
+    rate?: number;
+    recommendationId?: string;
+  };
 }) {
   const user = useCurrentUser();
   const admin = user ? isAdmin(user) : false;
-  const { card, utilization, lastPayment, lastTransaction, relationship, tierDefaultLimit, tierDefaultRate, employeeMemberOptions } =
+  const { card, utilization, lastPayment, lastTransaction, tierDefaultLimit, tierDefaultRate, employeeMemberOptions } =
     ops;
 
   const [actionReason, setActionReason] = useState("");
@@ -75,6 +82,13 @@ export function InternalAltaCardOpsPanel({
   const [adjAmount, setAdjAmount] = useState("");
   const [adjReason, setAdjReason] = useState("");
   const [empEditLimit, setEmpEditLimit] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!suggestedDefaults) return;
+    if (suggestedDefaults.tier) setTier(suggestedDefaults.tier);
+    if (suggestedDefaults.limit != null) setLimit(String(suggestedDefaults.limit));
+    if (suggestedDefaults.rate != null) setRate(String(suggestedDefaults.rate));
+  }, [suggestedDefaults]);
 
   async function runStatusChange(status: AltaCardStatusCode) {
     if (!actionReason.trim()) return;
@@ -224,83 +238,6 @@ export function InternalAltaCardOpsPanel({
         </dl>
         </div>
       </div>
-
-      <section className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-        <h3 className="font-serif text-[18px]">Relationship pricing recommendation</h3>
-        <p className="mt-1 text-[12px] text-muted-foreground">
-          Recommendation only — does not auto-approve. Score: {relationship.relationshipScore}/100
-        </p>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Recommended tier
-            </dt>
-            <dd className="mt-1">{ALTA_CARD_TIER_LABELS[relationship.recommendedTier]}</dd>
-          </div>
-          <div>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Recommended limit
-            </dt>
-            <dd className="mt-1 font-mono tabular-nums">
-              {formatAltaCardCurrency(relationship.recommendedCreditLimit)}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Recommended rate
-            </dt>
-            <dd className="mt-1 font-mono tabular-nums">
-              {formatAltaCardRate(relationship.recommendedInterestRate)}
-            </dd>
-          </div>
-        </dl>
-        <ul className="mt-4 space-y-1 text-[12px]">
-          {relationship.relationshipFactors.map((f) => (
-            <li key={f.key} className="flex justify-between gap-4">
-              <span>
-                {f.label}: {f.value}
-              </span>
-              <span className="font-mono text-muted-foreground">
-                {f.impact >= 0 ? "+" : ""}
-                {f.impact}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <BankReviewButton
-            label="Apply recommendation to terms"
-            variant="primary"
-            onAction={async () => {
-              await updateAltaCardLimitAdminRecord({
-                data: {
-                  cardId: card.id,
-                  creditLimit: relationship.recommendedCreditLimit,
-                  reason: "Apply relationship pricing recommendation",
-                },
-              });
-              await updateAltaCardRateAdminRecord({
-                data: {
-                  cardId: card.id,
-                  interestRate: relationship.recommendedInterestRate,
-                  reason: "Apply relationship pricing recommendation",
-                },
-              });
-              await changeAltaCardTierAdminRecord({
-                data: {
-                  cardId: card.id,
-                  tier: relationship.recommendedTier,
-                  reason: "Apply relationship pricing recommendation",
-                },
-              });
-              setLimit(String(relationship.recommendedCreditLimit));
-              setRate(String(relationship.recommendedInterestRate));
-              setTier(relationship.recommendedTier);
-              await onRefresh();
-            }}
-          />
-        </div>
-      </section>
 
       <section className="space-y-3 rounded-xl border border-border bg-surface-1/80 p-5">
         <h3 className="font-serif text-[18px]">Status controls</h3>

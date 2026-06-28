@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import { isAdmin } from "@/lib/auth/permissions";
 import { roundMoney } from "@/lib/bank/alta-card-minimum-payment";
+import { altaCardInterestChargeDescription } from "@/lib/bank/customer-transaction-copy";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
@@ -157,7 +158,7 @@ export async function applyStatementInterest(
         type: "INTEREST",
         status: "COMPLETED",
         amount: toDecimal(interestAmount),
-        description: `Interest on statement #${fresh.statementNumber}`,
+        description: altaCardInterestChargeDescription(fresh.statementNumber),
         referenceCode,
         createdByUserId: actorUserId ?? null,
         settledAt: new Date(),

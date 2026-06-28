@@ -11,15 +11,21 @@ import { formatCompanyRole } from "@/lib/internal/format";
 import { fetchCompany360 } from "@/lib/internal/ops-platform.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { florin } from "@/lib/bank/api";
+import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
+import { fetchAdminCompanyRelationshipDetail } from "@/lib/internal/company-relationship-intelligence.functions";
+import { CompanyRelationshipSummaryCard } from "@/components/internal/company-relationship-timeline-panel";
 
 export const Route = createFileRoute("/internal/companies/$companyId")({
   loader: async ({ params }) => {
     try {
-      const data = await fetchCompany360({ data: params.companyId });
-      const auditLogs = await fetchAuditLogsForEntity({
-        data: { entityType: "COMPANY", entityId: params.companyId },
-      });
-      return { data, auditLogs };
+      const [data, auditLogs, relationship] = await Promise.all([
+        fetchCompany360({ data: params.companyId }),
+        fetchAuditLogsForEntity({
+          data: { entityType: "COMPANY", entityId: params.companyId },
+        }),
+        fetchAdminCompanyRelationshipDetail({ data: params.companyId }).catch(() => null),
+      ]);
+      return { data, auditLogs, relationship };
     } catch {
       return null;
     }
@@ -43,8 +49,9 @@ function InternalCompanyDetail() {
     );
   }
 
-  const { data, auditLogs } = loaderData;
+  const { data, auditLogs, relationship } = loaderData;
   const { company, notes, timeline, bankAccounts, loans, altaPayActivity, statements, verificationTimeline, relationshipManager } = data;
+  const display = relationship?.calculated ?? relationship?.profile;
 
   return (
     <InternalPageShell
@@ -75,6 +82,19 @@ function InternalCompanyDetail() {
           <div className="mt-2 type-finance">{data.auditCount}</div>
         </Card>
       </div>
+
+      {display && relationship ? (
+        <div className="mb-8">
+          <CompanyRelationshipSummaryCard
+            companyId={company.id}
+            companyName={company.name}
+            score={display.relationshipScore}
+            tier={COMPANY_RELATIONSHIP_TIER_LABELS[display.relationshipTier]}
+            totalBusinessAssets={display.totalBusinessAssets}
+            commercialEligible={display.commercialBankingEligible}
+          />
+        </div>
+      ) : null}
 
       <Section title="Members">
         <Card className="!p-0">

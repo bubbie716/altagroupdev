@@ -4,9 +4,9 @@ const TRANSACTION_TYPE_LABELS: Record<BankTransactionTypeCode, string> = {
   deposit: "Deposit",
   withdrawal: "Withdrawal",
   adjustment: "Adjustment",
-  loan_payment: "Loan payment",
-  interest_charge: "Interest charge",
-  interest_credit: "Interest Credit",
+  loan_payment: "Loan Payment",
+  interest_charge: "Interest Charge",
+  interest_credit: "Interest Payment",
 };
 
 export function formatBankTransactionTypeLabel(type: BankTransactionTypeCode): string {

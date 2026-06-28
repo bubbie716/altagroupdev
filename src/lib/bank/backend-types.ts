@@ -267,6 +267,8 @@ export type AdminAccountAdjustmentInput = {
   reason: string;
   referenceCode?: string;
   allowOverdraft?: boolean;
+  /** When set, used as the customer-facing bank transaction description. */
+  customerDescription?: string;
 };
 
 export type InternalBankAccountFilters = {

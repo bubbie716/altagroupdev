@@ -5,6 +5,10 @@ import {
   formatBankAccountTypeLabel,
 } from "@/lib/bank/backend-types";
 import { roundCurrency } from "@/lib/bank/account-interest-service";
+import {
+  accountInterestPaymentDescription,
+  type InterestPaymentBasis,
+} from "@/lib/bank/customer-transaction-copy";
 import type {
   ManualInterestApplicationInput,
   ManualInterestApplyAccountResult,
@@ -279,11 +283,15 @@ async function findExistingBatch(idempotencyKey: string): Promise<ManualInterest
   };
 }
 
-function buildTransactionDescription(input: ManualInterestApplicationInput): string {
-  const labels = selectedCategoryLabels(input);
-  const categoryPart =
-    labels.length === 1 ? labels[0] : labels.length > 1 ? "Multi-Category" : "Manual";
-  return `Manual Interest Credit — ${categoryPart}`;
+function buildTransactionDescription(
+  accountTypeLabel: string,
+  input: ManualInterestApplicationInput,
+): string {
+  const basis: InterestPaymentBasis =
+    input.mode === "FIXED_AMOUNT"
+      ? { mode: "fixed" }
+      : { mode: "percentage", ratePercent: input.percentageRate ?? 0 };
+  return accountInterestPaymentDescription(accountTypeLabel, basis);
 }
 
 function buildTransactionMemo(
@@ -309,7 +317,6 @@ export async function applyManualInterestApplication(
 
   const preview = await previewManualInterestApplication(input);
   const batchReferenceId = generateManualInterestBatchReference();
-  const description = buildTransactionDescription(input);
   const memo = buildTransactionMemo(batchReferenceId, input);
   const now = new Date();
 
@@ -371,7 +378,7 @@ export async function applyManualInterestApplication(
             type: "INTEREST_CREDIT",
             amount: credit,
             status: "APPROVED",
-            description,
+            description: buildTransactionDescription(row.accountTypeLabel, input),
             memo,
             referenceCode,
             reviewedById: actorUserId,
@@ -412,6 +419,7 @@ export async function applyManualInterestApplication(
         metadata: {
           batchReferenceId,
           mode: input.mode,
+          percentageRate: input.percentageRate ?? null,
           interestAmount: row.interestCredit,
           referenceCode: transaction.referenceCode,
           reason: input.reason.trim(),

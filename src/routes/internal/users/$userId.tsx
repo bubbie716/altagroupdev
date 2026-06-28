@@ -11,10 +11,19 @@ import { fetchCustomer360 } from "@/lib/internal/ops-platform.functions";
 import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
 import { InternalAuditTable, AccountActivityLink } from "@/components/internal/internal-audit-table";
 import { InternalNotePanel } from "@/components/internal/internal-note-panel";
+import { RelationshipIntelligenceOperatorPanel } from "@/components/internal/relationship-intelligence-operator-panel";
+import { fetchRelationshipOperatorPanel } from "@/lib/internal/relationship-intelligence.functions";
 
 export const Route = createFileRoute("/internal/users/$userId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    privateReview: search.privateReview === true || search.privateReview === "true",
+  }),
   loader: async ({ params }) => {
-    return fetchCustomer360({ data: params.userId });
+    const [customer360, operatorPanel] = await Promise.all([
+      fetchCustomer360({ data: params.userId }),
+      fetchRelationshipOperatorPanel({ data: params.userId }),
+    ]);
+    return { ...customer360, operatorPanel };
   },
   head: ({ loaderData }) => ({
     meta: [{ title: `${loaderData?.user.discordUsername ?? "User"} — Alta Internal` }],
@@ -23,7 +32,8 @@ export const Route = createFileRoute("/internal/users/$userId")({
 });
 
 function InternalUserDetailPage() {
-  const { user, notes, timeline, altaPayActivity, isPrivateClient } = Route.useLoaderData();
+  const { user, notes, timeline, altaPayActivity, isPrivateClient, operatorPanel } = Route.useLoaderData();
+  const { privateReview } = Route.useSearch();
 
   return (
     <InternalPageShell
@@ -106,6 +116,24 @@ function InternalUserDetailPage() {
           </dl>
         </div>
       </div>
+
+      {privateReview ? (
+        <div className="mb-8 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
+          Private banking enrollment review — use Access tags below to grant{" "}
+          <span className="font-medium">private_client</span> after manual approval. Recommendations do not auto-enroll.
+        </div>
+      ) : null}
+
+      <Section title="Relationship intelligence" className="mb-10">
+        <RelationshipIntelligenceOperatorPanel
+          userId={user.id}
+          panel={operatorPanel.panel}
+          recommendations={operatorPanel.recommendations}
+          timelinePreview={operatorPanel.timelinePreview}
+          preApprovalReadiness={operatorPanel.preApprovalReadiness}
+          altaCardId={operatorPanel.altaCardId}
+        />
+      </Section>
 
       <div className="grid gap-10 lg:grid-cols-2">
         <Section title="Access tags">

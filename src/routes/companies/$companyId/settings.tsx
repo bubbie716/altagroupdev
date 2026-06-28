@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { CompanySubNav } from "@/components/companies/company-sub-nav";
 import { CompanySettingsForm } from "@/components/companies/company-settings-form";
@@ -33,14 +33,6 @@ function CompanySettingsPage() {
       title={`${company.name} — Settings`}
       description="Company profile settings. Verification status and listing state are managed by Alta operations."
     >
-      <Link
-        to="/companies/$companyId"
-        params={{ companyId: company.id }}
-        className="mb-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:underline"
-      >
-        ← Company overview
-      </Link>
-
       <CompanySubNav companyId={company.id} />
       <CompanySettingsForm company={company} />
     </PageShell>

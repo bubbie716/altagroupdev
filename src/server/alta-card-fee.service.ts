@@ -4,6 +4,12 @@ import type { AltaUser } from "@/lib/auth/types";
 import { isAdmin } from "@/lib/auth/permissions";
 import type { AltaCardFeeRow, AltaCardFeeStatusCode, AltaCardFeeTypeCode } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_LATE_FEE_AMOUNT } from "@/lib/bank/alta-card-fee-config";
+import {
+  altaCardFeeCreditDescription,
+  altaCardLateFeeDescription,
+  formatAltaCardFeeTypeLabel,
+  TX_DESC_SEP,
+} from "@/lib/bank/customer-transaction-copy";
 import { roundMoney } from "@/lib/bank/alta-card-minimum-payment";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
@@ -140,7 +146,7 @@ export async function applyLateFeeForStatement(
         type: "FEE",
         status: "COMPLETED",
         amount: toDecimal(feeAmount),
-        description: `Late payment fee — statement #${fresh.statementNumber}`,
+        description: altaCardLateFeeDescription(fresh.statementNumber),
         referenceCode,
         createdByUserId: actorUserId ?? null,
         settledAt: new Date(),
@@ -278,7 +284,7 @@ export async function waiveAltaCardFee(
         type: "ADJUSTMENT_CREDIT",
         status: "COMPLETED",
         amount: toDecimal(feeAmount),
-        description: `Fee waiver — ${freshFee.type.replace(/_/g, " ").toLowerCase()}`,
+        description: altaCardFeeCreditDescription(formatAltaCardFeeTypeLabel(freshFee.type)),
         referenceCode,
         createdByUserId: adminUserId,
         settledAt: new Date(),
@@ -424,7 +430,7 @@ export async function applyManualFeeForCard(
         type: "FEE",
         status: "COMPLETED",
         amount: toDecimal(feeAmount),
-        description: `Manual fee — ${reason.trim()}`,
+        description: `Alta Card Fee${TX_DESC_SEP}•••• ${card.cardLastFour}`,
         referenceCode,
         createdByUserId: adminUserId,
         settledAt: new Date(),

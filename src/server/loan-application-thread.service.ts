@@ -187,11 +187,13 @@ function mapThreadContext(
     canSend: isStaff(user)
       ? thread.status !== "CLOSED"
       : canSendAsApplicant(user, thread),
+    applicantUserId: app.applicantUserId,
     applicantName: app.applicantUser.discordUsername,
     applicantAvatarUrl: discordAvatarUrl(
       app.applicantUser.discordId,
       app.applicantUser.discordAvatar,
     ),
+    companyId: app.companyId,
     companyName: app.company?.name ?? null,
     productLabel: LOAN_PRODUCT_LABELS[productType],
     requestedAmount: Number(app.requestedAmount),

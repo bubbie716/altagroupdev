@@ -6,29 +6,43 @@ import { InternalNotePanel } from "@/components/internal/internal-note-panel";
 import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
 import { fetchInternalLoanDetailOps, fetchActivityTimeline } from "@/lib/internal/ops-platform.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
+import { fetchLoanBorrowerRelationshipSummary, fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
+import { ResolvedLendingRelationshipIntegrationBlock } from "@/components/internal/relationship-integration-blocks";
 import { LoanPaymentScheduleTable } from "@/components/bank/loan-payment-schedule-table";
 import { InternalLoanPaymentForm } from "@/components/internal/internal-loan-payment-form";
 
 export const Route = createFileRoute("/internal/lending/loans/$loanId")({
   loader: async ({ params }) => {
-    const [loan, notes, timeline] = await Promise.all([
+    const [loan, notes, timeline, relationship] = await Promise.all([
       fetchInternalLoanDetailOps({ data: params.loanId }),
       fetchInternalNotes({ data: { targetType: "LOAN", targetId: params.loanId } }),
       fetchActivityTimeline({ data: { entityType: "LOAN", entityId: params.loanId } }),
+      fetchLoanBorrowerRelationshipSummary({ data: params.loanId }),
     ]);
-    return { loan, notes, timeline };
+    const integration = relationship.userId
+      ? await fetchResolvedRelationshipIntegrationBestEffort({
+          userId: relationship.userId,
+          companyId: relationship.companyId,
+          context: "LENDING",
+        })
+      : null;
+    return { loan, notes, timeline, relationship, integration };
   },
   component: InternalLoanDetailPage,
 });
 
 function InternalLoanDetailPage() {
-  const { loan, notes, timeline } = Route.useLoaderData();
+  const { loan, notes, timeline, relationship, integration } = Route.useLoaderData();
 
   return (
     <InternalPageShell title="Loan servicing" description={loan.borrowerLabel}>
       <Link to="/internal/lending" className="mb-6 inline-block font-mono text-[12px] text-gold hover:underline">
         ← Lending queue
       </Link>
+
+      {integration && relationship.userId ? (
+        <ResolvedLendingRelationshipIntegrationBlock integration={integration} />
+      ) : null}
 
       <InternalActiveLoanCard loan={loan} />
 

@@ -14,15 +14,29 @@ import {
 } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
 import { fetchInternalAltaCardApplicationsFiltered } from "@/lib/bank/alta-card-application.functions";
+import { fetchApplicationRelationshipSummaries } from "@/lib/internal/relationship-intelligence.functions";
+import {
+  ApplicationRelationshipQueueCell,
+  RelationshipQueueCallout,
+} from "@/components/internal/relationship-queue-cell";
 
 export const Route = createFileRoute("/internal/alta-card/applications/")({
-  loader: async () => fetchInternalAltaCardApplicationsFiltered({ data: {} }),
+  loader: async () => {
+    const applications = await fetchInternalAltaCardApplicationsFiltered({ data: {} });
+    const summaries = await fetchApplicationRelationshipSummaries({
+      data: applications.map((a) => ({
+        companyId: a.companyId,
+        applicantUserId: a.applicantUserId,
+      })),
+    });
+    return { applications, summaries };
+  },
   head: () => ({ meta: [{ title: "Alta Card Applications — Alta Internal" }] }),
   component: InternalAltaCardApplications,
 });
 
 function InternalAltaCardApplications() {
-  const initial = Route.useLoaderData();
+  const { applications: initial, summaries } = Route.useLoaderData();
   const [applications, setApplications] = useState(initial);
   const [statusFilter, setStatusFilter] = useState<AltaCardApplicationStatusCode | "">("");
   const [typeFilter, setTypeFilter] = useState<AltaCardTypeCode | "">("");
@@ -55,6 +69,18 @@ function InternalAltaCardApplications() {
       key: "created",
       header: "Submitted",
       cell: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+    {
+      key: "relationship",
+      header: "Relationship",
+      cell: (row) => (
+        <ApplicationRelationshipQueueCell
+          applicantUserId={row.applicantUserId}
+          companyId={row.companyId}
+          personalSummary={summaries.personal[row.applicantUserId]}
+          companySummary={row.companyId ? summaries.company[row.companyId] : undefined}
+        />
+      ),
     },
     {
       key: "dealRoom",
@@ -95,6 +121,8 @@ function InternalAltaCardApplications() {
       >
         ← Alta Card ops
       </Link>
+
+      <RelationshipQueueCallout context="ALTA_CARD" />
 
       <div className="mb-6 flex flex-wrap gap-2">
         <select

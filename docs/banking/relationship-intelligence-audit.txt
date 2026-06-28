@@ -1,0 +1,714 @@
+Relationship Intelligence — Production Readiness Audit
+======================================================
+
+Audit-only review of personal RI (V1–V4), company RI, integrations, security, and
+documentation. Findings are categorized by severity with recommended fixes.
+
+Date: 2025 (audit session)
+Scope: Personal + Company Relationship Intelligence, scoring, timeline,
+recommendations, product integrations, admin/customer UI, services, models, docs,
+permissions, schedulers, audit logging.
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+Relationship Intelligence is a strong foundation with clear read-only posture,
+operator tooling, V4 product integrations, and separate company profiles. It is
+NOT production-ready as a core banking system until critical calculation bugs,
+staleness, and scheduler gaps are resolved.
+
+Strengths:
+- Layered operator auth, customer sanitization (no V2 scores/factors)
+- Recommendation prefill without auto-apply
+- Company aggregation scoped to companyId
+- Extensive documentation
+
+Blockers:
+- Personal overdue penalties never apply (cap() bug)
+- Alta Pay double-counting
+- Broken asset-milestone backfill
+- Unwired schedulers
+- Profiles go stale without manual refresh
+- Dual legacy (0–100) vs V2 (0–1000) scoring on Alta Card pages
+
+
+================================================================================
+CRITICAL
+================================================================================
+
+C1 — Personal overdue installment penalties never apply
+Severity: Critical
+Location: src/server/relationship-intelligence.service.ts — cap() (L52–54),
+          computeScoreFromInputs() (L525–537)
+
+Personal cap() floors negatives at zero: Math.min(Math.max(value, 0), max).
+Overdue impact is negative (-25 per installment), so cap(-25, 100) → 0 and score
+never decreases for overdue installments despite factors UI showing a penalty.
+
+Company cap() handles negatives correctly — behavior diverges.
+
+Why it matters: Delinquent borrowers can retain inflated scores and tiers,
+affecting lending, card, and private eligibility.
+
+Recommended fix: Align personal cap() with company logic, or apply negative caps
+without flooring at zero. Add tests for multi-overdue scenarios.
+
+
+C2 — Alta Pay volume double-counted (personal)
+Severity: Critical
+Location: src/server/relationship-intelligence.service.ts —
+          aggregateRelationshipInputs() (L149–167, L284–287)
+
+Two aggregations are summed:
+1. All approved txns with "Alta Pay" on personal + member-company accounts
+2. DEPOSIT txns with "Alta Pay" on company accounts
+
+Company Alta Pay deposits match both → inflated lifetimeAltaPayVolume, score
+(up to +100 Alta Pay cap), and private-banking signals.
+
+Why it matters: Business-heavy users get materially overstated relationship
+strength on personal profiles.
+
+Recommended fix: Use a single scoped query, or exclude DEPOSITs already counted
+in the sent aggregate.
+
+
+C3 — Asset milestone backfill throws at runtime
+Severity: Critical
+Location: src/server/relationship-timeline.service.ts —
+          backfillAssetMilestonesFromSnapshots() (L413)
+
+References undefined profileId inside the function. Asset milestone backfill
+fails when invoked.
+
+Why it matters: Admin "Backfill timeline" partially fails; asset milestones never
+populate.
+
+Recommended fix: Resolve profileId via resolveProfileId(userId) like other
+backfill paths.
+
+
+C4 — No automated profile refresh in production
+Severity: Critical (operational)
+Location: Schedulers exist but no cron routes; no product-event hooks
+
+- relationship-intelligence-scheduler.service.ts and
+  relationship-intelligence-recommendation-scheduler.service.ts are NOT wired to
+  /api/cron/* (only billing, statements, loan-interest, transfers exist).
+- No refreshRelationshipProfile calls from bank.service, loan.service,
+  lending.service, or alta-card services.
+- Customer /bank/relationship reads persisted profiles → can show stale
+  tier/assets indefinitely.
+
+Why it matters: Core banking intelligence that doesn't update is misleading for
+operators and customers.
+
+Recommended fix: Register cron routes; add best-effort refresh on high-signal
+events (loan funded, card opened, large deposit); document SLA if cron-only.
+
+
+================================================================================
+HIGH
+================================================================================
+
+H1 — Personal RI intentionally mixes all member company data
+Severity: High
+Location: relationship-intelligence.service.ts — aggregateRelationshipInputs()
+
+Any companyMembership pulls company bank balances, loans, cards, Alta Pay, and
+product bonuses into the personal score. Docs state company profiles are
+independent; personal profiles still include company data. Multi-company members
+stack assets; minor members inherit full company financials.
+
+Why it matters: Conflicts with data-isolation intent; same assets scored on
+company profile AND every member's personal profile.
+
+Recommended fix: Product decision: (A) narrow personal aggregation to
+{ userId, companyId: null } only, or (B) document dual-counting and cap company
+contribution. Do not ship pre-approvals until decided.
+
+
+H2 — Dual scoring systems on Alta Card internal pages
+Severity: High
+Location: Legacy alta-card-relationship-pricing.service.ts (0–100) vs V2
+          relationship-intelligence.service.ts (0–1000)
+
+Same pages show both:
+- /internal/alta-card/applications/$applicationId
+- /internal/alta-card/reviews/$reviewId
+- /internal/alta-card/$cardId
+
+Operators see two different scores with no explanation.
+
+Why it matters: Underwriting decisions based on wrong or conflicting signals.
+
+Recommended fix: Converge or clearly label legacy vs V2; remove legacy block
+once V2 is authoritative.
+
+
+H3 — Company active loan balance likely double-counts
+Severity: High
+Location: company-relationship-intelligence.service.ts (L220–228)
+
+Sums outstandingBalance + accruedInterest + principalOutstanding. Personal path
+uses outstandingBalance + accruedInterest only. If outstandingBalance is total
+payoff, adding principalOutstanding overstates exposure and currentCreditExposure.
+
+Why it matters: Wrong commercial lending and card limit context.
+
+Recommended fix: Align with personal loan balance logic; verify against
+loan.service.ts field semantics.
+
+
+H4 — Company refresh blocked from automation
+Severity: High
+Location: refreshCompanyRelationshipProfile() calls requireOperator()
+
+refreshAllCompanyRelationshipProfiles() cannot run from cron without an operator
+session. No company scheduler service exists despite
+COMPANY_RELATIONSHIP_INTELLIGENCE_JOB_KEY in config.
+
+Why it matters: Company RI stays manual-only; verified companies never get
+profiles unless an operator acts.
+
+Recommended fix: System-actor batch refresh (mirror personal); add company
+scheduler + cron route.
+
+
+H5 — Company refresh missing post-refresh side effects
+Severity: High
+Location: company-relationship-intelligence.service.ts
+
+Personal refreshRelationshipProfile() triggers recommendation regeneration +
+timeline sync. Company refresh does neither — recommendations only via manual
+"Regenerate" in UI.
+
+Why it matters: Company recommendations and timeline drift from profile state.
+
+Recommended fix: Hook generateCompanyRelationshipRecommendations and timeline
+sync after company refresh (best-effort).
+
+
+H6 — Invalid tier code in company recommendation config
+Severity: High (latent)
+Location: company-relationship-recommendation-config.ts —
+          recommendedBusinessCardTierFromRelationship() returns "standard"
+
+AltaCardTierCode is white | navy | black | gold. Dead code today but unsafe if
+wired.
+
+Recommended fix: Return "white" or remove until used.
+
+
+H7 — Company timeline audit uses company ID as actor
+Severity: High (audit integrity)
+Location: company-relationship-timeline.service.ts —
+          createCompanyRelationshipTimelineEvent()
+
+actorUserId: input.companyId for COMPANY_RELATIONSHIP_TIMELINE_EVENT_CREATED.
+
+Why it matters: Invalid audit attribution; breaks actor-based reporting.
+
+Recommended fix: Use system actor or authenticated user ID.
+
+
+H8 — Company customer timeline lacks positive-only filter
+Severity: High (security/privacy)
+Location: company-relationship-timeline.service.ts vs personal
+          CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES
+
+Company customer view only hides MANUAL_NOTE. Personal timeline has a rich
+allowlist. Future negative event types (score changes, denials) would leak to
+company members.
+
+Recommended fix: Mirror personal allowlist pattern for company customer timeline.
+
+
+================================================================================
+MEDIUM
+================================================================================
+
+M1 — Recommendations expire on every profile refresh
+Severity: Medium
+Location: relationship-intelligence-recommendation.service.ts (L478–481)
+
+All ACTIVE recommendations → EXPIRED on regenerate. Breaks in-progress admin
+review and deep links.
+
+Recommended fix: Expire only superseded types, or mark stale without invalidating
+in-review rows.
+
+
+M2 — Double recommendation generation on first profile
+Severity: Medium
+Location: generateRelationshipRecommendations() calls refreshRelationshipProfile()
+when no profile; refresh already calls generateRelationshipRecommendations().
+
+Recommended fix: Guard with skipRecommendations flag on refresh, or skip nested
+call in generate.
+
+
+M3 — Accept/deep-link prefill skips RELATIONSHIP_RECOMMENDATION_USED audit
+Severity: Medium
+Location: V4 integration vs relationship-recommendations-panel.tsx Accept flow
+
+"Use Recommendation" audits correctly; Accept + URL params prefill ops form
+without USED audit.
+
+Recommended fix: Unify prefill paths through useRelationshipRecommendationRecord,
+or audit Accept prefill explicitly.
+
+
+M4 — Personal card recommendations ignore business-only cardholders
+Severity: Medium
+Location: resolvePrimaryAltaCard() filters ownerUserId: userId only
+
+Users with only company business cards get no tier/limit/rate recommendations
+despite aggregated profile including business card data.
+
+Recommended fix: Separate personal vs business recommendation contexts, or
+resolve company card for business users.
+
+
+M5 — Recommendations can diverge from persisted profile
+Severity: Medium
+Location: generateRelationshipRecommendations() uses live calculateRelationshipProfile()
+while stored score/tier may lag.
+
+Recommended fix: Refresh before generate, or generate from persisted snapshot with
+explicit "live preview" label.
+
+
+M6 — Live timeline dedupe blocks repeat tier/limit changes
+Severity: Medium
+Location: relationship-timeline.service.ts — hasEntityEvent()
+
+Same eventType + relatedEntityId blocks second tier change on same card.
+
+Recommended fix: Include timestamp or change metadata in dedupe key instead of
+entity-only dedupe.
+
+
+M7 — Live vs backfill score/tier dedupe key mismatch
+Severity: Medium
+Location: Backfill uses score:${snapshot.id}; live sync uses score:value:${newScore}
+
+Can produce duplicate score/tier events.
+
+Recommended fix: Standardize dedupe keys.
+
+
+M8 — Company timeline has no live product hooks
+Severity: Medium
+Location: Company timeline service only; bank.service writes personal timeline on
+business account open
+
+Business account opens appear on owner personal timeline, not company timeline.
+
+Recommended fix: Emit company timeline events when companyId is set on product
+mutations.
+
+
+M9 — /bank/relationship not in bank navigation
+Severity: Medium (product completeness)
+Location: bank-sub-nav.tsx — no link; route exists at /bank/relationship
+
+Recommended fix: Add nav entry or cross-link from dashboard/products.
+
+
+M10 — Orphaned code / missing routes
+Severity: Medium
+- fetchCompanyRelationshipIntelligenceDashboard — no UI route
+- RelationshipRecommendationsWidget — never imported
+- No company relationship queue on /internal/companies
+
+Recommended fix: Wire or remove dead code.
+
+
+M11 — Defense-in-depth gaps on service layer
+Severity: Medium
+- getCustomerCompanyRelationshipTimeline() — no auth in service (only server fn)
+- refreshRelationshipProfile / generateRelationshipRecommendations — no
+  requireOperator in service
+- fetchRelationshipProfileSummary in bank namespace — callable by any authed user
+  until service rejects
+
+Recommended fix: Enforce auth at service boundary for all entry points.
+
+
+M12 — Unbounded snapshot growth
+Severity: Medium (performance/ops)
+Every profile refresh creates a snapshot with no retention policy (personal +
+company).
+
+Recommended fix: Retention policy or snapshot-on-change-only.
+
+
+M13 — Failed autopay / delinquency penalties inconsistent
+Severity: Medium
+Personal: flat -40 regardless of count. Company: per-card. Neither filters
+closed cards with stale autopayLastStatus: FAILED. Delinquent/default penalties
+flat regardless of count.
+
+Recommended fix: Align penalty models; filter by active card status.
+
+
+M14 — totalInvestments hardcoded to 0
+Severity: Medium (documented placeholder)
+Exchange/Terminal not integrated; totalAltaAssets = bank + 0.
+
+Recommended fix: Accept for now; ensure UI/docs say "bank assets" where
+investments are implied.
+
+
+M15 — Pre-approval readiness vs recommendation path divergence
+Severity: Medium
+getPreApprovalReadiness() uses rule logic; does not read persisted
+LOAN_PRE_APPROVAL recommendation. Paths can disagree.
+
+Recommended fix: Single source of truth or explicit "readiness ≠ offer" copy.
+
+
+================================================================================
+LOW
+================================================================================
+
+L1 — Internal page copy says "read-only" but exposes mutations
+Location: /internal/relationships/$userId — refresh, generate, dismiss, backfill,
+manual notes
+
+Recommended fix: Update copy to "operator workspace" or move mutations to
+explicit actions panel.
+
+
+L2 — Company customer page footer exposes tier enum naming
+Location: companies/$companyId/relationship.tsx
+
+Recommended fix: Use label only in customer copy.
+
+
+L3 — /bank/private mentions "Relationship Intelligence" to customers
+Location: Eligibility banner for non-clients
+
+Recommended fix: Customer-facing "relationship profile" language per copy rules.
+
+
+L4 — Company score not rounded before tier assignment
+Personal rounds; company clamps only.
+
+Recommended fix: Math.round() before tier lookup.
+
+
+L5 — getCompanyRelationshipProfile() hardcodes businessCardApplications: 0
+
+Recommended fix: Read from snapshot metadata or live calc.
+
+
+L6 — Documentation drift
+- Stray markdown typo (+ V2 read-only...)
+- Pre-approval labeled "stub" but has real logic
+- Company audit events not fully documented
+- Live product refresh claimed but not implemented
+
+Recommended fix: Doc pass aligned to code.
+
+
+L7 — Customer Alta Card review shows legacy letter grade (A–F)
+Not a V2 leak, but inconsistent with bank relationship page (tier only).
+
+Recommended fix: Align customer card copy with V2 tier labels when legacy is
+retired.
+
+
+================================================================================
+SECTION-BY-SECTION ASSESSMENT
+================================================================================
+
+1. PRODUCT COMPLETENESS
+-----------------------
+
+Domain                  Status          Gaps
+Personal customers      Strong          Nav discoverability; stale data
+Companies               Partial         No dashboard route, no queue, no scheduler
+Business banking        Company RI      Not integrated into business lending threads
+Alta Card (personal)    V4 integrated   Dual legacy + V2
+Business Alta Card      Partial         Company recs exist; no V4 block on business admin
+Loans (personal)        Thread + detail Pre-approval stub only
+Business loans          Partial         Company lending signals not on deal rooms
+Alta Pay                Bug             Double-count on personal
+Private Banking         Internal+banner No full customer RI on /bank/private
+Exchange / Terminal     Placeholder     totalInvestments = 0, holdings placeholders
+
+
+2. DATA ACCURACY
+----------------
+
+Metric                  Personal    Company     Notes
+Relationship Since      OK          OK          Earliest of signup/accounts/products
+Total assets            Warning     OK          Personal includes member companies
+Lifetime dep/withdraw   OK          OK          Approved txns only
+Interest earned/paid    OK          OK          Bank + loan/card interest
+Alta Pay volume         FAIL        OK          Personal double-count
+Credit exposure         Warning     Warning     Company loan balance may double-count
+Score / tier            FAIL        Warning     Overdue bug; company no round
+Private/commercial elig Warning     OK          Driven by inflated personal inputs
+
+Isolation: Company aggregation is correctly companyId-scoped. Personal aggregation
+intentionally mixes company data — documented conflict with company RI independence.
+
+
+3. RELATIONSHIP SCORING
+-----------------------
+
+- Config centralized: OK (relationship-intelligence-config.ts,
+  company-relationship-intelligence-config.ts)
+- Bounds: 100–1000 clamped OK
+- Tier assignment: Threshold-based OK; PRIVATE_CLIENT override on personal OK
+- Stale calculations: FAIL — no event-driven refresh
+- Hidden bugs: Overdue cap FAIL; Alta Pay FAIL
+
+
+4. COMPANY RELATIONSHIP INTELLIGENCE
+------------------------------------
+
+Requirement              Status
+Separate profile         OK
+Separate score           OK
+Separate recommendations OK (manual regenerate)
+Separate timeline        Backfill only, no live hooks
+Separate assets/lending  OK
+No mix with personal     OK at company layer; personal still pulls company
+
+
+5. TIMELINE
+-----------
+
+Area            Personal                    Company
+Backfill        OK (asset milestone broken) Partial
+Live hooks      Partial                     None
+Dedupe          Bugs                        Inflated counts
+Manual notes    OK                          OK
+Customer filter Strong                      Weak
+
+
+6. RECOMMENDATIONS
+------------------
+
+- Auto-approve: None — accept/use only mark status or prefill
+- Generation quality: Reasonable rules; stale profile input
+- Lifecycle: ACTIVE expiry on refresh disruptive
+- Company: Manual only; treasury placeholder explicit
+
+
+7. PRODUCT INTEGRATIONS
+-----------------------
+
+Surface                     Integrated  Read-only
+Alta Card detail/apps/reviews OK          Prefill only
+Alta Card queues            OK          OK
+Lending queue/thread          OK          OK
+Lending loan detail           Partial     OK
+Alta Private                  OK          OK
+Internal user profile         OK          OK
+Company profile               OK          OK
+Business card admin           Missing     —
+Secure deal rooms (business)  Missing     —
+
+
+8. SECURITY & PERMISSIONS
+-------------------------
+
+Actor               Assessment
+Customers (personal) Strong — tier/assets only; no score/factors
+Customers (company)  Timeline filter weak
+Operators            requireOperator on internal routes
+Service-layer gaps   See M11
+
+Recommendation auto-apply risk: Low for product mutation; medium for workflow/audit gaps.
+
+
+9. ADMIN EXPERIENCE
+-------------------
+
+Works well: Dashboard, full profile page, refresh, recommendations panel, timeline
+backfill, V4 integration blocks, queue score columns.
+
+Friction: Dual scores on Alta Card pages; stale data without manual refresh;
+company requires separate manual steps; no company dashboard; no "explain this
+score" troubleshooting beyond factor panel.
+
+
+10. CUSTOMER EXPERIENCE
+-----------------------
+
+Works well: Premium layout on /bank/relationship and company relationship page;
+positive copy; opportunities sanitized.
+
+Gaps: Hidden from nav; tier-only (good) but company footer leaks enum; legacy
+letter grades on card review; "Relationship Intelligence" internal term on
+/bank/private.
+
+
+11. ARCHITECTURE
+----------------
+
+Duplication:
+- Legacy alta-card-relationship-pricing vs V2 (biggest)
+- Personal vs company services (appropriate parallel)
+- Multiple recommendation panels (full admin vs context vs orphaned widget)
+- RelationshipIntelligenceSummaryCard vs Panel vs operator panel
+
+Opportunities: Converge scoring; shared cap() utility; unified recommendation
+lifecycle; company integration service mirroring personal V4 bundle.
+
+
+12. PERFORMANCE
+---------------
+
+Concern                                         Severity
+refreshAllRelationshipProfiles() all users      High at scale
+getRelationshipProfileSummariesForUsers() N×    Medium
+Timeline dedupe scans all events in memory      Medium
+Unbounded snapshots                             Medium
+No caching of calculated profiles               Low (acceptable with cron)
+
+
+13. AUDIT LOGGING
+-----------------
+
+Good: Profile create/refresh, score/tier/eligibility changes, recommendation
+lifecycle, manual notes, pre-approval viewed, private client marked/removed.
+
+Gaps: Company timeline wrong actor; Accept vs Use inconsistency; double audit on
+manual notes; no RELATIONSHIP_INTELLIGENCE_VIEWED (intentional); company events
+undocumented in docs.
+
+Schedulers: Should use SYSTEM actor — personal refresh supports this; company
+batch does not.
+
+
+14. DOCUMENTATION
+-----------------
+
+docs/banking/relationship-intelligence.md is comprehensive for V1–V4 + company
+section. Gaps: company audit table, known bugs, staleness SLA, legacy/V2 operator
+guide, Accept vs Use audit distinction, pre-approval maturity level.
+
+
+15. FUTURE READINESS
+--------------------
+
+Future feature           Architecture readiness
+Pre-approved loans       Stub + panel exist; blocked by score bugs and staleness
+Alta Exchange            totalInvestments placeholder
+Alta Terminal            Holdings placeholder
+Commercial Banking       Company tier + eligibility + rec type OK
+Treasury Services        Placeholder rec type
+Company product V4       No integration service/bundle
+
+
+================================================================================
+FEATURES THAT FEEL UNFINISHED
+================================================================================
+
+1. Company RI (scheduler, live timeline, V4 integrations, dashboard route)
+2. Legacy/V2 Alta Card scoring convergence
+3. Cron / scheduled refresh for all profile types
+4. Event-driven profile updates
+5. Company customer timeline filtering
+6. Business lending / business card admin RI blocks
+7. Exchange/Terminal asset integration
+8. Orphaned widget and company dashboard server fn
+
+
+================================================================================
+OVERALL SCORES
+================================================================================
+
+1. IMPLEMENTATION SCORE: 72 / 100
+
+Area                    Weight  Score
+Data model & services   20%     85
+Calculation accuracy    20%     55
+Integrations (V4)       15%     78
+Company RI              10%     65
+Security                15%     82
+Ops readiness (cron)    10%     40
+Docs & UX               10%     75
+
+
+2. PRODUCTION READINESS ASSESSMENT
+
+NOT production-ready for core banking use until Critical items C1–C4 are fixed.
+
+Safe for internal pilot with operators who manually refresh profiles and
+understand dual-score limitation. NOT safe for customer-facing eligibility,
+pre-approvals, or automated underwriting signals without fixes.
+
+
+3. READY TO MOVE ON TO PRE-APPROVED LOANS?
+
+NO — not yet.
+
+Pre-approvals depend on accurate scores, exposure, repayment history, and fresh
+data. Current blockers:
+- Overdue penalties not applied (C1)
+- Alta Pay inflation (C2)
+- Stale profiles (C4)
+- Personal/company data mixing policy unsettled (H1)
+- Dual scoring on card ops (H2)
+
+Proceed after: C1–C4 + H1 policy decision + H2 convergence plan + pre-approval
+readiness wired to single source of truth.
+
+
+================================================================================
+PRIORITIZED REMAINING WORK
+================================================================================
+
+P0 — Must fix before production
+1. Fix personal cap() for negative weights (C1)
+2. Fix Alta Pay double-count (C2)
+3. Fix asset milestone backfill profileId (C3)
+4. Wire profile + recommendation cron jobs (C4)
+5. Fix company loan balance calculation (H3)
+6. Decide personal vs company aggregation policy (H1)
+
+P1 — Before pre-approved loans
+7. Converge or label legacy vs V2 Alta Card scoring (H2)
+8. Company batch refresh without operator gate + scheduler (H4)
+9. Company post-refresh recommendations + timeline sync (H5)
+10. Fix company timeline audit actor + customer allowlist (H7, H8)
+11. Event-driven refresh on loan/card/account milestones
+12. Unify recommendation prefill audit (Accept vs Use) (M3)
+
+P2 — Operational quality
+13. Recommendation ACTIVE expiry strategy (M1)
+14. Timeline dedupe fixes (M6, M7)
+15. Company live timeline hooks (M8)
+16. Add /bank/relationship to nav (M9)
+17. Service-layer auth hardening (M11)
+18. Snapshot retention policy (M12)
+
+P3 — Can wait (V2+)
+19. Company RI dashboard route + companies queue
+20. Company V4 integration blocks (business card, business lending threads)
+21. Exchange/Terminal balance integration
+22. Remove orphaned widget / dead endpoints
+23. Performance: batch summary API, incremental refresh
+24. Full doc audit pass
+
+
+================================================================================
+FINDING COUNTS
+================================================================================
+
+Critical:  4
+High:      8
+Medium:   15
+Low:       7
+
+The system is architecturally sound and correctly oriented toward read-only
+intelligence, but calculation bugs, staleness, and dual-scoring prevent treating
+it as production-grade core banking infrastructure today.

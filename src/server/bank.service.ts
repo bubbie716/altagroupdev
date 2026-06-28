@@ -33,6 +33,18 @@ import {
   isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
 import { getRoutingNumber } from "@/lib/bank/routing";
+import {
+  creditAdjustmentDescription,
+  debitAdjustmentDescription,
+  DEPOSIT_APPROVED_DESCRIPTION,
+  DEPOSIT_DECLINED_DESCRIPTION,
+  DEPOSIT_PENDING_DESCRIPTION,
+  transferFromDescription,
+  transferToDescription,
+  WITHDRAWAL_APPROVED_DESCRIPTION,
+  WITHDRAWAL_DECLINED_DESCRIPTION,
+  WITHDRAWAL_PENDING_DESCRIPTION,
+} from "@/lib/bank/customer-transaction-copy";
 import { isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import {
@@ -437,6 +449,25 @@ export async function openBankAccount(
     },
   });
 
+  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  await recordRelationshipTimelineEvent({
+    userId,
+    eventType: companyId ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
+    title: companyId ? "Business bank account opened" : "Bank account opened",
+    description: accountName,
+    occurredAt: new Date(),
+    relatedEntityType: "BANK_ACCOUNT",
+    relatedEntityId: account.id,
+  });
+
+  const { refreshFromBankAccountContextBestEffort } = await import(
+    "@/server/relationship-refresh-hooks.service"
+  );
+  await refreshFromBankAccountContextBestEffort(
+    { userId, companyId },
+    companyId ? "business-account-opened" : "bank-account-opened",
+  );
+
   const statusLabel =
     status === "ACTIVE" ? "Active" : "Pending Review";
 
@@ -470,7 +501,7 @@ export async function submitDepositRequest(
       type: "DEPOSIT",
       amount: input.amount,
       status: "PENDING",
-      description: "Deposit request",
+      description: DEPOSIT_PENDING_DESCRIPTION,
       memo: input.memo?.trim() || null,
       referenceCode: generateReferenceCode("DEP"),
       ...proofData(proof),
@@ -501,7 +532,7 @@ export async function submitWithdrawalRequest(
       type: "WITHDRAWAL",
       amount: input.amount,
       status: "PENDING",
-      description: "Withdrawal request",
+      description: WITHDRAWAL_PENDING_DESCRIPTION,
       memo: input.memo?.trim() || null,
       referenceCode: generateReferenceCode("WDR"),
     },
@@ -577,7 +608,7 @@ export async function submitInternalTransfer(
         type: "WITHDRAWAL",
         amount,
         status: "APPROVED",
-        description: `Intrabank transfer to ${toAccount.accountName} · ${toAccount.accountNumber}`,
+        description: transferToDescription(toAccount.accountName),
         memo,
         referenceCode: outReference,
         proofImageUrl: null,
@@ -590,7 +621,7 @@ export async function submitInternalTransfer(
         type: "DEPOSIT",
         amount,
         status: "APPROVED",
-        description: `Intrabank transfer from ${fromAccount.accountName} · ${fromAccount.accountNumber}`,
+        description: transferFromDescription(fromAccount.accountName),
         memo,
         referenceCode: inReference,
         proofImageUrl: null,
@@ -650,7 +681,7 @@ export async function submitOperatorInternalTransfer(input: {
         type: "WITHDRAWAL",
         amount,
         status: "APPROVED",
-        description: `Operator transfer to ${toAccount.accountName} · ${toAccount.accountNumber}`,
+        description: transferToDescription(toAccount.accountName),
         memo,
         referenceCode: outReference,
         proofImageUrl: null,
@@ -663,7 +694,7 @@ export async function submitOperatorInternalTransfer(input: {
         type: "DEPOSIT",
         amount,
         status: "APPROVED",
-        description: `Operator transfer from ${fromAccount.accountName} · ${fromAccount.accountNumber}`,
+        description: transferFromDescription(fromAccount.accountName),
         memo,
         referenceCode: inReference,
         proofImageUrl: null,
@@ -883,6 +914,7 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
       where: { id: transactionId },
       data: {
         status: "APPROVED",
+        description: DEPOSIT_APPROVED_DESCRIPTION,
         reviewedById: adminId,
         reviewedAt: new Date(),
         reviewNote: reviewNote?.trim() || null,
@@ -908,6 +940,14 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     description: `Approved deposit ${record.referenceCode}`,
     metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
+
+  const { refreshFromBankAccountContextBestEffort } = await import(
+    "@/server/relationship-refresh-hooks.service"
+  );
+  await refreshFromBankAccountContextBestEffort(
+    { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
+    "deposit-completed",
+  );
 }
 
 export async function denyDeposit(adminId: string, transactionId: string, reviewNote?: string) {
@@ -922,6 +962,7 @@ export async function denyDeposit(adminId: string, transactionId: string, review
     where: { id: transactionId },
     data: {
       status: "DENIED",
+      description: DEPOSIT_DECLINED_DESCRIPTION,
       reviewedById: adminId,
       reviewedAt: new Date(),
       reviewNote: reviewNote?.trim() || null,
@@ -959,6 +1000,7 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
       where: { id: transactionId },
       data: {
         status: "APPROVED",
+        description: WITHDRAWAL_APPROVED_DESCRIPTION,
         reviewedById: adminId,
         reviewedAt: new Date(),
         reviewNote: reviewNote?.trim() || null,
@@ -984,6 +1026,14 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     description: `Approved withdrawal ${record.referenceCode}`,
     metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
+
+  const { refreshFromBankAccountContextBestEffort } = await import(
+    "@/server/relationship-refresh-hooks.service"
+  );
+  await refreshFromBankAccountContextBestEffort(
+    { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
+    "withdrawal-completed",
+  );
 }
 
 export async function denyWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
@@ -998,6 +1048,7 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
     where: { id: transactionId },
     data: {
       status: "DENIED",
+      description: WITHDRAWAL_DECLINED_DESCRIPTION,
       reviewedById: adminId,
       reviewedAt: new Date(),
       reviewNote: reviewNote?.trim() || null,
@@ -1095,7 +1146,7 @@ export async function liquidatePrivateBankingOnAccessRevoked(
             type: "WITHDRAWAL",
             amount: balance,
             status: "APPROVED",
-            description: `Alta Private access ended — transfer to ${destination.accountName} · ${destination.accountNumber}`,
+            description: transferToDescription(destination.accountName),
             referenceCode: outReference,
             proofImageUrl: null,
           },
@@ -1107,7 +1158,7 @@ export async function liquidatePrivateBankingOnAccessRevoked(
             type: "DEPOSIT",
             amount: balance,
             status: "APPROVED",
-            description: `Alta Private access ended — transfer from ${privateAccount.accountName} · ${privateAccount.accountNumber}`,
+            description: transferFromDescription(privateAccount.accountName),
             referenceCode: inReference,
             proofImageUrl: null,
           },
@@ -1351,9 +1402,10 @@ export async function adminAdjustBankAccount(
         amount: input.amount,
         status: "APPROVED",
         description:
-          input.direction === "credit"
-            ? `Admin credit — ${reason}`
-            : `Admin debit — ${reason}`,
+          input.customerDescription ??
+          (input.direction === "credit"
+            ? creditAdjustmentDescription(reason)
+            : debitAdjustmentDescription(reason)),
         referenceCode,
         reviewedById: actorUserId,
         reviewedAt: new Date(),

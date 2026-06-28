@@ -11,6 +11,12 @@ import type {
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
+import {
+  altaPayFromDescription,
+  altaPayToDescription,
+  stripAltaPayFromPrefix,
+  stripAltaPayToPrefix,
+} from "@/lib/bank/customer-transaction-copy";
 import { prisma } from "@/server/db";
 
 function forbidden(): never {
@@ -323,7 +329,7 @@ export async function submitAltaPayPayment(
           type: "WITHDRAWAL",
           amount: input.amount,
           status: "APPROVED",
-          description: `Alta Pay business payment to ${company.name}`,
+          description: altaPayToDescription(company.name),
           memo,
           referenceCode: outReference,
           proofImageUrl: null,
@@ -336,13 +342,18 @@ export async function submitAltaPayPayment(
           type: "DEPOSIT",
           amount: input.amount,
           status: "APPROVED",
-          description: `Alta Pay business payment from ${payerLabel}`,
+          description: altaPayFromDescription(payerLabel),
           memo,
           referenceCode: inReference,
           proofImageUrl: null,
         },
       });
     });
+
+    const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
+      await import("@/server/relationship-refresh-hooks.service");
+    await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
+    await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
     return {
       referenceCode: referenceBase,
@@ -384,7 +395,7 @@ export async function submitAltaPayPayment(
         type: "DEPOSIT",
         amount: input.amount,
         status: "APPROVED",
-        description: `Alta Pay business payment from ${payerLabel} (Alta Card)`,
+        description: altaPayFromDescription(payerLabel),
         memo,
         referenceCode: inReference,
         proofImageUrl: null,
@@ -409,6 +420,11 @@ export async function submitAltaPayPayment(
       relatedAltaPayPaymentId: referenceBase,
     },
   });
+
+  const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
+    await import("@/server/relationship-refresh-hooks.service");
+  await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
+  await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
   return {
     referenceCode: referenceBase,
@@ -452,7 +468,7 @@ export async function listUserAltaPaySent(user: AltaUser, limit = 25): Promise<A
   });
 
   const bankRows = bankTxs.map((tx) => {
-    const payee = tx.description.replace(/^Alta Pay business payment to /, "");
+    const payee = stripAltaPayToPrefix(tx.description);
     const payer =
       tx.bankAccount.companyId && tx.bankAccount.company
         ? tx.bankAccount.company.name
@@ -525,7 +541,7 @@ export async function listCompanyAltaPayReceived(
   const company = await prisma.company.findUnique({ where: { id: companyId } });
 
   const recentPayments = received.slice(0, 20).map((tx) => {
-    const payer = tx.description.replace(/^Alta Pay business payment from /, "");
+    const payer = stripAltaPayFromPrefix(tx.description);
     return mapPayRow(
       tx,
       "received",

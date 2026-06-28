@@ -128,19 +128,7 @@ export function mapUserBankAccount(account: BankAccountRecord): UserBankAccount 
 
   let recentActivity = "No activity yet";
   if (latest) {
-    const prefix =
-      latest.type === "DEPOSIT"
-        ? "Deposit"
-        : latest.type === "WITHDRAWAL"
-          ? "Withdrawal"
-          : latest.type === "LOAN_PAYMENT"
-            ? "Loan payment"
-            : latest.type === "INTEREST_CHARGE"
-              ? "Interest charge"
-              : latest.type === "INTEREST_CREDIT"
-                ? "Interest credit"
-                : "Adjustment";
-    recentActivity = `${prefix} · ${latest.description}`;
+    recentActivity = latest.description;
   }
 
   return {

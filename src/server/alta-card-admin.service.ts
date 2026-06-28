@@ -14,6 +14,7 @@ import type {
   UpdateAltaCardLimitInput,
   UpdateAltaCardRateInput,
 } from "@/lib/bank/alta-card-types";
+import { altaCardPaymentDescription } from "@/lib/bank/customer-transaction-copy";
 import { getTierDefaultLimit, getTierDefaultRate } from "@/lib/bank/alta-card-tier-config";
 import { isAdmin, isOperator, isPrivateClient } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
@@ -317,6 +318,28 @@ export async function updateAltaCardLimitAdmin(
     card.companyId,
   );
 
+  if (card.ownerUserId) {
+    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+    const { formatAltaCardCurrency } = await import("@/lib/bank/alta-card-types");
+    await recordRelationshipTimelineEvent({
+      userId: card.ownerUserId,
+      eventType: "ALTA_CARD_LIMIT_CHANGED",
+      title: `Alta Card limit changed to ${formatAltaCardCurrency(input.creditLimit)}`,
+      description: `Previous limit: ${formatAltaCardCurrency(previousLimit)}.`,
+      occurredAt: new Date(),
+      relatedEntityType: "ALTA_CARD",
+      relatedEntityId: input.cardId,
+      dedupeKey: `limit:${input.cardId}:${input.creditLimit}`,
+      actorUserId: adminUserId,
+    });
+  }
+
+  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromAltaCardContextBestEffort(
+    { ownerUserId: card.ownerUserId, companyId: card.companyId },
+    "alta-card-limit-changed",
+  );
+
   return mapAltaCardRow(updated);
 }
 
@@ -419,6 +442,32 @@ export async function changeAltaCardTierAdmin(
     card.companyId,
   );
 
+  if (card.ownerUserId) {
+    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+    const { formatAltaCardTierUpgradeTimelineCopy } = await import("@/lib/bank/relationship-timeline-historical");
+    const upgradeCopy = formatAltaCardTierUpgradeTimelineCopy(previousTier, input.tier, {
+      business: !!card.companyId,
+    });
+    await recordRelationshipTimelineEvent({
+      userId: card.ownerUserId,
+      eventType: "ALTA_CARD_TIER_CHANGED",
+      title: upgradeCopy.title,
+      description: upgradeCopy.description ?? undefined,
+      occurredAt: new Date(),
+      relatedEntityType: "ALTA_CARD",
+      relatedEntityId: input.cardId,
+      metadata: { previousTier, newTier: input.tier },
+      dedupeKey: `tier:${input.cardId}:${input.tier}`,
+      actorUserId: adminUserId,
+    });
+  }
+
+  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+  await refreshFromAltaCardContextBestEffort(
+    { ownerUserId: card.ownerUserId, companyId: card.companyId },
+    "alta-card-tier-changed",
+  );
+
   return mapAltaCardRow(updated);
 }
 
@@ -451,7 +500,7 @@ export async function submitAdminManualCardPayment(
         type: "PAYMENT",
         status: "COMPLETED",
         amount: toDecimal(paymentAmount),
-        description: `Manual payment (admin): ${input.reason.trim()}`,
+        description: altaCardPaymentDescription(card.cardLastFour),
         referenceCode,
         createdByUserId: adminUserId,
         settledAt: new Date(),

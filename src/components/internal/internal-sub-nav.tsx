@@ -10,6 +10,7 @@ const groups: { id: string; label: string; links: Link[] }[] = [
     label: "Overview",
     links: [
       { to: "/internal", label: "Dashboard", exact: true },
+      { to: "/internal/relationships", label: "Relationships", match: "/internal/relationships" },
       { to: "/internal/exceptions", label: "Exceptions" },
       { to: "/internal/reports", label: "Reports" },
       { to: "/internal/audit", label: "Audit log" },

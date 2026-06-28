@@ -8,7 +8,7 @@ import {
   computeMonthlyInterestCharge,
   type LoanRateType,
 } from "@/lib/bank/loan-interest";
-import { prisma } from "@/server/db";
+import { loanInterestChargePaymentDescription } from "@/lib/bank/customer-transaction-copy";
 
 export interface LoanBalanceSnapshot {
   principalOutstanding: number;
@@ -391,7 +391,7 @@ export async function guaranteeDueInterestForLoan(
         type: "INTEREST_CHARGE",
         amount: interestAmount,
         balanceAfter: newPayoff,
-        description: `Interest guaranteed · month ${item.installmentNumber}`,
+        description: loanInterestChargePaymentDescription(item.installmentNumber),
         createdById: actorUserId,
       });
     }

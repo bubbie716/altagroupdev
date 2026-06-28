@@ -74,6 +74,34 @@ export function BankMobileStackField({
   );
 }
 
+/** Vertical scroll for long activity lists — keeps account pages from growing endlessly. */
+export const bankActivityScrollFullClass =
+  "max-h-[min(36rem,60vh)] overflow-y-auto overscroll-contain";
+
+export const bankActivityScrollCompactClass =
+  "max-h-[min(24rem,45vh)] overflow-y-auto overscroll-contain";
+
+export function BankActivityScroll({
+  children,
+  className,
+  size = "full",
+}: {
+  children: ReactNode;
+  className?: string;
+  size?: "full" | "compact";
+}) {
+  return (
+    <div
+      className={cn(
+        size === "compact" ? bankActivityScrollCompactClass : bankActivityScrollFullClass,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 /** Horizontal nav scroll that stays inside the page — no negative margins. */
 export function BankSubNavScroll({
   children,

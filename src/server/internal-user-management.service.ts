@@ -401,6 +401,18 @@ export async function grantInternalUserTag(
     metadata: { tag },
   });
 
+  if (tag === "private_client") {
+    await writeAuditLog({
+      actorUserId,
+      action: "PRIVATE_BANKING_CLIENT_MARKED",
+      entityType: "USER",
+      entityId: targetUserId,
+      targetUserId,
+      description: "Marked as Alta Private client",
+      metadata: { userId: targetUserId, actorUserId, before: false, after: true },
+    });
+  }
+
   return getInternalUserDetail(targetUserId);
 }
 
@@ -444,6 +456,18 @@ export async function revokeInternalUserTag(
     description: `Revoked ${formatUserTag(tag)} tag`,
     metadata: { tag },
   });
+
+  if (tag === "private_client") {
+    await writeAuditLog({
+      actorUserId,
+      action: "PRIVATE_BANKING_CLIENT_REMOVED",
+      entityType: "USER",
+      entityId: targetUserId,
+      targetUserId,
+      description: "Removed Alta Private client status",
+      metadata: { userId: targetUserId, actorUserId, before: true, after: false },
+    });
+  }
 
   return getInternalUserDetail(targetUserId);
 }

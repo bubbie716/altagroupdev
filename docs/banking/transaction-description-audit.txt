@@ -1,0 +1,391 @@
+ALTA BANK — CUSTOMER TRANSACTION DESCRIPTION AUDIT
+==================================================
+
+Scope: Every customer-visible transaction description written to bankTransaction,
+altaCardTransaction, and customer-facing loan ledger entries, plus display-layer type
+labels that appear alongside descriptions on statements and activity feeds.
+
+Method: Code audit of description writers in src/server/, src/lib/bank/, and display
+mappers. No logic or accounting changes proposed — copy only.
+
+Surfaces where customers see descriptions:
+- Bank account activity & PDF statements (tx.description + separate typeLabel column)
+- Alta Card history & card statements (description + type column via altaCardTransactionLabel)
+- Loan detail ledger (description + typeLabel)
+- Account dashboard recentActivity (prefixes type before description — creates redundancy)
+
+
+EXECUTIVE SUMMARY
+-----------------
+
+Severity          Count   Examples
+Critical          12      Manual Interest Credit — All Categories, Operator transfer,
+                          Admin credit/debit, Loan disbursement · abc12345
+High              18      Generic Interest credit, Loan payment · {id}, Deposit request
+                          (even after approval)
+High (Alta Pay)   6       Alta Pay business payment to/from, bank leg hides Alta Pay
+Medium            15+     Intrabank vs Transfer, Interest credit vs Interest Credit,
+                          Autopay vs Payment
+Low               10      Transfer descriptions include account numbers (good for ops,
+                          less premium-bank feel)
+
+Biggest wins: Fix manual interest copy, post-approval deposit/withdrawal descriptions,
+Alta Pay bank-leg wording, loan payment/disbursement IDs, and strip operator/admin
+language from customer views.
+
+
+CROSS-CUTTING ISSUES
+--------------------
+
+1. DUPLICATE / REDUNDANT LABELING
+   Customers see both typeLabel and description. Example on interest:
+   - Type column: Interest Credit
+   - Description: Interest credit (automatic) or Manual Interest Credit — All Categories
+   - Dashboard recentActivity: Interest credit · Manual Interest Credit — All Categories
+
+   Recommendation: Descriptions should carry the narrative; type labels stay short
+   category tags. Avoid repeating "interest credit" in both.
+
+2. INTERNAL IDs IN CUSTOMER COPY
+   Loan bank transactions use truncated UUIDs (Loan payment · cmqvyaf8). Customers
+   cannot interpret these.
+
+3. OPERATOR / ADMIN / MANUAL LANGUAGE
+   Any string containing Operator, Admin, Manual, Multi-Category, All Categories, or
+   Batch violates the stated philosophy.
+
+4. APPROVED DEPOSITS/WITHDRAWALS NEVER UPDATE DESCRIPTION
+   Pending requests are created as "Deposit request" / "Withdrawal request". Approval
+   updates status only — customers see "Deposit request" on completed deposits forever.
+
+   Source: src/server/bank.service.ts — approveDeposit, approveWithdrawal
+
+5. ALTA PAY PREFIX PARSING DEPENDENCY
+   listUserAltaPaySent / listCompanyAltaPayReceived strip fixed prefixes:
+   - Alta Pay business payment to
+   - Alta Pay business payment from
+
+   Any copy change to bank-leg Alta Pay descriptions must update parsers in
+   src/server/alta-pay.service.ts simultaneously, or Alta Pay history panels break.
+
+6. TYPE LABEL INCONSISTENCIES (DISPLAY LAYER)
+
+   Code              Current label     Issue
+   interest_credit   Interest Credit   Title case
+   recentActivity    Interest credit   Sentence case — inconsistent
+   alta_pay (card)   Alta Pay Purchase OK
+   cash_advance      Cash Advance      Title case
+   loan_payment      Loan payment      Sentence case
+
+   Recommendation: Standardize display labels — Title Case for product names
+   (Alta Pay, Alta Card, Money Market), sentence case for generic actions
+   (Loan payment, Interest payment) — pick one system and apply everywhere.
+
+
+A. BANK ACCOUNT TRANSACTIONS
+----------------------------
+
+A1. DEPOSITS & WITHDRAWALS
+
+Transaction                    Current description              Proposed description                    Reason
+Pending deposit (submitted)    Deposit request                  Deposit — Pending Review                Clear status without backend queue language
+Approved deposit (unchanged)   Deposit request                  Deposit or Deposit — {accountName}    Misleading — looks pending after funds posted
+Pending withdrawal             Withdrawal request               Withdrawal — Pending Review           Same
+Approved withdrawal            Withdrawal request               Withdrawal or Withdrawal — {accountName} Misleading after completion
+Denied deposit/withdrawal      (description unchanged)          Deposit — Declined / Withdrawal — Declined Customer should understand outcome
+
+Source: src/server/bank.service.ts — submitDeposit, submitWithdrawal, approveDeposit,
+approveWithdrawal
+
+Missing source info: No deposit method (cash, check, wire) is captured today — use
+generic Deposit until product supports method-specific copy.
+
+
+A2. TRANSFERS
+
+Transaction                    Current description                                    Proposed description                              Reason
+Intrabank transfer (out)       Intrabank transfer to {accountName} · {accountNumber}  Transfer to {accountName}                         Remove Intrabank (internal term)
+Intrabank transfer (in)        Intrabank transfer from {accountName} · {accountNumber} Transfer from {accountName}                    Same
+Operator transfer (out)        Operator transfer to {accountName} · {accountNumber}   Transfer to {accountName}                         Never expose Operator to customers
+Operator transfer (in)         Operator transfer from {accountName} · {accountNumber} Transfer from {accountName}                    Same
+Scheduled transfer             (reuses intrabank strings)                           Same as above                                     No separate copy today
+Alta Private closure (out)     Alta Private access ended — transfer to {dest} · {num} Transfer to {dest} or Alta Private Closure — Transfer to {dest} Internal lifecycle language
+Alta Private closure (in)      Alta Private access ended — transfer from {private} · {num} Transfer from {private} or Alta Private Closure — Transfer from {private} Same
+
+Source: src/server/bank.service.ts — submitInternalTransfer, submitOperatorTransfer,
+Alta Private closure flow
+
+Good pattern already: Direction + counterparty account name. Keep that; drop
+implementation words and raw account numbers on customer statements (number can stay
+in reference column).
+
+
+A3. INTEREST PAYMENTS
+
+Transaction                         Current description                          Proposed description                              Reason
+Automatic monthly accrual           Interest credit                              {AccountTypeLabel} Interest Payment e.g. Alta Money Market Interest Payment  Generic; doesn't identify product
+Manual interest — all categories    Manual Interest Credit — All Categories      Per account: {AccountTypeLabel} Interest Payment or Relationship Bonus Interest  Exposes admin batch scope
+Manual interest — single category   Manual Interest Credit — Alta Checking       Alta Checking Interest Payment                    Remove Manual Interest Credit — prefix
+Manual interest — multi-category    Manual Interest Credit — Multi-Category      Per account: {AccountTypeLabel} Interest Payment  Multi-Category is admin UI language
+Manual interest — fallback          Manual Interest Credit — Manual              {AccountTypeLabel} Interest Payment               Word Manual twice
+
+Source: src/lib/bank/account-interest-service.ts (automatic),
+        src/lib/bank/manual-interest-service.ts — buildTransactionDescription()
+
+Note: Manual interest applies one shared description to every account in a batch. Fix
+requires per-account copy at write time (copy change only, no accounting change): use
+row.accountTypeLabel already available in preview rows.
+
+Memo field (internal today): Batch: {id} | Reason: {reason} | Note: … — not shown to
+customers currently; keep internal.
+
+
+A4. LOAN — BANK ACCOUNT LEG
+
+Transaction              Current description                        Proposed description                    Reason
+Customer loan payment    Loan payment · {loanId.slice(0,8)}       Loan Payment or Loan Payment — {productLabel} UUID fragment meaningless
+Loan disbursement        Loan disbursement · {applicationId.slice(0,8)} Loan Funding                        Standard bank language
+Deal room funding        Loan funding · Agreement {loanId}        Loan Funding                          Remove internal agreement reference
+
+Source: src/server/loan.service.ts, src/server/deal-room-loan-execution.service.ts
+
+
+A5. ALTA PAY — BANK ACCOUNT LEG (SPECIAL ATTENTION)
+
+Transaction                    Current description                                    Proposed description                    Reason
+Payer withdrawal (bank)        Alta Pay business payment to {company}               Alta Pay to {company}                 Customer must see Alta Pay first
+Payee deposit (bank)           Alta Pay business payment from {payer}               Alta Pay from {payer}                 Same
+Payee deposit (card-funded)    Alta Pay business payment from {payer} (Alta Card)   Alta Pay from {payer}                 Card funding visible on payer's card statement
+Reversal — recipient debit     Alta Pay reversal · {referenceCode}                  Alta Pay Reversal — {company or payer} Reference code is ops-facing
+Reversal — payer credit        Alta Pay reversal credit · {referenceCode}           Alta Pay Refund or Alta Pay Reversal — {company} Same
+
+Source: src/server/alta-pay.service.ts, src/server/ops-alta-pay-admin.service.ts
+
+Parser update required when changing bank-leg strings (alta-pay.service.ts):
+  .replace(/^Alta Pay to /, "")
+  .replace(/^Alta Pay from /, "")
+
+
+A6. ADJUSTMENTS & ADMIN CREDITS
+
+Transaction              Current description                              Proposed description                          Reason
+Admin credit             Admin credit — {reason}                        Credit Adjustment — {reason} or {reason}    Never Admin
+Admin debit              Admin debit — {reason}                         Debit Adjustment — {reason}                   Same
+Reversal of adjustment   Admin credit/debit — Reversal of {ref}: {reason} Reversal — {original description}          Nested admin language
+
+Source: src/server/bank.service.ts — adminAdjustBankAccount,
+       src/server/ops-account-ops.service.ts
+
+
+B. ALTA CARD TRANSACTIONS
+-------------------------
+
+B1. PURCHASES & ALTA PAY
+
+Transaction              Current description                                    Proposed description              Reason
+Alta Pay — personal      Alta Pay to {company}                                  Keep                              Clear Alta Pay branding
+Alta Pay — business      Alta Pay to {company} ({company} card)                 Alta Pay to {company}             Parenthetical is internal card-type detail
+Alta Pay — employee      Alta Pay to {company} ({company} employee card)          Alta Pay to {company}             Employee attribution belongs in metadata/subline
+Purchase type            (no creator in codebase)                               Alta Card Purchase — {merchant}   Label exists but no transactions created
+
+Source: src/server/alta-card-transaction.service.ts — chargeAltaCardForAltaPay
+
+Type label: Alta Pay Purchase — consider type label Alta Pay only (description already
+says Alta Pay to {merchant}).
+
+
+B2. CASH ADVANCE
+
+Side         Current description                                              Proposed description                              Reason
+Card (debit) Cash advance to {accountName}                                    Cash Advance — Alta Card •••• {last4}           Customer perspective: money left card
+Bank (credit) Alta Card cash advance · •••• {last4}                           Cash Advance from Alta Card •••• {last4}        Minor capitalization
+Employee card Employee cash advance to {accountName}                          Cash Advance — Alta Card •••• {last4}           Drop Employee from customer copy
+Employee bank Alta Card employee cash advance · {company} · •••• {last4}      Cash Advance from Alta Card •••• {last4}        Company name redundant on employee view
+
+Source: src/server/alta-card-transaction.service.ts
+
+
+B3. PAYMENTS & AUTOPAY
+
+Side           Current description                    Proposed description                    Reason
+Card (credit)  Payment from {source.accountName}      Alta Card Payment — •••• {last4}        Statement consistency
+Bank (debit)   Alta Card payment · •••• {last4}       Alta Card Payment — •••• {last4}        Capitalization; em dash style
+Autopay card   Autopay from {source.accountName}      Alta Card Payment — •••• {last4}        Autopay is internal mechanism
+Autopay bank   Alta Card autopay · •••• {last4}       Alta Card Payment — •••• {last4}        Unify manual and autopay customer copy
+Admin payment  Manual payment (admin): {reason}       Alta Card Payment — •••• {last4}        Never expose admin/manual
+
+Source: src/server/alta-card-transaction.service.ts, src/server/alta-card-admin.service.ts
+
+Duplicate descriptions: Manual payment and autopay should read identically on statements;
+funding source (from {accountName}) can appear on the bank account leg only.
+
+
+B4. INTEREST, FEES, ADJUSTMENTS
+
+Transaction        Current description                    Proposed description                              Reason
+Statement interest Interest on statement #{n}            Alta Card Interest Charge — Statement #{n}          Clarify product
+Late fee           Late payment fee — statement #{n}      Alta Card Late Payment Fee — Statement #{n}         Product prefix
+Fee waiver         Fee waiver — {fee type}              Alta Card Fee Credit — {fee type}                   Waiver is ops language
+Manual fee         Manual fee — {reason}                  Alta Card {Fee Type} — •••• {last4}               Remove Manual
+Admin adjustment   Admin adjustment: {reason}             Alta Card Adjustment — •••• {last4}                 Remove Admin
+Reversal           Reversal: {original}{ — reason}       Alta Card Reversal — {original summary}             Capitalize consistently
+
+Source: src/server/alta-card-interest.service.ts, src/server/alta-card-fee.service.ts,
+        src/server/alta-card-transaction.service.ts
+
+
+B5. ALTA CARD TYPE LABELS (DISPLAY COLUMN)
+
+Code                  Current label       Proposed label
+purchase              Purchase            Alta Card Purchase
+alta_pay              Alta Pay Purchase   Alta Pay
+cash_advance          Cash Advance        Alta Card Cash Advance
+payment               Payment             Alta Card Payment
+interest              Interest            Alta Card Interest
+fee                   Fee                 Alta Card Fee
+adjustment_credit/debit Adjustment        Alta Card Adjustment
+reversal              Reversal            Alta Card Reversal
+
+Source: src/lib/bank/alta-card-types.ts — ALTA_CARD_TX_TYPE_LABELS
+
+
+C. LOAN LEDGER (CUSTOMER LENDING VIEWS)
+---------------------------------------
+
+These appear on loan detail / servicing UI via mapLoanLedgerEntry.
+
+Event                    Current description                                    Proposed description              Reason
+Payment (manual)         Loan payment or custom memo                            Loan Payment                      OK — capitalize
+Payment (autopay)        Automatic loan payment                                 Loan Payment                      Automatic is processing detail
+Paid off                 Loan paid off                                          Loan Payoff                       Premium bank phrasing
+Disbursement             Principal disbursed to linked account                  Loan Funding                      Backend workflow language
+No disbursement account  Loan approved — no linked disbursement account         Not customer-facing — ops only    Exposes approval workflow
+Month 1 interest (approval) Month 1 interest guaranteed at disbursement       Loan Interest Charge              Internal guarantee language
+Month 1 interest (deal room) Month 1 interest guaranteed at funding           Loan Interest Charge              Same
+Interest accrual         Interest guaranteed · month {n}                        Loan Interest Charge — Payment {n} guaranteed is internal
+Deal room disbursement   Loan receivable established — principal disbursed · … Loan Funding                     Exposes full backend audit trail
+Frozen                   Loan frozen by operator                                Ops only — hide from customer ledger
+Unfrozen                 Loan unfrozen by operator                              Ops only
+Waived interest          Waived {n} unpaid interest schedule item(s)            Ops only or Interest Adjustment
+Marked paid off          Marked paid off by operator                            Ops only or Loan Payoff
+Operator adjustment      Operator balance adjustment or custom                  Loan Adjustment                   Remove Operator
+Bank-side payment        Loan payment · {id}                                    Loan Payment                      See A4
+
+Ledger type labels (src/server/lending-mapper.ts):
+
+Code              Current           Proposed
+disbursement      Disbursement      Loan Funding
+payment           Payment           Loan Payment
+interest_charge   Interest charge   Loan Interest Charge
+adjustment        Adjustment        Loan Adjustment
+status_change     Status change     Hide from customer ledger or map to event title
+
+
+D. DUPLICATE & MISLEADING DESCRIPTIONS
+--------------------------------------
+
+Issue                              Locations                              Impact
+Same event, different strings      Loan Funding vs Loan disbursement vs   Customer sees inconsistent language
+                                   Principal disbursed vs Loan receivable established
+Autopay vs Payment                 Card/bank legs use different strings   Statement confusion
+Interest credit × 3                Type label + description +             Redundant noise
+                                   recentActivity prefix
+Alta Pay bank vs card              Bank: Alta Pay business payment to…;   Customer may not connect the two legs
+                                   Card: Alta Pay to…
+Deposit request after approval     Status APPROVED, description still     Actively misleading
+                                   Deposit request
+Employee vs standard card          Extra parentheticals on identical      Unnecessary complexity
+                                   events
+
+
+E. MISSING SOURCE / DESTINATION OPPORTUNITIES
+-----------------------------------------------
+
+Transaction              Data available today                    Recommended addition
+Automatic interest       account.accountName, accountTypeLabel   {AccountTypeLabel} Interest Payment
+Loan payment (bank)      Loan product type, linked account       Loan Payment — {Personal Term Loan}
+Alta Card payment (bank) source.accountName, cardLastFour         Keep card last4; source on bank leg only
+Alta Pay (bank)          company.name, payerLabel, funding       Alta Pay to/from {name} — mostly there
+Transfers                fromAccount.accountName, toAccountName  Already good — clean wording
+Deposits                 No method captured                      Deposit until wire/check/mobile exists
+
+
+F. RECOMMENDED STANDARD COPY TEMPLATES
+--------------------------------------
+
+Alta Pay:
+  Alta Pay to {RecipientName}
+  Alta Pay from {SenderName}
+
+Transfers:
+  Transfer to {AccountName}
+  Transfer from {AccountName}
+
+Interest:
+  {AccountProduct} Interest Payment
+  Relationship Bonus Interest
+
+Loans (bank):
+  Loan Funding
+  Loan Payment
+
+Loans (ledger):
+  Loan Payment
+  Loan Interest Charge
+  Loan Payoff
+  Loan Adjustment
+
+Alta Card:
+  Alta Card Payment — •••• {last4}
+  Alta Card Cash Advance — •••• {last4}
+  Alta Pay to {MerchantName}
+  Alta Card Interest Charge — Statement #{n}
+  Alta Card Late Payment Fee — Statement #{n}
+
+Deposits / Withdrawals:
+  Deposit
+  Withdrawal
+  Deposit — Pending Review
+
+Capitalization standard:
+- Product names: Alta Pay, Alta Card, Alta Money Market, Alta Checking
+- Actions: Loan Payment, Interest Payment, Transfer to/from
+- No em dashes for internal metadata; use em dash only before •••• last4 or statement number
+
+
+G. IMPLEMENTATION PRIORITY (COPY-ONLY)
+--------------------------------------
+
+Priority   Change                                              Files
+P0         Remove Manual Interest Credit — All Categories;     manual-interest-service.ts
+           per-account product interest copy
+P0         Update deposit/withdrawal description on approval  bank.service.ts
+P0         Remove Operator/Admin from customer descriptions     bank.service.ts, alta-card-*.service.ts
+P1         Alta Pay bank-leg reword + parser update             alta-pay.service.ts, ops-alta-pay-admin.service.ts
+P1         Loan payment/funding — drop UUIDs                    loan.service.ts, deal-room-loan-execution.service.ts
+P1         Unify Alta Card payment/autopay copy                 alta-card-transaction.service.ts
+P2         Automatic interest — include account product       account-interest-service.ts
+P2         Rename Intrabank → Transfer                        bank.service.ts
+P2         Loan ledger customer/ops copy split                  loan.service.ts, lending-mapper.ts
+P3         Type label capitalization pass                       transaction-display.ts, alta-card-types.ts,
+                                                           lending-mapper.ts, bank-mapper.ts
+
+
+H. OUT OF SCOPE (NOT CUSTOMER TRANSACTION HISTORY)
+--------------------------------------------------
+
+These write description fields but are audit/timeline/ops-only — no change needed for
+statement audit:
+- Relationship timeline events
+- Secure Deal Room thread audit logs (partially sanitized via lending-audit-display.ts)
+- Internal ops audit logs (Approved deposit {ref}, freeze/unfreeze account, etc.)
+- Platform maintenance, Discord embeds, governance content
+
+
+END OF AUDIT
+============
+
+This audit covers every transaction type currently written to customer-visible ledger
+tables in the codebase. The highest-impact fixes are manual interest copy, post-approval
+deposit descriptions, Alta Pay bank-leg wording, and removing operator/admin/manual
+language from anything that appears on statements or activity feeds.
