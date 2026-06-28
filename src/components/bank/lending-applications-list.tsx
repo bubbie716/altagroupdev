@@ -8,6 +8,7 @@ import { applicationListStatusLabel } from "@/lib/bank/loan-application-thread-t
 import type { LoanApplicationRow } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 type DisplayFilter = "all" | "waiting_on_alta" | "waiting_on_you" | "accepted" | "denied";
 
@@ -31,6 +32,7 @@ function matchesDisplayFilter(a: LoanApplicationRow, filter: DisplayFilter): boo
 
 export function LendingApplicationsList({ applications }: { applications: LoanApplicationRow[] }) {
   const [filter, setFilter] = useState<DisplayFilter>("all");
+  const creditDeskNav = useCreditDeskCustomerNav();
 
   const counts = useMemo(() => {
     const c = { total: applications.length, waitingOnAlta: 0, waitingOnYou: 0, accepted: 0, denied: 0 };
@@ -52,12 +54,14 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
         title="No facility requests on file"
         description="When you submit a credit application it appears here with review status and a link to your Secure Deal Room."
         action={
+          creditDeskNav.showApplyEntryPoints ? (
           <RouteButton
             to="/bank/lending/apply"
             className="rounded-md bg-foreground px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-background hover:bg-foreground/90"
           >
             Apply for credit
           </RouteButton>
+          ) : undefined
         }
       />
     );

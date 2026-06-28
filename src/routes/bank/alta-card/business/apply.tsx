@@ -3,6 +3,7 @@ import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardApplyForm } from "@/components/bank/alta-card/alta-card-apply-form";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchAltaCardApplyContext } from "@/lib/bank/alta-card.functions";
 
 type BusinessApplySearch = {
@@ -10,7 +11,10 @@ type BusinessApplySearch = {
 };
 
 export const Route = createFileRoute("/bank/alta-card/business/apply")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
   validateSearch: (search: Record<string, unknown>): BusinessApplySearch => {
     const companyId = search.companyId;
     return typeof companyId === "string" && companyId.trim() ? { companyId: companyId.trim() } : {};

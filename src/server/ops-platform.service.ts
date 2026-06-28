@@ -146,6 +146,7 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
     });
   }
 
+  const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
   const pending = await getInternalDashboardMetrics();
   if (pending.pendingDeposits > 0) {
     items.push({

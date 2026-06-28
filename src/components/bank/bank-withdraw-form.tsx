@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -59,7 +58,6 @@ export function BankWithdrawForm({
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   function resetForm() {
     setView("form");
@@ -133,7 +131,6 @@ export function BankWithdrawForm({
       setSubmission(result);
       setView("success");
       onSubmissionSuccess?.(result);
-      await router.invalidate();
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Unable to submit withdrawal.";
       const formatted = formatBankActionError(raw, {

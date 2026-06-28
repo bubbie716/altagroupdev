@@ -20,3 +20,29 @@ export const setMaintenanceModeOps = createServerFn({ method: "POST" })
     const user = await requireAuth();
     return setMaintenanceMode(user.id, data);
   });
+
+export const fetchCreditDeskClosedGate = createServerFn({ method: "GET" }).handler(async () => {
+  const { getCreditDeskClosedGate } = await import("@/server/platform-settings.service");
+  return getCreditDeskClosedGate();
+});
+
+export const fetchCreditDeskSettings = createServerFn({ method: "GET" }).handler(async () => {
+  const { getCreditDeskSettings } = await import("@/server/platform-settings.service");
+  return getCreditDeskSettings();
+});
+
+export const fetchCreditDeskCustomerNav = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireAuth } = await import("@/server/auth.service");
+  const { getCreditDeskCustomerNav } = await import("@/server/platform-settings.service");
+  const user = await requireAuth();
+  return getCreditDeskCustomerNav(user.id);
+});
+
+export const setCreditDeskStatusOps = createServerFn({ method: "POST" })
+  .inputValidator((input: { status: "open" | "closed"; reason: string }) => input)
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const { setCreditDeskStatus } = await import("@/server/platform-settings.service");
+    const user = await requireAuth();
+    return setCreditDeskStatus(user.id, data);
+  });

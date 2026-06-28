@@ -1,0 +1,38 @@
+Alta Bank Playwright E2E — Full Suite Results (after fixes)
+=============================================================
+Run date: 2026-06-28
+Command: npm run test:e2e
+Result: 154 passed, 0 failed (~1.4 min)
+
+All issues from the original failure report have been addressed.
+
+
+APPLICATION FIXES APPLIED
+-------------------------
+1. Exceptions pages — added missing getInternalDashboardMetrics import in
+   src/server/ops-platform.service.ts
+
+2. /internal/bank index — fixed loader destructuring (summary = useLoaderData())
+
+3. Credit Desk settings — moved CreditDeskPanel outside AdminOnly so operators
+   can view status; maintenance mode remains admin-only
+
+4. Deposit/withdraw success UX — removed router.invalidate() from form success
+   handlers so the success card is not cleared by loader re-fetch
+
+
+TEST FIXES APPLIED
+------------------
+1. Queue specs — use getByRole('main') instead of compound body/main/table locator
+
+2. Customer form tests — reflect real validation UX:
+   - Deposit: disabled submit without proof; file upload helper; API response wait
+   - Withdrawal: disabled submit for zero amount; skip when no available balance
+   - Alta Pay: fill amount before review; assert company validation message
+   - Transfers: specific Amount (ƒ) spinbutton locator
+
+3. Infrastructure:
+   - Customer project runs serially (workers: 1) — shared E2E user
+   - Mutation describe blocks run serially
+   - 1 local retry for flake under full-suite load
+   - tests/e2e/utils/form.ts helpers for reliable form interaction

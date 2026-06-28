@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
+import { AltaCardProductEyebrow } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { ALTA_CARD_APPLICATION_PENDING_BODY } from "@/lib/bank/bank-shared-copy";
 
 export function AltaCardLandingHero() {

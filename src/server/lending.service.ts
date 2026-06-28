@@ -175,6 +175,9 @@ export async function createLoanApplication(
   userId: string,
   input: CreateLoanApplicationInput,
 ): Promise<LoanApplicationRow & { threadId: string }> {
+  const { assertCreditDeskAcceptingApplications } = await import("@/server/platform-settings.service");
+  await assertCreditDeskAcceptingApplications();
+
   const user = await getAltaUser(userId);
   if (input.requestedAmount <= 0) badRequest("Requested amount must be greater than zero");
   if (

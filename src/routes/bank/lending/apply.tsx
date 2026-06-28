@@ -3,6 +3,7 @@ import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { LendingApplyExperience } from "@/components/bank/lending-apply-experience";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
 import type { LoanProductTypeCode } from "@/lib/bank/lending-types";
 
@@ -11,7 +12,10 @@ type ApplySearch = {
 };
 
 export const Route = createFileRoute("/bank/lending/apply")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
   validateSearch: (search: Record<string, unknown>): ApplySearch => {
     const product = search.product;
     if (

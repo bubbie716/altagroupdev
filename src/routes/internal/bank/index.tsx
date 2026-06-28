@@ -11,7 +11,7 @@ export const Route = createFileRoute("/internal/bank/")({
 });
 
 function InternalBank() {
-  const { summary } = Route.useLoaderData();
+  const summary = Route.useLoaderData();
 
   return (
     <InternalPageShell title="Bank Operations">

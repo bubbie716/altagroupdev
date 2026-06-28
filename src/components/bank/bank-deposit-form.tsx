@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -57,7 +56,6 @@ export function BankDepositForm({
 
   const proofInputRef = useRef<HTMLInputElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
   const selectedAccount = accounts.find((account) => account.id === bankAccountId);
 
@@ -137,7 +135,6 @@ export function BankDepositForm({
       setSubmission(result);
       setView("success");
       onSubmissionSuccess?.(result);
-      await router.invalidate();
     } catch (err) {
       const raw =
         err instanceof Error ? err.message : "Proof upload failed. Please try again.";

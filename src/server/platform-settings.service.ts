@@ -1,11 +1,19 @@
 import type { AltaUser } from "@/lib/auth/types";
-import { canBypassMaintenanceMode } from "@/lib/auth/permissions";
+import { canBypassMaintenanceMode, isAdmin } from "@/lib/auth/permissions";
 import {
   DEFAULT_MAINTENANCE_MESSAGE,
   PLATFORM_SETTING_KEYS,
   type MaintenanceModeSettings,
   type MaintenanceModeState,
 } from "@/lib/platform/maintenance-types";
+import {
+  PLATFORM_SETTING_KEYS as CREDIT_DESK_KEYS,
+  type CreditDeskSettings,
+  type CreditDeskState,
+  type CreditDeskStatus,
+  type CreditDeskCustomerNav,
+} from "@/lib/platform/credit-desk-types";
+import { CREDIT_DESK_SUBMISSION_BLOCKED } from "@/lib/platform/credit-desk-copy";
 import { prisma } from "@/server/db";
 import { requireAdmin } from "@/server/permissions.service";
 
@@ -221,4 +229,274 @@ export async function setMaintenanceMode(
   }
 
   return getMaintenanceMode();
+}
+
+// --- Credit Desk ---
+
+const CREDIT_DESK_ENTITY_ID = "credit-desk";
+const CREDIT_DESK_SETTING_KEYS = [
+  CREDIT_DESK_KEYS.creditDeskStatus,
+  CREDIT_DESK_KEYS.creditDeskClosedAt,
+  CREDIT_DESK_KEYS.creditDeskUpdatedById,
+] as const;
+
+const CREDIT_DESK_GATE_CACHE_TTL_MS = 15_000;
+const CREDIT_DESK_FULL_CACHE_TTL_MS = 10_000;
+
+let creditDeskGateCache: { closed: boolean; expiresAt: number } | null = null;
+let creditDeskFullCache: { value: CreditDeskState; expiresAt: number } | null = null;
+
+export function clearCreditDeskCache(): void {
+  creditDeskGateCache = null;
+  creditDeskFullCache = null;
+}
+
+function parseCreditDeskStatus(value: unknown): CreditDeskStatus {
+  return value === "closed" ? "closed" : "open";
+}
+
+async function readCreditDeskSettings(): Promise<
+  Map<(typeof CREDIT_DESK_SETTING_KEYS)[number], { value: unknown; updatedAt: Date }>
+> {
+  const rows = await prisma.platformSetting.findMany({
+    where: { key: { in: [...CREDIT_DESK_SETTING_KEYS] } },
+    select: { key: true, value: true, updatedAt: true },
+  });
+  return new Map(
+    rows.map((row) => [
+      row.key as (typeof CREDIT_DESK_SETTING_KEYS)[number],
+      { value: row.value, updatedAt: row.updatedAt },
+    ]),
+  );
+}
+
+/** Lightweight gate — cached, single DB read. Defaults to open on failure. */
+export async function getCreditDeskClosedGate(): Promise<boolean> {
+  if (creditDeskGateCache && Date.now() < creditDeskGateCache.expiresAt) {
+    return creditDeskGateCache.closed;
+  }
+  try {
+    const raw = await readSetting(CREDIT_DESK_KEYS.creditDeskStatus);
+    const closed = parseCreditDeskStatus(raw) === "closed";
+    creditDeskGateCache = { closed, expiresAt: Date.now() + CREDIT_DESK_GATE_CACHE_TTL_MS };
+    return closed;
+  } catch (error) {
+    console.error("[credit-desk] Failed to read Credit Desk gate; defaulting to OPEN", error);
+    return false;
+  }
+}
+
+export async function getCreditDeskState(): Promise<CreditDeskState> {
+  if (creditDeskFullCache && Date.now() < creditDeskFullCache.expiresAt) {
+    return creditDeskFullCache.value;
+  }
+
+  try {
+    const settings = await readCreditDeskSettings();
+    const status = parseCreditDeskStatus(settings.get(CREDIT_DESK_KEYS.creditDeskStatus)?.value);
+    const closedAtRaw = settings.get(CREDIT_DESK_KEYS.creditDeskClosedAt)?.value;
+    const updatedByIdRaw = settings.get(CREDIT_DESK_KEYS.creditDeskUpdatedById)?.value;
+    const updatedById = parseString(updatedByIdRaw) || null;
+
+    let updatedByUsername: string | null = null;
+    if (updatedById) {
+      const updater = await prisma.user.findUnique({
+        where: { id: updatedById },
+        select: { discordUsername: true },
+      });
+      updatedByUsername = updater?.discordUsername ?? null;
+    }
+
+    const latestRow = [...settings.values()].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    )[0];
+    const updatedAt = latestRow?.updatedAt.toISOString() ?? null;
+
+    const value: CreditDeskState = {
+      status,
+      closedAt: parseIsoDate(closedAtRaw),
+      updatedAt,
+      updatedById,
+      updatedByUsername,
+    };
+
+    creditDeskFullCache = { value, expiresAt: Date.now() + CREDIT_DESK_FULL_CACHE_TTL_MS };
+    creditDeskGateCache = {
+      closed: status === "closed",
+      expiresAt: Date.now() + CREDIT_DESK_GATE_CACHE_TTL_MS,
+    };
+    return value;
+  } catch (error) {
+    console.error("[credit-desk] Failed to read Credit Desk state; defaulting to OPEN", error);
+    return {
+      status: "open",
+      closedAt: null,
+      updatedAt: null,
+      updatedById: null,
+      updatedByUsername: null,
+    };
+  }
+}
+
+export async function getCreditDeskSettings(): Promise<CreditDeskSettings> {
+  const { requireOperator } = await import("@/server/permissions.service");
+  const actor = await requireOperator();
+  const state = await getCreditDeskState();
+  return { ...state, canEdit: isAdmin(actor) };
+}
+
+export async function setCreditDeskStatus(
+  actorUserId: string,
+  input: { status: CreditDeskStatus; reason: string },
+): Promise<CreditDeskState> {
+  await requireAdmin();
+  const trimmedReason = input.reason.trim();
+  if (!trimmedReason) badRequest("Reason is required");
+  if (input.status !== "open" && input.status !== "closed") {
+    badRequest("Credit Desk status must be open or closed");
+  }
+
+  const previous = await getCreditDeskState();
+  if (previous.status === input.status) {
+    return previous;
+  }
+
+  const nowIso = new Date().toISOString();
+  const closedAt =
+    input.status === "closed"
+      ? previous.status === "closed" && previous.closedAt
+        ? previous.closedAt
+        : nowIso
+      : null;
+
+  await Promise.all([
+    writeSetting(CREDIT_DESK_KEYS.creditDeskStatus, input.status, actorUserId),
+    writeSetting(CREDIT_DESK_KEYS.creditDeskClosedAt, closedAt, actorUserId),
+    writeSetting(CREDIT_DESK_KEYS.creditDeskUpdatedById, actorUserId, actorUserId),
+  ]);
+
+  clearCreditDeskCache();
+
+  let cancellationSummary:
+    | import("@/server/credit-desk-cancel-pending.service").CreditDeskCancellationSummary
+    | undefined;
+
+  if (input.status === "closed") {
+    const { cancelPendingCreditApplicationsOnCreditDeskClose } = await import(
+      "@/server/credit-desk-cancel-pending.service"
+    );
+    cancellationSummary = await cancelPendingCreditApplicationsOnCreditDeskClose(
+      actorUserId,
+      trimmedReason,
+    );
+  }
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const metadata = {
+    previousStatus: previous.status,
+    newStatus: input.status,
+    actorUserId,
+    reason: trimmedReason,
+    timestamp: nowIso,
+    ...(cancellationSummary
+      ? {
+          cancelledLoanApplications: cancellationSummary.loanApplications,
+          cancelledAltaCardApplications: cancellationSummary.altaCardApplications,
+          cancelledAltaCardReviews: cancellationSummary.altaCardReviews,
+        }
+      : {}),
+  };
+
+  await writeAuditLog({
+    actorUserId,
+    action: input.status === "closed" ? "CREDIT_DESK_CLOSED" : "CREDIT_DESK_OPENED",
+    entityType: "PLATFORM",
+    entityId: CREDIT_DESK_ENTITY_ID,
+    description:
+      input.status === "closed"
+        ? cancellationSummary &&
+            (cancellationSummary.loanApplications > 0 ||
+              cancellationSummary.altaCardApplications > 0 ||
+              cancellationSummary.altaCardReviews > 0)
+          ? "Closed the Credit Desk and cancelled pending credit applications"
+          : "Closed the Credit Desk to new applications"
+        : "Reopened the Credit Desk for new applications",
+    metadata,
+  });
+
+  return getCreditDeskState();
+}
+
+/** Blocks new credit application submissions when the Credit Desk is closed. */
+export async function assertCreditDeskAcceptingApplications(): Promise<void> {
+  if (await getCreditDeskClosedGate()) {
+    badRequest(CREDIT_DESK_SUBMISSION_BLOCKED);
+  }
+}
+
+const OPEN_LOAN_STATUSES = ["ACTIVE", "FROZEN", "DELINQUENT"] as const;
+const OPEN_CARD_STATUSES = ["PENDING", "ACTIVE", "FROZEN", "LOST", "EXPIRED", "DELINQUENT"] as const;
+
+async function getCustomerCreditProductVisibility(userId: string): Promise<{
+  hasLoans: boolean;
+  hasCards: boolean;
+}> {
+  const { getAltaUser } = await import("@/server/auth.service");
+  const { canViewBusinessTreasury } = await import("@/lib/auth/permissions");
+  const user = await getAltaUser(userId);
+  const treasuryCompanyIds = user.companyMemberships
+    .filter((m) => canViewBusinessTreasury(user, { companyId: m.companyId }))
+    .map((m) => m.companyId);
+
+  const [activeLoanCount, personalCardCount, businessCardCount, employeeCardCount] = await Promise.all([
+    prisma.loan.count({
+      where: {
+        OR: [
+          { borrowerUserId: userId },
+          { loanApplication: { applicantUserId: userId } },
+          ...(treasuryCompanyIds.length ? [{ companyId: { in: treasuryCompanyIds } }] : []),
+        ],
+        status: { in: [...OPEN_LOAN_STATUSES] },
+      },
+    }),
+    prisma.altaCard.count({
+      where: {
+        ownerUserId: userId,
+        cardType: "PERSONAL",
+        status: { in: [...OPEN_CARD_STATUSES] },
+      },
+    }),
+    treasuryCompanyIds.length
+      ? prisma.altaCard.count({
+          where: {
+            cardType: "BUSINESS",
+            status: { in: [...OPEN_CARD_STATUSES] },
+            companyId: { in: treasuryCompanyIds },
+          },
+        })
+      : Promise.resolve(0),
+    prisma.altaEmployeeCard.count({
+      where: {
+        authorizedUserId: userId,
+        status: { in: [...OPEN_CARD_STATUSES] },
+      },
+    }),
+  ]);
+
+  return {
+    hasLoans: activeLoanCount > 0,
+    hasCards: personalCardCount + businessCardCount + employeeCardCount > 0,
+  };
+}
+
+export async function getCreditDeskCustomerNav(userId: string): Promise<CreditDeskCustomerNav> {
+  const closed = await getCreditDeskClosedGate();
+  const { hasLoans, hasCards } = await getCustomerCreditProductVisibility(userId);
+
+  return {
+    creditDeskClosed: closed,
+    showLendingNav: hasLoans,
+    showAltaCardNav: hasCards,
+    showApplyEntryPoints: !closed,
+  };
 }

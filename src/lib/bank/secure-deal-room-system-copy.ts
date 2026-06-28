@@ -56,6 +56,20 @@ export function buildLendingApplicationDeniedSystemMessage(reviewNote?: string |
   ].join("\n\n") + formatAltaCreditDeskReason(reviewNote);
 }
 
+export function buildLendingApplicationCancelledSystemMessage(reason?: string | null): string {
+  return [
+    "Your application has been cancelled because the Credit Desk is closed.",
+    SECURE_DEAL_ROOM_CLOSED_LINE,
+  ].join("\n\n") + formatAltaCreditDeskReason(reason);
+}
+
+export function buildAltaCardApplicationCancelledSystemMessage(reason?: string | null): string {
+  return [
+    "Your Alta Card application has been cancelled because the Credit Desk is closed.",
+    SECURE_DEAL_ROOM_CLOSED_LINE,
+  ].join("\n\n") + formatAltaCreditDeskReason(reason);
+}
+
 export function buildAltaCardApplicationAcceptedSystemMessage(input: {
   tier: AltaCardTierCode;
   approvedLimit: number;

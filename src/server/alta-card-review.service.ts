@@ -379,6 +379,9 @@ export async function submitReviewRequest(
   userId: string,
   input: SubmitAltaCardReviewInput,
 ): Promise<{ reviewId: string }> {
+  const { assertCreditDeskAcceptingApplications } = await import("@/server/platform-settings.service");
+  await assertCreditDeskAcceptingApplications();
+
   const user = await getAltaUser(userId);
   const card = await prisma.altaCard.findUnique({ where: { id: input.cardId } });
   if (!card) notFound();

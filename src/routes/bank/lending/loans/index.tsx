@@ -5,6 +5,7 @@ import { AltaCreditProfilePlaceholder } from "@/components/bank/alta-credit-prof
 import { LendingLoansTable } from "@/components/bank/lending-loans-table";
 import { EmptyState } from "@/components/data/empty-state";
 import { fetchUserLoans } from "@/lib/bank/lending.functions";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 export const Route = createFileRoute("/bank/lending/loans/")({
   loader: async () => fetchUserLoans(),
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/bank/lending/loans/")({
 
 function BankLendingLoans() {
   const loans = Route.useLoaderData();
+  const creditDeskNav = useCreditDeskCustomerNav();
 
   return (
     <PageShell
@@ -30,7 +32,11 @@ function BankLendingLoans() {
           eyebrow="Alta Bank · Lending"
           title="No loans on file"
           description="Active credit facilities and their servicing summary will appear here once a loan is originated."
-          actions={[{ label: "Apply for credit", to: "/bank/lending/apply" }]}
+          actions={
+            creditDeskNav.showApplyEntryPoints
+              ? [{ label: "Apply for credit", to: "/bank/lending/apply" }]
+              : undefined
+          }
         />
       ) : (
         <LendingLoansTable loans={loans} />

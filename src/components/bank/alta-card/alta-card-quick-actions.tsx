@@ -10,6 +10,7 @@ import { AltaCardCashAdvancePanel } from "@/components/bank/alta-card/alta-card-
 import { AltaCardPaymentPanel } from "@/components/bank/alta-card/alta-card-payment-panel";
 import { activateAltaCardRecord, freezeAltaCardRecord, unfreezeAltaCardRecord } from "@/lib/bank/alta-card.functions";
 import { altaCardStatementsLink, altaCardReviewLink, altaCardReviewDetailLink } from "@/lib/bank/alta-card-navigation";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 export function AltaCardQuickActions({
   card,
@@ -19,6 +20,7 @@ export function AltaCardQuickActions({
   reviewEligibility?: AltaCardReviewEligibility | null;
 }) {
   const router = useRouter();
+  const creditDeskNav = useCreditDeskCustomerNav();
   const canPay = card.currentBalance > 0 && card.status !== "closed";
   const canAdvance = card.status === "active" && card.availableCredit > 0;
   const canAltaPay = card.status === "active";
@@ -92,8 +94,15 @@ export function AltaCardQuickActions({
         ) : null}
 
         <AltaCardQuickActionCell>
-          {card.status !== "closed" ? (
-            <AltaCardQuickActionLink label="Account review" {...altaCardReviewLink(card)} />
+          {card.status !== "closed" && (creditDeskNav.showApplyEntryPoints || activeReviewId) ? (
+            activeReviewId && !creditDeskNav.showApplyEntryPoints ? (
+              <AltaCardQuickActionLink
+                label="Account review"
+                {...altaCardReviewDetailLink(card, activeReviewId)}
+              />
+            ) : (
+              <AltaCardQuickActionLink label="Account review" {...altaCardReviewLink(card)} />
+            )
           ) : (
             <AltaCardActionButton label="Account review" variant="ghost" tile disabled />
           )}

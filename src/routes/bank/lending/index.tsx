@@ -6,6 +6,7 @@ import { getLendingProducts } from "@/lib/bank/api";
 import { fetchLendingDeskStats } from "@/lib/bank/lending.functions";
 import { formatLendingAvgResponse } from "@/lib/bank/lending-types";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 export const Route = createFileRoute("/bank/lending/")({
   loader: () => fetchLendingDeskStats(),
@@ -18,7 +19,9 @@ export const Route = createFileRoute("/bank/lending/")({
 function BankLendingOverview() {
   const lendingProducts = getLendingProducts();
   const user = useCurrentUser();
+  const creditDeskNav = useCreditDeskCustomerNav();
   const deskStats = Route.useLoaderData();
+  const showApply = creditDeskNav.showApplyEntryPoints;
 
   const stats = [
     { label: "Review team", value: String(deskStats.officersOnDesk) },
@@ -36,6 +39,7 @@ function BankLendingOverview() {
       <BankSubNav />
 
       {/* Editorial CTA strip */}
+      {showApply ? (
       <div className="mb-12 overflow-hidden rounded-xl border border-border bg-surface-1/80">
         <div className="grid gap-6 px-6 py-7 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-10 sm:px-8">
           <div>
@@ -89,6 +93,7 @@ function BankLendingOverview() {
           ))}
         </dl>
       </div>
+      ) : null}
 
       <Section
         title="Credit products"
@@ -125,6 +130,7 @@ function BankLendingOverview() {
                 {p.summary}
               </p>
 
+              {showApply ? (
               <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4">
                 <Link
                   to="/bank/lending/apply"
@@ -133,6 +139,7 @@ function BankLendingOverview() {
                   Start application →
                 </Link>
               </div>
+              ) : null}
             </article>
           ))}
         </div>

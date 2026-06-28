@@ -35,6 +35,7 @@ import { unfreezeEmployeeCardRecord } from "@/lib/bank/alta-card-admin.functions
 import { AltaCardAutopayPanel } from "@/components/bank/alta-card/alta-card-autopay-panel";
 import type { AltaCardAutopayContext } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 type BusinessViewProps = {
   companyId: string;
@@ -155,6 +156,8 @@ export function AltaCardBusinessPanel({
   hasMultipleBusinessCards = false,
   onRefresh,
 }: BusinessViewProps & { onRefresh: () => Promise<void> }) {
+  const creditDeskNav = useCreditDeskCustomerNav();
+
   if (!businessCard && pendingApplication) {
     return (
       <AltaCardPendingApplicationBanner
@@ -172,8 +175,12 @@ export function AltaCardBusinessPanel({
       <div className="rounded-xl border border-border bg-surface-1/80 p-8">
         <p className="font-serif text-[20px]">{companyName}</p>
         <p className="mt-2 text-[14px] text-muted-foreground">
-          No business Alta Card on file. Apply from the Alta Card application flow.
+          No business Alta Card on file.
+          {creditDeskNav.showApplyEntryPoints
+            ? " Apply from the Alta Card application flow."
+            : " The Credit Desk is not accepting new applications at this time."}
         </p>
+        {creditDeskNav.showApplyEntryPoints ? (
         <Link
           to="/bank/alta-card/business/apply"
           search={{ companyId }}
@@ -181,6 +188,7 @@ export function AltaCardBusinessPanel({
         >
           Apply for business card
         </Link>
+        ) : null}
       </div>
     );
   }

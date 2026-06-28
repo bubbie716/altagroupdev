@@ -4,10 +4,14 @@ import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardApplyForm } from "@/components/bank/alta-card/alta-card-apply-form";
 import { AltaCardTierComparison } from "@/components/bank/alta-card/alta-card-tier-comparison";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchAltaCardApplyContext } from "@/lib/bank/alta-card.functions";
 
 export const Route = createFileRoute("/bank/alta-card/apply")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
   loader: async () => fetchAltaCardApplyContext(),
   head: () => ({
     meta: [{ title: "Apply for Alta Card — Alta Bank" }],

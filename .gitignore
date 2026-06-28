@@ -32,6 +32,10 @@ dist-ssr
 # Test / tooling
 coverage
 *.tsbuildinfo
+/test-results/
+/playwright-report/
+/tests/e2e/.auth/
+/tests/e2e/reports/screenshots/
 
 # Editor directories and files
 .vscode/*

@@ -4,11 +4,15 @@ import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardReviewForm } from "@/components/bank/alta-card/alta-card-review-form";
 import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
 import { fetchAltaCardReviewFormContext } from "@/lib/bank/alta-card-review.functions";
 
 export const Route = createFileRoute("/bank/alta-card/business/$companyId/review/")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
   loader: async ({ params }) => {
     try {
       const companyCards = await fetchCompanyAltaCards({ data: params.companyId });

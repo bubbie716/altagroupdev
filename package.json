@@ -27,7 +27,14 @@
     "db:activate-pending-private-accounts": "tsx prisma/activate-pending-private-accounts.ts",
     "db:liquidate-revoked-private-banking": "tsx prisma/liquidate-revoked-private-banking.ts",
     "db:migrate-account-numbers": "tsx prisma/migrate-legacy-account-numbers.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:e2e": "npm run test:e2e:auth && playwright test",
+    "test:e2e:headed": "npm run test:e2e:auth && playwright test --headed",
+    "test:e2e:ui": "npm run test:e2e:auth && playwright test --ui --ui-host=127.0.0.1 --ui-port=9323",
+    "test:e2e:ui:only": "playwright test --ui --ui-host=127.0.0.1 --ui-port=9323",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:seed": "tsx tests/e2e/scripts/seed-e2e-data.ts",
+    "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -67,6 +74,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.6.2",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

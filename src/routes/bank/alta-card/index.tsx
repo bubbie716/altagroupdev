@@ -16,6 +16,7 @@ import { fetchCardBillingSummaryRecord } from "@/lib/bank/alta-card-interest.fun
 import { fetchUserPendingAltaCardApplication } from "@/lib/bank/alta-card-application.functions";
 import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
 import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 export const Route = createFileRoute("/bank/alta-card/")({
   beforeLoad: authBeforeLoad,
@@ -40,6 +41,7 @@ function BankAltaCardIndex() {
   const user = useCurrentUser();
   const { card, cardDetail, billingSummary, pendingApplication, reviewEligibility, autopayContext } =
     Route.useLoaderData();
+  const creditDeskNav = useCreditDeskCustomerNav();
 
   const cardholderName =
     user?.discordUsername ?? cardDetail?.ownerUsername ?? card?.ownerUsername ?? "Cardholder";
@@ -54,7 +56,7 @@ function BankAltaCardIndex() {
           : "Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
       }
       action={
-        !card && !pendingApplication ? (
+        !card && !pendingApplication && creditDeskNav.showApplyEntryPoints ? (
           <Link
             to="/bank/alta-card/apply"
             className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
@@ -87,6 +89,7 @@ function BankAltaCardIndex() {
           transactions={cardDetail?.recentTransactions ?? []}
         />
       ) : !pendingApplication ? (
+        creditDeskNav.showApplyEntryPoints ? (
         <div className="space-y-10">
           <AltaCardLandingHero />
           <div>
@@ -102,6 +105,7 @@ function BankAltaCardIndex() {
             <AltaCardPersonalVsBusiness />
           </div>
         </div>
+        ) : null
       ) : null}
     </PageShell>
   );

@@ -382,6 +382,9 @@ export async function createPersonalAltaCardApplication(
   userId: string,
   input: CreatePersonalAltaCardApplicationInput,
 ): Promise<AltaCardApplicationRow> {
+  const { assertCreditDeskAcceptingApplications } = await import("@/server/platform-settings.service");
+  await assertCreditDeskAcceptingApplications();
+
   const user = await getAltaUser(userId);
   if (!input.acknowledged) badRequest("You must acknowledge the application terms");
   if (input.requestedTier === "gold" && !isPrivateClient(user)) {
@@ -447,6 +450,9 @@ export async function createBusinessAltaCardApplication(
   userId: string,
   input: CreateBusinessAltaCardApplicationInput,
 ): Promise<AltaCardApplicationRow> {
+  const { assertCreditDeskAcceptingApplications } = await import("@/server/platform-settings.service");
+  await assertCreditDeskAcceptingApplications();
+
   const user = await getAltaUser(userId);
   if (!input.acknowledged) badRequest("You must acknowledge the application terms");
   if (!canManageBusinessTreasury(user, { companyId: input.companyId })) forbidden();

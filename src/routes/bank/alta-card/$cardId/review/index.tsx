@@ -3,11 +3,15 @@ import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { AltaCardReviewForm } from "@/components/bank/alta-card/alta-card-review-form";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchAltaCardDetail } from "@/lib/bank/alta-card.functions";
 import { fetchAltaCardReviewFormContext } from "@/lib/bank/alta-card-review.functions";
 
 export const Route = createFileRoute("/bank/alta-card/$cardId/review/")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
   loader: async ({ params }) => {
     try {
       const card = await fetchAltaCardDetail({ data: params.cardId });

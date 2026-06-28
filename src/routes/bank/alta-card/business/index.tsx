@@ -7,6 +7,7 @@ import { AltaCardPendingApplicationBanner } from "@/components/bank/alta-card/al
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchBusinessAltaCardHub } from "@/lib/bank/alta-card.functions";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 
 export const Route = createFileRoute("/bank/alta-card/business/")({
   beforeLoad: authBeforeLoad,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/bank/alta-card/business/")({
 
 function BankAltaCardBusinessIndex() {
   const { companies, employeeCards } = Route.useLoaderData();
+  const creditDeskNav = useCreditDeskCustomerNav();
   const pendingApplications = companies
     .map((c) => c.pendingApplication)
     .filter((application): application is NonNullable<typeof application> => application != null);
@@ -32,7 +34,7 @@ function BankAltaCardBusinessIndex() {
       title="Business Alta Cards"
       description="Company revolving credit lines and employee cards authorized against your business limit."
       action={
-        hasOpenApplySlot ? (
+        hasOpenApplySlot && creditDeskNav.showApplyEntryPoints ? (
           <Link
             to="/bank/alta-card/business/apply"
             className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background hover:bg-foreground/90"

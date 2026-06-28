@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
 import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
@@ -97,8 +98,19 @@ function NavLink({
   );
 }
 
-function LendingNavGroup({ pathname, active }: { pathname: string; active: boolean }) {
+function LendingNavGroup({
+  pathname,
+  active,
+  showApply = true,
+}: {
+  pathname: string;
+  active: boolean;
+  showApply?: boolean;
+}) {
   const expanded = normalizePath(pathname).startsWith("/bank/lending");
+  const subLinks = showApply
+    ? lendingSubLinks
+    : lendingSubLinks.filter((link) => link.to !== "/bank/lending/apply");
 
   return (
     <motion.div layout className="flex items-center gap-1">
@@ -156,8 +168,17 @@ function LendingNavGroup({ pathname, active }: { pathname: string; active: boole
   );
 }
 
-function AltaCardNavGroup({ pathname, active }: { pathname: string; active: boolean }) {
+function AltaCardNavGroup({
+  pathname,
+  active,
+  showApply = true,
+}: {
+  pathname: string;
+  active: boolean;
+  showApply?: boolean;
+}) {
   const expanded = normalizePath(pathname).startsWith("/bank/alta-card");
+  void showApply;
 
   return (
     <motion.div layout className="flex items-center gap-1">
@@ -218,21 +239,46 @@ function AltaCardNavGroup({ pathname, active }: { pathname: string; active: bool
 export function BankSubNav({ className }: { className?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
+  const creditDeskNav = useCreditDeskCustomerNav();
   const visibleLinks = links.filter(
     (l) => !("privateOnly" in l && l.privateOnly) || (user !== null && isPrivateClient(user)),
   );
+
+  const navLinks = visibleLinks.filter((link) => {
+    if (link.to === "/bank/lending") {
+      if (creditDeskNav.showLendingNav) return true;
+      return false;
+    }
+    if (link.to === "/bank/alta-card") {
+      if (creditDeskNav.showAltaCardNav) return true;
+      return false;
+    }
+    return true;
+  });
 
   return (
     <LayoutGroup id="bank-sub-nav">
       <BankSubNavScroll className="sm:mb-10">
         <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0", className)}>
-        {visibleLinks.map((link) => {
+        {navLinks.map((link) => {
           if (link.to === "/bank/lending") {
+            if (creditDeskNav.creditDeskClosed && creditDeskNav.showLendingNav) {
+              return (
+                <motion.div layout="position" key="loans-servicing">
+                  <NavLink
+                    to="/bank/lending/loans"
+                    label="Loans"
+                    active={normalizePath(pathname).startsWith("/bank/lending")}
+                  />
+                </motion.div>
+              );
+            }
             return (
               <LendingNavGroup
                 key={link.to}
                 pathname={pathname}
                 active={isNavLinkActive(pathname, link)}
+                showApply={creditDeskNav.showApplyEntryPoints}
               />
             );
           }
@@ -242,6 +288,7 @@ export function BankSubNav({ className }: { className?: string }) {
                 key={link.to}
                 pathname={pathname}
                 active={isNavLinkActive(pathname, link)}
+                showApply={creditDeskNav.showApplyEntryPoints}
               />
             );
           }
