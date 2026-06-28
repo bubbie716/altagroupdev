@@ -1,4 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  acquireHeavyCronLock,
+  evaluateHeavyCronGate,
+  heavyCronSkippedPayload,
+  releaseHeavyCronLock,
+} from "@/lib/cron/cron-tick-gating";
 import { cronResponse, validateCronSecret } from "@/lib/cron/cron-http";
 import {
   accrueInterestForDueLoans,
@@ -27,14 +33,6 @@ async function executeAltaCardServicing() {
   const statements = await runAltaCardStatementSchedulerJob({ trigger: "cron" });
   const billing = await runAltaCardBillingSchedulerJob({ trigger: "cron" });
   return { statements, billing };
-}
-
-async function executeBankStatementServicing() {
-  return runBankAccountStatementSchedulerJob({ trigger: "cron" });
-}
-
-async function executeDepositInterestServicing() {
-  return runDepositInterestSchedulerJob({ trigger: "cron" });
 }
 
 async function executeRelationshipIntelligenceRefresh() {
@@ -75,54 +73,71 @@ async function executeRelationshipIntelligenceRefresh() {
   return summary;
 }
 
+async function executeHeavyCronBundle() {
+  const gate = await evaluateHeavyCronGate();
+  if (!gate.run) {
+    return { heavyCron: heavyCronSkippedPayload(gate.reason) };
+  }
+
+  await acquireHeavyCronLock();
+
+  try {
+    const [loanServicing, altaCard, bankStatements, depositInterest, relationshipIntelligence] =
+      await Promise.all([
+        executeLoanServicing(),
+        executeAltaCardServicing(),
+        runBankAccountStatementSchedulerJob({ trigger: "cron" }),
+        runDepositInterestSchedulerJob({ trigger: "cron" }),
+        executeRelationshipIntelligenceRefresh(),
+      ]);
+
+    return {
+      heavyCron: { skipped: false },
+      loanServicing,
+      altaCard,
+      bankStatements,
+      depositInterest,
+      relationshipIntelligence,
+    };
+  } finally {
+    await releaseHeavyCronLock();
+  }
+}
+
 async function runExecutor() {
-  const [scheduledTransfers, payroll, loanServicing, altaCard, bankStatements, depositInterest, relationshipIntelligence] =
-    await Promise.all([
-      executeDueScheduledTransfers(),
-      executeDuePayrollRuns(),
-      executeLoanServicing(),
-      executeAltaCardServicing(),
-      executeBankStatementServicing(),
-      executeDepositInterestServicing(),
-      executeRelationshipIntelligenceRefresh(),
-    ]);
+  const [scheduledTransfers, payroll, heavy] = await Promise.all([
+    executeDueScheduledTransfers(),
+    executeDuePayrollRuns(),
+    executeHeavyCronBundle(),
+  ]);
+
   return cronResponse({
     ok: true,
     scheduledTransfers,
     payroll,
-    loanServicing,
-    altaCard,
-    bankStatements,
-    depositInterest,
-    relationshipIntelligence,
+    ...heavy,
   });
+}
+
+async function handleCron(request: Request) {
+  if (!validateCronSecret(request)) {
+    return cronResponse({ ok: false, message: "Unauthorized." }, 401);
+  }
+
+  try {
+    return await runExecutor();
+  } catch (error) {
+    console.error("[cron] scheduled-transfers failed", error);
+    const message = error instanceof Error ? error.message : "Cron execution failed.";
+    return cronResponse({ ok: false, message }, 500);
+  }
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        if (!validateCronSecret(request)) {
-          return cronResponse({ ok: false, message: "Unauthorized." }, 401);
-        }
-
-        try {
-          return await runExecutor();
-        } catch {
-          return cronResponse({ ok: false, message: "Cron execution failed." }, 500);
-        }
-      },
-      POST: async ({ request }) => {
-        if (!validateCronSecret(request)) {
-          return cronResponse({ ok: false, message: "Unauthorized." }, 401);
-        }
-
-        try {
-          return await runExecutor();
-        } catch {
-          return cronResponse({ ok: false, message: "Cron execution failed." }, 500);
-        }
-      },
+      GET: ({ request }) => handleCron(request),
+      POST: ({ request }) => handleCron(request),
     },
   },
 });

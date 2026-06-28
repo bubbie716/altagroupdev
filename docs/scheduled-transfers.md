@@ -131,7 +131,7 @@ Sign up at [console.cron-job.org](https://console.cron-job.org).
 |-------|--------|
 | **Title** | Alta scheduled transfers |
 | **URL** | `https://YOUR_DOMAIN.vercel.app/api/cron/scheduled-transfers` |
-| **Schedule** | Every **15 minutes** (or every minute if you want faster pickup) |
+| **Schedule** | Every **1–15 minutes** for scheduled transfers and payroll (see below) |
 | **Request method** | `GET` or `POST` |
 | **Enabled** | Yes |
 
@@ -160,8 +160,10 @@ Check **Execution history** — failed runs show status codes and response bodie
 ### 5. Limits (free tier)
 
 - **Minimum interval:** once per minute per job
-- **Request timeout:** 30 seconds (plenty for typical transfer batches)
+- **Request timeout:** 30 seconds
 - **Fair use:** unlimited jobs per account under normal use
+
+**Every-minute schedule:** Safe for scheduled transfers and payroll. The endpoint runs those on every tick (~1–2 seconds). Heavier work (loan servicing, Alta Card billing, bank statements, deposit interest, relationship intelligence) runs **at most once per UTC day** and is skipped on other ticks, so you stay under the 30-second timeout.
 
 ### Example schedule choices
 
@@ -169,7 +171,7 @@ Check **Execution history** — failed runs show status codes and response bodie
 |------|----------------------|
 | Check every 15 minutes | Every 15 minutes |
 | Check every 5 minutes | Custom / every 5 minutes (if UI allows; still under 60/hour) |
-| Maximum responsiveness | Every 1 minute |
+| Maximum responsiveness (transfers/payroll) | Every 1 minute |
 
 ## Vercel Cron (optional alternative)
 
