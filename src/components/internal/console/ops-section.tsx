@@ -16,9 +16,12 @@ export function OpsSection({
   return (
     <section className={cn("min-w-0", className)}>
       {title ? (
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-          {action}
+        <div className="mb-3 flex items-end justify-between gap-3 border-b border-border/50 pb-2">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="mr-2 inline-block h-1 w-1 translate-y-[-2px] rounded-full bg-gold/70 align-middle" aria-hidden />
+            {title}
+          </h2>
+          {action ? <div className="flex items-center gap-1.5">{action}</div> : null}
         </div>
       ) : null}
       {children}
