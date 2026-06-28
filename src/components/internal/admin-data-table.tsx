@@ -37,14 +37,14 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
 
   return (
     <div className="min-w-0 max-w-full overflow-hidden rounded border border-border/80 bg-surface-1/30">
-      <div className="max-w-full min-w-0 overflow-x-auto overscroll-x-contain">
+      <div className="max-h-[calc(100dvh-14rem)] max-w-full min-w-0 overflow-auto overscroll-contain">
         <table className="w-full min-w-[640px] border-collapse text-[12px]">
-          <thead>
-            <tr className="border-b border-border/80 bg-surface-2/40 text-left">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-border/80 bg-surface-2/80 text-left backdrop-blur">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-3 py-2 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground ${col.className ?? ""}`}
+                  className={`px-3 py-2.5 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90 ${col.className ?? ""}`}
                 >
                   {col.header}
                 </th>
@@ -55,7 +55,7 @@ export function AdminDataTable<T extends Record<string, unknown> | object>({
             {rows.map((row, i) => (
               <tr
                 key={rowKey?.(row, i) ?? (row as { id?: string }).id ?? i}
-                className="border-b border-border/40 last:border-0 hover:bg-surface-2/30"
+                className={`border-b border-border/40 last:border-0 transition-colors hover:bg-gold/[0.04] ${i % 2 === 1 ? "bg-surface-1/20" : ""}`}
               >
                 {columns.map((col) => (
                   <td key={col.key} className={`px-3 py-2 align-top ${col.className ?? ""}`}>
