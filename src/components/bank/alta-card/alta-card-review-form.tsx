@@ -22,7 +22,6 @@ import {
   altaCardReviewThreadLink,
 } from "@/lib/bank/alta-card-navigation";
 import type { AltaCardTypeCode } from "@/lib/bank/alta-card-types";
-import { AltaCardRelationshipRecommendationPanel } from "@/components/bank/alta-card/alta-card-relationship-recommendation-panel";
 import {
   submitAltaCardReviewRequest,
 } from "@/lib/bank/alta-card-review.functions";
@@ -187,7 +186,6 @@ export function AltaCardReviewForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const rel = context.relationship;
   const eligibility = context.eligibility;
   const showGoldUpsell = context.card.tier === "black" && !context.isPrivateClient;
 
@@ -282,7 +280,6 @@ export function AltaCardReviewForm({
             </Link>
           ) : null}
         </div>
-        <AltaCardRelationshipRecommendationPanel recommendation={rel} />
         <AltaCardReviewHistorySection
           cardId={cardId}
           cardType={context.card.cardType}
@@ -321,8 +318,6 @@ export function AltaCardReviewForm({
           </div>
         </dl>
       </section>
-
-      <AltaCardRelationshipRecommendationPanel recommendation={rel} />
 
       <section className="rounded-xl border border-border bg-surface-1/80 p-6 space-y-5">
         <h3 className="font-serif text-[18px]">Requested improvements</h3>
@@ -518,12 +513,12 @@ export function AltaCardReviewDetailView({
 
   return (
     <div className="space-y-8">
-      <AltaCardPageNav className="mb-0">
+      <AltaCardPageNav>
         <RouteButton
           {...altaCardReviewLink(reviewNavCardFromReview(cardId, review))}
           className={altaCardNavButtonClassName}
         >
-          ← Back to all previous reviews
+          All reviews
         </RouteButton>
       </AltaCardPageNav>
       <div className="rounded-xl border border-border bg-surface-1/80 p-6">

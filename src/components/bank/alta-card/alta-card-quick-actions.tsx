@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
 import {
@@ -24,13 +24,10 @@ export function AltaCardQuickActions({
   const canPay = card.currentBalance > 0 && card.status !== "closed";
   const canAdvance = card.status === "active" && card.availableCredit > 0;
   const canAltaPay = card.status === "active";
-  const reviewBlockMessage = reviewEligibility?.blockMessage ?? null;
   const activeReviewId = reviewEligibility?.activeReviewId ?? null;
-  const inCooldown = reviewEligibility?.inCooldown ?? false;
 
   return (
-    <div className="space-y-3">
-      <div className="grid min-w-0 grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid min-w-0 grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <AltaCardQuickActionCell>
           {canPay ? (
             <AltaCardPaymentPanel card={card} variant="quick" />
@@ -108,30 +105,5 @@ export function AltaCardQuickActions({
           )}
         </AltaCardQuickActionCell>
       </div>
-
-      {reviewBlockMessage ? (
-        <p className="text-[12px] text-muted-foreground">
-          {reviewBlockMessage}
-          {activeReviewId ? (
-            <>
-              {" "}
-              <Link
-                {...altaCardReviewDetailLink(card, activeReviewId)}
-                className="text-gold hover:underline"
-              >
-                View active review
-              </Link>
-            </>
-          ) : inCooldown ? (
-            <>
-              {" "}
-              <Link {...altaCardReviewLink(card)} className="text-gold hover:underline">
-                View past reviews
-              </Link>
-            </>
-          ) : null}
-        </p>
-      ) : null}
-    </div>
   );
 }
