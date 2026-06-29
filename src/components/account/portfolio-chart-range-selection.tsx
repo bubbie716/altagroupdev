@@ -123,13 +123,8 @@ export function PortfolioChartSelectionOverlay({
   );
 }
 
-const SELECTION_TOOLTIP_WIDTH_ESTIMATE = 240;
 const SELECTION_TOOLTIP_GAP = 20;
 const SELECTION_TOOLTIP_EDGE = 8;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(value, max));
-}
 
 export function resolveSelectionTooltipPosition({
   geometry,
@@ -144,45 +139,20 @@ export function resolveSelectionTooltipPosition({
 }): { left: number; top: number; transform: string } {
   const plotTop = margin.top;
   const plotBottom = containerHeight - margin.bottom;
-  const selectionMidY = (Math.min(geometry.startY, geometry.endY) + Math.max(geometry.startY, geometry.endY)) / 2;
-  const selectionRight = geometry.left + geometry.width;
-  const midY = clamp(selectionMidY, plotTop + SELECTION_TOOLTIP_EDGE, plotBottom - SELECTION_TOOLTIP_EDGE);
+  // Shaded column spans the full plot height — anchor to its vertical center, not marker Y.
+  const shadedMidY = (plotTop + plotBottom) / 2;
 
+  const selectionRight = geometry.left + geometry.width;
   const spaceLeft = geometry.left - SELECTION_TOOLTIP_EDGE;
   const spaceRight = containerWidth - SELECTION_TOOLTIP_EDGE - selectionRight;
-  const minSideSpace = SELECTION_TOOLTIP_WIDTH_ESTIMATE + SELECTION_TOOLTIP_GAP;
-
-  // Prefer beside the shaded column so the tooltip stays outside the highlight.
-  if (spaceLeft >= minSideSpace) {
-    return {
-      left: geometry.left - SELECTION_TOOLTIP_GAP,
-      top: midY,
-      transform: "translate(-100%, -50%)",
-    };
-  }
-
-  if (spaceRight >= minSideSpace) {
-    return {
-      left: selectionRight + SELECTION_TOOLTIP_GAP,
-      top: midY,
-      transform: "translate(0, -50%)",
-    };
-  }
-
-  // Fallback: above the plot, hugging the side with more horizontal room.
-  const aboveY = plotTop - SELECTION_TOOLTIP_GAP;
-  if (spaceLeft >= spaceRight) {
-    return {
-      left: clamp(geometry.left - SELECTION_TOOLTIP_GAP, SELECTION_TOOLTIP_EDGE, containerWidth - SELECTION_TOOLTIP_EDGE),
-      top: aboveY,
-      transform: "translate(-100%, -100%)",
-    };
-  }
+  const placeOnLeft = spaceLeft >= spaceRight;
 
   return {
-    left: clamp(selectionRight + SELECTION_TOOLTIP_GAP, SELECTION_TOOLTIP_EDGE, containerWidth - SELECTION_TOOLTIP_EDGE),
-    top: aboveY,
-    transform: "translate(0, -100%)",
+    left: placeOnLeft
+      ? geometry.left - SELECTION_TOOLTIP_GAP
+      : selectionRight + SELECTION_TOOLTIP_GAP,
+    top: shadedMidY,
+    transform: placeOnLeft ? "translate(-100%, -50%)" : "translate(0, -50%)",
   };
 }
 
