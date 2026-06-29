@@ -37,8 +37,8 @@ import {
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 
-const EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED =
-  "You cannot use your employee Alta Card to pay the company that issued the card.";
+const CARD_COMPANY_PAY_BLOCKED =
+  "You cannot use this Alta Card to pay the company it belongs to.";
 
 function employerCompanyIdForFunding(source: PayFundingSourceOption | undefined): string | undefined {
   return source?.employerCompanyId;
@@ -173,7 +173,7 @@ export function AltaPayForm({
       blockedEmployerCompanyId &&
       selectedCompany.id === blockedEmployerCompanyId
     ) {
-      setComposeError(EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED);
+      setComposeError(CARD_COMPANY_PAY_BLOCKED);
       return;
     }
     if (!selectedFunding) {
@@ -410,7 +410,7 @@ export function AltaPayForm({
               payableCompanyResults.length === 0 &&
               !selectedCompany && (
                 <p className="mt-2 text-[12px] text-muted-foreground">
-                  {EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED}
+                  {CARD_COMPANY_PAY_BLOCKED}
                 </p>
               )}
             {selectedCompany && (

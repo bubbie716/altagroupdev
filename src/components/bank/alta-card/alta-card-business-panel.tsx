@@ -27,6 +27,7 @@ import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { AdminDataTable, type AdminTableColumn } from "@/components/internal/admin-data-table";
 import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
 import { AltaCardEmployeeCardCreateForm } from "@/components/bank/alta-card/alta-card-employee-card-create-form";
+import { AltaCardEmployeeLimitEditor } from "@/components/bank/alta-card/alta-card-employee-limit-editor";
 import {
   closeEmployeeCardRecord,
   freezeEmployeeCardRecord,
@@ -101,7 +102,11 @@ function employeeColumns(
       key: "actions",
       header: "",
       cell: (row) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex min-w-[12rem] flex-col gap-2">
+          {row.status !== "closed" ? (
+            <AltaCardEmployeeLimitEditor employeeCard={row} onUpdated={onRefresh} />
+          ) : null}
+          <div className="flex flex-wrap gap-1">
           {row.status === "active" ? (
             <BankReviewButton
               label="Freeze"
@@ -133,6 +138,7 @@ function employeeColumns(
               }}
             />
           ) : null}
+          </div>
         </div>
       ),
     });
@@ -294,6 +300,11 @@ export function AltaCardBusinessPanel({
                   <dd>{altaCardStatusLabel(row.status)}</dd>
                 </div>
               </dl>
+              {canManageTreasury && row.status !== "closed" ? (
+                <div className="mt-3">
+                  <AltaCardEmployeeLimitEditor employeeCard={row} onUpdated={onRefresh} />
+                </div>
+              ) : null}
               <div className="mt-3 flex flex-wrap gap-1">
                 {canManageTreasury && row.status === "active" ? (
                   <BankReviewButton label="Freeze" onAction={async () => { await freezeEmployeeCardRecord({ data: row.id }); await onRefresh(); }} />

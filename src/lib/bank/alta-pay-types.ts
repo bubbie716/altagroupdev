@@ -34,7 +34,7 @@ export interface PayFundingSourceOption {
   detail: string;
   availableBalance: number;
   cardLastFour?: string;
-  /** When paying from an employee Alta Card, the company that issued the card. */
+  /** Company tied to this Alta Card — cannot Alta Pay that company (business or employee cards). */
   employerCompanyId?: string;
   accountStatusInfo?: import("@/lib/bank/backend-types").CustomerAccountStatus;
 }
