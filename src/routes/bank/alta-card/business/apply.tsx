@@ -34,7 +34,7 @@ function BankBusinessAltaCardApply() {
       title="Apply for business Alta Card"
       description="Company owners and treasury managers may apply for a business credit line."
      />
-<AltaCardApplyForm context={context} defaultKind="business" defaultCompanyId={companyId} />
+<AltaCardApplyForm context={context} kind="business" defaultCompanyId={companyId} />
     </>
   );
 }

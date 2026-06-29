@@ -26,9 +26,9 @@ function BankAltaCardApply() {
       <BankPageMeta
       eyebrow="Alta Bank · Alta Card"
       title="Apply for Alta Card"
-      description="Submit a personal or business revolving credit application. Terms are set at approval based on your Alta relationship."
+      description="Submit a personal revolving credit application. Terms are set at approval based on your Alta relationship."
      />
-<AltaCardApplyForm context={context} />
+<AltaCardApplyForm context={context} kind="personal" />
       <div className="mt-12 border-t border-border pt-10">
         <h3 className="mb-4 font-serif text-[20px]">Tier overview</h3>
         <AltaCardTierComparison showApplyLink={false} compact />

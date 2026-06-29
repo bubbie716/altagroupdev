@@ -10,7 +10,6 @@ import {
   ALTA_CARD_TIER_LABELS,
   ALTA_CARD_TIER_ORDER,
 } from "@/lib/bank/alta-card-types";
-import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_CONFIG } from "@/lib/bank/alta-card-tier-config";
 import {
   submitBusinessAltaCardApplication,
@@ -26,11 +25,11 @@ type ApplyContext = Awaited<
 
 export function AltaCardApplyForm({
   context,
-  defaultKind = "personal",
+  kind,
   defaultCompanyId,
 }: {
   context: ApplyContext;
-  defaultKind?: "personal" | "business";
+  kind: "personal" | "business";
   defaultCompanyId?: string;
 }) {
   const router = useRouter();
@@ -41,17 +40,8 @@ export function AltaCardApplyForm({
   );
   const canApplyPersonal = !context.personalCard && !context.pendingPersonalApplication;
   const canApplyBusiness = eligibleCompanies.length > 0;
-  const initialKind =
-    defaultKind === "business" && canApplyBusiness
-      ? "business"
-      : defaultKind === "personal" && canApplyPersonal
-        ? "personal"
-        : canApplyPersonal
-          ? "personal"
-          : canApplyBusiness
-            ? "business"
-            : defaultKind;
-  const [cardKind, setCardKind] = useState<"personal" | "business">(initialKind);
+  const canSubmit = kind === "personal" ? canApplyPersonal : canApplyBusiness;
+
   const [tier, setTier] = useState<AltaCardTierCode>("white");
   const initialCompanyId =
     defaultCompanyId && eligibleCompanies.some((c) => c.id === defaultCompanyId)
@@ -81,7 +71,7 @@ export function AltaCardApplyForm({
     setLoading(true);
     try {
       const limit = requestedLimit.trim() ? Number(requestedLimit) : undefined;
-      if (cardKind === "personal") {
+      if (kind === "personal") {
         const app = await submitPersonal({
           data: {
             requestedTier: tier,
@@ -124,22 +114,22 @@ export function AltaCardApplyForm({
   }
 
   const defaultLimit = ALTA_CARD_DEFAULT_LIMITS[tier];
-  const canSubmit =
-    (cardKind === "personal" && canApplyPersonal) || (cardKind === "business" && canApplyBusiness);
 
-  if (!canApplyPersonal && !canApplyBusiness) {
+  if (!canSubmit) {
     return (
       <div className="rounded-xl border border-border bg-surface-1/80 p-8">
-        <AltaCardProductEyebrow>Alta Card application</AltaCardProductEyebrow>
+        <AltaCardProductEyebrow>
+          {kind === "personal" ? "Personal Alta Card application" : "Business Alta Card application"}
+        </AltaCardProductEyebrow>
         <p className="mt-3 font-serif text-[20px]">No eligible Alta Card applications</p>
         <p className="mt-2 max-w-xl text-[14px] text-muted-foreground">
-          {context.personalCard
-            ? "You already have a personal Alta Card."
-            : context.pendingPersonalApplication
-              ? "You already have a personal Alta Card application in progress."
-              : "Every company you manage already has a business Alta Card or an open application."}
+          {kind === "personal"
+            ? context.personalCard
+              ? "You already have a personal Alta Card."
+              : "You already have a personal Alta Card application in progress."
+            : "Every company you manage already has a business Alta Card or an open application."}
         </p>
-        {context.pendingPersonalApplication ? (
+        {kind === "personal" && context.pendingPersonalApplication ? (
           <Link
             to="/bank/alta-card/applications/$applicationId"
             params={{ applicationId: context.pendingPersonalApplication.id }}
@@ -147,12 +137,19 @@ export function AltaCardApplyForm({
           >
             View personal application
           </Link>
-        ) : context.personalCard ? (
+        ) : kind === "personal" && context.personalCard ? (
           <Link
             to="/bank/alta-card"
             className="mt-4 inline-flex rounded-md border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em]"
           >
             View personal card
+          </Link>
+        ) : kind === "business" ? (
+          <Link
+            to="/bank/alta-card/business"
+            className="mt-4 inline-flex rounded-md border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em]"
+          >
+            Back to business Alta Card
           </Link>
         ) : null}
       </div>
@@ -170,62 +167,17 @@ export function AltaCardApplyForm({
 
       <div className="space-y-6">
         <div>
-          <AltaCardProductEyebrow>Alta Card application</AltaCardProductEyebrow>
+          <AltaCardProductEyebrow>
+            {kind === "personal" ? "Personal Alta Card application" : "Business Alta Card application"}
+          </AltaCardProductEyebrow>
           <p className="mt-2 text-[14px] text-muted-foreground">
-            Revolving credit separate from term lending. Select personal or business, choose a tier,
-            and submit for manual review.
+            {kind === "personal"
+              ? "Revolving credit separate from term lending. Choose a tier and submit for manual review."
+              : "Company revolving credit separate from term lending. Choose a tier and submit for manual review."}
           </p>
         </div>
-        {defaultKind === "personal" ? (
-          <div className="flex flex-wrap gap-2">
-            {(["personal", "business"] as const).map((kind) => {
-              const enabled = kind === "personal" ? canApplyPersonal : canApplyBusiness;
-              return (
-              <button
-                key={kind}
-                type="button"
-                disabled={!enabled}
-                onClick={() => enabled && setCardKind(kind)}
-                className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-40 ${
-                  cardKind === kind
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-surface-2 text-muted-foreground"
-                }`}
-              >
-                {kind}
-              </button>
-            );
-            })}
-          </div>
-        ) : null}
 
-        {cardKind === "personal" && !canApplyPersonal ? (
-          <div className="rounded-lg border border-border bg-surface-1 px-4 py-3 text-[13px] text-muted-foreground">
-            {context.personalCard
-              ? "You already have a personal Alta Card."
-              : "You already have a personal application in progress."}
-            {context.pendingPersonalApplication ? (
-              <>
-                {" "}
-                <Link
-                  to="/bank/alta-card/applications/$applicationId"
-                  params={{ applicationId: context.pendingPersonalApplication.id }}
-                  className="text-foreground underline"
-                >
-                  View application ({ALTA_CARD_APPLICATION_STATUS_LABELS[context.pendingPersonalApplication.status]})
-                </Link>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-
-        {cardKind === "business" && !canApplyBusiness ? (
-          <div className="rounded-lg border border-border bg-surface-1 px-4 py-3 text-[13px] text-muted-foreground">
-            Every company you manage already has a business Alta Card or an application Waiting on Alta.
-          </div>
-        ) : null}
-
-        {cardKind === "business" ? (
+        {kind === "business" ? (
           <>
             <label className="block space-y-2">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -238,10 +190,10 @@ export function AltaCardApplyForm({
               >
                 <option value="">Select company…</option>
                 {eligibleCompanies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="block space-y-2">
@@ -333,7 +285,7 @@ export function AltaCardApplyForm({
           />
         </label>
 
-        {cardKind === "personal" && context.paymentSourceAccounts.length > 0 ? (
+        {kind === "personal" && context.paymentSourceAccounts.length > 0 ? (
           <label className="block space-y-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Preferred payment source (optional)
@@ -370,7 +322,7 @@ export function AltaCardApplyForm({
 
         <button
           type="submit"
-          disabled={loading || !canSubmit}
+          disabled={loading}
           className="rounded-md bg-foreground px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
         >
           {loading ? "Submitting…" : "Submit application"}
