@@ -2,6 +2,8 @@ import { type AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import { formatAltaCardOpenedTimelineCopy } from "@/lib/bank/alta-card-timeline.helpers";
 import {
   extractTierPairFromMetadata,
+  formatAltaCardLimitIncreasedCopy,
+  formatAltaCardRateReducedCopy,
   formatAltaCardUpgradedCopy,
   formatLoanApprovedCopy,
   formatRelationshipTierOutcomeCopy,
@@ -24,6 +26,24 @@ export function formatAltaCardTierUpgradeTimelineCopy(
 ): TimelineCopy {
   const scope: CustomerTimelineScope = options?.business ? "business" : "personal";
   return formatAltaCardUpgradedCopy(newTier, scope);
+}
+
+export function formatAltaCardLimitIncreaseTimelineCopy(
+  previousLimit: number | null | undefined,
+  newLimit: number | null | undefined,
+  options?: { business?: boolean },
+): TimelineCopy {
+  const scope: CustomerTimelineScope = options?.business ? "business" : "personal";
+  return formatAltaCardLimitIncreasedCopy(previousLimit, newLimit, scope);
+}
+
+export function formatAltaCardRateReductionTimelineCopy(
+  previousRate: number | null | undefined,
+  newRate: number | null | undefined,
+  options?: { business?: boolean },
+): TimelineCopy {
+  const scope: CustomerTimelineScope = options?.business ? "business" : "personal";
+  return formatAltaCardRateReducedCopy(previousRate, newRate, scope);
 }
 
 export function formatAltaCardOpenedCustomerCopy(

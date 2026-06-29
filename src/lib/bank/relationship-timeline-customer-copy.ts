@@ -1,5 +1,5 @@
 import { florin } from "@/lib/bank/api";
-import { altaCardTierLabel } from "@/lib/bank/alta-card-types";
+import { altaCardTierLabel, formatAltaCardRate } from "@/lib/bank/alta-card-types";
 import { COMPANY_RELATIONSHIP_TIER_LABELS, COMPANY_RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/company-relationship-intelligence-config";
 import { RELATIONSHIP_TIER_LABELS, RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/relationship-intelligence-config";
 
@@ -311,6 +311,138 @@ export function formatAltaCardOpenedCopy(scope: CustomerTimelineScope): Timeline
   };
 }
 
+export function extractLimitPairFromMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): { previousLimit: number | null; newLimit: number | null } {
+  if (!metadata) return { previousLimit: null, newLimit: null };
+  const parseLimit = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value.replace(/[^\d.-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+  return {
+    previousLimit: parseLimit(metadata.previousLimit) ?? parseLimit(metadata.oldValue),
+    newLimit: parseLimit(metadata.newLimit) ?? parseLimit(metadata.newValue),
+  };
+}
+
+function parseCurrencyFromTimelineText(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function extractLimitPairFromTimelineRow(
+  row: TimelineRowForEnrichment,
+): { previousLimit: number | null; newLimit: number | null } {
+  const fromMeta = extractLimitPairFromMetadata(row.metadata);
+  if (fromMeta.previousLimit != null && fromMeta.newLimit != null) return fromMeta;
+
+  const previousFromDescription = row.description?.match(/Previous limit:\s*([^\s.]+)/i)?.[1];
+  const newFromTitle = row.title?.match(/limit (?:changed|increased) to\s*([^\s.]+)/i)?.[1];
+
+  return {
+    previousLimit: fromMeta.previousLimit ?? parseCurrencyFromTimelineText(previousFromDescription),
+    newLimit: fromMeta.newLimit ?? parseCurrencyFromTimelineText(newFromTitle),
+  };
+}
+
+export function formatAltaCardLimitIncreasedCopy(
+  previousLimit: number | null | undefined,
+  newLimit: number | null | undefined,
+  scope: CustomerTimelineScope,
+): TimelineCopy {
+  const business = scope === "business";
+  const title = business ? "Business Alta Card Limit Increased" : "Alta Card Limit Increased";
+  const cardLabel = business ? "business Alta Card" : "Alta Card";
+
+  if (newLimit != null && previousLimit != null) {
+    return {
+      title,
+      description: `Your ${cardLabel} credit limit was increased from ${florin(previousLimit)} to ${florin(newLimit)}.`,
+    };
+  }
+  if (newLimit != null) {
+    return {
+      title,
+      description: `Your ${cardLabel} credit limit was increased to ${florin(newLimit)}.`,
+    };
+  }
+  return {
+    title,
+    description: `Your ${cardLabel} credit limit was increased.`,
+  };
+}
+
+export function extractRatePairFromMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): { previousRate: number | null; newRate: number | null } {
+  if (!metadata) return { previousRate: null, newRate: null };
+  const parseRate = (value: unknown): number | null => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value.replace(/[^\d.-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+  };
+  return {
+    previousRate: parseRate(metadata.previousRate) ?? parseRate(metadata.oldValue),
+    newRate: parseRate(metadata.newRate) ?? parseRate(metadata.newValue),
+  };
+}
+
+function parseRateFromTimelineText(value: string | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value.replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function extractRatePairFromTimelineRow(
+  row: TimelineRowForEnrichment,
+): { previousRate: number | null; newRate: number | null } {
+  const fromMeta = extractRatePairFromMetadata(row.metadata);
+  if (fromMeta.previousRate != null && fromMeta.newRate != null) return fromMeta;
+
+  const previousFromDescription = row.description?.match(/Previous rate:\s*([\d.]+%?)/i)?.[1];
+  const newFromTitle = row.title?.match(/rate (?:changed|reduced) to\s*([\d.]+%?)/i)?.[1];
+
+  return {
+    previousRate: fromMeta.previousRate ?? parseRateFromTimelineText(previousFromDescription),
+    newRate: fromMeta.newRate ?? parseRateFromTimelineText(newFromTitle),
+  };
+}
+
+export function formatAltaCardRateReducedCopy(
+  previousRate: number | null | undefined,
+  newRate: number | null | undefined,
+  scope: CustomerTimelineScope,
+): TimelineCopy {
+  const business = scope === "business";
+  const title = business ? "Business Alta Card Rate Reduced" : "Alta Card Rate Reduced";
+  const cardLabel = business ? "business Alta Card" : "Alta Card";
+
+  if (newRate != null && previousRate != null) {
+    return {
+      title,
+      description: `Your ${cardLabel} interest rate was reduced from ${formatAltaCardRate(previousRate)} to ${formatAltaCardRate(newRate)}.`,
+    };
+  }
+  if (newRate != null) {
+    return {
+      title,
+      description: `Your ${cardLabel} interest rate was reduced to ${formatAltaCardRate(newRate)}.`,
+    };
+  }
+  return {
+    title,
+    description: `Your ${cardLabel} interest rate was reduced.`,
+  };
+}
+
 export function formatAltaCardUpgradedCopy(
   newTier: string | null | undefined,
   scope: CustomerTimelineScope,
@@ -584,6 +716,18 @@ export function resolveCustomerTimelineCopy(
     case "ALTA_CARD_TIER_CHANGED": {
       const { newTier } = extractTierPairFromMetadata(row.metadata);
       copy = formatAltaCardUpgradedCopy(newTier, scope);
+      break;
+    }
+
+    case "ALTA_CARD_LIMIT_CHANGED": {
+      const { previousLimit, newLimit } = extractLimitPairFromTimelineRow(row);
+      copy = formatAltaCardLimitIncreasedCopy(previousLimit, newLimit, scope);
+      break;
+    }
+
+    case "ALTA_CARD_RATE_CHANGED": {
+      const { previousRate, newRate } = extractRatePairFromTimelineRow(row);
+      copy = formatAltaCardRateReducedCopy(previousRate, newRate, scope);
       break;
     }
 

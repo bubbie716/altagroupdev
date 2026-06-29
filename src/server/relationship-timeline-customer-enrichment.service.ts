@@ -18,6 +18,10 @@ import {
   formatPrivateBankingClientCopy,
   formatPrivateBankingEligibleCopy,
   extractBankAccountName,
+  extractLimitPairFromTimelineRow,
+  extractRatePairFromTimelineRow,
+  formatAltaCardLimitIncreasedCopy,
+  formatAltaCardRateReducedCopy,
   polishCustomerTimelineCopy,
   resolveCustomerTimelineCopy,
 } from "@/lib/bank/relationship-timeline-customer-copy";
@@ -136,6 +140,16 @@ export function resolveEnrichedCustomerTimelineCopy(
         audit?.metadata as Record<string, unknown> | null,
         { business },
       );
+      break;
+    }
+    case "ALTA_CARD_LIMIT_CHANGED": {
+      const { previousLimit, newLimit } = extractLimitPairFromTimelineRow(row);
+      copy = formatAltaCardLimitIncreasedCopy(previousLimit, newLimit, scope);
+      break;
+    }
+    case "ALTA_CARD_RATE_CHANGED": {
+      const { previousRate, newRate } = extractRatePairFromTimelineRow(row);
+      copy = formatAltaCardRateReducedCopy(previousRate, newRate, scope);
       break;
     }
     case "LOAN_FUNDED": {

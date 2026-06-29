@@ -13,6 +13,8 @@ import {
   resolveCustomerTimelineCopy,
 } from "./relationship-timeline-customer-copy.ts";
 import {
+  formatAltaCardLimitIncreaseTimelineCopy,
+  formatAltaCardRateReductionTimelineCopy,
   formatAltaCardTierUpgradeTimelineCopy,
   formatLoanApprovedTimelineCopy,
   formatRelationshipTierChangedCustomerCopy,
@@ -136,6 +138,22 @@ describe("relationship timeline customer copy", () => {
     assert.equal(copy.title, "Alta Card Upgraded");
     assert.equal(copy.description, "Your Alta Card was upgraded to Alta Black.");
     assert.doesNotMatch(copy.description ?? "", /Previously|Upgraded from/i);
+  });
+
+  it("describes Alta Card limit increases by outcome only", () => {
+    const copy = formatAltaCardLimitIncreaseTimelineCopy(12_500, 17_500);
+    assert.equal(copy.title, "Alta Card Limit Increased");
+    assert.match(copy.description ?? "", /12,500/);
+    assert.match(copy.description ?? "", /17,500/);
+    assert.doesNotMatch(copy.description ?? "", /Previous limit/i);
+  });
+
+  it("describes Alta Card rate reductions by outcome only", () => {
+    const copy = formatAltaCardRateReductionTimelineCopy(24.99, 19.99);
+    assert.equal(copy.title, "Alta Card Rate Reduced");
+    assert.match(copy.description ?? "", /24\.99%/);
+    assert.match(copy.description ?? "", /19\.99%/);
+    assert.doesNotMatch(copy.description ?? "", /Previous rate/i);
   });
 
   it("describes loan approval without internal details", () => {

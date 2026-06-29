@@ -19,8 +19,10 @@ import {
   formatRelationshipEstablishedCopy,
   formatTotalAltaAssetsMilestoneCopy,
   formatWithdrawalMilestoneCopy,
+  extractLimitPairFromTimelineRow,
+  extractRatePairFromTimelineRow,
 } from "@/lib/bank/relationship-timeline-customer-copy";
-import { formatAltaCardTierUpgradeTimelineCopy, formatLoanApprovedTimelineCopy, formatRelationshipTierChangedCustomerCopy } from "@/lib/bank/relationship-timeline-historical";
+import { formatAltaCardTierUpgradeTimelineCopy, formatAltaCardLimitIncreaseTimelineCopy, formatAltaCardRateReductionTimelineCopy, formatLoanApprovedTimelineCopy, formatRelationshipTierChangedCustomerCopy } from "@/lib/bank/relationship-timeline-historical";
 import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
 import type {
   CustomerRelationshipTimelineEntry,
@@ -252,7 +254,32 @@ export async function getRelationshipTimeline(
   const mapped = sortTimelineEventsNewestFirst(rows.map(mapTimelineRow));
   if (!options?.customerView) return mapped;
 
-  return mapped.filter((row) => CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES.has(row.eventType));
+  return mapped.filter((row) => {
+    if (!CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES.has(row.eventType)) return false;
+    if (row.eventType === "ALTA_CARD_LIMIT_CHANGED") {
+      const { previousLimit, newLimit } = extractLimitPairFromTimelineRow({
+        eventType: row.eventType,
+        title: row.title,
+        description: row.description,
+        occurredAt: row.occurredAt,
+        relatedEntityId: row.relatedEntityId,
+        metadata: row.metadata,
+      });
+      if (previousLimit != null && newLimit != null && newLimit <= previousLimit) return false;
+    }
+    if (row.eventType === "ALTA_CARD_RATE_CHANGED") {
+      const { previousRate, newRate } = extractRatePairFromTimelineRow({
+        eventType: row.eventType,
+        title: row.title,
+        description: row.description,
+        occurredAt: row.occurredAt,
+        relatedEntityId: row.relatedEntityId,
+        metadata: row.metadata,
+      });
+      if (previousRate != null && newRate != null && newRate >= previousRate) return false;
+    }
+    return true;
+  });
 }
 
 export async function getCustomerRelationshipTimeline(
@@ -795,6 +822,120 @@ export async function backfillRelationshipTimelineCore(
       relatedEntityId: audit.entityId,
       metadata: { previousTier, newTier },
       dedupeKey: `audit:tier:${audit.id}`,
+      skipAudit: true,
+    });
+    if (event) created += 1;
+  }
+
+  const limitAudits = await prisma.auditLog.findMany({
+    where: {
+      targetUserId: userId,
+      action: "ALTA_CARD_LIMIT_CHANGED",
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  const limitAuditCardIds = limitAudits
+    .map((audit) => audit.entityId)
+    .filter((id): id is string => Boolean(id));
+  const limitAuditCards =
+    limitAuditCardIds.length > 0
+      ? await prisma.altaCard.findMany({
+          where: { id: { in: limitAuditCardIds } },
+          select: { id: true, companyId: true },
+        })
+      : [];
+  const limitAuditCardBusinessById = new Map(
+    limitAuditCards.map((card) => [card.id, Boolean(card.companyId)]),
+  );
+
+  for (const audit of limitAudits) {
+    const meta = audit.metadata as Record<string, unknown> | null;
+    const previousLimit =
+      typeof meta?.previousLimit === "number"
+        ? meta.previousLimit
+        : typeof meta?.oldValue === "number"
+          ? meta.oldValue
+          : Number(meta?.oldValue);
+    const newLimit =
+      typeof meta?.newLimit === "number"
+        ? meta.newLimit
+        : typeof meta?.newValue === "number"
+          ? meta.newValue
+          : Number(meta?.newValue);
+    if (!Number.isFinite(previousLimit) || !Number.isFinite(newLimit) || newLimit <= previousLimit) {
+      continue;
+    }
+    const upgradeCopy = formatAltaCardLimitIncreaseTimelineCopy(previousLimit, newLimit, {
+      business: audit.entityId ? limitAuditCardBusinessById.get(audit.entityId) : false,
+    });
+    const event = await createRelationshipTimelineEvent({
+      userId,
+      profileId,
+      eventType: "ALTA_CARD_LIMIT_CHANGED",
+      title: upgradeCopy.title,
+      description: upgradeCopy.description ?? audit.description,
+      occurredAt: audit.createdAt,
+      relatedEntityType: audit.entityId ? "ALTA_CARD" : null,
+      relatedEntityId: audit.entityId,
+      metadata: { previousLimit, newLimit },
+      dedupeKey: audit.entityId ? `limit:${audit.entityId}:${newLimit}` : `audit:limit:${audit.id}`,
+      skipAudit: true,
+    });
+    if (event) created += 1;
+  }
+
+  const rateAudits = await prisma.auditLog.findMany({
+    where: {
+      targetUserId: userId,
+      action: "ALTA_CARD_RATE_CHANGED",
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  const rateAuditCardIds = rateAudits
+    .map((audit) => audit.entityId)
+    .filter((id): id is string => Boolean(id));
+  const rateAuditCards =
+    rateAuditCardIds.length > 0
+      ? await prisma.altaCard.findMany({
+          where: { id: { in: rateAuditCardIds } },
+          select: { id: true, companyId: true },
+        })
+      : [];
+  const rateAuditCardBusinessById = new Map(
+    rateAuditCards.map((card) => [card.id, Boolean(card.companyId)]),
+  );
+
+  for (const audit of rateAudits) {
+    const meta = audit.metadata as Record<string, unknown> | null;
+    const previousRate =
+      typeof meta?.previousRate === "number"
+        ? meta.previousRate
+        : typeof meta?.oldValue === "number"
+          ? meta.oldValue
+          : Number(meta?.oldValue);
+    const newRate =
+      typeof meta?.newRate === "number"
+        ? meta.newRate
+        : typeof meta?.newValue === "number"
+          ? meta.newValue
+          : Number(meta?.newValue);
+    if (!Number.isFinite(previousRate) || !Number.isFinite(newRate) || newRate >= previousRate) {
+      continue;
+    }
+    const reductionCopy = formatAltaCardRateReductionTimelineCopy(previousRate, newRate, {
+      business: audit.entityId ? rateAuditCardBusinessById.get(audit.entityId) : false,
+    });
+    const event = await createRelationshipTimelineEvent({
+      userId,
+      profileId,
+      eventType: "ALTA_CARD_RATE_CHANGED",
+      title: reductionCopy.title,
+      description: reductionCopy.description ?? audit.description,
+      occurredAt: audit.createdAt,
+      relatedEntityType: audit.entityId ? "ALTA_CARD" : null,
+      relatedEntityId: audit.entityId,
+      metadata: { previousRate, newRate },
+      dedupeKey: audit.entityId ? `rate:${audit.entityId}:${newRate}` : `audit:rate:${audit.id}`,
       skipAudit: true,
     });
     if (event) created += 1;

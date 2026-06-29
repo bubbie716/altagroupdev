@@ -318,17 +318,23 @@ export async function updateAltaCardLimitAdmin(
     card.companyId,
   );
 
-  if (card.ownerUserId) {
+  if (card.ownerUserId && input.creditLimit > previousLimit) {
     const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-    const { formatAltaCardCurrency } = await import("@/lib/bank/alta-card-types");
+    const { formatAltaCardLimitIncreaseTimelineCopy } = await import(
+      "@/lib/bank/relationship-timeline-historical"
+    );
+    const upgradeCopy = formatAltaCardLimitIncreaseTimelineCopy(previousLimit, input.creditLimit, {
+      business: !!card.companyId,
+    });
     await recordRelationshipTimelineEvent({
       userId: card.ownerUserId,
       eventType: "ALTA_CARD_LIMIT_CHANGED",
-      title: `Alta Card limit changed to ${formatAltaCardCurrency(input.creditLimit)}`,
-      description: `Previous limit: ${formatAltaCardCurrency(previousLimit)}.`,
+      title: upgradeCopy.title,
+      description: upgradeCopy.description ?? undefined,
       occurredAt: new Date(),
       relatedEntityType: "ALTA_CARD",
       relatedEntityId: input.cardId,
+      metadata: { previousLimit, newLimit: input.creditLimit },
       dedupeKey: `limit:${input.cardId}:${input.creditLimit}`,
       actorUserId: adminUserId,
     });
@@ -376,6 +382,28 @@ export async function updateAltaCardRateAdmin(
     card.ownerUserId,
     card.companyId,
   );
+
+  if (card.ownerUserId && input.interestRate < previousRate) {
+    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+    const { formatAltaCardRateReductionTimelineCopy } = await import(
+      "@/lib/bank/relationship-timeline-historical"
+    );
+    const reductionCopy = formatAltaCardRateReductionTimelineCopy(previousRate, input.interestRate, {
+      business: !!card.companyId,
+    });
+    await recordRelationshipTimelineEvent({
+      userId: card.ownerUserId,
+      eventType: "ALTA_CARD_RATE_CHANGED",
+      title: reductionCopy.title,
+      description: reductionCopy.description ?? undefined,
+      occurredAt: new Date(),
+      relatedEntityType: "ALTA_CARD",
+      relatedEntityId: input.cardId,
+      metadata: { previousRate, newRate: input.interestRate },
+      dedupeKey: `rate:${input.cardId}:${input.interestRate}`,
+      actorUserId: adminUserId,
+    });
+  }
 
   return mapAltaCardRow(updated);
 }

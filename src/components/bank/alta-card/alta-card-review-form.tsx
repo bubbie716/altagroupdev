@@ -2,10 +2,9 @@ import { useRef, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import {
+  AltaCardAllReviewsButton,
   AltaCardPageNav,
-  altaCardNavButtonClassName,
 } from "@/components/bank/alta-card/alta-card-back-to-card-link";
-import { RouteButton } from "@/components/bank/route-button";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_TIER_LABELS,
@@ -18,7 +17,6 @@ import type { SubmitAltaCardReviewAttachmentInput } from "@/lib/bank/alta-card-r
 import { resolveAltaCardThreadAttachmentMime } from "@/lib/storage/alta-card-thread-attachment.constants";
 import {
   altaCardReviewDetailLink,
-  altaCardReviewLink,
   altaCardReviewThreadLink,
 } from "@/lib/bank/alta-card-navigation";
 import type { AltaCardTypeCode } from "@/lib/bank/alta-card-types";
@@ -514,12 +512,7 @@ export function AltaCardReviewDetailView({
   return (
     <div className="space-y-8">
       <AltaCardPageNav>
-        <RouteButton
-          {...altaCardReviewLink(reviewNavCardFromReview(cardId, review))}
-          className={altaCardNavButtonClassName}
-        >
-          All reviews
-        </RouteButton>
+        <AltaCardAllReviewsButton card={reviewNavCardFromReview(cardId, review)} />
       </AltaCardPageNav>
       <div className="rounded-xl border border-border bg-surface-1/80 p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Account review</p>

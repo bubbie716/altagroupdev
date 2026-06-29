@@ -5,6 +5,7 @@ import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import {
   altaCardAllBusinessesBackLink,
   altaCardDashboardBackLink,
+  altaCardReviewLink,
 } from "@/lib/bank/alta-card-navigation";
 
 export const altaCardNavButtonClassName =
@@ -34,6 +35,24 @@ export function AltaCardBackToCardButton({
       className={altaCardNavButtonClassName}
     >
       {backLink.label}
+    </RouteButton>
+  );
+}
+
+export function AltaCardAllReviewsButton({
+  card,
+}: {
+  card: Pick<AltaCardRow, "id" | "cardType" | "companyId">;
+}) {
+  const reviewsLink = altaCardReviewLink(card);
+
+  return (
+    <RouteButton
+      to={reviewsLink.to}
+      params={"params" in reviewsLink ? reviewsLink.params : undefined}
+      className={altaCardNavButtonClassName}
+    >
+      ← All reviews
     </RouteButton>
   );
 }
