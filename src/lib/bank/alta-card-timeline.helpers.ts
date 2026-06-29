@@ -1,4 +1,4 @@
-import { ALTA_CARD_TIER_LABELS, type AltaCardTierCode } from "@/lib/bank/alta-card-types";
+import { type AltaCardTierCode } from "@/lib/bank/alta-card-types";
 
 export function altaCardTierCodeFromDb(value: string): AltaCardTierCode {
   return value.toLowerCase() as AltaCardTierCode;
@@ -20,19 +20,18 @@ export function resolveAltaCardOpeningTierCode(input: {
 }
 
 export function formatAltaCardOpenedTimelineCopy(
-  tier: AltaCardTierCode,
+  _tier: AltaCardTierCode,
   options?: { business?: boolean },
 ): { title: string; description: string } {
-  const label = ALTA_CARD_TIER_LABELS[tier];
   if (options?.business) {
     return {
-      title: `Business Alta Card opened (${label})`,
-      description: `Business Alta Card opened on ${label} tier.`,
+      title: "Business Alta Card Opened",
+      description: "Your business Alta Card is now active.",
     };
   }
   return {
-    title: `Alta Card opened (${label})`,
-    description: `Alta Card account opened on ${label} tier.`,
+    title: "Alta Card Opened",
+    description: "Your Alta Card is now active.",
   };
 }
 

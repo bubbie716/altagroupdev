@@ -16,7 +16,17 @@ import {
   resolveAltaCardOpeningTierCode,
 } from "@/lib/bank/alta-card-timeline.helpers";
 import {
+  formatAltaPayMilestoneCopy,
+  formatBankAccountOpenedCopy,
+  formatDepositMilestoneCopy,
+  formatLoanPaidOffCopy,
+  formatPrivateBankingEligibleCopy,
+  formatRelationshipEstablishedCopy,
+  formatWithdrawalMilestoneCopy,
+} from "@/lib/bank/relationship-timeline-customer-copy";
+import {
   formatAltaCardTierUpgradeTimelineCopy,
+  formatLoanApprovedTimelineCopy,
   formatRelationshipTierChangedCustomerCopy,
 } from "@/lib/bank/relationship-timeline-historical";
 import { enrichBusinessCustomerTimeline } from "@/server/relationship-timeline-customer-enrichment.service";
@@ -104,6 +114,14 @@ export async function getCustomerCompanyRelationshipTimeline(
     await reconcileCompanyRelationshipTimelineDates(companyId);
   } catch {
     // Date reconciliation is best-effort on customer view load.
+  }
+  try {
+    const { refreshStoredCompanyTimelineCopy } = await import(
+      "@/server/relationship-timeline-customer-enrichment.service"
+    );
+    await refreshStoredCompanyTimelineCopy(companyId);
+  } catch {
+    // Legacy copy refresh is best-effort on customer view load.
   }
 
   const rows = await prisma.companyRelationshipTimelineEvent.findMany({
@@ -366,10 +384,12 @@ export async function syncCompanyRelationshipProfileTimelineEvents(input: {
     });
   }
   if (input.oldCommercialEligible === false && input.newCommercialEligible) {
+    const eligibleCopy = formatPrivateBankingEligibleCopy("business");
     await recordCompanyRelationshipTimelineEvent({
       companyId: input.companyId,
       eventType: "COMMERCIAL_BANKING_ELIGIBLE",
-      title: "Commercial banking eligibility reached",
+      title: eligibleCopy.title,
+      description: eligibleCopy.description,
       occurredAt: now,
       dedupeKey: "commercial:eligible",
       actorUserId: input.actorUserId,
@@ -390,12 +410,18 @@ async function backfillCompanyVolumeMilestones(
 ): Promise<void> {
   const dates = await computeVolumeMilestoneDates(accountIds, txType, thresholds);
   for (const [threshold, occurredAt] of dates) {
+    const copy =
+      category === "alta_pay"
+        ? formatAltaPayMilestoneCopy(threshold, "business")
+        : category === "deposits"
+          ? formatDepositMilestoneCopy(threshold, "business")
+          : formatWithdrawalMilestoneCopy(threshold, "business");
     await add({
       companyId,
       profileId,
       eventType: type,
-      title: `${category === "alta_pay" ? "Alta Pay volume" : category === "deposits" ? "Lifetime deposits" : "Lifetime withdrawals"} reached ${florin(threshold)}`,
-      description: `Crossed ${florin(threshold)} in recorded business ${category === "alta_pay" ? "Alta Pay" : category} activity.`,
+      title: copy.title,
+      description: copy.description,
       occurredAt,
       dedupeKey: milestoneDedupeKey(category, threshold),
       metadata: { threshold, milestoneKind: category.toUpperCase() },
@@ -420,12 +446,13 @@ export async function backfillCompanyRelationshipTimelineCore(
     if (row) created += 1;
   }
 
+  const startedCopy = formatRelationshipEstablishedCopy("business");
   await add({
     companyId,
     profileId,
     eventType: "RELATIONSHIP_STARTED",
-    title: "Company relationship started",
-    description: `${company.name} registered with Alta`,
+    title: startedCopy.title,
+    description: startedCopy.description,
     occurredAt: company.createdAt,
     dedupeKey: `started:${companyId}`,
   });
@@ -437,12 +464,13 @@ export async function backfillCompanyRelationshipTimelineCore(
   const accountIds = accounts.map((account) => account.id);
 
   for (const account of accounts) {
+    const accountCopy = formatBankAccountOpenedCopy(account.accountName, "business");
     await add({
       companyId,
       profileId,
       eventType: "BUSINESS_ACCOUNT_OPENED",
-      title: "Business account opened",
-      description: account.accountName,
+      title: accountCopy.title,
+      description: accountCopy.description,
       occurredAt: account.createdAt,
       relatedEntityType: "BANK_ACCOUNT",
       relatedEntityId: account.id,
@@ -542,11 +570,15 @@ export async function backfillCompanyRelationshipTimelineCore(
   const loans = await prisma.loan.findMany({ where: { companyId }, orderBy: { createdAt: "asc" } });
   for (const loan of loans) {
     if (loan.approvedAt) {
+      const loanCopy = formatLoanApprovedTimelineCopy(decimalToNumber(loan.principalAmount), {
+        business: true,
+      });
       await add({
         companyId,
         profileId,
         eventType: "LOAN_FUNDED",
-        title: `Business loan approved (${florin(decimalToNumber(loan.principalAmount))})`,
+        title: loanCopy.title,
+        description: loanCopy.description,
         occurredAt: loan.approvedAt,
         relatedEntityType: "LOAN",
         relatedEntityId: loan.id,
@@ -558,12 +590,13 @@ export async function backfillCompanyRelationshipTimelineCore(
         where: { loanId: loan.id, type: "STATUS_CHANGE", description: { contains: "paid off" } },
         orderBy: { createdAt: "desc" },
       });
+      const paidOffCopy = formatLoanPaidOffCopy("business");
       await add({
         companyId,
         profileId,
         eventType: "LOAN_PAID_OFF",
-        title: "Business loan paid off",
-        description: "Loan balance fully repaid.",
+        title: paidOffCopy.title,
+        description: paidOffCopy.description,
         occurredAt: paidOff?.createdAt ?? loan.updatedAt,
         relatedEntityType: "LOAN",
         relatedEntityId: loan.id,
@@ -661,6 +694,15 @@ export async function backfillCompanyRelationshipTimelineCore(
     description: `Backfilled ${created} company relationship timeline event(s)`,
     metadata: { companyId, eventsCreated: created },
   });
+
+  try {
+    const { refreshStoredCompanyTimelineCopy } = await import(
+      "@/server/relationship-timeline-customer-enrichment.service"
+    );
+    await refreshStoredCompanyTimelineCopy(companyId);
+  } catch {
+    // Legacy copy refresh is best-effort after backfill.
+  }
 
   return created;
 }

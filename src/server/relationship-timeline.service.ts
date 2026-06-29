@@ -8,7 +8,18 @@ import {
   firstTierChangePreviousTier,
   resolveAltaCardOpeningTierCode,
 } from "@/lib/bank/alta-card-timeline.helpers";
-import { formatAltaCardTierUpgradeTimelineCopy, formatRelationshipTierChangedCustomerCopy } from "@/lib/bank/relationship-timeline-historical";
+import {
+  formatAltaPayMilestoneCopy,
+  formatBankAccountOpenedCopy,
+  formatDepositMilestoneCopy,
+  formatLoanPaidOffCopy,
+  formatPrivateBankingClientCopy,
+  formatPrivateBankingEligibleCopy,
+  formatRelationshipEstablishedCopy,
+  formatTotalAltaAssetsMilestoneCopy,
+  formatWithdrawalMilestoneCopy,
+} from "@/lib/bank/relationship-timeline-customer-copy";
+import { formatAltaCardTierUpgradeTimelineCopy, formatLoanApprovedTimelineCopy, formatRelationshipTierChangedCustomerCopy } from "@/lib/bank/relationship-timeline-historical";
 import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
 import type {
   CustomerRelationshipTimelineEntry,
@@ -558,11 +569,17 @@ async function backfillVolumeMilestonesFromTransactions(
   let created = 0;
 
   for (const [threshold, occurredAt] of dates) {
+    const copy =
+      category === "alta_pay"
+        ? formatAltaPayMilestoneCopy(threshold, "personal")
+        : category === "deposits"
+          ? formatDepositMilestoneCopy(threshold, "personal")
+          : formatWithdrawalMilestoneCopy(threshold, "personal");
     const event = await createRelationshipTimelineEvent({
       userId,
       eventType: type,
-      title: `${category === "alta_pay" ? "Alta Pay volume" : category === "deposits" ? "Lifetime deposits" : "Lifetime withdrawals"} reached ${florin(threshold)}`,
-      description: `Crossed ${florin(threshold)} in recorded ${category === "alta_pay" ? "Alta Pay" : category} activity.`,
+      title: copy.title,
+      description: copy.description,
       occurredAt,
       dedupeKey: milestoneDedupeKey(category, threshold),
       metadata: { threshold, milestoneKind: category.toUpperCase() },
@@ -580,12 +597,13 @@ async function backfillAssetMilestonesFromTransactions(userId: string): Promise<
   let created = 0;
 
   for (const [threshold, occurredAt] of dates) {
+    const copy = formatTotalAltaAssetsMilestoneCopy(threshold);
     const event = await createRelationshipTimelineEvent({
       userId,
       profileId,
       eventType: "DEPOSIT_MILESTONE",
-      title: `Total Alta assets reached ${florin(threshold)}`,
-      description: `Total Alta assets reached ${florin(threshold)} based on profile history.`,
+      title: copy.title,
+      description: copy.description,
       occurredAt,
       dedupeKey: milestoneDedupeKey("assets", threshold),
       metadata: { milestoneKind: "TOTAL_ALTA_ASSETS", threshold },
@@ -643,12 +661,13 @@ export async function backfillRelationshipTimelineCore(
 
   const profileId = await resolveProfileId(userId);
 
+  const startedCopy = formatRelationshipEstablishedCopy("personal");
   const started = await createRelationshipTimelineEvent({
     userId,
     profileId,
     eventType: "RELATIONSHIP_STARTED",
-    title: "Joined Alta",
-    description: "Customer relationship with Alta began.",
+    title: startedCopy.title,
+    description: startedCopy.description,
     occurredAt: user.createdAt,
     dedupeKey: "relationship:started",
     skipAudit: true,
@@ -674,12 +693,13 @@ export async function backfillRelationshipTimelineCore(
 
   for (const account of bankAccounts) {
     const isBusiness = account.companyId != null;
+    const accountCopy = formatBankAccountOpenedCopy(account.accountName, isBusiness ? "business" : "personal");
     const event = await createRelationshipTimelineEvent({
       userId,
       profileId,
       eventType: isBusiness ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
-      title: isBusiness ? "Business bank account opened" : "Bank account opened",
-      description: account.accountName,
+      title: accountCopy.title,
+      description: accountCopy.description,
       occurredAt: account.createdAt,
       relatedEntityType: "BANK_ACCOUNT",
       relatedEntityId: account.id,
@@ -821,11 +841,13 @@ export async function backfillRelationshipTimelineCore(
   });
   for (const loan of loans) {
     if (loan.approvedAt) {
+      const loanCopy = formatLoanApprovedTimelineCopy(decimalToNumber(loan.principalAmount));
       const funded = await createRelationshipTimelineEvent({
         userId,
         profileId,
         eventType: "LOAN_FUNDED",
-        title: `Loan approved (${florin(decimalToNumber(loan.principalAmount))})`,
+        title: loanCopy.title,
+        description: loanCopy.description,
         occurredAt: loan.approvedAt,
         relatedEntityType: "LOAN",
         relatedEntityId: loan.id,
@@ -839,12 +861,13 @@ export async function backfillRelationshipTimelineCore(
         orderBy: { createdAt: "desc" },
       });
       const occurredAt = paidOff?.createdAt ?? loan.updatedAt;
+      const paidOffCopy = formatLoanPaidOffCopy("personal");
       const event = await createRelationshipTimelineEvent({
         userId,
         profileId,
         eventType: "LOAN_PAID_OFF",
-        title: "Loan paid off",
-        description: "Loan balance fully repaid.",
+        title: paidOffCopy.title,
+        description: paidOffCopy.description,
         occurredAt,
         relatedEntityType: "LOAN",
         relatedEntityId: loan.id,
@@ -858,11 +881,13 @@ export async function backfillRelationshipTimelineCore(
     where: { userId, tag: "PRIVATE_CLIENT" },
   });
   if (privateTag) {
+    const privateCopy = formatPrivateBankingClientCopy("personal");
     const event = await createRelationshipTimelineEvent({
       userId,
       profileId,
       eventType: "PRIVATE_BANKING_CLIENT",
-      title: "Became Alta Private client",
+      title: privateCopy.title,
+      description: privateCopy.description,
       occurredAt: privateTag.createdAt,
       relatedEntityType: "USER",
       relatedEntityId: userId,
@@ -883,11 +908,13 @@ export async function backfillRelationshipTimelineCore(
     return meta?.newEligible === true;
   });
   if (eligibleAudit) {
+    const eligibleCopy = formatPrivateBankingEligibleCopy("personal");
     const event = await createRelationshipTimelineEvent({
       userId,
       profileId,
       eventType: "PRIVATE_BANKING_ELIGIBLE",
-      title: "Private banking eligibility reached",
+      title: eligibleCopy.title,
+      description: eligibleCopy.description,
       occurredAt: eligibleAudit.createdAt,
       dedupeKey: "private:eligible",
       skipAudit: true,
@@ -935,6 +962,15 @@ export async function backfillRelationshipTimelineCore(
     description: `Backfilled ${created} relationship timeline event(s)`,
     metadata: { userId, eventsCreated: created, actorUserId: actor },
   });
+
+  try {
+    const { refreshStoredPersonalTimelineCopy } = await import(
+      "@/server/relationship-timeline-customer-enrichment.service"
+    );
+    await refreshStoredPersonalTimelineCopy(userId);
+  } catch {
+    // Legacy copy refresh is best-effort after backfill.
+  }
 
   return created;
 }
@@ -1020,10 +1056,12 @@ export async function syncRelationshipProfileTimelineEvents(input: {
     });
   }
   if (input.oldPrivateEligible === false && input.newPrivateEligible) {
+    const eligibleCopy = formatPrivateBankingEligibleCopy("personal");
     await recordRelationshipTimelineEvent({
       userId: input.userId,
       eventType: "PRIVATE_BANKING_ELIGIBLE",
-      title: "Private banking eligibility reached",
+      title: eligibleCopy.title,
+      description: eligibleCopy.description,
       occurredAt: now,
       dedupeKey: "private:eligible",
       actorUserId: input.actorUserId,

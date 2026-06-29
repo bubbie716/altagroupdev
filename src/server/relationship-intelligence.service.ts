@@ -965,6 +965,14 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
     // Timeline backfill is best-effort on customer view load.
   }
   try {
+    const { refreshStoredPersonalTimelineCopy } = await import(
+      "@/server/relationship-timeline-customer-enrichment.service"
+    );
+    await refreshStoredPersonalTimelineCopy(userId);
+  } catch {
+    // Legacy copy refresh is best-effort on customer view load.
+  }
+  try {
     const { reconcileRelationshipTimelineDates } = await import(
       "@/server/relationship-timeline.service"
     );

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatDueDate } from "@/lib/format-datetime";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
 
 export const RELATIONSHIP_METRIC_LABEL =
@@ -107,7 +107,7 @@ export function RelationshipTimelineList({
               dateTime={event.occurredAt}
               className="mt-1.5 block text-[11px] text-muted-foreground/80"
             >
-              {formatDueDate(event.occurredAt)}
+              {formatActivityDateTime(event.occurredAt)}
             </time>
           </li>
         ))}

@@ -1,0 +1,140 @@
+Relationship Timeline Copy Audit
+================================
+Date: 2026-06-25 (rewritten)
+Scope: Customer-facing event titles, descriptions, and tone.
+Copy-only — no backend logic, scoring, event types, or UI layout changes.
+
+OVERALL GOAL
+------------
+
+The timeline reads like the activity history of a premium financial institution
+(Apple Card, American Express, Chase Private Client, Goldman Sachs, Morgan Stanley).
+
+Every event answers: "What meaningful thing happened in my relationship with Alta?"
+
+CORE RULE
+---------
+
+Never describe database changes, previous values, old tiers, internal state,
+technical recalculations, or operator activity.
+
+Describe the customer outcome instead.
+
+REMOVED PATTERNS
+----------------
+
+Never shown to customers:
+
+- Previously New / Gold / Standard / 742
+- Crossed ƒ50,000
+- Based on profile history
+- Profile recalculated / snapshot refreshed
+- Timeline synchronized / event recorded
+- Upgraded from X to Y (relationship tier migrations)
+- Relationship tier increased from X to Y
+- Lifetime deposits reached (title) — replaced with Relationship Milestone Reached
+
+EVENT COPY (CUSTOMER-FACING)
+----------------------------
+
+Relationship Established
+  "Your relationship with Alta began."
+
+Bank Account Opened
+  "Your checking account is now active." (when account name matches)
+  "Your account is now active." (default)
+
+Business Account Opened
+  "Your business banking relationship is now active."
+
+Loan Approved
+  "Your loan was approved and funds were made available."
+
+Loan Fully Repaid
+  "Your loan has been repaid in full."
+
+Alta Card Opened
+  "Your Alta Card is now active."
+
+Alta Card Upgraded
+  "Your Alta Card was upgraded to Alta Black." (outcome only — no prior tier)
+
+Relationship Milestone Reached
+  "Your total relationship with Alta reached ƒ250,000."
+  "Your total deposits with Alta reached ƒ50,000."
+  "Your Alta Pay activity reached ƒ10,000."
+
+Preferred / Premier / Standard Status Reached
+  "Your relationship now qualifies for Preferred status."
+  "Your relationship has reached Premier status."
+
+Private Banking Invitation Sent
+  "You are now eligible to join Alta Private."
+
+Alta Private Activated
+  "Welcome to Alta Private."
+
+Alta Card Payment Received
+  "Your Alta Card payment was received."
+
+TIMELINE EVENTS REWRITTEN
+-------------------------
+
+Before                              After
+------                              -----
+Joined Alta                         Relationship Established
+Relationship tier upgraded to X     Preferred/Premier Status Reached (outcome)
+Relationship tier increased from…   (removed — outcome copy only)
+Alta Card opened (Navy)             Alta Card Opened + "is now active"
+Alta Card tier upgraded from…       Alta Card Upgraded + "upgraded to Alta Black"
+Loan approved (ƒX)                  Loan Approved (no amount in description)
+Private banking eligibility reached Private Banking Invitation Sent
+Became Alta Private client          Alta Private Activated / Welcome to Alta Private
+Lifetime deposits reached           Relationship Milestone Reached
+Total Alta assets reached…          Relationship Milestone Reached
+Crossed ƒX in recorded activity     (stripped by sanitizer)
+
+DESCRIPTIONS IMPROVED
+---------------------
+
+- Complete sentences in calm, confident, premium voice
+- One sentence whenever possible
+- No marketing hype, developer language, or technical wording
+- Legacy DB rows rewritten at display time via resolveCustomerTimelineCopy()
+- sanitizeCustomerTimelineCopy() strips any remaining awkward patterns
+
+EVENTS HIDDEN FROM CUSTOMERS (unchanged filter)
+------------------------------------------------
+
+- Relationship score changed
+- Manual operator notes
+- Loan application submitted / accepted / denied
+- Alta Card delinquent / limit changed
+- Withdrawal milestones (personal timeline)
+- Profile recalculation / cron / audit events (never in timeline)
+
+WORDING STANDARDIZED
+--------------------
+
+Verbs: Opened, Approved, Repaid, Upgraded, Established, Activated, Received, Sent, Reached
+
+Titles: Title Case, short, confident
+
+Dates: Jun 28, 2026, 2:14 PM ET (formatActivityDateTime)
+
+FILES CHANGED
+-------------
+
+- src/lib/bank/relationship-timeline-customer-copy.ts
+- src/lib/bank/relationship-timeline-historical.ts
+- src/lib/bank/alta-card-timeline.helpers.ts
+- src/server/relationship-timeline-customer-enrichment.service.ts
+- src/lib/bank/relationship-timeline-customer-copy.test.ts
+- docs/relationship-timeline-copy-audit.txt
+
+TESTS
+-----
+
+npm run test:unit — relationship-timeline-customer-copy.test.ts
+
+Covers: premium tone, no migration language, legacy rewrite, sanitizer, tier outcomes.
