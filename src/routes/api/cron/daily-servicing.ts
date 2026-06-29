@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { handleCronRoute } from "@/lib/cron/cron-http";
+import { handleCronRoute, runCronSubJob } from "@/lib/cron/cron-http";
 import {
   acquireDailyCronLock,
   dailyCronSkippedPayload,
+  DAILY_SERVICING_JOB_KEY,
   DAILY_SERVICING_LOCK_KEY,
   evaluateDailyCronGate,
   releaseDailyCronLock,
@@ -13,11 +14,18 @@ import {
   runAltaCardStatementSchedulerJob,
 } from "@/server/alta-card-billing-scheduler.service";
 import { runBankAccountStatementSchedulerJob } from "@/server/bank-statement-scheduler.service";
-import { DEPOSIT_INTEREST_JOB_KEY, runDepositInterestSchedulerJob } from "@/server/deposit-interest-scheduler.service";
+import { runDepositInterestSchedulerJob } from "@/server/deposit-interest-scheduler.service";
+import { recordOpsJobRunDetail } from "@/server/ops-job-run.service";
+
+const DAILY_SERVICING_JOB_LABEL = "Daily servicing";
+
+function isCronSubJobError(result: unknown): result is { error: string } {
+  return Boolean(result && typeof result === "object" && "error" in result);
+}
 
 async function runDailyServicing() {
   const gate = await evaluateDailyCronGate({
-    completionJobKey: DEPOSIT_INTEREST_JOB_KEY,
+    completionJobKey: DAILY_SERVICING_JOB_KEY,
     lockKey: DAILY_SERVICING_LOCK_KEY,
   });
   if (!gate.run) {
@@ -25,20 +33,54 @@ async function runDailyServicing() {
   }
 
   await acquireDailyCronLock(DAILY_SERVICING_LOCK_KEY);
+  const startedAt = new Date();
 
   try {
     const [loanServicing, altaCard, bankStatements, depositInterest] = await Promise.all([
-      runLoanServicingJob(),
-      (async () => {
+      runCronSubJob("loan-servicing", () => runLoanServicingJob()),
+      runCronSubJob("alta-card", async () => {
         const statements = await runAltaCardStatementSchedulerJob({ trigger: "cron" });
         const billing = await runAltaCardBillingSchedulerJob({ trigger: "cron" });
         return { statements, billing };
-      })(),
-      runBankAccountStatementSchedulerJob({ trigger: "cron" }),
-      runDepositInterestSchedulerJob({ trigger: "cron" }),
+      }),
+      runCronSubJob("bank-statements", () => runBankAccountStatementSchedulerJob({ trigger: "cron" })),
+      runCronSubJob("deposit-interest", () => runDepositInterestSchedulerJob({ trigger: "cron" })),
     ]);
 
-    return { skipped: false, loanServicing, altaCard, bankStatements, depositInterest };
+    const subJobErrors = [
+      isCronSubJobError(loanServicing) ? loanServicing.error : null,
+      isCronSubJobError(altaCard) ? altaCard.error : null,
+      isCronSubJobError(bankStatements) ? bankStatements.error : null,
+      isCronSubJobError(depositInterest) ? depositInterest.error : null,
+    ].filter((message): message is string => message != null);
+
+    const completedAt = new Date();
+    await recordOpsJobRunDetail(
+      DAILY_SERVICING_JOB_KEY,
+      DAILY_SERVICING_JOB_LABEL,
+      subJobErrors.length > 0 ? "FAILED" : "SUCCESS",
+      {
+        startedAt: startedAt.toISOString(),
+        completedAt: completedAt.toISOString(),
+        durationMs: completedAt.getTime() - startedAt.getTime(),
+        processedCount: 4,
+        successCount: 4 - subJobErrors.length,
+        failureCount: subJobErrors.length,
+        errorSummary: subJobErrors[0] ?? null,
+        details: { loanServicing, altaCard, bankStatements, depositInterest },
+      },
+    );
+
+    return {
+      skipped: false,
+      ok: subJobErrors.length === 0,
+      partialFailures: subJobErrors.length > 0,
+      errors: subJobErrors,
+      loanServicing,
+      altaCard,
+      bankStatements,
+      depositInterest,
+    };
   } finally {
     await releaseDailyCronLock(DAILY_SERVICING_LOCK_KEY);
   }

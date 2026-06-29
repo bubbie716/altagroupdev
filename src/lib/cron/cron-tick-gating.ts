@@ -66,4 +66,5 @@ export function dailyCronSkippedPayload(reason: DailyCronSkipReason): Record<str
 }
 
 export const DAILY_SERVICING_LOCK_KEY = "cron_daily_servicing_lock";
+export const DAILY_SERVICING_JOB_KEY = "daily_servicing";
 export const RELATIONSHIP_INTELLIGENCE_CRON_LOCK_KEY = "cron_relationship_intelligence_lock";

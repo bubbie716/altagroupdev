@@ -16,6 +16,18 @@ export function cronResponse(body: Record<string, unknown>, status = 200): Respo
   });
 }
 
+export async function runCronSubJob<T>(
+  label: string,
+  fn: () => Promise<T>,
+): Promise<T | { error: string }> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[cron] ${label} failed`, error);
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function handleCronRoute(
   request: Request,
   label: string,
@@ -27,7 +39,8 @@ export async function handleCronRoute(
 
   try {
     const body = await handler();
-    return cronResponse({ ok: true, ...body });
+    const ok = body.ok !== false;
+    return cronResponse({ ...body, ok });
   } catch (error) {
     console.error(`[cron] ${label} failed`, error);
     const message = error instanceof Error ? error.message : "Cron execution failed.";

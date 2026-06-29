@@ -2,21 +2,12 @@ import { accrueInterestForDueAccounts } from "@/lib/bank/account-interest-servic
 import type { DepositInterestSchedulerResult } from "@/lib/bank/manual-interest-scheduler-types";
 import { executeDueScheduledManualInterest } from "@/server/manual-interest-scheduler.service";
 import { recordOpsJobRunDetail } from "@/server/ops-job-run.service";
-import { prisma } from "@/server/db";
+import { resolveSystemActorUserId } from "@/server/system-actor.service";
 
 export const DEPOSIT_INTEREST_JOB_KEY = "deposit_interest";
 const JOB_LABEL = "Deposit interest servicing";
 
 type SchedulerTrigger = "cron" | "manual";
-
-async function resolveActorUserId(actorUserId?: string): Promise<string | undefined> {
-  if (actorUserId) return actorUserId;
-  const systemActor = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "ADMIN" } } },
-    select: { id: true },
-  });
-  return systemActor?.id;
-}
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -28,7 +19,7 @@ export async function runDepositInterestSchedulerJob(options?: {
   actorUserId?: string;
 }): Promise<DepositInterestSchedulerResult> {
   const startedAt = new Date();
-  const actorUserId = await resolveActorUserId(options?.actorUserId);
+  const actorUserId = options?.actorUserId ?? (await resolveSystemActorUserId());
 
   try {
     const [depositAccrual, scheduledManualInterest] = await Promise.all([

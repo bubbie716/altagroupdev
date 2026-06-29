@@ -31,6 +31,14 @@ export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
     manualImpact: "Processes all due payroll batches immediately.",
   },
   {
+    jobKey: "daily_servicing",
+    label: "Daily servicing",
+    description:
+      "Daily bundle: loan servicing, Alta Card billing, bank statements, and deposit interest.",
+    cronEndpoint: "/api/cron/daily-servicing",
+    nextSchedule: "Daily via cron",
+  },
+  {
     jobKey: "BANK_ACCOUNT_STATEMENTS",
     label: "Bank account statements",
     description: "Generates monthly PDF statements for eligible bank accounts.",

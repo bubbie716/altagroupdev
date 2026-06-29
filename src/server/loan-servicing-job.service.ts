@@ -3,6 +3,7 @@ import {
   accrueInterestForDueLoans,
   executeDueLoanAutoPayments,
 } from "@/server/loan.service";
+import { resolveSystemActorUserId } from "@/server/system-actor.service";
 
 export const LOAN_SERVICING_JOB_KEY = "loan_servicing";
 
@@ -13,9 +14,10 @@ export async function runLoanServicingJob(actorUserId?: string): Promise<{
   autoPay: Awaited<ReturnType<typeof executeDueLoanAutoPayments>>;
 }> {
   const startedAt = new Date();
+  const actor = actorUserId ?? (await resolveSystemActorUserId());
 
   try {
-    const interest = await accrueInterestForDueLoans(actorUserId);
+    const interest = await accrueInterestForDueLoans(actor);
     const autoPay = await executeDueLoanAutoPayments();
     const completedAt = new Date();
     const processed =
