@@ -1,7 +1,6 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardReviewDetailView } from "@/components/bank/alta-card/alta-card-review-form";
-import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchAltaCardReviewDetail } from "@/lib/bank/alta-card-review.functions";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/bank/alta-card/business/$companyId/review
 });
 
 function BusinessAltaCardReviewDetailPage() {
-  const { review, cardId, companyId } = Route.useLoaderData();
+  const { review, cardId } = Route.useLoaderData();
 
   return (
     <>
@@ -46,11 +45,6 @@ function BusinessAltaCardReviewDetailPage() {
       title="Account review"
       description="Track your review request, decision, and secure review thread."
      />
-<AltaCardPageNav>
-        <AltaCardBackToCardButton
-          card={{ cardType: "business", companyId: review.companyId ?? companyId }}
-        />
-      </AltaCardPageNav>
       <AltaCardReviewDetailView review={review} cardId={cardId} />
     </>
   );
