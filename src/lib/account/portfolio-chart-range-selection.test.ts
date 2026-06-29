@@ -66,15 +66,15 @@ describe("portfolio chart drag selection", () => {
     assert.equal(metrics.endValue, buckets[18].v);
   });
 
-  it("returns null percent change when start value is zero", () => {
+  it("uses end value as percent basis when start value is zero", () => {
     const buckets = [
       { at: 0, startAt: 0, endAt: 1, v: 0 },
       { at: 2, startAt: 2, endAt: 3, v: 100 },
     ];
     const metrics = computeBucketSelectionMetrics(buckets, 0, 1);
     assert.ok(metrics);
-    assert.equal(metrics.percentChange, null);
-    assert.equal(formatSelectionPercentLabel(metrics.percentChange), "—");
+    assert.equal(metrics.percentChange, 100);
+    assert.equal(formatSelectionPercentLabel(metrics.percentChange), "+100.00%");
   });
 
   it("formats positive and negative performance labels", () => {

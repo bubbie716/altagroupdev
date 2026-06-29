@@ -1,4 +1,5 @@
 import {
+  computePeriodChangePercent,
   findBucketContaining,
   formatPortfolioChartHoverDate,
   type PortfolioChartBucket,
@@ -21,7 +22,7 @@ export type PortfolioChartSelectionMetrics = {
   startValue: number;
   endValue: number;
   absoluteChange: number;
-  percentChange: number | null;
+  percentChange: number;
   positive: boolean;
 };
 
@@ -66,8 +67,7 @@ export function computeBucketSelectionMetrics(
   const startValue = startBucket.v;
   const endValue = endBucket.v;
   const absoluteChange = endValue - startValue;
-  const percentChange =
-    Math.abs(startValue) < PERCENT_BASIS_EPSILON ? null : (absoluteChange / startValue) * 100;
+  const percentChange = computePeriodChangePercent(startValue, endValue);
 
   return {
     startIndex: from,
@@ -93,11 +93,8 @@ export function formatSelectionAmountLabel(
   return `${sign}${formatFlorin(Math.abs(absoluteChange))}`;
 }
 
-export function formatSelectionPercentLabel(percentChange: number | null): string {
-  if (percentChange == null || !Number.isFinite(percentChange)) {
-    return "—";
-  }
-  if (Math.abs(percentChange) < PERCENT_BASIS_EPSILON) {
+export function formatSelectionPercentLabel(percentChange: number): string {
+  if (!Number.isFinite(percentChange) || Math.abs(percentChange) < PERCENT_BASIS_EPSILON) {
     return "0.00%";
   }
   const sign = percentChange >= 0 ? "+" : "-";

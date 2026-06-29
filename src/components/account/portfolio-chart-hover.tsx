@@ -30,11 +30,13 @@ export type ChartHoverState = {
 
 type ChartMargin = typeof PORTFOLIO_CHART_MARGIN;
 
-const TOOLTIP_WIDTH = 168;
-const TOOLTIP_HEIGHT = 76;
-const TOOLTIP_GAP = 12;
+const TOOLTIP_WIDTH_ESTIMATE = 240;
+const TOOLTIP_HEIGHT_ESTIMATE = 88;
+const LINE_GAP = 18;
+const VERTICAL_GAP = 16;
 const TOOLTIP_EDGE_PADDING = 8;
 const DOT_SIZE = 10;
+const CROSSHAIR_OFFSET = LINE_GAP + DOT_SIZE / 2;
 
 function resolveTooltipPosition({
   pixelX,
@@ -51,30 +53,28 @@ function resolveTooltipPosition({
 }) {
   const plotTop = margin.top;
   const plotBottom = containerHeight - margin.bottom;
+
+  const spaceRight = containerWidth - TOOLTIP_EDGE_PADDING - (pixelX + CROSSHAIR_OFFSET);
+  const spaceLeft = pixelX - CROSSHAIR_OFFSET - TOOLTIP_EDGE_PADDING;
   const placeOnRight =
-    pixelX + TOOLTIP_GAP + TOOLTIP_WIDTH <= containerWidth - TOOLTIP_EDGE_PADDING;
-  const rawLeft = placeOnRight
-    ? pixelX + TOOLTIP_GAP
-    : pixelX - TOOLTIP_WIDTH - TOOLTIP_GAP;
-  const left = Math.max(
-    TOOLTIP_EDGE_PADDING,
-    Math.min(rawLeft, containerWidth - TOOLTIP_WIDTH - TOOLTIP_EDGE_PADDING),
-  );
+    spaceRight >= TOOLTIP_WIDTH_ESTIMATE || spaceRight >= spaceLeft;
 
-  const spaceAbove = pixelY - plotTop - TOOLTIP_GAP;
-  const spaceBelow = plotBottom - pixelY - TOOLTIP_GAP;
-  const preferBelow = spaceAbove < TOOLTIP_HEIGHT && spaceBelow >= spaceAbove;
+  const anchorX = placeOnRight
+    ? pixelX + CROSSHAIR_OFFSET
+    : pixelX - CROSSHAIR_OFFSET;
 
-  let top = preferBelow
-    ? pixelY + TOOLTIP_GAP + DOT_SIZE / 2
-    : pixelY - TOOLTIP_GAP - TOOLTIP_HEIGHT - DOT_SIZE / 2;
+  const spaceAbove = pixelY - plotTop - VERTICAL_GAP;
+  const spaceBelow = plotBottom - pixelY - VERTICAL_GAP;
+  const preferAbove =
+    spaceAbove >= TOOLTIP_HEIGHT_ESTIMATE || spaceAbove >= spaceBelow;
 
-  top = Math.max(
-    TOOLTIP_EDGE_PADDING,
-    Math.min(top, containerHeight - TOOLTIP_HEIGHT - TOOLTIP_EDGE_PADDING),
-  );
+  const anchorY = preferAbove
+    ? pixelY - VERTICAL_GAP - DOT_SIZE / 2
+    : pixelY + VERTICAL_GAP + DOT_SIZE / 2;
 
-  return { left, top };
+  const transform = `translate(${placeOnRight ? "0" : "-100%"}, ${preferAbove ? "-100%" : "0"})`;
+
+  return { left: anchorX, top: anchorY, transform };
 }
 
 export function PortfolioHoverCrosshair({ hover }: { hover: ChartHoverState }) {
@@ -114,7 +114,7 @@ export function PortfolioHoverTooltip({
   periodStartValue: number;
   resolution: SeriesResolution;
 }) {
-  const { left, top } = resolveTooltipPosition({
+  const { left, top, transform } = resolveTooltipPosition({
     pixelX: hover.pixelX,
     pixelY: hover.pixelY,
     containerWidth,
@@ -123,17 +123,19 @@ export function PortfolioHoverTooltip({
 
   return (
     <div
-      className="pointer-events-none absolute z-[2] transition-[left,top] duration-75 ease-out"
-      style={{ left, top }}
+      className="pointer-events-none absolute z-[2] w-max max-w-[calc(100%-1rem)] transition-[left,top,transform] duration-75 ease-out"
+      style={{ left, top, transform }}
     >
-      <div className="rounded-lg border border-border-strong bg-surface-2 px-3 py-2 shadow-sm">
-        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      <div className="rounded-lg border border-border-strong bg-surface-2 px-4 py-3 shadow-sm">
+        <div className="font-mono text-[10px] uppercase tracking-wider leading-relaxed text-muted-foreground">
           {formatPortfolioChartHoverDate(hover.at, timeRange, { resolution })}
         </div>
-        <div className="tabular mt-1 text-sm font-semibold text-foreground">{florin(hover.v)}</div>
+        <div className="tabular mt-1.5 text-sm font-semibold leading-relaxed text-foreground">
+          {florin(hover.v)}
+        </div>
         <div
           className={cn(
-            "tabular mt-0.5 text-xs",
+            "tabular mt-1 text-xs leading-relaxed",
             hover.percent >= 0 ? "ticker-up" : "ticker-down",
           )}
         >

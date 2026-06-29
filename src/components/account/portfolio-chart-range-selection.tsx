@@ -123,6 +123,69 @@ export function PortfolioChartSelectionOverlay({
   );
 }
 
+const SELECTION_TOOLTIP_WIDTH_ESTIMATE = 240;
+const SELECTION_TOOLTIP_GAP = 20;
+const SELECTION_TOOLTIP_EDGE = 8;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max));
+}
+
+export function resolveSelectionTooltipPosition({
+  geometry,
+  containerWidth,
+  containerHeight,
+  margin = PORTFOLIO_CHART_MARGIN,
+}: {
+  geometry: ChartSelectionGeometry;
+  containerWidth: number;
+  containerHeight: number;
+  margin?: ChartMargin;
+}): { left: number; top: number; transform: string } {
+  const plotTop = margin.top;
+  const plotBottom = containerHeight - margin.bottom;
+  const selectionMidY = (Math.min(geometry.startY, geometry.endY) + Math.max(geometry.startY, geometry.endY)) / 2;
+  const selectionRight = geometry.left + geometry.width;
+  const midY = clamp(selectionMidY, plotTop + SELECTION_TOOLTIP_EDGE, plotBottom - SELECTION_TOOLTIP_EDGE);
+
+  const spaceLeft = geometry.left - SELECTION_TOOLTIP_EDGE;
+  const spaceRight = containerWidth - SELECTION_TOOLTIP_EDGE - selectionRight;
+  const minSideSpace = SELECTION_TOOLTIP_WIDTH_ESTIMATE + SELECTION_TOOLTIP_GAP;
+
+  // Prefer beside the shaded column so the tooltip stays outside the highlight.
+  if (spaceLeft >= minSideSpace) {
+    return {
+      left: geometry.left - SELECTION_TOOLTIP_GAP,
+      top: midY,
+      transform: "translate(-100%, -50%)",
+    };
+  }
+
+  if (spaceRight >= minSideSpace) {
+    return {
+      left: selectionRight + SELECTION_TOOLTIP_GAP,
+      top: midY,
+      transform: "translate(0, -50%)",
+    };
+  }
+
+  // Fallback: above the plot, hugging the side with more horizontal room.
+  const aboveY = plotTop - SELECTION_TOOLTIP_GAP;
+  if (spaceLeft >= spaceRight) {
+    return {
+      left: clamp(geometry.left - SELECTION_TOOLTIP_GAP, SELECTION_TOOLTIP_EDGE, containerWidth - SELECTION_TOOLTIP_EDGE),
+      top: aboveY,
+      transform: "translate(-100%, -100%)",
+    };
+  }
+
+  return {
+    left: clamp(selectionRight + SELECTION_TOOLTIP_GAP, SELECTION_TOOLTIP_EDGE, containerWidth - SELECTION_TOOLTIP_EDGE),
+    top: aboveY,
+    transform: "translate(0, -100%)",
+  };
+}
+
 export function PortfolioChartSelectionTooltip({
   timeRange,
   selection,
@@ -146,31 +209,24 @@ export function PortfolioChartSelectionTooltip({
   if (!metrics) return null;
 
   const display = formatSelectionPerformanceDisplay(metrics, timeRange, florin);
-  const anchorX = geometry.left + geometry.width / 2;
-  const anchorY = Math.min(geometry.startY, geometry.endY);
-
-  const tooltipHeight = 88;
-  const gap = 12;
-  const edge = 8;
-
-  const top = Math.max(
-    edge,
-    Math.min(anchorY - gap - tooltipHeight, containerHeight - tooltipHeight - edge),
-  );
-  const left = Math.max(edge, Math.min(anchorX, containerWidth - edge));
+  const { left, top, transform } = resolveSelectionTooltipPosition({
+    geometry,
+    containerWidth,
+    containerHeight,
+  });
 
   return (
     <div
-      className="pointer-events-none absolute z-[5] w-max max-w-[calc(100%-1rem)] -translate-x-1/2"
-      style={{ left, top }}
+      className="pointer-events-none absolute z-[5] w-max max-w-[calc(100%-1rem)]"
+      style={{ left, top, transform }}
     >
-      <div className="rounded-lg border border-border-strong bg-surface-2 px-3 py-2 shadow-sm">
-        <div className="type-meta whitespace-nowrap text-[10px] leading-snug text-muted-foreground">
+      <div className="rounded-lg border border-border-strong bg-surface-2 px-4 py-3 shadow-sm">
+        <div className="type-meta whitespace-nowrap text-[10px] leading-relaxed text-muted-foreground">
           {display.rangeLabel}
         </div>
         <div
           className={cn(
-            "tabular mt-1 whitespace-nowrap text-sm font-semibold",
+            "tabular mt-1.5 whitespace-nowrap text-sm font-semibold leading-relaxed",
             display.positive ? "text-[var(--success)]" : "text-[var(--danger)]",
           )}
         >
@@ -178,7 +234,7 @@ export function PortfolioChartSelectionTooltip({
         </div>
         <div
           className={cn(
-            "tabular mt-0.5 whitespace-nowrap text-xs",
+            "tabular mt-1 whitespace-nowrap text-xs leading-relaxed",
             display.positive ? "text-[var(--success)]" : "text-[var(--danger)]",
           )}
         >
