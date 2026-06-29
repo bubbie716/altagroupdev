@@ -3,6 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Card } from "@/components/page-shell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BankRequestErrorCard,
+  BankRequestSubmitButton,
+  BankRequestSuccessCard,
+  type BankRequestSubmissionResult,
+} from "@/components/bank/bank-request-submission-ui";
 import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import {
@@ -21,6 +35,19 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+const fieldLabel = "type-meta";
+const inputClass =
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+
+type FormView = "compose" | "review" | "success" | "error";
+type PaymentKind = "minimum" | "statement" | "current" | "custom";
+
+const PAYMENT_KIND_LABELS: Record<Exclude<PaymentKind, "custom">, string> = {
+  minimum: "Minimum payment",
+  statement: "Statement balance",
+  current: "Full balance",
+};
+
 export function AltaCardPaymentPanel({
   card,
   variant = "button",
@@ -35,12 +62,10 @@ export function AltaCardPaymentPanel({
 
   const [open, setOpen] = useState(variant === "panel");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"form" | "confirm" | "done">("form");
+  const [view, setView] = useState<FormView>("compose");
   const [sourceAccountId, setSourceAccountId] = useState("");
   const [amount, setAmount] = useState("");
-  const [paymentKind, setPaymentKind] = useState<"minimum" | "statement" | "current" | "custom">(
-    "current",
-  );
+  const [paymentKind, setPaymentKind] = useState<PaymentKind>("current");
   const [accounts, setAccounts] = useState<
     { id: string; accountName: string; accountNumber: string; availableBalance: number }[]
   >([]);
@@ -49,15 +74,26 @@ export function AltaCardPaymentPanel({
     statement: 0,
     current: 0,
   });
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [resultRef, setResultRef] = useState<string | null>(null);
+  const [composeError, setComposeError] = useState<string | null>(null);
+  const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
   const loadedRef = useRef(false);
 
   const disabled = card.currentBalance <= 0 || card.status === "closed";
 
+  const paymentDescription =
+    card.cardType === "business"
+      ? "Pay from a business operating account toward the company card balance."
+      : "Pay from your Alta Bank account toward your card balance.";
+
+  const cardTargetLabel = `Alta Card •••• ${card.cardLastFour}`;
+  const payAmount = Number(amount) || 0;
+  const resultingBalance = Math.max(0, card.currentBalance - payAmount);
+  const selectedAccount = accounts.find((account) => account.id === sourceAccountId);
+
   function applyPaymentKind(
-    kind: typeof paymentKind,
+    kind: PaymentKind,
     ctx: { minimumPayment: number; statementBalance: number; currentBalance: number },
   ) {
     setPaymentKind(kind);
@@ -66,23 +102,39 @@ export function AltaCardPaymentPanel({
     else if (kind === "current") setAmount(String(ctx.currentBalance));
   }
 
+  function resetForm() {
+    setView("compose");
+    setComposeError(null);
+    setErrorReason(null);
+    setSubmission(null);
+    setPaymentKind("current");
+    applyPaymentKind("current", balances);
+  }
+
   async function openPanel() {
     setOpen(true);
-    setStep("form");
-    setError(null);
+    setView("compose");
+    setComposeError(null);
+    setErrorReason(null);
+    setSubmission(null);
     setLoading(true);
     try {
       const ctx = await loadContext({ data: card.id });
       setAccounts(ctx.sourceAccounts);
       setSourceAccountId(ctx.sourceAccounts[0]?.id ?? "");
-      setBalances({
+      const nextBalances = {
         minimum: ctx.minimumPayment,
         statement: ctx.statementBalance,
         current: ctx.currentBalance,
-      });
-      applyPaymentKind("current", ctx);
+      };
+      setBalances(nextBalances);
+      applyPaymentKind("current", nextBalances);
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Could not load payment options");
+      setComposeError(
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "")
+          : "Could not load payment options",
+      );
     } finally {
       setLoading(false);
     }
@@ -91,9 +143,7 @@ export function AltaCardPaymentPanel({
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
-      setStep("form");
-      setError(null);
-      setResultRef(null);
+      resetForm();
     }
   }
 
@@ -104,84 +154,186 @@ export function AltaCardPaymentPanel({
     }
   }, [variant]);
 
-  async function handleConfirm() {
-    setError(null);
-    setPending(true);
+  function goToReview() {
+    setComposeError(null);
+    if (!sourceAccountId) {
+      setComposeError("Select a source account.");
+      return;
+    }
+    if (!payAmount || payAmount <= 0) {
+      setComposeError("Enter a valid payment amount.");
+      return;
+    }
+    const availableBalance = selectedAccount?.availableBalance ?? 0;
+    if (payAmount > availableBalance) {
+      setComposeError("Payment amount exceeds available account balance.");
+      return;
+    }
+    setView("review");
+  }
+
+  async function submitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sourceAccountId || submitting) return;
+
+    setSubmitting(true);
+
     try {
       const res = (await submit({
         data: {
           cardId: card.id,
           sourceAccountId,
-          amount: Number(amount),
+          amount: payAmount,
           paymentKind,
           memo: undefined,
         },
       })) as { referenceCode: string };
-      setResultRef(res.referenceCode);
-      setStep("done");
+
+      const submitted: BankRequestSubmissionResult = {
+        referenceCode: res.referenceCode,
+        amount: payAmount,
+        submittedAt: new Date().toISOString(),
+        accountName: selectedAccount?.accountName ?? "—",
+        accountNumber: selectedAccount?.accountNumber ?? "—",
+      };
+
+      setSubmission(submitted);
+      setView("success");
       await router.invalidate();
     } catch (err) {
-      setError(formatCustomerActionError(err, "card_payment"));
+      setErrorReason(formatCustomerActionError(err, "card_payment"));
+      setView("error");
     } finally {
-      setPending(false);
+      setSubmitting(false);
     }
   }
-
-  const payAmount = Number(amount) || 0;
-  const resultingBalance = Math.max(0, card.currentBalance - payAmount);
-
-  const paymentDescription =
-    card.cardType === "business"
-      ? "Pay from a business operating account toward the company card balance."
-      : "Pay from your Alta Bank account toward your card balance.";
 
   function renderContent() {
     if (loading) {
       return <p className="text-[13px] text-muted-foreground">Loading payment options…</p>;
     }
 
-    if (step === "done") {
+    if (view === "success" && submission) {
       return (
-        <div className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Payment posted</p>
-          <p className="mt-2 text-[14px]">Reference {resultRef}</p>
-          {isModal ? (
-            <button
-              type="button"
-              className="mt-4 rounded border border-border px-3 py-1 text-[12px]"
-              onClick={() => handleOpenChange(false)}
+        <BankRequestSuccessCard
+          kind="card_payment"
+          result={submission}
+          onSubmitAnother={resetForm}
+        />
+      );
+    }
+
+    if (view === "error") {
+      return (
+        <BankRequestErrorCard
+          reason={errorReason}
+          onTryAgain={() => {
+            setErrorReason(null);
+            setView("review");
+          }}
+        />
+      );
+    }
+
+    if (view === "review" && selectedAccount) {
+      return (
+        <form
+          onSubmit={submitPayment}
+          className={cn(!isModal && "mx-auto max-w-2xl space-y-6")}
+        >
+          <Card className="space-y-6 !p-6">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+                Review payment
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                Confirm the details below before submitting. Your payment settles instantly and
+                reduces your Alta Card balance.
+              </p>
+            </div>
+
+            <div className="space-y-4 border-y border-border/60 py-6 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">From</span>
+                <span className="text-right">
+                  <span className="font-medium">{selectedAccount.accountName}</span>
+                  <span className="mt-0.5 block font-mono text-[12px] text-muted-foreground">
+                    {selectedAccount.accountNumber}
+                  </span>
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">To</span>
+                <span className="text-right font-mono text-[12px]">{cardTargetLabel}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="type-finance-nums">{florin(payAmount)}</span>
+              </div>
+              {paymentKind !== "custom" ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Payment type</span>
+                  <span className="text-right text-[13px]">{PAYMENT_KIND_LABELS[paymentKind]}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Current balance</span>
+                <span className="type-finance-nums">{formatAltaCardCurrency(card.currentBalance)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Balance after payment</span>
+                <span className="type-finance-nums">{formatAltaCardCurrency(resultingBalance)}</span>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={submitting}
+              className="flex flex-wrap items-center gap-2 border-0 p-0 m-0 min-w-0"
             >
-              Close
-            </button>
-          ) : null}
-        </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setView("compose")}
+                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Back
+              </button>
+              <BankRequestSubmitButton
+                kind="card_payment"
+                submitting={submitting}
+                showContainer={false}
+              />
+            </fieldset>
+          </Card>
+        </form>
       );
     }
 
     return (
-      <>
-        {!isModal ? (
-          <>
-            <p className="font-serif text-[18px]">Make a payment</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">{paymentDescription}</p>
-          </>
-        ) : null}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          goToReview();
+        }}
+        className={cn(!isModal && "mx-auto max-w-2xl space-y-6", isModal ? "space-y-4" : "space-y-6")}
+      >
+        <Card
+          className={cn(
+            isModal
+              ? "space-y-4 border-0 bg-transparent p-0 shadow-none"
+              : "space-y-6 !p-6",
+          )}
+        >
+          {!isModal ? (
+            <>
+              <p className="font-serif text-[18px]">Make a payment</p>
+              <p className="text-[13px] leading-relaxed text-muted-foreground">{paymentDescription}</p>
+            </>
+          ) : null}
 
-        {step === "form" ? (
-          <form
-            className={cn(isModal ? "space-y-4" : "mt-4 space-y-4")}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!sourceAccountId) {
-                setError("Select a source account");
-                return;
-              }
-              if (!payAmount || payAmount <= 0) {
-                setError("Enter a valid amount");
-                return;
-              }
-              setStep("confirm");
-            }}
+          <fieldset
+            disabled={submitting}
+            className={cn("border-0 p-0 m-0 min-w-0 space-y-4", !isModal && "space-y-6")}
           >
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               {(
@@ -200,11 +352,7 @@ export function AltaCardPaymentPanel({
                       setPaymentKind("custom");
                       return;
                     }
-                    applyPaymentKind(kind, {
-                      minimumPayment: balances.minimum,
-                      statementBalance: balances.statement,
-                      currentBalance: balances.current,
-                    });
+                    applyPaymentKind(kind, balances);
                   }}
                   className={cn(
                     "rounded-lg border px-3 py-2 text-[11px] font-medium",
@@ -223,97 +371,72 @@ export function AltaCardPaymentPanel({
               ))}
             </div>
 
-            <label className="block space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Source account
-              </span>
-              <select
+            <label className="block">
+              <span className={fieldLabel}>Source account</span>
+              <Select
                 value={sourceAccountId}
-                onChange={(e) => setSourceAccountId(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[14px]"
+                onValueChange={setSourceAccountId}
+                disabled={submitting || accounts.length === 0}
               >
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.accountName} · {a.accountNumber} · {florin(a.availableBalance)} avail.
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.accountName} · {account.accountNumber} · {florin(account.availableBalance)}{" "}
+                      avail.
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
-            <label className="block space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Payment amount
-              </span>
+            <label className="block">
+              <span className={fieldLabel}>Payment amount (ƒ)</span>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
+                required
                 value={amount}
                 onChange={(e) => {
                   setPaymentKind("custom");
                   setAmount(e.target.value);
                 }}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-[14px]"
+                placeholder="0.00"
+                className={`${inputClass} tabular font-mono`}
               />
-            </label>
-
-            {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
-            <div className="flex gap-2">
-              {isModal ? (
-                <button
-                  type="button"
-                  onClick={() => handleOpenChange(false)}
-                  className="rounded border border-border px-3 py-2 text-[12px]"
-                >
-                  Cancel
-                </button>
+              {selectedAccount ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Available {florin(selectedAccount.availableBalance)}
+                </p>
               ) : null}
-              <button
-                type="submit"
-                className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
-              >
-                Review payment
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className={cn(isModal ? "space-y-4" : "mt-4 space-y-4")}>
-            <div className="rounded-lg border border-border bg-surface-2/50 p-4 text-[14px]">
-              <p>
-                Confirm payment of <strong>{florin(payAmount)}</strong> toward your Alta Card.
-              </p>
-              <dl className="mt-3 grid gap-2 text-[13px] sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Current balance</dt>
-                  <dd className="font-mono tabular-nums">{formatAltaCardCurrency(card.currentBalance)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Balance after payment</dt>
-                  <dd className="font-mono tabular-nums">{formatAltaCardCurrency(resultingBalance)}</dd>
-                </div>
-              </dl>
-            </div>
-            {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
-            <div className="flex gap-2">
+            </label>
+          </fieldset>
+
+          {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
+
+          <div className={cn("flex flex-wrap items-center gap-2", isModal && "mt-6")}>
+            {isModal ? (
               <button
                 type="button"
-                onClick={() => setStep("form")}
-                className="rounded border border-border px-3 py-2 text-[12px]"
+                onClick={() => handleOpenChange(false)}
+                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60"
               >
-                Back
+                Cancel
               </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => void handleConfirm()}
-                className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
-              >
-                {pending ? "Processing…" : "Confirm payment"}
-              </button>
-            </div>
+            ) : null}
+            <BankRequestSubmitButton
+              kind="card_payment"
+              submitting={false}
+              disabled={accounts.length === 0}
+              label="Review Payment"
+              showContainer={false}
+            />
           </div>
-        )}
-      </>
+        </Card>
+      </form>
     );
   }
 
@@ -355,9 +478,5 @@ export function AltaCardPaymentPanel({
     return null;
   }
 
-  return (
-    <div className={cn(variant === "panel" ? "" : "rounded-xl border border-border bg-surface-1/80 p-5")}>
-      {renderContent()}
-    </div>
-  );
+  return <div>{renderContent()}</div>;
 }

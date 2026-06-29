@@ -30,6 +30,9 @@ export const BANK_ALTA_PAY_SUCCESS_BODY =
 export const BANK_CASH_ADVANCE_SUCCESS_BODY =
   "Your cash advance settled instantly. Funds were deposited to your selected account and your card balance was updated.";
 
+export const BANK_CARD_PAYMENT_SUCCESS_BODY =
+  "Your payment settled instantly. Your Alta Card balance and available credit have been updated.";
+
 export const BANK_SUBMISSION_ERROR_FALLBACK =
   "This request could not be submitted. Please review your details and try again.";
 
