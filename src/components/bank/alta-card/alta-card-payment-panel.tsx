@@ -70,9 +70,9 @@ export function AltaCardPaymentPanel({
     { id: string; accountName: string; accountNumber: string; availableBalance: number }[]
   >([]);
   const [balances, setBalances] = useState({
-    minimum: 0,
-    statement: 0,
-    current: 0,
+    minimumPayment: 0,
+    statementBalance: 0,
+    currentBalance: 0,
   });
   const [composeError, setComposeError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
@@ -123,9 +123,9 @@ export function AltaCardPaymentPanel({
       setAccounts(ctx.sourceAccounts);
       setSourceAccountId(ctx.sourceAccounts[0]?.id ?? "");
       const nextBalances = {
-        minimum: ctx.minimumPayment,
-        statement: ctx.statementBalance,
-        current: ctx.currentBalance,
+        minimumPayment: ctx.minimumPayment,
+        statementBalance: ctx.statementBalance,
+        currentBalance: ctx.currentBalance,
       };
       setBalances(nextBalances);
       applyPaymentKind("current", nextBalances);
@@ -362,9 +362,9 @@ export function AltaCardPaymentPanel({
                   {label}
                   {kind !== "custom" ? (
                     <span className="mt-0.5 block font-mono text-[10px] text-muted-foreground">
-                      {kind === "minimum" && formatAltaCardCurrency(balances.minimum)}
-                      {kind === "statement" && formatAltaCardCurrency(balances.statement)}
-                      {kind === "current" && formatAltaCardCurrency(balances.current)}
+                      {kind === "minimum" && formatAltaCardCurrency(balances.minimumPayment)}
+                      {kind === "statement" && formatAltaCardCurrency(balances.statementBalance)}
+                      {kind === "current" && formatAltaCardCurrency(balances.currentBalance)}
                     </span>
                   ) : null}
                 </button>

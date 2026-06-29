@@ -12,7 +12,6 @@ import {
   AltaCardUtilizationBar,
 } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
-import { AltaCardAutopayReadOnlySummary } from "@/components/bank/alta-card/alta-card-autopay-panel";
 import { AltaCardCashAdvancePanel } from "@/components/bank/alta-card/alta-card-cash-advance-panel";
 
 export function AltaCardEmployeeCardList({ cards }: { cards: UserEmployeeAltaCardSummary[] }) {
@@ -112,13 +111,6 @@ export function AltaCardEmployeeCardPanel({ card }: { card: UserEmployeeAltaCard
           <AltaCardCashAdvancePanel employeeCard={card} variant="button" />
         </div>
       </AltaCardSection>
-
-      {card.parentAutopay ? (
-        <AltaCardAutopayReadOnlySummary
-          settings={card.parentAutopay}
-          title="Company autopay (managed on business card)"
-        />
-      ) : null}
 
       <AltaCardTransactionHistory transactions={card.recentTransactions} title="Recent activity" />
     </div>
