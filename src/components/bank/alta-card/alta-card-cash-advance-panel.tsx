@@ -331,7 +331,13 @@ export function AltaCardCashAdvancePanel({
         }}
         className={cn(!isModal && "mx-auto max-w-2xl space-y-6", isModal ? "space-y-4" : "space-y-6")}
       >
-        <Card className="space-y-6 !p-6">
+        <Card
+          className={cn(
+            isModal
+              ? "space-y-4 border-0 bg-transparent p-0 shadow-none"
+              : "space-y-6 !p-6",
+          )}
+        >
           {!isModal ? (
             <>
               <p className="font-serif text-[18px]">Cash advance</p>
@@ -339,13 +345,15 @@ export function AltaCardCashAdvancePanel({
                 {advanceDescription} Available credit {formatAltaCardCurrency(availableCredit)}.
               </p>
             </>
-          ) : (
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
-              Available credit {formatAltaCardCurrency(availableCredit)}.
-            </p>
-          )}
+          ) : null}
 
-          <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
+          <fieldset
+            disabled={submitting}
+            className={cn(
+              "border-0 p-0 m-0 min-w-0",
+              isModal ? "space-y-4" : "space-y-6",
+            )}
+          >
             <label className="block">
               <span className={fieldLabel}>Destination account</span>
               <Select
@@ -398,7 +406,7 @@ export function AltaCardCashAdvancePanel({
 
           {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={cn("flex flex-wrap items-center gap-2", isModal && "mt-6")}>
             {isModal ? (
               <button
                 type="button"
