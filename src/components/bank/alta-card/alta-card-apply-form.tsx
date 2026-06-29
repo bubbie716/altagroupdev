@@ -1,6 +1,9 @@
+"use client";
+
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_DEFAULT_LIMITS,
@@ -9,6 +12,10 @@ import {
 } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_CONFIG } from "@/lib/bank/alta-card-tier-config";
+import {
+  submitBusinessAltaCardApplication,
+  submitPersonalAltaCardApplication,
+} from "@/lib/bank/alta-card.functions";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
 import { AltaCardProductEyebrow } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
@@ -27,6 +34,8 @@ export function AltaCardApplyForm({
   defaultCompanyId?: string;
 }) {
   const router = useRouter();
+  const submitPersonal = useServerFn(submitPersonalAltaCardApplication);
+  const submitBusiness = useServerFn(submitBusinessAltaCardApplication);
   const eligibleCompanies = context.businessCompanies.filter(
     (c) => !c.hasCard && !c.hasPendingApplication,
   );
@@ -73,7 +82,7 @@ export function AltaCardApplyForm({
     try {
       const limit = requestedLimit.trim() ? Number(requestedLimit) : undefined;
       if (cardKind === "personal") {
-        const app = await submitPersonalAltaCardApplication({
+        const app = await submitPersonal({
           data: {
             requestedTier: tier,
             requestedLimit: limit,
@@ -91,7 +100,7 @@ export function AltaCardApplyForm({
           setError("Select a company");
           return;
         }
-        const app = await submitBusinessAltaCardApplication({
+        const app = await submitBusiness({
           data: {
             companyId,
             requestedTier: tier,
