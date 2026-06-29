@@ -7,6 +7,7 @@ export type CustomerSubmissionAction =
   | "lending_apply"
   | "card_apply"
   | "card_payment"
+  | "cash_advance"
   | "card_review"
   | "statement_generate"
   | "scheduled_transfer";
@@ -36,6 +37,7 @@ const ACTION_FALLBACK: Record<CustomerSubmissionAction, string> = {
   lending_apply: "Your lending application could not be submitted. Please review the form and try again.",
   card_apply: "Your Alta Card application could not be submitted. Please review the form and try again.",
   card_payment: "This Alta Card payment could not be processed. Please verify your details and try again.",
+  cash_advance: "This cash advance could not be processed. Please verify your amount and destination account, then try again.",
   card_review: "Your review request could not be submitted. Please review the form and try again.",
   statement_generate: "Your statement could not be generated. Please verify the account and period, then try again.",
   scheduled_transfer: "This transfer schedule could not be saved. Please review your details and try again.",
@@ -51,7 +53,7 @@ function bankActionFor(action: CustomerSubmissionAction): BankMoneyAction | unde
   if (action === "deposit" || action === "withdraw" || action === "transfer" || action === "pay") {
     return action;
   }
-  if (action === "loan_payment" || action === "card_payment") return "pay";
+  if (action === "loan_payment" || action === "card_payment" || action === "cash_advance") return "pay";
   return undefined;
 }
 

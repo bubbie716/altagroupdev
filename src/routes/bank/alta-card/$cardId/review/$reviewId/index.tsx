@@ -1,8 +1,10 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardReviewDetailView } from "@/components/bank/alta-card/alta-card-review-form";
+import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchAltaCardReviewDetail } from "@/lib/bank/alta-card-review.functions";
+import type { AltaCardTypeCode } from "@/lib/bank/alta-card-types";
 
 export const Route = createFileRoute("/bank/alta-card/$cardId/review/$reviewId/")({
   beforeLoad: authBeforeLoad,
@@ -38,7 +40,15 @@ function AltaCardReviewDetailPage() {
       title="Account review"
       description="Track your review request, decision, and secure review thread."
      />
-<AltaCardReviewDetailView review={review} cardId={cardId} />
+<AltaCardPageNav>
+        <AltaCardBackToCardButton
+          card={{
+            cardType: review.cardType as AltaCardTypeCode,
+            companyId: review.companyId,
+          }}
+        />
+      </AltaCardPageNav>
+      <AltaCardReviewDetailView review={review} cardId={cardId} />
     </>
   );
 }

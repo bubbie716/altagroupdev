@@ -27,6 +27,9 @@ export const ALTA_PAY_FORM_INTRO =
 export const BANK_ALTA_PAY_SUCCESS_BODY =
   "Your payment settled instantly to the company's Business Operating Account.";
 
+export const BANK_CASH_ADVANCE_SUCCESS_BODY =
+  "Your cash advance settled instantly. Funds were deposited to your selected account and your card balance was updated.";
+
 export const BANK_SUBMISSION_ERROR_FALLBACK =
   "This request could not be submitted. Please review your details and try again.";
 

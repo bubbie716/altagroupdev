@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   BANK_ALTA_PAY_SUCCESS_BODY,
+  BANK_CASH_ADVANCE_SUCCESS_BODY,
   BANK_REQUEST_SUCCESS_BODY,
   BANK_SUBMISSION_ERROR_FALLBACK,
   BANK_TRANSFER_SUCCESS_BODY,
@@ -18,7 +19,12 @@ export type BankRequestSubmissionResult = {
   accountNumber: string;
 };
 
-export type BankRequestKind = "deposit" | "withdrawal" | "transfer" | "alta_pay";
+export type BankRequestKind =
+  | "deposit"
+  | "withdrawal"
+  | "transfer"
+  | "alta_pay"
+  | "cash_advance";
 
 const COPY = {
   deposit: {
@@ -70,6 +76,19 @@ const COPY = {
       <>
         You can review this payment below in{" "}
         <strong className="font-medium text-foreground">Payment History</strong>.
+      </>
+    ),
+  },
+  cash_advance: {
+    submit: "Confirm Cash Advance",
+    submitting: "Processing Cash Advance…",
+    successTitle: "Cash Advance Completed",
+    submitAnother: "Request Another Cash Advance",
+    successBody: BANK_CASH_ADVANCE_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can review this cash advance in your{" "}
+        <strong className="font-medium text-foreground">Alta Card transaction history</strong>.
       </>
     ),
   },

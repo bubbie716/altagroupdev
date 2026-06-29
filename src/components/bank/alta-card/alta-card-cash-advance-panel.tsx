@@ -3,7 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Card } from "@/components/page-shell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  BankRequestErrorCard,
+  BankRequestSubmitButton,
+  BankRequestSuccessCard,
+  type BankRequestSubmissionResult,
+} from "@/components/bank/bank-request-submission-ui";
 import { florin } from "@/lib/bank/api";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import {
   fetchCashAdvanceContext,
   fetchEmployeeCashAdvanceContext,
@@ -21,6 +37,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+const fieldLabel = "type-meta";
+const inputClass =
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+
+type FormView = "compose" | "review" | "success" | "error";
 
 type AltaCardCashAdvancePanelProps = {
   variant?: "button" | "quick" | "panel";
@@ -44,7 +66,7 @@ export function AltaCardCashAdvancePanel({
 
   const [open, setOpen] = useState(variant === "panel");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"form" | "confirm" | "done">("form");
+  const [view, setView] = useState<FormView>("compose");
   const [destinationAccountId, setDestinationAccountId] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
@@ -57,9 +79,10 @@ export function AltaCardCashAdvancePanel({
   const [currentBalance, setCurrentBalance] = useState(
     isEmployee ? employeeCard!.employeeCurrentBalance : card!.currentBalance,
   );
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [resultRef, setResultRef] = useState<string | null>(null);
+  const [composeError, setComposeError] = useState<string | null>(null);
+  const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
   const loadedRef = useRef(false);
 
   const disabled = isEmployee
@@ -72,10 +95,28 @@ export function AltaCardCashAdvancePanel({
       ? "Transfer available credit to a personal or business operating account. Cash advances increase the company card balance."
       : "Transfer available credit to your checking account. Cash advances increase your Alta Card balance.";
 
+  const cardSourceLabel = isEmployee
+    ? `Employee Alta Card •••• ${employeeCard!.cardLastFour}`
+    : `Alta Card •••• ${card!.cardLastFour}`;
+
+  const balanceLabel = isEmployee ? "Employee spend balance" : "Current balance";
+  const advanceAmount = Number(amount) || 0;
+  const resultingBalance = currentBalance + advanceAmount;
+  const resultingAvailable = Math.max(0, availableCredit - advanceAmount);
+  const selectedAccount = accounts.find((account) => account.id === destinationAccountId);
+
+  function resetForm() {
+    setView("compose");
+    setComposeError(null);
+    setErrorReason(null);
+    setSubmission(null);
+    setAmount("");
+    setMemo("");
+  }
+
   async function openPanel() {
     setOpen(true);
-    setStep("form");
-    setError(null);
+    resetForm();
     setLoading(true);
     try {
       if (isEmployee) {
@@ -85,7 +126,7 @@ export function AltaCardCashAdvancePanel({
         setCurrentBalance(ctx.currentBalance);
         setDestinationAccountId(ctx.destinationAccounts[0]?.id ?? "");
         if (ctx.destinationAccounts.length === 0) {
-          setError("Open a personal Alta account to receive cash advances.");
+          setComposeError("Open a personal Alta account to receive cash advances.");
         }
       } else {
         const ctx = await loadCardContext({ data: card!.id });
@@ -95,8 +136,10 @@ export function AltaCardCashAdvancePanel({
         setDestinationAccountId(ctx.destinationAccounts[0]?.id ?? "");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Could not load cash advance options",
+      setComposeError(
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "")
+          : "Could not load cash advance options",
       );
     } finally {
       setLoading(false);
@@ -106,11 +149,7 @@ export function AltaCardCashAdvancePanel({
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
-      setStep("form");
-      setError(null);
-      setResultRef(null);
-      setAmount("");
-      setMemo("");
+      resetForm();
     }
   }
 
@@ -121,16 +160,36 @@ export function AltaCardCashAdvancePanel({
     }
   }, [variant]);
 
-  async function handleConfirm() {
-    setError(null);
-    setPending(true);
+  function goToReview() {
+    setComposeError(null);
+    if (!destinationAccountId) {
+      setComposeError("Select a destination account.");
+      return;
+    }
+    if (!advanceAmount || advanceAmount <= 0) {
+      setComposeError("Enter a valid amount.");
+      return;
+    }
+    if (advanceAmount > availableCredit) {
+      setComposeError("Amount exceeds available credit.");
+      return;
+    }
+    setView("review");
+  }
+
+  async function submitAdvance(e: React.FormEvent) {
+    e.preventDefault();
+    if (!destinationAccountId || submitting) return;
+
+    setSubmitting(true);
+
     try {
       const res = isEmployee
         ? await submitEmployeeAdvance({
             data: {
               employeeCardId: employeeCard!.id,
               destinationAccountId,
-              amount: Number(amount),
+              amount: advanceAmount,
               memo: memo.trim() || undefined,
             },
           })
@@ -138,198 +197,227 @@ export function AltaCardCashAdvancePanel({
             data: {
               cardId: card!.id,
               destinationAccountId,
-              amount: Number(amount),
+              amount: advanceAmount,
               memo: memo.trim() || undefined,
             },
           });
-      setResultRef(res.referenceCode);
-      setStep("done");
+
+      const submitted: BankRequestSubmissionResult = {
+        referenceCode: res.referenceCode,
+        amount: advanceAmount,
+        submittedAt: new Date().toISOString(),
+        accountName: selectedAccount?.accountName ?? "—",
+        accountNumber: selectedAccount?.accountNumber ?? "—",
+      };
+
+      setSubmission(submitted);
+      setView("success");
       await router.invalidate();
     } catch (err) {
-      setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Cash advance failed");
+      setErrorReason(formatCustomerActionError(err, "cash_advance"));
+      setView("error");
     } finally {
-      setPending(false);
+      setSubmitting(false);
     }
   }
-
-  const advanceAmount = Number(amount) || 0;
-  const resultingBalance = currentBalance + advanceAmount;
-  const resultingAvailable = Math.max(0, availableCredit - advanceAmount);
-  const balanceLabel = isEmployee ? "Employee spend balance" : "Current balance";
 
   function renderContent() {
     if (loading) {
       return <p className="text-[13px] text-muted-foreground">Loading cash advance options…</p>;
     }
 
-    if (step === "done") {
+    if (view === "success" && submission) {
       return (
-        <div className="rounded-xl border border-gold/30 bg-gold/5 p-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Cash advance posted</p>
-          <p className="mt-2 text-[14px]">Reference {resultRef}</p>
-          {isModal ? (
-            <button
-              type="button"
-              className="mt-4 rounded border border-border px-3 py-1 text-[12px]"
-              onClick={() => handleOpenChange(false)}
+        <BankRequestSuccessCard
+          kind="cash_advance"
+          result={submission}
+          onSubmitAnother={resetForm}
+        />
+      );
+    }
+
+    if (view === "error") {
+      return (
+        <BankRequestErrorCard
+          reason={errorReason}
+          onTryAgain={() => {
+            setErrorReason(null);
+            setView("review");
+          }}
+        />
+      );
+    }
+
+    if (view === "review" && selectedAccount) {
+      return (
+        <form
+          onSubmit={submitAdvance}
+          className={cn(!isModal && "mx-auto max-w-2xl space-y-6")}
+        >
+          <Card className="space-y-6 !p-6">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+                Review cash advance
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                Confirm the details below before submitting. Cash advances increase your{" "}
+                {isEmployee ? "employee spend balance" : "Alta Card balance"} and deposit funds to
+                your selected account instantly.
+              </p>
+            </div>
+
+            <div className="space-y-4 border-y border-border/60 py-6 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">From</span>
+                <span className="text-right font-mono text-[12px]">{cardSourceLabel}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">To</span>
+                <span className="text-right">
+                  <span className="font-medium">{selectedAccount.accountName}</span>
+                  <span className="mt-0.5 block font-mono text-[12px] text-muted-foreground">
+                    {selectedAccount.accountNumber}
+                  </span>
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Amount</span>
+                <span className="type-finance-nums">{florin(advanceAmount)}</span>
+              </div>
+              {memo.trim() ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Memo</span>
+                  <span className="max-w-[220px] text-right text-[13px]">{memo.trim()}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">{balanceLabel} after</span>
+                <span className="type-finance-nums">{formatAltaCardCurrency(resultingBalance)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Available credit after</span>
+                <span className="type-finance-nums">{formatAltaCardCurrency(resultingAvailable)}</span>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={submitting}
+              className="flex flex-wrap items-center gap-2 border-0 p-0 m-0 min-w-0"
             >
-              Close
-            </button>
-          ) : null}
-        </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setView("compose")}
+                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Back
+              </button>
+              <BankRequestSubmitButton
+                kind="cash_advance"
+                submitting={submitting}
+                showContainer={false}
+              />
+            </fieldset>
+          </Card>
+        </form>
       );
     }
 
     return (
-      <>
-        {!isModal ? (
-          step === "form" ? (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          goToReview();
+        }}
+        className={cn(!isModal && "mx-auto max-w-2xl space-y-6", isModal ? "space-y-4" : "space-y-6")}
+      >
+        <Card className="space-y-6 !p-6">
+          {!isModal ? (
             <>
               <p className="font-serif text-[18px]">Cash advance</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                Cash advances increase your {isEmployee ? "employee spend balance" : "Alta Card balance"}.
-                Available credit {formatAltaCardCurrency(availableCredit)}.
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
+                {advanceDescription} Available credit {formatAltaCardCurrency(availableCredit)}.
               </p>
             </>
           ) : (
-            <p className="text-[13px] text-muted-foreground">
-              Available credit: {formatAltaCardCurrency(availableCredit)} · Cash advances increase your{" "}
-              {isEmployee ? "employee spend balance" : "Alta Card balance"}.
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              Available credit {formatAltaCardCurrency(availableCredit)}.
             </p>
-          )
-        ) : (
-          <p className="text-[13px] text-muted-foreground">
-            Available credit: {formatAltaCardCurrency(availableCredit)}
-          </p>
-        )}
+          )}
 
-        {step === "form" ? (
-          <form
-            className={cn(isModal ? "space-y-4" : "mt-4 space-y-4")}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!destinationAccountId) {
-                setError("Select a destination account");
-                return;
-              }
-              if (!advanceAmount || advanceAmount <= 0) {
-                setError("Enter a valid amount");
-                return;
-              }
-              if (advanceAmount > availableCredit) {
-                setError("Amount exceeds available credit");
-                return;
-              }
-              setStep("confirm");
-            }}
-          >
-            <label className="block space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Destination account
-              </span>
-              <select
+          <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
+            <label className="block">
+              <span className={fieldLabel}>Destination account</span>
+              <Select
                 value={destinationAccountId}
-                onChange={(e) => setDestinationAccountId(e.target.value)}
-                disabled={accounts.length === 0}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[14px]"
+                onValueChange={setDestinationAccountId}
+                disabled={submitting || accounts.length === 0}
               >
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.accountName} · {a.accountNumber}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.accountName} · {account.accountNumber}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
-            <label className="block space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Amount
-              </span>
+
+            <label className="block">
+              <span className={fieldLabel}>Amount (ƒ)</span>
               <input
                 type="number"
                 min="0.01"
                 step="0.01"
-                max={availableCredit}
+                max={availableCredit > 0 ? availableCredit : undefined}
+                required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-[14px]"
+                placeholder="0.00"
+                className={`${inputClass} tabular`}
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Available credit {formatAltaCardCurrency(availableCredit)}
+              </p>
             </label>
-            <label className="block space-y-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Memo (optional)
-              </span>
-              <input
+
+            <label className="block">
+              <span className={fieldLabel}>Memo (optional)</span>
+              <Textarea
+                autoResize
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[14px]"
+                placeholder="Optional note for your records…"
+                className={`${inputClass} min-h-[80px]`}
               />
             </label>
-            {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
-            <div className="flex gap-2">
-              {isModal ? (
-                <button
-                  type="button"
-                  onClick={() => handleOpenChange(false)}
-                  className="rounded border border-border px-3 py-2 text-[12px]"
-                >
-                  Cancel
-                </button>
-              ) : null}
-              <button
-                type="submit"
-                disabled={accounts.length === 0}
-                className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
-              >
-                Review cash advance
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className={cn(isModal ? "space-y-4" : "mt-4 space-y-4")}>
-            <div className="rounded-lg border border-border bg-surface-2/50 p-4 text-[14px]">
-              <p>
-                Confirm cash advance of <strong>{florin(advanceAmount)}</strong> to your selected
-                account.
-              </p>
-              <p className="mt-2 text-[13px] text-muted-foreground">
-                Cash advances increase your {isEmployee ? "employee spend balance" : "Alta Card balance"}.
-              </p>
-              <dl className="mt-3 grid gap-2 text-[13px] sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">{balanceLabel}</dt>
-                  <dd className="font-mono tabular-nums">{formatAltaCardCurrency(currentBalance)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Balance after advance</dt>
-                  <dd className="font-mono tabular-nums">{formatAltaCardCurrency(resultingBalance)}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Available credit after</dt>
-                  <dd className="font-mono tabular-nums">{formatAltaCardCurrency(resultingAvailable)}</dd>
-                </div>
-              </dl>
-            </div>
-            {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
-            <div className="flex gap-2">
+          </fieldset>
+
+          {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {isModal ? (
               <button
                 type="button"
-                onClick={() => setStep("form")}
-                className="rounded border border-border px-3 py-2 text-[12px]"
+                onClick={() => handleOpenChange(false)}
+                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60"
               >
-                Back
+                Cancel
               </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => void handleConfirm()}
-                className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
-              >
-                {pending ? "Processing…" : "Confirm cash advance"}
-              </button>
-            </div>
+            ) : null}
+            <BankRequestSubmitButton
+              kind="cash_advance"
+              submitting={false}
+              disabled={accounts.length === 0}
+              label="Review Cash Advance"
+              showContainer={false}
+            />
           </div>
-        )}
-      </>
+        </Card>
+      </form>
     );
   }
 

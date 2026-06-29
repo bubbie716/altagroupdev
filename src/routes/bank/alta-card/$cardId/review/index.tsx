@@ -1,10 +1,12 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardReviewForm } from "@/components/bank/alta-card/alta-card-review-form";
+import { AltaCardBackToCardButton, AltaCardPageNav } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchAltaCardDetail } from "@/lib/bank/alta-card.functions";
 import { fetchAltaCardReviewFormContext } from "@/lib/bank/alta-card-review.functions";
+import type { AltaCardTypeCode } from "@/lib/bank/alta-card-types";
 
 export const Route = createFileRoute("/bank/alta-card/$cardId/review/")({
   beforeLoad: async (ctx) => {
@@ -41,7 +43,15 @@ function AltaCardReviewPage() {
       title="Account review"
       description="View past reviews or request improved credit limit, interest rate, or card tier."
      />
-<AltaCardReviewForm context={context} cardId={cardId} />
+<AltaCardPageNav>
+        <AltaCardBackToCardButton
+          card={{
+            cardType: context.card.cardType as AltaCardTypeCode,
+            companyId: context.card.companyId,
+          }}
+        />
+      </AltaCardPageNav>
+      <AltaCardReviewForm context={context} cardId={cardId} />
     </>
   );
 }
