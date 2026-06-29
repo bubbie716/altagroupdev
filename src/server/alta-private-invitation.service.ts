@@ -11,7 +11,7 @@ import {
   canRevokeAltaPrivateInvitation,
   canSendAltaPrivateInvitation,
 } from "@/lib/bank/alta-private-invitation-rules";
-import { formatPrivateBankingClientCopy } from "@/lib/bank/relationship-timeline-customer-copy";
+import { finalizeAltaPrivateMembershipActivation } from "@/server/alta-private-timeline.service";
 import { isPrivateClient } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
@@ -127,26 +127,7 @@ async function activateAltaPrivateMembership(
     });
   }
 
-  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-  const copy = formatPrivateBankingClientCopy("personal");
-  await recordRelationshipTimelineEvent({
-    userId,
-    eventType: "PRIVATE_BANKING_CLIENT",
-    title: copy.title,
-    description: copy.description,
-    occurredAt: new Date(),
-    relatedEntityType: "USER",
-    relatedEntityId: userId,
-    dedupeKey: "private:client",
-  });
-
-  const { activatePendingPrivateBankAccounts } = await import("@/server/bank.service");
-  await activatePendingPrivateBankAccounts();
-
-  const { refreshUserRelationshipProfileBestEffort } = await import(
-    "@/server/relationship-refresh-hooks.service"
-  );
-  await refreshUserRelationshipProfileBestEffort(userId, "alta-private-activated");
+  await finalizeAltaPrivateMembershipActivation(userId, actorUserId);
 }
 
 export async function sendAltaPrivateInvitation(
@@ -196,6 +177,16 @@ export async function sendAltaPrivateInvitation(
     entityId: input.userId,
     description: "Alta Private invitation sent",
     metadata: { invitationId: invitation.id, userId: input.userId, invitationMessage: message },
+  });
+
+  const { recordAltaPrivateInvitedTimelineEvent } = await import(
+    "@/server/alta-private-timeline.service"
+  );
+  await recordAltaPrivateInvitedTimelineEvent({
+    userId: input.userId,
+    invitationId: invitation.id,
+    occurredAt: invitation.createdAt,
+    actorUserId,
   });
 
   try {

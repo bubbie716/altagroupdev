@@ -267,8 +267,21 @@ export function formatPrivateBankingEligibleCopy(scope: CustomerTimelineScope): 
     };
   }
   return {
-    title: "Alta Private Invitation Sent",
-    description: "You are now eligible to join Alta Private.",
+    title: "Eligible for Alta Private",
+    description: "You may qualify for Alta Private over time.",
+  };
+}
+
+export function formatAltaPrivateInvitedCopy(scope: CustomerTimelineScope): TimelineCopy {
+  if (scope === "business") {
+    return {
+      title: "Invited to Alta Private",
+      description: "Your company contact was invited to Alta Private.",
+    };
+  }
+  return {
+    title: "Invited to Alta Private",
+    description: "You were invited to join Alta Private.",
   };
 }
 
@@ -473,7 +486,10 @@ function inferCustomerTimelineDescription(
   if (/^Alta Private Activated$/i.test(title)) {
     return formatPrivateBankingClientCopy(scope).description;
   }
-  if (/^Private Banking Invitation Sent$/i.test(title)) {
+  if (/^Invited to Alta Private$/i.test(title) || /^Alta Private Invitation Sent$/i.test(title)) {
+    return formatAltaPrivateInvitedCopy(scope).description;
+  }
+  if (/^Eligible for Alta Private$/i.test(title) || /^Private Banking Invitation Sent$/i.test(title)) {
     return formatPrivateBankingEligibleCopy(scope).description;
   }
   if (/^Commercial Banking Invitation Sent$/i.test(title)) {
@@ -592,6 +608,10 @@ export function resolveCustomerTimelineCopy(
       copy = formatPrivateBankingEligibleCopy(scope);
       break;
 
+    case "ALTA_PRIVATE_INVITED":
+      copy = formatAltaPrivateInvitedCopy(scope);
+      break;
+
     case "PRIVATE_BANKING_CLIENT":
       copy = formatPrivateBankingClientCopy(scope);
       break;
@@ -629,7 +649,10 @@ function normalizeLegacyCustomerTimelineCopy(
   if (/^Alta Private Activated$/i.test(title)) {
     return formatPrivateBankingClientCopy(scope);
   }
-  if (/^Private Banking Invitation Sent$/i.test(title)) {
+  if (/^Invited to Alta Private$/i.test(title) || /^Alta Private Invitation Sent$/i.test(title)) {
+    return formatAltaPrivateInvitedCopy(scope);
+  }
+  if (/^Eligible for Alta Private$/i.test(title) || /^Private Banking Invitation Sent$/i.test(title)) {
     return formatPrivateBankingEligibleCopy(scope);
   }
   if (/^Loan Fully Repaid$/i.test(title) || /^Business Loan Fully Repaid$/i.test(title)) {

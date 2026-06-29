@@ -356,7 +356,7 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
   for (const dr of dealRooms) {
     const href = dr.loanApplicationId
       ? `/internal/lending/applications/${dr.loanApplicationId}/thread`
-      : `/internal/users/${dr.borrowerUserId}`;
+      : `/internal/lending/deal-rooms/${dr.id}`;
     pushResult(results, {
       id: dr.id,
       type: "deal_room",

@@ -3,7 +3,10 @@ import { describe, it } from "node:test";
 import {
   formatDepositMilestoneCopy,
   extractBankAccountName,
+  formatAltaPrivateInvitedCopy,
   formatBankAccountOpenedCopy,
+  formatPrivateBankingClientCopy,
+  formatPrivateBankingEligibleCopy,
   formatRelationshipEstablishedCopy,
   formatRelationshipTierOutcomeCopy,
   polishCustomerTimelineCopy,
@@ -97,6 +100,35 @@ describe("relationship timeline customer copy", () => {
     );
     assert.equal(copy.title, "Alta Private Activated");
     assert.equal(copy.description, "Welcome to Alta Private.");
+  });
+
+  it("separates Alta Private invitation from score-based eligibility", () => {
+    const invited = formatAltaPrivateInvitedCopy("personal");
+    assert.equal(invited.title, "Invited to Alta Private");
+    assert.equal(invited.description, "You were invited to join Alta Private.");
+
+    const eligible = formatPrivateBankingEligibleCopy("personal");
+    assert.equal(eligible.title, "Eligible for Alta Private");
+    assert.equal(eligible.description, "You may qualify for Alta Private over time.");
+
+    const activated = formatPrivateBankingClientCopy("personal");
+    assert.equal(activated.title, "Alta Private Activated");
+  });
+
+  it("rewrites legacy invitation-sent rows to the invited copy", () => {
+    const copy = resolveCustomerTimelineCopy(
+      {
+        eventType: "ALTA_PRIVATE_INVITED",
+        title: "Alta Private Invitation Sent",
+        description: "You are now eligible to join Alta Private.",
+        occurredAt: new Date().toISOString(),
+        relatedEntityId: "inv-1",
+        metadata: null,
+      },
+      "personal",
+    );
+    assert.equal(copy.title, "Invited to Alta Private");
+    assert.equal(copy.description, "You were invited to join Alta Private.");
   });
 
   it("describes Alta Card upgrades by outcome only", () => {

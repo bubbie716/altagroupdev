@@ -65,7 +65,9 @@ export function relatedRecordHref(record: RelatedRecord): string {
     case "statement":
       return `/internal/bank/accounts/${record.id}?tab=statements`;
     case "deal_room":
-      return record.id.startsWith("/") ? record.id : `/internal/queues/deal-rooms`;
+      return record.id.startsWith("/")
+        ? record.id
+        : `/internal/lending/deal-rooms/${record.id}`;
     case "relationship":
       return record.id.includes("company")
         ? `/internal/companies/${record.id.replace("company:", "")}?tab=relationship`

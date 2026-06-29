@@ -222,3 +222,52 @@ export const adminAdjustLoanRecord = createServerFn({ method: "POST" })
 
 /** @deprecated use fetchInternalLendingOps */
 export const fetchInternalLendingQueue = fetchInternalLendingOps;
+
+export type InternalLegacyDealRoomRedirect =
+  | {
+      to: "/internal/lending/applications/$applicationId";
+      params: { applicationId: string };
+      search: { tab: "thread" };
+    }
+  | {
+      to: "/internal/users/$userId";
+      params: { userId: string };
+      search: Record<string, never>;
+    }
+  | {
+      to: "/internal/queues/deal-rooms";
+      params: Record<string, never>;
+      search: Record<string, never>;
+    };
+
+/** Resolve legacy Prisma DealRoom URLs to the current lending workspace routes. */
+export const resolveInternalLegacyDealRoomRedirect = createServerFn({ method: "GET" })
+  .inputValidator((dealRoomId: string) => dealRoomId)
+  .handler(async ({ data: dealRoomId }): Promise<InternalLegacyDealRoomRedirect> => {
+    const { requireOperator } = await import("@/server/permissions.service");
+    const { prisma } = await import("@/server/db");
+    await requireOperator();
+
+    const room = await prisma.dealRoom.findUnique({
+      where: { id: dealRoomId },
+      select: { loanApplicationId: true, borrowerUserId: true },
+    });
+
+    if (room?.loanApplicationId) {
+      return {
+        to: "/internal/lending/applications/$applicationId",
+        params: { applicationId: room.loanApplicationId },
+        search: { tab: "thread" },
+      };
+    }
+
+    if (room?.borrowerUserId) {
+      return {
+        to: "/internal/users/$userId",
+        params: { userId: room.borrowerUserId },
+        search: {},
+      };
+    }
+
+    return { to: "/internal/queues/deal-rooms", params: {}, search: {} };
+  });

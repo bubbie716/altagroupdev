@@ -15,6 +15,7 @@ import {
   formatLoanPaidOffCopy,
   formatPrivateBankingClientCopy,
   formatPrivateBankingEligibleCopy,
+  formatAltaPrivateInvitedCopy,
   formatRelationshipEstablishedCopy,
   formatTotalAltaAssetsMilestoneCopy,
   formatWithdrawalMilestoneCopy,
@@ -68,6 +69,7 @@ const PRODUCT_EVENT_TYPES = new Set<RelationshipTimelineEventTypeCode>([
   "LOAN_FUNDED",
   "LOAN_PAID_OFF",
   "PRIVATE_BANKING_CLIENT",
+  "ALTA_PRIVATE_INVITED",
 ]);
 
 const MILESTONE_EVENT_TYPES = new Set<RelationshipTimelineEventTypeCode>([
@@ -905,6 +907,29 @@ export async function backfillRelationshipTimelineCore(
       relatedEntityType: "USER",
       relatedEntityId: userId,
       dedupeKey: "private:client",
+      skipAudit: true,
+    });
+    if (event) created += 1;
+  }
+
+  const altaPrivateInvitations = await prisma.altaPrivateInvitation.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, createdAt: true },
+  });
+  for (const invitation of altaPrivateInvitations) {
+    const invitedCopy = formatAltaPrivateInvitedCopy("personal");
+    const event = await createRelationshipTimelineEvent({
+      userId,
+      profileId,
+      eventType: "ALTA_PRIVATE_INVITED",
+      title: invitedCopy.title,
+      description: invitedCopy.description,
+      occurredAt: invitation.createdAt,
+      relatedEntityType: "USER",
+      relatedEntityId: invitation.id,
+      metadata: { invitationId: invitation.id },
+      dedupeKey: `private:invited:${invitation.id}`,
       skipAudit: true,
     });
     if (event) created += 1;

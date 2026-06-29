@@ -985,6 +985,14 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
   } catch {
     // Profile refresh is best-effort on customer view load.
   }
+  try {
+    const { ensurePrivateClientTimelineEventIfMissing } = await import(
+      "@/server/alta-private-timeline.service"
+    );
+    await ensurePrivateClientTimelineEventIfMissing(userId);
+  } catch {
+    // Alta Private activation timeline is best-effort on customer view load.
+  }
   const timeline = await getCustomerRelationshipTimeline(userId);
 
   const { computeCustomerRelationshipProgress } = await import(

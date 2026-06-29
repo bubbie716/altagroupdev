@@ -87,8 +87,20 @@ function InternalOperationsCenter() {
           <OpsQueueCard label="Account openings" count={m.pendingAccountOpenings} to="/internal/queues/account-openings" cta="Review" />
           <OpsQueueCard label="Failed transfers" count={m.failedScheduledTransfers} to="/internal/bank/transfers" cta="Transfers" tone={m.failedScheduledTransfers > 0 ? "alert" : "neutral"} />
           <OpsQueueCard label="Negative balances" count={negativeBalances} to="/internal/queues/exceptions" cta="Exceptions" tone={negativeBalances > 0 ? "alert" : "neutral"} />
-          <OpsQueueCard label="Frozen accounts" count={m.frozenAccounts} to="/internal/bank/accounts?status=frozen" cta="Accounts" />
-          <OpsQueueCard label="Restricted users" count={m.restrictedUsers} to="/internal/users?accountStatus=restricted" cta="Users" />
+          <OpsQueueCard
+            label="Frozen accounts"
+            count={m.frozenAccounts}
+            to="/internal/bank/accounts"
+            search={{ status: "frozen" }}
+            cta="Accounts"
+          />
+          <OpsQueueCard
+            label="Restricted users"
+            count={m.restrictedUsers}
+            to="/internal/users"
+            search={{ accountStatus: "restricted" }}
+            cta="Users"
+          />
           <OpsQueueCard label="Large adjustments (30d)" count={largeAdjustments} to="/internal/reports" cta="Reports" tone={largeAdjustments > 0 ? "warn" : "neutral"} />
         </div>
       </OpsSection>

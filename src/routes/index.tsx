@@ -160,7 +160,6 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                   { label: "Investments", value: "ƒ1,885,285" },
                 ]}
                 assetAllocation={demoAllocation}
-                headerLabel={`Alta Portfolio · ${user.discordUsername}`}
               />
             ) : (
               <PortfolioDashboard
@@ -186,7 +185,6 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 assetAllocation={assetAllocationFromSnapshot(
                   snapshot ?? { florinBalance: 0, portfolioValue: 0 },
                 )}
-                headerLabel={`Alta Portfolio · ${user.discordUsername}`}
               />
             )}
           </div>

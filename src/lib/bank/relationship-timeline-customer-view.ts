@@ -98,6 +98,7 @@ function duplicateRowRank(row: CustomerTimelineRow): number {
   switch (row.eventType as RelationshipTimelineEventTypeCode) {
     case "PRIVATE_BANKING_CLIENT":
     case "PRIVATE_BANKING_ELIGIBLE":
+    case "ALTA_PRIVATE_INVITED":
     case "COMMERCIAL_BANKING_ELIGIBLE":
       return 4;
     case "RELATIONSHIP_TIER_CHANGED":

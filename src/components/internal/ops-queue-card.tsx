@@ -8,6 +8,7 @@ export type OpsQueueCardProps = {
   label: string;
   count: number;
   to: string;
+  search?: Record<string, unknown>;
   helper?: string;
   cta?: string;
   tone?: QueueTone;
@@ -24,6 +25,7 @@ export function OpsQueueCard({
   label,
   count,
   to,
+  search,
   helper,
   cta = "Open queue",
   tone,
@@ -34,6 +36,7 @@ export function OpsQueueCard({
   return (
     <Link
       to={to}
+      search={search}
       className={cn(
         "group relative flex items-center justify-between gap-3 rounded border border-border bg-surface-1/60 px-3 py-2.5 transition-colors hover:border-border-strong hover:bg-surface-2/40",
       )}

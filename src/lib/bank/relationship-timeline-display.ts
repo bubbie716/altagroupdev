@@ -75,7 +75,8 @@ export function timelineEventTypeLabel(type: RelationshipTimelineEventTypeCode):
     LOAN_FUNDED: "Loan Approved",
     LOAN_PAYMENT_MADE: "Loan Payment Received",
     LOAN_PAID_OFF: "Loan Fully Repaid",
-    PRIVATE_BANKING_ELIGIBLE: "Alta Private Invitation Sent",
+    PRIVATE_BANKING_ELIGIBLE: "Eligible for Alta Private",
+    ALTA_PRIVATE_INVITED: "Invited to Alta Private",
     PRIVATE_BANKING_CLIENT: "Alta Private Activated",
     RELATIONSHIP_SCORE_CHANGED: "Relationship Score Updated",
     RELATIONSHIP_TIER_CHANGED: "Relationship Status Updated",
@@ -184,6 +185,7 @@ const TIMELINE_EVENT_SORT_PRIORITY: Partial<Record<RelationshipTimelineEventType
   RELATIONSHIP_TIER_CHANGED: 45,
   PRIVATE_BANKING_ELIGIBLE: 60,
   COMMERCIAL_BANKING_ELIGIBLE: 60,
+  ALTA_PRIVATE_INVITED: 65,
   PRIVATE_BANKING_CLIENT: 70,
 };
 

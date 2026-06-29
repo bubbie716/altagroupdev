@@ -411,6 +411,11 @@ export async function grantInternalUserTag(
       description: "Alta Private membership activated",
       metadata: { userId: targetUserId, actorUserId, before: false, after: true },
     });
+
+    const { finalizeAltaPrivateMembershipActivation } = await import(
+      "@/server/alta-private-timeline.service"
+    );
+    await finalizeAltaPrivateMembershipActivation(targetUserId, actorUserId);
   }
 
   return getInternalUserDetail(targetUserId);
