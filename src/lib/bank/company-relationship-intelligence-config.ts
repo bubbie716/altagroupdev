@@ -55,11 +55,12 @@ export function computeCommercialBankingEligible(
 }
 
 export const COMPANY_RELATIONSHIP_TIER_LABELS: Record<CompanyRelationshipTierCode, string> = {
-  NEW: "New",
+  NEW: "Standard",
   STANDARD: "Standard",
   PREFERRED: "Preferred",
   PREMIER: "Premier",
-  COMMERCIAL_ELIGIBLE: "Commercial eligible",
+  /** Internal score band — not a customer relationship tier. */
+  COMMERCIAL_ELIGIBLE: "Eligible for commercial banking",
 };
 
 export const COMPANY_RELATIONSHIP_INTELLIGENCE_JOB_KEY = "company_relationship_intelligence";

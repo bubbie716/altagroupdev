@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { florin } from "@/lib/bank/api";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
+import { displayRelationshipTierLabelFromCode } from "@/lib/bank/relationship-terminology";
 import { fetchRelationshipIntelligenceDashboard } from "@/lib/internal/relationship-intelligence.functions";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 
@@ -22,8 +22,8 @@ function InternalRelationshipsIndexPage() {
     >
       <div className="mb-8 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <InternalStatCard label="Profiles on file" value={String(data.totalProfiles)} />
-        <InternalStatCard label="Private eligible" value={String(data.privateEligibleCount)} />
-        <InternalStatCard label="Preferred / Premier+" value={String(data.preferredOrPremierCount)} />
+        <InternalStatCard label="Eligible for Alta Private" value={String(data.privateEligibleCount)} />
+        <InternalStatCard label="Preferred / Premier" value={String(data.preferredOrPremierCount)} />
         <InternalStatCard label="Top tracked" value={String(data.topByAssets.length)} />
       </div>
 
@@ -46,7 +46,7 @@ function InternalRelationshipsIndexPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Tier</dt>
-                  <dd>{RELATIONSHIP_TIER_LABELS[row.relationshipTier]}</dd>
+                  <dd>{displayRelationshipTierLabelFromCode(row.relationshipTier)}</dd>
                 </div>
                 <div className="col-span-2">
                   <dt className="text-muted-foreground">Total Alta assets</dt>
@@ -84,7 +84,7 @@ function InternalRelationshipsIndexPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 tabular-nums">{row.relationshipScore}</td>
-                  <td className="px-4 py-3">{RELATIONSHIP_TIER_LABELS[row.relationshipTier]}</td>
+                  <td className="px-4 py-3">{displayRelationshipTierLabelFromCode(row.relationshipTier)}</td>
                   <td className="px-4 py-3 tabular-nums">{florin(row.totalAltaAssets)}</td>
                 </tr>
               ))}
@@ -122,7 +122,8 @@ function InternalRelationshipsIndexPage() {
                 <div>
                   <dt className="text-muted-foreground">Tier</dt>
                   <dd>
-                    {RELATIONSHIP_TIER_LABELS[row.oldTier]} → {RELATIONSHIP_TIER_LABELS[row.newTier]}
+                    {displayRelationshipTierLabelFromCode(row.oldTier)} →{" "}
+                    {displayRelationshipTierLabelFromCode(row.newTier)}
                   </dd>
                 </div>
                 <div>
@@ -164,7 +165,8 @@ function InternalRelationshipsIndexPage() {
                     {row.oldScore} → {row.newScore}
                   </td>
                   <td className="px-4 py-3">
-                    {RELATIONSHIP_TIER_LABELS[row.oldTier]} → {RELATIONSHIP_TIER_LABELS[row.newTier]}
+                    {displayRelationshipTierLabelFromCode(row.oldTier)} →{" "}
+                    {displayRelationshipTierLabelFromCode(row.newTier)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {formatActivityDateTime(row.calculatedAt)}

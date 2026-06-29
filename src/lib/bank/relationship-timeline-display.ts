@@ -75,10 +75,10 @@ export function timelineEventTypeLabel(type: RelationshipTimelineEventTypeCode):
     LOAN_FUNDED: "Loan Approved",
     LOAN_PAYMENT_MADE: "Loan Payment Received",
     LOAN_PAID_OFF: "Loan Fully Repaid",
-    PRIVATE_BANKING_ELIGIBLE: "Private Banking Invitation",
+    PRIVATE_BANKING_ELIGIBLE: "Alta Private Invitation Sent",
     PRIVATE_BANKING_CLIENT: "Alta Private Activated",
     RELATIONSHIP_SCORE_CHANGED: "Relationship Score Updated",
-    RELATIONSHIP_TIER_CHANGED: "Relationship Tier Upgraded",
+    RELATIONSHIP_TIER_CHANGED: "Relationship Status Updated",
     MANUAL_NOTE: "Relationship Note",
   };
   return labels[type];
@@ -168,6 +168,29 @@ type TimelineSortRow = {
   metadata?: Record<string, unknown> | null;
 };
 
+/** When timestamps match, show product events before milestones before tier/program updates. */
+const TIMELINE_EVENT_SORT_PRIORITY: Partial<Record<RelationshipTimelineEventTypeCode, number>> = {
+  RELATIONSHIP_STARTED: 0,
+  BANK_ACCOUNT_OPENED: 10,
+  BUSINESS_ACCOUNT_OPENED: 11,
+  LOAN_FUNDED: 55,
+  ALTA_CARD_OPENED: 54,
+  ALTA_CARD_TIER_CHANGED: 53,
+  ALTA_CARD_PAID_ON_TIME: 52,
+  DEPOSIT_MILESTONE: 30,
+  WITHDRAWAL_MILESTONE: 31,
+  ALTA_PAY_MILESTONE: 32,
+  LOAN_PAID_OFF: 56,
+  RELATIONSHIP_TIER_CHANGED: 45,
+  PRIVATE_BANKING_ELIGIBLE: 60,
+  COMMERCIAL_BANKING_ELIGIBLE: 60,
+  PRIVATE_BANKING_CLIENT: 70,
+};
+
+function timelineEventSortPriority(eventType: RelationshipTimelineEventTypeCode): number {
+  return TIMELINE_EVENT_SORT_PRIORITY[eventType] ?? 45;
+}
+
 /** Newest first; tie-break same-day milestones by threshold (highest first). */
 export function sortTimelineEventsNewestFirst<T extends TimelineSortRow>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
@@ -188,6 +211,10 @@ export function sortTimelineEventsNewestFirst<T extends TimelineSortRow>(rows: T
     if (aThreshold != null && bThreshold != null && bThreshold !== aThreshold) {
       return bThreshold - aThreshold;
     }
+
+    const priorityDiff =
+      timelineEventSortPriority(b.eventType) - timelineEventSortPriority(a.eventType);
+    if (priorityDiff !== 0) return priorityDiff;
 
     const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;

@@ -862,7 +862,7 @@ export async function getCustomerCompanyRelationshipView(
   }
   const timeline = await getCustomerCompanyRelationshipTimeline(companyId);
 
-  const { computeCompanyRelationshipProgress } = await import(
+  const { computeCompanyRelationshipProgress, commercialBankingStatusLabel } = await import(
     "@/lib/bank/customer-relationship-display"
   );
 
@@ -871,7 +871,10 @@ export async function getCustomerCompanyRelationshipView(
     companyName: company.name,
     relationshipSince: calculated.relationshipSince,
     relationshipTier: calculated.relationshipTier,
-    relationshipTierLabel: COMPANY_RELATIONSHIP_TIER_LABELS[calculated.relationshipTier],
+    relationshipTierLabel: computeCompanyRelationshipProgress(
+      calculated.relationshipScore,
+      calculated.relationshipTier,
+    ).currentTierLabel,
     relationshipProgress: computeCompanyRelationshipProgress(
       calculated.relationshipScore,
       calculated.relationshipTier,
@@ -886,6 +889,9 @@ export async function getCustomerCompanyRelationshipView(
     activeBusinessCards: calculated.productHoldings.activeBusinessCards,
     productHoldings: calculated.productHoldings,
     commercialBankingEligible: calculated.commercialBankingEligible,
+    commercialBankingStatusLabel: commercialBankingStatusLabel(
+      calculated.commercialBankingEligible,
+    ),
     opportunities,
     timeline,
   };

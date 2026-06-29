@@ -28,7 +28,7 @@ import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import type { TimelineEvent } from "@/lib/internal/ops-types";
-import type { OpsReviewFlagRow } from "@/lib/internal/ops-review-flag.types";
+import type { AltaPrivateInternalSummary } from "@/lib/bank/alta-private-types";
 
 type CustomerWorkspaceData = {
   user: InternalUserDetail;
@@ -51,6 +51,8 @@ type CustomerWorkspaceData = {
     timelinePreview: Parameters<typeof RelationshipIntelligenceOperatorPanel>[0]["timelinePreview"];
     preApprovalReadiness: Parameters<typeof RelationshipIntelligenceOperatorPanel>[0]["preApprovalReadiness"];
     altaCardId: string | null;
+    altaPrivateSummary?: AltaPrivateInternalSummary;
+    canManageInvitations?: boolean;
   };
   reviewFlags?: OpsReviewFlagRow[];
 };
@@ -113,6 +115,8 @@ export function CustomerWorkspaceView({
           timelinePreview={operatorPanel.timelinePreview}
           preApprovalReadiness={operatorPanel.preApprovalReadiness}
           altaCardId={operatorPanel.altaCardId}
+          altaPrivateSummary={operatorPanel.altaPrivateSummary}
+          canManageInvitations={operatorPanel.canManageInvitations}
         />
       ),
     },
@@ -198,7 +202,7 @@ function overviewTab(
     <div className="space-y-3">
       {privateReview ? (
         <p className="rounded border border-gold/30 bg-gold/5 px-3 py-2 text-[12px]">
-          Private banking review — grant <span className="font-medium">private_client</span> via Access tags after approval.
+          Alta Private invitation review — send an invitation from the Relationship tab. Membership activates only after the customer accepts.
         </p>
       ) : null}
       <WorkspaceSection title="Identity">
@@ -225,8 +229,8 @@ function overviewTab(
           </WorkspaceField>
           <WorkspaceField label="Active products">{activeProducts.join(" · ") || "—"}</WorkspaceField>
           {isPrivateClient ? (
-            <WorkspaceField label="Private banking">
-              <span className="text-gold">Private client</span>
+            <WorkspaceField label="Alta Private">
+              <span className="text-gold">Active membership</span>
             </WorkspaceField>
           ) : null}
         </WorkspaceFieldGrid>

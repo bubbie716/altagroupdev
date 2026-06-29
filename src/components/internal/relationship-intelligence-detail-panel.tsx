@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { florin } from "@/lib/bank/api";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
+import {
+  altaPrivateStatusLabel,
+  displayRelationshipTierLabel,
+} from "@/lib/bank/relationship-terminology";
 import type {
   CalculatedRelationshipProfile,
   RelationshipProfileRow,
@@ -78,10 +81,12 @@ export function RelationshipIntelligenceDetailPanel({
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold">Relationship profile</p>
           <h2 className="mt-2 font-serif text-[28px] tracking-tight">
-            {RELATIONSHIP_TIER_LABELS[display.relationshipTier]}
+            {displayRelationshipTierLabel(display.relationshipTier, display.relationshipScore)}
           </h2>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            Score {display.relationshipScore} · Since {formatActivityDateTime(display.relationshipSince)}
+            Score {display.relationshipScore} · Alta Private{" "}
+            {altaPrivateStatusLabel(display.privateBankingClient, display.privateBankingEligible)} · Since{" "}
+            {formatActivityDateTime(display.relationshipSince)}
           </p>
         </div>
         <button
@@ -132,9 +137,18 @@ export function RelationshipIntelligenceDetailPanel({
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Overview</h3>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Relationship score" value={String(display.relationshipScore)} />
-          <Metric label="Relationship tier" value={RELATIONSHIP_TIER_LABELS[display.relationshipTier]} />
-          <Metric label="Private banking client" value={display.privateBankingClient ? "Yes" : "No"} />
-          <Metric label="Private banking eligible" value={display.privateBankingEligible ? "Yes" : "No"} />
+          <Metric
+            label="Relationship tier"
+            value={displayRelationshipTierLabel(display.relationshipTier, display.relationshipScore)}
+          />
+          <Metric
+            label="Alta Private membership"
+            value={altaPrivateStatusLabel(display.privateBankingClient, display.privateBankingEligible)}
+          />
+          <Metric
+            label="Alta Private eligibility"
+            value={display.privateBankingEligible ? "Eligible" : "Not eligible"}
+          />
           <Metric label="Total bank assets" value={florin(display.totalBankAssets)} />
           <Metric label="Total investments" value={florin(display.totalInvestments)} />
           <Metric label="Total Alta assets" value={florin(display.totalAltaAssets)} />

@@ -70,12 +70,14 @@ export function computePrivateBankingEligible(
 }
 
 export const RELATIONSHIP_TIER_LABELS: Record<RelationshipTierCode, string> = {
-  NEW: "New",
+  NEW: "Standard",
   STANDARD: "Standard",
   PREFERRED: "Preferred",
   PREMIER: "Premier",
-  PRIVATE_ELIGIBLE: "Private eligible",
-  PRIVATE_CLIENT: "Private client",
+  /** Internal score band — not a customer relationship tier. */
+  PRIVATE_ELIGIBLE: "Eligible for Alta Private",
+  /** Internal membership flag — not a customer relationship tier. */
+  PRIVATE_CLIENT: "Alta Private member",
 };
 
 export const RELATIONSHIP_INTELLIGENCE_JOB_KEY = "relationship_intelligence";

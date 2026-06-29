@@ -25,7 +25,13 @@ Membership is extended by referral. Benefits are subject to relationship review 
 | How to request | **Request Account Review** on an existing Alta Card (`/bank/alta-card/$cardId/review`) |
 | Approval | Manual · reviewed by Alta Private · never auto-approved |
 
-Gold tier upgrades (Black → Gold) are available only to `private_client` tag holders. Non–private clients see an Alta Private upsell on the review form and on `/bank/private`.
+Gold tier upgrades (Black → Gold) are available only to Alta Private members. Non-members see an Alta Private upsell on the review form and on `/bank/private`.
+
+## Invitation workflow
+
+Alta Private membership is **invitation-only**. Admins send invitations from the customer workspace Relationship tab; customers must **accept** before the `private_client` tag is granted.
+
+See [Alta Private invitation workflow](./alta-private-invitation.md) for the full admin and customer process, audit events, and Discord placeholders.
 
 See also: [Alta Card — Request Account Review](./alta-card.md#request-account-review)
 

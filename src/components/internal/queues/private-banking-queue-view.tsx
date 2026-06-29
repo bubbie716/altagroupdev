@@ -8,43 +8,42 @@ import { QueuePage } from "./queue-page";
 import { QueueAgeCell } from "./queue-age-cell";
 import { formatQueueDate } from "./queue-utils";
 import { florin } from "@/lib/bank/api";
-import { formatUserTag } from "@/lib/auth/tags";
-import type { InternalUserListRow } from "@/lib/internal/user-management.types";
+import type { PrivateBankingQueueRow } from "@/lib/bank/alta-private-types";
 
-export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[] }) {
+function invitationLabel(row: PrivateBankingQueueRow): string {
+  if (row.altaPrivateActive) return "Active membership";
+  if (row.invitationStatus === "pending") return "Pending invitation";
+  if (row.altaPrivateEligible) return "Eligible";
+  if (row.invitationStatus === "declined") return "Declined";
+  if (row.invitationStatus === "revoked") return "Revoked";
+  if (row.invitationStatus === "expired") return "Expired";
+  return "—";
+}
+
+export function PrivateBankingQueueView({ rows }: { rows: PrivateBankingQueueRow[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const eligible = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          u.tags.includes("private_client") ||
-          u.totalBankBalance >= 500_000 ||
-          u.accountStatus === "pending_review",
-      ),
-    [users],
-  );
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return eligible;
-    return eligible.filter(
+    if (!q) return rows;
+    return rows.filter(
       (u) =>
         u.discordUsername.toLowerCase().includes(q) ||
         u.discordId.includes(q) ||
         (u.email?.toLowerCase().includes(q) ?? false),
     );
-  }, [eligible, query]);
+  }, [rows, query]);
 
-  const columns: OpsTableColumn<InternalUserListRow>[] = [
+  const columns: OpsTableColumn<PrivateBankingQueueRow>[] = [
     {
       key: "customer",
       header: "Customer",
       cell: (u) => (
         <Link
           to="/internal/users/$userId"
-          params={{ userId: u.id }}
+          params={{ userId: u.userId }}
+          search={{ tab: "relationship" }}
           className="font-mono text-[11px] hover:text-gold"
           onClick={(e) => e.stopPropagation()}
         >
@@ -53,19 +52,9 @@ export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[
       ),
     },
     {
-      key: "tags",
-      header: "Tags",
-      cell: (u) => (
-        <div className="flex flex-wrap gap-1">
-          {u.tags.length === 0 ? (
-            <span className="text-muted-foreground">—</span>
-          ) : (
-            u.tags.map((tag) => (
-              <OpsStatusBadge key={tag} status={formatUserTag(tag)} dot={false} />
-            ))
-          )}
-        </div>
-      ),
+      key: "status",
+      header: "Alta Private",
+      cell: (u) => <OpsStatusBadge status={invitationLabel(u)} dot={false} />,
     },
     {
       key: "assets",
@@ -80,9 +69,13 @@ export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[
       cell: (u) => <span className="tabular-nums">{u.bankAccountCount}</span>,
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (u) => <OpsStatusBadge status={u.accountStatus.replace(/_/g, " ")} />,
+      key: "sent",
+      header: "Invitation sent",
+      cell: (u) => (
+        <span className="font-mono text-[11px]">
+          {u.invitationSentAt ? formatQueueDate(u.invitationSentAt) : "—"}
+        </span>
+      ),
     },
     {
       key: "age",
@@ -91,19 +84,13 @@ export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[
       sortable: true,
     },
     {
-      key: "since",
-      header: "Relationship since",
-      cell: (u) => (
-        <span className="font-mono text-[11px]">{formatQueueDate(u.createdAt)}</span>
-      ),
-    },
-    {
       key: "action",
       header: "",
       cell: (u) => (
         <Link
           to="/internal/users/$userId"
-          params={{ userId: u.id }}
+          params={{ userId: u.userId }}
+          search={{ tab: "relationship" }}
           className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold hover:underline"
           onClick={(e) => e.stopPropagation()}
         >
@@ -115,7 +102,7 @@ export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[
 
   return (
     <QueuePage
-      title="Private Banking"
+      title="Alta Private"
       search={query}
       onSearchChange={setQuery}
       searchPlaceholder="Search customer, Discord ID…"
@@ -123,14 +110,18 @@ export function PrivateBankingQueueView({ users }: { users: InternalUserListRow[
       <OpsTable
         columns={columns}
         rows={filtered}
-        rowKey={(u) => u.id}
+        rowKey={(u) => u.userId}
         onRowClick={(u) =>
-          void router.navigate({ to: "/internal/users/$userId", params: { userId: u.id } })
+          void router.navigate({
+            to: "/internal/users/$userId",
+            params: { userId: u.userId },
+            search: { tab: "relationship" },
+          })
         }
-        emptyState="No private-eligible customers match this queue."
+        emptyState="No Alta Private queue entries match this filter."
         filterSlot={
           <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-            {filtered.length} customer{filtered.length === 1 ? "" : "s"} · private tag, high balance, or pending review
+            {filtered.length} customer{filtered.length === 1 ? "" : "s"} · eligible, invited, active, or declined
           </span>
         }
       />

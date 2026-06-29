@@ -28,6 +28,7 @@ export function PageShell({
   eyebrow,
   title,
   description,
+  subtitle,
   action,
   children,
   hideFooter = false,
@@ -38,6 +39,7 @@ export function PageShell({
   eyebrow: string;
   title: string;
   description?: string;
+  subtitle?: string;
   action?: ReactNode;
   children: ReactNode;
   hideFooter?: boolean;
@@ -73,6 +75,11 @@ export function PageShell({
             <div className="min-w-0">
               <div className={type.eyebrow}>{eyebrow}</div>
               <h1 className={cn(type.display, "mt-3 sm:mt-4 break-words")}>{title}</h1>
+              {subtitle ? (
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {subtitle}
+                </p>
+              ) : null}
               {description && (
                 <p className={cn(type.body, "mt-3 sm:mt-4 max-w-2xl text-muted-foreground break-words")}>
                   {description}

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
-import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
+import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
+import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
 import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
 
@@ -16,7 +16,9 @@ export function RelationshipQueueCell({
       {summary ? (
         <p className="text-[12px] tabular-nums">
           {summary.relationshipScore}{" "}
-          <span className="text-muted-foreground">· {RELATIONSHIP_TIER_LABELS[summary.relationshipTier]}</span>
+          <span className="text-muted-foreground">
+            · {displayRelationshipTierLabel(summary.relationshipTier, summary.relationshipScore)}
+          </span>
         </p>
       ) : (
         <p className="text-[11px] text-muted-foreground">No profile</p>
@@ -45,7 +47,13 @@ export function CompanyRelationshipQueueCell({
         <p className="text-[12px] tabular-nums">
           {summary.relationshipScore}{" "}
           <span className="text-muted-foreground">
-            · {COMPANY_RELATIONSHIP_TIER_LABELS[summary.relationshipTier]}
+            ·{" "}
+            {
+              computeCompanyRelationshipProgress(
+                summary.relationshipScore,
+                summary.relationshipTier,
+              ).currentTierLabel
+            }
           </span>
         </p>
       ) : (

@@ -6,7 +6,7 @@ import { RelatedRecordsCompact, type RelatedRecord } from "./related-records";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { florin } from "@/lib/bank/api";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
+import { displayRelationshipTierLabelFromCode } from "@/lib/bank/relationship-terminology";
 
 export type WorkspaceNotePreview = {
   id: string;
@@ -147,7 +147,7 @@ export function WorkspaceSidebar({
   return <>{sections}</>;
 }
 
-/** Map RI tier code to label when needed. */
+/** Map RI tier code to customer-facing relationship tier label (Alta Private is separate). */
 export function formatRelationshipTier(tier: string): string {
-  return (RELATIONSHIP_TIER_LABELS as Record<string, string>)[tier] ?? tier;
+  return displayRelationshipTierLabelFromCode(tier);
 }

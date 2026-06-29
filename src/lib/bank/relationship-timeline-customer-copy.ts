@@ -72,7 +72,7 @@ export function extractNewRelationshipTier(
 }
 
 const AWKWARD_DESCRIPTION =
-  /^(Previously|Your previous tier was|Previous tier:|Crossed\b)|\b(based on profile history|profile recalculated|snapshot refreshed|timeline synchronized|event recorded|cron refresh|audit synchronization|recommendation refreshed)\b|(?:increased|changed|upgraded) from .+ to |^[\d,]+(?:\.\d{2})?$/i;
+  /^(Previously|Your previous tier was|Previous tier:|Crossed\b)|\b(based on profile history|profile recalculated|snapshot refreshed|timeline synchronized|event recorded|cron refresh|audit synchronization|recommendation refreshed)\b|(?:increased|changed|upgraded) from .+ to |^[\d,]+(?:\.\d{2})?$|(?:^Your\s+){2,}|(?:\bis now active\.?\s*){2,}/i;
 
 function tierLabelsForScope(scope: CustomerTimelineScope): Record<string, string> {
   return scope === "business" ? COMPANY_RELATIONSHIP_TIER_LABELS : RELATIONSHIP_TIER_LABELS;
@@ -104,11 +104,35 @@ function isTotalAssetsMilestone(row: TimelineRowForEnrichment): boolean {
 function accountDescription(accountName: string | null, business: boolean): string {
   if (business) return "Your business banking relationship is now active.";
 
-  const trimmed = accountName?.trim();
+  const trimmed = extractBankAccountName(accountName);
   if (trimmed && /checking/i.test(trimmed)) return "Your checking account is now active.";
   if (trimmed && /savings/i.test(trimmed)) return "Your savings account is now active.";
-  if (trimmed) return `Your ${trimmed} is now active.`;
+  if (trimmed) return `Your ${trimmed} account is now active.`;
   return "Your account is now active.";
+}
+
+/** Recover a plain account label from stored name or corrupted refresh-loop descriptions. */
+export function extractBankAccountName(
+  raw: string | null | undefined,
+  metadata?: Record<string, unknown> | null,
+): string | null {
+  if (typeof metadata?.accountName === "string" && metadata.accountName.trim()) {
+    return metadata.accountName.trim();
+  }
+  if (!raw?.trim()) return null;
+
+  let text = raw.trim();
+  if (!/^Your\s/i.test(text) && !/\bis now active\b/i.test(text)) {
+    return text;
+  }
+
+  text = text.replace(/^(Your\s+)+/i, "");
+  text = text.replace(/(\s+is now active\.?\s*)+$/gi, "").trim();
+  return text || null;
+}
+
+export function extractBankAccountNameFromRow(row: TimelineRowForEnrichment): string | null {
+  return extractBankAccountName(row.description, row.metadata);
 }
 
 function isAwkwardDescription(description: string | null | undefined): boolean {
@@ -141,11 +165,12 @@ export function formatRelationshipEstablishedCopy(scope: CustomerTimelineScope):
 export function formatBankAccountOpenedCopy(
   accountName: string | null,
   scope: CustomerTimelineScope,
+  metadata?: Record<string, unknown> | null,
 ): TimelineCopy {
   const business = scope === "business";
   return {
     title: business ? "Business Account Opened" : "Bank Account Opened",
-    description: accountDescription(accountName, business),
+    description: accountDescription(extractBankAccountName(accountName, metadata), business),
   };
 }
 
@@ -242,7 +267,7 @@ export function formatPrivateBankingEligibleCopy(scope: CustomerTimelineScope): 
     };
   }
   return {
-    title: "Private Banking Invitation Sent",
+    title: "Alta Private Invitation Sent",
     description: "You are now eligible to join Alta Private.",
   };
 }
@@ -460,8 +485,8 @@ function inferCustomerTimelineDescription(
   if (/^Loan Approved$/i.test(title) || /^Business Loan Approved$/i.test(title)) {
     return formatLoanApprovedCopy(scope).description;
   }
-  if (/^Alta Card Opened$/i.test(title) || /^Business Alta Card Opened$/i.test(title)) {
-    return formatAltaCardOpenedCopy(scope).description;
+  if (/^Bank Account Opened$/i.test(title) || /^Business Account Opened$/i.test(title)) {
+    return formatBankAccountOpenedCopy(row.description, scope, row.metadata).description;
   }
   if (/^Alta Card Upgraded$/i.test(title) || /^Business Alta Card Upgraded$/i.test(title)) {
     return formatAltaCardUpgradedCopy(extractTierPairFromMetadata(row.metadata).newTier, scope)
@@ -513,7 +538,7 @@ export function resolveCustomerTimelineCopy(
 
     case "BANK_ACCOUNT_OPENED":
     case "BUSINESS_ACCOUNT_OPENED":
-      copy = formatBankAccountOpenedCopy(row.description, scope);
+      copy = formatBankAccountOpenedCopy(row.description, scope, row.metadata);
       break;
 
     case "DEPOSIT_MILESTONE":
@@ -548,6 +573,14 @@ export function resolveCustomerTimelineCopy(
 
     case "RELATIONSHIP_TIER_CHANGED": {
       const newTier = extractNewRelationshipTier(row, tierLabels);
+      if (newTier === "PRIVATE_CLIENT") {
+        copy = formatPrivateBankingClientCopy(scope);
+        break;
+      }
+      if (newTier === "PRIVATE_ELIGIBLE") {
+        copy = formatPrivateBankingEligibleCopy(scope);
+        break;
+      }
       copy = newTier
         ? formatRelationshipTierOutcomeCopy(newTier, tierLabels, scope)
         : normalizeLegacyCustomerTimelineCopy(row, scope);

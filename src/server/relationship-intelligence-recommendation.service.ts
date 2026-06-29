@@ -21,6 +21,7 @@ import {
   tierLabel,
   type RecommendationReasonPayload,
 } from "@/lib/bank/relationship-recommendation-config";
+import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import type {
   CustomerRelationshipOpportunity,
   RelationshipProfileRow,
@@ -229,10 +230,12 @@ function buildDraftRecommendations(input: {
       confidenceScore: confidence,
       reasons: {
         bullets: [
-          `Relationship tier: ${profile.relationshipTier}`,
+          `Relationship tier: ${displayRelationshipTierLabel(profile.relationshipTier, profile.relationshipScore)}`,
           `Relationship score: ${profile.relationshipScore}`,
           `Total Alta assets: ${formatAltaCardCurrency(profile.totalAltaAssets)}`,
-          profile.privateBankingClient ? "Alta Private client — negotiable Gold tier" : "Tier mapped from relationship standing",
+          profile.privateBankingClient
+            ? "Alta Private member — Gold Card available by request"
+            : "Tier mapped from relationship standing",
         ],
         actionPath: primaryCard
           ? buildAltaCardActionPath(primaryCard.id, "pending", { tier: recommendedTier })
@@ -307,7 +310,7 @@ function buildDraftRecommendations(input: {
         bullets: [
           `Relationship score: ${profile.relationshipScore}`,
           profile.privateBankingClient
-            ? "Private client — negotiable relationship pricing"
+            ? "Alta Private member — negotiable relationship pricing"
             : "Score-based relationship pricing discount applied",
           `Recommended tier context: ${tierLabel(recommendedTier)}`,
         ],

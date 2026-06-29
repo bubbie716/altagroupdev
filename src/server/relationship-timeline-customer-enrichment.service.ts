@@ -15,6 +15,9 @@ import {
   type TimelineRowForEnrichment,
 } from "@/lib/bank/relationship-timeline-historical";
 import {
+  formatPrivateBankingClientCopy,
+  formatPrivateBankingEligibleCopy,
+  extractBankAccountName,
   polishCustomerTimelineCopy,
   resolveCustomerTimelineCopy,
 } from "@/lib/bank/relationship-timeline-customer-copy";
@@ -26,6 +29,7 @@ type EnrichmentScope = "personal" | "business";
 type EnrichmentContext = {
   openingTiersByCardId: Map<string, AltaCardTierCode>;
   loansById: Map<string, { principalAmount: number }>;
+  accountsById: Map<string, { accountName: string }>;
   tierAudits: Array<{
     entityId: string | null;
     createdAt: Date;
@@ -53,13 +57,20 @@ export async function loadCustomerTimelineEnrichmentContext(
 ): Promise<EnrichmentContext> {
   const cardIds = relatedEntityIds(rows, ["ALTA_CARD_OPENED", "ALTA_CARD_TIER_CHANGED"]);
   const loanIds = relatedEntityIds(rows, ["LOAN_FUNDED", "LOAN_PAID_OFF"]);
+  const bankAccountIds = relatedEntityIds(rows, ["BANK_ACCOUNT_OPENED", "BUSINESS_ACCOUNT_OPENED"]);
 
-  const [openingTiersByCardId, loans, tierAudits] = await Promise.all([
+  const [openingTiersByCardId, loans, bankAccounts, tierAudits] = await Promise.all([
     resolveAltaCardOpeningTiersByCardId(cardIds),
     loanIds.length > 0
       ? prisma.loan.findMany({
           where: { id: { in: loanIds } },
           select: { id: true, principalAmount: true },
+        })
+      : Promise.resolve([]),
+    bankAccountIds.length > 0
+      ? prisma.bankAccount.findMany({
+          where: { id: { in: bankAccountIds } },
+          select: { id: true, accountName: true },
         })
       : Promise.resolve([]),
     cardIds.length > 0
@@ -76,7 +87,12 @@ export async function loadCustomerTimelineEnrichmentContext(
     loansById.set(loan.id, { principalAmount: decimalToNumber(loan.principalAmount) });
   }
 
-  return { openingTiersByCardId, loansById, tierAudits };
+  const accountsById = new Map<string, { accountName: string }>();
+  for (const account of bankAccounts) {
+    accountsById.set(account.id, { accountName: account.accountName });
+  }
+
+  return { openingTiersByCardId, loansById, accountsById, tierAudits };
 }
 
 function findTierAuditForRow(
@@ -126,9 +142,27 @@ export function resolveEnrichedCustomerTimelineCopy(
       copy = formatLoanApprovedTimelineCopy(undefined, { business });
       break;
     }
+    case "BANK_ACCOUNT_OPENED":
+    case "BUSINESS_ACCOUNT_OPENED": {
+      const metadata = { ...(row.metadata ?? {}) };
+      if (row.relatedEntityId) {
+        const account = ctx.accountsById.get(row.relatedEntityId);
+        if (account?.accountName) metadata.accountName = account.accountName;
+      }
+      copy = resolveCustomerTimelineCopy({ ...row, metadata }, scope);
+      break;
+    }
     case "RELATIONSHIP_TIER_CHANGED": {
       const tierLabels = business ? COMPANY_RELATIONSHIP_TIER_LABELS : RELATIONSHIP_TIER_LABELS;
       const newTier = extractNewRelationshipTier(row, tierLabels);
+      if (newTier === "PRIVATE_CLIENT") {
+        copy = formatPrivateBankingClientCopy(scope);
+        break;
+      }
+      if (newTier === "PRIVATE_ELIGIBLE") {
+        copy = formatPrivateBankingEligibleCopy(scope);
+        break;
+      }
       copy = newTier
         ? formatRelationshipTierChangedCustomerCopy(null, newTier, tierLabels, { business })
         : resolveCustomerTimelineCopy(row, scope);
@@ -171,9 +205,24 @@ export async function refreshStoredPersonalTimelineCopy(userId: string): Promise
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
   });
 
-  const visible = rows
+  const mapped = rows
     .filter((row) => CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES.has(row.eventType as never))
-    .map(mapPersonalTimelineRow);
+    .map((row) => ({
+      ...mapPersonalTimelineRow(row),
+      createdAt: row.createdAt.toISOString(),
+    }));
+
+  const { customerTimelineRowIdsToRemove } = await import(
+    "@/lib/bank/relationship-timeline-customer-view"
+  );
+  const duplicateIds = customerTimelineRowIdsToRemove(mapped);
+  if (duplicateIds.length > 0) {
+    await prisma.relationshipTimelineEvent.deleteMany({
+      where: { id: { in: duplicateIds }, userId },
+    });
+  }
+
+  const visible = mapped.filter((row) => !duplicateIds.includes(row.id));
   if (visible.length === 0) return 0;
 
   const ctx = await loadCustomerTimelineEnrichmentContext(visible);
@@ -181,10 +230,22 @@ export async function refreshStoredPersonalTimelineCopy(userId: string): Promise
 
   for (const row of visible) {
     const copy = resolveEnrichedCustomerTimelineCopy(row, ctx, "personal");
-    if (copy.title !== row.title || copy.description !== row.description) {
+    const accountName =
+      row.eventType === "BANK_ACCOUNT_OPENED" || row.eventType === "BUSINESS_ACCOUNT_OPENED"
+        ? extractBankAccountName(row.description, row.metadata)
+        : null;
+    const metadata =
+      accountName && row.metadata?.accountName !== accountName
+        ? { ...(row.metadata ?? {}), accountName }
+        : null;
+    if (copy.title !== row.title || copy.description !== row.description || metadata) {
       await prisma.relationshipTimelineEvent.update({
         where: { id: row.id },
-        data: { title: copy.title, description: copy.description },
+        data: {
+          title: copy.title,
+          description: copy.description,
+          ...(metadata ? { metadata } : {}),
+        },
       });
       updated += 1;
     }
@@ -221,10 +282,22 @@ export async function refreshStoredCompanyTimelineCopy(companyId: string): Promi
 
   for (const row of visible) {
     const copy = resolveEnrichedCustomerTimelineCopy(row, ctx, "business");
-    if (copy.title !== row.title || copy.description !== row.description) {
+    const accountName =
+      row.eventType === "BANK_ACCOUNT_OPENED" || row.eventType === "BUSINESS_ACCOUNT_OPENED"
+        ? extractBankAccountName(row.description, row.metadata)
+        : null;
+    const metadata =
+      accountName && row.metadata?.accountName !== accountName
+        ? { ...(row.metadata ?? {}), accountName }
+        : null;
+    if (copy.title !== row.title || copy.description !== row.description || metadata) {
       await prisma.companyRelationshipTimelineEvent.update({
         where: { id: row.id },
-        data: { title: copy.title, description: copy.description },
+        data: {
+          title: copy.title,
+          description: copy.description,
+          ...(metadata ? { metadata } : {}),
+        },
       });
       updated += 1;
     }

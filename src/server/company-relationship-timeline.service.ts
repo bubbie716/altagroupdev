@@ -128,10 +128,14 @@ export async function getCustomerCompanyRelationshipTimeline(
     where: { companyId },
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
   });
-  const visible = sortTimelineEventsNewestFirst(
-    rows.filter(isCustomerVisibleCompanyTimelineEvent).map(mapTimelineRow),
+  const mapped = rows
+    .filter((row) => isCustomerVisibleCompanyTimelineEvent({ eventType: row.eventType as never }))
+    .map(mapTimelineRow);
+
+  const { dedupeCustomerTimelineRows } = await import(
+    "@/lib/bank/relationship-timeline-customer-view"
   );
-  return enrichBusinessCustomerTimeline(visible);
+  return enrichBusinessCustomerTimeline(dedupeCustomerTimelineRows(mapped));
 }
 
 async function updateCompanyTimelineEventOccurredAtByDedupeKey(
@@ -364,7 +368,11 @@ export async function syncCompanyRelationshipProfileTimelineEvents(input: {
       skipAudit: true,
     });
   }
-  if (input.oldTier && input.oldTier !== input.newTier) {
+  if (
+    input.oldTier &&
+    input.oldTier !== input.newTier &&
+    input.newTier !== "COMMERCIAL_ELIGIBLE"
+  ) {
     const tierCopy = formatRelationshipTierChangedCustomerCopy(
       input.oldTier,
       input.newTier,
@@ -378,7 +386,7 @@ export async function syncCompanyRelationshipProfileTimelineEvents(input: {
       description: tierCopy.description ?? undefined,
       occurredAt: now,
       metadata: { oldTier: input.oldTier, newTier: input.newTier },
-      dedupeKey: `tier:value:${input.newTier}`,
+      dedupeKey: `tier:${input.oldTier}->${input.newTier}`,
       actorUserId: input.actorUserId,
       skipAudit: true,
     });
@@ -634,7 +642,7 @@ export async function backfillCompanyRelationshipTimelineCore(
     const meta = audit.metadata as Record<string, unknown> | null;
     const oldTier = typeof meta?.oldTier === "string" ? meta.oldTier : null;
     const newTier = typeof meta?.newTier === "string" ? meta.newTier : null;
-    if (!newTier) continue;
+    if (!newTier || newTier === "COMMERCIAL_ELIGIBLE") continue;
     const tierCopy = formatRelationshipTierChangedCustomerCopy(
       oldTier,
       newTier,
@@ -649,7 +657,7 @@ export async function backfillCompanyRelationshipTimelineCore(
       description: tierCopy.description ?? undefined,
       occurredAt: audit.createdAt,
       metadata: { oldTier, newTier },
-      dedupeKey: `audit:relationship-tier:${audit.id}`,
+      dedupeKey: oldTier ? `tier:${oldTier}->${newTier}` : `tier:->${newTier}`,
     });
   }
 

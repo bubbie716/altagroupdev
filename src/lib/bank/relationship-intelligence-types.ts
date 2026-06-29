@@ -98,6 +98,7 @@ export type CustomerRelationshipView = {
   relationshipSince: string;
   relationshipTier: RelationshipTierCode;
   relationshipTierLabel: string;
+  altaPrivateStatusLabel: string;
   relationshipProgress: {
     currentTierLabel: string;
     nextTierLabel: string | null;

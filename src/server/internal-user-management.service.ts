@@ -26,7 +26,7 @@ import { fromDbBankAccountType } from "@/server/bank-mapper";
 import { COMPANY_ROLE_LABELS } from "@/lib/bank/business-banking-types";
 
 const STAFF_TAGS: UserTag[] = ["admin", "operator"];
-const OPERATOR_MANAGEABLE_TAGS: UserTag[] = ["private_client", "developer", "issuer"];
+const OPERATOR_MANAGEABLE_TAGS: UserTag[] = ["developer", "issuer"];
 
 function forbid(): never {
   throw new Error("FORBIDDEN");
@@ -408,7 +408,7 @@ export async function grantInternalUserTag(
       entityType: "USER",
       entityId: targetUserId,
       targetUserId,
-      description: "Marked as Alta Private client",
+      description: "Alta Private membership activated",
       metadata: { userId: targetUserId, actorUserId, before: false, after: true },
     });
   }
@@ -464,7 +464,7 @@ export async function revokeInternalUserTag(
       entityType: "USER",
       entityId: targetUserId,
       targetUserId,
-      description: "Removed Alta Private client status",
+      description: "Alta Private membership removed",
       metadata: { userId: targetUserId, actorUserId, before: true, after: false },
     });
   }

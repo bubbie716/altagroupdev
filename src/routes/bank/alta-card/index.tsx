@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardPersonalPanel } from "@/components/bank/alta-card/alta-card-personal-panel";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -54,16 +54,6 @@ function BankAltaCardIndex() {
         card
           ? undefined
           : "Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
-      }
-      action={
-        !card && !pendingApplication && creditDeskNav.showApplyEntryPoints ? (
-          <Link
-            to="/bank/alta-card/apply"
-            className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
-          >
-            Apply
-          </Link>
-        ) : null
       }
     />
 {pendingApplication && !card ? (

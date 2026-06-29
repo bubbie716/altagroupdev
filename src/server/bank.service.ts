@@ -246,12 +246,22 @@ function buildUserBankDashboardMetrics(
     moneyMarketBalance,
     businessBalance,
     creditAvailable: 0,
-    privateStatus: enrolledInPrivate ? "Enrolled" : "Not enrolled",
+    privateStatus: enrolledInPrivate ? "Alta Private Client" : "Not enrolled",
     enrolledInPrivate,
     accountCount: accounts.length,
     pendingDeposits: 0,
     pendingWithdrawals: 0,
   };
+}
+
+async function resolvePrivateDashboardStatus(user: AltaUser): Promise<string> {
+  if (isPrivateClient(user)) return "Alta Private Client";
+  const { countPendingAltaPrivateInvitations } = await import(
+    "@/server/alta-private-invitation.service"
+  );
+  const pending = await countPendingAltaPrivateInvitations(user.id);
+  if (pending > 0) return "Invitation pending";
+  return "Not enrolled";
 }
 
 export async function getUserBankDashboardFromAccounts(
@@ -277,6 +287,7 @@ export async function getUserBankDashboardFromAccounts(
 
   return {
     ...buildUserBankDashboardMetrics(user, accounts),
+    privateStatus: await resolvePrivateDashboardStatus(user),
     pendingDeposits,
     pendingWithdrawals,
   };
@@ -585,14 +596,20 @@ export async function openBankAccount(
   });
 
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+  const { formatBankAccountOpenedCopy } = await import(
+    "@/lib/bank/relationship-timeline-customer-copy"
+  );
+  const accountScope = companyId ? ("business" as const) : ("personal" as const);
+  const accountCopy = formatBankAccountOpenedCopy(accountName, accountScope);
   await recordRelationshipTimelineEvent({
     userId,
     eventType: companyId ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
-    title: companyId ? "Business bank account opened" : "Bank account opened",
-    description: accountName,
+    title: accountCopy.title,
+    description: accountCopy.description,
     occurredAt: new Date(),
     relatedEntityType: "BANK_ACCOUNT",
     relatedEntityId: account.id,
+    metadata: { accountName },
   });
 
   const { refreshFromBankAccountContextBestEffort } = await import(
@@ -969,6 +986,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     frozenAccounts,
     lendingQueue,
     altaPayVolume,
+    pendingPrivateInvites,
   ] = await Promise.all([
     prisma.bankAccount.count(),
     prisma.bankAccount.count({ where: { status: "PENDING" } }),
@@ -977,6 +995,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     prisma.bankAccount.count({ where: { status: "FROZEN" } }),
     import("@/server/lending.service").then((m) => m.countPendingLoanApplications()),
     import("@/server/alta-pay.service").then((m) => m.getAltaPayVolumeSummary()),
+    prisma.altaPrivateInvitation.count({ where: { status: "PENDING" } }),
   ]);
 
   return {
@@ -987,7 +1006,7 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     frozenAccounts,
     lendingQueue,
     transfersInReview: 0,
-    privateInvitesPending: 0,
+    privateInvitesPending: pendingPrivateInvites,
     altaPayCountThisMonth: altaPayVolume.countThisMonth,
     altaPayVolumeThisMonth: altaPayVolume.volumeThisMonth,
   };

@@ -141,6 +141,8 @@ model User {
   opsReviewFlagsCreated          OpsReviewFlag[] @relation("OpsReviewFlagCreatedBy")
   opsReviewFlagsResolved         OpsReviewFlag[] @relation("OpsReviewFlagResolvedBy")
   opsExceptionDispositionsActed  OpsExceptionDisposition[] @relation("OpsExceptionDispositionActor")
+  altaPrivateInvitationsReceived AltaPrivateInvitation[] @relation("AltaPrivateInvitationRecipient")
+  altaPrivateInvitationsSent     AltaPrivateInvitation[] @relation("AltaPrivateInvitationSender")
 }
 
 model UserTagAssignment {
@@ -2213,6 +2215,35 @@ model RelationshipTimelineEvent {
   @@index([profileId])
   @@index([eventType])
   @@index([relatedEntityType, relatedEntityId])
+}
+
+enum AltaPrivateInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+model AltaPrivateInvitation {
+  id                String                      @id @default(cuid())
+  userId            String
+  status            AltaPrivateInvitationStatus @default(PENDING)
+  invitedByUserId   String
+  invitationMessage String?
+  acceptedAt        DateTime?
+  declinedAt        DateTime?
+  revokedAt         DateTime?
+  expiresAt         DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  user      User @relation("AltaPrivateInvitationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User @relation("AltaPrivateInvitationSender", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([invitedByUserId])
 }
 
 enum CompanyRelationshipTier {

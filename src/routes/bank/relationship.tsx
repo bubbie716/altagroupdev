@@ -20,28 +20,44 @@ import {
   formatMembershipDuration,
 } from "@/lib/bank/customer-relationship-display";
 import { fetchCustomerRelationshipView } from "@/lib/bank/relationship-intelligence.functions";
+import { fetchCustomerAltaPrivatePageState } from "@/lib/bank/alta-private.functions";
 import { formatDueDate } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
+import { useAltaPrivateClientContext } from "@/hooks/use-alta-private-client-context";
+import {
+  AltaPrivateBankerCard,
+  AltaPrivateBenefitsHint,
+  AltaPrivateMemberSinceCard,
+} from "@/components/bank/alta-private/alta-private-client-chrome";
 
 export const Route = createFileRoute("/bank/relationship")({
   beforeLoad: authBeforeLoad,
-  loader: async () => fetchCustomerRelationshipView(),
+  loader: async () => {
+    const [view, pageState] = await Promise.all([
+      fetchCustomerRelationshipView(),
+      fetchCustomerAltaPrivatePageState(),
+    ]);
+    return { view, pageState };
+  },
   head: () => ({ meta: [{ title: "Your Alta Relationship — Alta Bank" }] }),
   component: BankRelationshipPage,
 });
 
 function BankRelationshipPage() {
-  const view = Route.useLoaderData();
+  const { view, pageState } = Route.useLoaderData();
+  const privateClient = useAltaPrivateClientContext();
   const productLabels = customerProductLabels(view.productsHeld);
   const memberDuration = formatMembershipDuration(view.relationshipSince);
+  const altaPrivateLabel = view.privateBankingClient ? "Active" : view.altaPrivateStatusLabel;
 
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank"
-      title="Your Alta relationship"
-      description="A consolidated view of your relationship with Alta Bank and affiliated products."
-     />
+        eyebrow="Alta Bank"
+        title="Your Alta relationship"
+        subtitle={privateClient.isMember ? "Alta Private Client" : undefined}
+        description="A consolidated view of your relationship with Alta Bank and affiliated products."
+      />
 <Section title="Relationship overview">
         <Card className="min-w-0 max-w-full !p-5 sm:!p-6 hover:!border-border">
           <dl className={RELATIONSHIP_STAT_GRID}>
@@ -50,6 +66,15 @@ function BankRelationshipPage() {
               <dd className="mt-2">
                 <RelationshipTierPill label={view.relationshipTierLabel} />
               </dd>
+            </div>
+            <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
+              <dt className={RELATIONSHIP_METRIC_LABEL}>Alta Private</dt>
+              <dd className={cn(RELATIONSHIP_METRIC_VALUE, "font-medium")}>{altaPrivateLabel}</dd>
+              {privateClient.isMember && privateClient.memberSinceLabel ? (
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  Member since {privateClient.memberSinceLabel}
+                </p>
+              ) : null}
             </div>
             <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Total Alta assets</dt>
@@ -76,23 +101,38 @@ function BankRelationshipPage() {
 
           <RelationshipProgressBar {...view.relationshipProgress} />
 
-          {view.privateBankingEligible && !view.privateBankingClient ? (
+          {pageState.kind === "invited" ? (
             <div className="mt-5 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
-              You may be eligible for Alta Private review.{" "}
+              You&apos;re invited to Alta Private.{" "}
               <Link to="/bank/private" className="font-medium text-gold hover:underline">
-                Learn about Alta Private
+                Review your invitation
               </Link>
+            </div>
+          ) : view.privateBankingEligible && !view.privateBankingClient ? (
+            <div className="mt-5 rounded-lg border border-border bg-surface-1/80 px-4 py-3 text-[14px] text-muted-foreground">
+              You may qualify for Alta Private over time. Membership is extended by invitation only.
             </div>
           ) : null}
 
           {view.privateBankingClient ? (
-            <div className="mt-5 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
-              You are an Alta Private client. Visit{" "}
-              <Link to="/bank/private" className="font-medium text-gold hover:underline">
+            <div className="mt-5 rounded-lg border border-border/70 bg-surface-1/50 px-4 py-3 text-[14px]">
+              Your Alta Private membership is active. Visit{" "}
+              <Link to="/bank/private" className="font-medium text-foreground hover:underline">
                 Alta Private
               </Link>{" "}
               for your private banking services.
             </div>
+          ) : null}
+
+          {privateClient.isMember ? (
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <AltaPrivateMemberSinceCard context={privateClient} />
+              <AltaPrivateBankerCard context={privateClient} />
+            </div>
+          ) : null}
+
+          {privateClient.isMember ? (
+            <AltaPrivateBenefitsHint context={privateClient} className="mt-5" linkToPrivate />
           ) : null}
 
           {view.opportunities.length > 0 ? (

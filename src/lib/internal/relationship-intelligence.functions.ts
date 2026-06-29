@@ -260,17 +260,37 @@ export const fetchRelationshipOperatorPanel = createServerFn({ method: "GET" })
       "@/server/relationship-intelligence-integration.service"
     );
     const { getRelationshipTimeline } = await import("@/server/relationship-timeline.service");
+    const { getInternalAltaPrivateSummary } = await import(
+      "@/server/alta-private-invitation.service"
+    );
+    const { requireAuth } = await import("@/server/auth.service");
+    const { mapDbUserToAltaUser, userWithMembershipsInclude } = await import("@/server/user-mapper");
+    const { isAdmin } = await import("@/lib/auth/permissions");
     const { prisma } = await import("@/server/db");
-    const [bundle, timeline] = await Promise.all([
+    const { requireOperator } = await import("@/server/permissions.service");
+    await requireOperator();
+    const actorRecord = await prisma.user.findUnique({
+      where: { id: (await requireAuth()).id },
+      include: userWithMembershipsInclude,
+    });
+    const actor = actorRecord ? mapDbUserToAltaUser(actorRecord) : null;
+    const [bundle, timeline, altaPrivateSummary] = await Promise.all([
       getRelationshipIntegrationBundle(userId, "CUSTOMER_PROFILE"),
       getRelationshipTimeline(userId),
+      getInternalAltaPrivateSummary(userId),
     ]);
     const card = await prisma.altaCard.findFirst({
       where: { ownerUserId: userId, status: { notIn: ["CLOSED", "EXPIRED"] } },
       select: { id: true },
       orderBy: { createdAt: "asc" },
     });
-    return { ...bundle, timelinePreview: timeline.slice(0, 8), altaCardId: card?.id ?? null };
+    return {
+      ...bundle,
+      timelinePreview: timeline.slice(0, 8),
+      altaCardId: card?.id ?? null,
+      altaPrivateSummary,
+      canManageInvitations: actor ? isAdmin(actor) : false,
+    };
   });
 
 export const fetchRelationshipProfileSummariesForUsers = createServerFn({ method: "GET" })

@@ -257,7 +257,10 @@ export async function getCustomerRelationshipTimeline(
   userId: string,
 ): Promise<CustomerRelationshipTimelineEntry[]> {
   const rows = await getRelationshipTimeline(userId, { customerView: true });
-  return enrichPersonalCustomerTimeline(rows);
+  const { dedupeCustomerTimelineRows } = await import(
+    "@/lib/bank/relationship-timeline-customer-view"
+  );
+  return enrichPersonalCustomerTimeline(dedupeCustomerTimelineRows(rows));
 }
 
 export async function getRelationshipTimelineSummary(
@@ -460,6 +463,15 @@ async function reconcileTierChangeEventFromAudit(
   const oldTier = typeof meta?.oldTier === "string" ? meta.oldTier : null;
   const newTier = typeof meta?.newTier === "string" ? meta.newTier : null;
   if (!newTier) return 0;
+
+  if (oldTier) {
+    const updatedByTierPair = await updateTimelineEventOccurredAtByDedupeKey(
+      userId,
+      `tier:${oldTier}->${newTier}`,
+      audit.createdAt,
+    );
+    if (updatedByTierPair > 0) return updatedByTierPair;
+  }
 
   const updatedByDedupe = await updateTimelineEventOccurredAtByDedupeKey(
     userId,
@@ -703,6 +715,7 @@ export async function backfillRelationshipTimelineCore(
       occurredAt: account.createdAt,
       relatedEntityType: "BANK_ACCOUNT",
       relatedEntityId: account.id,
+      metadata: { accountName: account.accountName },
       skipAudit: true,
     });
     if (event) created += 1;
@@ -930,7 +943,7 @@ export async function backfillRelationshipTimelineCore(
     const meta = audit.metadata as Record<string, unknown> | null;
     const oldTier = typeof meta?.oldTier === "string" ? meta.oldTier : null;
     const newTier = typeof meta?.newTier === "string" ? meta.newTier : null;
-    if (!newTier) continue;
+    if (!newTier || newTier === "PRIVATE_ELIGIBLE" || newTier === "PRIVATE_CLIENT") continue;
     const tierCopy = formatRelationshipTierChangedCustomerCopy(
       oldTier,
       newTier,
@@ -944,7 +957,7 @@ export async function backfillRelationshipTimelineCore(
       description: tierCopy.description,
       occurredAt: audit.createdAt,
       metadata: { oldTier, newTier },
-      dedupeKey: `audit:relationship-tier:${audit.id}`,
+      dedupeKey: oldTier ? `tier:${oldTier}->${newTier}` : `tier:->${newTier}`,
       skipAudit: true,
     });
     if (event) created += 1;
@@ -1038,7 +1051,12 @@ export async function syncRelationshipProfileTimelineEvents(input: {
       actorUserId: input.actorUserId,
     });
   }
-  if (input.oldTier && input.oldTier !== input.newTier) {
+  if (
+    input.oldTier &&
+    input.oldTier !== input.newTier &&
+    input.newTier !== "PRIVATE_ELIGIBLE" &&
+    input.newTier !== "PRIVATE_CLIENT"
+  ) {
     const tierCopy = formatRelationshipTierChangedCustomerCopy(
       input.oldTier,
       input.newTier,

@@ -490,7 +490,7 @@ function computeScoreFromInputs(
   if (isPrivateClientFlag) {
     factors.push({
       key: "private_client",
-      label: "Alta Private client",
+      label: "Alta Private membership",
       value: "Yes",
       impact: RELATIONSHIP_SCORE_WEIGHTS.privateClientBonus,
       impactType: "positive",
@@ -990,11 +990,21 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
   const { computeCustomerRelationshipProgress } = await import(
     "@/lib/bank/customer-relationship-display"
   );
+  const { displayRelationshipTierLabel, altaPrivateStatusLabel } = await import(
+    "@/lib/bank/relationship-terminology"
+  );
 
   return {
     relationshipSince: calculated.relationshipSince,
     relationshipTier: calculated.relationshipTier,
-    relationshipTierLabel: RELATIONSHIP_TIER_LABELS[calculated.relationshipTier],
+    relationshipTierLabel: displayRelationshipTierLabel(
+      calculated.relationshipTier,
+      calculated.relationshipScore,
+    ),
+    altaPrivateStatusLabel: altaPrivateStatusLabel(
+      calculated.privateBankingClient,
+      calculated.privateBankingEligible,
+    ),
     relationshipProgress: computeCustomerRelationshipProgress(
       calculated.relationshipScore,
       calculated.relationshipTier,

@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { florin } from "@/lib/bank/api";
-import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
+import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type {
   CalculatedCompanyRelationshipProfile,
   CompanyRelationshipProfileRow,
@@ -53,7 +53,13 @@ export function CompanyRelationshipDetailPanel({
 
       <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="Relationship score" value={String(display.relationshipScore)} />
-        <Metric label="Relationship tier" value={COMPANY_RELATIONSHIP_TIER_LABELS[display.relationshipTier]} />
+        <Metric
+          label="Relationship tier"
+          value={
+            computeCompanyRelationshipProgress(display.relationshipScore, display.relationshipTier)
+              .currentTierLabel
+          }
+        />
         <Metric label="Total business assets" value={florin(display.totalBusinessAssets)} />
         <Metric label="Commercial eligible" value={display.commercialBankingEligible ? "Yes" : "No"} />
         <Metric label="Relationship since" value={formatActivityDateTime(display.relationshipSince)} />

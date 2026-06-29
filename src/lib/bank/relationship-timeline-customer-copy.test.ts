@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   formatDepositMilestoneCopy,
+  extractBankAccountName,
+  formatBankAccountOpenedCopy,
   formatRelationshipEstablishedCopy,
   formatRelationshipTierOutcomeCopy,
   polishCustomerTimelineCopy,
@@ -124,5 +126,45 @@ describe("relationship timeline customer copy", () => {
       { title: "Alta Card Upgraded", description: "Previously Gold." },
     );
     assert.equal(copy.description, "Your Alta Card was upgraded to Alta Black.");
+  });
+
+  it("repairs corrupted bank account opened descriptions from refresh loops", () => {
+    const corrupted =
+      "Your Your Your Your Your 12700k MM is now active. is now active. is now active. is now active. is now active.";
+    const copy = resolveCustomerTimelineCopy(
+      {
+        eventType: "BANK_ACCOUNT_OPENED",
+        title: "Bank Account Opened",
+        description: corrupted,
+        occurredAt: new Date().toISOString(),
+        relatedEntityId: null,
+        metadata: null,
+      },
+      "personal",
+    );
+    assert.equal(copy.title, "Bank Account Opened");
+    assert.equal(copy.description, "Your 12700k MM account is now active.");
+  });
+
+  it("extractBankAccountName prefers metadata and unwraps nested copy", () => {
+    assert.equal(extractBankAccountName("12700k MM"), "12700k MM");
+    assert.equal(
+      extractBankAccountName("Your Your 12700k MM is now active. is now active.", {
+        accountName: "12700k MM",
+      }),
+      "12700k MM",
+    );
+    assert.equal(
+      extractBankAccountName("Your Your 12700k Private MM is now active. is now active."),
+      "12700k Private MM",
+    );
+  });
+
+  it("bank account opened copy is idempotent across repeated formatting", () => {
+    const first = formatBankAccountOpenedCopy("12700k MM", "personal");
+    const second = formatBankAccountOpenedCopy(first.description, "personal", {
+      accountName: "12700k MM",
+    });
+    assert.equal(first.description, second.description);
   });
 });

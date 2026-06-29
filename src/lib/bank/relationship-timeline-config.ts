@@ -24,10 +24,10 @@ export const RELATIONSHIP_TIMELINE_EVENT_LABELS = {
   LOAN_FUNDED: "Loan Approved",
   LOAN_PAYMENT_MADE: "Loan Payment Received",
   LOAN_PAID_OFF: "Loan Fully Repaid",
-  PRIVATE_BANKING_ELIGIBLE: "Private Banking Invitation Sent",
+  PRIVATE_BANKING_ELIGIBLE: "Alta Private Invitation Sent",
   PRIVATE_BANKING_CLIENT: "Alta Private Activated",
   RELATIONSHIP_SCORE_CHANGED: "Relationship Score Updated",
-  RELATIONSHIP_TIER_CHANGED: "Relationship Tier Upgraded",
+  RELATIONSHIP_TIER_CHANGED: "Relationship Status Updated",
   MANUAL_NOTE: "Relationship Note",
 } as const;
 

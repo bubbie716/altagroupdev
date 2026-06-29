@@ -2,7 +2,10 @@
 
 import { Link } from "@tanstack/react-router";
 import { florin } from "@/lib/bank/api";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
+import {
+  altaPrivateStatusLabel,
+  displayRelationshipTierLabel,
+} from "@/lib/bank/relationship-terminology";
 import type {
   RelationshipIntegrationContext,
   RelationshipIntelligencePanelData,
@@ -54,7 +57,10 @@ export function RelationshipIntelligencePanel({
 
       <dl className={`mt-4 grid gap-4 ${gridClass}`}>
         <Metric label="Relationship score" value={String(panel.relationshipScore)} />
-        <Metric label="Relationship tier" value={RELATIONSHIP_TIER_LABELS[panel.relationshipTier]} />
+        <Metric
+          label="Relationship tier"
+          value={displayRelationshipTierLabel(panel.relationshipTier, panel.relationshipScore)}
+        />
         <Metric label="Total Alta assets" value={florin(panel.totalAltaAssets)} />
         <Metric label="Total bank assets" value={florin(panel.totalBankAssets)} />
         {!compact ? (
@@ -64,14 +70,23 @@ export function RelationshipIntelligencePanel({
             <Metric label="Credit exposure" value={florin(panel.currentCreditExposure)} />
             <Metric label="Active card balance" value={florin(panel.activeCardBalance)} />
             <Metric label="Active loan balance" value={florin(panel.activeLoanBalance)} />
-            <Metric label="Private banking eligible" value={panel.privateBankingEligible ? "Yes" : "No"} />
-            <Metric label="Private client" value={panel.privateBankingClient ? "Yes" : "No"} />
+            <Metric
+              label="Alta Private eligibility"
+              value={panel.privateBankingEligible ? "Eligible" : "Not eligible"}
+            />
+            <Metric
+              label="Alta Private membership"
+              value={altaPrivateStatusLabel(panel.privateBankingClient, panel.privateBankingEligible)}
+            />
             <Metric label="Lifetime loan payments" value={florin(panel.lifetimeLoanPayments)} />
           </>
         ) : (
           <>
             <Metric label="Credit exposure" value={florin(panel.currentCreditExposure)} />
-            <Metric label="Private eligible" value={panel.privateBankingEligible ? "Yes" : "No"} />
+            <Metric
+              label="Alta Private"
+              value={altaPrivateStatusLabel(panel.privateBankingClient, panel.privateBankingEligible)}
+            />
           </>
         )}
       </dl>

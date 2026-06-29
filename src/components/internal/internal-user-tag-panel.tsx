@@ -63,7 +63,8 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
 
     const needsConfirm =
       (tag === "admin" && (kind === "grant" || kind === "revoke")) ||
-      (tag === "operator" && kind === "revoke");
+      (tag === "operator" && kind === "revoke") ||
+      (tag === "private_client" && (kind === "grant" || kind === "revoke"));
 
     if (needsConfirm) {
       setPending({ kind, tag });
@@ -117,6 +118,11 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
                       Internal console access without staff tag management.
                     </p>
                   )}
+                  {tag === "private_client" && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Alta Private membership is invitation-only. Use the Relationship tab to send invitations; admins may override here in exceptional cases.
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {action.canGrant && (
@@ -165,7 +171,9 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
             <DialogDescription>
               {pending?.tag === "admin"
                 ? "Admin access grants full internal control including tag management. Confirm only for trusted staff."
-                : pending?.tag === "operator" && pending.kind === "revoke"
+                : pending?.tag === "private_client"
+                  ? "Direct Alta Private membership changes bypass the invitation flow. Use only for exceptional admin overrides."
+                  : pending?.tag === "operator" && pending.kind === "revoke"
                   ? "Revoking operator access removes internal console access for this user."
                   : "This change takes effect immediately."}
             </DialogDescription>

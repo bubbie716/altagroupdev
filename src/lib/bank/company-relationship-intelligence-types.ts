@@ -101,6 +101,7 @@ export type CustomerCompanyRelationshipView = {
   activeBusinessCards: number;
   productHoldings: CompanyProductHoldings;
   commercialBankingEligible: boolean;
+  commercialBankingStatusLabel: string;
   opportunities: CompanyCustomerOpportunity[];
   timeline: CompanyRelationshipTimelineEventRow[];
 };

@@ -59,6 +59,12 @@ function CompanyRelationshipPage() {
               </dd>
             </div>
             <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
+              <dt className={RELATIONSHIP_METRIC_LABEL}>Commercial banking</dt>
+              <dd className={cn(RELATIONSHIP_METRIC_VALUE, "font-medium")}>
+                {view.commercialBankingStatusLabel}
+              </dd>
+            </div>
+            <div className={cn(RELATIONSHIP_STAT_CELL, "sm:col-span-2 lg:col-span-1")}>
               <dt className={RELATIONSHIP_METRIC_LABEL}>Total business assets</dt>
               <dd className="mt-1.5">
                 <RelationshipAssetValue>{florin(view.totalBusinessAssets)}</RelationshipAssetValue>
@@ -85,7 +91,7 @@ function CompanyRelationshipPage() {
 
           {view.commercialBankingEligible ? (
             <div className="mt-5 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[14px]">
-              Your company may be eligible for Alta Commercial Banking review.
+              Your company may be eligible for Alta commercial banking.
             </div>
           ) : null}
 

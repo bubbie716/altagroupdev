@@ -164,6 +164,7 @@ import { Route as InternalCompaniesCompanyIdRelationshipRouteImport } from './ro
 import { Route as InternalBankTransactionsTransactionIdRouteImport } from './routes/internal/bank/transactions/$transactionId'
 import { Route as InternalBankAccountsAccountIdRouteImport } from './routes/internal/bank/accounts/$accountId'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
+import { Route as BankPrivateInvitationInvitationIdRouteImport } from './routes/bank/private/invitation/$invitationId'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
 import { Route as BankAltaCardBusinessApplyRouteImport } from './routes/bank/alta-card/business/apply'
 import { Route as BankAccountsAccountIdStatementsRouteImport } from './routes/bank/accounts/$accountId/statements'
@@ -1040,6 +1041,12 @@ const ExchangeCompanyTickerOwnerRoute =
     path: '/owner',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
   } as any)
+const BankPrivateInvitationInvitationIdRoute =
+  BankPrivateInvitationInvitationIdRouteImport.update({
+    id: '/invitation/$invitationId',
+    path: '/invitation/$invitationId',
+    getParentRoute: () => BankPrivateRoute,
+  } as any)
 const BankLendingDealRoomsDealRoomIdRoute =
   BankLendingDealRoomsDealRoomIdRouteImport.update({
     id: '/$dealRoomId',
@@ -1401,7 +1408,7 @@ export interface FileRoutesByFullPath {
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
   '/bank/pay': typeof BankPayRoute
-  '/bank/private': typeof BankPrivateRoute
+  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/relationship': typeof BankRelationshipRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -1535,6 +1542,7 @@ export interface FileRoutesByFullPath {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
+  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -1602,7 +1610,7 @@ export interface FileRoutesByTo {
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
   '/bank/pay': typeof BankPayRoute
-  '/bank/private': typeof BankPrivateRoute
+  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/relationship': typeof BankRelationshipRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -1725,6 +1733,7 @@ export interface FileRoutesByTo {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
+  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -1803,7 +1812,7 @@ export interface FileRoutesById {
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
   '/bank/pay': typeof BankPayRoute
-  '/bank/private': typeof BankPrivateRoute
+  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/relationship': typeof BankRelationshipRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -1937,6 +1946,7 @@ export interface FileRoutesById {
   '/bank/accounts/$accountId/statements': typeof BankAccountsAccountIdStatementsRoute
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
+  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -2151,6 +2161,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
+    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -2341,6 +2352,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
+    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -2552,6 +2564,7 @@ export interface FileRouteTypes {
     | '/bank/accounts/$accountId/statements'
     | '/bank/alta-card/business/apply'
     | '/bank/lending/deal-rooms/$dealRoomId'
+    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -3726,6 +3739,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExchangeCompanyTickerOwnerRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
     }
+    '/bank/private/invitation/$invitationId': {
+      id: '/bank/private/invitation/$invitationId'
+      path: '/invitation/$invitationId'
+      fullPath: '/bank/private/invitation/$invitationId'
+      preLoaderRoute: typeof BankPrivateInvitationInvitationIdRouteImport
+      parentRoute: typeof BankPrivateRoute
+    }
     '/bank/lending/deal-rooms/$dealRoomId': {
       id: '/bank/lending/deal-rooms/$dealRoomId'
       path: '/$dealRoomId'
@@ -4193,6 +4213,19 @@ const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
   BankAccountsRouteChildren,
 )
 
+interface BankPrivateRouteChildren {
+  BankPrivateInvitationInvitationIdRoute: typeof BankPrivateInvitationInvitationIdRoute
+}
+
+const BankPrivateRouteChildren: BankPrivateRouteChildren = {
+  BankPrivateInvitationInvitationIdRoute:
+    BankPrivateInvitationInvitationIdRoute,
+}
+
+const BankPrivateRouteWithChildren = BankPrivateRoute._addFileChildren(
+  BankPrivateRouteChildren,
+)
+
 interface BankAccountAccountIdRouteRouteChildren {
   BankAccountAccountIdActivityRoute: typeof BankAccountAccountIdActivityRoute
   BankAccountAccountIdPaymentsRoute: typeof BankAccountAccountIdPaymentsRoute
@@ -4372,7 +4405,7 @@ interface BankRouteRouteChildren {
   BankDepositsRoute: typeof BankDepositsRoute
   BankOpenRoute: typeof BankOpenRoute
   BankPayRoute: typeof BankPayRoute
-  BankPrivateRoute: typeof BankPrivateRoute
+  BankPrivateRoute: typeof BankPrivateRouteWithChildren
   BankProductsRoute: typeof BankProductsRoute
   BankRelationshipRoute: typeof BankRelationshipRoute
   BankWithdrawRoute: typeof BankWithdrawRoute
@@ -4409,7 +4442,7 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankDepositsRoute: BankDepositsRoute,
   BankOpenRoute: BankOpenRoute,
   BankPayRoute: BankPayRoute,
-  BankPrivateRoute: BankPrivateRoute,
+  BankPrivateRoute: BankPrivateRouteWithChildren,
   BankProductsRoute: BankProductsRoute,
   BankRelationshipRoute: BankRelationshipRoute,
   BankWithdrawRoute: BankWithdrawRoute,

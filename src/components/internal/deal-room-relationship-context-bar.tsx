@@ -2,8 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
-import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
+import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
+import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type { ResolvedRelationshipIntegration } from "@/lib/internal/resolved-relationship-integration.types";
 
 const READINESS_LABELS = {
@@ -19,7 +19,8 @@ function integrationSummary(integration: ResolvedRelationshipIntegration) {
     return {
       subject: panel.companyName,
       score: panel.relationshipScore,
-      tier: COMPANY_RELATIONSHIP_TIER_LABELS[panel.relationshipTier],
+      tier: computeCompanyRelationshipProgress(panel.relationshipScore, panel.relationshipTier)
+        .currentTierLabel,
       readiness: readiness ? READINESS_LABELS[readiness] : null,
     };
   }
@@ -27,7 +28,7 @@ function integrationSummary(integration: ResolvedRelationshipIntegration) {
   return {
     subject: "Personal profile",
     score: panel.relationshipScore,
-    tier: RELATIONSHIP_TIER_LABELS[panel.relationshipTier],
+    tier: displayRelationshipTierLabel(panel.relationshipTier, panel.relationshipScore),
     readiness: readiness ? READINESS_LABELS[readiness] : null,
   };
 }

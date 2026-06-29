@@ -8,6 +8,7 @@ import { RouteButton } from "@/components/bank/route-button";
 import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import type { AltaPrivateClientContext } from "@/lib/bank/alta-private-client.types";
 import { isPrivateClient } from "@/lib/auth/permissions";
 
 const links = [
@@ -21,7 +22,7 @@ const links = [
   { to: "/bank/lending", label: "Lending" },
   { to: "/bank/alta-card", label: "Alta Card", activePaths: ["/bank/alta-card"] },
   { to: "/bank/relationship", label: "Relationship" },
-  { to: "/bank/private", label: "Private", privateOnly: true },
+  { to: "/bank/private", label: "Alta Private", membersOnly: true },
 ] as const;
 
 const lendingSubLinks = [
@@ -230,13 +231,22 @@ function AltaCardNavGroup({
   );
 }
 
-export const BankSubNav = memo(function BankSubNav({ className }: { className?: string }) {
+export const BankSubNav = memo(function BankSubNav({
+  className,
+  privateClientContext,
+}: {
+  className?: string;
+  privateClientContext?: AltaPrivateClientContext;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
   const creditDeskNav = useCreditDeskCustomerNav();
-  const visibleLinks = links.filter(
-    (l) => !("privateOnly" in l && l.privateOnly) || (user !== null && isPrivateClient(user)),
-  );
+  const isMember = privateClientContext?.isMember ?? (user !== null && isPrivateClient(user));
+  const visibleLinks = links.filter((l) => {
+    if ("membersOnly" in l && l.membersOnly) return isMember;
+    if ("privateOnly" in l && l.privateOnly) return isMember;
+    return true;
+  });
 
   const navLinks = visibleLinks.filter((link) => {
     if (link.to === "/bank/lending") {
