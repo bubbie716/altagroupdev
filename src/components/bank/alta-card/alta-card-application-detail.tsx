@@ -98,6 +98,7 @@ export function AltaCardApplicationDetailView({
             <BankReviewButton
               label="Accept card"
               variant="primary"
+              requireReason={false}
               onAction={async () => {
                 await acceptAltaCardApplicationRecord({ data: application.id });
                 await onAccepted?.();
