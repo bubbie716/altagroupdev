@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import type { AltaCardFeeStatus, AltaCardFeeType, Prisma } from "@prisma/client";
+import { Prisma, type AltaCardFeeStatus, type AltaCardFeeType } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import { isAdmin } from "@/lib/auth/permissions";
 import type { AltaCardFeeRow, AltaCardFeeStatusCode, AltaCardFeeTypeCode } from "@/lib/bank/alta-card-types";
