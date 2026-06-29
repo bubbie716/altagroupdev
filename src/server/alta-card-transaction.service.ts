@@ -1326,6 +1326,7 @@ export async function listAltaCardFundingSources(user: AltaUser): Promise<
     cardLastFour: string;
     availableBalance: number;
     tier: string;
+    employerCompanyId?: string;
   }[] = [];
 
   if (personalCard) {
@@ -1359,6 +1360,7 @@ export async function listAltaCardFundingSources(user: AltaUser): Promise<
       cardLastFour: emp.cardLastFour,
       availableBalance: decimalToNumber(emp.employeeAvailableLimit),
       tier: emp.parentBusinessCard.tier.toLowerCase(),
+      employerCompanyId: emp.companyId,
     });
   }
 
@@ -1426,6 +1428,11 @@ export async function chargeAltaCardForAltaPay(
   if (!employeeCard) badRequest("Select a valid employee Alta Card");
   if (employeeCard.parentBusinessCard.status !== "ACTIVE") {
     badRequest("Company Alta Card is not active");
+  }
+  if (employeeCard.companyId === params.companyId) {
+    badRequest(
+      "You cannot use your employee Alta Card to pay the company that issued the card.",
+    );
   }
 
   const row = await chargeAltaCardInTransaction(tx, {

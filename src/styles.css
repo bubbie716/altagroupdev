@@ -214,6 +214,18 @@
     resize: none;
   }
 
+  /* Hide browser increment/decrement controls on number inputs. */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }
 

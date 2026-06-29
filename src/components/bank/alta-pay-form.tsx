@@ -37,6 +37,13 @@ import {
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 
+const EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED =
+  "You cannot use your employee Alta Card to pay the company that issued the card.";
+
+function employerCompanyIdForFunding(source: PayFundingSourceOption | undefined): string | undefined {
+  return source?.employerCompanyId;
+}
+
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
@@ -113,6 +120,17 @@ export function AltaPayForm({
   const selectedFunding =
     fundingSources.find((s) => fundingKey(s) === fundingKeyValue) ?? fundingSources[0];
   const availableBalance = selectedFunding?.availableBalance ?? 0;
+  const blockedEmployerCompanyId = employerCompanyIdForFunding(selectedFunding);
+  const payableCompanyResults = blockedEmployerCompanyId
+    ? companyResults.filter((company) => company.id !== blockedEmployerCompanyId)
+    : companyResults;
+
+  useEffect(() => {
+    if (blockedEmployerCompanyId && selectedCompany?.id === blockedEmployerCompanyId) {
+      setSelectedCompany(null);
+      setCompanyQuery("");
+    }
+  }, [blockedEmployerCompanyId, selectedCompany?.id]);
 
   useEffect(() => {
     if (companyQuery.trim().length < 1) {
@@ -149,6 +167,13 @@ export function AltaPayForm({
     const payAmount = Number(amount);
     if (!selectedCompany) {
       setComposeError("Select a verified company to pay.");
+      return;
+    }
+    if (
+      blockedEmployerCompanyId &&
+      selectedCompany.id === blockedEmployerCompanyId
+    ) {
+      setComposeError(EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED);
       return;
     }
     if (!selectedFunding) {
@@ -354,9 +379,9 @@ export function AltaPayForm({
                 placeholder="Company name, sector, or ticker"
               />
             </div>
-            {companyResults.length > 0 && !selectedCompany && (
+            {payableCompanyResults.length > 0 && !selectedCompany && (
               <ul className="mt-2 overflow-hidden rounded-md border border-border">
-                {companyResults.map((company) => (
+                {payableCompanyResults.map((company) => (
                   <li key={company.id}>
                     <button
                       type="button"
@@ -380,6 +405,14 @@ export function AltaPayForm({
                 ))}
               </ul>
             )}
+            {companyQuery.trim().length >= 1 &&
+              companyResults.length > 0 &&
+              payableCompanyResults.length === 0 &&
+              !selectedCompany && (
+                <p className="mt-2 text-[12px] text-muted-foreground">
+                  {EMPLOYEE_CARD_EMPLOYER_PAY_BLOCKED}
+                </p>
+              )}
             {selectedCompany && (
               <div className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-4 py-3">
                 <div className="flex items-center gap-2">

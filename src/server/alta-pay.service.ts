@@ -153,6 +153,7 @@ export async function listPayFundingSources(user: AltaUser): Promise<PayFundingS
       detail: "Revolving credit",
       availableBalance: card.availableBalance,
       cardLastFour: card.cardLastFour,
+      employerCompanyId: card.employerCompanyId,
     });
   }
 
