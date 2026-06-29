@@ -141,6 +141,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 gradientId="heroFill"
                 netWorth="ƒ8,412,209.40"
                 changeLabel="+ƒ142,802.10 · +1.72%"
+                currentValue={8_412_209.4}
                 chartData={indexSeries}
                 stats={[
                   { label: "Florin Balance", value: "ƒ1,240,500" },
@@ -154,6 +155,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 gradientId="heroFill"
                 netWorth="ƒ8,412,209.40"
                 changeLabel="+ƒ142,802.10 · +1.72%"
+                currentValue={8_412_209.4}
                 chartData={indexSeries}
                 stats={[
                   { label: "Florin Balance", value: "ƒ1,240,500" },
@@ -177,6 +179,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                   },
                 )}
                 changePositive={(snapshot?.dailyPnL ?? 0) >= 0}
+                currentValue={snapshot?.netWorth}
                 chartData={snapshot?.chartData ?? [{ t: 0, v: 0 }]}
                 stats={[
                   { label: "Florin Balance", value: florin(snapshot?.florinBalance ?? 0) },

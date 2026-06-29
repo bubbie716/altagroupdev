@@ -19,6 +19,7 @@ import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
 import { LegalMicroFooter } from "@/components/footers";
+import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
 
 function NotFoundComponent() {
   return (
@@ -171,6 +172,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <NumberInputScrollGuard />
         {isUiLabMode() && <UiLabBanner />}
         <SiteReturnPathTracker />
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

@@ -8,11 +8,19 @@ export type PortfolioTimeRange = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
 export type SeriesResolution = "intraday" | "daily";
 
+/** @deprecated Bucket hover replaces snap modes. */
 export type HoverSnapMode = "continuous" | "day" | "week" | "month";
+
+export type PortfolioChartBucket = {
+  /** Anchor timestamp for chart placement and tooltip label. */
+  at: number;
+  startAt: number;
+  endAt: number;
+  v: number;
+};
 
 export const PORTFOLIO_CHART_MARGIN = { top: 4, right: 4, bottom: 4, left: 4 };
 
-/** Calendar-day lookbacks (inclusive of today). 1D is handled separately (today only). */
 export const PORTFOLIO_RANGE_DAYS: Record<Exclude<PortfolioTimeRange, "1D" | "ALL">, number> = {
   "1W": 7,
   "1M": 30,
@@ -26,12 +34,12 @@ const PERCENT_BASIS_EPSILON = 0.01;
 
 const NY_TIMEZONE = "America/New_York";
 
-const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const FIVE_MIN_MS = 5 * MINUTE_MS;
+const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
-const FIVE_MIN_MS = 5 * 60 * 1000;
 
 const INTRADAY_GAP_MS = 20 * HOUR_MS;
-const YEAR_WEEKLY_THRESHOLD = 260;
 
 export const DISPLAY_INTERVAL_MS: Record<
   Exclude<PortfolioTimeRange, "1Y" | "ALL">,
@@ -54,6 +62,15 @@ export function localDayKey(atMs: number): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
+export function localMonthKey(atMs: number): string {
+  const date = new Date(atMs);
+  return `${date.getFullYear()}-${date.getMonth()}`;
+}
+
+export function localWeekKey(atMs: number): string {
+  return localDayKey(startOfLocalWeek(new Date(atMs)).getTime());
+}
+
 export function ensureSortedSeries(points: PortfolioChartPoint[]): PortfolioChartPoint[] {
   return [...points]
     .map((point) => ({
@@ -64,7 +81,6 @@ export function ensureSortedSeries(points: PortfolioChartPoint[]): PortfolioChar
     .sort((a, b) => a.at! - b.at!);
 }
 
-/** Keep the last value when multiple points share the same timestamp. */
 export function dedupeTimestamps(points: PortfolioChartPoint[]): PortfolioChartPoint[] {
   if (points.length === 0) return points;
 
@@ -78,7 +94,6 @@ export function dedupeTimestamps(points: PortfolioChartPoint[]): PortfolioChartP
     .map(([, point]) => point);
 }
 
-/** Assign local start-of-day timestamps to points missing `at` (mock/demo series). */
 export function attachPointDates(
   data: PortfolioChartPoint[],
   now: Date = new Date(),
@@ -114,25 +129,22 @@ export function detectSeriesResolution(points: PortfolioChartPoint[]): SeriesRes
 
 export function getHoverSnapMode(
   range: PortfolioTimeRange,
-  resolution: SeriesResolution,
+  _resolution: SeriesResolution,
 ): HoverSnapMode {
-  if (resolution === "intraday") return "continuous";
   if (range === "1Y") return "week";
   if (range === "ALL") return "month";
+  if (range === "1D") return "continuous";
   return "day";
 }
 
-export function getChartLineType(resolution: SeriesResolution): "linear" | "stepAfter" {
-  return resolution === "intraday" ? "linear" : "stepAfter";
+export function getChartLineType(
+  _range: PortfolioTimeRange,
+  _resolution: SeriesResolution,
+): "linear" | "stepAfter" {
+  return "stepAfter";
 }
 
-/**
- * Unified calendar range boundaries for slice, P&L, display, and hover.
- * 1D: today 12:00 AM → now
- * 1W: last 7 calendar days (inclusive) → now
- * 1M/3M/1Y: last N calendar days (inclusive) → now
- * ALL: first source point → max(last source, now)
- */
+/** 1D: midnight today → now. Others: calendar lookback → now. ALL: first source → now. */
 export function getRangeWindow(
   range: PortfolioTimeRange,
   sorted: PortfolioChartPoint[],
@@ -170,44 +182,265 @@ export function findLastPointAtOrBefore(
   return result ?? sorted[0];
 }
 
-/** Step-style value: held constant until the next source observation. */
+/** Carry-forward balance: last known value at or before `atMs`. */
 export function stepValueAt(sorted: PortfolioChartPoint[], atMs: number): number {
   if (sorted.length === 0) return 0;
   const point = findLastPointAtOrBefore(sorted, atMs);
   return point?.v ?? sorted[0].v;
 }
 
-export function interpolateSeriesAt(
+export function resolvePeriodEndValue(
   sorted: PortfolioChartPoint[],
-  atMs: number,
-): { at: number; v: number } {
-  if (sorted.length === 0) return { at: atMs, v: 0 };
-  if (sorted.length === 1) return { at: atMs, v: sorted[0].v };
+  endAt: number,
+  currentValue?: number,
+): number {
+  if (currentValue != null && Number.isFinite(currentValue)) {
+    return currentValue;
+  }
+  return stepValueAt(sorted, endAt);
+}
 
-  const firstAt = sorted[0].at!;
-  const lastAt = sorted[sorted.length - 1].at!;
+function endOfLocalDayMs(dayStartMs: number): number {
+  const end = startOfLocalDay(new Date(dayStartMs));
+  end.setHours(23, 59, 59, 999);
+  return end.getTime();
+}
 
-  if (atMs <= firstAt) return { at: atMs, v: sorted[0].v };
-  if (atMs >= lastAt) return { at: atMs, v: sorted[sorted.length - 1].v };
+export function startOfLocalWeek(date: Date): Date {
+  const d = startOfLocalDay(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  return d;
+}
 
-  let lo = 0;
-  let hi = sorted.length - 1;
+function endOfLocalWeekMs(weekStartMs: number): number {
+  const end = startOfLocalWeek(new Date(weekStartMs));
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end.getTime();
+}
 
-  while (lo < hi - 1) {
-    const mid = (lo + hi) >> 1;
-    if (sorted[mid].at! <= atMs) lo = mid;
-    else hi = mid;
+function bucketValueAt(
+  sorted: PortfolioChartPoint[],
+  bucketEnd: number,
+  isLastBucket: boolean,
+  liveEndValue?: number,
+): number {
+  if (isLastBucket && liveEndValue != null && Number.isFinite(liveEndValue)) {
+    return liveEndValue;
+  }
+  return stepValueAt(sorted, bucketEnd);
+}
+
+/** Fixed-width buckets aligned from range start — value carry-forwards via stepValueAt. */
+function buildFixedIntervalBuckets(
+  sorted: PortfolioChartPoint[],
+  startAt: number,
+  endAt: number,
+  intervalMs: number,
+  liveEndValue?: number,
+): PortfolioChartBucket[] {
+  if (endAt <= startAt || intervalMs <= 0) return [];
+
+  const buckets: PortfolioChartBucket[] = [];
+  let bucketStart = startAt;
+
+  while (bucketStart < endAt) {
+    const bucketEnd = Math.min(bucketStart + intervalMs, endAt);
+    const isLast = bucketEnd >= endAt;
+    buckets.push({
+      at: bucketStart,
+      startAt: bucketStart,
+      endAt: bucketEnd,
+      v: bucketValueAt(sorted, bucketEnd, isLast, liveEndValue),
+    });
+    bucketStart += intervalMs;
   }
 
-  const left = sorted[lo];
-  const right = sorted[hi];
-  const span = right.at! - left.at!;
-  const ratio = span === 0 ? 0 : (atMs - left.at!) / span;
+  return buckets;
+}
 
-  return {
-    at: atMs,
-    v: left.v + ratio * (right.v - left.v),
-  };
+function buildCalendarDayBuckets(
+  sorted: PortfolioChartPoint[],
+  startAt: number,
+  endAt: number,
+): PortfolioChartBucket[] {
+  const buckets: PortfolioChartBucket[] = [];
+  const cursor = startOfLocalDay(new Date(startAt));
+  const lastDay = startOfLocalDay(new Date(endAt));
+
+  while (cursor.getTime() <= lastDay.getTime()) {
+    const dayStart = cursor.getTime();
+    const dayEnd = Math.min(endOfLocalDayMs(dayStart), endAt);
+    buckets.push({
+      at: dayStart,
+      startAt: dayStart,
+      endAt: dayEnd,
+      v: stepValueAt(sorted, dayEnd),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return buckets;
+}
+
+function buildCalendarWeekBuckets(
+  sorted: PortfolioChartPoint[],
+  startAt: number,
+  endAt: number,
+): PortfolioChartBucket[] {
+  const buckets: PortfolioChartBucket[] = [];
+  let cursor = startOfLocalWeek(new Date(startAt));
+
+  while (cursor.getTime() <= endAt) {
+    const weekStart = cursor.getTime();
+    const weekEnd = Math.min(endOfLocalWeekMs(weekStart), endAt);
+    buckets.push({
+      at: weekStart,
+      startAt: weekStart,
+      endAt: weekEnd,
+      v: stepValueAt(sorted, weekEnd),
+    });
+    cursor.setDate(cursor.getDate() + 7);
+  }
+
+  return buckets;
+}
+
+function buildCalendarMonthBuckets(
+  sorted: PortfolioChartPoint[],
+  startAt: number,
+  endAt: number,
+): PortfolioChartBucket[] {
+  const buckets: PortfolioChartBucket[] = [];
+  const cursor = startOfLocalDay(new Date(startAt));
+  cursor.setDate(1);
+
+  while (cursor.getTime() <= endAt) {
+    const monthStart = cursor.getTime();
+    const monthEndDate = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthEnd = Math.min(monthEndDate.getTime(), endAt);
+    buckets.push({
+      at: monthStart,
+      startAt: monthStart,
+      endAt: monthEnd,
+      v: stepValueAt(sorted, monthEnd),
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return buckets;
+}
+
+export function resolveDisplayInterval(
+  range: PortfolioTimeRange,
+): number | "weekly" | "monthly" {
+  if (range === "1D") return FIVE_MIN_MS;
+  if (range === "1W") return HOUR_MS;
+  if (range === "1M" || range === "3M") return DAY_MS;
+  if (range === "1Y") return "weekly";
+  return "monthly";
+}
+
+export function buildChartBucketsForRange(
+  points: PortfolioChartPoint[],
+  range: PortfolioTimeRange,
+  now: Date = new Date(),
+  currentValue?: number,
+): PortfolioChartBucket[] {
+  const sorted = dedupeTimestamps(ensureSortedSeries(attachPointDates(points, now)));
+  if (sorted.length === 0) return [];
+
+  const { startAt, endAt } = getRangeWindow(range, sorted, now);
+
+  switch (range) {
+    case "1D":
+      return buildFixedIntervalBuckets(
+        sorted,
+        startAt,
+        endAt,
+        FIVE_MIN_MS,
+        resolvePeriodEndValue(sorted, endAt, currentValue),
+      );
+    case "1W":
+      return buildFixedIntervalBuckets(sorted, startAt, endAt, HOUR_MS);
+    case "1M":
+    case "3M":
+      return buildCalendarDayBuckets(sorted, startAt, endAt);
+    case "1Y":
+      return buildCalendarWeekBuckets(sorted, startAt, endAt);
+    case "ALL": {
+      const fullEnd = Math.max(sorted[sorted.length - 1].at!, endAt);
+      return buildCalendarMonthBuckets(sorted, sorted[0].at!, fullEnd);
+    }
+    default:
+      return [];
+  }
+}
+
+export function bucketsToDisplaySeries(buckets: PortfolioChartBucket[]): PortfolioChartPoint[] {
+  if (buckets.length === 0) return [];
+
+  const points = buckets.map((bucket) => ({ t: bucket.at, at: bucket.at, v: bucket.v }));
+  const last = buckets[buckets.length - 1];
+
+  // Extend stepAfter line through the final partial bucket (matches range endAt).
+  if (last.endAt > last.at) {
+    points.push({ t: last.endAt, at: last.endAt, v: last.v });
+  }
+
+  return dedupeTimestamps(points);
+}
+
+/** Time domain for the rendered AreaChart — must match hover X mapping. */
+export function getDisplayTimeDomain(display: PortfolioChartPoint[]): { min: number; max: number } {
+  if (display.length === 0) return { min: 0, max: 0 };
+  return { min: display[0].at!, max: display[display.length - 1].at! };
+}
+
+/** stepAfter line value at a timestamp on the display series. */
+export function resolveDisplayLineValue(
+  display: PortfolioChartPoint[],
+  atMs: number,
+): number {
+  return stepValueAt(dedupeTimestamps(ensureSortedSeries(display)), atMs);
+}
+
+export function findBucketContaining(
+  buckets: PortfolioChartBucket[],
+  atMs: number,
+): PortfolioChartBucket | null {
+  if (buckets.length === 0) return null;
+
+  for (let i = 0; i < buckets.length; i += 1) {
+    const bucket = buckets[i];
+    const isLast = i === buckets.length - 1;
+    if (atMs >= bucket.startAt && (atMs < bucket.endAt || (isLast && atMs <= bucket.endAt))) {
+      return bucket;
+    }
+  }
+
+  if (atMs < buckets[0].startAt) return buckets[0];
+  return buckets[buckets.length - 1];
+}
+
+export function resolveBucketHoverPoint(
+  buckets: PortfolioChartBucket[],
+  pointerAt: number,
+): { at: number; v: number; bucket: PortfolioChartBucket | null } {
+  const bucket = findBucketContaining(buckets, pointerAt);
+  if (!bucket) return { at: pointerAt, v: 0, bucket: null };
+  return { at: bucket.at, v: bucket.v, bucket };
+}
+
+export function buildDisplaySeriesForRange(
+  points: PortfolioChartPoint[],
+  range: PortfolioTimeRange,
+  now: Date = new Date(),
+  currentValue?: number,
+): PortfolioChartPoint[] {
+  const buckets = buildChartBucketsForRange(points, range, now, currentValue);
+  return bucketsToDisplaySeries(buckets);
 }
 
 export function snapPointerToDisplaySeries(
@@ -215,12 +448,16 @@ export function snapPointerToDisplaySeries(
   atMs: number,
 ): { at: number; v: number } {
   if (display.length === 0) return { at: atMs, v: 0 };
-  if (display.length === 1) return { at: display[0].at!, v: display[0].v };
+  return { at: atMs, v: resolveDisplayLineValue(display, atMs) };
+}
 
-  const anchor = findLastPointAtOrBefore(display, atMs);
-  if (anchor) return { at: anchor.at!, v: anchor.v };
-
-  return { at: display[0].at!, v: display[0].v };
+/** @deprecated Use resolveBucketHoverPoint. */
+export function resolveChartHoverPoint(
+  displaySeries: PortfolioChartPoint[],
+  pointerAt: number,
+  _snapMode: HoverSnapMode,
+): { at: number; v: number } {
+  return snapPointerToDisplaySeries(displaySeries, pointerAt);
 }
 
 export function snapHoverToSeries(
@@ -228,63 +465,10 @@ export function snapHoverToSeries(
   atMs: number,
   snapMode: HoverSnapMode,
 ): { at: number; v: number } {
-  if (sorted.length === 0) return { at: atMs, v: 0 };
-
-  if (snapMode === "continuous") {
-    return interpolateSeriesAt(sorted, atMs);
-  }
-
-  if (snapMode === "day") {
-    const dayKey = localDayKey(atMs);
-    let dayAnchor: PortfolioChartPoint | null = null;
-    for (const point of sorted) {
-      if (localDayKey(point.at!) === dayKey) dayAnchor = point;
-    }
-
-    if (dayAnchor) {
-      return { at: dayAnchor.at!, v: dayAnchor.v };
-    }
-
-    const dayEndMs = startOfLocalDay(new Date(atMs)).getTime() + DAY_MS - 1;
-    const stepAnchor = findLastPointAtOrBefore(sorted, dayEndMs);
-    return {
-      at: stepAnchor?.at ?? dayEndMs,
-      v: stepValueAt(sorted, dayEndMs),
-    };
-  }
-
-  if (snapMode === "week") {
-    const weekly = buildWeeklyDisplaySeries(sorted);
-    return snapToNearestByTime(weekly, atMs);
-  }
-
-  const monthly = buildCalendarMonthDisplaySeries(
-    sorted,
-    sorted[0].at!,
-    sorted[sorted.length - 1].at!,
-  );
-  return snapToNearestByTime(monthly, atMs);
-}
-
-function snapToNearestByTime(
-  points: PortfolioChartPoint[],
-  atMs: number,
-): { at: number; v: number } {
-  if (points.length === 0) return { at: atMs, v: 0 };
-  if (points.length === 1) return { at: points[0].at!, v: points[0].v };
-
-  let nearest = points[0];
-  let nearestDistance = Math.abs(atMs - nearest.at!);
-
-  for (const point of points) {
-    const distance = Math.abs(atMs - point.at!);
-    if (distance < nearestDistance) {
-      nearest = point;
-      nearestDistance = distance;
-    }
-  }
-
-  return { at: nearest.at!, v: nearest.v };
+  const range: PortfolioTimeRange =
+    snapMode === "month" ? "ALL" : snapMode === "week" ? "1Y" : snapMode === "day" ? "1M" : "1D";
+  const hover = resolveBucketHoverPoint(buildChartBucketsForRange(sorted, range), atMs);
+  return { at: hover.at, v: hover.v };
 }
 
 export function sliceSeriesForRange(
@@ -306,165 +490,6 @@ export function sliceSeriesForRange(
   ];
 }
 
-function buildConstantIntervalSeries(
-  startAt: number,
-  endAt: number,
-  intervalMs: number,
-  value: number,
-): PortfolioChartPoint[] {
-  if (endAt < startAt || intervalMs <= 0) return [];
-
-  const points: PortfolioChartPoint[] = [];
-  let at = startAt;
-
-  while (at < endAt) {
-    points.push({ t: at, at, v: value });
-    at += intervalMs;
-  }
-
-  points.push({ t: endAt, at: endAt, v: value });
-  return points;
-}
-
-function buildStepIntervalDisplaySeries(
-  sorted: PortfolioChartPoint[],
-  startAt: number,
-  endAt: number,
-  intervalMs: number,
-): PortfolioChartPoint[] {
-  if (sorted.length === 0 || endAt < startAt || intervalMs <= 0) return [];
-
-  const points: PortfolioChartPoint[] = [];
-  let at = startAt;
-
-  while (at < endAt) {
-    points.push({ t: at, at, v: stepValueAt(sorted, at) });
-    at += intervalMs;
-  }
-
-  points.push({ t: endAt, at: endAt, v: stepValueAt(sorted, endAt) });
-  return points;
-}
-
-function buildDailyDisplaySeries(
-  sorted: PortfolioChartPoint[],
-  startAt: number,
-  endAt: number,
-): PortfolioChartPoint[] {
-  return buildStepIntervalDisplaySeries(sorted, startAt, endAt, DAY_MS);
-}
-
-/** Target display cadence per range (step-held values, not interpolated). */
-export function resolveDisplayInterval(
-  range: PortfolioTimeRange,
-  sorted: PortfolioChartPoint[],
-  startAt: number,
-  endAt: number,
-): number | "weekly" | "monthly" {
-  if (range === "1D") return FIVE_MIN_MS;
-  if (range === "1W") return HOUR_MS;
-  if (range === "1M" || range === "3M") return DAY_MS;
-
-  if (range === "1Y") {
-    const inWindow = sorted.filter((point) => point.at! >= startAt && point.at! <= endAt);
-    return inWindow.length > YEAR_WEEKLY_THRESHOLD ? "weekly" : DAY_MS;
-  }
-
-  return "monthly";
-}
-
-function buildWeeklyDisplaySeries(sorted: PortfolioChartPoint[]): PortfolioChartPoint[] {
-  if (sorted.length === 0) return [];
-
-  const byWeek = new Map<string, PortfolioChartPoint>();
-
-  for (const point of sorted) {
-    const weekStart = startOfLocalWeek(new Date(point.at!));
-    const key = localDayKey(weekStart.getTime());
-    const existing = byWeek.get(key);
-    if (!existing || point.at! >= existing.at!) {
-      byWeek.set(key, point);
-    }
-  }
-
-  return [...byWeek.values()].sort((a, b) => a.at! - b.at!);
-}
-
-function startOfLocalWeek(date: Date): Date {
-  const d = startOfLocalDay(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - day);
-  return d;
-}
-
-function buildCalendarMonthDisplaySeries(
-  sorted: PortfolioChartPoint[],
-  startAt: number,
-  endAt: number,
-): PortfolioChartPoint[] {
-  if (sorted.length === 0) return [];
-
-  const points: PortfolioChartPoint[] = [];
-  const cursor = startOfLocalDay(new Date(startAt));
-  cursor.setDate(1);
-
-  while (cursor.getTime() <= endAt) {
-    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
-    const at = Math.min(monthEnd.getTime(), endAt);
-    points.push({
-      t: at,
-      at,
-      v: stepValueAt(sorted, at),
-    });
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-
-  return points;
-}
-
-/**
- * Display series at fixed range intervals. Values use step semantics from source
- * data (no linear interpolation between daily observations).
- */
-export function buildDisplaySeriesForRange(
-  points: PortfolioChartPoint[],
-  range: PortfolioTimeRange,
-  now: Date = new Date(),
-): PortfolioChartPoint[] {
-  const sorted = dedupeTimestamps(ensureSortedSeries(attachPointDates(points, now)));
-  if (sorted.length === 0) return [];
-
-  const { startAt, endAt } = getRangeWindow(range, sorted, now);
-  const interval = resolveDisplayInterval(range, sorted, startAt, endAt);
-  const resolution = detectSeriesResolution(sorted);
-
-  if (range === "1D" && resolution === "daily") {
-    return buildConstantIntervalSeries(
-      startAt,
-      endAt,
-      FIVE_MIN_MS,
-      stepValueAt(sorted, endAt),
-    );
-  }
-
-  if (interval === "monthly") {
-    const fullEnd = Math.max(sorted[sorted.length - 1].at!, endAt);
-    return buildCalendarMonthDisplaySeries(sorted, sorted[0].at!, fullEnd);
-  }
-
-  if (interval === "weekly") {
-    const inWindow = sorted.filter((point) => point.at! >= startAt && point.at! <= endAt);
-    const slice = inWindow.length > 0 ? inWindow : sorted;
-    return buildWeeklyDisplaySeries(slice);
-  }
-
-  if (interval === DAY_MS) {
-    return buildDailyDisplaySeries(sorted, startAt, endAt);
-  }
-
-  return buildStepIntervalDisplaySeries(sorted, startAt, endAt, interval);
-}
-
 export function mapPointerToTimestamp(
   pointerX: number,
   plot: { left: number; width: number },
@@ -474,6 +499,17 @@ export function mapPointerToTimestamp(
 
   const ratio = Math.max(0, Math.min(1, (pointerX - plot.left) / plot.width));
   return domain.min + ratio * (domain.max - domain.min);
+}
+
+export function mapTimestampToPlotX(
+  atMs: number,
+  plot: { left: number; width: number },
+  domain: { min: number; max: number },
+): number {
+  if (plot.width <= 0 || domain.max <= domain.min) return plot.left;
+
+  const ratio = Math.max(0, Math.min(1, (atMs - domain.min) / (domain.max - domain.min)));
+  return plot.left + ratio * plot.width;
 }
 
 export function mapValueToPlotY(
@@ -500,11 +536,11 @@ export function getSeriesValueBounds(points: PortfolioChartPoint[]): { min: numb
   return { min, max };
 }
 
-/** Period P&L boundaries — same calendar window as slice/display. */
 export function getPeriodBoundaryValues(
   points: PortfolioChartPoint[],
   range: PortfolioTimeRange,
   now: Date = new Date(),
+  currentValue?: number,
 ): { startValue: number; endValue: number; startAt: number; endAt: number } {
   const sorted = dedupeTimestamps(ensureSortedSeries(attachPointDates(points, now)));
   if (sorted.length === 0) {
@@ -513,7 +549,7 @@ export function getPeriodBoundaryValues(
 
   const { startAt, endAt } = getRangeWindow(range, sorted, now);
   const startValue = stepValueAt(sorted, startAt);
-  const endValue = stepValueAt(sorted, endAt);
+  const endValue = resolvePeriodEndValue(sorted, endAt, currentValue);
 
   return { startValue, endValue, startAt, endAt };
 }
@@ -568,26 +604,15 @@ export function formatPeriodChangeLabel(
 export function formatPortfolioChartHoverDate(
   atMs: number,
   range: PortfolioTimeRange,
-  options?: {
+  _options?: {
     resolution?: SeriesResolution;
     snapMode?: HoverSnapMode;
     now?: Date;
   },
 ): string {
-  const resolution = options?.resolution ?? "daily";
-  const snapMode = options?.snapMode ?? getHoverSnapMode(range, resolution);
-  const now = options?.now ?? new Date();
   const date = new Date(atMs);
 
   if (range === "1D") {
-    if (resolution === "intraday" && snapMode === "continuous") {
-      return new Intl.DateTimeFormat("en-US", {
-        timeZone: NY_TIMEZONE,
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }).format(date);
-    }
     return new Intl.DateTimeFormat("en-US", {
       timeZone: NY_TIMEZONE,
       hour: "numeric",
@@ -600,8 +625,6 @@ export function formatPortfolioChartHoverDate(
     return new Intl.DateTimeFormat("en-US", {
       timeZone: NY_TIMEZONE,
       weekday: "short",
-      month: "short",
-      day: "numeric",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
@@ -639,4 +662,24 @@ export function formatPeriodChangeFromValues(
   formatPct: (value: number) => string,
 ): { label: string; positive: boolean } {
   return formatPeriodChangeLabel(startValue, endValue, formatFlorin, formatPct);
+}
+
+export function hoverValuesWithinPeriod(
+  buckets: PortfolioChartBucket[],
+  samples: number[],
+): number[] {
+  return samples.map((at) => resolveBucketHoverPoint(buckets, at).v);
+}
+
+/** Verify consecutive interior buckets share a fixed interval width. */
+export function assertFixedBucketSpacing(
+  buckets: PortfolioChartBucket[],
+  intervalMs: number,
+): void {
+  for (let i = 1; i < buckets.length - 1; i += 1) {
+    const gap = buckets[i].startAt - buckets[i - 1].startAt;
+    if (gap !== intervalMs) {
+      throw new Error(`expected ${intervalMs}ms spacing, got ${gap}ms at index ${i}`);
+    }
+  }
 }

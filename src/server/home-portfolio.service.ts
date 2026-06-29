@@ -1,10 +1,12 @@
 import type { BankTransactionType as DbBankTransactionType } from "@prisma/client";
 import type { HomePortfolioChartPoint, HomePortfolioSnapshot } from "@/lib/account/home-portfolio.types";
+import { startOfLocalDay } from "@/lib/account/portfolio-chart-series";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { fromDbBankTransactionType } from "@/server/bank-mapper";
 import { prisma } from "@/server/db";
 
 const CHART_HISTORY_DAYS = 365;
+const FIVE_MIN_MS = 5 * 60 * 1000;
 
 function chartDayAnchor(date: Date): Date {
   const d = new Date(date);
@@ -32,6 +34,10 @@ function signedTransactionAmount(type: DbBankTransactionType, amount: { toString
   return getSignedBankTransactionAmount(code, Number(amount));
 }
 
+function floorToFiveMinutes(atMs: number): number {
+  return Math.floor(atMs / FIVE_MIN_MS) * FIVE_MIN_MS;
+}
+
 function buildDailyBalanceSeries(
   openingBalance: number,
   transactions: { createdAt: Date; type: DbBankTransactionType; amount: { toString(): string } }[],
@@ -57,6 +63,42 @@ function buildDailyBalanceSeries(
   return points;
 }
 
+/** Today's balance path from real approved transaction timestamps (5-minute buckets). */
+function buildTodayIntradaySeries(
+  dayOpenBalance: number,
+  transactions: { createdAt: Date; type: DbBankTransactionType; amount: { toString(): string } }[],
+  currentBalance: number,
+  now: Date,
+): HomePortfolioChartPoint[] {
+  const dayStart = startOfLocalDay(now).getTime();
+  const byBucket = new Map<number, number>();
+  byBucket.set(dayStart, dayOpenBalance);
+
+  let running = dayOpenBalance;
+  for (const tx of transactions) {
+    const at = tx.createdAt.getTime();
+    if (at < dayStart) continue;
+    running += signedTransactionAmount(tx.type, tx.amount);
+    byBucket.set(floorToFiveMinutes(at), running);
+  }
+
+  const nowBucket = floorToFiveMinutes(now.getTime());
+  byBucket.set(nowBucket, currentBalance);
+
+  return [...byBucket.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([at, v], index) => ({ t: index, v, at }));
+}
+
+function mergeDailyHistoryWithTodayIntraday(
+  dailySeries: HomePortfolioChartPoint[],
+  todayIntraday: HomePortfolioChartPoint[],
+): HomePortfolioChartPoint[] {
+  if (todayIntraday.length === 0) return dailySeries;
+  if (dailySeries.length === 0) return todayIntraday;
+  return [...dailySeries.slice(0, -1), ...todayIntraday];
+}
+
 /** Personal bank balances with zero terminal portfolio until exchange holdings are wired. */
 export async function getHomePortfolioSnapshot(userId: string): Promise<HomePortfolioSnapshot> {
   const personalAccounts = await prisma.bankAccount.findMany({
@@ -65,6 +107,7 @@ export async function getHomePortfolioSnapshot(userId: string): Promise<HomePort
   });
 
   const portfolioValue = 0;
+  const now = new Date();
 
   if (personalAccounts.length === 0) {
     return {
@@ -73,14 +116,15 @@ export async function getHomePortfolioSnapshot(userId: string): Promise<HomePort
       portfolioValue,
       dailyPnL: 0,
       dailyPnLPercent: 0,
-      chartData: [{ t: 0, v: 0, at: chartDayAnchor(new Date()).getTime() }],
+      chartData: [{ t: 0, v: 0, at: chartDayAnchor(now).getTime() }],
     };
   }
 
   const accountIds = personalAccounts.map((account) => account.id);
   const florinBalance = personalAccounts.reduce((sum, account) => sum + Number(account.balance), 0);
-  const endDay = chartDayAnchor(new Date());
+  const endDay = chartDayAnchor(now);
   const startDay = shiftChartDays(endDay, -CHART_HISTORY_DAYS);
+  const dayStart = startOfLocalDay(now);
 
   const transactions = await prisma.bankTransaction.findMany({
     where: {
@@ -97,12 +141,25 @@ export async function getHomePortfolioSnapshot(userId: string): Promise<HomePort
     0,
   );
   const openingBalance = florinBalance - periodNetChange;
-  const chartData = buildDailyBalanceSeries(openingBalance, transactions, endDay);
+  const dailySeries = buildDailyBalanceSeries(openingBalance, transactions, endDay);
 
-  const todayBalance = chartData[chartData.length - 1]?.v ?? florinBalance;
-  const yesterdayBalance = chartData[chartData.length - 2]?.v ?? todayBalance;
-  const dailyPnL = todayBalance - yesterdayBalance;
-  const dailyPnLPercent = yesterdayBalance !== 0 ? (dailyPnL / yesterdayBalance) * 100 : 0;
+  const dayOpenBalance = dailySeries.length >= 2 ? dailySeries[dailySeries.length - 2]!.v : openingBalance;
+  const todayTransactions = transactions.filter((tx) => tx.createdAt >= dayStart);
+  const todayIntraday = buildTodayIntradaySeries(
+    dayOpenBalance,
+    todayTransactions,
+    florinBalance,
+    now,
+  );
+  const chartData = mergeDailyHistoryWithTodayIntraday(dailySeries, todayIntraday);
+
+  const dailyPnL =
+    todayIntraday.length >= 2
+      ? todayIntraday[todayIntraday.length - 1]!.v - todayIntraday[0]!.v
+      : (dailySeries[dailySeries.length - 1]?.v ?? florinBalance) -
+        (dailySeries[dailySeries.length - 2]?.v ?? florinBalance);
+  const dailyPnLBasis = todayIntraday[0]?.v ?? dailySeries[dailySeries.length - 2]?.v ?? florinBalance;
+  const dailyPnLPercent = dailyPnLBasis !== 0 ? (dailyPnL / dailyPnLBasis) * 100 : 0;
   const netWorth = florinBalance + portfolioValue;
 
   return {

@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  assertFixedBucketSpacing,
   attachPointDates,
+  buildChartBucketsForRange,
   buildDisplaySeriesForRange,
-  detectSeriesResolution,
   DISPLAY_INTERVAL_MS,
   formatPortfolioChartHoverDate,
   getPeriodBoundaryValues,
   getRangeWindow,
+  hoverValuesWithinPeriod,
   localDayKey,
+  localMonthKey,
+  localWeekKey,
+  resolveBucketHoverPoint,
+  resolveDisplayLineValue,
   resolveDisplayInterval,
   sliceSeriesForRange,
-  snapHoverToSeries,
-  snapPointerToDisplaySeries,
   startOfLocalDay,
   stepValueAt,
 } from "./portfolio-chart-series.ts";
@@ -34,10 +38,23 @@ function dailySeries(days: number, startValue = 100_000, step = 1_000) {
   return points;
 }
 
-function assertFixedSpacing(points: { at?: number }[], intervalMs: number) {
-  for (let index = 1; index < points.length - 1; index += 1) {
-    assert.equal(points[index].at! - points[index - 1].at!, intervalMs);
-  }
+function assertStableHover(
+  buckets: ReturnType<typeof buildChartBucketsForRange>,
+  samples: number[],
+) {
+  const values = hoverValuesWithinPeriod(buckets, samples);
+  assert.equal(new Set(values).size, 1, `expected stable hover, got ${values.join(", ")}`);
+}
+
+function assertStableLabels(
+  buckets: ReturnType<typeof buildChartBucketsForRange>,
+  range: Parameters<typeof formatPortfolioChartHoverDate>[1],
+  samples: number[],
+) {
+  const labels = samples.map(
+    (at) => formatPortfolioChartHoverDate(resolveBucketHoverPoint(buckets, at).at, range),
+  );
+  assert.equal(new Set(labels).size, 1, `expected stable label, got ${labels.join(" | ")}`);
 }
 
 describe("portfolio chart range boundaries", () => {
@@ -62,131 +79,236 @@ describe("portfolio chart range boundaries", () => {
   });
 });
 
-describe("portfolio chart display intervals", () => {
-  it("1D uses 5-minute display steps", () => {
+describe("portfolio chart bucket increments", () => {
+  it("1D uses 5-minute buckets aligned from midnight", () => {
     const series = dailySeries(30);
+    const buckets = buildChartBucketsForRange(series, "1D", NOW);
     const display = buildDisplaySeriesForRange(series, "1D", NOW);
     const { startAt, endAt } = getRangeWindow("1D", series, NOW);
-    assert.equal(resolveDisplayInterval("1D", series, startAt, endAt), FIVE_MIN_MS);
-    assert.equal(display.length > 100, true);
-    assertFixedSpacing(display, FIVE_MIN_MS);
-  });
 
-  it("1D daily source stays flat across 5-minute steps", () => {
-    const series = dailySeries(30);
-    const display = buildDisplaySeriesForRange(series, "1D", NOW);
-    const uniqueValues = new Set(display.map((point) => point.v));
-    assert.equal(uniqueValues.size, 1);
-    assert.equal(display[0].v, stepValueAt(series, NOW.getTime()));
-  });
+    assert.equal(resolveDisplayInterval("1D"), FIVE_MIN_MS);
+    assert.equal(buckets[0].startAt, startAt);
+    assert.equal(buckets[buckets.length - 1].endAt, endAt);
+    assert.equal(display[display.length - 1].at, endAt);
+    assertFixedBucketSpacing(buckets, FIVE_MIN_MS);
 
-  it("1W uses hourly display steps from daily source", () => {
-    const series = dailySeries(30);
-    const display = buildDisplaySeriesForRange(series, "1W", NOW);
-    const { startAt, endAt } = getRangeWindow("1W", series, NOW);
-    assert.equal(resolveDisplayInterval("1W", series, startAt, endAt), HOUR_MS);
-    const expectedHours = Math.floor((endAt - startAt) / HOUR_MS);
-    assert.equal(display.length >= expectedHours, true);
-    assertFixedSpacing(display, HOUR_MS);
-    assert.equal(detectSeriesResolution(series), "daily");
-  });
-
-  it("1M and 3M use daily display steps", () => {
-    const series = dailySeries(120);
-    const oneMonth = buildDisplaySeriesForRange(series, "1M", NOW);
-    const threeMonth = buildDisplaySeriesForRange(series, "3M", NOW);
-    const monthWindow = getRangeWindow("1M", series, NOW);
-    const threeMonthWindow = getRangeWindow("3M", series, NOW);
-    assert.equal(resolveDisplayInterval("1M", series, monthWindow.startAt, monthWindow.endAt), DAY_MS);
-    assert.equal(
-      resolveDisplayInterval("3M", series, threeMonthWindow.startAt, threeMonthWindow.endAt),
-      DAY_MS,
-    );
-    assertFixedSpacing(oneMonth, DAY_MS);
-    assertFixedSpacing(threeMonth, DAY_MS);
-  });
-
-  it("ALL uses calendar month buckets, not fixed 30-day steps", () => {
-    const series = dailySeries(366);
-    const display = buildDisplaySeriesForRange(series, "ALL", NOW);
-    const monthKeys = display.map((point) => {
-      const d = new Date(point.at!);
-      return `${d.getFullYear()}-${d.getMonth()}`;
-    });
-    assert.equal(new Set(monthKeys).size, monthKeys.length);
-    assert.equal(display.length >= 12, true);
-
-    const gaps = display.slice(1).map((point, index) => point.at! - display[index].at!);
-    assert.equal(gaps.every((gap) => gap === 30 * DAY_MS), false);
-    assert.equal(new Set(gaps).size > 1, true);
-
-    for (let index = 0; index < display.length - 1; index += 1) {
-      const d = new Date(display[index].at!);
-      const lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      assert.equal(d.getDate(), lastDayOfMonth);
+    for (const bucket of buckets) {
+      assert.equal(new Date(bucket.at).getMinutes() % 5, 0);
+      assert.equal(new Date(bucket.at).getSeconds(), 0);
     }
   });
 
-  it("1Y uses weekly for dense daily source and daily for sparse mock source", () => {
-    const live = buildDisplaySeriesForRange(dailySeries(366), "1Y", NOW);
-    const mock = buildDisplaySeriesForRange(
-      attachPointDates(
-        Array.from({ length: 180 }, (_, t) => ({ t, v: 10_000 + t * 50 })),
-        NOW,
-      ),
-      "1Y",
-      NOW,
-    );
-    const liveWindow = getRangeWindow("1Y", dailySeries(366), NOW);
+  it("1W uses hourly buckets across the last 7 days", () => {
+    const series = dailySeries(30);
+    const buckets = buildChartBucketsForRange(series, "1W", NOW);
+    const { startAt, endAt } = getRangeWindow("1W", series, NOW);
+
+    assert.equal(resolveDisplayInterval("1W"), HOUR_MS);
+    assert.equal(buckets[0].startAt, startAt);
+    assert.equal(buckets[buckets.length - 1].endAt, endAt);
+    assertFixedBucketSpacing(buckets, HOUR_MS);
+
+    for (const bucket of buckets) {
+      assert.equal(new Date(bucket.at).getMinutes(), 0);
+      assert.equal(new Date(bucket.at).getSeconds(), 0);
+    }
+  });
+
+  it("1M and 3M use one calendar-day bucket per day", () => {
+    const series = dailySeries(120);
+    const oneMonth = buildChartBucketsForRange(series, "1M", NOW);
+    const threeMonth = buildChartBucketsForRange(series, "3M", NOW);
+
+    assert.equal(oneMonth.length, 30);
+    assert.equal(threeMonth.length, 90);
     assert.equal(
-      resolveDisplayInterval("1Y", dailySeries(366), liveWindow.startAt, liveWindow.endAt),
-      "weekly",
+      new Set(oneMonth.map((bucket) => localDayKey(bucket.startAt))).size,
+      oneMonth.length,
     );
-    assert.equal(live.length <= 54, true);
-    assert.equal(live.length > 10, true);
-    assert.equal(mock.length > 10, true);
-    assertFixedSpacing(mock, DAY_MS);
+  });
+
+  it("1Y uses calendar-week buckets", () => {
+    const series = dailySeries(366);
+    const buckets = buildChartBucketsForRange(series, "1Y", NOW);
+    assert.equal(resolveDisplayInterval("1Y"), "weekly");
+    assert.equal(buckets.length >= 52, true);
+    assert.equal(new Set(buckets.map((b) => localWeekKey(b.startAt))).size, buckets.length);
+  });
+
+  it("ALL uses real calendar month buckets", () => {
+    const series = dailySeries(366);
+    const buckets = buildChartBucketsForRange(series, "ALL", NOW);
+    assert.equal(resolveDisplayInterval("ALL"), "monthly");
+    assert.equal(buckets.length >= 12, true);
+
+    const monthKeys = buckets.map((bucket) => localMonthKey(bucket.startAt));
+    assert.equal(new Set(monthKeys).size, monthKeys.length);
+
+    for (const bucket of buckets) {
+      assert.equal(new Date(bucket.startAt).getDate(), 1);
+    }
+
+    const gaps = buckets.slice(1).map((bucket, index) => bucket.startAt - buckets[index].startAt);
+    assert.equal(gaps.every((gap) => gap === 30 * DAY_MS), false);
   });
 });
 
-describe("portfolio chart hover snapping", () => {
-  it("3M hover snaps to daily points without same-day value drift", () => {
-    const series = dailySeries(120);
-    const morning = startOfLocalDay(NOW);
-    morning.setHours(9, 0, 0, 0);
-    const afternoon = startOfLocalDay(NOW);
-    afternoon.setHours(16, 0, 0, 0);
-
-    const morningSnap = snapHoverToSeries(series, morning.getTime(), "day");
-    const afternoonSnap = snapHoverToSeries(series, afternoon.getTime(), "day");
-
-    assert.equal(morningSnap.v, afternoonSnap.v);
-    assert.equal(localDayKey(morningSnap.at), localDayKey(afternoonSnap.at));
-  });
-
-  it("1D display scrub moves cursor time while value stays flat", () => {
+describe("portfolio chart bucket hover stability", () => {
+  it("1D value stays constant inside the same 5-minute bucket", () => {
     const series = dailySeries(30);
-    const display = buildDisplaySeriesForRange(series, "1D", NOW);
-    const morning = startOfLocalDay(NOW).getTime() + 2 * HOUR_MS;
-    const afternoon = startOfLocalDay(NOW).getTime() + 8 * HOUR_MS;
-    const morningSnap = snapPointerToDisplaySeries(display, morning);
-    const afternoonSnap = snapPointerToDisplaySeries(display, afternoon);
-    assert.notEqual(morningSnap.at, afternoonSnap.at);
-    assert.equal(morningSnap.v, afternoonSnap.v);
+    const buckets = buildChartBucketsForRange(series, "1D", NOW);
+    const bucket = buckets[Math.floor(buckets.length / 2)];
+    const early = bucket.startAt + 60 * 1000;
+    const late = bucket.endAt - 60 * 1000;
+
+    assertStableHover(buckets, [early, late]);
+    assertStableLabels(buckets, "1D", [early, late]);
   });
 
-  it("1D daily tooltip shows scrub time on display grid", () => {
-    const label = formatPortfolioChartHoverDate(NOW.getTime(), "1D", {
-      resolution: "daily",
-      snapMode: "day",
-      now: NOW,
-    });
-    const expected = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    }).format(NOW);
-    assert.equal(label, expected);
+  it("1W value stays constant inside the same hourly bucket", () => {
+    const series = dailySeries(30);
+    const buckets = buildChartBucketsForRange(series, "1W", NOW);
+    const bucket = buckets[50];
+    const early = bucket.startAt + 5 * 60 * 1000;
+    const late = bucket.endAt - 5 * 60 * 1000;
+
+    assertStableHover(buckets, [early, late]);
+    assertStableLabels(buckets, "1W", [early, late]);
+  });
+
+  it("1M value stays constant inside the same displayed day", () => {
+    const series = dailySeries(120);
+    const buckets = buildChartBucketsForRange(series, "1M", NOW);
+    const today = startOfLocalDay(NOW);
+    const morning = today.getTime() + 9 * HOUR_MS;
+    const afternoon = today.getTime() + 16 * HOUR_MS;
+
+    assertStableHover(buckets, [morning, afternoon]);
+    assertStableLabels(buckets, "1M", [morning, afternoon]);
+  });
+
+  it("3M value stays constant inside the same displayed day", () => {
+    const series = dailySeries(120);
+    const buckets = buildChartBucketsForRange(series, "3M", NOW);
+    const day = startOfLocalDay(NOW);
+    day.setDate(day.getDate() - 10);
+    assertStableHover(buckets, [day.getTime() + 8 * HOUR_MS, day.getTime() + 20 * HOUR_MS]);
+    assertStableLabels(buckets, "3M", [day.getTime() + 8 * HOUR_MS, day.getTime() + 20 * HOUR_MS]);
+  });
+
+  it("1Y value stays constant inside the same displayed week", () => {
+    const series = dailySeries(366);
+    const buckets = buildChartBucketsForRange(series, "1Y", NOW);
+    const weekKey = localWeekKey(NOW.getTime());
+    const weekBucket = buckets.find((bucket) => localWeekKey(bucket.startAt) === weekKey);
+    assert.ok(weekBucket);
+
+    const early = weekBucket.startAt + DAY_MS;
+    const late = weekBucket.endAt - HOUR_MS;
+    assertStableHover(buckets, [early, late]);
+    assertStableLabels(buckets, "1Y", [early, late]);
+  });
+
+  it("ALL value stays constant inside the same displayed month", () => {
+    const series = dailySeries(366);
+    const buckets = buildChartBucketsForRange(series, "ALL", NOW);
+    const monthKey = localMonthKey(NOW.getTime());
+    const monthBucket = buckets.find((bucket) => localMonthKey(bucket.startAt) === monthKey);
+    assert.ok(monthBucket);
+
+    const early = monthBucket.startAt + 3 * DAY_MS;
+    const late = monthBucket.endAt - DAY_MS;
+    assertStableHover(buckets, [early, late]);
+    assertStableLabels(buckets, "ALL", [early, late]);
+  });
+
+  it("values only change at bucket boundaries (carry-forward, no interpolation)", () => {
+    const series = dailySeries(30);
+    const buckets = buildChartBucketsForRange(series, "1W", NOW);
+
+    for (const bucket of buckets) {
+      const beforeEnd = bucket.endAt - 1;
+      const atStart = resolveBucketHoverPoint(buckets, bucket.startAt + 1);
+      const beforeBoundary = resolveBucketHoverPoint(buckets, beforeEnd);
+      assert.equal(atStart.v, beforeBoundary.v);
+      assert.equal(atStart.at, beforeBoundary.at);
+    }
+  });
+
+  it("3M ignores live current value on the display line", () => {
+    const series = dailySeries(120);
+    const baseline = buildDisplaySeriesForRange(series, "3M", NOW);
+    const withLive = buildDisplaySeriesForRange(
+      series,
+      "3M",
+      NOW,
+      series[series.length - 1]!.v + 500,
+    );
+    assert.deepEqual(
+      baseline.map((point) => ({ at: point.at, v: point.v })),
+      withLive.map((point) => ({ at: point.at, v: point.v })),
+    );
+  });
+});
+
+describe("portfolio chart tooltip labels", () => {
+  it("formats 1D as time only (e.g. 10:35 AM)", () => {
+    const at = startOfLocalDay(NOW).getTime() + 10 * HOUR_MS + 35 * 60 * 1000;
+    const label = formatPortfolioChartHoverDate(at, "1D");
+    assert.match(label, /\d{1,2}:\d{2} (AM|PM)/);
+    assert.equal(label.includes(","), false);
+  });
+
+  it("formats 1W as weekday and time (e.g. Tue 2:00 PM)", () => {
+    const at = startOfLocalDay(NOW).getTime() + 14 * HOUR_MS;
+    const label = formatPortfolioChartHoverDate(at, "1W");
+    assert.match(label, /^[A-Za-z]{3} \d{1,2}:\d{2} (AM|PM)$/);
+  });
+
+  it("formats 1M and 3M as month and day (e.g. Jun 28)", () => {
+    const label = formatPortfolioChartHoverDate(NOW.getTime(), "1M");
+    assert.match(label, /^[A-Za-z]{3} \d{1,2}$/);
+    assert.equal(formatPortfolioChartHoverDate(NOW.getTime(), "3M"), label);
+  });
+
+  it("formats 1Y as Week of …", () => {
+    const label = formatPortfolioChartHoverDate(NOW.getTime(), "1Y");
+    assert.match(label, /^Week of [A-Za-z]{3} \d{1,2}$/);
+  });
+
+  it("formats ALL as month and year (e.g. Jun 2026)", () => {
+    const label = formatPortfolioChartHoverDate(NOW.getTime(), "ALL");
+    assert.match(label, /^[A-Za-z]{3} \d{4}$/);
+  });
+
+  it("1D bucket label matches bucket anchor time", () => {
+    const series = dailySeries(30);
+    const buckets = buildChartBucketsForRange(series, "1D", NOW);
+    const bucket = buckets.find((b) => b.startAt === startOfLocalDay(NOW).getTime() + 10 * HOUR_MS + 35 * 60 * 1000);
+    assert.ok(bucket);
+    const hover = resolveBucketHoverPoint(buckets, bucket.startAt + 2 * 60 * 1000);
+    assert.equal(formatPortfolioChartHoverDate(hover.at, "1D"), formatPortfolioChartHoverDate(bucket.at, "1D"));
+  });
+});
+
+describe("portfolio chart hover geometry", () => {
+  it("display line value matches stepAfter semantics at pointer time", () => {
+    const series = dailySeries(30);
+    const display = buildDisplaySeriesForRange(series, "1W", NOW);
+    const buckets = buildChartBucketsForRange(series, "1W", NOW);
+    const pointerAt = buckets[10].startAt + 20 * 60 * 1000;
+    const bucket = resolveBucketHoverPoint(buckets, pointerAt);
+    assert.equal(resolveDisplayLineValue(display, pointerAt), bucket.v);
+  });
+});
+
+describe("portfolio chart carry-forward", () => {
+  it("empty buckets carry forward the last known value without fake movement", () => {
+    const series = dailySeries(30).slice(0, -1);
+    const buckets = buildChartBucketsForRange(series, "1D", NOW, stepValueAt(series, NOW.getTime()));
+    const dayStart = startOfLocalDay(NOW).getTime();
+    const expectedOpen = stepValueAt(series, dayStart);
+
+    assert.equal(buckets.every((b) => b.v === expectedOpen), true);
   });
 });

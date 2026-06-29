@@ -4,6 +4,7 @@ import { OpsSection } from "@/components/internal/console";
 import { OpsQueueCard } from "@/components/internal/ops-queue-card";
 import { fetchInternalAltaCardOps } from "@/lib/bank/alta-card.functions";
 import { fetchInternalAltaCardReviewQueue } from "@/lib/bank/alta-card-review.functions";
+import { isOpenAltaCardReviewStatus } from "@/lib/bank/alta-card-review-types";
 
 export const Route = createFileRoute("/internal/alta-card/")({
   loader: async () => {
@@ -13,9 +14,7 @@ export const Route = createFileRoute("/internal/alta-card/")({
     ]);
     return {
       ...ops,
-      openReviews: reviews.filter((r) =>
-        ["submitted", "under_review", "needs_information"].includes(r.status),
-      ).length,
+      openReviews: reviews.filter((r) => isOpenAltaCardReviewStatus(r.status)).length,
     };
   },
   head: () => ({ meta: [{ title: "Alta Card Ops — Alta Internal" }] }),

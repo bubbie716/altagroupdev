@@ -22,6 +22,20 @@ export const ALTA_CARD_REVIEW_STATUS_LABELS: Record<AltaCardReviewStatusCode, st
   cancelled: "Cancelled",
 };
 
+export const ALTA_CARD_REVIEW_OPEN_STATUS_CODES = [
+  "submitted",
+  "under_review",
+  "needs_information",
+] as const satisfies readonly AltaCardReviewStatusCode[];
+
+export const ALTA_CARD_REVIEW_OPEN_STATUS_SET = new Set<AltaCardReviewStatusCode>(
+  ALTA_CARD_REVIEW_OPEN_STATUS_CODES,
+);
+
+export function isOpenAltaCardReviewStatus(status: AltaCardReviewStatusCode): boolean {
+  return ALTA_CARD_REVIEW_OPEN_STATUS_SET.has(status);
+}
+
 export type SubmitAltaCardReviewAttachmentInput = {
   fileName: string;
   mimeType?: string;

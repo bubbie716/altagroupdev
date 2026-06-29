@@ -153,7 +153,10 @@ export function resolveEnrichedCustomerTimelineCopy(
       break;
     }
     case "LOAN_FUNDED": {
-      copy = formatLoanApprovedTimelineCopy(undefined, { business });
+      const principal = row.relatedEntityId
+        ? ctx.loansById.get(row.relatedEntityId)?.principalAmount
+        : undefined;
+      copy = formatLoanApprovedTimelineCopy(principal, { business: scope === "business" });
       break;
     }
     case "BANK_ACCOUNT_OPENED":

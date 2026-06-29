@@ -81,6 +81,12 @@ function parseFundingKey(key: string): AltaPayFundingSource {
 
 function fundingLabel(source: PayFundingSourceOption): string {
   if (source.kind === "alta_card") {
+    if (
+      source.label.includes("Employee") ||
+      source.label.includes(" · Alta Card")
+    ) {
+      return source.label;
+    }
     return source.cardLastFour
       ? `Alta Card •••• ${source.cardLastFour}`
       : source.label;

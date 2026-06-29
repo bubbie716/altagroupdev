@@ -3,7 +3,6 @@ import type { CompanyRelationshipTimelineEventRow } from "@/lib/bank/company-rel
 import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
 import {
   ALTA_PAY_VOLUME_MILESTONES,
-  CUSTOMER_VISIBLE_COMPANY_TIMELINE_EVENT_TYPES,
   isCustomerVisibleCompanyTimelineEvent,
   LIFETIME_DEPOSITS_MILESTONES,
   LIFETIME_WITHDRAWALS_MILESTONES,
@@ -22,16 +21,21 @@ import {
   formatLoanPaidOffCopy,
   formatPrivateBankingEligibleCopy,
   formatRelationshipEstablishedCopy,
-  formatWithdrawalMilestoneCopy,
+  formatTotalAssetsMilestoneCopy,
 } from "@/lib/bank/relationship-timeline-customer-copy";
 import {
   formatAltaCardTierUpgradeTimelineCopy,
+  formatAltaCardLimitIncreaseTimelineCopy,
+  formatAltaCardRateReductionTimelineCopy,
   formatLoanApprovedTimelineCopy,
   formatRelationshipTierChangedCustomerCopy,
 } from "@/lib/bank/relationship-timeline-historical";
 import { enrichBusinessCustomerTimeline } from "@/server/relationship-timeline-customer-enrichment.service";
 import { sortTimelineEventsNewestFirst } from "@/lib/bank/relationship-timeline-display";
-import { computeVolumeMilestoneDates } from "@/server/relationship-timeline.service";
+import {
+  computeTotalBusinessAssetsMilestoneDates,
+  computeVolumeMilestoneDates,
+} from "@/server/relationship-timeline.service";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { requireOperator } from "@/server/permissions.service";
@@ -205,6 +209,14 @@ export async function reconcileCompanyRelationshipTimelineDates(companyId: strin
   const accountIds = accounts.map((account) => account.id);
   let updates = 0;
 
+  for (const [threshold, occurredAt] of await computeTotalBusinessAssetsMilestoneDates(companyId)) {
+    updates += await updateCompanyTimelineEventOccurredAtByDedupeKey(
+      companyId,
+      milestoneDedupeKey("assets", threshold),
+      occurredAt,
+    );
+  }
+
   const volumeConfigs = [
     {
       category: "deposits" as const,
@@ -258,6 +270,38 @@ export async function reconcileCompanyRelationshipTimelineDates(companyId: strin
     updates += await updateCompanyTimelineEventOccurredAtByDedupeKey(
       companyId,
       `audit:tier:${audit.id}`,
+      audit.createdAt,
+    );
+  }
+
+  const limitAudits =
+    cardIds.length > 0
+      ? await prisma.auditLog.findMany({
+          where: { action: "ALTA_CARD_LIMIT_CHANGED", entityId: { in: cardIds } },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, createdAt: true },
+        })
+      : [];
+  for (const audit of limitAudits) {
+    updates += await updateCompanyTimelineEventOccurredAtByDedupeKey(
+      companyId,
+      `audit:limit:${audit.id}`,
+      audit.createdAt,
+    );
+  }
+
+  const rateAudits =
+    cardIds.length > 0
+      ? await prisma.auditLog.findMany({
+          where: { action: "ALTA_CARD_RATE_CHANGED", entityId: { in: cardIds } },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, createdAt: true },
+        })
+      : [];
+  for (const audit of rateAudits) {
+    updates += await updateCompanyTimelineEventOccurredAtByDedupeKey(
+      companyId,
+      `audit:rate:${audit.id}`,
       audit.createdAt,
     );
   }
@@ -343,6 +387,15 @@ export async function recordCompanyRelationshipTimelineEvent(
   } catch {
     // Timeline is best-effort alongside primary flows.
   }
+}
+
+/** Mirror personal timeline recording for company-scoped product events. */
+export async function recordCompanyTimelineEventIfBusiness(
+  companyId: string | null | undefined,
+  input: Omit<Parameters<typeof createCompanyRelationshipTimelineEvent>[0], "companyId">,
+): Promise<void> {
+  if (!companyId) return;
+  await recordCompanyRelationshipTimelineEvent({ ...input, companyId });
 }
 
 export async function syncCompanyRelationshipProfileTimelineEvents(input: {
@@ -437,10 +490,9 @@ async function backfillCompanyVolumeMilestones(
   }
 }
 
-/** Idempotent rebuild from platform records — no auth gate (scripts, cron, first-load ensure). */
-export async function backfillCompanyRelationshipTimelineCore(
+/** Idempotent sync from platform records — no auth gate, no backfill audit log. */
+export async function syncCompanyRelationshipTimelineFromPlatform(
   companyId: string,
-  actorUserId?: string,
 ): Promise<number> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error("NOT_FOUND");
@@ -482,6 +534,7 @@ export async function backfillCompanyRelationshipTimelineCore(
       occurredAt: account.createdAt,
       relatedEntityType: "BANK_ACCOUNT",
       relatedEntityId: account.id,
+      metadata: { accountName: account.accountName },
       dedupeKey: `account:${account.id}`,
     });
   }
@@ -555,6 +608,82 @@ export async function backfillCompanyRelationshipTimelineCore(
         dedupeKey: `audit:tier:${audit.id}`,
       });
     }
+
+    const limitAudits = await prisma.auditLog.findMany({
+      where: { action: "ALTA_CARD_LIMIT_CHANGED", entityId: { in: cardIds } },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const audit of limitAudits) {
+      const meta = audit.metadata as Record<string, unknown> | null;
+      const previousLimit =
+        typeof meta?.previousLimit === "number"
+          ? meta.previousLimit
+          : typeof meta?.oldValue === "number"
+            ? meta.oldValue
+            : Number(meta?.oldValue);
+      const newLimit =
+        typeof meta?.newLimit === "number"
+          ? meta.newLimit
+          : typeof meta?.newValue === "number"
+            ? meta.newValue
+            : Number(meta?.newValue);
+      if (!Number.isFinite(previousLimit) || !Number.isFinite(newLimit) || newLimit <= previousLimit) {
+        continue;
+      }
+      const upgradeCopy = formatAltaCardLimitIncreaseTimelineCopy(previousLimit, newLimit, {
+        business: true,
+      });
+      await add({
+        companyId,
+        profileId,
+        eventType: "ALTA_CARD_LIMIT_CHANGED",
+        title: upgradeCopy.title,
+        description: upgradeCopy.description ?? audit.description ?? undefined,
+        occurredAt: audit.createdAt,
+        relatedEntityType: audit.entityId ? "ALTA_CARD" : undefined,
+        relatedEntityId: audit.entityId ?? undefined,
+        metadata: { previousLimit, newLimit },
+        dedupeKey: audit.entityId ? `limit:${audit.entityId}:${newLimit}` : `audit:limit:${audit.id}`,
+      });
+    }
+
+    const rateAudits = await prisma.auditLog.findMany({
+      where: { action: "ALTA_CARD_RATE_CHANGED", entityId: { in: cardIds } },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const audit of rateAudits) {
+      const meta = audit.metadata as Record<string, unknown> | null;
+      const previousRate =
+        typeof meta?.previousRate === "number"
+          ? meta.previousRate
+          : typeof meta?.oldValue === "number"
+            ? meta.oldValue
+            : Number(meta?.oldValue);
+      const newRate =
+        typeof meta?.newRate === "number"
+          ? meta.newRate
+          : typeof meta?.newValue === "number"
+            ? meta.newValue
+            : Number(meta?.newValue);
+      if (!Number.isFinite(previousRate) || !Number.isFinite(newRate) || newRate >= previousRate) {
+        continue;
+      }
+      const reductionCopy = formatAltaCardRateReductionTimelineCopy(previousRate, newRate, {
+        business: true,
+      });
+      await add({
+        companyId,
+        profileId,
+        eventType: "ALTA_CARD_RATE_CHANGED",
+        title: reductionCopy.title,
+        description: reductionCopy.description ?? audit.description ?? undefined,
+        occurredAt: audit.createdAt,
+        relatedEntityType: audit.entityId ? "ALTA_CARD" : undefined,
+        relatedEntityId: audit.entityId ?? undefined,
+        metadata: { previousRate, newRate },
+        dedupeKey: audit.entityId ? `rate:${audit.entityId}:${newRate}` : `audit:rate:${audit.id}`,
+      });
+    }
   }
 
   const applications = await prisma.loanApplication.findMany({
@@ -624,11 +753,13 @@ export async function backfillCompanyRelationshipTimelineCore(
     return meta?.eligible === true;
   });
   if (eligibleAudit) {
+    const eligibleCopy = formatPrivateBankingEligibleCopy("business");
     await add({
       companyId,
       profileId,
       eventType: "COMMERCIAL_BANKING_ELIGIBLE",
-      title: "Commercial banking eligibility reached",
+      title: eligibleCopy.title,
+      description: eligibleCopy.description ?? undefined,
       occurredAt: eligibleAudit.createdAt,
       dedupeKey: "commercial:eligible",
     });
@@ -675,22 +806,47 @@ export async function backfillCompanyRelationshipTimelineCore(
     companyId,
     profileId,
     accountIds,
-    "WITHDRAWAL_MILESTONE",
-    "WITHDRAWAL",
-    LIFETIME_WITHDRAWALS_MILESTONES,
-    "withdrawals",
-    add,
-  );
-  await backfillCompanyVolumeMilestones(
-    companyId,
-    profileId,
-    accountIds,
     "ALTA_PAY_MILESTONE",
     "ALTA_PAY",
     ALTA_PAY_VOLUME_MILESTONES,
     "alta_pay",
     add,
   );
+
+  for (const [threshold, occurredAt] of await computeTotalBusinessAssetsMilestoneDates(companyId)) {
+    const copy = formatTotalAssetsMilestoneCopy(threshold, "business");
+    await add({
+      companyId,
+      profileId,
+      eventType: "DEPOSIT_MILESTONE",
+      title: copy.title,
+      description: copy.description,
+      occurredAt,
+      dedupeKey: milestoneDedupeKey("assets", threshold),
+      metadata: { threshold, milestoneKind: "TOTAL_BUSINESS_ASSETS" },
+    });
+  }
+
+  try {
+    const { refreshStoredCompanyTimelineCopy } = await import(
+      "@/server/relationship-timeline-customer-enrichment.service"
+    );
+    await refreshStoredCompanyTimelineCopy(companyId);
+  } catch {
+    // Legacy copy refresh is best-effort after sync.
+  }
+
+  return created;
+}
+
+/** Idempotent rebuild from platform records — no auth gate (scripts, cron, first-load ensure). */
+export async function backfillCompanyRelationshipTimelineCore(
+  companyId: string,
+  actorUserId?: string,
+): Promise<number> {
+  const created = await syncCompanyRelationshipTimelineFromPlatform(companyId);
+  const profile = await prisma.companyRelationshipProfile.findUnique({ where: { companyId } });
+  const profileId = profile?.id ?? null;
 
   const actor = await resolveAuditActorId(actorUserId);
   await writeAuditLog({
@@ -703,15 +859,6 @@ export async function backfillCompanyRelationshipTimelineCore(
     metadata: { companyId, eventsCreated: created },
   });
 
-  try {
-    const { refreshStoredCompanyTimelineCopy } = await import(
-      "@/server/relationship-timeline-customer-enrichment.service"
-    );
-    await refreshStoredCompanyTimelineCopy(companyId);
-  } catch {
-    // Legacy copy refresh is best-effort after backfill.
-  }
-
   return created;
 }
 
@@ -723,11 +870,9 @@ export async function backfillCompanyRelationshipTimeline(
   return backfillCompanyRelationshipTimelineCore(companyId, actorUserId);
 }
 
-/** Backfill once when a company has no timeline rows yet (safe on customer page load). */
+/** Keep company timeline in sync on customer view load (idempotent, no backfill audit). */
 export async function ensureCompanyRelationshipTimelineBackfilled(companyId: string): Promise<number> {
-  const existing = await prisma.companyRelationshipTimelineEvent.count({ where: { companyId } });
-  if (existing > 0) return 0;
-  return backfillCompanyRelationshipTimelineCore(companyId);
+  return syncCompanyRelationshipTimelineFromPlatform(companyId);
 }
 
 export async function backfillAllCompanyRelationshipTimelinesCore(actorUserId?: string): Promise<{

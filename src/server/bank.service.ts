@@ -33,7 +33,7 @@ import {
   isInstantApprovalAccountType,
   isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
-import { getRoutingNumber } from "@/lib/bank/routing";
+import { formatBankAccountOpenedCopy } from "@/lib/bank/relationship-timeline-customer-copy";
 import { getProofFileUrl, hasStoredProof } from "@/lib/storage/proof-upload.constants";
 import {
   creditAdjustmentDescription,
@@ -595,22 +595,36 @@ export async function openBankAccount(
     },
   });
 
-  const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-  const { formatBankAccountOpenedCopy } = await import(
-    "@/lib/bank/relationship-timeline-customer-copy"
-  );
   const accountScope = companyId ? ("business" as const) : ("personal" as const);
   const accountCopy = formatBankAccountOpenedCopy(accountName, accountScope);
-  await recordRelationshipTimelineEvent({
-    userId,
-    eventType: companyId ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
-    title: accountCopy.title,
-    description: accountCopy.description,
-    occurredAt: new Date(),
-    relatedEntityType: "BANK_ACCOUNT",
-    relatedEntityId: account.id,
-    metadata: { accountName },
-  });
+
+  if (companyId) {
+    const { recordCompanyTimelineEventIfBusiness } = await import(
+      "@/server/company-relationship-timeline.service"
+    );
+    await recordCompanyTimelineEventIfBusiness(companyId, {
+      eventType: "BUSINESS_ACCOUNT_OPENED",
+      title: accountCopy.title,
+      description: accountCopy.description,
+      occurredAt: new Date(),
+      relatedEntityType: "BANK_ACCOUNT",
+      relatedEntityId: account.id,
+      metadata: { accountName },
+      dedupeKey: `account:${account.id}`,
+    });
+  } else {
+    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
+    await recordRelationshipTimelineEvent({
+      userId,
+      eventType: "BANK_ACCOUNT_OPENED",
+      title: accountCopy.title,
+      description: accountCopy.description,
+      occurredAt: new Date(),
+      relatedEntityType: "BANK_ACCOUNT",
+      relatedEntityId: account.id,
+      metadata: { accountName },
+    });
+  }
 
   const { refreshFromBankAccountContextBestEffort } = await import(
     "@/server/relationship-refresh-hooks.service"

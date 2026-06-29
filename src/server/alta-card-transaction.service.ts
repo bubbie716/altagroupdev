@@ -26,7 +26,7 @@ import {
   altaCardReversalDescription,
   altaPayToDescription,
 } from "@/lib/bank/customer-transaction-copy";
-import { canManageCompanyAltaCard, isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canManageCompanyAltaCard, canUseBusinessAltaCardLineForAltaPay, isAdmin, isOperator } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -1303,17 +1303,17 @@ export async function listAltaCardFundingSources(user: AltaUser): Promise<
     },
   });
 
-  const manageCompanyIds = user.companyMemberships
-    .filter((membership) => canManageCompanyAltaCard(user, membership.companyId))
+  const businessLineCompanyIds = user.companyMemberships
+    .filter((membership) => canUseBusinessAltaCardLineForAltaPay(user, membership.companyId))
     .map((membership) => membership.companyId);
 
   const businessCards =
-    manageCompanyIds.length > 0
+    businessLineCompanyIds.length > 0
       ? await prisma.altaCard.findMany({
           where: {
             cardType: "BUSINESS",
             status: "ACTIVE",
-            companyId: { in: manageCompanyIds },
+            companyId: { in: businessLineCompanyIds },
           },
           include: { company: { select: { name: true } } },
         })
@@ -1400,8 +1400,8 @@ export async function chargeAltaCardForAltaPay(
     if (card.cardType === "PERSONAL") {
       if (card.ownerUserId !== params.user.id) badRequest("Select a valid Alta Card");
     } else if (card.cardType === "BUSINESS") {
-      if (!card.companyId || !canManageCompanyAltaCard(params.user, card.companyId)) {
-        badRequest("Select a valid business Alta Card");
+      if (!card.companyId || !canUseBusinessAltaCardLineForAltaPay(params.user, card.companyId)) {
+        badRequest("Company viewers may only pay with an employee Alta Card.");
       }
       if (card.companyId === params.companyId) {
         badRequest("You cannot use this Alta Card to pay the company it belongs to.");

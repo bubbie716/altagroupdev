@@ -11,18 +11,26 @@ import { Lock } from "lucide-react";
 import { AltaLogo } from "@/components/alta-logo";
 import { DiscordSignInButton } from "@/components/auth/auth-gate";
 import {
+  PortfolioChartSelectionOverlay,
+  PortfolioChartSelectionTooltip,
+  resolveSelectionGeometry,
+  usePortfolioChartRangeSelection,
+} from "@/components/account/portfolio-chart-range-selection";
+import { isSelectionVisible } from "@/lib/account/portfolio-chart-range-selection";
+import {
   PortfolioHoverCrosshair,
   PortfolioHoverTooltip,
   usePortfolioChartHover,
 } from "@/components/account/portfolio-chart-hover";
 import {
   attachPointDates,
+  buildChartBucketsForRange,
   buildDisplaySeriesForRange,
   detectSeriesResolution,
   formatPeriodChangeFromValues,
   getChartLineType,
-  getHoverSnapMode,
   getPeriodBoundaryValues,
+  getSeriesValueBounds,
   PORTFOLIO_CHART_MARGIN,
   type PortfolioChartPoint,
   type PortfolioTimeRange,
@@ -54,6 +62,7 @@ export function PortfolioDashboard({
   chartData,
   stats,
   assetAllocation,
+  currentValue,
   gradientId = "portfolioFill",
   showTimeRange = true,
   defaultTimeRange = "3M",
@@ -67,6 +76,8 @@ export function PortfolioDashboard({
   chartData: ChartPoint[];
   stats: PortfolioDashboardStat[];
   assetAllocation: AssetAllocationItem[];
+  /** Live net worth — anchors period P&L and 1D chart end to the current balance. */
+  currentValue?: number;
   gradientId?: string;
   showTimeRange?: boolean;
   defaultTimeRange?: PortfolioTimeRange;
@@ -77,7 +88,7 @@ export function PortfolioDashboard({
 }) {
   const [timeRange, setTimeRange] = useState<PortfolioTimeRange>(defaultTimeRange);
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const datedChartData = useMemo(() => attachPointDates(chartData), [chartData]);
 
@@ -86,24 +97,29 @@ export function PortfolioDashboard({
     [datedChartData],
   );
 
-  const hoverSnapMode = useMemo(
-    () => getHoverSnapMode(timeRange, seriesResolution),
-    [seriesResolution, timeRange],
+  const chartBuckets = useMemo(
+    () => buildChartBucketsForRange(datedChartData, timeRange, undefined, currentValue),
+    [currentValue, datedChartData, timeRange],
   );
 
   const chartLineType = useMemo(
-    () => getChartLineType(seriesResolution),
-    [seriesResolution],
+    () => getChartLineType(timeRange, seriesResolution),
+    [seriesResolution, timeRange],
   );
 
   const displayChart = useMemo(
-    () => buildDisplaySeriesForRange(datedChartData, timeRange),
-    [datedChartData, timeRange],
+    () => buildDisplaySeriesForRange(datedChartData, timeRange, undefined, currentValue),
+    [currentValue, datedChartData, timeRange],
+  );
+
+  const chartValueBounds = useMemo(
+    () => getSeriesValueBounds(displayChart),
+    [displayChart],
   );
 
   const { startValue: periodStartValue, endValue: periodEndValue } = useMemo(
-    () => getPeriodBoundaryValues(datedChartData, showTimeRange ? timeRange : "ALL"),
-    [datedChartData, showTimeRange, timeRange],
+    () => getPeriodBoundaryValues(datedChartData, showTimeRange ? timeRange : "ALL", undefined, currentValue),
+    [currentValue, datedChartData, showTimeRange, timeRange],
   );
 
   const periodChange = useMemo(
@@ -111,16 +127,41 @@ export function PortfolioDashboard({
     [periodEndValue, periodStartValue],
   );
 
+  const {
+    selection,
+    isSelecting,
+    clearSelection,
+  } = usePortfolioChartRangeSelection({
+    containerRef: chartContainerRef,
+    buckets: chartBuckets,
+    displaySeries: displayChart,
+    disabled: locked,
+    margin: PORTFOLIO_CHART_MARGIN,
+  });
+
+  const showSelectionUi =
+    isSelecting && selection != null && isSelectionVisible(selection);
+  const selectionGeometry = useMemo(() => {
+    if (!selection || !isSelectionVisible(selection) || containerSize.width <= 0) return null;
+    const rect = {
+      width: containerSize.width,
+      height: containerSize.height,
+      left: 0,
+      top: 0,
+      right: containerSize.width,
+      bottom: containerSize.height,
+    } as DOMRect;
+    return resolveSelectionGeometry(chartBuckets, displayChart, selection, rect, PORTFOLIO_CHART_MARGIN);
+  }, [chartBuckets, containerSize.height, containerSize.width, displayChart, selection]);
+
   const { hover } = usePortfolioChartHover({
     containerRef: chartContainerRef,
-    sourceSeries: datedChartData,
+    buckets: chartBuckets,
     displaySeries: displayChart,
     periodStartValue,
     periodEndValue,
-    timeRange,
-    resolution: seriesResolution,
-    snapMode: hoverSnapMode,
     disabled: locked,
+    suppressHover: showSelectionUi,
     margin: PORTFOLIO_CHART_MARGIN,
   });
 
@@ -128,10 +169,14 @@ export function PortfolioDashboard({
     const node = chartContainerRef.current;
     if (!node) return;
 
-    const updateWidth = () => setContainerWidth(node.clientWidth);
-    updateWidth();
+    const updateSize = () =>
+      setContainerSize({
+        width: node.clientWidth,
+        height: node.clientHeight,
+      });
+    updateSize();
 
-    const observer = new ResizeObserver(updateWidth);
+    const observer = new ResizeObserver(updateSize);
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
@@ -160,7 +205,10 @@ export function PortfolioDashboard({
                 type="button"
                 role="tab"
                 aria-selected={timeRange === t}
-                onClick={() => setTimeRange(t)}
+                onClick={() => {
+                  clearSelection();
+                  setTimeRange(t);
+                }}
                 className={cn(
                   "rounded px-2 py-0.5 font-mono text-[10px] transition-colors",
                   timeRange === t
@@ -210,42 +258,60 @@ export function PortfolioDashboard({
           <div
             ref={chartContainerRef}
             className={cn(
-              "relative mt-4 h-48 min-w-0 w-full overflow-hidden sm:h-56",
+              "relative mt-4 min-w-0 w-full touch-none",
               !locked && "cursor-crosshair",
               locked && LOCKED_BLUR,
             )}
+            aria-label="Portfolio chart. Click and drag to measure performance between two points."
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={displayChart} margin={PORTFOLIO_CHART_MARGIN}>
-                <defs>
-                  <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                <XAxis hide type="number" dataKey="at" domain={["dataMin", "dataMax"]} scale="linear" />
-                <YAxis hide domain={["dataMin", "dataMax"]} />
-                <Area
-                  type={chartLineType}
-                  dataKey="v"
-                  stroke="var(--gold)"
-                  strokeWidth={1.8}
-                  fill={`url(#${gradientId})`}
-                  isAnimationActive={false}
-                  activeDot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-            {!locked && hover ? <PortfolioHoverCrosshair hover={hover} /> : null}
-            {!locked && hover && containerWidth > 0 ? (
+            <div className="h-48 min-w-0 w-full overflow-hidden sm:h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={displayChart} margin={PORTFOLIO_CHART_MARGIN}>
+                  <defs>
+                    <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
+                  <XAxis hide type="number" dataKey="at" domain={["dataMin", "dataMax"]} scale="linear" />
+                  <YAxis hide domain={[chartValueBounds.min, chartValueBounds.max]} />
+                  <Area
+                    type={chartLineType}
+                    dataKey="v"
+                    stroke="var(--gold)"
+                    strokeWidth={1.8}
+                    fill={`url(#${gradientId})`}
+                    isAnimationActive={false}
+                    activeDot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            {!locked && selectionGeometry ? (
+              <PortfolioChartSelectionOverlay geometry={selectionGeometry} />
+            ) : null}
+            {!locked && showSelectionUi && selection && selectionGeometry ? (
+              <PortfolioChartSelectionTooltip
+                timeRange={timeRange}
+                selection={selection}
+                buckets={chartBuckets}
+                geometry={selectionGeometry}
+                containerWidth={containerSize.width}
+                containerHeight={containerSize.height}
+              />
+            ) : null}
+            {!locked && hover && !showSelectionUi ? (
+              <PortfolioHoverCrosshair hover={hover} />
+            ) : null}
+            {!locked && hover && !showSelectionUi && containerSize.width > 0 && containerSize.height > 0 ? (
               <PortfolioHoverTooltip
                 hover={hover}
                 timeRange={timeRange}
-                containerWidth={containerWidth}
+                containerWidth={containerSize.width}
+                containerHeight={containerSize.height}
                 periodStartValue={periodStartValue}
                 resolution={seriesResolution}
-                snapMode={hoverSnapMode}
               />
             ) : null}
           </div>

@@ -7,22 +7,18 @@ import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
 import { QueuePage } from "./queue-page";
 import { QueueAgeCell } from "./queue-age-cell";
 import { formatQueueDate } from "./queue-utils";
-import type { InternalLoanApplicationRow } from "@/lib/bank/lending-types";
+import type { InternalLoanApplicationRow, LoanApplicationStatusCode } from "@/lib/bank/lending-types";
 import type { AltaCardApplicationRow } from "@/lib/bank/alta-card-types";
-import type { AltaCardReviewQueueRow } from "@/lib/bank/alta-card-review-types";
+import {
+  isOpenAltaCardReviewStatus,
+  type AltaCardReviewQueueRow,
+} from "@/lib/bank/alta-card-review-types";
 import { applicationListStatusLabel } from "@/lib/bank/lending-application-status-copy";
-import type { LoanApplicationStatusCode } from "@/lib/bank/lending-types";
 import { reviewDisplayStatusLabel } from "@/lib/bank/alta-card-review-helpers";
-import type { AltaCardReviewStatusCode } from "@/lib/bank/alta-card-review-types";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 
 const OPEN_LENDING_STATUSES = new Set<LoanApplicationStatusCode>(["pending", "under_review"]);
 const OPEN_ALTA_CARD_APP_STATUSES = new Set(["submitted", "under_review", "needs_info"]);
-const OPEN_ALTA_CARD_REVIEW_STATUSES = new Set<AltaCardReviewStatusCode>([
-  "submitted",
-  "under_review",
-  "needs_information",
-]);
 
 export type DealRoomInboxRow = {
   id: string;
@@ -99,7 +95,7 @@ export function buildDealRoomInboxRows(input: {
   }
 
   for (const review of input.altaCardReviews) {
-    if (!OPEN_ALTA_CARD_REVIEW_STATUSES.has(review.status)) continue;
+    if (!isOpenAltaCardReviewStatus(review.status)) continue;
     rows.push({
       id: `ac-rev-${review.id}`,
       productType: "Alta Card Review",

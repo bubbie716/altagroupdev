@@ -98,7 +98,8 @@ function milestoneThreshold(row: TimelineRowForEnrichment): number | null {
 
 function isTotalAssetsMilestone(row: TimelineRowForEnrichment): boolean {
   if (row.metadata?.milestoneKind === "TOTAL_ALTA_ASSETS") return true;
-  return /total alta assets|total relationship/i.test(row.title);
+  if (row.metadata?.milestoneKind === "TOTAL_BUSINESS_ASSETS") return true;
+  return /total alta assets|total business assets|total relationship/i.test(row.title);
 }
 
 function accountDescription(accountName: string | null, business: boolean): string {
@@ -226,7 +227,20 @@ export function formatAltaPayMilestoneCopy(
 }
 
 export function formatTotalAltaAssetsMilestoneCopy(threshold: number): TimelineCopy {
+  return formatTotalAssetsMilestoneCopy(threshold, "personal");
+}
+
+export function formatTotalAssetsMilestoneCopy(
+  threshold: number,
+  scope: CustomerTimelineScope,
+): TimelineCopy {
   const amount = florin(threshold);
+  if (scope === "business") {
+    return {
+      title: "Relationship Milestone Reached",
+      description: `Your company's total business assets with Alta reached ${amount}.`,
+    };
+  }
   return {
     title: "Relationship Milestone Reached",
     description: `Your total relationship with Alta reached ${amount}.`,
@@ -525,7 +539,7 @@ function resolveMilestoneCopy(row: TimelineRowForEnrichment, scope: CustomerTime
   if (threshold == null) return null;
 
   if (isTotalAssetsMilestone(row)) {
-    return formatTotalAltaAssetsMilestoneCopy(threshold);
+    return formatTotalAssetsMilestoneCopy(threshold, scope);
   }
   if (
     row.eventType === "DEPOSIT_MILESTONE" ||
@@ -541,7 +555,7 @@ function resolveMilestoneCopy(row: TimelineRowForEnrichment, scope: CustomerTime
     return formatAltaPayMilestoneCopy(threshold, scope);
   }
   if (/milestone|reached/i.test(row.title)) {
-    return formatTotalAltaAssetsMilestoneCopy(threshold);
+    return formatTotalAssetsMilestoneCopy(threshold, scope);
   }
   return null;
 }

@@ -486,16 +486,33 @@ export async function acceptAltaCardApplication(
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
   const { formatAltaCardOpenedCustomerCopy } = await import("@/lib/bank/relationship-timeline-historical");
   const openedCopy = formatAltaCardOpenedCustomerCopy(tier, { business: !!application.companyId });
-  await recordRelationshipTimelineEvent({
-    userId: application.applicantUserId,
-    eventType: "ALTA_CARD_OPENED",
-    title: openedCopy.title,
-    description: openedCopy.description,
-    occurredAt: card.openedAt ?? new Date(),
-    relatedEntityType: "ALTA_CARD",
-    relatedEntityId: card.id,
-    actorUserId: userId,
-  });
+
+  if (application.companyId) {
+    const { recordCompanyTimelineEventIfBusiness } = await import(
+      "@/server/company-relationship-timeline.service"
+    );
+    await recordCompanyTimelineEventIfBusiness(application.companyId, {
+      eventType: "ALTA_CARD_OPENED",
+      title: openedCopy.title,
+      description: openedCopy.description,
+      occurredAt: card.openedAt ?? new Date(),
+      relatedEntityType: "ALTA_CARD",
+      relatedEntityId: card.id,
+      dedupeKey: `card:${card.id}`,
+      actorUserId: userId,
+    });
+  } else {
+    await recordRelationshipTimelineEvent({
+      userId: application.applicantUserId,
+      eventType: "ALTA_CARD_OPENED",
+      title: openedCopy.title,
+      description: openedCopy.description,
+      occurredAt: card.openedAt ?? new Date(),
+      relatedEntityType: "ALTA_CARD",
+      relatedEntityId: card.id,
+      actorUserId: userId,
+    });
+  }
 
   const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
   await refreshFromAltaCardContextBestEffort(

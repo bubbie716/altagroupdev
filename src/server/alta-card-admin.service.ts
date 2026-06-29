@@ -326,18 +326,28 @@ export async function updateAltaCardLimitAdmin(
     const upgradeCopy = formatAltaCardLimitIncreaseTimelineCopy(previousLimit, input.creditLimit, {
       business: !!card.companyId,
     });
-    await recordRelationshipTimelineEvent({
-      userId: card.ownerUserId,
-      eventType: "ALTA_CARD_LIMIT_CHANGED",
+    const timelineEvent = {
+      eventType: "ALTA_CARD_LIMIT_CHANGED" as const,
       title: upgradeCopy.title,
       description: upgradeCopy.description ?? undefined,
       occurredAt: new Date(),
-      relatedEntityType: "ALTA_CARD",
+      relatedEntityType: "ALTA_CARD" as const,
       relatedEntityId: input.cardId,
       metadata: { previousLimit, newLimit: input.creditLimit },
       dedupeKey: `limit:${input.cardId}:${input.creditLimit}`,
       actorUserId: adminUserId,
-    });
+    };
+    if (card.companyId) {
+      const { recordCompanyTimelineEventIfBusiness } = await import(
+        "@/server/company-relationship-timeline.service"
+      );
+      await recordCompanyTimelineEventIfBusiness(card.companyId, timelineEvent);
+    } else {
+      await recordRelationshipTimelineEvent({
+        userId: card.ownerUserId,
+        ...timelineEvent,
+      });
+    }
   }
 
   const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
@@ -391,18 +401,28 @@ export async function updateAltaCardRateAdmin(
     const reductionCopy = formatAltaCardRateReductionTimelineCopy(previousRate, input.interestRate, {
       business: !!card.companyId,
     });
-    await recordRelationshipTimelineEvent({
-      userId: card.ownerUserId,
-      eventType: "ALTA_CARD_RATE_CHANGED",
+    const timelineEvent = {
+      eventType: "ALTA_CARD_RATE_CHANGED" as const,
       title: reductionCopy.title,
       description: reductionCopy.description ?? undefined,
       occurredAt: new Date(),
-      relatedEntityType: "ALTA_CARD",
+      relatedEntityType: "ALTA_CARD" as const,
       relatedEntityId: input.cardId,
       metadata: { previousRate, newRate: input.interestRate },
       dedupeKey: `rate:${input.cardId}:${input.interestRate}`,
       actorUserId: adminUserId,
-    });
+    };
+    if (card.companyId) {
+      const { recordCompanyTimelineEventIfBusiness } = await import(
+        "@/server/company-relationship-timeline.service"
+      );
+      await recordCompanyTimelineEventIfBusiness(card.companyId, timelineEvent);
+    } else {
+      await recordRelationshipTimelineEvent({
+        userId: card.ownerUserId,
+        ...timelineEvent,
+      });
+    }
   }
 
   return mapAltaCardRow(updated);
@@ -476,18 +496,31 @@ export async function changeAltaCardTierAdmin(
     const upgradeCopy = formatAltaCardTierUpgradeTimelineCopy(previousTier, input.tier, {
       business: !!card.companyId,
     });
-    await recordRelationshipTimelineEvent({
-      userId: card.ownerUserId,
-      eventType: "ALTA_CARD_TIER_CHANGED",
+    const timelineEvent = {
+      eventType: "ALTA_CARD_TIER_CHANGED" as const,
       title: upgradeCopy.title,
       description: upgradeCopy.description ?? undefined,
       occurredAt: new Date(),
-      relatedEntityType: "ALTA_CARD",
+      relatedEntityType: "ALTA_CARD" as const,
       relatedEntityId: input.cardId,
       metadata: { previousTier, newTier: input.tier },
       dedupeKey: `tier:${input.cardId}:${input.tier}`,
       actorUserId: adminUserId,
-    });
+    };
+    if (card.companyId) {
+      const { recordCompanyTimelineEventIfBusiness } = await import(
+        "@/server/company-relationship-timeline.service"
+      );
+      await recordCompanyTimelineEventIfBusiness(card.companyId, {
+        ...timelineEvent,
+        dedupeKey: `audit:tier:${input.cardId}:${input.tier}`,
+      });
+    } else {
+      await recordRelationshipTimelineEvent({
+        userId: card.ownerUserId,
+        ...timelineEvent,
+      });
+    }
   }
 
   const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");

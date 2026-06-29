@@ -284,6 +284,19 @@ export async function submitAltaPayPayment(
 ): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
 
+  const allowedFunding = await listPayFundingSources(user);
+  if (input.fundingSource.kind === "bank_account") {
+    const allowed = allowedFunding.some(
+      (source) => source.kind === "bank_account" && source.id === input.fundingSource.accountId,
+    );
+    if (!allowed) badRequest("Select a valid funding source.");
+  } else {
+    const allowed = allowedFunding.some(
+      (source) => source.kind === "alta_card" && source.id === input.fundingSource.cardId,
+    );
+    if (!allowed) badRequest("Select a valid Alta Card funding source.");
+  }
+
   const company = await prisma.company.findUnique({
     where: { id: input.companyId },
     include: {

@@ -1094,30 +1094,45 @@ export async function approveLoanApplication(
   );
 
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-  await recordRelationshipTimelineEvent({
-    userId: application.applicantUserId,
-    eventType: "LOAN_ACCEPTED",
-    title: "Lending application accepted",
-    occurredAt: now,
-    relatedEntityType: "LOAN_APPLICATION",
-    relatedEntityId: application.id,
-    actorUserId: adminId,
-  });
+  if (!application.companyId) {
+    await recordRelationshipTimelineEvent({
+      userId: application.applicantUserId,
+      eventType: "LOAN_ACCEPTED",
+      title: "Lending application accepted",
+      occurredAt: now,
+      relatedEntityType: "LOAN_APPLICATION",
+      relatedEntityId: application.id,
+      actorUserId: adminId,
+    });
+  }
   if (loan) {
     const { formatLoanApprovedTimelineCopy } = await import("@/lib/bank/relationship-timeline-historical");
     const loanCopy = formatLoanApprovedTimelineCopy(principalAmount, {
       business: !!application.companyId,
     });
-    await recordRelationshipTimelineEvent({
-      userId: application.applicantUserId,
-      eventType: "LOAN_FUNDED",
+    const fundedEvent = {
+      eventType: "LOAN_FUNDED" as const,
       title: loanCopy.title,
       description: loanCopy.description ?? undefined,
       occurredAt: loan.approvedAt ?? now,
-      relatedEntityType: "LOAN",
+      relatedEntityType: "LOAN" as const,
       relatedEntityId: loan.id,
       actorUserId: adminId,
-    });
+    };
+    if (application.companyId) {
+      const { recordCompanyTimelineEventIfBusiness } = await import(
+        "@/server/company-relationship-timeline.service"
+      );
+      await recordCompanyTimelineEventIfBusiness(application.companyId, {
+        ...fundedEvent,
+        dedupeKey: `loan:funded:${loan.id}`,
+      });
+    } else {
+      await recordRelationshipTimelineEvent({
+        userId: application.applicantUserId,
+        ...fundedEvent,
+      });
+    }
   }
 
   const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
@@ -1166,15 +1181,17 @@ export async function denyLoanApplication(
   );
 
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-  await recordRelationshipTimelineEvent({
-    userId: application.applicantUserId,
-    eventType: "LOAN_DENIED",
-    title: "Lending application denied",
-    occurredAt: new Date(),
-    relatedEntityType: "LOAN_APPLICATION",
-    relatedEntityId: application.id,
-    actorUserId: adminId,
-  });
+  if (!application.companyId) {
+    await recordRelationshipTimelineEvent({
+      userId: application.applicantUserId,
+      eventType: "LOAN_DENIED",
+      title: "Lending application denied",
+      occurredAt: new Date(),
+      relatedEntityType: "LOAN_APPLICATION",
+      relatedEntityId: application.id,
+      actorUserId: adminId,
+    });
+  }
 
   const { refreshUserRelationshipProfileBestEffort } = await import(
     "@/server/relationship-refresh-hooks.service"
@@ -1279,16 +1296,31 @@ export async function markLoanPaidOff(adminId: string, loanId: string): Promise<
 
   if (loan.borrowerUserId) {
     const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-    await recordRelationshipTimelineEvent({
-      userId: loan.borrowerUserId,
-      eventType: "LOAN_PAID_OFF",
-      title: "Loan paid off",
-      description: "Loan balance fully repaid.",
+    const { formatLoanPaidOffCopy } = await import("@/lib/bank/relationship-timeline-customer-copy");
+    const paidOffCopy = formatLoanPaidOffCopy(loan.companyId ? "business" : "personal");
+    const paidOffEvent = {
+      eventType: "LOAN_PAID_OFF" as const,
+      title: paidOffCopy.title,
+      description: paidOffCopy.description ?? undefined,
       occurredAt: new Date(),
-      relatedEntityType: "LOAN",
+      relatedEntityType: "LOAN" as const,
       relatedEntityId: loanId,
       actorUserId: adminId,
-    });
+    };
+    if (loan.companyId) {
+      const { recordCompanyTimelineEventIfBusiness } = await import(
+        "@/server/company-relationship-timeline.service"
+      );
+      await recordCompanyTimelineEventIfBusiness(loan.companyId, {
+        ...paidOffEvent,
+        dedupeKey: `loan:paidoff:${loanId}`,
+      });
+    } else {
+      await recordRelationshipTimelineEvent({
+        userId: loan.borrowerUserId,
+        ...paidOffEvent,
+      });
+    }
   }
 
   const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");

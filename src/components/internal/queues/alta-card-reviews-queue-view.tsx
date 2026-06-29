@@ -11,11 +11,13 @@ import { formatQueueDate } from "./queue-utils";
 import { reviewDisplayStatusLabel } from "@/lib/bank/alta-card-review-helpers";
 import { processAltaCardReviewDecision } from "@/lib/bank/alta-card-review.functions";
 import { ApplicationRelationshipQueueCell } from "@/components/internal/relationship-queue-cell";
-import type { AltaCardReviewQueueRow } from "@/lib/bank/alta-card-review-types";
+import {
+  isOpenAltaCardReviewStatus,
+  type AltaCardReviewQueueRow,
+} from "@/lib/bank/alta-card-review-types";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
 import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
 
-const OPEN_REVIEW_STATUSES = new Set(["pending", "under_review", "needs_information"]);
 
 export function AltaCardReviewsQueueView({
   reviews,
@@ -32,7 +34,7 @@ export function AltaCardReviewsQueueView({
   const [statusFilter, setStatusFilter] = useState<"open" | "all">("open");
 
   const openRows = useMemo(
-    () => reviews.filter((r) => OPEN_REVIEW_STATUSES.has(r.status)),
+    () => reviews.filter((r) => isOpenAltaCardReviewStatus(r.status)),
     [reviews],
   );
   const baseRows = statusFilter === "open" ? openRows : reviews;
@@ -159,7 +161,7 @@ export function AltaCardReviewsQueueView({
 }
 
 function AltaCardReviewQueueActions({ row }: { row: AltaCardReviewQueueRow }) {
-  if (!OPEN_REVIEW_STATUSES.has(row.status)) {
+  if (!isOpenAltaCardReviewStatus(row.status)) {
     return <span className="text-[11px] text-muted-foreground">—</span>;
   }
 

@@ -2,16 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import {
   computeHoverChangePercent,
   dedupeTimestamps,
-  detectSeriesResolution,
   ensureSortedSeries,
   formatPortfolioChartHoverDate,
-  getHoverSnapMode,
+  getDisplayTimeDomain,
   getSeriesValueBounds,
   mapPointerToTimestamp,
   mapValueToPlotY,
   PORTFOLIO_CHART_MARGIN,
-  snapHoverToSeries,
-  snapPointerToDisplaySeries,
+  resolveBucketHoverPoint,
+  resolveDisplayLineValue,
+  type PortfolioChartBucket,
   type PortfolioChartPoint,
   type PortfolioTimeRange,
   type SeriesResolution,
@@ -30,6 +30,53 @@ export type ChartHoverState = {
 
 type ChartMargin = typeof PORTFOLIO_CHART_MARGIN;
 
+const TOOLTIP_WIDTH = 168;
+const TOOLTIP_HEIGHT = 76;
+const TOOLTIP_GAP = 12;
+const TOOLTIP_EDGE_PADDING = 8;
+const DOT_SIZE = 10;
+
+function resolveTooltipPosition({
+  pixelX,
+  pixelY,
+  containerWidth,
+  containerHeight,
+  margin = PORTFOLIO_CHART_MARGIN,
+}: {
+  pixelX: number;
+  pixelY: number;
+  containerWidth: number;
+  containerHeight: number;
+  margin?: ChartMargin;
+}) {
+  const plotTop = margin.top;
+  const plotBottom = containerHeight - margin.bottom;
+  const placeOnRight =
+    pixelX + TOOLTIP_GAP + TOOLTIP_WIDTH <= containerWidth - TOOLTIP_EDGE_PADDING;
+  const rawLeft = placeOnRight
+    ? pixelX + TOOLTIP_GAP
+    : pixelX - TOOLTIP_WIDTH - TOOLTIP_GAP;
+  const left = Math.max(
+    TOOLTIP_EDGE_PADDING,
+    Math.min(rawLeft, containerWidth - TOOLTIP_WIDTH - TOOLTIP_EDGE_PADDING),
+  );
+
+  const spaceAbove = pixelY - plotTop - TOOLTIP_GAP;
+  const spaceBelow = plotBottom - pixelY - TOOLTIP_GAP;
+  const preferBelow = spaceAbove < TOOLTIP_HEIGHT && spaceBelow >= spaceAbove;
+
+  let top = preferBelow
+    ? pixelY + TOOLTIP_GAP + DOT_SIZE / 2
+    : pixelY - TOOLTIP_GAP - TOOLTIP_HEIGHT - DOT_SIZE / 2;
+
+  top = Math.max(
+    TOOLTIP_EDGE_PADDING,
+    Math.min(top, containerHeight - TOOLTIP_HEIGHT - TOOLTIP_EDGE_PADDING),
+  );
+
+  return { left, top };
+}
+
 export function PortfolioHoverCrosshair({ hover }: { hover: ChartHoverState }) {
   return (
     <>
@@ -45,7 +92,7 @@ export function PortfolioHoverCrosshair({ hover }: { hover: ChartHoverState }) {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute z-[2] size-[10px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-gold"
+        className="pointer-events-none absolute z-[3] size-[10px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-gold"
         style={{ left: hover.pixelX, top: hover.pixelY }}
       />
     </>
@@ -56,34 +103,32 @@ export function PortfolioHoverTooltip({
   hover,
   timeRange,
   containerWidth,
+  containerHeight,
   periodStartValue,
   resolution,
-  snapMode,
 }: {
   hover: ChartHoverState;
   timeRange: PortfolioTimeRange;
   containerWidth: number;
+  containerHeight: number;
   periodStartValue: number;
   resolution: SeriesResolution;
-  snapMode: ReturnType<typeof getHoverSnapMode>;
 }) {
-  const tooltipWidth = 168;
-  const gap = 12;
-  const edgePadding = 8;
-  const placeOnRight = hover.pixelX + gap + tooltipWidth <= containerWidth - edgePadding;
-  const rawLeft = placeOnRight
-    ? hover.pixelX + gap
-    : hover.pixelX - tooltipWidth - gap;
-  const left = Math.max(edgePadding, Math.min(rawLeft, containerWidth - tooltipWidth - edgePadding));
+  const { left, top } = resolveTooltipPosition({
+    pixelX: hover.pixelX,
+    pixelY: hover.pixelY,
+    containerWidth,
+    containerHeight,
+  });
 
   return (
     <div
-      className="pointer-events-none absolute z-10 transition-[left] duration-75 ease-out"
-      style={{ left, top: 8 }}
+      className="pointer-events-none absolute z-[2] transition-[left,top] duration-75 ease-out"
+      style={{ left, top }}
     >
       <div className="rounded-lg border border-border-strong bg-surface-2 px-3 py-2 shadow-sm">
         <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          {formatPortfolioChartHoverDate(hover.at, timeRange, { resolution, snapMode })}
+          {formatPortfolioChartHoverDate(hover.at, timeRange, { resolution })}
         </div>
         <div className="tabular mt-1 text-sm font-semibold text-foreground">{florin(hover.v)}</div>
         <div
@@ -102,25 +147,21 @@ export function PortfolioHoverTooltip({
 
 export function usePortfolioChartHover({
   containerRef,
-  sourceSeries,
+  buckets,
   displaySeries,
   periodStartValue,
   periodEndValue,
-  timeRange,
-  resolution,
-  snapMode,
   disabled = false,
+  suppressHover = false,
   margin = PORTFOLIO_CHART_MARGIN,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
-  sourceSeries: PortfolioChartPoint[];
+  buckets: PortfolioChartBucket[];
   displaySeries: PortfolioChartPoint[];
   periodStartValue: number;
   periodEndValue: number;
-  timeRange: PortfolioTimeRange;
-  resolution: SeriesResolution;
-  snapMode: ReturnType<typeof getHoverSnapMode>;
   disabled?: boolean;
+  suppressHover?: boolean;
   margin?: ChartMargin;
 }) {
   const [hover, setHover] = useState<ChartHoverState | null>(null);
@@ -129,21 +170,14 @@ export function usePortfolioChartHover({
   const periodStartRef = useRef(periodStartValue);
   const periodEndRef = useRef(periodEndValue);
 
-  const sortedSource = useMemo(
-    () => dedupeTimestamps(ensureSortedSeries(sourceSeries)),
-    [sourceSeries],
-  );
-
   const sortedDisplay = useMemo(
     () => dedupeTimestamps(ensureSortedSeries(displaySeries)),
     [displaySeries],
   );
 
-  const timeSeries = sortedDisplay.length > 0 ? sortedDisplay : sortedSource;
-
   const valueBounds = useMemo(
-    () => getSeriesValueBounds(timeSeries.length > 0 ? timeSeries : sortedSource),
-    [sortedSource, timeSeries],
+    () => getSeriesValueBounds(sortedDisplay),
+    [sortedDisplay],
   );
 
   periodStartRef.current = periodStartValue;
@@ -151,7 +185,7 @@ export function usePortfolioChartHover({
 
   useEffect(() => {
     setHover(null);
-  }, [sortedSource, displaySeries, periodStartValue, periodEndValue, timeRange, snapMode]);
+  }, [buckets, sortedDisplay, periodStartValue, periodEndValue]);
 
   useEffect(() => {
     return () => {
@@ -161,7 +195,7 @@ export function usePortfolioChartHover({
 
   const updateHover = useCallback(
     (clientX: number, rect: DOMRect) => {
-      if (timeSeries.length === 0) {
+      if (buckets.length === 0 || sortedDisplay.length === 0) {
         setHover(null);
         return;
       }
@@ -173,31 +207,28 @@ export function usePortfolioChartHover({
         height: rect.height - margin.top - margin.bottom,
       };
 
-      const timeDomain = {
-        min: timeSeries[0].at!,
-        max: timeSeries[timeSeries.length - 1].at!,
-      };
+      const timeDomain = getDisplayTimeDomain(sortedDisplay);
 
       const localX = clientX - rect.left;
       const pointerAt = mapPointerToTimestamp(localX, plot, timeDomain);
-      const { at: cursorAt } = snapPointerToDisplaySeries(sortedDisplay, pointerAt);
-      const { v } = snapHoverToSeries(sortedSource, cursorAt, snapMode);
+      const { at: labelAt, v: tooltipV } = resolveBucketHoverPoint(buckets, pointerAt);
+      const lineV = resolveDisplayLineValue(sortedDisplay, pointerAt);
       const timeRatio =
         timeDomain.max === timeDomain.min
           ? 0
-          : (cursorAt - timeDomain.min) / (timeDomain.max - timeDomain.min);
+          : (pointerAt - timeDomain.min) / (timeDomain.max - timeDomain.min);
       const pixelX = plot.left + timeRatio * plot.width;
-      const pixelY = mapValueToPlotY(v, plot, valueBounds);
-      const percent = computeHoverChangePercent(periodStartRef.current, v, periodEndRef.current);
+      const pixelY = mapValueToPlotY(lineV, plot, valueBounds);
+      const percent = computeHoverChangePercent(periodStartRef.current, tooltipV, periodEndRef.current);
 
-      setHover({ at: cursorAt, v, percent, pixelX, pixelY });
+      setHover({ at: labelAt, v: tooltipV, percent, pixelX, pixelY });
     },
-    [margin, snapMode, sortedDisplay, sortedSource, timeSeries, valueBounds],
+    [buckets, margin, sortedDisplay.length, valueBounds],
   );
 
   useEffect(() => {
     const element = containerRef.current;
-    if (!element || disabled) return;
+    if (!element || disabled || suppressHover) return;
 
     const handlePointerMove = (event: PointerEvent) => {
       pendingRef.current = { clientX: event.clientX, clientY: event.clientY };
@@ -228,7 +259,7 @@ export function usePortfolioChartHover({
       element.removeEventListener("pointermove", handlePointerMove);
       element.removeEventListener("pointerleave", handlePointerLeave);
     };
-  }, [containerRef, disabled, updateHover]);
+  }, [containerRef, disabled, suppressHover, updateHover]);
 
   return { hover };
 }

@@ -254,7 +254,7 @@ export async function getRelationshipTimeline(
   const mapped = sortTimelineEventsNewestFirst(rows.map(mapTimelineRow));
   if (!options?.customerView) return mapped;
 
-  return mapped.filter((row) => {
+  const customerVisible = mapped.filter((row) => {
     if (!CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES.has(row.eventType)) return false;
     if (row.eventType === "ALTA_CARD_LIMIT_CHANGED") {
       const { previousLimit, newLimit } = extractLimitPairFromTimelineRow({
@@ -280,6 +280,11 @@ export async function getRelationshipTimeline(
     }
     return true;
   });
+
+  const { excludeBusinessScopedPersonalTimelineRows } = await import(
+    "@/server/relationship-timeline-personal-filter.service"
+  );
+  return excludeBusinessScopedPersonalTimelineRows(customerVisible);
 }
 
 export async function getCustomerRelationshipTimeline(
@@ -365,18 +370,11 @@ export async function createManualRelationshipNote(
 }
 
 async function resolveUserAccountIds(userId: string): Promise<string[]> {
-  const memberships = await prisma.companyMembership.findMany({
-    where: { userId },
-    select: { companyId: true },
-  });
-  const companyIds = memberships.map((m) => m.companyId);
   const accounts = await prisma.bankAccount.findMany({
-    where: {
-      OR: [{ userId, companyId: null }, ...(companyIds.length ? [{ companyId: { in: companyIds } }] : [])],
-    },
+    where: { userId, companyId: null },
     select: { id: true },
   });
-  return accounts.map((a) => a.id);
+  return accounts.map((account) => account.id);
 }
 
 function roundMoney(value: number): number {
@@ -407,9 +405,10 @@ async function updateTimelineEventOccurredAtByDedupeKey(
   return 1;
 }
 
-/** Replay approved bank activity to find when total Alta assets first crossed each threshold. */
-export async function computeTotalAltaAssetsMilestoneDates(userId: string): Promise<Map<number, Date>> {
-  const accountIds = await resolveUserAccountIds(userId);
+/** Replay approved bank activity to find when total assets first crossed each threshold. */
+async function computeTotalAssetsMilestoneDatesForAccounts(
+  accountIds: string[],
+): Promise<Map<number, Date>> {
   const result = new Map<number, Date>();
   if (accountIds.length === 0) return result;
 
@@ -438,6 +437,21 @@ export async function computeTotalAltaAssetsMilestoneDates(userId: string): Prom
   }
 
   return result;
+}
+
+export async function computeTotalAltaAssetsMilestoneDates(userId: string): Promise<Map<number, Date>> {
+  const accountIds = await resolveUserAccountIds(userId);
+  return computeTotalAssetsMilestoneDatesForAccounts(accountIds);
+}
+
+export async function computeTotalBusinessAssetsMilestoneDates(
+  companyId: string,
+): Promise<Map<number, Date>> {
+  const accounts = await prisma.bankAccount.findMany({
+    where: { companyId },
+    select: { id: true },
+  });
+  return computeTotalAssetsMilestoneDatesForAccounts(accounts.map((account) => account.id));
 }
 
 export async function computeVolumeMilestoneDates(
@@ -715,30 +729,17 @@ export async function backfillRelationshipTimelineCore(
   });
   if (started) created += 1;
 
-  const companyIds = (
-    await prisma.companyMembership.findMany({
-      where: { userId },
-      select: { companyId: true },
-    })
-  ).map((m) => m.companyId);
-
   const bankAccounts = await prisma.bankAccount.findMany({
-    where: {
-      OR: [
-        { userId, companyId: null },
-        ...(companyIds.length ? [{ companyId: { in: companyIds } }] : []),
-      ],
-    },
+    where: { userId, companyId: null },
     orderBy: { createdAt: "asc" },
   });
 
   for (const account of bankAccounts) {
-    const isBusiness = account.companyId != null;
-    const accountCopy = formatBankAccountOpenedCopy(account.accountName, isBusiness ? "business" : "personal");
+    const accountCopy = formatBankAccountOpenedCopy(account.accountName, "personal");
     const event = await createRelationshipTimelineEvent({
       userId,
       profileId,
-      eventType: isBusiness ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
+      eventType: "BANK_ACCOUNT_OPENED",
       title: accountCopy.title,
       description: accountCopy.description,
       occurredAt: account.createdAt,
@@ -751,7 +752,7 @@ export async function backfillRelationshipTimelineCore(
   }
 
   const cards = await prisma.altaCard.findMany({
-    where: { ownerUserId: userId },
+    where: { ownerUserId: userId, companyId: null },
     orderBy: { createdAt: "asc" },
     include: { application: { select: { approvedTier: true, requestedTier: true } } },
   });
@@ -801,7 +802,22 @@ export async function backfillRelationshipTimelineCore(
     },
     orderBy: { createdAt: "asc" },
   });
+  const tierAuditCardIds = tierAudits
+    .map((audit) => audit.entityId)
+    .filter((id): id is string => Boolean(id));
+  const tierAuditCards =
+    tierAuditCardIds.length > 0
+      ? await prisma.altaCard.findMany({
+          where: { id: { in: tierAuditCardIds } },
+          select: { id: true, companyId: true },
+        })
+      : [];
+  const tierAuditCardBusinessById = new Map(
+    tierAuditCards.map((card) => [card.id, Boolean(card.companyId)]),
+  );
+
   for (const audit of tierAudits) {
+    if (audit.entityId && tierAuditCardBusinessById.get(audit.entityId)) continue;
     const meta = audit.metadata as Record<string, unknown> | null;
     const previousTier =
       typeof meta?.previousTier === "string"
@@ -849,6 +865,7 @@ export async function backfillRelationshipTimelineCore(
   );
 
   for (const audit of limitAudits) {
+    if (audit.entityId && limitAuditCardBusinessById.get(audit.entityId)) continue;
     const meta = audit.metadata as Record<string, unknown> | null;
     const previousLimit =
       typeof meta?.previousLimit === "number"
@@ -906,6 +923,7 @@ export async function backfillRelationshipTimelineCore(
   );
 
   for (const audit of rateAudits) {
+    if (audit.entityId && rateAuditCardBusinessById.get(audit.entityId)) continue;
     const meta = audit.metadata as Record<string, unknown> | null;
     const previousRate =
       typeof meta?.previousRate === "number"
@@ -942,7 +960,7 @@ export async function backfillRelationshipTimelineCore(
   }
 
   const applications = await prisma.loanApplication.findMany({
-    where: { applicantUserId: userId },
+    where: { applicantUserId: userId, companyId: null },
     orderBy: { createdAt: "asc" },
   });
   for (const app of applications) {
@@ -990,9 +1008,7 @@ export async function backfillRelationshipTimelineCore(
   }
 
   const loans = await prisma.loan.findMany({
-    where: {
-      OR: [{ borrowerUserId: userId }, { company: { memberships: { some: { userId } } } }],
-    },
+    where: { borrowerUserId: userId, companyId: null },
     orderBy: { createdAt: "asc" },
   });
   for (const loan of loans) {

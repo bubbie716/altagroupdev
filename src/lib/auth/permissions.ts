@@ -172,6 +172,12 @@ export function canManageCompanyAltaCard(user: AltaUser, companyId: string): boo
   return canManageBusinessTreasury(user, { companyId });
 }
 
+/** Main company Alta Card credit line for Alta Pay (not employee cards). Viewers excluded. */
+export function canUseBusinessAltaCardLineForAltaPay(user: AltaUser, companyId: string): boolean {
+  if (isCompanyViewer(user, { companyId })) return false;
+  return canManageBusinessTreasury(user, { companyId });
+}
+
 export function canManageBusinessTreasury(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, BUSINESS_TREASURY_MANAGE_ROLES);
 }

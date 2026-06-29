@@ -217,15 +217,30 @@ export async function createLoanApplication(
   const { threadId } = await createThreadForLoanApplication(userId, record.id);
 
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-  await recordRelationshipTimelineEvent({
-    userId,
-    eventType: "LOAN_APPLICATION_SUBMITTED",
-    title: "Lending application submitted",
-    description: `Requested ${florin(Number(record.requestedAmount.toString()))}.`,
-    occurredAt: record.createdAt,
-    relatedEntityType: "LOAN_APPLICATION",
-    relatedEntityId: record.id,
-  });
+  if (record.companyId) {
+    const { recordCompanyTimelineEventIfBusiness } = await import(
+      "@/server/company-relationship-timeline.service"
+    );
+    await recordCompanyTimelineEventIfBusiness(record.companyId, {
+      eventType: "LOAN_APPLICATION_SUBMITTED",
+      title: "Business lending application submitted",
+      description: `Requested ${florin(Number(record.requestedAmount.toString()))}.`,
+      occurredAt: record.createdAt,
+      relatedEntityType: "LOAN_APPLICATION",
+      relatedEntityId: record.id,
+      dedupeKey: `loan-app:submitted:${record.id}`,
+    });
+  } else {
+    await recordRelationshipTimelineEvent({
+      userId,
+      eventType: "LOAN_APPLICATION_SUBMITTED",
+      title: "Lending application submitted",
+      description: `Requested ${florin(Number(record.requestedAmount.toString()))}.`,
+      occurredAt: record.createdAt,
+      relatedEntityType: "LOAN_APPLICATION",
+      relatedEntityId: record.id,
+    });
+  }
 
   return { ...mapLoanApplicationRow(record), threadId };
 }
