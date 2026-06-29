@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import {
   fetchCardPaymentContext,
@@ -107,7 +108,7 @@ export function AltaCardPaymentPanel({
     setError(null);
     setPending(true);
     try {
-      const res = await submit({
+      const res = (await submit({
         data: {
           cardId: card.id,
           sourceAccountId,
@@ -115,7 +116,7 @@ export function AltaCardPaymentPanel({
           paymentKind,
           memo: undefined,
         },
-      });
+      })) as { referenceCode: string };
       setResultRef(res.referenceCode);
       setStep("done");
       await router.invalidate();
