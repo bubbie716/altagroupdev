@@ -1,7 +1,12 @@
 import { AlertCircle, Check, Info, Loader2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { BANK_REQUEST_SUCCESS_BODY, BANK_SUBMISSION_ERROR_FALLBACK } from "@/lib/bank/bank-shared-copy";
+import {
+  BANK_ALTA_PAY_SUCCESS_BODY,
+  BANK_REQUEST_SUCCESS_BODY,
+  BANK_SUBMISSION_ERROR_FALLBACK,
+  BANK_TRANSFER_SUCCESS_BODY,
+} from "@/lib/bank/bank-shared-copy";
 
 export const BANK_REQUESTS_IN_PROGRESS_ID = "bank-requests-in-progress";
 
@@ -13,7 +18,7 @@ export type BankRequestSubmissionResult = {
   accountNumber: string;
 };
 
-export type BankRequestKind = "deposit" | "withdrawal";
+export type BankRequestKind = "deposit" | "withdrawal" | "transfer" | "alta_pay";
 
 const COPY = {
   deposit: {
@@ -21,12 +26,52 @@ const COPY = {
     submitting: "Submitting Deposit…",
     successTitle: "Deposit Submitted",
     submitAnother: "Submit Another Deposit",
+    successBody: BANK_REQUEST_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can monitor the status of your request below under{" "}
+        <strong className="font-medium text-foreground">Requests in Progress</strong>.
+      </>
+    ),
   },
   withdrawal: {
     submit: "Submit Withdrawal",
     submitting: "Submitting Withdrawal…",
     successTitle: "Withdrawal Submitted",
     submitAnother: "Submit Another Withdrawal",
+    successBody: BANK_REQUEST_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can monitor the status of your request below under{" "}
+        <strong className="font-medium text-foreground">Requests in Progress</strong>.
+      </>
+    ),
+  },
+  transfer: {
+    submit: "Transfer Funds",
+    submitting: "Transferring Funds…",
+    successTitle: "Transfer Completed",
+    submitAnother: "Make Another Transfer",
+    successBody: BANK_TRANSFER_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can review this transfer below in{" "}
+        <strong className="font-medium text-foreground">Transfer History</strong>.
+      </>
+    ),
+  },
+  alta_pay: {
+    submit: "Confirm Payment",
+    submitting: "Processing Payment…",
+    successTitle: "Payment Sent",
+    submitAnother: "Send Another Payment",
+    successBody: BANK_ALTA_PAY_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can review this payment below in{" "}
+        <strong className="font-medium text-foreground">Payment History</strong>.
+      </>
+    ),
   },
 } as const;
 
@@ -98,30 +143,37 @@ export function BankRequestSubmitButton({
   kind,
   submitting,
   disabled,
+  label,
+  submittingLabel,
+  showContainer = true,
 }: {
   kind: BankRequestKind;
   submitting: boolean;
   disabled?: boolean;
+  label?: string;
+  submittingLabel?: string;
+  showContainer?: boolean;
 }) {
   const labels = COPY[kind];
-  return (
-    <div className="pt-4">
-      <button
-        type="submit"
-        disabled={disabled || submitting}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="size-4 animate-spin opacity-80" aria-hidden />
-            {labels.submitting}
-          </>
-        ) : (
-          labels.submit
-        )}
-      </button>
-    </div>
+  const button = (
+    <button
+      type="submit"
+      disabled={disabled || submitting}
+      className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+    >
+      {submitting ? (
+        <>
+          <Loader2 className="size-4 animate-spin opacity-80" aria-hidden />
+          {submittingLabel ?? labels.submitting}
+        </>
+      ) : (
+        label ?? labels.submit
+      )}
+    </button>
   );
+
+  if (!showContainer) return button;
+  return <div className="pt-4">{button}</div>;
 }
 
 export function BankRequestSuccessCard({
@@ -141,15 +193,12 @@ export function BankRequestSuccessCard({
       <h2 className="mt-5 text-[1.2rem] font-semibold tracking-tight">{labels.successTitle}</h2>
 
       <p className="mt-2.5 text-[14px] leading-relaxed text-muted-foreground">
-        {BANK_REQUEST_SUCCESS_BODY}
+        {labels.successBody}
       </p>
 
       <div className="my-6 border-t border-border/70" />
 
-      <Callout variant="info">
-        You can monitor the status of your request below under{" "}
-        <strong className="font-medium text-foreground">Requests in Progress</strong>.
-      </Callout>
+      <Callout variant="info">{labels.successHint}</Callout>
 
       <div className="mt-5">
         <SecondaryButton onClick={onSubmitAnother}>{labels.submitAnother}</SecondaryButton>

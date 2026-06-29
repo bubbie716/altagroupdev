@@ -1,0 +1,173 @@
+Portfolio Snapshot Graph Increments — Audit
+===========================================
+Date: 2026-06-25
+Scope: Read-only review of how the home portfolio chart is built, sliced, and densified.
+No code changes.
+
+PIPELINE (THREE LAYERS)
+-----------------------
+
+Raw chartData
+  -> datedChartData (attachPointDates)
+  -> sourceSeries (range slice via sliceChartForRange)
+  -> displayChart (densified via buildDisplaySeriesForRange)
+
+Parallel paths:
+  - sourceSeries -> hover interpolation (usePortfolioChartHover)
+  - datedChartData (full series) -> P&L badge boundaries (getPeriodBoundaryValues)
+
+| Layer    | Where                                      | Role                                      |
+|----------|--------------------------------------------|-------------------------------------------|
+| Source   | home-portfolio.service.ts (live)           | Real balances over time                   |
+|          | makeSeries() in mock-data.ts (mock/demo)   | Synthetic demo series                     |
+| Slice    | sliceChartForRange() in portfolio-dashboard| Keeps only the selected time window       |
+| Display  | buildDisplaySeriesForRange()               | Synthetic points for smooth line + hover  |
+| Hover    | usePortfolioChartHover                     | Interpolates on sourceSeries, not display |
+
+Important: Display increments are visual only. Live bank data is one point per calendar day.
+
+
+INTENDED DISPLAY INCREMENTS
+---------------------------
+
+From resolveIntervalMs() in src/lib/account/portfolio-chart-series.ts:
+
+| Range | Target interval | Fallback / rule                          |
+|-------|-----------------|------------------------------------------|
+| 1D    | 5 minutes       | 15 minutes if estimated count > 120      |
+| 1W    | 1 hour          | None in code                             |
+| 1M    | 1 day           | —                                        |
+| 3M    | 1 day           | —                                        |
+| 1Y    | 1 day           | 1 week if source has >260 points         |
+| ALL   | 30 days         | Fixed 30-day steps, not calendar months  |
+
+Values at synthetic timestamps are linearly interpolated between neighboring source points.
+
+
+LIVE SIGNED-IN DATA (REAL BANK SNAPSHOT)
+----------------------------------------
+
+Source: 366 daily points (365 days + today), each at local noon (chartDayAnchor),
+built from approved transactions bucketed by NY calendar day (nyDayKey).
+
+After slice + densify (typical case):
+
+| Range | Source points in window | Display points | Effective step              |
+|-------|-------------------------|----------------|-----------------------------|
+| 1D    | 2 (yesterday + today)   | ~97            | 15 min (not 5 min)          |
+| 1W    | ~8 daily                | ~169           | 1 hour                      |
+| 1M    | ~31 daily               | ~31            | 1 day (no extra densify)    |
+| 3M    | ~91 daily               | ~91            | 1 day                       |
+| 1Y    | 366 daily               | ~54            | 1 week (366 > 260 threshold)|
+| ALL   | 366 daily               | ~14            | ~30 days                    |
+
+1D never uses 5-minute steps for a full calendar-day window:
+  24h at 5 min ≈ 289 points, above the 120-point cap → always falls back to 15 minutes.
+
+
+MOCK / SIGNED-OUT DEMO DATA
+---------------------------
+
+indexSeries = 180 synthetic points without timestamps.
+attachPointDates() spreads them evenly across 365 days (~2 days per point).
+
+| Range | Source in window | Display points | Notes                              |
+|-------|------------------|----------------|------------------------------------|
+| 1D    | 1                | 1              | Degenerate; almost flat            |
+| 1W    | ~4               | ~145           | Hourly interp. from sparse mock    |
+| 1M    | ~15              | ~30            | Daily upsampling                   |
+| 3M    | ~45              | ~91            | Daily upsampling                   |
+| 1Y    | 180              | 366            | Daily upsampling (opposite of live)|
+| ALL   | 180              | ~14            | Monthly downsampling               |
+
+Live 1Y downsamples to weekly; mock 1Y upsamples to daily. Same button, different behavior.
+
+
+RANGE WINDOW DEFINITIONS
+------------------------
+
+Slice (sliceChartForRange):
+  - 1D, 1W, 1M, 3M: calendar window ending today at local noon,
+    going back PORTFOLIO_RANGE_DAYS[range] (1, 7, 30, 90 days).
+  - 1Y, ALL: entire series (no slice).
+
+P&L badge (getPeriodBoundaryValues):
+  - Uses full datedChartData, not the slice.
+  - End = last point timestamp.
+  - Start = interpolated at range boundary from that end.
+  - 1Y and ALL both use 365-day lookback in PORTFOLIO_RANGE_DAYS, but ALL starts at
+    first data point while 1Y starts 365 days before last point (usually equivalent
+    for a 366-day series).
+
+
+FINDINGS & RISKS
+----------------
+
+1. Display increments ≠ data granularity (live)
+   1D/1W show sub-daily steps, but balances only change on NY calendar days.
+   Interpolation draws smooth ramps between noon anchors, including fake intraday
+   movement when the balance was flat all day.
+
+2. 1D uses 15-minute steps, not 5
+   The 120-point cap triggers for any ~24h window. Tooltip shows times like
+   "2:15 PM" that do not correspond to real observations.
+
+3. 1W hourly on daily source
+   ~169 hourly points from ~8 daily values. Hover feels continuous; underlying
+   data is not.
+
+4. 1Y live vs mock mismatch
+   Live: weekly (~54 points). Mock: daily (~366 points). Demo chart is finer and
+   behaves differently.
+
+5. ALL "monthly" is fixed 30-day steps
+   Not Jan/Feb/Mar calendar months. Labels use month + year, but spacing drifts
+   vs real months.
+
+6. Timezone tension
+   Transaction bucketing: America/New_York.
+   Chart anchors & slice boundaries: browser local noon.
+   Edge cases near midnight or for non-US users can misalign day boundaries vs
+   transaction grouping.
+
+7. Sparse-window fallback
+   If a range has <2 points after slice, code synthesizes start/end anchors.
+   Rare for live daily data; more likely for mock 1D.
+
+8. Hover vs line alignment
+   Hover interpolates sourceSeries; the drawn line uses displayChart. Usually
+   aligned; with very sparse source (mock 1D = 1 point) hover and line degrade.
+
+9. Documented 4-hour 1W fallback
+   Not in current code — only 1 hour for 1W. Any external doc mentioning
+   4-hour fallback is stale.
+
+10. 1M / 3M are honest
+    Daily source + daily display = one display point per day; increments match data.
+
+
+SUMMARY VERDICT
+---------------
+
+| Range | Increment spec           | Matches real data? | Main issue                          |
+|-------|--------------------------|--------------------|-------------------------------------|
+| 1D    | 15 min (not 5)           | No                 | Synthetic intraday from 2 daily pts |
+| 1W    | 1 hour                   | No                 | Hourly smoothness on daily balances |
+| 1M    | 1 day                    | Yes                | —                                   |
+| 3M    | 1 day                    | Yes                | —                                   |
+| 1Y    | Weekly (live) / daily (mock) | Partially      | Mode-dependent; live downsamples    |
+| ALL   | ~30-day steps            | Partially          | Not true calendar months            |
+
+The increment logic is implemented consistently in portfolio-chart-series.ts, but for
+live users only 1M and 3M faithfully reflect actual data resolution. 1D and 1W
+prioritize Google Finance-style smoothness over factual intraday granularity.
+
+
+KEY FILES
+---------
+
+- src/lib/account/portfolio-chart-series.ts  — resolveIntervalMs, buildDisplaySeriesForRange
+- src/components/account/portfolio-dashboard.tsx — sliceChartForRange, wiring
+- src/server/home-portfolio.service.ts — buildDailyBalanceSeries (live source)
+- src/lib/mock-data.ts — makeSeries / indexSeries (demo source)
+- src/components/account/portfolio-chart-hover.tsx — hover interpolation

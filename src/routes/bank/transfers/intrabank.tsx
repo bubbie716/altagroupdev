@@ -83,16 +83,12 @@ function BankIntrabankTransfers() {
       ) : (
         <>
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
-          <Section>
-            <Card className="mx-auto max-w-2xl !p-6">
-              <BankInternalTransferForm
-                accounts={data.accounts}
-                contacts={data.contacts}
-                defaultFromAccountId={accountId}
-                onSuccess={() => void router.invalidate()}
-              />
-            </Card>
-          </Section>
+          <BankInternalTransferForm
+            accounts={data.accounts}
+            contacts={data.contacts}
+            defaultFromAccountId={accountId}
+            onSuccess={() => void router.invalidate()}
+          />
 
           {data.sourceAccounts.length > 0 && (
             <Section title="Scheduled & recurring transfers" className="mt-10">

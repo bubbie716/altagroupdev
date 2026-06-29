@@ -62,9 +62,9 @@ function BankInterbankTransfers() {
         <>
           <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
           <EmptyBankState
-          title="Unable to load wire transfer page."
-          description="Sign in and try again."
-        />
+            title="Unable to load wire transfer page."
+            description="Sign in and try again."
+          />
         </>
       ) : data.sourceAccounts.length === 0 ? (
         <>

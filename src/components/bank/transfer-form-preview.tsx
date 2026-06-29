@@ -28,7 +28,7 @@ export function TransferFormPreview({
     : undefined;
 
   return (
-    <Card>
+    <Card className="mx-auto max-w-2xl space-y-6 !p-6">
       <div className="type-section-title">
         Wire Transfer · NCC-Net
       </div>

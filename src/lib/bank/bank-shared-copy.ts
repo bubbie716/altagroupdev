@@ -15,6 +15,18 @@ export const WITHDRAW_FORM_INTRO =
 export const BANK_REQUEST_SUCCESS_BODY =
   "Your request has been received and is Waiting on Alta.";
 
+export const INTRABANK_TRANSFER_FORM_INTRO =
+  "Move Florins instantly between your Alta Bank accounts or send to another player by account number.";
+
+export const BANK_TRANSFER_SUCCESS_BODY =
+  "Your transfer settled instantly and both accounts have been updated.";
+
+export const ALTA_PAY_FORM_INTRO =
+  "Pay verified Newport businesses instantly — from a bank account or your Alta Card.";
+
+export const BANK_ALTA_PAY_SUCCESS_BODY =
+  "Your payment settled instantly to the company's Business Operating Account.";
+
 export const BANK_SUBMISSION_ERROR_FALLBACK =
   "This request could not be submitted. Please review your details and try again.";
 

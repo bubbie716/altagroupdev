@@ -4,12 +4,17 @@ import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
 import { SiteNav } from "@/components/site-nav";
 import { PublicFooter } from "@/components/footers";
 import { AnimatedNumber } from "@/components/animated-number";
-import { compact, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
+import { compact, florin, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
 import { getIndices } from "@/lib/exchange/api";
 import { PortfolioDashboard } from "@/components/account/portfolio-dashboard";
-import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { fetchHomePortfolioSnapshot } from "@/lib/account/home-portfolio.functions";
+import type { HomePortfolioSnapshot } from "@/lib/account/home-portfolio.types";
+import {
+  assetAllocationFromSnapshot,
+  demoAssetAllocation,
+} from "@/lib/account/asset-allocation";
 import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
 import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
@@ -18,7 +23,14 @@ import { ArrowUpRight } from "lucide-react";
 import heroMarbleUrl from "@/assets/hero-marble.jpg";
 
 export const Route = createFileRoute("/")({
-  loader: () => fetchPlatformMetrics(),
+  loader: async ({ context }) => {
+    const platformMetrics = await fetchPlatformMetrics();
+    const snapshot =
+      context.user && !isUserFinancialMockDataEnabled()
+        ? await fetchHomePortfolioSnapshot().catch(() => null)
+        : null;
+    return { platformMetrics, snapshot };
+  },
   head: () => ({
     meta: [
       { title: "Alta Group — Live Like the 1%" },
@@ -31,12 +43,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const platformMetrics = Route.useLoaderData();
+  const { platformMetrics, snapshot } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <Hero />
+      <Hero snapshot={snapshot} />
       <Marquee />
       <Divisions />
       <Capabilities metrics={platformMetrics} />
@@ -46,12 +58,19 @@ function Landing() {
   );
 }
 
-function Hero() {
+function formatSnapshotChangeLabel(snapshot: HomePortfolioSnapshot) {
+  const sign = snapshot.dailyPnL >= 0 ? "+" : "-";
+  return `${sign}${florin(Math.abs(snapshot.dailyPnL))} · ${pct(snapshot.dailyPnLPercent)}`;
+}
+
+function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
   const user = useCurrentUser();
   const nsx100 = getIndices()[0];
   const portfolioLocked = !user;
   const showUserFinancialMock = isUserFinancialMockDataEnabled();
   const showMarketPreview = isPublicSimulatedMarketDataEnabled();
+  const demoNetWorth = 8_412_209.4;
+  const demoAllocation = demoAssetAllocation(demoNetWorth);
 
   const valueProps = [
     { title: "Seamless Banking", desc: "Institutional-grade accounts and treasury." },
@@ -125,11 +144,9 @@ function Hero() {
                 chartData={indexSeries}
                 stats={[
                   { label: "Florin Balance", value: "ƒ1,240,500" },
-                  { label: "Portfolio", value: "ƒ1,885,285" },
-                  { label: "Today's P&L", value: "+ƒ24,810", up: true },
-                  { label: "Exposure", value: "62.4%" },
+                  { label: "Investments", value: "ƒ1,885,285" },
                 ]}
-                movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
+                assetAllocation={demoAllocation}
               />
             ) : showUserFinancialMock ? (
               <PortfolioDashboard
@@ -140,24 +157,37 @@ function Hero() {
                 chartData={indexSeries}
                 stats={[
                   { label: "Florin Balance", value: "ƒ1,240,500" },
-                  { label: "Portfolio", value: "ƒ1,885,285" },
-                  { label: "Today's P&L", value: "+ƒ24,810", up: true },
-                  { label: "Exposure", value: "62.4%" },
+                  { label: "Investments", value: "ƒ1,885,285" },
                 ]}
-                movers={stocks.slice(0, 4).map((s) => ({ symbol: s.symbol, change: s.change }))}
+                assetAllocation={demoAllocation}
                 headerLabel={`Alta Portfolio · ${user.discordUsername}`}
               />
             ) : (
-              <div className="rounded-xl bg-background p-5">
-                <div className="border-b border-border pb-3">
-                  <div className="type-meta">
-                    Alta Portfolio · {user.discordUsername}
-                  </div>
-                </div>
-                <div className="pt-5">
-                  <EmptyPortfolioState compact />
-                </div>
-              </div>
+              <PortfolioDashboard
+                signInRedirect="/"
+                gradientId="heroFill"
+                netWorth={florin(snapshot?.netWorth ?? 0)}
+                changeLabel={formatSnapshotChangeLabel(
+                  snapshot ?? {
+                    netWorth: 0,
+                    florinBalance: 0,
+                    portfolioValue: 0,
+                    dailyPnL: 0,
+                    dailyPnLPercent: 0,
+                    chartData: [],
+                  },
+                )}
+                changePositive={(snapshot?.dailyPnL ?? 0) >= 0}
+                chartData={snapshot?.chartData ?? [{ t: 0, v: 0 }]}
+                stats={[
+                  { label: "Florin Balance", value: florin(snapshot?.florinBalance ?? 0) },
+                  { label: "Investments", value: florin(snapshot?.portfolioValue ?? 0) },
+                ]}
+                assetAllocation={assetAllocationFromSnapshot(
+                  snapshot ?? { florinBalance: 0, portfolioValue: 0 },
+                )}
+                headerLabel={`Alta Portfolio · ${user.discordUsername}`}
+              />
             )}
           </div>
           {portfolioLocked && (

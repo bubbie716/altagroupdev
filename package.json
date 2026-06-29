@@ -34,7 +34,8 @@
     "test:e2e:ui:only": "playwright test --ui --ui-host=127.0.0.1 --ui-port=9323",
     "test:e2e:report": "playwright show-report",
     "test:e2e:seed": "tsx tests/e2e/scripts/seed-e2e-data.ts",
-    "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts"
+    "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts",
+    "test:unit": "tsx --test src/lib/account/portfolio-chart-series.test.ts src/lib/account/asset-allocation.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
