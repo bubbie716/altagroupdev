@@ -660,7 +660,7 @@ export function formatPeriodChangeFromValues(
   endValue: number,
   formatFlorin: (value: number) => string,
   formatPct: (value: number) => string,
-): { label: string; positive: boolean } {
+): { label: string; positive: boolean; percent: number } {
   return formatPeriodChangeLabel(startValue, endValue, formatFlorin, formatPct);
 }
 

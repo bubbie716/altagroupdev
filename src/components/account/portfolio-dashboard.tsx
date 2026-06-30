@@ -45,6 +45,10 @@ export type PortfolioDashboardStat = {
   label: string;
   value: string;
   up?: boolean;
+  /** Enables timeframe period-change badge when set with chartSeries or dashboard chartData. */
+  currentValue?: number;
+  /** Historical series for period change; defaults to the main dashboard chart. */
+  chartSeries?: ChartPoint[];
 };
 
 type ChartPoint = PortfolioChartPoint;
@@ -54,6 +58,33 @@ export type { PortfolioTimeRange };
 const TIME_RANGES: PortfolioTimeRange[] = ["1D", "1W", "1M", "3M", "1Y", "ALL"];
 
 const LOCKED_BLUR = "blur-[6px]";
+
+function PeriodChangeBadge({
+  label,
+  positive,
+  locked,
+  className,
+}: {
+  label: string;
+  positive: boolean;
+  locked?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "type-finance inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] tabular-nums",
+        positive
+          ? "border-[var(--success)]/25 bg-[var(--success)]/8 text-[var(--success)]"
+          : "border-[var(--danger)]/25 bg-[var(--danger)]/8 text-[var(--danger)]",
+        locked && LOCKED_BLUR,
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function PortfolioDashboard({
   netWorth,
@@ -125,6 +156,23 @@ export function PortfolioDashboard({
   const periodChange = useMemo(
     () => formatPeriodChangeFromValues(periodStartValue, periodEndValue, florin, pct),
     [periodEndValue, periodStartValue],
+  );
+
+  const statPeriodChanges = useMemo(
+    () =>
+      stats.map((stat) => {
+        if (stat.currentValue === undefined) return null;
+        const series = stat.chartSeries ?? datedChartData;
+        const range = showTimeRange ? timeRange : "ALL";
+        const { startValue, endValue } = getPeriodBoundaryValues(
+          series,
+          range,
+          undefined,
+          stat.currentValue,
+        );
+        return formatPeriodChangeFromValues(startValue, endValue, florin, pct);
+      }),
+    [datedChartData, showTimeRange, stats, timeRange],
   );
 
   const {
@@ -243,17 +291,11 @@ export function PortfolioDashboard({
             >
               {netWorth}
             </div>
-            <span
-              className={cn(
-                "type-finance inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] tabular-nums",
-                displayChangePositive
-                  ? "border-[var(--success)]/25 bg-[var(--success)]/8 text-[var(--success)]"
-                  : "border-[var(--danger)]/25 bg-[var(--danger)]/8 text-[var(--danger)]",
-                locked && LOCKED_BLUR,
-              )}
-            >
-              {displayChangeLabel}
-            </span>
+            <PeriodChangeBadge
+              label={displayChangeLabel}
+              positive={displayChangePositive}
+              locked={locked}
+            />
           </div>
           <div
             ref={chartContainerRef}
@@ -317,22 +359,33 @@ export function PortfolioDashboard({
           </div>
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-          {stats.map((k) => (
-            <div key={k.label} className="min-w-0 rounded-lg border border-border bg-surface-1 p-3">
-              <div className="type-meta-sm">
-                {k.label}
+          {stats.map((k, index) => {
+            const statChange = statPeriodChanges[index];
+            return (
+              <div key={k.label} className="min-w-0 rounded-lg border border-border bg-surface-1 p-3">
+                <div className="type-meta-sm">
+                  {k.label}
+                </div>
+                <div
+                  className={cn(
+                    "tabular mt-1.5 truncate text-base font-semibold",
+                    k.up ? "text-[var(--success)]" : "",
+                    locked && LOCKED_BLUR,
+                  )}
+                >
+                  {k.value}
+                </div>
+                {statChange ? (
+                  <PeriodChangeBadge
+                    label={pct(statChange.percent)}
+                    positive={statChange.positive}
+                    locked={locked}
+                    className="mt-2"
+                  />
+                ) : null}
               </div>
-              <div
-                className={cn(
-                  "tabular mt-1.5 truncate text-base font-semibold",
-                  k.up ? "text-[var(--success)]" : "",
-                  locked && LOCKED_BLUR,
-                )}
-              >
-                {k.value}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <PortfolioAssetAllocation items={assetAllocation} locked={locked} />
         </div>
       </div>

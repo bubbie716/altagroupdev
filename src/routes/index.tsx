@@ -11,6 +11,7 @@ import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { fetchHomePortfolioSnapshot } from "@/lib/account/home-portfolio.functions";
 import type { HomePortfolioSnapshot } from "@/lib/account/home-portfolio.types";
+import type { PortfolioDashboardStat } from "@/components/account/portfolio-dashboard";
 import {
   assetAllocationFromSnapshot,
   demoAssetAllocation,
@@ -61,6 +62,60 @@ function Landing() {
 function formatSnapshotChangeLabel(snapshot: HomePortfolioSnapshot) {
   const sign = snapshot.dailyPnL >= 0 ? "+" : "-";
   return `${sign}${florin(Math.abs(snapshot.dailyPnL))} · ${pct(snapshot.dailyPnLPercent)}`;
+}
+
+function scaleChartSeries<T extends { t: number; v: number; at?: number }>(
+  series: T[],
+  ratio: number,
+): T[] {
+  return series.map((point) => ({ ...point, v: point.v * ratio }));
+}
+
+function flatChartSeries<T extends { t: number; v: number; at?: number }>(
+  template: T[],
+  value: number,
+): T[] {
+  return template.map((point) => ({ ...point, v: value }));
+}
+
+function buildDemoPortfolioStats(netWorth: number, chartData: typeof indexSeries): PortfolioDashboardStat[] {
+  const florinBalance = 1_240_500;
+  const portfolioValue = 1_885_285;
+  const florinRatio = florinBalance / netWorth;
+  const portfolioRatio = portfolioValue / netWorth;
+
+  return [
+    {
+      label: "Florin Balance",
+      value: florin(florinBalance),
+      currentValue: florinBalance,
+      chartSeries: scaleChartSeries(chartData, florinRatio),
+    },
+    {
+      label: "Investments",
+      value: florin(portfolioValue),
+      currentValue: portfolioValue,
+      chartSeries: scaleChartSeries(chartData, portfolioRatio),
+    },
+  ];
+}
+
+function buildSnapshotPortfolioStats(snapshot: HomePortfolioSnapshot): PortfolioDashboardStat[] {
+  const chartTemplate = snapshot.chartData.length > 0 ? snapshot.chartData : [{ t: 0, v: 0 }];
+  return [
+    {
+      label: "Florin Balance",
+      value: florin(snapshot.florinBalance),
+      currentValue: snapshot.florinBalance,
+      chartSeries: snapshot.chartData,
+    },
+    {
+      label: "Investments",
+      value: florin(snapshot.portfolioValue),
+      currentValue: snapshot.portfolioValue,
+      chartSeries: flatChartSeries(chartTemplate, snapshot.portfolioValue),
+    },
+  ];
 }
 
 function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
@@ -143,10 +198,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 changeLabel="+ƒ142,802.10 · +1.72%"
                 currentValue={8_412_209.4}
                 chartData={indexSeries}
-                stats={[
-                  { label: "Florin Balance", value: "ƒ1,240,500" },
-                  { label: "Investments", value: "ƒ1,885,285" },
-                ]}
+                stats={buildDemoPortfolioStats(demoNetWorth, indexSeries)}
                 assetAllocation={demoAllocation}
               />
             ) : showUserFinancialMock ? (
@@ -157,10 +209,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 changeLabel="+ƒ142,802.10 · +1.72%"
                 currentValue={8_412_209.4}
                 chartData={indexSeries}
-                stats={[
-                  { label: "Florin Balance", value: "ƒ1,240,500" },
-                  { label: "Investments", value: "ƒ1,885,285" },
-                ]}
+                stats={buildDemoPortfolioStats(demoNetWorth, indexSeries)}
                 assetAllocation={demoAllocation}
               />
             ) : (
@@ -181,10 +230,16 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
                 changePositive={(snapshot?.dailyPnL ?? 0) >= 0}
                 currentValue={snapshot?.netWorth}
                 chartData={snapshot?.chartData ?? [{ t: 0, v: 0 }]}
-                stats={[
-                  { label: "Florin Balance", value: florin(snapshot?.florinBalance ?? 0) },
-                  { label: "Investments", value: florin(snapshot?.portfolioValue ?? 0) },
-                ]}
+                stats={buildSnapshotPortfolioStats(
+                  snapshot ?? {
+                    netWorth: 0,
+                    florinBalance: 0,
+                    portfolioValue: 0,
+                    dailyPnL: 0,
+                    dailyPnLPercent: 0,
+                    chartData: [{ t: 0, v: 0 }],
+                  },
+                )}
                 assetAllocation={assetAllocationFromSnapshot(
                   snapshot ?? { florinBalance: 0, portfolioValue: 0 },
                 )}
