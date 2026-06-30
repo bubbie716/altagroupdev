@@ -23,6 +23,7 @@ import {
   extractRatePairFromTimelineRow,
 } from "@/lib/bank/relationship-timeline-customer-copy";
 import { formatAltaCardTierUpgradeTimelineCopy, formatAltaCardLimitIncreaseTimelineCopy, formatAltaCardRateReductionTimelineCopy, formatLoanApprovedTimelineCopy, formatRelationshipTierChangedCustomerCopy } from "@/lib/bank/relationship-timeline-historical";
+import { LOAN_PAYOFF_DESCRIPTION } from "@/lib/bank/customer-transaction-copy";
 import { RELATIONSHIP_TIER_LABELS } from "@/lib/bank/relationship-intelligence-config";
 import type {
   CustomerRelationshipTimelineEntry,
@@ -132,6 +133,114 @@ async function resolveProfileId(userId: string): Promise<string | null> {
   return profile?.id ?? null;
 }
 
+async function resolveLoanPayoffOccurredAt(loanId: string, fallback: Date): Promise<Date> {
+  const paidOff = await prisma.loanLedgerEntry.findFirst({
+    where: {
+      loanId,
+      type: "STATUS_CHANGE",
+      OR: [
+        { description: { contains: "paid off", mode: "insensitive" } },
+        { description: LOAN_PAYOFF_DESCRIPTION },
+        { description: "Loan paid off" },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return paidOff?.createdAt ?? fallback;
+}
+
+/** Idempotent sync for personal (non-company) loan milestones — mirrors company timeline sync. */
+export async function syncPersonalLoanTimelineEvents(
+  userId: string,
+  profileId?: string | null,
+): Promise<number> {
+  const resolvedProfileId = profileId ?? (await resolveProfileId(userId));
+  let created = 0;
+
+  const loans = await prisma.loan.findMany({
+    where: { borrowerUserId: userId, companyId: null },
+    orderBy: { createdAt: "asc" },
+  });
+
+  for (const loan of loans) {
+    if (loan.approvedAt) {
+      const loanCopy = formatLoanApprovedTimelineCopy(decimalToNumber(loan.principalAmount));
+      const funded = await createRelationshipTimelineEvent({
+        userId,
+        profileId: resolvedProfileId,
+        eventType: "LOAN_FUNDED",
+        title: loanCopy.title,
+        description: loanCopy.description,
+        occurredAt: loan.approvedAt,
+        relatedEntityType: "LOAN",
+        relatedEntityId: loan.id,
+        dedupeKey: `loan:funded:${loan.id}`,
+        skipAudit: true,
+      });
+      if (funded) created += 1;
+    }
+
+    if (loan.status === "PAID_OFF") {
+      const occurredAt = await resolveLoanPayoffOccurredAt(loan.id, loan.updatedAt);
+      const paidOffCopy = formatLoanPaidOffCopy("personal");
+      const event = await createRelationshipTimelineEvent({
+        userId,
+        profileId: resolvedProfileId,
+        eventType: "LOAN_PAID_OFF",
+        title: paidOffCopy.title,
+        description: paidOffCopy.description,
+        occurredAt,
+        relatedEntityType: "LOAN",
+        relatedEntityId: loan.id,
+        dedupeKey: `loan:paidoff:${loan.id}`,
+        skipAudit: true,
+      });
+      if (event) created += 1;
+    }
+  }
+
+  return created;
+}
+
+/** Record loan payoff on the personal or company relationship timeline (never both). */
+export async function recordLoanPaidOffTimelineEvent(input: {
+  loanId: string;
+  borrowerUserId: string | null;
+  companyId: string | null;
+  occurredAt?: Date;
+  actorUserId?: string;
+}): Promise<void> {
+  const occurredAt =
+    input.occurredAt ?? (await resolveLoanPayoffOccurredAt(input.loanId, new Date()));
+  const scope = input.companyId ? "business" : "personal";
+  const paidOffCopy = formatLoanPaidOffCopy(scope);
+  const event = {
+    eventType: "LOAN_PAID_OFF" as const,
+    title: paidOffCopy.title,
+    description: paidOffCopy.description ?? undefined,
+    occurredAt,
+    relatedEntityType: "LOAN" as const,
+    relatedEntityId: input.loanId,
+    dedupeKey: `loan:paidoff:${input.loanId}`,
+    actorUserId: input.actorUserId,
+  };
+
+  if (input.companyId) {
+    const { recordCompanyTimelineEventIfBusiness } = await import(
+      "@/server/company-relationship-timeline.service"
+    );
+    await recordCompanyTimelineEventIfBusiness(input.companyId, event);
+    return;
+  }
+
+  if (input.borrowerUserId) {
+    await recordRelationshipTimelineEvent({
+      userId: input.borrowerUserId,
+      ...event,
+    });
+  }
+}
+
 async function resolveAuditActorId(actorUserId?: string): Promise<string> {
   if (actorUserId) return actorUserId;
   const systemUser = await prisma.user.findFirst({
@@ -169,18 +278,34 @@ async function hasEntityEvent(
   return existing != null;
 }
 
+function relationshipTimelineEntityDedupeKey(
+  eventType: RelationshipTimelineEventTypeCode,
+  relatedEntityId: string,
+): string | null {
+  if (eventType === "LOAN_FUNDED") return `loan:funded:${relatedEntityId}`;
+  if (eventType === "LOAN_PAID_OFF") return `loan:paidoff:${relatedEntityId}`;
+  return null;
+}
+
 export async function createRelationshipTimelineEvent(
   input: CreateRelationshipTimelineEventInput,
 ): Promise<RelationshipTimelineEventRow | null> {
   if (input.dedupeKey && (await hasDedupeKey(input.userId, input.dedupeKey))) {
     return null;
   }
-  if (
-    input.relatedEntityId &&
-    !input.dedupeKey &&
-    (await hasEntityEvent(input.userId, input.eventType, input.relatedEntityId))
-  ) {
-    return null;
+  if (input.relatedEntityId) {
+    if (await hasEntityEvent(input.userId, input.eventType, input.relatedEntityId)) {
+      return null;
+    }
+    const entityDedupeKey = relationshipTimelineEntityDedupeKey(
+      input.eventType,
+      input.relatedEntityId,
+    );
+    if (entityDedupeKey && entityDedupeKey !== input.dedupeKey) {
+      if (await hasDedupeKey(input.userId, entityDedupeKey)) {
+        return null;
+      }
+    }
   }
 
   const profileId = input.profileId ?? (await resolveProfileId(input.userId));
@@ -1007,47 +1132,7 @@ export async function backfillRelationshipTimelineCore(
     }
   }
 
-  const loans = await prisma.loan.findMany({
-    where: { borrowerUserId: userId, companyId: null },
-    orderBy: { createdAt: "asc" },
-  });
-  for (const loan of loans) {
-    if (loan.approvedAt) {
-      const loanCopy = formatLoanApprovedTimelineCopy(decimalToNumber(loan.principalAmount));
-      const funded = await createRelationshipTimelineEvent({
-        userId,
-        profileId,
-        eventType: "LOAN_FUNDED",
-        title: loanCopy.title,
-        description: loanCopy.description,
-        occurredAt: loan.approvedAt,
-        relatedEntityType: "LOAN",
-        relatedEntityId: loan.id,
-        skipAudit: true,
-      });
-      if (funded) created += 1;
-    }
-    if (loan.status === "PAID_OFF") {
-      const paidOff = await prisma.loanLedgerEntry.findFirst({
-        where: { loanId: loan.id, type: "STATUS_CHANGE", description: { contains: "paid off" } },
-        orderBy: { createdAt: "desc" },
-      });
-      const occurredAt = paidOff?.createdAt ?? loan.updatedAt;
-      const paidOffCopy = formatLoanPaidOffCopy("personal");
-      const event = await createRelationshipTimelineEvent({
-        userId,
-        profileId,
-        eventType: "LOAN_PAID_OFF",
-        title: paidOffCopy.title,
-        description: paidOffCopy.description,
-        occurredAt,
-        relatedEntityType: "LOAN",
-        relatedEntityId: loan.id,
-        skipAudit: true,
-      });
-      if (event) created += 1;
-    }
-  }
+  created += await syncPersonalLoanTimelineEvents(userId, profileId);
 
   const privateTag = await prisma.userTagAssignment.findFirst({
     where: { userId, tag: "PRIVATE_CLIENT" },
@@ -1175,11 +1260,15 @@ export async function backfillRelationshipTimeline(userId: string, actorUserId?:
   return backfillRelationshipTimelineCore(userId, actorUserId);
 }
 
-/** Backfill once when a user has no timeline rows yet (safe on customer page load). */
+/** Backfill when empty, then keep personal loan milestones in sync on every view. */
 export async function ensureRelationshipTimelineBackfilled(userId: string): Promise<number> {
   const existing = await prisma.relationshipTimelineEvent.count({ where: { userId } });
-  if (existing > 0) return 0;
-  return backfillRelationshipTimelineCore(userId);
+  let created = 0;
+  if (existing === 0) {
+    created += await backfillRelationshipTimelineCore(userId);
+  }
+  created += await syncPersonalLoanTimelineEvents(userId);
+  return created;
 }
 
 export async function backfillAllRelationshipTimelinesCore(actorUserId?: string): Promise<{

@@ -5,6 +5,7 @@ import {
   BANK_ALTA_PAY_SUCCESS_BODY,
   BANK_CARD_PAYMENT_SUCCESS_BODY,
   BANK_CASH_ADVANCE_SUCCESS_BODY,
+  BANK_LOAN_PAYMENT_SUCCESS_BODY,
   BANK_REQUEST_SUCCESS_BODY,
   BANK_SUBMISSION_ERROR_FALLBACK,
   BANK_TRANSFER_SUCCESS_BODY,
@@ -26,7 +27,8 @@ export type BankRequestKind =
   | "transfer"
   | "alta_pay"
   | "cash_advance"
-  | "card_payment";
+  | "card_payment"
+  | "loan_payment";
 
 const COPY = {
   deposit: {
@@ -104,6 +106,19 @@ const COPY = {
       <>
         You can review this payment in your{" "}
         <strong className="font-medium text-foreground">Alta Card transaction history</strong>.
+      </>
+    ),
+  },
+  loan_payment: {
+    submit: "Confirm Payment",
+    submitting: "Processing Payment…",
+    successTitle: "Payment Posted",
+    submitAnother: "Make Another Payment",
+    successBody: BANK_LOAN_PAYMENT_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can review this payment in your{" "}
+        <strong className="font-medium text-foreground">loan payment history</strong>.
       </>
     ),
   },

@@ -18,7 +18,7 @@ export type LoanStatusCode = "active" | "paid_off" | "defaulted" | "cancelled" |
 
 export type LoanPaymentStatusCode = "pending" | "completed" | "failed" | "cancelled";
 
-export type LoanScheduleInstallmentStatusCode = "pending" | "paid" | "overdue" | "failed";
+export type LoanScheduleInstallmentStatusCode = "pending" | "partial" | "paid" | "overdue" | "failed";
 
 export type { LoanRateType };
 
@@ -164,7 +164,7 @@ export interface LoanPaymentRow {
   statusLabel: string;
 }
 
-export type LoanInterestScheduleStatusCode = "pending" | "guaranteed" | "paid" | "waived";
+export type LoanInterestScheduleStatusCode = "pending" | "guaranteed" | "partial" | "paid" | "waived";
 
 export interface LoanInterestScheduleItemRow {
   id: string;
@@ -183,6 +183,8 @@ export interface LoanScheduleItemRow {
   installmentNumber: number;
   dueDate: string;
   scheduledAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
   principalPortion: number;
   interestPortion: number;
   principalPercent: number;
@@ -225,6 +227,7 @@ export interface LoanRow {
   percentRepaid: number;
   totalRepaymentObligation: number;
   nextPaymentDueLabel: string;
+  nextPaymentDueAmount: number | null;
   interestRate: number;
   interestRateType: LoanRateType;
   interestRateLabel: string;
@@ -278,6 +281,11 @@ export interface MakeLoanPaymentInput {
   sourceBankAccountId: string;
   amount: number;
   memo?: string;
+}
+
+export interface SubmitLoanPaymentResult {
+  referenceCode: string;
+  amount: number;
 }
 
 export interface SetLoanAutoPayInput {

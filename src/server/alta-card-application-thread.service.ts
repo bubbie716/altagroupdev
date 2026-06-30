@@ -25,7 +25,8 @@ import {
   ALTA_CARD_THREAD_STATUS_LABELS_INTERNAL,
 } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
-import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
+import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
+import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
@@ -132,11 +133,13 @@ function mapMessageRow(
   msg: Prisma.AltaCardApplicationThreadMessageGetPayload<{
     include: { sender: { select: { discordUsername: true; discordId: true; discordAvatar: true } } };
   }>,
+  audience: ThreadMessageAudience = "customer",
 ): AltaCardApplicationThreadMessageRow {
+  const senderRole = ROLE_FROM_DB[msg.senderRole];
   return {
     id: msg.id,
     senderUserId: msg.senderUserId,
-    senderRole: ROLE_FROM_DB[msg.senderRole],
+    senderRole,
     senderName:
       msg.senderRole === "SYSTEM"
         ? ALTA_CREDIT_DESK_NAME
@@ -147,7 +150,7 @@ function mapMessageRow(
       msg.senderRole === "APPLICANT" && msg.sender
         ? discordAvatarUrl(msg.sender.discordId, msg.sender.discordAvatar)
         : null,
-    body: msg.body,
+    body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
@@ -297,6 +300,7 @@ export async function getAltaCardThreadContext(
 export async function getAltaCardThreadMessages(
   userId: string,
   applicationId: string,
+  audience: ThreadMessageAudience = "customer",
 ): Promise<AltaCardApplicationThreadMessageRow[]> {
   await assertThreadAccess(userId, applicationId);
   const thread = await getThreadByApplicationId(applicationId);
@@ -308,7 +312,7 @@ export async function getAltaCardThreadMessages(
   });
 
   return messages.map((msg) =>
-    enrichLegacyThreadMessage(mapMessageRow(msg), { applicantUserId: thread.applicantUserId }),
+    enrichLegacyThreadMessage(mapMessageRow(msg, audience), { applicantUserId: thread.applicantUserId }),
   );
 }
 

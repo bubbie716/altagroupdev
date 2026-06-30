@@ -277,6 +277,7 @@ function mapReviewRow(
       thread: { include: { assignedStaff: { select: { discordUsername: true } } } };
     };
   }>,
+  audience: "customer" | "internal" = "internal",
 ): AltaCardReviewRequestRow {
   const status = toAltaCardReviewStatusCode(review.status);
   const threadStatus = review.thread
@@ -310,7 +311,8 @@ function mapReviewRow(
     approvedLimitIncrease: review.approvedLimitIncrease,
     approvedRateReduction: review.approvedRateReduction,
     approvedTierUpgrade: review.approvedTierUpgrade,
-    decisionNote: review.decisionNote,
+    decisionNote:
+      audience === "customer" && status !== "needs_information" ? null : review.decisionNote,
     reviewedByUsername: review.reviewer?.discordUsername ?? null,
     reviewedAt: review.reviewedAt?.toISOString() ?? null,
     reviewedAtLabel: review.reviewedAt ? formatActivityDateTime(review.reviewedAt) : null,
@@ -508,7 +510,7 @@ export async function getReviewRequestDetail(
     }
   }
 
-  return mapReviewRow(review);
+  return mapReviewRow(review, "customer");
 }
 
 export async function listInternalReviewQueue(): Promise<AltaCardReviewQueueRow[]> {

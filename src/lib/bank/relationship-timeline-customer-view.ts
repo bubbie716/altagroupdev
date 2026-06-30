@@ -47,6 +47,17 @@ function normalizeDedupeKey(row: CustomerTimelineRow): string | null {
 /** Stable key for collapsing duplicate rows that describe the same customer moment. */
 export function customerTimelineSemanticKey(row: CustomerTimelineRow): string {
   const normalized = normalizeDedupeKey(row);
+  if (normalized?.startsWith("loan:funded:") || normalized?.startsWith("loan:paidoff:")) {
+    return normalized;
+  }
+
+  if (row.eventType === "LOAN_FUNDED" && row.relatedEntityId) {
+    return `loan:funded:${row.relatedEntityId}`;
+  }
+  if (row.eventType === "LOAN_PAID_OFF" && row.relatedEntityId) {
+    return `loan:paidoff:${row.relatedEntityId}`;
+  }
+
   if (normalized) return normalized;
 
   const meta = row.metadata;

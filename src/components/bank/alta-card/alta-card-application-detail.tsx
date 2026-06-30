@@ -89,10 +89,6 @@ export function AltaCardApplicationDetailView({
           ) : null}
         </dl>
 
-        {application.denialReason ? (
-          <p className="mt-4 text-[13px] text-destructive">{application.denialReason}</p>
-        ) : null}
-
         {canAccept ? (
           <div className="mt-6">
             <BankReviewButton

@@ -891,7 +891,7 @@ model LoanPayment {
   paymentDate         DateTime
   sourceBankAccountId String?
   bankTransactionId   String?           @unique
-  scheduleItemId      String?           @unique
+  scheduleItemId      String?
   memo                String?
   status              LoanPaymentStatus @default(PENDING)
   createdAt           DateTime          @default(now())
@@ -903,6 +903,7 @@ model LoanPayment {
 
   @@index([loanId])
   @@index([status])
+  @@index([scheduleItemId])
 }
 
 model LoanPaymentScheduleItem {
@@ -911,6 +912,7 @@ model LoanPaymentScheduleItem {
   installmentNumber    Int
   dueDate              DateTime
   scheduledAmount      Decimal                       @db.Decimal(18, 2)
+  paidAmount           Decimal                       @default(0) @db.Decimal(18, 2)
   status               LoanScheduleInstallmentStatus @default(PENDING)
   paidAt               DateTime?
   autoPayAttemptedAt   DateTime?
@@ -918,8 +920,8 @@ model LoanPaymentScheduleItem {
   createdAt            DateTime                      @default(now())
   updatedAt            DateTime                      @updatedAt
 
-  loan        Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  loanPayment LoanPayment?
+  loan         Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  loanPayments LoanPayment[]
 
   @@unique([loanId, installmentNumber])
   @@index([loanId])

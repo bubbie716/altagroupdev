@@ -37,6 +37,7 @@ import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
 import type { ResolvedRelationshipIntegration } from "@/lib/internal/resolved-relationship-integration.types";
 import { OPS_COPY } from "@/lib/internal/console/ops-copy";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 
 function isActionable(status: InternalLoanApplicationRow["status"]) {
   return status === "pending" || status === "under_review";
@@ -297,6 +298,7 @@ export function LendingApplicationWorkspaceView({
         <Link
           to="/internal/users/$userId"
           params={{ userId: application.applicantUserId }}
+          search={{ tab: "overview", privateReview: false }}
           className="text-[11px] text-gold hover:underline"
         >
           Customer →
@@ -332,14 +334,21 @@ export function LendingApplicationWorkspaceView({
           auditRows={auditLogs}
           notes={notes}
           relationship={
-            integration?.panel
+            integration?.scope === "personal"
               ? {
-                  score: integration.panel.relationshipScore,
-                  tier: formatRelationshipTier(integration.panel.relationshipTier),
-                  totalAssets: integration.panel.totalAltaAssets,
+                  score: integration.bundle.panel.relationshipScore,
+                  tier: formatRelationshipTier(integration.bundle.panel.relationshipTier),
+                  totalAssets: integration.bundle.panel.totalAltaAssets,
                   href: `/internal/users/${application.applicantUserId}?tab=relationship`,
                 }
-              : null
+              : integration?.scope === "company" && application.companyId
+                ? {
+                    score: integration.bundle.panel.relationshipScore,
+                    tier: formatRelationshipTier(integration.bundle.panel.relationshipTier),
+                    totalAssets: integration.bundle.panel.totalBusinessAssets,
+                    href: `/internal/companies/${application.companyId}?tab=relationship`,
+                  }
+                : null
           }
         />
       }

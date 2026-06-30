@@ -41,7 +41,7 @@ export const pollSecureThreadLive = createServerFn({ method: "GET" })
       );
       const [context, messages] = await Promise.all([
         getThreadContext(userId, data.threadId, data.variant),
-        getThreadMessages(userId, data.threadId),
+        getThreadMessages(userId, data.threadId, data.variant === "internal" ? "internal" : "customer"),
       ]);
       return { context, messages };
     }
@@ -52,7 +52,11 @@ export const pollSecureThreadLive = createServerFn({ method: "GET" })
       );
       const [context, messages] = await Promise.all([
         getAltaCardThreadContext(userId, data.threadId, data.variant),
-        getAltaCardThreadMessages(userId, data.threadId),
+        getAltaCardThreadMessages(
+          userId,
+          data.threadId,
+          data.variant === "internal" ? "internal" : "customer",
+        ),
       ]);
       return {
         context: mapAltaCardThreadContextToLoan(context),
@@ -66,7 +70,11 @@ export const pollSecureThreadLive = createServerFn({ method: "GET" })
     const reviewRequestId = data.threadId;
     const [context, messages] = await Promise.all([
       getReviewThreadContext(userId, reviewRequestId, data.variant),
-      getReviewThreadMessages(userId, reviewRequestId),
+      getReviewThreadMessages(
+        userId,
+        reviewRequestId,
+        data.variant === "internal" ? "internal" : "customer",
+      ),
     ]);
     return {
       context: mapAltaCardReviewThreadContextToLoan(context),

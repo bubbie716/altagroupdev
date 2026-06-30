@@ -76,6 +76,33 @@ describe("relationship timeline customer view", () => {
     );
   });
 
+  it("collapses duplicate loan approval rows with mixed dedupe metadata", () => {
+    const rows = dedupeCustomerTimelineRows([
+      {
+        id: "synced",
+        eventType: "LOAN_FUNDED",
+        title: "Loan Approved",
+        description: "Your loan was approved and funds were made available.",
+        occurredAt: "2026-06-01T12:00:00.000Z",
+        createdAt: "2026-06-02T00:00:00.000Z",
+        relatedEntityId: "loan-1",
+        metadata: { dedupeKey: "loan:funded:loan-1" },
+      },
+      {
+        id: "legacy",
+        eventType: "LOAN_FUNDED",
+        title: "Loan approved (ƒ12,500)",
+        description: null,
+        occurredAt: "2026-06-01T12:00:00.000Z",
+        createdAt: "2026-06-01T12:00:00.000Z",
+        relatedEntityId: "loan-1",
+      },
+    ]);
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]?.id, "legacy");
+  });
+
   it("sorts newest events first with stable tie-breakers", () => {
     const rows = dedupeCustomerTimelineRows([
       {

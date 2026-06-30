@@ -101,7 +101,7 @@ export const fetchAltaCardReviewThread = createServerFn({ method: "GET" })
     await ensureReviewThreadExists(user.id, reviewRequestId);
     const [context, messages] = await Promise.all([
       getReviewThreadContext(user.id, reviewRequestId, "user"),
-      getReviewThreadMessages(user.id, reviewRequestId),
+      getReviewThreadMessages(user.id, reviewRequestId, "customer"),
     ]);
     return { context, messages };
   });
@@ -117,7 +117,7 @@ export const fetchInternalAltaCardReviewThread = createServerFn({ method: "GET" 
     await ensureReviewThreadExists(staff.id, reviewRequestId);
     const [context, messages] = await Promise.all([
       getReviewThreadContext(staff.id, reviewRequestId, "internal"),
-      getReviewThreadMessages(staff.id, reviewRequestId),
+      getReviewThreadMessages(staff.id, reviewRequestId, "internal"),
     ]);
     return { context, messages };
   });

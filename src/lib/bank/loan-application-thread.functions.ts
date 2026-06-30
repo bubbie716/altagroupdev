@@ -27,7 +27,7 @@ export const fetchLoanApplicationThread = createServerFn({ method: "GET" })
     await ensureThreadExists(userId, applicationId);
     const [context, messages] = await Promise.all([
       getThreadContext(userId, applicationId, "user"),
-      getThreadMessages(userId, applicationId),
+      getThreadMessages(userId, applicationId, "customer"),
     ]);
     return { context, messages };
   });
@@ -42,7 +42,7 @@ export const fetchInternalLoanApplicationThread = createServerFn({ method: "GET"
     await ensureThreadExists(userId, applicationId);
     const [context, messages] = await Promise.all([
       getThreadContext(userId, applicationId, "internal"),
-      getThreadMessages(userId, applicationId),
+      getThreadMessages(userId, applicationId, "internal"),
     ]);
     return { context, messages };
   });

@@ -33,6 +33,9 @@ export const BANK_CASH_ADVANCE_SUCCESS_BODY =
 export const BANK_CARD_PAYMENT_SUCCESS_BODY =
   "Your payment settled instantly. Your Alta Card balance and available credit have been updated.";
 
+export const BANK_LOAN_PAYMENT_SUCCESS_BODY =
+  "Your loan payment settled instantly. Your payoff amount and payment schedule have been updated.";
+
 export const BANK_SUBMISSION_ERROR_FALLBACK =
   "This request could not be submitted. Please review your details and try again.";
 

@@ -9,9 +9,7 @@ export function formatBankRequestDisplayStatus(status: BankTransactionStatusCode
   return "Under Review";
 }
 
-/** Customer-safe denial copy — never exposes internal operator notes beyond the submitted reason. */
-export function formatBankRequestDenialMessage(reviewNote: string | null | undefined): string {
-  const trimmed = reviewNote?.trim();
-  if (trimmed) return trimmed;
+/** Customer-safe denial copy — never exposes internal operator notes. */
+export function formatBankRequestDenialMessage(_reviewNote: string | null | undefined): string {
   return "This request was not approved.";
 }

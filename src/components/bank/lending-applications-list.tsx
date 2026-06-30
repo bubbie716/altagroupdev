@@ -108,9 +108,9 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
           size="compact"
         />
       ) : (
-        <ul className="overflow-hidden rounded-xl border border-border bg-surface-1 divide-y divide-border">
+        <ul className="overflow-x-auto rounded-xl border border-border bg-surface-1 divide-y divide-border">
           {filtered.map((a) => (
-            <li key={a.id}>
+            <li key={a.id} className="min-w-[44rem]">
               <ApplicationRow a={a} />
             </li>
           ))}
@@ -122,58 +122,51 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
 
 function ApplicationRow({ a }: { a: LoanApplicationRow }) {
   return (
-    <div className="grid gap-3 px-5 py-5 sm:grid-cols-[1.4fr_0.9fr_0.7fr_auto] sm:items-center sm:gap-6 sm:px-6">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="grid gap-4 px-6 py-6 sm:min-w-[44rem] sm:grid-cols-[minmax(0,1fr)_11rem_12rem_minmax(16rem,1.2fr)] sm:items-center sm:gap-x-10 sm:px-8 lg:gap-x-14">
+      <div className="min-w-0 pr-2">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           <span>{a.id.slice(0, 8)}</span>
           <span aria-hidden>·</span>
           <span>{formatActivityDateTime(a.submittedAt)}</span>
         </div>
-        <h3 className="mt-1 font-serif text-[18px] leading-tight tracking-tight">{a.productLabel}</h3>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">{a.companyName ?? "Personal"}</p>
-        {a.reviewNote && (
-          <p className="mt-2 line-clamp-2 max-w-prose text-[12px] text-muted-foreground/90">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/80">Review note · </span>
-            {a.reviewNote}
-          </p>
-        )}
+        <h3 className="mt-1.5 font-serif text-[18px] leading-snug tracking-tight">{a.productLabel}</h3>
+        <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{a.companyName ?? "Personal"}</p>
       </div>
 
       <div className="sm:text-right">
         <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           Requested
         </div>
-        <div className="mt-1 text-[15px]">
+        <div className="mt-1.5 text-[15px] tabular-nums">
           <Florin value={a.requestedAmount} fractionDigits={0} />
         </div>
-        <div className="mt-1 tabular font-mono text-[11px] text-muted-foreground">
-          {a.termMonths} mo
-          {a.estimatedTotalOutstanding != null && (
-            <>
-              {" · est. "}
-              <Florin value={a.estimatedTotalOutstanding} fractionDigits={0} />
-            </>
-          )}
+        <div className="mt-1.5 space-y-0.5 font-mono text-[11px] leading-snug text-muted-foreground tabular-nums sm:ml-auto">
+          <div>{a.termMonths} mo</div>
+          {a.estimatedTotalOutstanding != null ? (
+            <div>
+              est. <Florin value={a.estimatedTotalOutstanding} fractionDigits={0} />
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="sm:text-right">
+      <div className="sm:flex sm:flex-col sm:items-end sm:pl-2">
         <StatusBadge status={applicationListStatusLabel(a, "user")} />
-        <div className="mt-2">
+        <div className="mt-2.5">
           <Link
             to="/bank/lending/applications/$applicationId/thread"
             params={{ applicationId: a.id }}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
+            className="font-mono text-[10px] uppercase leading-snug tracking-[0.14em] text-gold hover:underline"
           >
             {a.threadId ? "View Secure Deal Room" : "View application"}
           </Link>
         </div>
       </div>
 
-      <div className="hidden sm:block sm:text-right">
-        {a.linkedAccountLabel ? (
-          <div className="text-[12px] text-muted-foreground">{a.linkedAccountLabel}</div>
-        ) : null}
+      <div className="hidden min-w-0 pl-2 sm:block sm:text-right">
+        <div className="text-[12px] leading-relaxed text-muted-foreground">
+          {a.linkedAccountLabel ?? "—"}
+        </div>
       </div>
     </div>
   );

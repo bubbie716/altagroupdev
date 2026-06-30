@@ -69,7 +69,7 @@ export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
     label: "Alta Card statements",
     description: "Generates Alta Card billing cycle statements at month end.",
     cronEndpoint: "/api/cron/daily-servicing",
-    nextSchedule: "Daily cron · generates on calendar month end",
+    nextSchedule: "Daily cron · generates after month-end close (or catch-up on the 1st)",
     manualRunKey: "ALTA_CARD_STATEMENTS",
     manualImpact: "Force-runs Alta Card statement generation for all eligible cards.",
   },

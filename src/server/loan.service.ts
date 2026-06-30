@@ -12,6 +12,10 @@ import {
   type LoanRateType,
 } from "@/lib/bank/loan-interest";
 import {
+  allocatePaymentToScheduleInstallments,
+  rebuildScheduleInstallmentPayments,
+} from "@/lib/bank/loan-payment-schedule";
+import {
   allocateLoanPayment,
   applyBalanceAdjustment,
   applyGuaranteedInterestPaymentInTx,
@@ -38,6 +42,7 @@ import type {
   LoanRow,
   MakeLoanPaymentInput,
   SetLoanAutoPayInput,
+  SubmitLoanPaymentResult,
 } from "@/lib/bank/lending-types";
 import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
 import {
@@ -242,6 +247,122 @@ export async function createLoanPaymentScheduleInTx(
   });
 }
 
+async function applyInstallmentSchedulePaymentInTx(
+  tx: Prisma.TransactionClient,
+  loanId: string,
+  amount: number,
+  now: Date,
+): Promise<string | null> {
+  const items = await tx.loanPaymentScheduleItem.findMany({
+    where: { loanId },
+    orderBy: { installmentNumber: "asc" },
+  });
+  if (items.length === 0) return null;
+
+  const states = items.map((item) => ({
+    id: item.id,
+    scheduledAmount: decimalToNumber(item.scheduledAmount),
+    paidAmount: decimalToNumber(item.paidAmount),
+  }));
+
+  const { updates, primaryInstallmentId } = allocatePaymentToScheduleInstallments(states, amount);
+
+  for (const update of updates) {
+    await tx.loanPaymentScheduleItem.update({
+      where: { id: update.id },
+      data: {
+        paidAmount: update.paidAmount,
+        ...(update.fullyPaid
+          ? { status: "PAID" as const, paidAt: now }
+          : {}),
+      },
+    });
+  }
+
+  return primaryInstallmentId;
+}
+
+async function closeOpenPaymentScheduleOnPayoffInTx(
+  tx: Prisma.TransactionClient,
+  loanId: string,
+  paidAt = new Date(),
+): Promise<void> {
+  const openItems = await tx.loanPaymentScheduleItem.findMany({
+    where: { loanId, status: { not: "PAID" } },
+  });
+  for (const item of openItems) {
+    await tx.loanPaymentScheduleItem.update({
+      where: { id: item.id },
+      data: {
+        status: "PAID",
+        paidAt,
+        paidAmount: item.scheduledAmount,
+      },
+    });
+  }
+}
+
+export async function reconcileLoanPaymentSchedule(loanId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const loan = await tx.loan.findUnique({
+      where: { id: loanId },
+      select: { status: true },
+    });
+
+    const items = await tx.loanPaymentScheduleItem.findMany({
+      where: { loanId },
+      orderBy: { installmentNumber: "asc" },
+    });
+    if (items.length === 0) return;
+
+    const payments = await tx.loanPayment.findMany({
+      where: { loanId, status: "COMPLETED" },
+      orderBy: [{ paymentDate: "asc" }, { createdAt: "asc" }],
+      select: { id: true, amount: true, paymentDate: true },
+    });
+    if (payments.length === 0) return;
+
+    const installments = items.map((item) => ({
+      id: item.id,
+      scheduledAmount: decimalToNumber(item.scheduledAmount),
+      paidAmount: 0,
+    }));
+
+    const { installmentStates, paymentInstallmentIds } = rebuildScheduleInstallmentPayments(
+      installments,
+      payments.map((payment) => decimalToNumber(payment.amount)),
+    );
+
+    for (const state of installmentStates) {
+      await tx.loanPaymentScheduleItem.update({
+        where: { id: state.id },
+        data: {
+          paidAmount: state.paidAmount,
+          status: state.fullyPaid ? "PAID" : "PENDING",
+          paidAt: state.fullyPaid ? payments.at(-1)?.paymentDate ?? new Date() : null,
+        },
+      });
+    }
+
+    for (let index = 0; index < payments.length; index += 1) {
+      const installmentId = paymentInstallmentIds[index];
+      if (!installmentId) continue;
+      await tx.loanPayment.update({
+        where: { id: payments[index]!.id },
+        data: { scheduleItemId: installmentId },
+      });
+    }
+
+    if (loan?.status === "PAID_OFF") {
+      await closeOpenPaymentScheduleOnPayoffInTx(
+        tx,
+        loanId,
+        payments.at(-1)?.paymentDate ?? new Date(),
+      );
+    }
+  });
+}
+
 async function syncLoanPaymentSchedule(loanId: string): Promise<void> {
   const loan = await prisma.loan.findUnique({ where: { id: loanId } });
   if (!loan?.termMonths || loan.termMonths <= 0) return;
@@ -294,6 +415,18 @@ async function syncLoanPaymentSchedule(loanId: string): Promise<void> {
 
 export async function ensureLoanPaymentSchedule(loanId: string): Promise<void> {
   await syncLoanPaymentSchedule(loanId);
+  try {
+    await reconcileLoanPaymentSchedule(loanId);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        scope: "loan-payment-schedule",
+        event: "reconcile_failed",
+        loanId,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }
 }
 
 function resolveLoanPaymentActorUserId(loan: {
@@ -385,15 +518,11 @@ export async function getLoanPaymentContext(userId: string, loanId: string): Pro
   };
 }
 
-export async function makeLoanPayment(userId: string, input: MakeLoanPaymentInput): Promise<void> {
-  await processLoanPayment(userId, input);
-}
-
 async function processLoanPayment(
   actorUserId: string,
   input: MakeLoanPaymentInput,
   options: ProcessLoanPaymentOptions = {},
-): Promise<void> {
+): Promise<SubmitLoanPaymentResult> {
   const user = await getAltaUser(actorUserId);
   const loanRecord = await prisma.loan.findUnique({
     where: { id: input.loanId },
@@ -449,9 +578,9 @@ async function processLoanPayment(
   const paidOff = newPayoff <= 0;
   const paymentMemo = options.memo ?? (input.memo?.trim() || null);
   const now = new Date();
+  const referenceCode = generateReferenceCode("LNP");
 
   await prisma.$transaction(async (tx) => {
-    const referenceCode = generateReferenceCode("LNP");
     const bankTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: input.sourceBankAccountId,
@@ -470,17 +599,7 @@ async function processLoanPayment(
       data: { balance: { decrement: amount } },
     });
 
-    let scheduleItemId = options.scheduleItemId;
-    if (!scheduleItemId) {
-      const nextItem = await tx.loanPaymentScheduleItem.findFirst({
-        where: {
-          loanId: loanRecord.id,
-          status: { in: ["PENDING", "OVERDUE"] },
-        },
-        orderBy: { installmentNumber: "asc" },
-      });
-      scheduleItemId = nextItem?.id;
-    }
+    let scheduleItemId = options.scheduleItemId ?? null;
 
     const loanPayment = await tx.loanPayment.create({
       data: {
@@ -491,20 +610,23 @@ async function processLoanPayment(
         paymentDate: now,
         sourceBankAccountId: input.sourceBankAccountId,
         bankTransactionId: bankTx.id,
-        scheduleItemId: scheduleItemId ?? null,
+        scheduleItemId,
         memo: paymentMemo,
         status: "COMPLETED",
       },
     });
 
-    if (scheduleItemId) {
-      await tx.loanPaymentScheduleItem.update({
-        where: { id: scheduleItemId },
-        data: {
-          status: "PAID",
-          paidAt: now,
-          autoPayFailureReason: null,
-        },
+    const appliedScheduleItemId = await applyInstallmentSchedulePaymentInTx(
+      tx,
+      loanRecord.id,
+      amount,
+      now,
+    );
+    if (!scheduleItemId && appliedScheduleItemId) {
+      scheduleItemId = appliedScheduleItemId;
+      await tx.loanPayment.update({
+        where: { id: loanPayment.id },
+        data: { scheduleItemId: appliedScheduleItemId },
       });
     }
 
@@ -548,18 +670,34 @@ async function processLoanPayment(
         description: LOAN_PAYOFF_DESCRIPTION,
         createdById: actorUserId,
       });
-      await tx.loanPaymentScheduleItem.updateMany({
-        where: { loanId: loanRecord.id, status: { in: ["PENDING", "OVERDUE"] } },
-        data: { status: "PAID", paidAt: now },
-      });
+      await closeOpenPaymentScheduleOnPayoffInTx(tx, loanRecord.id, now);
     }
   });
+
+  if (paidOff) {
+    const { recordLoanPaidOffTimelineEvent } = await import("@/server/relationship-timeline.service");
+    await recordLoanPaidOffTimelineEvent({
+      loanId: loanRecord.id,
+      borrowerUserId: loanRecord.borrowerUserId,
+      companyId: loanRecord.companyId,
+      actorUserId,
+    });
+  }
 
   const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
   await refreshFromLoanContextBestEffort(
     { borrowerUserId: loanRecord.borrowerUserId, companyId: loanRecord.companyId },
     paidOff ? "loan-paid-off" : "loan-payment-made",
   );
+
+  return { referenceCode, amount };
+}
+
+export async function makeLoanPayment(
+  userId: string,
+  input: MakeLoanPaymentInput,
+): Promise<SubmitLoanPaymentResult> {
+  return processLoanPayment(userId, input);
 }
 
 export async function setLoanAutoPay(userId: string, input: SetLoanAutoPayInput): Promise<void> {
@@ -1131,6 +1269,7 @@ export async function approveLoanApplication(
       await recordRelationshipTimelineEvent({
         userId: application.applicantUserId,
         ...fundedEvent,
+        dedupeKey: `loan:funded:${loan.id}`,
       });
     }
   }
@@ -1275,6 +1414,7 @@ export async function markLoanPaidOff(adminId: string, loanId: string): Promise<
 
   await prisma.$transaction(async (tx) => {
     await waiveUnpaidInterestScheduleInTx(tx, loanId);
+    await closeOpenPaymentScheduleOnPayoffInTx(tx, loanId);
     await tx.loan.update({
       where: { id: loanId },
       data: {
@@ -1295,32 +1435,13 @@ export async function markLoanPaidOff(adminId: string, loanId: string): Promise<
   });
 
   if (loan.borrowerUserId) {
-    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-    const { formatLoanPaidOffCopy } = await import("@/lib/bank/relationship-timeline-customer-copy");
-    const paidOffCopy = formatLoanPaidOffCopy(loan.companyId ? "business" : "personal");
-    const paidOffEvent = {
-      eventType: "LOAN_PAID_OFF" as const,
-      title: paidOffCopy.title,
-      description: paidOffCopy.description ?? undefined,
-      occurredAt: new Date(),
-      relatedEntityType: "LOAN" as const,
-      relatedEntityId: loanId,
+    const { recordLoanPaidOffTimelineEvent } = await import("@/server/relationship-timeline.service");
+    await recordLoanPaidOffTimelineEvent({
+      loanId,
+      borrowerUserId: loan.borrowerUserId,
+      companyId: loan.companyId,
       actorUserId: adminId,
-    };
-    if (loan.companyId) {
-      const { recordCompanyTimelineEventIfBusiness } = await import(
-        "@/server/company-relationship-timeline.service"
-      );
-      await recordCompanyTimelineEventIfBusiness(loan.companyId, {
-        ...paidOffEvent,
-        dedupeKey: `loan:paidoff:${loanId}`,
-      });
-    } else {
-      await recordRelationshipTimelineEvent({
-        userId: loan.borrowerUserId,
-        ...paidOffEvent,
-      });
-    }
+    });
   }
 
   const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");

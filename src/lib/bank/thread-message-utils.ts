@@ -3,8 +3,11 @@ import type { AltaCardReviewThreadMessageRow } from "@/lib/bank/alta-card-review
 import { mapAltaCardReviewThreadMessagesToLoan } from "@/lib/bank/alta-card-review-thread-adapter";
 import { mapAltaCardThreadMessagesToLoan } from "@/lib/bank/alta-card-thread-adapter";
 import type { LoanApplicationThreadMessageRow } from "@/lib/bank/loan-application-thread-types";
+import { stripAdminReasonFromCustomerThreadBody } from "@/lib/bank/secure-deal-room-system-copy";
 
 export type ThreadViewVariant = "user" | "internal";
+
+export type ThreadMessageAudience = "customer" | "internal";
 
 /** True when the bubble should render on the right (dark / "you"). */
 export function isOwnThreadMessage(
@@ -50,4 +53,13 @@ export function normalizeThreadMessage(
     return mapAltaCardThreadMessagesToLoan([message as AltaCardApplicationThreadMessageRow])[0]!;
   }
   return message as LoanApplicationThreadMessageRow;
+}
+
+export function sanitizeThreadMessageBodyForAudience(
+  body: string | null,
+  senderRole: LoanApplicationThreadMessageRow["senderRole"],
+  audience: ThreadMessageAudience,
+): string | null {
+  if (!body || audience === "internal" || senderRole !== "system") return body;
+  return stripAdminReasonFromCustomerThreadBody(body);
 }

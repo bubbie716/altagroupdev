@@ -23,6 +23,8 @@ import {
   altaCardInclude,
   mapAltaCardApplicationDetail,
   mapAltaCardApplicationRow,
+  mapInternalAltaCardApplicationDetail,
+  mapInternalAltaCardApplicationRow,
   mapAltaCardRow,
   toDbAltaCardApplicationStatus,
   toDbAltaCardTier,
@@ -247,7 +249,7 @@ export async function updateAltaCardApplicationStatus(
     application.companyId,
   );
 
-  return mapAltaCardApplicationRow(updated);
+  return mapInternalAltaCardApplicationRow(updated);
 }
 
 export async function approveAltaCardApplication(
@@ -359,7 +361,7 @@ export async function approveAltaCardApplication(
   }
 
   return {
-    application: mapAltaCardApplicationRow(result.application),
+    application: mapInternalAltaCardApplicationRow(result.application),
     card: result.card ? mapAltaCardRow(result.card) : null,
   };
 }
@@ -406,7 +408,7 @@ export async function denyAltaCardApplication(
     application.companyId,
   );
 
-  return mapAltaCardApplicationRow(updated);
+  return mapInternalAltaCardApplicationRow(updated);
 }
 
 export async function acceptAltaCardApplication(
@@ -578,7 +580,7 @@ export async function listInternalAltaCardApplicationsFiltered(
     take: 200,
   });
 
-  return applications.map(mapAltaCardApplicationRow);
+  return applications.map(mapInternalAltaCardApplicationRow);
 }
 
 export async function getInternalAltaCardApplicationReviewContext(
@@ -614,11 +616,11 @@ export async function getInternalAltaCardApplicationReviewContext(
       getAltaCardRelationshipRecommendation(application.applicantUserId, application.companyId),
     ),
     getAltaCardThreadContext(staffUserId, applicationId, "internal"),
-    getAltaCardThreadMessages(staffUserId, applicationId),
+    getAltaCardThreadMessages(staffUserId, applicationId, "internal"),
   ]);
 
   return {
-    application: mapAltaCardApplicationDetail(application),
+    application: mapInternalAltaCardApplicationDetail(application),
     applicantAccountCount,
     applicantLoanCount,
     companyAccountCount,

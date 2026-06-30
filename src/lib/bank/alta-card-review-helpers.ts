@@ -50,24 +50,20 @@ export const ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE =
 export const ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE =
   "You may submit another account review request after 30 days.";
 
-export function formatReviewCancelledThreadMessage(reason: string): string {
-  const trimmed = reason.trim();
-  const sections = ["This account review has been cancelled.", SECURE_DEAL_ROOM_CLOSED_LINE];
-  if (trimmed) {
-    sections.push(`Reason from Alta Credit Desk:\n\n${trimmed}`);
-  }
-  sections.push(ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE);
-  return sections.join("\n\n");
+export function formatReviewCancelledThreadMessage(_reason: string): string {
+  return [
+    "This account review has been cancelled.",
+    SECURE_DEAL_ROOM_CLOSED_LINE,
+    ALTA_CARD_REVIEW_CANCELLED_REAPPLY_MESSAGE,
+  ].join("\n\n");
 }
 
-export function formatReviewDeniedThreadMessage(reason: string): string {
-  const trimmed = reason.trim();
-  const sections = ["Your account review has been denied.", SECURE_DEAL_ROOM_CLOSED_LINE];
-  if (trimmed) {
-    sections.push(`Reason from Alta Credit Desk:\n\n${trimmed}`);
-  }
-  sections.push(ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE);
-  return sections.join("\n\n");
+export function formatReviewDeniedThreadMessage(_reason: string): string {
+  return [
+    "Your account review has been denied.",
+    SECURE_DEAL_ROOM_CLOSED_LINE,
+    ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE,
+  ].join("\n\n");
 }
 
 /** Eligible tier targets for account review (strictly higher tiers; Black/Gold have no upgrade path here). */
@@ -125,7 +121,6 @@ type ReviewDecisionThreadInput = {
 
 /** System message body when staff closes a review with approve / partial / deny. */
 export function formatReviewDecisionThreadMessage(input: ReviewDecisionThreadInput): string {
-  const reason = input.reason.trim();
   const headline =
     input.finalStatus === "APPROVED"
       ? "Your account review has been accepted."
@@ -167,9 +162,6 @@ export function formatReviewDecisionThreadMessage(input: ReviewDecisionThreadInp
   }
   if (declinedLines.length > 0) {
     sections.push("", "Not approved:", ...declinedLines.map((line) => `• ${line}`));
-  }
-  if (reason) {
-    sections.push("", `Note from Alta Credit Desk:\n\n${reason}`);
   }
   if (input.finalStatus === "APPROVED" || input.finalStatus === "PARTIALLY_APPROVED") {
     sections.push("", ALTA_CARD_REVIEW_COOLDOWN_APPLIES_MESSAGE);

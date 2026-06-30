@@ -43,8 +43,11 @@ import {
   buildRepaymentScheduleWithInterest,
   findNextDueInstallment,
   formatNextPaymentDueLabel,
+  isPartiallyPaidInstallment,
   monthlyPrincipalPercent,
-  resolveScheduleItemStatus,
+  resolveNextInstallmentPaymentAmount,
+  resolveScheduleInstallmentDisplayStatus,
+  scheduleInstallmentRemaining,
   type LoanScheduleInstallmentDraft,
 } from "@/lib/bank/loan-payment-schedule";
 import { addMonths } from "@/lib/bank/loan-interest";
@@ -230,7 +233,7 @@ export function mapLoanApplicationRow(record: LoanApplicationRecord): LoanApplic
     notes: record.notes,
     status,
     statusLabel: formatApplicationStatusLabel(status),
-    reviewNote: record.reviewNote,
+    reviewNote: null,
     companyId: record.companyId,
     companyName: record.company?.name ?? null,
     linkedBankAccountId: record.linkedBankAccountId,
@@ -246,6 +249,7 @@ export function mapInternalLoanApplicationRow(record: LoanApplicationRecord): In
   const base = mapLoanApplicationRow(record);
   return {
     ...base,
+    reviewNote: record.reviewNote,
     applicantUserId: record.applicantUserId,
     applicantLabel: record.company?.name
       ? `${record.applicantUser.discordUsername} · ${record.company.name}`
@@ -265,6 +269,7 @@ const SCHEDULE_STATUS_FROM_DB: Record<DbLoanScheduleInstallmentStatus, LoanSched
 
 const SCHEDULE_STATUS_LABELS: Record<LoanScheduleInstallmentStatusCode, string> = {
   pending: "Pending",
+  partial: "Partial",
   paid: "Paid",
   overdue: "Overdue",
   failed: "Failed",
@@ -283,6 +288,7 @@ const INTEREST_SCHEDULE_STATUS_FROM_DB: Record<
 const INTEREST_SCHEDULE_STATUS_LABELS: Record<LoanInterestScheduleStatusCode, string> = {
   pending: "Pending",
   guaranteed: "Guaranteed",
+  partial: "Partial",
   paid: "Paid",
   waived: "Waived",
 };
@@ -349,6 +355,7 @@ function mapLoanRepaymentFields(
   payments: { amount: Prisma.Decimal | number; status: DbLoanPaymentStatus }[] = [],
   scheduleItems: LoanScheduleItemRow[] = [],
   interestScheduleSummary?: ReturnType<typeof summarizeInterestSchedule>,
+  loanStatus?: LoanStatusCode,
 ) {
   const { principalRepaid, principalPercentRepaid } = computePrincipalRepaymentProgress(
     principalAmount,
@@ -359,20 +366,29 @@ function mapLoanRepaymentFields(
     principalOutstanding,
     accruedInterest: guaranteedInterestOwed,
   });
+  const loanClosed =
+    loanStatus === "paid_off" ||
+    loanStatus === "cancelled" ||
+    currentPayoffAmount <= 0.005;
   const remainingPotentialInterest =
     interestScheduleSummary?.pendingFutureInterest ?? 0;
   const projectedFullTermCost =
     interestScheduleSummary?.projectedFullTermCost ??
     roundCurrency(principalAmount + remainingPotentialInterest + guaranteedInterestOwed);
   const estimatedFutureInterest = remainingPotentialInterest;
-  const estimatedScheduleRemaining = Math.round(
-    scheduleItems
-      .filter((item) => item.status !== "paid")
-      .reduce((sum, item) => sum + item.scheduledAmount, 0) * 100,
-  ) / 100;
+  const estimatedScheduleRemaining = loanClosed
+    ? 0
+    : Math.round(
+        scheduleItems.reduce((sum, item) => sum + scheduleInstallmentRemaining(item), 0) * 100,
+      ) / 100;
   const amountRepaid = sumCompletedLoanPayments(payments);
-  const nextInstallment = findNextDueInstallment(scheduleItems);
-  const nextPaymentDueLabel = formatNextPaymentDueLabel(nextInstallment, formatDueDate);
+  const nextInstallment = loanClosed ? null : findNextDueInstallment(scheduleItems);
+  const nextPaymentDueAmount = nextInstallment
+    ? resolveNextInstallmentPaymentAmount(nextInstallment)
+    : null;
+  const nextPaymentDueLabel = loanClosed
+    ? "No payments due"
+    : formatNextPaymentDueLabel(nextInstallment, formatDueDate);
 
   return {
     principalRepaid,
@@ -387,6 +403,7 @@ function mapLoanRepaymentFields(
     percentRepaid: principalPercentRepaid,
     totalRepaymentObligation: principalAmount,
     nextPaymentDueLabel,
+    nextPaymentDueAmount,
     includesAccruedInterest: guaranteedInterestOwed > 0,
     accruedInterestAmount: guaranteedInterestOwed,
   };
@@ -399,9 +416,15 @@ function roundCurrency(amount: number): number {
 export function mapLoanInterestScheduleItemRow(
   record: Prisma.LoanInterestScheduleItemGetPayload<object>,
 ): LoanInterestScheduleItemRow {
-  const status = INTEREST_SCHEDULE_STATUS_FROM_DB[record.status];
+  const dbStatus = INTEREST_SCHEDULE_STATUS_FROM_DB[record.status];
   const interestAmount = decimalToNumber(record.interestAmount);
   const paidAmount = decimalToNumber(record.paidAmount);
+  const status: LoanInterestScheduleStatusCode =
+    dbStatus === "paid" || dbStatus === "waived"
+      ? dbStatus
+      : isPartiallyPaidInstallment(interestAmount, paidAmount)
+        ? "partial"
+        : dbStatus;
   return {
     id: record.id,
     installmentNumber: record.installmentNumber,
@@ -422,19 +445,46 @@ export function mapLoanScheduleItemRow(
   now = new Date(),
 ): LoanScheduleItemRow {
   const baseStatus = SCHEDULE_STATUS_FROM_DB[record.status];
-  const status = resolveScheduleItemStatus(baseStatus, record.dueDate, now);
   const scheduledAmount = decimalToNumber(record.scheduledAmount);
+  const paidAmount = decimalToNumber(record.paidAmount);
+  const status = resolveScheduleInstallmentDisplayStatus(
+    baseStatus,
+    record.dueDate,
+    scheduledAmount,
+    paidAmount,
+    now,
+  );
   return {
     id: record.id,
     installmentNumber: record.installmentNumber,
     dueDate: record.dueDate.toISOString(),
     scheduledAmount,
+    paidAmount,
+    remainingAmount: scheduleInstallmentRemaining({
+      scheduledAmount,
+      paidAmount,
+      status,
+    }),
     principalPortion: draft?.principalPortion ?? scheduledAmount,
     interestPortion: draft?.interestPortion ?? 0,
     principalPercent: monthlyPrincipalPercent(termMonths ?? 0),
     status,
     statusLabel: formatScheduleStatusLabel(status),
   };
+}
+
+function normalizePaymentScheduleForClosedLoan(
+  schedule: LoanScheduleItemRow[],
+  loanStatus: LoanStatusCode,
+): LoanScheduleItemRow[] {
+  if (loanStatus !== "paid_off" && loanStatus !== "cancelled") return schedule;
+  return schedule.map((item) => ({
+    ...item,
+    status: "paid" as const,
+    statusLabel: formatScheduleStatusLabel("paid"),
+    paidAmount: item.scheduledAmount,
+    remainingAmount: 0,
+  }));
 }
 
 function buildScheduleDraftsForLoan(record: {
@@ -499,12 +549,15 @@ function mapLoanCoreFields(
   const accruedInterest = decimalToNumber(record.accruedInterest);
   const termMonths = record.termMonths ?? null;
   const scheduleDrafts = buildScheduleDraftsForLoan(record);
-  const paymentSchedule = (record.paymentSchedule ?? []).map((item) => {
-    const draft = scheduleDrafts.find(
-      (entry) => entry.installmentNumber === item.installmentNumber,
-    );
-    return mapLoanScheduleItemRow(item, termMonths, draft);
-  });
+  const paymentSchedule = normalizePaymentScheduleForClosedLoan(
+    (record.paymentSchedule ?? []).map((item) => {
+      const draft = scheduleDrafts.find(
+        (entry) => entry.installmentNumber === item.installmentNumber,
+      );
+      return mapLoanScheduleItemRow(item, termMonths, draft);
+    }),
+    status,
+  );
   const interestGuaranteeSchedule = (record.interestSchedule ?? []).map(mapLoanInterestScheduleItemRow);
   const interestSummary =
     interestGuaranteeSchedule.length > 0
@@ -546,6 +599,7 @@ function mapLoanCoreFields(
       record.payments ?? [],
       paymentSchedule,
       interestSummary,
+      status,
     ),
     interestRate,
     interestRateType: rateType,
@@ -662,6 +716,7 @@ export function mapInternalActiveLoanRow(
       record.payments ?? [],
       paymentSchedule,
       interestSummary,
+      status,
     ),
     interestRateLabel: formatInterestRateLabel(interestRate, rateType),
     status,

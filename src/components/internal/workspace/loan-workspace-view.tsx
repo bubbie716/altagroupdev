@@ -166,18 +166,25 @@ export function LoanWorkspaceView({
           relatedRecords={relatedRecords}
           notes={notes}
           relationship={
-            integration?.panel && relationship.userId
+            integration?.scope === "personal" && relationship.userId
               ? {
-                  score: integration.panel.relationshipScore,
-                  tier: formatRelationshipTier(integration.panel.relationshipTier),
-                  totalAssets: integration.panel.totalAltaAssets,
+                  score: integration.bundle.panel.relationshipScore,
+                  tier: formatRelationshipTier(integration.bundle.panel.relationshipTier),
+                  totalAssets: integration.bundle.panel.totalAltaAssets,
                   href: `/internal/users/${relationship.userId}?tab=relationship`,
                 }
-              : relationship.companyId
+              : integration?.scope === "company" && relationship.companyId
                 ? {
+                    score: integration.bundle.panel.relationshipScore,
+                    tier: formatRelationshipTier(integration.bundle.panel.relationshipTier),
+                    totalAssets: integration.bundle.panel.totalBusinessAssets,
                     href: `/internal/companies/${relationship.companyId}?tab=relationship`,
                   }
-                : null
+                : relationship.companyId
+                  ? {
+                      href: `/internal/companies/${relationship.companyId}?tab=relationship`,
+                    }
+                  : null
           }
         />
       }

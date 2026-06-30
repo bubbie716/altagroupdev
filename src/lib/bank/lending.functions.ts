@@ -72,8 +72,7 @@ export const submitLoanPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { makeLoanPayment } = await import("@/server/loan.service");
     const userId = await actorId();
-    await makeLoanPayment(userId, data);
-    return { ok: true as const };
+    return makeLoanPayment(userId, data);
   });
 
 export const setLoanAutoPayRecord = createServerFn({ method: "POST" })

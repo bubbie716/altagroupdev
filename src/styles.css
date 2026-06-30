@@ -215,7 +215,7 @@
   }
 
   /* Hide browser increment/decrement controls on number inputs.
-     Mouse-wheel changes are blocked in NumberInputScrollGuard (see __root.tsx). */
+     Wheel events redirect to page scroll in NumberInputScrollGuard (see __root.tsx). */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;

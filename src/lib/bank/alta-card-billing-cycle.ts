@@ -92,3 +92,51 @@ export function isLastCalendarDayOfMonth(date = new Date()): boolean {
   const monthEnd = startOfUtcDay(getStatementCloseDate(date));
   return today.getTime() === monthEnd.getTime();
 }
+
+/** True when `date` is the first calendar day of its month (UTC). */
+export function isFirstCalendarDayOfMonth(date = new Date()): boolean {
+  return date.getUTCDate() === 1;
+}
+
+/** True when the billing period for `nextStatementDate` has closed on or before `runDate` (UTC calendar days). */
+export function isAltaCardStatementCloseDue(
+  nextStatementDate: Date,
+  runDate = new Date(),
+): boolean {
+  return startOfUtcDay(nextStatementDate).getTime() <= startOfUtcDay(runDate).getTime();
+}
+
+export type AltaCardStatementSchedulerWindow =
+  | { shouldRun: true; mode: "month_end_close" | "month_start_catch_up" | "forced" }
+  | { shouldRun: false; skipReason: string };
+
+/**
+ * Daily cron runs on month-end after the period closes, or on the 1st as catch-up.
+ * Mid-month-end morning runs skip — close is end-of-day UTC, not midnight at day start.
+ */
+export function resolveAltaCardStatementSchedulerWindow(
+  date = new Date(),
+  force = false,
+): AltaCardStatementSchedulerWindow {
+  if (force) return { shouldRun: true, mode: "forced" };
+
+  if (isFirstCalendarDayOfMonth(date)) {
+    return { shouldRun: true, mode: "month_start_catch_up" };
+  }
+
+  if (isLastCalendarDayOfMonth(date)) {
+    if (date.getTime() >= endOfUtcDay(date).getTime()) {
+      return { shouldRun: true, mode: "month_end_close" };
+    }
+    return {
+      shouldRun: false,
+      skipReason:
+        "Billing period still open until end of day (statements generate after close or on the 1st)",
+    };
+  }
+
+  return {
+    shouldRun: false,
+    skipReason: "Not the last calendar day of the month",
+  };
+}

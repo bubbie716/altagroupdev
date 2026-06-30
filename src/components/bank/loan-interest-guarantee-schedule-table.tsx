@@ -1,5 +1,6 @@
 import { AdminDataTable } from "@/components/internal/admin-data-table";
-import { StatusBadge } from "@/components/internal/status-badge";
+import { LoanScheduleStatusBadge } from "@/components/bank/loan-schedule-status-badge";
+import { ScheduleRemainingDueCell } from "@/components/bank/loan-schedule-remaining-cell";
 import { florin } from "@/lib/bank/api";
 import type { LoanInterestScheduleItemRow } from "@/lib/bank/lending-types";
 import { formatDueDate } from "@/lib/format-datetime";
@@ -42,9 +43,22 @@ export function LoanInterestGuaranteeScheduleTable({
             ),
           },
           {
+            key: "remaining",
+            header: "Remaining due",
+            cell: (row: LoanInterestScheduleItemRow) => (
+              <ScheduleRemainingDueCell
+                totalAmount={row.interestAmount}
+                paidAmount={row.paidAmount}
+                status={row.status}
+              />
+            ),
+          },
+          {
             key: "status",
             header: "Status",
-            cell: (row: LoanInterestScheduleItemRow) => <StatusBadge status={row.statusLabel} />,
+            cell: (row: LoanInterestScheduleItemRow) => (
+              <LoanScheduleStatusBadge status={row.status} statusLabel={row.statusLabel} />
+            ),
           },
           {
             key: "paidAt",

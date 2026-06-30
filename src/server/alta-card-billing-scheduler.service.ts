@@ -1,4 +1,7 @@
-import { isLastCalendarDayOfMonth } from "@/lib/bank/alta-card-billing-cycle";
+import {
+  endOfUtcDay,
+  resolveAltaCardStatementSchedulerWindow,
+} from "@/lib/bank/alta-card-billing-cycle";
 import {
   ALTA_CARD_BILLING_JOB_KEY,
   ALTA_CARD_STATEMENTS_JOB_KEY,
@@ -136,13 +139,14 @@ export async function runAltaCardStatementSchedulerJob(options?: {
     startedAt: startedAtIso,
   });
 
-  if (!force && !isLastCalendarDayOfMonth(startedAt)) {
+  const window = resolveAltaCardStatementSchedulerWindow(startedAt, force);
+  if (!window.shouldRun) {
     const completedAt = new Date();
     const result: AltaCardStatementSchedulerResult = {
       ok: true,
       trigger,
       skipped: true,
-      skipReason: "Not the last calendar day of the month",
+      skipReason: window.skipReason,
       startedAt: startedAtIso,
       completedAt: completedAt.toISOString(),
       durationMs: completedAt.getTime() - startedAt.getTime(),
@@ -177,7 +181,7 @@ export async function runAltaCardStatementSchedulerJob(options?: {
   const cards = await prisma.altaCard.findMany({
     where: {
       status: "ACTIVE",
-      nextStatementDate: { lte: startedAt },
+      nextStatementDate: { lte: endOfUtcDay(startedAt) },
       currentStatementId: { not: null },
     },
     select: { id: true },
@@ -235,6 +239,7 @@ export async function runAltaCardStatementSchedulerJob(options?: {
       errorSummary: failures[0]?.error ?? null,
       details: {
         trigger,
+        schedulerMode: window.mode,
         statementsGenerated: result.statementsGenerated,
         generatedCardIds: result.generatedCardIds,
         failures: result.failures,

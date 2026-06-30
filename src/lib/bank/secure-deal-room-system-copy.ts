@@ -30,44 +30,63 @@ export const ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE = [
 /** @deprecated Use LENDING_THREAD_WELCOME_MESSAGE — kept for docs and status copy references. */
 export const LOAN_APPLICATION_SUBMITTED_MESSAGE = LENDING_THREAD_WELCOME_MESSAGE;
 
+/** Internal operator notes — never append to customer-facing system messages. */
 export function formatAltaCreditDeskNote(note?: string | null): string {
   const trimmed = note?.trim();
   if (!trimmed) return "";
   return `\n\nNote from Alta Credit Desk:\n\n${trimmed}`;
 }
 
+/** Internal denial reasons — never append to customer-facing system messages. */
 export function formatAltaCreditDeskReason(reason?: string | null): string {
   const trimmed = reason?.trim();
   if (!trimmed) return "";
   return `\n\nReason from Alta Credit Desk:\n\n${trimmed}`;
 }
 
-export function buildLendingApplicationAcceptedSystemMessage(reviewNote?: string | null): string {
+const CUSTOMER_HIDDEN_THREAD_MARKERS = [
+  "\n\nNote from Alta Credit Desk:\n\n",
+  "\n\nReason from Alta Credit Desk:\n\n",
+] as const;
+
+/** Strip operator notes/reasons from persisted thread messages shown to customers. */
+export function stripAdminReasonFromCustomerThreadBody(body: string): string {
+  let result = body;
+  for (const marker of CUSTOMER_HIDDEN_THREAD_MARKERS) {
+    const index = result.indexOf(marker);
+    if (index !== -1) {
+      result = result.slice(0, index).trimEnd();
+    }
+  }
+  return result;
+}
+
+export function buildLendingApplicationAcceptedSystemMessage(_reviewNote?: string | null): string {
   return [
     "Your application has been accepted.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n") + formatAltaCreditDeskNote(reviewNote);
+  ].join("\n\n");
 }
 
-export function buildLendingApplicationDeniedSystemMessage(reviewNote?: string | null): string {
+export function buildLendingApplicationDeniedSystemMessage(_reviewNote?: string | null): string {
   return [
     "Your application has been denied.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n") + formatAltaCreditDeskReason(reviewNote);
+  ].join("\n\n");
 }
 
-export function buildLendingApplicationCancelledSystemMessage(reason?: string | null): string {
+export function buildLendingApplicationCancelledSystemMessage(_reason?: string | null): string {
   return [
     "Your application has been cancelled because the Credit Desk is closed.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n") + formatAltaCreditDeskReason(reason);
+  ].join("\n\n");
 }
 
-export function buildAltaCardApplicationCancelledSystemMessage(reason?: string | null): string {
+export function buildAltaCardApplicationCancelledSystemMessage(_reason?: string | null): string {
   return [
     "Your Alta Card application has been cancelled because the Credit Desk is closed.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n") + formatAltaCreditDeskReason(reason);
+  ].join("\n\n");
 }
 
 export function buildAltaCardApplicationAcceptedSystemMessage(input: {
@@ -86,19 +105,14 @@ export function buildAltaCardApplicationAcceptedSystemMessage(input: {
     `• Interest rate: ${formatAltaCardRate(input.interestRate)}`,
   ];
 
-  const note = input.reviewNote?.trim();
-  if (note) {
-    sections.push("", `Note from Alta Credit Desk:\n\n${note}`);
-  }
-
   return sections.join("\n");
 }
 
-export function buildAltaCardApplicationDeniedSystemMessage(denialReason?: string | null): string {
+export function buildAltaCardApplicationDeniedSystemMessage(_denialReason?: string | null): string {
   return [
     "Your Alta Card application has been denied.",
     SECURE_DEAL_ROOM_CLOSED_LINE,
-  ].join("\n\n") + formatAltaCreditDeskReason(denialReason);
+  ].join("\n\n");
 }
 
 export function formatReviewNeedsInformationThreadMessage(reason: string): string {

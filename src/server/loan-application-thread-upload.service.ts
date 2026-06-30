@@ -98,7 +98,7 @@ async function findLoanThreadAttachment(
   attachmentId: string,
 ): Promise<ThreadAttachment | null> {
   const messages = await prisma.loanApplicationThreadMessage.findMany({
-    where: { thread: { applicationId } },
+    where: { thread: { loanApplicationId: applicationId } },
     select: { attachments: true },
   });
 

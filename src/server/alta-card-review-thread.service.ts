@@ -30,7 +30,8 @@ import {
 } from "@/lib/bank/alta-card-review-helpers";
 import type { AltaCardThreadAttachment } from "@/lib/bank/alta-card-application-thread-types";
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
-import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
+import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
+import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
 import {
@@ -141,11 +142,13 @@ function mapMessageRow(
   msg: Prisma.AltaCardReviewThreadMessageGetPayload<{
     include: { sender: { select: { discordUsername: true; discordId: true; discordAvatar: true } } };
   }>,
+  audience: ThreadMessageAudience = "customer",
 ): AltaCardReviewThreadMessageRow {
+  const senderRole = ROLE_FROM_DB[msg.senderRole];
   return {
     id: msg.id,
     senderUserId: msg.senderUserId,
-    senderRole: ROLE_FROM_DB[msg.senderRole],
+    senderRole,
     senderName:
       msg.senderRole === "SYSTEM"
         ? ALTA_CREDIT_DESK_NAME
@@ -156,7 +159,7 @@ function mapMessageRow(
       msg.senderRole === "APPLICANT" && msg.sender
         ? discordAvatarUrl(msg.sender.discordId, msg.sender.discordAvatar)
         : null,
-    body: msg.body,
+    body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
@@ -342,6 +345,7 @@ export async function getReviewThreadContext(
 export async function getReviewThreadMessages(
   userId: string,
   reviewRequestId: string,
+  audience: ThreadMessageAudience = "customer",
 ): Promise<AltaCardReviewThreadMessageRow[]> {
   await assertThreadAccess(userId, reviewRequestId);
   const thread = await getThreadByReviewRequestId(reviewRequestId);
@@ -353,7 +357,7 @@ export async function getReviewThreadMessages(
   });
 
   return messages.map((msg) =>
-    enrichLegacyThreadMessage(mapMessageRow(msg), { applicantUserId: thread.applicantUserId }),
+    enrichLegacyThreadMessage(mapMessageRow(msg, audience), { applicantUserId: thread.applicantUserId }),
   );
 }
 

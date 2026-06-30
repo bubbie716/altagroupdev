@@ -593,7 +593,7 @@ export function AltaCardReviewDetailView({
           <div className="mt-2">
             <StatusBadge status={review.statusLabel} />
           </div>
-          {review.decisionNote ? (
+          {review.status === "needs_information" && review.decisionNote ? (
             <p className="mt-2 text-[14px]">{review.decisionNote}</p>
           ) : null}
           {(review.status === "approved" || isPartial || review.status === "denied") ? (

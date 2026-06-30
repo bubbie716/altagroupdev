@@ -221,7 +221,7 @@ export function mapUserBankTransaction(tx: BankTransactionRecord): UserBankTrans
     hasProof: hasStoredProof(tx.proofImageUrl),
     createdAt: tx.createdAt.toISOString(),
     reviewedAt: tx.reviewedAt?.toISOString() ?? null,
-    reviewNote: tx.reviewNote,
+    reviewNote: null,
   };
 }
 

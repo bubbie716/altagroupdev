@@ -28,7 +28,8 @@ import {
 } from "@/lib/bank/secure-deal-room-system-copy";
 import { applicationListStatusLabel, THREAD_STATUS_LABELS, THREAD_STATUS_LABELS_INTERNAL } from "@/lib/bank/loan-application-thread-types";
 import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
-import { enrichLegacyThreadMessage } from "@/lib/bank/thread-message-utils";
+import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
+import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { fromDbLoanProductType } from "@/server/lending-mapper";
 import { prisma } from "@/server/db";
@@ -144,11 +145,13 @@ function mapMessageRow(
   msg: Prisma.LoanApplicationThreadMessageGetPayload<{
     include: { sender: { select: { discordUsername: true; discordId: true; discordAvatar: true } } };
   }>,
+  audience: ThreadMessageAudience = "customer",
 ): LoanApplicationThreadMessageRow {
+  const senderRole = ROLE_FROM_DB[msg.senderRole];
   return {
     id: msg.id,
     senderUserId: msg.senderUserId,
-    senderRole: ROLE_FROM_DB[msg.senderRole],
+    senderRole,
     senderName:
       msg.senderRole === "SYSTEM"
         ? ALTA_CREDIT_DESK_NAME
@@ -159,7 +162,7 @@ function mapMessageRow(
       msg.senderRole === "APPLICANT" && msg.sender
         ? discordAvatarUrl(msg.sender.discordId, msg.sender.discordAvatar)
         : null,
-    body: msg.body,
+    body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
@@ -317,6 +320,7 @@ export async function getThreadContext(
 export async function getThreadMessages(
   userId: string,
   applicationId: string,
+  audience: ThreadMessageAudience = "customer",
 ): Promise<LoanApplicationThreadMessageRow[]> {
   await assertThreadAccess(userId, applicationId);
   const thread = await getThreadByApplicationId(applicationId);
@@ -328,7 +332,7 @@ export async function getThreadMessages(
   });
 
   return messages.map((msg) =>
-    enrichLegacyThreadMessage(mapMessageRow(msg), { applicantUserId: thread.applicantUserId }),
+    enrichLegacyThreadMessage(mapMessageRow(msg, audience), { applicantUserId: thread.applicantUserId }),
   );
 }
 
@@ -358,7 +362,7 @@ export async function sendThreadMessage(
     const created = await tx.loanApplicationThreadMessage.create({
       data: {
         threadId: thread.id,
-        senderUserId: senderRole === "SYSTEM" ? null : userId,
+        senderUserId: userId,
         senderRole,
         body,
         attachments: attachments.length > 0 ? attachments : undefined,

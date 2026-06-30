@@ -9,6 +9,7 @@ import {
   type LoanRateType,
 } from "@/lib/bank/loan-interest";
 import { loanInterestChargePaymentDescription } from "@/lib/bank/customer-transaction-copy";
+import { prisma } from "@/server/db";
 
 export interface LoanBalanceSnapshot {
   principalOutstanding: number;

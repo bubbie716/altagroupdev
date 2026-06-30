@@ -64,7 +64,7 @@ export function LoanRepaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md border-border bg-background">
+      <DialogContent className="max-w-lg border-border bg-background">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-[0.12em]">Make payment</DialogTitle>
           <DialogDescription>
@@ -92,13 +92,8 @@ export function LoanRepaymentDialog({
           <LoanPaymentForm
             loan={context.loan}
             sourceAccounts={context.sourceAccounts}
-            suggestedAmount={
-              context.loan.paymentSchedule.find(
-                (item) => item.status === "pending" || item.status === "overdue",
-              )?.scheduledAmount
-            }
+            suggestedAmount={context.loan.currentPayoffAmount}
             onSuccess={async () => {
-              onOpenChange(false);
               await onPaid();
             }}
           />

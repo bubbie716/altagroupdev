@@ -73,7 +73,7 @@ export const fetchAltaCardApplicationThread = createServerFn({ method: "GET" })
     await ensureThreadExists(user.id, applicationId);
     const [context, messages] = await Promise.all([
       getAltaCardThreadContext(user.id, applicationId, "user"),
-      getAltaCardThreadMessages(user.id, applicationId),
+      getAltaCardThreadMessages(user.id, applicationId, "customer"),
     ]);
     return { context, messages };
   });
@@ -89,7 +89,7 @@ export const fetchInternalAltaCardApplicationThread = createServerFn({ method: "
     await ensureThreadExists(staff.id, applicationId);
     const [context, messages] = await Promise.all([
       getAltaCardThreadContext(staff.id, applicationId, "internal"),
-      getAltaCardThreadMessages(staff.id, applicationId),
+      getAltaCardThreadMessages(staff.id, applicationId, "internal"),
     ]);
     return { context, messages };
   });
@@ -115,7 +115,7 @@ export const fetchAltaCardApplicationThreadMessages = createServerFn({ method: "
     const { requireAuth } = await import("@/server/auth.service");
     const user = await requireAuth();
     await ensureThreadExists(user.id, applicationId);
-    return getAltaCardThreadMessages(user.id, applicationId);
+    return getAltaCardThreadMessages(user.id, applicationId, "customer");
   });
 
 export const sendAltaCardApplicationThreadMessage = createServerFn({ method: "POST" })

@@ -249,8 +249,8 @@ export function mapAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardA
     paymentSourceAccountId: row.paymentSourceAccountId,
     expectedMonthlySpend: row.expectedMonthlySpend ? decimalToNumber(row.expectedMonthlySpend) : null,
     employeeCardsNeeded: row.employeeCardsNeeded,
-    reviewNote: row.reviewNote,
-    denialReason: row.denialReason,
+    reviewNote: null,
+    denialReason: null,
     goldOverride: row.goldOverride,
     reviewedById: row.reviewedById,
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
@@ -258,6 +258,28 @@ export function mapAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardA
     cardId: row.card?.id ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function mapInternalAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardApplicationRow {
+  return {
+    ...mapAltaCardApplicationRow(row),
+    reviewNote: row.reviewNote,
+    denialReason: row.denialReason,
+  };
+}
+
+export function mapInternalAltaCardApplicationDetail(
+  row: DbAltaCardApplication,
+): import("@/lib/bank/alta-card-types").AltaCardApplicationDetail {
+  const base = mapInternalAltaCardApplicationRow(row);
+  const threadStatus = row.thread?.status
+    ? (row.thread.status.toLowerCase() as import("@/lib/bank/alta-card-application-thread-types").AltaCardApplicationThreadStatusCode)
+    : null;
+  return {
+    ...base,
+    threadStatus,
+    assignedStaffName: row.thread?.assignedStaff?.discordUsername ?? null,
   };
 }
 

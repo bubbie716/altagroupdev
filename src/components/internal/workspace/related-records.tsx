@@ -53,7 +53,7 @@ export function relatedRecordHref(record: RelatedRecord): string {
     case "loan":
       return `/internal/lending/loans/${record.id}`;
     case "lending_application":
-      return `/internal/lending/applications/${record.id}/thread`;
+      return `/internal/lending/applications/${record.id}?tab=thread`;
     case "alta_card":
       return `/internal/alta-card/${record.id}`;
     case "alta_card_application":
