@@ -32,7 +32,7 @@ export function buildGovernancePlatformMetrics(
     {
       label: "Alta Terminal",
       value: "Exchange Product · In Development",
-      helper: "First-party investing interface under Alta Exchange N.V.",
+      helper: "First-party investing interface under Alta Exchange.",
       sourceLabel: PREVIEW_SOURCE,
     },
     {
@@ -55,7 +55,7 @@ export function buildGovernancePlatformMetrics(
     {
       label: "Active Bank Accounts",
       value: metrics.activeBankAccounts.toLocaleString(),
-      helper: "Open Alta Bank N.V. accounts across the platform.",
+      helper: "Open Alta Bank accounts across the platform.",
       sourceLabel: LIVE_PLATFORM_SOURCE,
     },
     {

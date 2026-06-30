@@ -60,7 +60,7 @@ function GovernanceLeadership() {
         </Section>
 
         {divisionLeadership.map((group) => (
-          <Section key={group.division} title={`${group.division} Leadership`} className="mt-12">
+          <Section key={group.division} title={group.sectionTitle} className="mt-12">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {group.roles.map((role) => (
                 <LeadershipRoleCard key={`${group.division}-${role.title}`} role={role} />

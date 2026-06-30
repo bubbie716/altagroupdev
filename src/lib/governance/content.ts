@@ -50,7 +50,7 @@ export const groupHierarchy: HierarchyNode[] = [
         icon: LineChart,
         name: "Alta Terminal",
         status: "Exchange Product",
-        description: "Investor workstation — an Alta Exchange N.V. product.",
+        description: "Investor workstation — an Alta Exchange product.",
       },
     ],
   },
@@ -100,7 +100,7 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     products: [
       {
         name: "Alta Terminal",
-        subtitle: "An Alta Exchange N.V. Product",
+        subtitle: "Alta Exchange",
         tagline: ALTA_TERMINAL_TAGLINE,
         services: ["Portfolio dashboard", "Watchlists", "Research", "Order entry"],
       },
@@ -176,12 +176,15 @@ export const executiveLeadership: LeadershipCard[] = [
 ];
 
 export type DivisionLeadershipGroup = {
+  /** Section heading — omit legal entity suffix (N.V.) when shown above role cards. */
+  sectionTitle: string;
   division: string;
   roles: LeadershipCard[];
 };
 
 export const divisionLeadership: DivisionLeadershipGroup[] = [
   {
+    sectionTitle: "Bank Leadership",
     division: "Alta Bank N.V.",
     roles: [
       {
@@ -202,6 +205,7 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
   {
+    sectionTitle: "Exchange Leadership",
     division: "Alta Exchange N.V.",
     roles: [
       {
@@ -232,6 +236,7 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
   {
+    sectionTitle: "NCC Leadership",
     division: "NCC",
     roles: [
       {
@@ -256,8 +261,8 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
 export const governanceDocuments = [
   { title: "Corporate Charter", description: "Foundational charter of Alta Group N.V." },
   { title: "Governance Manual", description: "Board procedures, delegation, and oversight standards." },
-  { title: "Alta Bank N.V. Terms", description: "Client terms for personal and business banking." },
-  { title: "Alta Exchange N.V. Rulebook", description: "Listing, trading, and market conduct rules." },
+  { title: "Alta Bank Terms", description: "Client terms for personal and business banking." },
+  { title: "Alta Exchange Rulebook", description: "Listing, trading, and market conduct rules." },
   { title: "API Terms", description: "Developer access, licensing, and data use policies." },
   { title: "NCC Participation Rules", description: "Clearing membership and settlement participation." },
 ];
