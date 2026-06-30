@@ -18,13 +18,13 @@ export function buildGovernancePlatformMetrics(
 ): GovernanceMetricItem[] {
   return [
     {
-      label: "Alta Bank",
+      label: "Alta Bank N.V.",
       value: "Operational",
       helper: "Personal, business, and treasury banking.",
       sourceLabel: LIVE_PLATFORM_SOURCE,
     },
     {
-      label: "Alta Exchange",
+      label: "Alta Exchange N.V.",
       value: "Simulated Market Preview",
       helper: "Listings, indices, and market data remain simulated for Terminal testing.",
       sourceLabel: SIMULATED_MARKET_SOURCE,
@@ -32,7 +32,7 @@ export function buildGovernancePlatformMetrics(
     {
       label: "Alta Terminal",
       value: "Exchange Product · In Development",
-      helper: "First-party investing interface under Alta Exchange.",
+      helper: "First-party investing interface under Alta Exchange N.V.",
       sourceLabel: PREVIEW_SOURCE,
     },
     {
@@ -55,7 +55,7 @@ export function buildGovernancePlatformMetrics(
     {
       label: "Active Bank Accounts",
       value: metrics.activeBankAccounts.toLocaleString(),
-      helper: "Open Alta Bank accounts across the platform.",
+      helper: "Open Alta Bank N.V. accounts across the platform.",
       sourceLabel: LIVE_PLATFORM_SOURCE,
     },
     {

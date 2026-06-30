@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import { Building2, Coins, Landmark, LineChart } from "lucide-react";
 import {
   ALTA_EXCHANGE_TAGLINE,
-  ALTA_TERMINAL_SUBTITLE,
   ALTA_TERMINAL_TAGLINE,
 } from "@/lib/branding/alta-products";
 
@@ -14,8 +13,8 @@ export type PlatformStatusItem = {
 };
 
 export const platformStatusItems: PlatformStatusItem[] = [
-  { name: "Alta Bank", status: "Operational" },
-  { name: "Alta Exchange", status: "Operational" },
+  { name: "Alta Bank N.V.", status: "Operational" },
+  { name: "Alta Exchange N.V.", status: "Operational" },
   { name: "Alta Terminal", status: "Exchange Product" },
   { name: "NCC", status: "In Development" },
   { name: "Company Registry", status: "Operational" },
@@ -37,13 +36,13 @@ export type HierarchyNode = {
 export const groupHierarchy: HierarchyNode[] = [
   {
     icon: Landmark,
-    name: "Alta Bank",
+    name: "Alta Bank N.V.",
     status: "Operational",
     description: "Banking division of Alta Group N.V.",
   },
   {
     icon: Building2,
-    name: "Alta Exchange",
+    name: "Alta Exchange N.V.",
     status: "Operational",
     description: "National market venue and capital markets platform.",
     children: [
@@ -51,7 +50,7 @@ export const groupHierarchy: HierarchyNode[] = [
         icon: LineChart,
         name: "Alta Terminal",
         status: "Exchange Product",
-        description: "Investor workstation — an Alta Exchange product.",
+        description: "Investor workstation — an Alta Exchange N.V. product.",
       },
     ],
   },
@@ -84,7 +83,7 @@ export type EntityOverviewItem = {
 export const entityOverviewItems: EntityOverviewItem[] = [
   {
     icon: Landmark,
-    name: "Alta Bank",
+    name: "Alta Bank N.V.",
     code: "ALT-BNK",
     status: "Operational",
     description:
@@ -93,7 +92,7 @@ export const entityOverviewItems: EntityOverviewItem[] = [
   },
   {
     icon: Building2,
-    name: "Alta Exchange",
+    name: "Alta Exchange N.V.",
     code: "ALT-EXC",
     status: "Operational",
     description: ALTA_EXCHANGE_TAGLINE,
@@ -101,7 +100,7 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     products: [
       {
         name: "Alta Terminal",
-        subtitle: ALTA_TERMINAL_SUBTITLE,
+        subtitle: "An Alta Exchange N.V. Product",
         tagline: ALTA_TERMINAL_TAGLINE,
         services: ["Portfolio dashboard", "Watchlists", "Research", "Order entry"],
       },
@@ -183,10 +182,10 @@ export type DivisionLeadershipGroup = {
 
 export const divisionLeadership: DivisionLeadershipGroup[] = [
   {
-    division: "Alta Bank",
+    division: "Alta Bank N.V.",
     roles: [
       {
-        title: "President, Alta Bank",
+        title: "President, Alta Bank N.V.",
         status: "Vacant",
         responsibility: "Banking operations, client coverage, and treasury services.",
       },
@@ -203,10 +202,10 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
   {
-    division: "Alta Exchange",
+    division: "Alta Exchange N.V.",
     roles: [
       {
-        title: "President, Alta Exchange",
+        title: "President, Alta Exchange N.V.",
         status: "Vacant",
         responsibility: "Market venue operations, listings policy, and exchange governance.",
       },
@@ -257,8 +256,8 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
 export const governanceDocuments = [
   { title: "Corporate Charter", description: "Foundational charter of Alta Group N.V." },
   { title: "Governance Manual", description: "Board procedures, delegation, and oversight standards." },
-  { title: "Alta Bank Terms", description: "Client terms for personal and business banking." },
-  { title: "Alta Exchange Rulebook", description: "Listing, trading, and market conduct rules." },
+  { title: "Alta Bank N.V. Terms", description: "Client terms for personal and business banking." },
+  { title: "Alta Exchange N.V. Rulebook", description: "Listing, trading, and market conduct rules." },
   { title: "API Terms", description: "Developer access, licensing, and data use policies." },
   { title: "NCC Participation Rules", description: "Clearing membership and settlement participation." },
 ];

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/governance/")({
       {
         name: "description",
         content:
-          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank, Alta Exchange (including Alta Terminal), and Newport Clearing Corporation.",
+          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank N.V., Alta Exchange N.V. (including Alta Terminal), and Newport Clearing Corporation.",
       },
       { property: "og:title", content: "Alta Group — Governance & Structure" },
       {
