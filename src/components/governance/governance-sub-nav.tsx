@@ -1,10 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-const links: Array<{ to: "/governance" | "/governance/leadership" | "/governance/documents"; label: string; exact?: boolean }> = [
+const links: Array<{ to: "/governance" | "/governance/leadership"; label: string; exact?: boolean }> = [
   { to: "/governance", label: "Structure", exact: true },
   { to: "/governance/leadership", label: "Leadership" },
-  { to: "/governance/documents", label: "Documents" },
 ];
 
 export function GovernanceSubNav() {

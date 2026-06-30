@@ -48,7 +48,6 @@ import { Route as InternalComplianceRouteImport } from './routes/internal/compli
 import { Route as InternalAuditRouteImport } from './routes/internal/audit'
 import { Route as InternalApiApplicationsRouteImport } from './routes/internal/api-applications'
 import { Route as GovernanceLeadershipRouteImport } from './routes/governance/leadership'
-import { Route as GovernanceDocumentsRouteImport } from './routes/governance/documents'
 import { Route as ExchangeResearchRouteImport } from './routes/exchange/research'
 import { Route as ExchangeRankingsRouteImport } from './routes/exchange/rankings'
 import { Route as ExchangeListingsRouteImport } from './routes/exchange/listings'
@@ -414,11 +413,6 @@ const InternalApiApplicationsRoute = InternalApiApplicationsRouteImport.update({
 const GovernanceLeadershipRoute = GovernanceLeadershipRouteImport.update({
   id: '/leadership',
   path: '/leadership',
-  getParentRoute: () => GovernanceRouteRoute,
-} as any)
-const GovernanceDocumentsRoute = GovernanceDocumentsRouteImport.update({
-  id: '/documents',
-  path: '/documents',
   getParentRoute: () => GovernanceRouteRoute,
 } as any)
 const ExchangeResearchRoute = ExchangeResearchRouteImport.update({
@@ -1421,7 +1415,6 @@ export interface FileRoutesByFullPath {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
-  '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
   '/internal/audit': typeof InternalAuditRoute
@@ -1623,7 +1616,6 @@ export interface FileRoutesByTo {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
-  '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
   '/internal/audit': typeof InternalAuditRoute
@@ -1825,7 +1817,6 @@ export interface FileRoutesById {
   '/exchange/listings': typeof ExchangeListingsRoute
   '/exchange/rankings': typeof ExchangeRankingsRoute
   '/exchange/research': typeof ExchangeResearchRoute
-  '/governance/documents': typeof GovernanceDocumentsRoute
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/api-applications': typeof InternalApiApplicationsRoute
   '/internal/audit': typeof InternalAuditRoute
@@ -2040,7 +2031,6 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
-    | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/audit'
@@ -2242,7 +2232,6 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
-    | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/audit'
@@ -2443,7 +2432,6 @@ export interface FileRouteTypes {
     | '/exchange/listings'
     | '/exchange/rankings'
     | '/exchange/research'
-    | '/governance/documents'
     | '/governance/leadership'
     | '/internal/api-applications'
     | '/internal/audit'
@@ -2925,13 +2913,6 @@ declare module '@tanstack/react-router' {
       path: '/leadership'
       fullPath: '/governance/leadership'
       preLoaderRoute: typeof GovernanceLeadershipRouteImport
-      parentRoute: typeof GovernanceRouteRoute
-    }
-    '/governance/documents': {
-      id: '/governance/documents'
-      path: '/documents'
-      fullPath: '/governance/documents'
-      preLoaderRoute: typeof GovernanceDocumentsRouteImport
       parentRoute: typeof GovernanceRouteRoute
     }
     '/exchange/research': {
@@ -4565,13 +4546,11 @@ const ExchangeRouteRouteWithChildren = ExchangeRouteRoute._addFileChildren(
 )
 
 interface GovernanceRouteRouteChildren {
-  GovernanceDocumentsRoute: typeof GovernanceDocumentsRoute
   GovernanceLeadershipRoute: typeof GovernanceLeadershipRoute
   GovernanceIndexRoute: typeof GovernanceIndexRoute
 }
 
 const GovernanceRouteRouteChildren: GovernanceRouteRouteChildren = {
-  GovernanceDocumentsRoute: GovernanceDocumentsRoute,
   GovernanceLeadershipRoute: GovernanceLeadershipRoute,
   GovernanceIndexRoute: GovernanceIndexRoute,
 }

@@ -7,7 +7,7 @@ const columnTitleClass =
 
 const platformOptionalLinks = [
   { label: "About", to: "/governance" },
-  { label: "Governance", to: "/governance/documents" },
+  { label: "Leadership", to: "/governance/leadership" },
 ] as const;
 
 export function PublicFooter() {
@@ -48,11 +48,6 @@ export function PublicFooter() {
               <li>
                 <Link to="/governance/leadership" className="transition-colors hover:text-gold">
                   Leadership
-                </Link>
-              </li>
-              <li>
-                <Link to="/governance/documents" className="transition-colors hover:text-gold">
-                  Governance Documents
                 </Link>
               </li>
             </ul>

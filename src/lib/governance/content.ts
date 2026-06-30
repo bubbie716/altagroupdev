@@ -257,12 +257,3 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
 ];
-
-export const governanceDocuments = [
-  { title: "Corporate Charter", description: "Foundational charter of Alta Group N.V." },
-  { title: "Governance Manual", description: "Board procedures, delegation, and oversight standards." },
-  { title: "Alta Bank Terms", description: "Client terms for personal and business banking." },
-  { title: "Alta Exchange Rulebook", description: "Listing, trading, and market conduct rules." },
-  { title: "API Terms", description: "Developer access, licensing, and data use policies." },
-  { title: "NCC Participation Rules", description: "Clearing membership and settlement participation." },
-];
