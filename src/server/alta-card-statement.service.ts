@@ -65,6 +65,13 @@ function assertOperatorOrAdmin(user: AltaUser): void {
   if (!isAdmin(user) && !isOperator(user)) forbidden();
 }
 
+async function assertStatementGenerationActor(user: AltaUser, actorUserId: string): Promise<void> {
+  if (isAdmin(user) || isOperator(user)) return;
+  const { isSystemActorUserId } = await import("@/server/system-actor.service");
+  if (await isSystemActorUserId(actorUserId)) return;
+  forbidden();
+}
+
 async function auditStatementEvent(
   actorUserId: string,
   action: string,
@@ -162,8 +169,11 @@ async function getPreviousBalance(altaCardId: string): Promise<number> {
   return decimalToNumber(last.remainingBalance);
 }
 
-async function nextStatementNumber(altaCardId: string): Promise<number> {
-  const last = await prisma.altaCardStatement.findFirst({
+async function nextStatementNumber(
+  altaCardId: string,
+  tx: Prisma.TransactionClient | typeof prisma = prisma,
+): Promise<number> {
+  const last = await tx.altaCardStatement.findFirst({
     where: { altaCardId },
     orderBy: { statementNumber: "desc" },
     select: { statementNumber: true },
@@ -269,7 +279,7 @@ export async function initializeBillingCycleForCard(
   anchorDate = new Date(),
 ): Promise<void> {
   const { billingPeriodStart, billingPeriodEnd, dueDate } = getInitialBillingCycle(anchorDate);
-  const statementNumber = await nextStatementNumber(altaCardId);
+  const statementNumber = await nextStatementNumber(altaCardId, tx);
 
   const openStatement = await tx.altaCardStatement.create({
     data: {
@@ -374,7 +384,7 @@ async function finalizeOpenStatement(
 
   const { billingPeriodStart: nextStart, billingPeriodEnd: nextEnd, dueDate: nextDue } =
     getNextBillingCycle(openStatement.billingPeriodEnd);
-  const nextNumber = issued.statementNumber + 1;
+  const nextNumber = await nextStatementNumber(cardId, tx);
 
   const nextOpen = await tx.altaCardStatement.create({
     data: {
@@ -640,7 +650,7 @@ export async function generateStatement(
   cardId: string,
 ): Promise<AltaCardStatementRow> {
   const user = await getAltaUser(actorUserId);
-  assertOperatorOrAdmin(user);
+  await assertStatementGenerationActor(user, actorUserId);
 
   const card = await prisma.altaCard.findUnique({ where: { id: cardId } });
   if (!card) notFound();

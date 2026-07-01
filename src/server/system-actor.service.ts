@@ -42,6 +42,16 @@ export async function resolveSystemActorUserId(): Promise<string> {
   return ensureSystemActorUser();
 }
 
+export async function isSystemActorUserId(userId: string): Promise<boolean> {
+  if (!userId) return false;
+  if (userId === SYSTEM_ACTOR_USER_ID) return true;
+  try {
+    return userId === (await resolveSystemActorUserId());
+  } catch {
+    return false;
+  }
+}
+
 /** Creates or updates the dedicated SYSTEM service account. */
 export async function ensureSystemActorUser(): Promise<string> {
   await prisma.user.upsert({

@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import {
+  RelationshipIdentityCard,
+  RelationshipInformationPanel,
+  RelationshipProfileSection,
+  RelationshipSnapshotAside,
+} from "@/components/account/relationship-profile-ui";
 import { PageShell } from "@/components/page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -42,10 +48,8 @@ function ProfilePage() {
       title="Profile"
       description="Your Alta identity, relationships, security posture and platform permissions."
     >
-      {/* IDENTITY CARD */}
-      <section className="relative overflow-hidden rounded-xl border border-border bg-surface-1">
-        <div className="h-px w-full bg-linear-to-r from-transparent via-gold/50 to-transparent" />
-        <div className="grid gap-px bg-border/60 sm:grid-cols-[1.4fr_1fr]">
+      <RelationshipIdentityCard
+        primary={
           <div className="bg-surface-1 px-6 py-8 sm:px-10 sm:py-10">
             <div className="flex items-start gap-5">
               {user.avatarUrl ? (
@@ -87,58 +91,29 @@ function ProfilePage() {
               />
             </dl>
           </div>
-
-          <div className="flex flex-col justify-between bg-surface-1 px-6 py-8 sm:px-8 sm:py-10">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-                Relationship snapshot
-              </div>
-              <div className="mt-5 space-y-4">
-                <SnapshotRow label="Standing" value={isPrivate ? "Founding Client" : "Standard"} />
-                <SnapshotRow
-                  label="Total balance"
-                  value={<Florin value={bankSummary.totalBalance} />}
-                />
-                <SnapshotRow
-                  label="Active accounts"
-                  value={String(bankSummary.activeAccountCount)}
-                />
-                <SnapshotRow
-                  label="Linked companies"
-                  value={String(user.companyMemberships.length)}
-                />
-              </div>
-            </div>
-            <div className="mt-8 border-t border-border/60 pt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              Last access · {lastLoginLabel}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RELATIONSHIP INFORMATION */}
-      <ProfileSection index="01" title="Relationship information" kicker="Banking & companies" className="mt-16 sm:mt-20">
-        <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCell label="Total balance" value={<Florin value={bankSummary.totalBalance} />} />
-          <MetricCell label="Active accounts" value={String(bankSummary.activeAccountCount)} />
-          <MetricCell label="Pending accounts" value={String(bankSummary.pendingAccountCount)} />
-          <MetricCell
-            label="Pending activity"
-            value={String(bankSummary.pendingDepositCount + bankSummary.pendingWithdrawalCount)}
-            note={`${bankSummary.pendingDepositCount} dep · ${bankSummary.pendingWithdrawalCount} wd`}
+        }
+        snapshot={
+          <RelationshipSnapshotAside
+            rows={[
+              { label: "Standing", value: isPrivate ? "Founding Client" : "Standard" },
+              { label: "Total balance", value: <Florin value={bankSummary.totalBalance} /> },
+              { label: "Active accounts", value: String(bankSummary.activeAccountCount) },
+              { label: "Linked companies", value: String(user.companyMemberships.length) },
+            ]}
+            footer={<>Last access · {lastLoginLabel}</>}
           />
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Link
-            to="/bank"
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground hover:text-gold"
-          >
-            Open bank dashboard →
-          </Link>
-        </div>
-      </ProfileSection>
+        }
+      />
 
-      <ProfileSection
+      <RelationshipProfileSection index="01" title="Relationship information" kicker="Banking & companies" className="mt-16 sm:mt-20">
+        <RelationshipInformationPanel
+          summary={bankSummary}
+          linkTo="/bank"
+          linkLabel="Open bank dashboard →"
+        />
+      </RelationshipProfileSection>
+
+      <RelationshipProfileSection
         index="02"
         title="Linked companies"
         kicker="Authorized representations"
@@ -192,10 +167,10 @@ function ProfilePage() {
             </div>
           </div>
         )}
-      </ProfileSection>
+      </RelationshipProfileSection>
 
       {/* ACCOUNT SECURITY */}
-      <ProfileSection index="03" title="Account security" kicker="Authentication posture" className="mt-16 sm:mt-20">
+      <RelationshipProfileSection index="03" title="Account security" kicker="Authentication posture" className="mt-16 sm:mt-20">
         <div className="grid gap-4 sm:grid-cols-2">
           <SecurityCard
             label="Sign-in method"
@@ -228,10 +203,10 @@ function ProfilePage() {
             }
           />
         </div>
-      </ProfileSection>
+      </RelationshipProfileSection>
 
       {/* PLATFORM PERMISSIONS */}
-      <ProfileSection
+      <RelationshipProfileSection
         index="04"
         title="Platform permissions"
         kicker="What this identity may access"
@@ -271,10 +246,10 @@ function ProfilePage() {
             note={user.internalAccess ? "Internal portal visible in your nav." : undefined}
           />
         </div>
-      </ProfileSection>
+      </RelationshipProfileSection>
 
       {/* SESSIONS */}
-      <ProfileSection index="05" title="Sessions" kicker="Active devices" className="mt-16 sm:mt-20">
+      <RelationshipProfileSection index="05" title="Sessions" kicker="Active devices" className="mt-16 sm:mt-20">
         <div className="overflow-hidden rounded-lg border border-border bg-surface-1">
           <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-5">
             <div className="min-w-0">
@@ -289,10 +264,10 @@ function ProfilePage() {
             <SignOutButton className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground" />
           </div>
         </div>
-      </ProfileSection>
+      </RelationshipProfileSection>
 
       {/* PREFERENCES */}
-      <ProfileSection index="06" title="Preferences" kicker="Display & notices" className="mt-16 sm:mt-20">
+      <RelationshipProfileSection index="06" title="Preferences" kicker="Display & notices" className="mt-16 sm:mt-20">
         <div className="grid gap-4 sm:grid-cols-2">
           <PreferenceRow
             label="Linked Minecraft"
@@ -309,45 +284,12 @@ function ProfilePage() {
             hint="Toggle light or dark from the top navigation."
           />
         </div>
-      </ProfileSection>
+      </RelationshipProfileSection>
     </PageShell>
   );
 }
 
 /* ---------- Layout primitives ---------- */
-
-function ProfileSection({
-  index,
-  title,
-  kicker,
-  className,
-  children,
-}: {
-  index: string;
-  title: string;
-  kicker?: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={className}>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border/40 pb-4 sm:mb-8">
-        <div className="flex items-baseline gap-4 sm:gap-6">
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-gold">{index}</span>
-          <div className="min-w-0">
-            {kicker && (
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                {kicker}
-              </div>
-            )}
-            <h2 className="mt-1 font-serif text-2xl tracking-tight sm:text-3xl">{title}</h2>
-          </div>
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
 
 function IdRow({
   label,
@@ -364,43 +306,6 @@ function IdRow({
         {label}
       </span>
       <span className={cn("text-[13px] text-foreground", mono && "font-mono")}>{value}</span>
-    </div>
-  );
-}
-
-function SnapshotRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-border/50 pb-3 last:border-0 last:pb-0">
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="font-serif text-[15px] tracking-tight text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function MetricCell({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: ReactNode;
-  note?: string;
-}) {
-  return (
-    <div className="flex h-full flex-col justify-between bg-surface-1 px-5 py-5 sm:px-6 sm:py-6">
-      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-4 font-serif text-xl leading-tight tracking-tight sm:text-2xl">
-        {value}
-      </div>
-      {note ? (
-        <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {note}
-        </div>
-      ) : null}
     </div>
   );
 }

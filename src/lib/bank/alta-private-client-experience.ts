@@ -40,7 +40,6 @@ export function buildAltaPrivateClientContext(input: {
   isMember: boolean;
   discordUsername: string;
   memberSince: string | null;
-  relationshipTierLabel: string | null;
   now?: Date;
 }): AltaPrivateClientContext {
   const displayName = formatPrivateClientDisplayName(input.discordUsername);
@@ -53,7 +52,6 @@ export function buildAltaPrivateClientContext(input: {
       memberSince: null,
       memberSinceLabel: null,
       banker: null,
-      relationshipTierLabel: null,
       benefits: [],
     };
   }
@@ -66,7 +64,6 @@ export function buildAltaPrivateClientContext(input: {
     memberSince: input.memberSince,
     memberSinceLabel: formatMemberSinceLabel(input.memberSince),
     banker: DEFAULT_ALTA_PRIVATE_BANKER,
-    relationshipTierLabel: input.relationshipTierLabel,
     benefits: ALTA_PRIVATE_MEMBER_BENEFITS,
   };
 }

@@ -20,7 +20,6 @@ const links = [
   { to: "/bank/products", label: "Products", activePaths: ["/bank/products", "/bank/deposits"] },
   { to: "/bank/lending", label: "Lending" },
   { to: "/bank/alta-card", label: "Alta Card", activePaths: ["/bank/alta-card"] },
-  { to: "/bank/relationship", label: "Relationship" },
   { to: "/bank/private", label: "Alta Private", membersOnly: true },
 ] as const;
 

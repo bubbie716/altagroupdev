@@ -16,9 +16,9 @@ export function BankDashboardMockContent() {
       <BankStatStrip
         density="emphasized"
         items={[
-          { label: "Total relationship", value: florin(d.totalRelationshipValue) },
+          { label: "Total balance", value: florin(d.totalRelationshipValue) },
           { label: "Private status", value: d.privateStatus },
-          { label: "MTD change", value: "+2.14%", sub: "Relationship assets", accent: true },
+          { label: "MTD change", value: "+2.14%", sub: "Portfolio assets", accent: true },
           { label: "Accounts", value: String(bankAccounts.length) },
         ]}
       />

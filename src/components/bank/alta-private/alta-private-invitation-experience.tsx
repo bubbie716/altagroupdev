@@ -164,12 +164,6 @@ export function AltaPrivateAspirationalPage() {
       <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
         Alta Private is available by invitation to clients with significant relationships across Alta.
       </p>
-      <Link
-        to="/bank/relationship"
-        className="mt-8 inline-flex rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] hover:bg-gold/[0.14]"
-      >
-        View Relationship →
-      </Link>
     </div>
   );
 }
@@ -179,14 +173,6 @@ export function AltaPrivateDeclinedPage() {
     <InvitationStateCard
       title="Invitation Declined"
       body="You can contact Alta if you would like to revisit this later."
-      action={
-        <Link
-          to="/bank/relationship"
-          className="inline-flex rounded-md border border-border px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] hover:border-gold/40"
-        >
-          View Relationship →
-        </Link>
-      }
     />
   );
 }

@@ -12,7 +12,6 @@ export type AltaPrivateClientContext = {
   memberSince: string | null;
   memberSinceLabel: string | null;
   banker: AltaPrivateBankerProfile | null;
-  relationshipTierLabel: string | null;
   benefits: readonly string[];
 };
 
@@ -24,6 +23,5 @@ export const EMPTY_ALTA_PRIVATE_CLIENT_CONTEXT: AltaPrivateClientContext = {
   memberSince: null,
   memberSinceLabel: null,
   banker: null,
-  relationshipTierLabel: null,
   benefits: [],
 };

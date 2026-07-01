@@ -7,7 +7,6 @@ export function CompanySubNav({ companyId }: { companyId: string }) {
 
   const links = [
     { to: "/companies/$companyId" as const, label: "Overview", exact: true as boolean },
-    { to: "/companies/$companyId/relationship" as const, label: "Relationship", exact: false as boolean },
     { to: "/companies/$companyId/members" as const, label: "Members", exact: false as boolean },
     { to: "/companies/$companyId/settings" as const, label: "Settings", exact: false as boolean },
   ];
@@ -18,8 +17,6 @@ export function CompanySubNav({ companyId }: { companyId: string }) {
         const href =
           l.to === "/companies/$companyId"
             ? base
-            : l.to === "/companies/$companyId/relationship"
-              ? `${base}/relationship`
             : l.to === "/companies/$companyId/members"
               ? `${base}/members`
               : `${base}/settings`;

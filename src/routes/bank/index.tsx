@@ -9,7 +9,6 @@ import {
   AltaPrivateBankerCard,
   AltaPrivateBenefitsHint,
   AltaPrivateMemberSinceCard,
-  AltaPrivateRelationshipSnapshot,
 } from "@/components/bank/alta-private/alta-private-client-chrome";
 import { florin } from "@/lib/bank/api";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
@@ -44,10 +43,10 @@ function BankDashboard() {
         subtitle={privateClient.isMember ? "Alta Private Client" : undefined}
         description={
           privateClient.isMember
-            ? "Your Alta Bank relationship overview."
+            ? "Your Alta Bank overview."
             : showMockData
               ? "Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
-              : "Your Alta Bank relationship overview."
+              : "Your Alta Bank overview."
         }
       />
       {showMockData ? (
@@ -71,12 +70,7 @@ function BankDashboardLiveContent({
 
   const topStripItems = privateClient.isMember
     ? [
-        { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
-        {
-          label: "Relationship",
-          value: privateClient.relationshipTierLabel ?? "—",
-          sub: "Alta Private · Active",
-        },
+        { label: "Total balance", value: florin(dashboard.totalRelationshipValue) },
         {
           label: "Pending deposits and withdrawals",
           value: String(dashboard.pendingDeposits + dashboard.pendingWithdrawals),
@@ -84,7 +78,7 @@ function BankDashboardLiveContent({
         { label: "Accounts", value: String(accounts.length) },
       ]
     : [
-        { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
+        { label: "Total balance", value: florin(dashboard.totalRelationshipValue) },
         { label: "Private status", value: dashboard.privateStatus },
         {
           label: "Pending deposits and withdrawals",
@@ -104,10 +98,7 @@ function BankDashboardLiveContent({
 
       {privateClient.isMember ? (
         <div className="mt-8 grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <div className="grid gap-4">
-            <AltaPrivateRelationshipSnapshot context={privateClient} />
-            <AltaPrivateBenefitsHint context={privateClient} />
-          </div>
+          <AltaPrivateBenefitsHint context={privateClient} />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
             <AltaPrivateMemberSinceCard context={privateClient} />
             <AltaPrivateBankerCard context={privateClient} />

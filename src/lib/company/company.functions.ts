@@ -34,6 +34,14 @@ export const fetchCompanyDetail = createServerFn({ method: "GET" })
     return getCompanyDetailForUser(companyId, userId);
   });
 
+export const fetchCompanyBankSummary = createServerFn({ method: "GET" })
+  .inputValidator((companyId: string) => companyId)
+  .handler(async ({ data: companyId }) => {
+    const { getCompanyBankSummary } = await import("@/server/bank.service");
+    const userId = await actorId();
+    return getCompanyBankSummary(companyId, userId);
+  });
+
 export const createCompanyRecord = createServerFn({ method: "POST" })
   .inputValidator((input: CreateCompanyInput) => input)
   .handler(async ({ data }) => {

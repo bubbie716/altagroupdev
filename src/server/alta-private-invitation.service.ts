@@ -498,19 +498,14 @@ export async function getAltaPrivateClientContext(userId: string) {
   const { buildAltaPrivateClientContext } = await import(
     "@/lib/bank/alta-private-client-experience"
   );
-  const { displayRelationshipTierLabel } = await import("@/lib/bank/relationship-terminology");
 
-  const [user, privateTag, profile] = await Promise.all([
+  const [user, privateTag] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { discordUsername: true },
     }),
     prisma.userTagAssignment.findUnique({
       where: { userId_tag: { userId, tag: "PRIVATE_CLIENT" } },
-    }),
-    prisma.relationshipProfile.findUnique({
-      where: { userId },
-      select: { relationshipTier: true, relationshipScore: true },
     }),
   ]);
 
@@ -519,20 +514,12 @@ export async function getAltaPrivateClientContext(userId: string) {
       isMember: false,
       discordUsername: "",
       memberSince: null,
-      relationshipTierLabel: null,
     });
   }
 
-  const isMember = privateTag != null;
-  const relationshipTierLabel =
-    profile != null
-      ? displayRelationshipTierLabel(profile.relationshipTier, profile.relationshipScore)
-      : null;
-
   return buildAltaPrivateClientContext({
-    isMember,
+    isMember: privateTag != null,
     discordUsername: user.discordUsername,
     memberSince: privateTag?.createdAt.toISOString() ?? null,
-    relationshipTierLabel,
   });
 }

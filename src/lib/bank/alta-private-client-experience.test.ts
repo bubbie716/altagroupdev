@@ -29,7 +29,6 @@ describe("alta private client experience", () => {
       isMember: false,
       discordUsername: "guest",
       memberSince: null,
-      relationshipTierLabel: null,
     });
     assert.equal(ctx.isMember, false);
     assert.equal(ctx.banker, null);
@@ -41,10 +40,8 @@ describe("alta private client experience", () => {
       isMember: true,
       discordUsername: "carter",
       memberSince: "2026-06-01T00:00:00.000Z",
-      relationshipTierLabel: "Premier",
     });
     assert.equal(ctx.isMember, true);
-    assert.equal(ctx.relationshipTierLabel, "Premier");
     assert.ok(ctx.banker?.name);
     assert.ok(ctx.benefits.length > 0);
   });

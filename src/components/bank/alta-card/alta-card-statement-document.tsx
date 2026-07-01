@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Download, Loader2, Printer } from "lucide-react";
-import type { AltaCardRow, AltaCardStatementDetail } from "@/lib/bank/alta-card-types";
+import type { AltaCardRow, AltaCardStatementDetail, AltaCardTransactionTypeCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_STATEMENT_STATUS_LABELS,
   ALTA_CARD_TIER_LABELS,
@@ -14,9 +14,10 @@ import { AltaWordmark } from "@/components/alta-logo";
 import { RouteButton } from "@/components/bank/route-button";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
 import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateTime, formatStatementTransactionDateTime } from "@/lib/format-datetime";
 import { altaCardStatementsLink } from "@/lib/bank/alta-card-navigation";
 import { altaCardNavButtonClassName } from "@/components/bank/alta-card/alta-card-back-to-card-link";
+import { TX_DESC_SEP } from "@/lib/bank/customer-transaction-copy";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -32,6 +33,34 @@ function cardSubtitle(card: Pick<AltaCardRow, "cardType" | "tier" | "cardLastFou
   const ending = `ending ${card.cardLastFour}`;
   if (card.cardType === "business") return `Business Alta Card · ${ending}`;
   return `${ALTA_CARD_TIER_LABELS[card.tier]} · ${ending}`;
+}
+
+const STATEMENT_TX_HEAD =
+  "px-2 py-2 text-left align-bottom font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600 first:pl-0 last:pr-0";
+const STATEMENT_TX_CELL = "px-2 py-2.5 align-top first:pl-0 last:pr-0";
+
+function statementTransactionMetaLines(
+  tx: AltaCardStatementDetail["transactions"][number],
+  showEmployeeColumn: boolean,
+): string[] {
+  const lines: string[] = [];
+  if (showEmployeeColumn) {
+    lines.push(altaCardEmployeeTransactionAttribution(tx) ?? "Company line");
+  }
+  lines.push(tx.referenceCode);
+  return lines;
+}
+
+function statementTransactionDescription(
+  type: AltaCardTransactionTypeCode,
+  description: string,
+): string {
+  const label = altaCardTransactionLabel(type);
+  const prefix = `${label}${TX_DESC_SEP}`;
+  if (description.startsWith(prefix)) {
+    return description.slice(prefix.length);
+  }
+  return description;
 }
 
 export function AltaCardStatementDocument({
@@ -230,17 +259,19 @@ export function AltaCardStatementDocument({
                 {statement.transactions.map((tx) => {
                   const signed = altaCardTransactionSignedAmount(tx.type, tx.amount);
                   const prefix = signed > 0 ? "+" : signed < 0 ? "−" : "";
+                  const detail = statementTransactionDescription(tx.type, tx.description);
                   return (
-                    <li key={tx.id} className="flex items-start justify-between gap-3 py-3">
+                    <li key={tx.id} className="flex items-start justify-between gap-4 py-3">
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium">{altaCardTransactionLabel(tx.type)}</p>
-                        <p className="break-words text-[12px] text-muted-foreground">{tx.description}</p>
-                        {showEmployeeColumn ? (
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            {altaCardEmployeeTransactionAttribution(tx) ?? "Company line"}
-                          </p>
+                        <p className="mt-0.5 break-words text-[12px] text-muted-foreground">{detail}</p>
+                        {tx.merchantCompanyName ? (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">{tx.merchantCompanyName}</p>
                         ) : null}
-                        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                        <p className="mt-1 break-words font-mono text-[10px] text-muted-foreground">
+                          {statementTransactionMetaLines(tx, showEmployeeColumn).join(" · ")}
+                        </p>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
                           {formatActivityDateTime(tx.createdAt)}
                         </p>
                       </div>
@@ -252,60 +283,49 @@ export function AltaCardStatementDocument({
                   );
                 })}
               </ul>
-              <div className="mt-4 hidden min-w-0 max-w-full overflow-x-auto overscroll-x-contain md:block print:overflow-visible">
-              <table className="w-full min-w-[560px] border-collapse text-[12px] print:text-[11px]">
+              <div className="mt-4 hidden md:block">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] print:text-[11px]">
                 <thead>
                   <tr className="border-b border-border print:border-black">
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Date & time
-                    </th>
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Type
-                    </th>
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Description
-                    </th>
-                    {showEmployeeColumn ? (
-                      <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                        Employee card
-                      </th>
-                    ) : null}
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Ref
-                    </th>
-                    <th className="py-2 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Amount
-                    </th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[20%]`}>Date</th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[18%]`}>Type</th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[50%]`}>Description</th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[12%] text-right`}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {statement.transactions.map((tx) => {
                     const signed = altaCardTransactionSignedAmount(tx.type, tx.amount);
                     const prefix = signed > 0 ? "+" : signed < 0 ? "−" : "";
+                    const detail = statementTransactionDescription(tx.type, tx.description);
+                    const { dateLine, timeLine } = formatStatementTransactionDateTime(tx.createdAt);
+                    const meta = statementTransactionMetaLines(tx, showEmployeeColumn).join(" · ");
                     return (
                       <tr
                         key={tx.id}
                         className="statement-document__row border-b border-border/40 print:border-neutral-200"
                       >
-                        <td className="py-2.5 text-muted-foreground print:text-neutral-600">
-                          {formatActivityDateTime(tx.createdAt)}
+                        <td className={`${STATEMENT_TX_CELL} text-muted-foreground print:text-neutral-600`}>
+                          <div className="text-[11px] leading-snug">{dateLine}</div>
+                          {timeLine ? (
+                            <div className="mt-0.5 text-[10px] leading-snug">{timeLine}</div>
+                          ) : null}
                         </td>
-                        <td className="py-2.5 print:text-black">{altaCardTransactionLabel(tx.type)}</td>
-                        <td className="py-2.5 print:text-black">
-                          <div>{tx.description}</div>
+                        <td className={`${STATEMENT_TX_CELL} text-[11px] leading-snug print:text-black`}>
+                          {altaCardTransactionLabel(tx.type)}
+                        </td>
+                        <td className={`${STATEMENT_TX_CELL} print:text-black`}>
+                          <div className="break-words">{detail}</div>
                           {tx.merchantCompanyName ? (
-                            <div className="text-[10px] text-muted-foreground print:text-neutral-600">
+                            <div className="mt-0.5 break-words text-[10px] text-muted-foreground print:text-neutral-600">
                               {tx.merchantCompanyName}
                             </div>
                           ) : null}
+                          <div className="mt-1 break-words font-mono text-[10px] leading-snug text-muted-foreground print:text-neutral-600">
+                            {meta}
+                          </div>
                         </td>
-                        {showEmployeeColumn ? (
-                          <td className="py-2.5 text-[11px] print:text-black">
-                            {altaCardEmployeeTransactionAttribution(tx) ?? "Company line"}
-                          </td>
-                        ) : null}
-                        <td className="py-2.5 font-mono text-[10px] print:text-black">{tx.referenceCode}</td>
-                        <td className="py-2.5 text-right type-finance-nums print:text-black">
+                        <td className={`${STATEMENT_TX_CELL} whitespace-nowrap text-right type-finance-nums print:text-black`}>
                           {prefix}
                           {formatAltaCardCurrency(Math.abs(tx.amount))}
                         </td>

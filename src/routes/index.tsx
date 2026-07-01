@@ -21,7 +21,6 @@ import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
 import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
 import { MetricValue } from "@/components/metrics/metric-value";
 import { ArrowUpRight } from "lucide-react";
-import heroMarbleUrl from "@/assets/hero-marble.jpg";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
@@ -141,10 +140,6 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
         style={{ background: "var(--gradient-hero)" }}
       />
       <div className="pointer-events-none absolute inset-0 hero-grid" />
-      <div
-        className="pointer-events-none absolute inset-0 hero-marble"
-        style={{ ["--hero-marble-url" as never]: `url(${heroMarbleUrl})` }}
-      />
       <div className="relative mx-auto max-w-[1400px] px-6 pt-32 pb-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

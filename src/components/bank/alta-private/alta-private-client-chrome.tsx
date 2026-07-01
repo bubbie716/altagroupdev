@@ -85,47 +85,6 @@ export function AltaPrivateMemberSinceCard({
   );
 }
 
-export function AltaPrivateRelationshipSnapshot({
-  context,
-  className,
-}: {
-  context: AltaPrivateClientContext;
-  className?: string;
-}) {
-  if (!context.isMember) return null;
-
-  return (
-    <div
-      className={cn(
-        "grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2",
-        className,
-      )}
-    >
-      <SnapshotCell label="Relationship tier" value={context.relationshipTierLabel ?? "—"} />
-      <SnapshotCell label="Alta Private" value="Active" accent />
-    </div>
-  );
-}
-
-function SnapshotCell({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="bg-surface-1 px-4 py-4 sm:px-5 sm:py-5">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-2 font-medium text-[15px]", accent && "text-foreground")}>{value}</p>
-    </div>
-  );
-}
-
 export function AltaPrivateBenefitsHint({
   context,
   className,

@@ -429,6 +429,14 @@ export async function getUserBankSummary(userId: string): Promise<UserBankSummar
     }),
   ]);
 
+  return summarizeBankAccounts(accounts, pendingDepositCount, pendingWithdrawalCount);
+}
+
+function summarizeBankAccounts(
+  accounts: UserBankAccount[],
+  pendingDepositCount: number,
+  pendingWithdrawalCount: number,
+): UserBankSummary {
   return {
     totalBalance: accounts.filter((a) => a.status === "active").reduce((sum, a) => sum + a.balance, 0),
     activeAccountCount: accounts.filter((a) => a.status === "active").length,
@@ -436,6 +444,37 @@ export async function getUserBankSummary(userId: string): Promise<UserBankSummar
     pendingDepositCount,
     pendingWithdrawalCount,
   };
+}
+
+export async function getCompanyBankSummary(companyId: string, userId: string): Promise<UserBankSummary> {
+  const membership = await prisma.companyMembership.findUnique({
+    where: { userId_companyId: { userId, companyId } },
+  });
+  if (!membership) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const accounts = await prisma.bankAccount.findMany({
+    where: { companyId, accountType: "BUSINESS_OPERATING" },
+  });
+  const mapped = accounts.map((account) => mapUserBankAccount(account));
+  const accountIds = accounts.map((account) => account.id);
+
+  const pendingWhere =
+    accountIds.length > 0
+      ? { bankAccountId: { in: accountIds } }
+      : { bankAccountId: { in: ["__none__"] } };
+
+  const [pendingDepositCount, pendingWithdrawalCount] = await Promise.all([
+    prisma.bankTransaction.count({
+      where: { type: "DEPOSIT", status: "PENDING", ...pendingWhere },
+    }),
+    prisma.bankTransaction.count({
+      where: { type: "WITHDRAWAL", status: "PENDING", ...pendingWhere },
+    }),
+  ]);
+
+  return summarizeBankAccounts(mapped, pendingDepositCount, pendingWithdrawalCount);
 }
 
 export async function listUserRecentTransactions(userId: string, limit = 10): Promise<UserBankTransaction[]> {

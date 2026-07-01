@@ -13,7 +13,6 @@ export const BANK_STATIC_ROUTES = [
   "/bank/deposits",
   "/bank/open",
   "/bank/accounts",
-  "/bank/relationship",
   "/bank/private",
   "/bank/lending",
   "/bank/lending/apply",

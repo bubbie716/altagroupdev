@@ -197,3 +197,19 @@ export function formatActivityDateTime(value: string | Date): string {
   const timePart = new Intl.DateTimeFormat("en-US", ACTIVITY_TIME_FORMAT).format(date);
   return `${datePart}, ${timePart} ET`;
 }
+
+/** Statement tables: date and time on separate lines to save horizontal space. */
+export function formatStatementTransactionDateTime(value: string | Date): {
+  dateLine: string;
+  timeLine: string;
+} {
+  const full = formatActivityDateTime(value);
+  const lastComma = full.lastIndexOf(", ");
+  if (lastComma === -1) {
+    return { dateLine: full, timeLine: "" };
+  }
+  return {
+    dateLine: full.slice(0, lastComma),
+    timeLine: full.slice(lastComma + 2),
+  };
+}

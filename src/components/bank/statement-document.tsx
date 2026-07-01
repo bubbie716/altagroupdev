@@ -4,13 +4,17 @@ import type { BankStatementDetail } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { AltaWordmark } from "@/components/alta-logo";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
-import { formatActivityDateLong, formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateLong, formatStatementTransactionDateTime } from "@/lib/format-datetime";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { RouteButton } from "@/components/bank/route-button";
 
 function formatDate(iso: string): string {
   return formatActivityDateLong(iso);
 }
+
+const STATEMENT_TX_HEAD =
+  "px-2 py-2 text-left align-bottom font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600 first:pl-0 last:pr-0";
+const STATEMENT_TX_CELL = "px-2 py-2.5 align-top first:pl-0 last:pr-0";
 
 export function StatementDocument({
   statement,
@@ -169,35 +173,34 @@ export function StatementDocument({
               No approved transactions in this period.
             </p>
           ) : (
-            <div className="mt-4 overflow-x-auto print:overflow-visible">
-              <table className="w-full min-w-[560px] border-collapse text-[12px] print:text-[11px]">
+            <div className="mt-4">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-[12px] print:text-[11px]">
                 <thead>
                   <tr className="border-b border-border print:border-black">
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Date & time
-                    </th>
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Description
-                    </th>
-                    <th className="py-2 text-left font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Ref
-                    </th>
-                    <th className="py-2 text-right font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground print:text-neutral-600">
-                      Amount
-                    </th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[22%]`}>Date</th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[58%]`}>Description</th>
+                    <th className={`${STATEMENT_TX_HEAD} w-[20%] text-right`}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {statement.transactions.map((tx) => {
                     const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
+                    const { dateLine, timeLine } = formatStatementTransactionDateTime(tx.createdAt);
                     return (
                     <tr key={tx.id} className="statement-document__row border-b border-border/40 print:border-neutral-200">
-                      <td className="py-2.5 text-muted-foreground print:text-neutral-600">
-                        {formatActivityDateTime(tx.createdAt)}
+                      <td className={`${STATEMENT_TX_CELL} text-muted-foreground print:text-neutral-600`}>
+                        <div className="text-[11px] leading-snug">{dateLine}</div>
+                        {timeLine ? (
+                          <div className="mt-0.5 text-[10px] leading-snug">{timeLine}</div>
+                        ) : null}
                       </td>
-                      <td className="py-2.5 print:text-black">{tx.description}</td>
-                      <td className="py-2.5 font-mono text-[10px] print:text-black">{tx.referenceCode}</td>
-                      <td className="py-2.5 text-right type-finance-nums print:text-black">
+                      <td className={`${STATEMENT_TX_CELL} print:text-black`}>
+                        <div className="break-words">{tx.description}</div>
+                        <div className="mt-1 break-words font-mono text-[10px] leading-snug text-muted-foreground print:text-neutral-600">
+                          {tx.referenceCode}
+                        </div>
+                      </td>
+                      <td className={`${STATEMENT_TX_CELL} whitespace-nowrap text-right type-finance-nums print:text-black`}>
                         {signedAmount >= 0 ? "+" : "−"}
                         {florin(Math.abs(signedAmount))}
                       </td>

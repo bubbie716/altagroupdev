@@ -361,18 +361,6 @@
     overflow-x: clip;
   }
 
-  /* Hero marble backdrop — only visible in dark mode. */
-  .hero-marble {
-    background-image: var(--hero-marble-url);
-    background-size: cover;
-    background-position: center;
-    opacity: 0;
-    filter: saturate(0.7) contrast(1.05);
-    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, black 10%, transparent 75%);
-    mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, black 10%, transparent 75%);
-  }
-  .dark .hero-marble { opacity: 0.22; }
-
   .shadow-card { box-shadow: var(--shadow-card); }
   .shadow-elevated { box-shadow: var(--shadow-elevated); }
 
