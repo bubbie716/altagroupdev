@@ -1,4 +1,15 @@
-import type { ReactNode } from "react";
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { Outlet } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
@@ -9,6 +20,27 @@ import {
   terminalPageDescription,
 } from "@/lib/branding/alta-products";
 
+export type TerminalPageMetaProps = {
+  title?: string;
+  description: string;
+  action?: ReactNode;
+};
+
+const defaultMeta: TerminalPageMetaProps = {
+  title: ALTA_TERMINAL_TAGLINE,
+  description: "",
+};
+
+function metaFieldsEqual(a: TerminalPageMetaProps, b: TerminalPageMetaProps): boolean {
+  return a.title === b.title && a.description === b.description && a.action === b.action;
+}
+
+type TerminalPageLayoutContextValue = {
+  setMeta: (meta: TerminalPageMetaProps) => void;
+};
+
+const TerminalPageLayoutContext = createContext<TerminalPageLayoutContextValue | null>(null);
+
 export function TerminalLayoutNav() {
   return (
     <>
@@ -18,6 +50,45 @@ export function TerminalLayoutNav() {
   );
 }
 
+/** Registers page hero metadata for the persistent /terminal layout shell. */
+export function TerminalPageMeta(props: TerminalPageMetaProps) {
+  const ctx = useContext(TerminalPageLayoutContext);
+  useLayoutEffect(() => {
+    ctx?.setMeta(props);
+  }, [ctx, props.title, props.description, props.action]);
+  return null;
+}
+
+function TerminalChromeLayoutInner() {
+  const [meta, setMetaState] = useState<TerminalPageMetaProps>(defaultMeta);
+  const setMeta = useCallback((next: TerminalPageMetaProps) => {
+    setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
+  }, []);
+  const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
+
+  return (
+    <TerminalPageLayoutContext.Provider value={layoutValue}>
+      <PageShell
+        eyebrow={ALTA_TERMINAL_EYEBROW}
+        title={meta.title ?? ALTA_TERMINAL_TAGLINE}
+        description={terminalPageDescription(meta.description)}
+        action={meta.action}
+        animateHero={false}
+      >
+        <TerminalLayoutNav />
+        <div className="route-page-content">
+          <Outlet />
+        </div>
+      </PageShell>
+    </TerminalPageLayoutContext.Provider>
+  );
+}
+
+export function TerminalRouteLayout() {
+  return <TerminalChromeLayoutInner />;
+}
+
+/** Page content wrapper when using the persistent /terminal layout. */
 export function TerminalPageShell({
   title = ALTA_TERMINAL_TAGLINE,
   description,
@@ -28,10 +99,10 @@ export function TerminalPageShell({
   children: ReactNode;
 }) {
   return (
-    <PageShell eyebrow={ALTA_TERMINAL_EYEBROW} title={title} description={terminalPageDescription(description)}>
-      <TerminalLayoutNav />
+    <>
+      <TerminalPageMeta title={title} description={description} />
       {children}
-    </PageShell>
+    </>
   );
 }
 

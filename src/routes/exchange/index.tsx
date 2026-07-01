@@ -8,8 +8,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { CompanyTable } from "@/components/exchange/company-table";
 import { IndexCard } from "@/components/exchange/index-card";
 import { IPOCard } from "@/components/exchange/ipo-card";
@@ -46,12 +46,12 @@ function ExchangeOverview() {
   const actions = getCorporateActions();
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange"
-      title={ALTA_EXCHANGE_TAGLINE}
-      description="Alta Exchange operates Newport's primary market infrastructure for listings, price discovery, execution, market data, and Alta Terminal."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange"
+        title={ALTA_EXCHANGE_TAGLINE}
+        description="Alta Exchange operates Newport's primary market infrastructure for listings, price discovery, execution, market data, and Alta Terminal."
+      />
 
       <Section title="Market Snapshot">
         <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
@@ -208,6 +208,6 @@ function ExchangeOverview() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }

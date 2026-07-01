@@ -8,6 +8,8 @@ import {
 } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_TIER_CONFIG } from "@/lib/bank/alta-card-tier-config";
 import type { InternalAltaCardOperationsContext } from "@/lib/bank/alta-card-types";
+import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
+import { formatDueDate } from "@/lib/format-datetime";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -191,7 +193,7 @@ export function InternalAltaCardOpsPanel({
               Due date
             </dt>
             <dd className="mt-1 text-[13px]">
-              {card.dueDate ? new Date(card.dueDate).toLocaleDateString() : "—"}
+              {card.dueDate ? formatAltaCardBillingDate(card.dueDate) : "—"}
             </dd>
           </div>
           <div>
@@ -212,7 +214,7 @@ export function InternalAltaCardOpsPanel({
               Opened
             </dt>
             <dd className="mt-1 text-[13px]">
-              {card.openedAt ? new Date(card.openedAt).toLocaleDateString() : "—"}
+              {card.openedAt ? formatDueDate(card.openedAt) : "—"}
             </dd>
           </div>
           <div>
@@ -221,7 +223,7 @@ export function InternalAltaCardOpsPanel({
             </dt>
             <dd className="mt-1 text-[13px]">
               {lastPayment
-                ? `${formatAltaCardCurrency(lastPayment.amount)} · ${new Date(lastPayment.createdAt).toLocaleDateString()}`
+                ? `${formatAltaCardCurrency(lastPayment.amount)} · ${formatDueDate(lastPayment.createdAt)}`
                 : "—"}
             </dd>
           </div>

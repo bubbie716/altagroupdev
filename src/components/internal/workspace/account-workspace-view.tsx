@@ -27,7 +27,7 @@ import {
   unfreezeBankAccountRecord,
 } from "@/lib/bank/bank.functions";
 import { florin } from "@/lib/bank/api";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatDueDate } from "@/lib/format-datetime";
 import type { InternalBankTransactionRow } from "@/lib/bank/backend-types";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
 import type { TimelineEvent } from "@/lib/internal/ops-types";
@@ -242,7 +242,7 @@ function TxTable({ rows, empty }: { rows: InternalBankTransactionRow[]; empty: s
         { key: "type", header: "Type", cell: (r) => r.type },
         { key: "amount", header: "Amount", cell: (r) => r.amount },
         { key: "status", header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
-        { key: "date", header: "Date", cell: (r) => <span className="font-mono text-[11px]">{r.submitted}</span> },
+        { key: "date", header: "Date", cell: (r) => <span className="font-mono text-[11px]">{formatDueDate(r.submitted)}</span> },
       ]}
       rows={rows}
       rowKey={(r) => r.id}

@@ -12,6 +12,7 @@ import {
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { useResolvedPathname } from "@/components/navigation/use-resolved-pathname";
 import {
   AltaPrivateClientProvider,
   useAltaPrivateClientContext,
@@ -61,6 +62,9 @@ export function BankPageMeta(props: BankPageMetaProps) {
   const ctx = useContext(BankPageLayoutContext);
   useLayoutEffect(() => {
     ctx?.setMeta(props);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
   }, [
     ctx,
     props.eyebrow,
@@ -72,17 +76,31 @@ export function BankPageMeta(props: BankPageMetaProps) {
     props.footerVariant,
     props.printDocument,
   ]);
+
   return null;
 }
 
-function BankChromeLayoutInner() {
+export function isChromelessBankPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/bank/account/") ||
+    pathname.startsWith("/bank/accounts/") ||
+    pathname.startsWith("/bank/admin/")
+  );
+}
+
+/** Full-screen bank routes (deal room threads) — no shared bank chrome at all. */
+export function isFullScreenBankPath(pathname: string): boolean {
+  return pathname.includes("/thread");
+}
+
+function BankChromeLayoutInner({ showBankSubNav }: { showBankSubNav: boolean }) {
   const [meta, setMetaState] = useState<BankPageMetaProps>(defaultMeta);
   const setMeta = useCallback((next: BankPageMetaProps) => {
     setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
   const privateClient = useAltaPrivateClientContext();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = useResolvedPathname();
   const showDefaultPrivateSubtitle =
     privateClient.isMember &&
     !meta.subtitle &&
@@ -95,27 +113,26 @@ function BankChromeLayoutInner() {
   return (
     <BankPageLayoutContext.Provider value={layoutValue}>
       <PageShell {...shellMeta} animateHero={false}>
-        <BankSubNav privateClientContext={privateClient} />
-        <Outlet />
+        {showBankSubNav ? <BankSubNav privateClientContext={privateClient} /> : null}
+        <div className="route-page-content">
+          <Outlet />
+        </div>
       </PageShell>
     </BankPageLayoutContext.Provider>
   );
 }
 
-function BankChromeLayout({ privateClientContext }: { privateClientContext: AltaPrivateClientContext }) {
+function BankChromeLayout({
+  privateClientContext,
+  showBankSubNav,
+}: {
+  privateClientContext: AltaPrivateClientContext;
+  showBankSubNav: boolean;
+}) {
   return (
     <AltaPrivateClientProvider value={privateClientContext}>
-      <BankChromeLayoutInner />
+      <BankChromeLayoutInner showBankSubNav={showBankSubNav} />
     </AltaPrivateClientProvider>
-  );
-}
-
-export function isChromelessBankPath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/bank/account/") ||
-    pathname.startsWith("/bank/accounts/") ||
-    pathname.startsWith("/bank/admin/") ||
-    pathname.includes("/thread")
   );
 }
 
@@ -124,11 +141,17 @@ export function BankRouteLayout({
 }: {
   privateClientContext?: AltaPrivateClientContext;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  if (isChromelessBankPath(pathname)) {
+  const locationPathname = useRouterState({ select: (s) => s.location.pathname });
+  const resolvedPathname = useResolvedPathname();
+
+  if (isFullScreenBankPath(locationPathname)) {
     return <Outlet />;
   }
+
   return (
-    <BankChromeLayout privateClientContext={privateClientContext ?? EMPTY_ALTA_PRIVATE_CLIENT_CONTEXT} />
+    <BankChromeLayout
+      privateClientContext={privateClientContext ?? EMPTY_ALTA_PRIVATE_CLIENT_CONTEXT}
+      showBankSubNav={!isChromelessBankPath(resolvedPathname)}
+    />
   );
 }

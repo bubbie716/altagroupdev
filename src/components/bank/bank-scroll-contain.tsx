@@ -124,4 +124,4 @@ export function BankSubNavScroll({
 }
 
 export const bankSubNavClass =
-  "flex w-max min-w-full gap-1 border-b border-border/60 pb-3 sm:w-auto sm:flex-wrap sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap";
+  "flex w-max max-w-full gap-1 border-b border-border/60 pb-3 sm:w-full sm:flex-wrap sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap";

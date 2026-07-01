@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { MAX_PROOF_BYTES, ACCEPTED_PROOF_INPUT } from "@/lib/storage/proof-upload.constants";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
@@ -47,7 +46,6 @@ export function BankDepositForm({
     resolveInitialAccountId(accounts, defaultAccountId),
   );
   const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [view, setView] = useState<FormView>("form");
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +62,6 @@ export function BankDepositForm({
     setErrorReason(null);
     setSubmission(null);
     setAmount("");
-    setMemo("");
     setProofFile(null);
     setBankAccountId(resolveInitialAccountId(accounts, defaultAccountId));
     if (proofInputRef.current) proofInputRef.current.value = "";
@@ -104,7 +101,6 @@ export function BankDepositForm({
       const formData = new FormData();
       formData.append("bankAccountId", bankAccountId);
       formData.append("amount", amount);
-      formData.append("memo", memo);
       formData.append("proof", proofFile);
 
       const response = await fetch("/api/bank/deposit-request", {
@@ -220,17 +216,6 @@ export function BankDepositForm({
             <p className="mt-2 text-[12px] text-muted-foreground">
               PNG, JPG, or WebP up to 8MB. Your screenshot is stored securely for Alta review.
             </p>
-          </label>
-
-          <label className="block">
-            <span className={fieldLabel}>Memo</span>
-            <Textarea
-              autoResize
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="Optional notes for the reviewer…"
-              className={`${inputClass} min-h-[80px]`}
-            />
           </label>
         </fieldset>
 

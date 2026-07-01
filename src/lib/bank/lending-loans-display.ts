@@ -1,5 +1,6 @@
 import { findNextDueInstallment } from "@/lib/bank/loan-payment-schedule";
 import type { LoanRow, LoanStatusCode } from "@/lib/bank/lending-types";
+import { formatInNewYork } from "@/lib/format-datetime";
 
 export function isActiveLoan(status: LoanStatusCode): boolean {
   return status === "active" || status === "frozen";
@@ -32,7 +33,7 @@ export function resolveLoanNextDue(loan: LoanRow): { date: string; amount: numbe
 }
 
 export function formatLoanDueDate(date: string, style: "short" | "long" = "short"): string {
-  return new Date(date).toLocaleDateString(undefined, {
+  return formatInNewYork(date, {
     month: "short",
     day: "numeric",
     ...(style === "long" ? { year: "numeric" } : {}),

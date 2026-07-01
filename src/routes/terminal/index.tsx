@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { TerminalPageMeta } from "@/components/terminal/terminal-layout";
 import { TerminalStatCard } from "@/components/terminal/terminal-stat-card";
 import { HoldingsTable } from "@/components/terminal/holdings-table";
 import { WatchlistTable } from "@/components/terminal/watchlist-table";
@@ -41,12 +41,8 @@ function TerminalHome() {
   const terminalDescription = getTerminalDescription();
 
   return (
-    <PageShell
-      eyebrow="Alta Terminal"
-      title="Invest Like the 1%"
-      description={terminalDescription}
-    >
-      <TerminalSubNav />
+    <>
+      <TerminalPageMeta title="Invest Like the 1%" description={terminalDescription} />
 
       {showMockData ? (
         <TerminalHomeMockContent />
@@ -56,7 +52,7 @@ function TerminalHome() {
           {showMarketPreview && <TerminalMarketPreviewSections />}
         </>
       )}
-    </PageShell>
+    </>
   );
 }
 

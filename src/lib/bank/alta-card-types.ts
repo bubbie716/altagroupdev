@@ -540,13 +540,28 @@ export const ALTA_CARD_FEE_STATUS_LABELS: Record<AltaCardFeeStatusCode, string> 
 
 export const ALTA_CARD_STATEMENT_STATUS_LABELS: Record<AltaCardStatementStatusCode, string> = {
   open: "Open",
-  generated: "Generated",
+  generated: "Activity summary",
   issued: "Issued",
   paid: "Paid",
   partially_paid: "Partially paid",
   overdue: "Overdue",
   void: "Void",
 };
+
+/** Custom period statements created by cardholders — not used for billing or payments. */
+export function isAltaCardCustomPeriodStatement(status: AltaCardStatementStatusCode): boolean {
+  return status === "generated";
+}
+
+/** Official billing-cycle statements issued by Alta (cron / cycle close). */
+export function isAltaCardOfficialBillingStatement(status: AltaCardStatementStatusCode): boolean {
+  return (
+    status === "issued" ||
+    status === "partially_paid" ||
+    status === "paid" ||
+    status === "overdue"
+  );
+}
 
 /** Admin-facing labels — preview statements are not production-issued. */
 export const ALTA_CARD_STATEMENT_STATUS_LABELS_ADMIN: Record<AltaCardStatementStatusCode, string> = {

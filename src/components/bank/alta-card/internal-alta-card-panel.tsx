@@ -17,6 +17,8 @@ import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
 } from "@/lib/bank/alta-card-types";
+import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
+import { formatDueDate } from "@/lib/format-datetime";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { BankReviewButton } from "@/components/bank/bank-review-button";
@@ -284,14 +286,14 @@ export function InternalAltaCardDetailPanel({
         <p className="text-[13px] text-muted-foreground">
           Cycle:{" "}
           {card.currentBillingCycleStart && card.currentBillingCycleEnd
-            ? `${new Date(card.currentBillingCycleStart).toLocaleDateString()} – ${new Date(card.currentBillingCycleEnd).toLocaleDateString()}`
+            ? `${formatAltaCardBillingDate(card.currentBillingCycleStart)} – ${formatAltaCardBillingDate(card.currentBillingCycleEnd)}`
             : "—"}
           {" · "}
           Next statement:{" "}
-          {card.nextStatementDate ? new Date(card.nextStatementDate).toLocaleDateString() : "—"}
+          {card.nextStatementDate ? formatAltaCardBillingDate(card.nextStatementDate) : "—"}
           {" · "}
           Payment due:{" "}
-          {card.paymentDueDate ? new Date(card.paymentDueDate).toLocaleDateString() : "—"}
+          {card.paymentDueDate ? formatAltaCardBillingDate(card.paymentDueDate) : "—"}
         </p>
         <div className="flex flex-wrap gap-2">
           <BankReviewButton
@@ -325,7 +327,7 @@ export function InternalAltaCardDetailPanel({
           cardId={card.id}
           card={card}
           statements={statements}
-          variant="admin"
+          listKind="admin"
           statusLabels={ALTA_CARD_STATEMENT_STATUS_LABELS_ADMIN}
         />
         {statements
@@ -423,7 +425,7 @@ export function InternalAltaCardDetailPanel({
                     </div>
                     <div>
                       <dt className="text-muted-foreground">Date</dt>
-                      <dd>{new Date(fee.createdAt).toLocaleDateString()}</dd>
+                      <dd>{formatDueDate(fee.createdAt)}</dd>
                     </div>
                   </dl>
                   {admin && fee.status === "active" ? (
@@ -462,7 +464,7 @@ export function InternalAltaCardDetailPanel({
                     <td className="font-mono tabular-nums">{formatAltaCardCurrency(fee.amount)}</td>
                     <td>{ALTA_CARD_FEE_STATUS_LABELS[fee.status]}</td>
                     <td className="text-muted-foreground">
-                      {new Date(fee.createdAt).toLocaleDateString()}
+                      {formatDueDate(fee.createdAt)}
                     </td>
                     {admin ? (
                       <td>

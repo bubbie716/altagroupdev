@@ -4,7 +4,7 @@ export const BANK_MANUAL_REVIEW_EXPLANATION =
   "Alta reviews each request before balances are updated. Approved requests post to your account; denied requests do not affect your balance.";
 
 export const DEPOSIT_PAGE_DESCRIPTION =
-  "Request a Florin deposit with screenshot proof. Your request will appear as Waiting on Alta until Alta completes review.";
+  "Request a Florin deposit with screenshot proof. Your request will appear as Pending until Alta completes review.";
 
 export const WITHDRAW_PAGE_DESCRIPTION =
   "Submit a Florin withdrawal request. Balances are not reduced until Alta approves the request.";
@@ -13,7 +13,7 @@ export const WITHDRAW_FORM_INTRO =
   "Request a Florin withdrawal. Funds are not deducted until Alta approves the request.";
 
 export const BANK_REQUEST_SUCCESS_BODY =
-  "Your request has been received and is Waiting on Alta.";
+  "Your request has been received and is Pending.";
 
 export const INTRABANK_TRANSFER_FORM_INTRO =
   "Move Florins instantly between your Alta Bank accounts or send to another player by account number.";

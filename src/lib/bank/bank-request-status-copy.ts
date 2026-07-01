@@ -1,11 +1,12 @@
 import type { BankTransactionStatusCode } from "@/lib/bank/backend-types";
 
-/** Customer-facing labels for deposit/withdrawal requests in progress. */
-export type BankRequestDisplayStatus = "Waiting on Alta" | "Waiting on You" | "Under Review" | "Denied";
+/** Customer-facing labels for deposit/withdrawal requests on the deposit and withdraw pages. */
+export type BankRequestDisplayStatus = "Pending" | "Approved" | "Waiting on You" | "Under Review" | "Denied";
 
 export function formatBankRequestDisplayStatus(status: BankTransactionStatusCode): BankRequestDisplayStatus {
   if (status === "denied") return "Denied";
-  if (status === "pending") return "Waiting on Alta";
+  if (status === "approved") return "Approved";
+  if (status === "pending") return "Pending";
   return "Under Review";
 }
 

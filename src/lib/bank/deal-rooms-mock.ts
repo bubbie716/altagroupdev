@@ -3,6 +3,8 @@
  * Replace with Prisma-backed queries when the lending workspace ships.
  */
 
+import { formatDueDate, formatShortDateTime } from "@/lib/format-datetime";
+
 export type DealRoomStatus =
   | "under_review"
   | "negotiating"
@@ -653,18 +655,9 @@ export function formatPercent(value: number): string {
 }
 
 export function formatDealDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatDueDate(iso);
 }
 
 export function formatDealDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatShortDateTime(iso);
 }

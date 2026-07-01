@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { CorporateActionTable } from "@/components/exchange/corporate-action-table";
 import { getCorporateActions } from "@/lib/exchange/api";
 
@@ -23,12 +23,12 @@ function ExchangeActions() {
   const corporateActions = getCorporateActions();
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange · Corporate Actions"
-      title="Corporate Actions"
-      description="Dividends, splits, buybacks, mergers, and tender offers across Alta Exchange listed issuers — simulated data."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · Corporate Actions"
+        title="Corporate Actions"
+        description="Dividends, splits, buybacks, mergers, and tender offers across Alta Exchange listed issuers — simulated data."
+      />
 
       {sections.map((s) => {
         const rows = corporateActions.filter((a) => a.category === s.filter);
@@ -39,6 +39,6 @@ function ExchangeActions() {
           </Section>
         );
       })}
-    </PageShell>
+    </>
   );
 }

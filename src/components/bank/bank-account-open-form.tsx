@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isPrivateClient } from "@/lib/auth/permissions";
 import { openBankAccountRecord } from "@/lib/bank/bank.functions";
@@ -34,7 +33,6 @@ export function BankAccountOpenForm() {
   const [accountType, setAccountType] = useState<BankAccountTypeCode>("alta_access");
   const [accountName, setAccountName] = useState("");
   const [companyId, setCompanyId] = useState("");
-  const [openingNotes, setOpeningNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdAccount, setCreatedAccount] = useState<OpenBankAccountResult | null>(null);
@@ -76,7 +74,6 @@ export function BankAccountOpenForm() {
         accountName,
         ownership,
         companyId: ownership === "company" ? companyId : undefined,
-        openingNotes,
       };
       const result = await openBankAccountRecord({ data: input });
       setCreatedAccount(result);
@@ -204,17 +201,6 @@ export function BankAccountOpenForm() {
             onChange={(e) => setAccountName(e.target.value)}
             placeholder={ownership === "company" ? "Operating Account" : "Primary Checking"}
             className={inputClass}
-          />
-        </label>
-
-        <label className="block">
-          <span className={fieldLabel}>Reason / notes</span>
-          <Textarea
-            autoResize
-            value={openingNotes}
-            onChange={(e) => setOpeningNotes(e.target.value)}
-            placeholder="Tell us how you plan to use this account…"
-            className={`${inputClass} min-h-[100px]`}
           />
         </label>
 

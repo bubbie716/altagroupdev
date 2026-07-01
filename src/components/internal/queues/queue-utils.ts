@@ -1,4 +1,4 @@
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
 
 export type QueueAgeSeverity = "normal" | "warning" | "critical";
 
@@ -53,7 +53,7 @@ export function formatQueueAge(isoOrDate: string): string {
 
 export function formatQueueDate(isoOrDate: string): string {
   if (isoOrDate.includes("T")) return formatActivityDateTime(isoOrDate);
-  return isoOrDate;
+  return formatDueDate(isoOrDate);
 }
 
 export const QUEUE_BREADCRUMB_ROOT = { label: "Queues", to: "/internal/queues/deposits" } as const;

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { RankingTable } from "@/components/exchange/ranking-table";
 import { getMarketStats } from "@/lib/exchange/api";
 
@@ -15,12 +15,12 @@ function ExchangeRankings() {
   const r = getMarketStats().rankings;
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange · Rankings"
-      title="Market Rankings"
-      description="Top gainers, losers, most active, and largest issuers on Alta Exchange — simulated session data."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · Rankings"
+        title="Market Rankings"
+        description="Top gainers, losers, most active, and largest issuers on Alta Exchange — simulated session data."
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Section title="Top Gainers">
@@ -39,6 +39,6 @@ function ExchangeRankings() {
           <RankingTable title="Highest Volume" rows={r.highestVolume} />
         </Section>
       </div>
-    </PageShell>
+    </>
   );
 }

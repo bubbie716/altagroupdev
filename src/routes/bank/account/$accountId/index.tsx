@@ -8,6 +8,7 @@ import { AccountStatusPanel } from "@/components/bank/account-status-panel";
 import { AccountBalanceBreakdown } from "@/components/bank/account-balance-breakdown";
 import { RouteButton } from "@/components/bank/route-button";
 import { florin } from "@/lib/bank/api";
+import { formatDueDate } from "@/lib/format-datetime";
 import type { BankAccountStatusCode } from "@/lib/bank/backend-types";
 import { cn } from "@/lib/utils";
 import { Route as AccountRoute } from "./route";
@@ -56,7 +57,7 @@ function AccountOverviewPage() {
       {isClosed ? <ClosedAccountBanner accountId={account.id} /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <BankStatCard label="Current Balance" value={florin(account.balance)} accent />
+        <BankStatCard label="Current Balance" value={florin(account.balance)} />
         <BankStatCard label="Available Balance" value={florin(account.availableBalance)} />
         <BankStatCard label="Deposits This Month" value={florin(account.depositsThisMonth)} />
         <BankStatCard label="Withdrawals This Month" value={florin(account.withdrawalsThisMonth)} />
@@ -106,7 +107,7 @@ function AccountOverviewPage() {
                   label="Last interest date"
                   value={
                     account.interestInfo.lastInterestDate
-                      ? new Date(account.interestInfo.lastInterestDate).toLocaleDateString()
+                      ? formatDueDate(account.interestInfo.lastInterestDate)
                       : "—"
                   }
                 />

@@ -1,5 +1,6 @@
 import { Card } from "@/components/page-shell";
 import type { BusinessRepresentativeRow } from "@/lib/bank/business-banking-types";
+import { formatDueDate } from "@/lib/format-datetime";
 import {
   BankMobileStack,
   BankMobileStackField,
@@ -48,7 +49,7 @@ export function BusinessRepresentativesPanel({
                   {r.role === "compliance_contact" ? "View only" : "Full treasury"}
                 </BankMobileStackField>
                 <BankMobileStackField label="Joined">
-                  {new Date(r.joinedAt).toLocaleDateString()}
+                  {formatDueDate(r.joinedAt)}
                 </BankMobileStackField>
               </BankMobileStackRow>
             ))}
@@ -77,7 +78,7 @@ export function BusinessRepresentativesPanel({
                       {r.role === "compliance_contact" ? "View only" : "Full treasury"}
                     </td>
                     <td className="text-muted-foreground">
-                      {new Date(r.joinedAt).toLocaleDateString()}
+                      {formatDueDate(r.joinedAt)}
                     </td>
                   </tr>
                 ))}

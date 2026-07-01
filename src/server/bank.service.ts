@@ -22,6 +22,7 @@ import type {
   UserBankTransfer,
 } from "@/lib/bank/backend-types";
 import { generateAccountNumber, isValidAltaAccountNumber } from "@/lib/bank/account-number";
+import { getRoutingNumber } from "@/lib/bank/routing";
 import {
   countsTowardMoneyMarketCard,
   countsTowardPrivateBankCard,
@@ -465,7 +466,7 @@ export async function listUserRecentTransactionsForUser(
   return transactions.map(mapUserBankTransaction);
 }
 
-const IN_PROGRESS_DENIED_DAYS = 7;
+const RECENT_RESOLVED_REQUEST_DAYS = 7;
 
 export async function listUserBankRequestsInProgress(
   userId: string,
@@ -479,14 +480,18 @@ export async function listUserBankRequestsInProgressForUser(
   user: AltaUser,
   type: "deposit" | "withdrawal",
 ): Promise<BankRequestInProgress[]> {
-  const deniedSince = new Date();
-  deniedSince.setDate(deniedSince.getDate() - IN_PROGRESS_DENIED_DAYS);
+  const recentResolvedSince = new Date();
+  recentResolvedSince.setDate(recentResolvedSince.getDate() - RECENT_RESOLVED_REQUEST_DAYS);
 
   const transactions = await prisma.bankTransaction.findMany({
     where: {
       type: type === "deposit" ? "DEPOSIT" : "WITHDRAWAL",
       bankAccount: bankAccountAccessWhere(user, "view"),
-      OR: [{ status: "PENDING" }, { status: "DENIED", reviewedAt: { gte: deniedSince } }],
+      OR: [
+        { status: "PENDING" },
+        { status: "DENIED", reviewedAt: { gte: recentResolvedSince } },
+        { status: "APPROVED", reviewedAt: { gte: recentResolvedSince } },
+      ],
     },
     orderBy: { updatedAt: "desc" },
     select: {
@@ -507,7 +512,7 @@ export async function listUserBankRequestsInProgressForUser(
   });
 
   return transactions.map((tx) => {
-    const status = fromDbBankTransactionStatus(tx.status) as "pending" | "denied";
+    const status = fromDbBankTransactionStatus(tx.status) as "pending" | "approved" | "denied";
     return {
       id: tx.id,
       referenceCode: tx.referenceCode,

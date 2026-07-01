@@ -8,8 +8,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { CompanyProfileHeader } from "@/components/exchange/company-profile-header";
 import { KeyStatsGrid, CompanyMetaGrid } from "@/components/exchange/key-stats-grid";
 import { FilingCard } from "@/components/exchange/filing-card";
@@ -30,27 +30,31 @@ function CompanyProfilePage() {
 
   if (!company) {
     return (
-      <PageShell eyebrow="Alta Exchange" title="Company Not Found" description="No listing found for this ticker.">
-        <ExchangeSubNav />
+      <>
+        <ExchangePageMeta
+          eyebrow="Alta Exchange"
+          title="Company Not Found"
+          description="No listing found for this ticker."
+        />
         <Card>
           <p className="text-muted-foreground">Ticker not found in Alta Exchange listings.</p>
           <Link to="/exchange/listings" className="mt-4 inline-block font-mono text-[11px] uppercase tracking-[0.18em] text-gold">
             ← Back to listings
           </Link>
         </Card>
-      </PageShell>
+      </>
     );
   }
 
   const announcements = getAnnouncements(ticker);
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange · Company Profile"
-      title={company.name}
-      description={company.description}
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · Company Profile"
+        title={company.name}
+        description={company.description}
+      />
       <CompanyProfileHeader company={company} />
 
       <div className="mt-6 flex justify-end">
@@ -191,6 +195,6 @@ function CompanyProfilePage() {
           </ul>
         </Card>
       </Section>
-    </PageShell>
+    </>
   );
 }

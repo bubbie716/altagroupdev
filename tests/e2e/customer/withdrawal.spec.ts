@@ -26,7 +26,6 @@ test.describe("Withdrawal page", () => {
 
       const amount = Math.min(1, maxWithdraw!).toString();
       await fillFlorinAmount(page, amount);
-      await page.getByLabel(/memo/i).fill("E2E test withdrawal");
 
       const submit = page.getByRole("button", { name: /submit withdrawal/i });
       if (!(await submit.isEnabled())) {

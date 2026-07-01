@@ -78,9 +78,8 @@ function BankDashboardLiveContent({
           sub: "Alta Private · Active",
         },
         {
-          label: "Waiting on Alta",
+          label: "Pending deposits and withdrawals",
           value: String(dashboard.pendingDeposits + dashboard.pendingWithdrawals),
-          sub: "Deposits and withdrawals",
         },
         { label: "Accounts", value: String(accounts.length) },
       ]
@@ -88,9 +87,8 @@ function BankDashboardLiveContent({
         { label: "Total relationship", value: florin(dashboard.totalRelationshipValue) },
         { label: "Private status", value: dashboard.privateStatus },
         {
-          label: "Waiting on Alta",
+          label: "Pending deposits and withdrawals",
           value: String(dashboard.pendingDeposits + dashboard.pendingWithdrawals),
-          sub: "Deposits and withdrawals",
         },
         { label: "Accounts", value: String(accounts.length) },
       ];

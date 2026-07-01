@@ -234,6 +234,11 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    overflow-x: clip;
   }
 
   /* Safari iOS momentum scrolling for any overflow container. */
@@ -347,6 +352,13 @@
   }
   .animate-rise {
     animation: premium-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* In-app route content swap inside persistent layouts. */
+  .route-page-content {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   /* Hero marble backdrop — only visible in dark mode. */

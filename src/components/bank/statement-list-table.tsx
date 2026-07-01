@@ -1,6 +1,6 @@
 import type { BankStatementSummary } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateRange, formatActivityDateTime } from "@/lib/format-datetime";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { RouteButton } from "@/components/bank/route-button";
 import {
@@ -12,10 +12,7 @@ import {
 } from "@/components/bank/bank-scroll-contain";
 
 function formatPeriod(start: string, end: string): string {
-  const s = new Date(start);
-  const e = new Date(end);
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
-  return `${s.toLocaleDateString(undefined, opts)} – ${e.toLocaleDateString(undefined, opts)}`;
+  return formatActivityDateRange(start, end);
 }
 
 function formatGeneratedAt(generatedAt: string | null, createdAt: string): string {

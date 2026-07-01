@@ -4,16 +4,12 @@ import type { BankStatementDetail } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { AltaWordmark } from "@/components/alta-logo";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
-import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatActivityDateLong, formatActivityDateTime } from "@/lib/format-datetime";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { RouteButton } from "@/components/bank/route-button";
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatActivityDateLong(iso);
 }
 
 export function StatementDocument({

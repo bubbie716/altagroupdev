@@ -47,14 +47,7 @@ function BankTransferContactsPage() {
         </div>
       ) : (
         <div className="grid gap-10 lg:grid-cols-2">
-          <Section
-            title="Intrabank contacts"
-            action={
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Alta · Alta
-              </span>
-            }
-          >
+          <Section title="Intrabank contacts">
             <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
                 Shortcuts for other Alta Bank clients by account number.
@@ -72,14 +65,7 @@ function BankTransferContactsPage() {
             </div>
           </Section>
 
-          <Section
-            title="Interbank contacts"
-            action={
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                NCC-Net
-              </span>
-            }
-          >
+          <Section title="Interbank contacts">
             <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
                 External wire recipients — ready for when NCC-Net wires launch.

@@ -263,7 +263,7 @@ export function mapInternalBankTransactionRow(tx: BankTransactionRecord): Intern
     amount: `ƒ${decimalToNumber(tx.amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     method: tx.description,
     status: formatTransactionStatusLabel(status),
-    submitted: tx.createdAt.toISOString().slice(0, 10),
+    submitted: tx.createdAt.toISOString(),
     proofImageUrl: getProofFileUrl(tx.proofImageUrl),
     proofFileName: tx.proofFileName,
     proofUploadedAt: tx.proofUploadedAt?.toISOString() ?? null,

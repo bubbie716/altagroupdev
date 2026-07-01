@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section, Card } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section, Card } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { IPOCard } from "@/components/exchange/ipo-card";
 import { getIPOs } from "@/lib/exchange/api";
 
@@ -17,12 +17,12 @@ function ExchangeIPO() {
   const recent = getIPOs("recent");
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange · IPO Center"
-      title="IPO Center"
-      description="Primary market offerings, bookbuilding, and recently listed issuers on Alta Exchange — simulated preview."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · IPO Center"
+        title="IPO Center"
+        description="Primary market offerings, bookbuilding, and recently listed issuers on Alta Exchange — simulated preview."
+      />
 
       <Card className="mb-10 border-gold/30 bg-gold/5">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
@@ -53,6 +53,6 @@ function ExchangeIPO() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }

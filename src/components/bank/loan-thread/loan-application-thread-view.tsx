@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Florin } from "@/components/ui/florin";
+import { formatActivityTime, formatRelativeDayLabel, getDateKeyInNewYork } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
 import { AltaLogo } from "@/components/alta-logo";
 import { ArrowLeft, Paperclip, Send, MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
@@ -564,7 +565,7 @@ function renderMessageStream(
   let prevSenderKey = "";
   for (let i = 0; i < messages.length; i++) {
     const m = messages[i];
-    const day = new Date(m.createdAt).toDateString();
+    const day = getDateKeyInNewYork(m.createdAt);
     if (day !== lastDay) {
       nodes.push(<DaySeparator key={`day-${m.id}`} date={m.createdAt} />);
       lastDay = day;
@@ -589,17 +590,7 @@ function renderMessageStream(
 }
 
 function DaySeparator({ date }: { date: string }) {
-  const d = new Date(date);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const yest = new Date(now);
-  yest.setDate(now.getDate() - 1);
-  const isYesterday = d.toDateString() === yest.toDateString();
-  const label = sameDay
-    ? "Today"
-    : isYesterday
-      ? "Yesterday"
-      : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const label = formatRelativeDayLabel(date);
   return (
     <div className="my-4 flex items-center gap-3 px-2 first:mt-0">
       <div className="h-px flex-1 bg-border/60" />
@@ -846,7 +837,7 @@ function getInitials(name: string): string {
 
 function formatTimeOnly(iso: string): string {
   try {
-    return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return formatActivityTime(iso);
   } catch {
     return "";
   }

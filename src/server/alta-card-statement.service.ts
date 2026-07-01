@@ -19,7 +19,7 @@ import {
   getNextBillingCycle,
 } from "@/lib/bank/alta-card-billing-cycle";
 import { allocatePaymentToBuckets } from "@/lib/bank/alta-card-payment-allocation";
-import { isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canManageCompanyAltaCard, isAdmin, isOperator } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -414,6 +414,18 @@ async function finalizeOpenStatement(
   return row;
 }
 
+function assertCanGenerateCardStatement(
+  user: AltaUser,
+  card: { ownerUserId: string | null; companyId: string | null; cardType: string },
+): void {
+  if (isAdmin(user) || isOperator(user)) return;
+  if (card.cardType === "PERSONAL" && card.ownerUserId === user.id) return;
+  if (card.cardType === "BUSINESS" && card.companyId && canManageCompanyAltaCard(user, card.companyId)) {
+    return;
+  }
+  forbidden();
+}
+
 function parsePeriod(start: string, end: string): { periodStart: Date; periodEnd: Date } {
   const periodStart = start.includes("T")
     ? new Date(start)
@@ -482,6 +494,57 @@ async function findPeriodTransactions(
   });
 }
 
+type CustomPeriodStatementTotals = {
+  totals: PeriodTotals;
+  previousBalance: number;
+  endingBalance: number;
+  statementBalance: number;
+};
+
+async function calculateCustomPeriodStatementTotals(
+  cardId: string,
+  periodStart: Date,
+  periodTxs: { type: AltaCardTransactionType; amount: Prisma.Decimal }[],
+): Promise<CustomPeriodStatementTotals> {
+  const totals = aggregateTransactions(periodTxs);
+  const previousBalance = await calculatePreviousBalanceFromHistory(cardId, periodStart);
+  const endingBalance = roundMoney(
+    previousBalance +
+      totals.purchases -
+      totals.payments +
+      totals.adjustments +
+      totals.interestCharged +
+      totals.feesCharged,
+  );
+  const statementBalance = Math.max(0, endingBalance);
+  return { totals, previousBalance, endingBalance, statementBalance };
+}
+
+/** Custom period summaries are informational only — no payment due dates or minimums. */
+function customPeriodStatementWriteData(
+  periodEnd: Date,
+  { totals, previousBalance, endingBalance, statementBalance }: CustomPeriodStatementTotals,
+) {
+  return {
+    statementDate: periodEnd,
+    dueDate: periodEnd,
+    previousBalance: toDecimal(previousBalance),
+    purchases: toDecimal(totals.purchases),
+    payments: toDecimal(totals.payments),
+    adjustments: toDecimal(totals.adjustments),
+    interestCharged: toDecimal(totals.interestCharged),
+    feesCharged: toDecimal(totals.feesCharged),
+    statementBalance: toDecimal(statementBalance),
+    minimumPayment: toDecimal(0),
+    endingBalance: toDecimal(endingBalance),
+    remainingBalance: toDecimal(0),
+    amountPaid: toDecimal(0),
+    feesPaid: toDecimal(0),
+    interestPaid: toDecimal(0),
+    principalPaid: toDecimal(0),
+  };
+}
+
 export async function generateCardStatementForPeriod(
   userId: string,
   cardId: string,
@@ -496,13 +559,11 @@ export async function generateCardStatementForPeriod(
   });
   if (!userRecord) notFound();
   const altaUser = mapDbUserToAltaUser(userRecord);
-  if (!isAdmin(altaUser) && !isOperator(altaUser)) {
-    forbidden();
-  }
 
   const card = await prisma.altaCard.findUnique({ where: { id: cardId } });
   if (!card) notFound();
   await assertCardAccess(userId, card);
+  assertCanGenerateCardStatement(altaUser, card);
 
   const { periodStart, periodEnd } = parsePeriod(periodStartInput, periodEndInput);
 
@@ -524,26 +585,24 @@ export async function generateCardStatementForPeriod(
   if (existing) {
     if (existing.status === "GENERATED") {
       const periodTxs = await findPeriodTransactions(cardId, periodStart, periodEnd);
-      return mapAltaCardStatementDetail({ ...existing, transactions: periodTxs });
+      const computed = await calculateCustomPeriodStatementTotals(cardId, periodStart, periodTxs);
+      const updated = await prisma.altaCardStatement.update({
+        where: { id: existing.id },
+        data: customPeriodStatementWriteData(periodEnd, computed),
+        include: {
+          transactions: {
+            include: altaCardTransactionInclude,
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      });
+      return mapAltaCardStatementDetail({ ...updated, transactions: periodTxs });
     }
     return mapAltaCardStatementDetail(existing);
   }
 
   const periodTxs = await findPeriodTransactions(cardId, periodStart, periodEnd);
-  const totals = aggregateTransactions(periodTxs);
-  const previousBalance = await calculatePreviousBalanceFromHistory(cardId, periodStart);
-  const endingBalance = roundMoney(
-    previousBalance +
-      totals.purchases -
-      totals.payments +
-      totals.adjustments +
-      totals.interestCharged +
-      totals.feesCharged,
-  );
-  const statementBalance = Math.max(0, endingBalance);
-  const minimumPayment = calculateAltaCardMinimumPayment(statementBalance);
-  const statementDate = periodEnd;
-  const dueDate = getAltaCardDueDate(periodEnd);
+  const computed = await calculateCustomPeriodStatementTotals(cardId, periodStart, periodTxs);
   const statementNumber = await nextStatementNumber(cardId);
 
   const created = await prisma.altaCardStatement.create({
@@ -552,18 +611,7 @@ export async function generateCardStatementForPeriod(
       statementNumber,
       billingPeriodStart: periodStart,
       billingPeriodEnd: periodEnd,
-      statementDate,
-      dueDate,
-      previousBalance: toDecimal(previousBalance),
-      purchases: toDecimal(totals.purchases),
-      payments: toDecimal(totals.payments),
-      adjustments: toDecimal(totals.adjustments),
-      interestCharged: toDecimal(totals.interestCharged),
-      feesCharged: toDecimal(totals.feesCharged),
-      statementBalance: toDecimal(statementBalance),
-      minimumPayment: toDecimal(minimumPayment),
-      endingBalance: toDecimal(endingBalance),
-      remainingBalance: toDecimal(statementBalance),
+      ...customPeriodStatementWriteData(periodEnd, computed),
       status: "GENERATED",
     },
     include: {
@@ -578,10 +626,10 @@ export async function generateCardStatementForPeriod(
   await auditStatementEvent(
     userId,
     "ALTA_CARD_STATEMENT_GENERATED",
-    `Preview statement #${row.statementNumber} generated for custom period`,
+    `Activity summary #${row.statementNumber} generated for custom period`,
     cardId,
     row,
-    { periodStart: periodStart.toISOString(), periodEnd: periodEnd.toISOString(), preview: true },
+    { periodStart: periodStart.toISOString(), periodEnd: periodEnd.toISOString(), activitySummary: true },
   );
 
   return mapAltaCardStatementDetail({ ...created, transactions: periodTxs });
@@ -776,10 +824,19 @@ export async function listCardStatements(
   const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
   const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
 
+  const customerVisibleStatuses = [
+    "GENERATED",
+    "ISSUED",
+    "PAID",
+    "PARTIALLY_PAID",
+    "OVERDUE",
+  ] as const;
+  const staffVisibleStatuses = [...customerVisibleStatuses, "VOID"] as const;
+
   const statements = await prisma.altaCardStatement.findMany({
     where: {
       altaCardId: cardId,
-      status: { notIn: isStaffUser ? ["OPEN"] : ["OPEN", "GENERATED"] },
+      status: { in: [...(isStaffUser ? staffVisibleStatuses : customerVisibleStatuses)] },
     },
     orderBy: { statementNumber: "desc" },
   });
@@ -814,7 +871,7 @@ export async function getCardStatementDetail(
   });
   const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
   const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
-  if (statement.status === "GENERATED" && !isStaffUser) notFound();
+  if (statement.status === "OPEN" && !isStaffUser) notFound();
 
   let transactions = statement.transactions;
   if (

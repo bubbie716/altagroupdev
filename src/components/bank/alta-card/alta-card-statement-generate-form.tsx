@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { generateAltaCardStatementForPeriod } from "@/lib/bank/alta-card-statement.functions";
-import type { AltaCardRow } from "@/lib/bank/alta-card-types";
+import type { AltaCardRow, AltaCardStatementDetail } from "@/lib/bank/alta-card-types";
 import { altaCardStatementDetailLink } from "@/lib/bank/alta-card-navigation";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
@@ -15,10 +15,12 @@ export function AltaCardStatementGenerateForm({
   cardId,
   card,
   defaultPeriod,
+  onStatementGenerated,
 }: {
   cardId: string;
   card: Pick<AltaCardRow, "id" | "cardType" | "companyId">;
   defaultPeriod?: { periodStart: string; periodEnd: string };
+  onStatementGenerated?: (statement: AltaCardStatementDetail) => void | Promise<void>;
 }) {
   const router = useRouter();
   const generate = useServerFn(generateAltaCardStatementForPeriod);
@@ -32,9 +34,10 @@ export function AltaCardStatementGenerateForm({
     setError(null);
     setPending(true);
     try {
-      const statement = await generate({
+      const statement = (await generate({
         data: { cardId, periodStart, periodEnd },
-      });
+      })) as AltaCardStatementDetail;
+      await onStatementGenerated?.(statement);
       await router.invalidate();
       await router.navigate(altaCardStatementDetailLink(card, statement.id));
     } catch (err) {
@@ -51,8 +54,9 @@ export function AltaCardStatementGenerateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Generate a statement from completed card transactions in the selected period. Opening balances
-        are estimated from available transaction history.
+        Generate a read-only activity summary for a custom date range. This is not an official
+        billing statement and does not create a payment obligation. Official Alta Card statements
+        are issued automatically at the end of each billing cycle.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -85,7 +89,7 @@ export function AltaCardStatementGenerateForm({
         disabled={pending}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Generating…" : "Generate statement"}
+        {pending ? "Generating…" : "Generate activity summary"}
       </button>
     </form>
   );

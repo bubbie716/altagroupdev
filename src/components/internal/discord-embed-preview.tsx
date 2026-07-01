@@ -1,5 +1,6 @@
 import type { DiscordEmbedDraft } from "@/lib/discord/embed-types";
 import { resolveEmbedColorHex } from "@/lib/discord/embed-utils";
+import { formatActivityDateTime, formatActivityTime } from "@/lib/format-datetime";
 
 function PreviewImage({ url, alt }: { url: string; alt: string }) {
   if (!url.trim()) return null;
@@ -17,15 +18,7 @@ function PreviewImage({ url, alt }: { url: string; alt: string }) {
 
 export function DiscordEmbedPreview({ draft }: { draft: DiscordEmbedDraft }) {
   const color = resolveEmbedColorHex(draft);
-  const timestamp = draft.includeTimestamp
-    ? new Date().toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    : null;
+  const timestamp = draft.includeTimestamp ? formatActivityDateTime(new Date()) : null;
 
   return (
     <div className="rounded-xl border border-[#1E1F22] bg-[#313338] p-4 shadow-lg">
@@ -34,7 +27,7 @@ export function DiscordEmbedPreview({ draft }: { draft: DiscordEmbedDraft }) {
         <div>
           <div className="text-[13px] font-medium text-[#F2F3F5]">Alta Bot</div>
           <div className="text-[10px] text-[#949BA4]">
-            Today at {new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            Today at {formatActivityTime(new Date())}
           </div>
         </div>
       </div>

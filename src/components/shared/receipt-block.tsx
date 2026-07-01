@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Florin } from "@/components/ui/florin";
 import { StatusBadge } from "@/components/internal/status-badge";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 
 /**
  * Branded confirmation receipt — printable, reference-numbered.
@@ -47,14 +48,7 @@ export function ReceiptBlock({
 }) {
   const ts =
     timestamp.includes("T") || timestamp.includes("-")
-      ? new Date(timestamp).toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }) + " ET"
+      ? formatActivityDateTime(timestamp)
       : timestamp;
 
   return (

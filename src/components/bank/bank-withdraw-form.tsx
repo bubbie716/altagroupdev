@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
 import { WITHDRAW_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
@@ -51,7 +50,6 @@ export function BankWithdrawForm({
   const availableBalance = selectedAccount?.availableBalance ?? selectedAccount?.balance ?? 0;
   const heldFunds = selectedAccount?.accountStatusInfo.heldFunds ?? 0;
   const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
   const [view, setView] = useState<FormView>("form");
   const [submitting, setSubmitting] = useState(false);
   const [errorReason, setErrorReason] = useState<string | null>(null);
@@ -64,7 +62,6 @@ export function BankWithdrawForm({
     setErrorReason(null);
     setSubmission(null);
     setAmount("");
-    setMemo("");
     setBankAccountId(resolveInitialAccountId(accounts, defaultAccountId));
     queueMicrotask(() => amountInputRef.current?.focus());
   }
@@ -101,7 +98,6 @@ export function BankWithdrawForm({
       const formData = new FormData();
       formData.append("bankAccountId", bankAccountId);
       formData.append("amount", amount);
-      formData.append("memo", memo);
 
       const response = await fetch("/api/bank/withdrawal-request", {
         method: "POST",
@@ -202,17 +198,6 @@ export function BankWithdrawForm({
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
               className={`${inputClass} tabular`}
-            />
-          </label>
-
-          <label className="block">
-            <span className={fieldLabel}>Memo</span>
-            <Textarea
-              autoResize
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="Optional notes for the reviewer…"
-              className={`${inputClass} min-h-[80px]`}
             />
           </label>
         </fieldset>

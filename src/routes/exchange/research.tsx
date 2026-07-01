@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { FilingCard } from "@/components/exchange/filing-card";
 import { getFilings } from "@/lib/exchange/api";
 
@@ -23,12 +23,12 @@ function ExchangeResearch() {
   const researchDocuments = getFilings();
 
   return (
-    <PageShell
-      eyebrow="Alta Exchange · Research"
-      title="Research & Filings"
-      description="Market commentary, issuer filings, IPO prospectuses, and exchange notices — simulated document library."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · Research"
+        title="Research & Filings"
+        description="Market commentary, issuer filings, IPO prospectuses, and exchange notices — simulated document library."
+      />
 
       {sections.map((s, i) => {
         const docs = researchDocuments.filter((d) => d.section === s.filter);
@@ -42,6 +42,6 @@ function ExchangeResearch() {
           </Section>
         );
       })}
-    </PageShell>
+    </>
   );
 }

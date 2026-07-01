@@ -27,7 +27,6 @@ test.describe("Deposit page", () => {
 
       await page.goto("/bank/deposit");
       await fillFlorinAmount(page, "25");
-      await page.getByLabel(/memo/i).fill("E2E test deposit");
       await attachDepositProof(page, path.resolve("tests/e2e/fixtures/proof.png"));
 
       const [response] = await Promise.all([
@@ -44,7 +43,7 @@ test.describe("Deposit page", () => {
       await expect(page.getByRole("heading", { name: /deposit submitted/i })).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByText(/waiting on alta/i).first()).toBeVisible();
+      await expect(page.getByText(/\bpending\b/i).first()).toBeVisible();
     });
   });
 });

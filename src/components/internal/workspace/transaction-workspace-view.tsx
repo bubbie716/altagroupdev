@@ -20,6 +20,7 @@ import {
 import type { WorkspaceTab } from "@/components/internal/console/workspace-layout";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { florin } from "@/lib/bank/api";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { OpsReviewFlagRow } from "@/lib/internal/ops-review-flag.types";
 
 type TransactionDetail = Awaited<
@@ -77,11 +78,11 @@ export function TransactionWorkspaceView({
             </WorkspaceField>
             <WorkspaceField label="Holder">{tx.holder}</WorkspaceField>
             <WorkspaceField label="Created">
-              <span className="font-mono text-[11px]">{tx.createdAt.slice(0, 19).replace("T", " ")}</span>
+              <span className="font-mono text-[11px]">{formatActivityDateTime(tx.createdAt)}</span>
             </WorkspaceField>
             {tx.reviewedAt ? (
               <WorkspaceField label="Posted">
-                <span className="font-mono text-[11px]">{tx.reviewedAt.slice(0, 19).replace("T", " ")}</span>
+                <span className="font-mono text-[11px]">{formatActivityDateTime(tx.reviewedAt)}</span>
               </WorkspaceField>
             ) : null}
           </WorkspaceFieldGrid>

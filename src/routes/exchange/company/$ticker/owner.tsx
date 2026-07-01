@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PageShell, Card } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Card } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { IssuerPortalPanel } from "@/components/exchange/issuer-portal";
 import { getCompany } from "@/lib/exchange/api";
 import { issuerPortalBeforeLoad } from "@/lib/auth/guards";
@@ -23,15 +23,19 @@ function CompanyOwnerPage() {
 
   if (!company) {
     return (
-      <PageShell eyebrow="Alta Exchange" title="Company Not Found" description="No listing found for this ticker.">
-        <ExchangeSubNav />
+      <>
+        <ExchangePageMeta
+          eyebrow="Alta Exchange"
+          title="Company Not Found"
+          description="No listing found for this ticker."
+        />
         <Card>
           <p className="text-muted-foreground">Ticker not found in Alta Exchange listings.</p>
           <Link to="/exchange/listings" className="mt-4 inline-block font-mono text-[11px] uppercase tracking-[0.18em] text-gold">
             ← Back to listings
           </Link>
         </Card>
-      </PageShell>
+      </>
     );
   }
 
@@ -44,15 +48,15 @@ function CompanyOwnerPage() {
   };
 
   return (
-    <PageShell
-      eyebrow={`Alta Exchange · Issuer Portal · ${company.symbol}`}
-      title={`${company.name} — Owner Portal`}
-      description="Publish corporate announcements and monthly financial updates to your Alta Exchange ticker page."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow={`Alta Exchange · Issuer Portal · ${company.symbol}`}
+        title={`${company.name} — Owner Portal`}
+        description="Publish corporate announcements and monthly financial updates to your Alta Exchange ticker page."
+      />
       <div className="flex justify-center">
         <IssuerPortalPanel company={company} session={session} onSignOut={() => {}} />
       </div>
-    </PageShell>
+    </>
   );
 }

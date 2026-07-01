@@ -8,21 +8,19 @@ import {
   altaCardTransactionLabel,
   altaCardTransactionSignedAmount,
   formatAltaCardCurrency,
+  isAltaCardCustomPeriodStatement,
 } from "@/lib/bank/alta-card-types";
 import { AltaWordmark } from "@/components/alta-logo";
 import { RouteButton } from "@/components/bank/route-button";
 import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
+import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { altaCardStatementsLink } from "@/lib/bank/alta-card-navigation";
 import { altaCardNavButtonClassName } from "@/components/bank/alta-card/alta-card-back-to-card-link";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatAltaCardBillingDate(iso);
 }
 
 function cardholderLabel(card: Pick<AltaCardRow, "cardType" | "companyName" | "ownerUsername">): string {
@@ -47,6 +45,7 @@ export function AltaCardStatementDocument({
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const backTo = { ...altaCardStatementsLink(card), label: "All statements" };
+  const isActivitySummary = isAltaCardCustomPeriodStatement(statement.status);
   const showEmployeeColumn =
     card.cardType === "business" &&
     statement.transactions.some((tx) => tx.altaEmployeeCardId != null);
@@ -105,6 +104,14 @@ export function AltaCardStatementDocument({
         ref={pageRef}
         className="statement-document__page mx-auto min-w-0 max-w-[820px] border border-border/80 bg-surface-1 px-4 py-8 shadow-card sm:px-8 sm:py-10 print:mx-0 print:max-w-none print:border-0 print:bg-white print:px-0 print:py-0 print:shadow-none"
       >
+        {isActivitySummary ? (
+          <div className="mb-8 rounded-lg border border-border/70 bg-surface-2/30 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground print:border-neutral-300 print:bg-transparent print:text-neutral-700">
+            This activity summary is for your records only. It is not an official billing statement
+            and does not create a payment obligation. Official Alta Card statements are issued
+            automatically at the end of each billing cycle.
+          </div>
+        ) : null}
+
         <header className="border-b-2 border-foreground/80 pb-8 print:border-black">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
@@ -114,12 +121,15 @@ export function AltaCardStatementDocument({
               </p>
             </div>
             <div className="text-right">
-              <div className="type-meta print:text-neutral-600">Credit card statement</div>
+              <div className="type-meta print:text-neutral-600">
+                {isActivitySummary ? "Activity summary" : "Credit card statement"}
+              </div>
               <div className="mt-1 font-mono text-[13px] print:text-black">
                 #{statement.statementNumber}
               </div>
               <div className="mt-2 text-[12px] text-muted-foreground print:text-neutral-600">
-                Statement date {formatDate(statement.statementDate ?? statement.createdAt)}
+                {isActivitySummary ? "Generated" : "Statement date"}{" "}
+                {formatDate(statement.statementDate ?? statement.createdAt)}
               </div>
             </div>
           </div>
@@ -134,18 +144,24 @@ export function AltaCardStatementDocument({
             </p>
           </div>
           <div>
-            <div className="type-meta-accent print:text-neutral-700">Statement status</div>
+            <div className="type-meta-accent print:text-neutral-700">
+              {isActivitySummary ? "Summary type" : "Statement status"}
+            </div>
             <p className="mt-2 text-[15px] font-medium print:text-black">
               {ALTA_CARD_STATEMENT_STATUS_LABELS[statement.status]}
             </p>
-            <p className="mt-1 text-[13px] text-muted-foreground print:text-neutral-600">
-              Payment due {formatDate(statement.dueDate)}
-            </p>
+            {!isActivitySummary ? (
+              <p className="mt-1 text-[13px] text-muted-foreground print:text-neutral-600">
+                Payment due {formatDate(statement.dueDate)}
+              </p>
+            ) : null}
           </div>
         </section>
 
         <section className="mt-8 border-b border-border/60 pb-8 print:border-neutral-300">
-          <div className="type-meta-accent print:text-neutral-700">Billing period</div>
+          <div className="type-meta-accent print:text-neutral-700">
+            {isActivitySummary ? "Activity period" : "Billing period"}
+          </div>
           <p className="mt-2 text-[15px] print:text-black">
             {formatDate(statement.billingPeriodStart)} – {formatDate(statement.billingPeriodEnd)}
           </p>
@@ -159,8 +175,13 @@ export function AltaCardStatementDocument({
             ["Adjustments", formatAltaCardCurrency(statement.adjustments)],
             ["Interest charged", formatAltaCardCurrency(statement.interestCharged)],
             ["Fees charged", formatAltaCardCurrency(statement.feesCharged)],
-            ["Statement balance", formatAltaCardCurrency(statement.statementBalance)],
-            ["Remaining balance", formatAltaCardCurrency(statement.remainingBalance)],
+            [
+              isActivitySummary ? "Period ending balance" : "Statement balance",
+              formatAltaCardCurrency(isActivitySummary ? statement.endingBalance : statement.statementBalance),
+            ],
+            ...(isActivitySummary
+              ? []
+              : [["Remaining balance", formatAltaCardCurrency(statement.remainingBalance)]]),
           ].map(([label, value]) => (
             <div
               key={label}
@@ -172,26 +193,28 @@ export function AltaCardStatementDocument({
           ))}
         </section>
 
-        <section className="mt-8 grid gap-6 border-b border-border/60 pb-8 print:border-neutral-300 sm:grid-cols-3">
-          <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
-            <div className="type-meta-sm print:text-neutral-600">Minimum payment due</div>
-            <div className="mt-2 font-serif text-[22px] tabular-nums tracking-tight print:text-black">
-              {formatAltaCardCurrency(statement.minimumPayment)}
+        {!isActivitySummary ? (
+          <section className="mt-8 grid gap-6 border-b border-border/60 pb-8 print:border-neutral-300 sm:grid-cols-3">
+            <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
+              <div className="type-meta-sm print:text-neutral-600">Minimum payment due</div>
+              <div className="mt-2 font-serif text-[22px] tabular-nums tracking-tight print:text-black">
+                {formatAltaCardCurrency(statement.minimumPayment)}
+              </div>
             </div>
-          </div>
-          <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
-            <div className="type-meta-sm print:text-neutral-600">Amount paid</div>
-            <div className="mt-2 font-mono text-[18px] tabular-nums print:text-black">
-              {formatAltaCardCurrency(statement.amountPaid)}
+            <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
+              <div className="type-meta-sm print:text-neutral-600">Amount paid</div>
+              <div className="mt-2 font-mono text-[18px] tabular-nums print:text-black">
+                {formatAltaCardCurrency(statement.amountPaid)}
+              </div>
             </div>
-          </div>
-          <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
-            <div className="type-meta-sm print:text-neutral-600">Ending balance</div>
-            <div className="mt-2 font-mono text-[18px] tabular-nums print:text-black">
-              {formatAltaCardCurrency(statement.endingBalance)}
+            <div className="statement-document__stat rounded-md border border-border/50 bg-surface-2/30 px-4 py-4 print:border-neutral-300 print:bg-transparent">
+              <div className="type-meta-sm print:text-neutral-600">Ending balance</div>
+              <div className="mt-2 font-mono text-[18px] tabular-nums print:text-black">
+                {formatAltaCardCurrency(statement.endingBalance)}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         <section className="statement-document__transactions mt-10">
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold print:text-neutral-700">

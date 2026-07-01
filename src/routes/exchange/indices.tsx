@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell, Section } from "@/components/page-shell";
-import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { Section } from "@/components/page-shell";
+import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { IndexCard } from "@/components/exchange/index-card";
 import { getIndices } from "@/lib/exchange/api";
 
@@ -13,12 +13,12 @@ export const Route = createFileRoute("/exchange/indices")({
 
 function ExchangeIndices() {
   return (
-    <PageShell
-      eyebrow="Alta Exchange · Indices"
-      title="Market Indices"
-      description="NSX benchmark indices calculated and published on Alta Exchange — simulated market data."
-    >
-      <ExchangeSubNav />
+    <>
+      <ExchangePageMeta
+        eyebrow="Alta Exchange · Indices"
+        title="Market Indices"
+        description="NSX benchmark indices calculated and published on Alta Exchange — simulated market data."
+      />
 
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
         NSX indices are market products on Alta Exchange. Alta Exchange is the institution; NSX is the
@@ -32,6 +32,6 @@ function ExchangeIndices() {
           ))}
         </div>
       </Section>
-    </PageShell>
+    </>
   );
 }

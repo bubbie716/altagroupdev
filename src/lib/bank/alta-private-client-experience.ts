@@ -1,5 +1,6 @@
 import type { AltaPrivateClientContext } from "@/lib/bank/alta-private-client.types";
 import { DEFAULT_ALTA_PRIVATE_BANKER } from "@/lib/bank/alta-private-banker.config";
+import { formatMonthYear, getHourInNewYork } from "@/lib/format-datetime";
 
 /** Benefits supported today — understated, no promises beyond existing product behavior. */
 export const ALTA_PRIVATE_MEMBER_BENEFITS = [
@@ -19,7 +20,7 @@ export function formatPrivateClientDisplayName(discordUsername: string): string 
 }
 
 export function formatTimeOfDayGreeting(displayName: string, now = new Date()): string {
-  const hour = now.getHours();
+  const hour = getHourInNewYork(now);
   const salutation = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   return `${salutation}, ${displayName}.`;
 }
@@ -32,7 +33,7 @@ export function formatMemberSinceLabel(isoDate: string | null | undefined): stri
   if (!isoDate) return null;
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return formatMonthYear(isoDate);
 }
 
 export function buildAltaPrivateClientContext(input: {

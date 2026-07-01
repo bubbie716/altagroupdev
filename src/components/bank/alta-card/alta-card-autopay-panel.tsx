@@ -17,6 +17,7 @@ import {
   altaCardAutopayTypeLabel,
 } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
+import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
@@ -150,7 +151,7 @@ export function AltaCardAutopayPanel({
         <div>
           <dt className={fieldLabel}>Last run</dt>
           <dd className="mt-1">
-            {settings?.lastRunAt ? new Date(settings.lastRunAt).toLocaleString() : "—"}
+            {settings?.lastRunAt ? formatActivityDateTime(settings.lastRunAt) : "—"}
           </dd>
         </div>
         <div>

@@ -10,6 +10,7 @@ import {
   accrueAllDueAccountInterest,
   previewAccountInterest,
 } from "@/lib/bank/account-interest.functions";
+import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { OpsAction } from "@/components/internal/ops-action";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
@@ -94,7 +95,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
           value={florin(summary.totalInterestCreditedThisMonth)}
           sub={
             summary.lastInterestRunAt
-              ? `Last run ${new Date(summary.lastInterestRunAt).toLocaleString()}`
+              ? `Last run ${formatActivityDateTime(summary.lastInterestRunAt)}`
               : "No runs yet"
           }
         />
@@ -168,7 +169,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
             {
               key: "due",
               header: "Due date",
-              cell: (a) => new Date(a.nextInterestAccrualAt).toLocaleDateString(),
+              cell: (a) => formatDueDate(a.nextInterestAccrualAt),
             },
             {
               key: "est",

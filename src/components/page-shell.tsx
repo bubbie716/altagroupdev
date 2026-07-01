@@ -2,6 +2,7 @@ import { memo, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
+import { useRouteTransition } from "@/components/navigation/route-transition";
 import { SiteNav } from "./site-nav";
 import { PublicFooter, PlatformFooter } from "./footers";
 import {
@@ -51,6 +52,8 @@ export function PageShell({
   animateHero?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { suppressEntranceAnimations } = useRouteTransition();
+  const shouldAnimateHero = animateHero && !suppressEntranceAnimations;
   const resolvedVariant = hideFooter
     ? "none"
     : (footerVariant ?? resolveFooterVariant(pathname));
@@ -67,7 +70,7 @@ export function PageShell({
         <div
           className={cn(
             "page-shell-hero border-b border-border/60 pb-6 sm:pb-10",
-            animateHero && "animate-rise",
+            shouldAnimateHero && "animate-rise",
             printDocument && "print:hidden",
           )}
         >

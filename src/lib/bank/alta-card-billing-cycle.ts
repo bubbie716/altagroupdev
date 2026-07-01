@@ -69,15 +69,12 @@ export function getCalendarStatementCloseForPeriodStart(periodStart: Date): Date
 export const ALTA_CARD_BILLING_HELPER_TEXT =
   "New purchases after your statement date appear on your next statement.";
 
+import { formatUtcCalendarDate } from "@/lib/format-datetime";
+
 /** Format a billing calendar date stored as UTC end-of-day (avoids local TZ shifting month-end). */
 export function formatAltaCardBillingDate(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-US", {
-    timeZone: "UTC",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
+  return formatUtcCalendarDate(iso);
 }
 
 export const ALTA_CARD_BILLING_POLICY_LINES = [

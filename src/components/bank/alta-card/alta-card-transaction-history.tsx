@@ -5,6 +5,7 @@ import {
   altaCardTransactionSignedAmount,
   formatAltaCardCurrency,
 } from "@/lib/bank/alta-card-types";
+import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
 import { AdminDataTable, type AdminTableColumn } from "@/components/internal/admin-data-table";
 
 function TransactionDescription({ row }: { row: AltaCardTransactionRow }) {
@@ -37,7 +38,7 @@ function TransactionRowMobile({ row }: { row: AltaCardTransactionRow }) {
           <p className="mt-1 text-[11px] text-muted-foreground">{employeeAttribution}</p>
         ) : null}
         <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-          {new Date(row.createdAt).toLocaleDateString()}
+          {formatDueDate(row.createdAt)}
         </p>
       </div>
       <span className="shrink-0 font-mono text-[14px] tabular-nums">
@@ -53,7 +54,7 @@ function transactionColumns(): AdminTableColumn<AltaCardTransactionRow>[] {
     {
       key: "date",
       header: "Date",
-      cell: (row) => new Date(row.createdAt).toLocaleString(),
+      cell: (row) => formatActivityDateTime(row.createdAt),
     },
     {
       key: "type",

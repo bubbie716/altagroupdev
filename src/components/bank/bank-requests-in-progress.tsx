@@ -10,7 +10,6 @@ import {
   BankMobileStack,
   BankMobileStackField,
   BankMobileStackRow,
-  BankTableScroll,
   bankTableShellClass,
 } from "@/components/bank/bank-scroll-contain";
 import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
@@ -67,7 +66,7 @@ function RequestRow({
       <td>
         <RequestStatusCell request={request} />
       </td>
-      <td>
+      <td className="whitespace-normal">
         <BankAccountActivityLink
           accountId={request.bankAccountId}
           accountName={request.accountName}
@@ -75,13 +74,13 @@ function RequestRow({
         />
       </td>
       <td className="type-finance-md font-medium tabular">{florin(request.amount)}</td>
-      <td className="type-finance-sm text-muted-foreground">
+      <td className="type-finance-sm whitespace-normal text-muted-foreground">
         {formatActivityDateTime(request.submittedAt)}
       </td>
-      <td className="type-finance-sm text-muted-foreground">
+      <td className="type-finance-sm whitespace-normal text-muted-foreground">
         {formatActivityDateTime(request.lastUpdatedAt)}
       </td>
-      <td className="type-finance-sm text-muted-foreground">{request.referenceCode}</td>
+      <td className="type-finance-sm break-all text-muted-foreground">{request.referenceCode}</td>
       {showProof ? (
         <td>
           <RequestProofCell request={request} />
@@ -117,18 +116,18 @@ export function BankRequestsInProgress({
   const hiddenCount = requests.length - DEFAULT_VISIBLE;
 
   return (
-    <div id={BANK_REQUESTS_IN_PROGRESS_ID} className="mx-auto mt-8 max-w-2xl scroll-mt-8">
+    <div id={BANK_REQUESTS_IN_PROGRESS_ID} className="mx-auto mt-8 max-w-5xl scroll-mt-8">
       <Card className={cn(bankTableShellClass, "!p-0")}>
         <div className="border-b border-border px-5 py-4 sm:px-6">
           <h2 className="font-medium tracking-tight">Requests in Progress</h2>
           <p className="mt-1 text-[12px] text-muted-foreground">
-            Active and recently declined requests awaiting resolution.
+            Pending, approved, and recently declined requests.
           </p>
         </div>
 
         {requests.length === 0 ? (
           <p className="px-5 py-8 text-center text-[13px] text-muted-foreground sm:px-6">
-            No requests currently in progress.
+            No deposit or withdrawal requests to show yet.
           </p>
         ) : (
           <>
@@ -174,37 +173,30 @@ export function BankRequestsInProgress({
               })}
             </BankMobileStack>
 
-            <div
-              className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out md:contents",
-                expanded && hasMore ? "grid-rows-[1fr]" : "grid-rows-[1fr]",
-              )}
-            >
-              <BankTableScroll>
-                <table className="alta-table w-full min-w-[920px] text-sm">
-                  <thead className="sticky top-0 z-[1] bg-surface-1 shadow-[0_1px_0_0_hsl(var(--border)/0.6)]">
-                    <tr>
-                      <th>Status</th>
-                      <th>Account</th>
-                      <th>Amount</th>
-                      <th>Submitted</th>
-                      <th>Last updated</th>
-                      <th>Reference</th>
-                      {showProof ? <th>Proof</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleRequests.map((request) => (
-                      <RequestRow
-                        key={request.id}
-                        request={request}
-                        showProof={showProof}
-                        highlighted={highlightReferenceCode === request.referenceCode}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </BankTableScroll>
+            <div className="hidden md:block">
+              <table className="alta-table w-full table-fixed text-sm">
+                <thead>
+                  <tr>
+                    <th className="w-[14%]">Status</th>
+                    <th className="w-[18%]">Account</th>
+                    <th className="w-[10%]">Amount</th>
+                    <th className="w-[18%]">Submitted</th>
+                    <th className="w-[18%]">Last updated</th>
+                    <th className="w-[14%]">Reference</th>
+                    {showProof ? <th className="w-[8%]">Proof</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRequests.map((request) => (
+                    <RequestRow
+                      key={request.id}
+                      request={request}
+                      showProof={showProof}
+                      highlighted={highlightReferenceCode === request.referenceCode}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {hasMore ? (

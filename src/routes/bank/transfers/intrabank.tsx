@@ -138,6 +138,28 @@ function IntrabankScheduledTransfers({
   );
 }
 
+function signedTransferAmount(transfer: UserBankTransfer): number {
+  return transfer.direction === "received" ? transfer.amount : -transfer.amount;
+}
+
+function TransferHistoryAmount({
+  transfer,
+  className,
+}: {
+  transfer: UserBankTransfer;
+  className?: string;
+}) {
+  const signed = signedTransferAmount(transfer);
+  return (
+    <span
+      className={`tabular font-medium ${signed >= 0 ? "ticker-up" : "ticker-down"} ${className ?? ""}`}
+    >
+      {signed >= 0 ? "+" : ""}
+      {florin(signed)}
+    </span>
+  );
+}
+
 function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] }) {
   if (transfers.length === 0) {
     return (
@@ -159,7 +181,7 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
                   {formatActivityDateTime(transfer.createdAt)}
                 </p>
               </div>
-              <span className="tabular shrink-0 font-medium">{florin(transfer.amount)}</span>
+              <TransferHistoryAmount transfer={transfer} className="shrink-0" />
             </div>
             <BankMobileStackField label="From">
               {transfer.fromAccountName} · {transfer.fromAccountNumber}
@@ -209,7 +231,9 @@ function InternalTransferHistory({ transfers }: { transfers: UserBankTransfer[] 
               <td className="px-5 py-3 font-mono text-[11px] text-muted-foreground">
                 {transfer.referenceCode}
               </td>
-              <td className="tabular px-5 py-3 text-right font-medium">{florin(transfer.amount)}</td>
+              <td className="px-5 py-3 text-right">
+                <TransferHistoryAmount transfer={transfer} />
+              </td>
             </tr>
           ))}
         </tbody>

@@ -1,9 +1,6 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { ExchangeRouteLayout } from "@/components/exchange/exchange-page-layout";
 
 export const Route = createFileRoute("/exchange")({
-  component: ExchangeLayout,
+  component: ExchangeRouteLayout,
 });
-
-function ExchangeLayout() {
-  return <Outlet />;
-}

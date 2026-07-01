@@ -5,6 +5,7 @@ import { fetchCardStatements } from "@/lib/bank/alta-card-statement.functions";
 import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
 
 export const Route = createFileRoute("/bank/alta-card/business/$companyId/statements/")({
+  staleTime: 0,
   loader: async ({ params }) => {
     try {
       const companyCards = await fetchCompanyAltaCards({ data: params.companyId });

@@ -1,5 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
+import {
+  BankPageMeta,
+} from "@/components/bank/bank-page-layout";
 import {
   BusinessAccountSubNav,
   PersonalAccountSubNav,
@@ -18,15 +20,16 @@ export function BusinessAccountLayout({
   businessContext: BusinessAccountContext;
 }) {
   return (
-    <PageShell
-      eyebrow={`Alta Bank · ${businessContext.companyName}`}
-      title={account.accountName}
-      description={`Business Operating Account · ${account.accountNumber}`}
-    >
+    <>
+      <BankPageMeta
+        eyebrow={`Alta Bank · ${businessContext.companyName}`}
+        title={account.accountName}
+        description={`Business Operating Account · ${account.accountNumber}`}
+      />
       <AccountPageToolbar accounts={accounts} currentAccountId={account.id} />
       <BusinessAccountSubNav accountId={account.id} role={businessContext.role} />
       <Outlet />
-    </PageShell>
+    </>
   );
 }
 
@@ -38,14 +41,15 @@ export function PersonalAccountLayout({
   accounts: UserBankAccount[];
 }) {
   return (
-    <PageShell
-      eyebrow="Alta Bank · Account"
-      title={account.accountName}
-      description={`${account.accountTypeLabel} · ${account.accountNumber}`}
-    >
+    <>
+      <BankPageMeta
+        eyebrow="Alta Bank · Account"
+        title={account.accountName}
+        description={`${account.accountTypeLabel} · ${account.accountNumber}`}
+      />
       <AccountPageToolbar accounts={accounts} currentAccountId={account.id} />
       <PersonalAccountSubNav accountId={account.id} />
       <Outlet />
-    </PageShell>
+    </>
   );
 }

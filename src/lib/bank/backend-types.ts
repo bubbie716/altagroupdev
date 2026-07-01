@@ -119,7 +119,7 @@ export interface BankRequestInProgress {
   accountName: string;
   accountNumber: string;
   amount: number;
-  status: Extract<BankTransactionStatusCode, "pending" | "denied">;
+  status: Extract<BankTransactionStatusCode, "pending" | "approved" | "denied">;
   statusLabel: string;
   denialMessage: string | null;
   submittedAt: string;

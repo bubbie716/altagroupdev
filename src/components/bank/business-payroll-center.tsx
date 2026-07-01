@@ -5,6 +5,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
+import { formatDueDate } from "@/lib/format-datetime";
 import {
   createPayrollEmployeeRecord,
   deactivatePayrollEmployeeRecord,
@@ -398,7 +399,7 @@ function PayrollHistoryTable({ runs }: { runs: PayrollRunRow[] }) {
           </div>
           <div className="mt-1 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             <span>{run.statusLabel}</span>
-            <span>Pay date {new Date(run.payDate).toLocaleDateString()}</span>
+            <span>Pay date {formatDueDate(run.payDate)}</span>
             <span>{run.lineItems.length} employees</span>
           </div>
           {run.lastFailureReason && run.status !== "executed" && (
