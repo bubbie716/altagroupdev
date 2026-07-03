@@ -87,6 +87,50 @@ function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
 }
 
+async function notifyIncomingTransferBestEffort(
+  senderUserId: string,
+  toAccount: { userId: string; companyId: string | null; accountName: string },
+  amount: number,
+  referenceCode: string,
+): Promise<void> {
+  const sender = await prisma.user.findUnique({
+    where: { id: senderUserId },
+    select: { discordUsername: true, minecraftUsername: true },
+  });
+  const senderName = sender?.minecraftUsername?.trim() || sender?.discordUsername || "An Alta customer";
+
+  const { notifyTransferReceived, notifyTransferReceivedToCompany } = await import(
+    "@/server/banking-notification.service"
+  );
+
+  if (toAccount.companyId) {
+    const company = await prisma.company.findUnique({
+      where: { id: toAccount.companyId },
+      select: { name: true },
+    });
+    if (!company) return;
+    await notifyTransferReceivedToCompany({
+      companyId: toAccount.companyId,
+      companyName: company.name,
+      amount,
+      referenceCode,
+      senderName,
+      toAccountName: toAccount.accountName,
+    });
+    return;
+  }
+
+  if (toAccount.userId === senderUserId) return;
+
+  await notifyTransferReceived(
+    toAccount.userId,
+    amount,
+    referenceCode,
+    senderName,
+    toAccount.accountName,
+  );
+}
+
 function decimalToNumber(value: { toNumber(): number }): number {
   return value.toNumber();
 }
@@ -846,7 +890,7 @@ export async function submitInternalTransfer(
   userId: string,
   input: SubmitInternalTransferInput,
   auditContext?: BankingStaffAuditContext,
-  transferOptions?: { skipAuditLog?: boolean },
+  transferOptions?: { skipAuditLog?: boolean; suppressRecipientNotification?: boolean },
 ): Promise<{ referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
@@ -952,6 +996,12 @@ export async function submitInternalTransfer(
       );
     } catch (error) {
       console.error("[bank] transfer completed notification failed", error);
+    }
+  } else if (!transferOptions?.suppressRecipientNotification) {
+    try {
+      await notifyIncomingTransferBestEffort(userId, toAccount, amount, referenceBase);
+    } catch (error) {
+      console.error("[bank] transfer received notification failed", error);
     }
   }
 

@@ -51,6 +51,29 @@ async function notifyAltaPaySentBestEffort(
   }
 }
 
+async function notifyAltaPayCompanyReceivedBestEffort(input: {
+  payer: AltaUser;
+  company: { id: string; name: string };
+  amount: number;
+  referenceCode: string;
+  destinationAccountName: string;
+}): Promise<void> {
+  try {
+    const { notifyAltaPayReceivedToCompany } = await import("@/server/banking-notification.service");
+    const payerName = input.payer.minecraftUsername?.trim() || input.payer.discordUsername;
+    await notifyAltaPayReceivedToCompany({
+      companyId: input.company.id,
+      companyName: input.company.name,
+      amount: input.amount,
+      referenceCode: input.referenceCode,
+      payerName,
+      toAccountName: input.destinationAccountName,
+    });
+  } catch (error) {
+    console.error("[alta-pay] company received notification failed", error);
+  }
+}
+
 async function recordAltaPaySentAudit(input: {
   actorUserId: string;
   referenceCode: string;
@@ -292,10 +315,11 @@ export async function submitAltaPayToPerson(
       memo: input.memo,
     },
     auditContext,
-    { skipAuditLog: true },
+    { skipAuditLog: true, suppressRecipientNotification: true },
   );
 
   const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
+  const payerLabel = user.minecraftUsername?.trim() || user.discordUsername;
 
   await recordAltaPaySentAudit({
     actorUserId: user.id,
@@ -314,6 +338,19 @@ export async function submitAltaPayToPerson(
     recipientLabel,
     funding.label,
   );
+
+  try {
+    const { notifyAltaPayReceived } = await import("@/server/banking-notification.service");
+    await notifyAltaPayReceived(
+      input.recipientUserId,
+      input.amount,
+      result.referenceCode,
+      payerLabel,
+      receiveAccount.accountName,
+    );
+  } catch (error) {
+    console.error("[alta-pay] received notification failed", error);
+  }
 
   return {
     referenceCode: result.referenceCode,
@@ -600,6 +637,14 @@ export async function submitAltaPayPayment(
       sourceAccount.accountName,
     );
 
+    await notifyAltaPayCompanyReceivedBestEffort({
+      payer: user,
+      company,
+      amount: input.amount,
+      referenceCode: referenceBase,
+      destinationAccountName: destination.accountName,
+    });
+
     return {
       referenceCode: referenceBase,
       amount: input.amount,
@@ -677,6 +722,14 @@ export async function submitAltaPayPayment(
     company.name,
     fundingSourceLabel,
   );
+
+  await notifyAltaPayCompanyReceivedBestEffort({
+    payer: user,
+    company,
+    amount: input.amount,
+    referenceCode: referenceBase,
+    destinationAccountName: destination.accountName,
+  });
 
   return {
     referenceCode: referenceBase,

@@ -1,5 +1,19 @@
 import { formatFlorin } from "@/lib/bank/format";
-import { createUserNotification } from "@/server/notification.service";
+import { createUserNotification, createUserNotifications } from "@/server/notification.service";
+import { prisma } from "@/server/db";
+
+const COMPANY_INCOMING_PAYMENT_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
+
+async function listCompanyIncomingPaymentNotifyUserIds(companyId: string): Promise<string[]> {
+  const rows = await prisma.companyMembership.findMany({
+    where: {
+      companyId,
+      role: { in: [...COMPANY_INCOMING_PAYMENT_ROLES] },
+    },
+    select: { userId: true },
+  });
+  return [...new Set(rows.map((row) => row.userId))];
+}
 
 export async function notifyDepositSubmitted(
   userId: string,
@@ -112,6 +126,50 @@ export async function notifyTransferCompleted(
   });
 }
 
+export async function notifyTransferReceived(
+  recipientUserId: string,
+  amount: number,
+  referenceCode: string,
+  senderName: string,
+  toAccountName: string,
+): Promise<void> {
+  await createUserNotification({
+    userId: recipientUserId,
+    type: "TRANSFER_RECEIVED",
+    title: "Transfer received",
+    body: `Received ${formatFlorin(amount)} from ${senderName} into ${toAccountName}. Reference \`${referenceCode}\`.`,
+    linkUrl: "/bank",
+    metadata: { referenceCode, amount, senderName, toAccountName },
+  });
+}
+
+export async function notifyTransferReceivedToCompany(input: {
+  companyId: string;
+  companyName: string;
+  amount: number;
+  referenceCode: string;
+  senderName: string;
+  toAccountName: string;
+}): Promise<void> {
+  const userIds = await listCompanyIncomingPaymentNotifyUserIds(input.companyId);
+  if (userIds.length === 0) return;
+
+  await createUserNotifications(userIds, {
+    type: "TRANSFER_RECEIVED",
+    title: "Transfer received",
+    body: `${input.companyName} received ${formatFlorin(input.amount)} from ${input.senderName} into ${input.toAccountName}. Reference \`${input.referenceCode}\`.`,
+    linkUrl: "/bank/business",
+    metadata: {
+      referenceCode: input.referenceCode,
+      amount: input.amount,
+      senderName: input.senderName,
+      toAccountName: input.toAccountName,
+      companyId: input.companyId,
+      companyName: input.companyName,
+    },
+  });
+}
+
 export async function notifyAltaPaySent(
   userId: string,
   amount: number,
@@ -126,6 +184,50 @@ export async function notifyAltaPaySent(
     body: `Paid ${formatFlorin(amount)} to ${payeeName} from ${fundingSourceLabel}. Reference \`${referenceCode}\`.`,
     linkUrl: "/bank/pay",
     metadata: { referenceCode, amount, payeeName, fundingSourceLabel },
+  });
+}
+
+export async function notifyAltaPayReceived(
+  recipientUserId: string,
+  amount: number,
+  referenceCode: string,
+  payerName: string,
+  toAccountName: string,
+): Promise<void> {
+  await createUserNotification({
+    userId: recipientUserId,
+    type: "ALTA_PAY_RECEIVED",
+    title: "Alta Pay received",
+    body: `Received ${formatFlorin(amount)} from ${payerName} into ${toAccountName}. Reference \`${referenceCode}\`.`,
+    linkUrl: "/bank",
+    metadata: { referenceCode, amount, payerName, toAccountName },
+  });
+}
+
+export async function notifyAltaPayReceivedToCompany(input: {
+  companyId: string;
+  companyName: string;
+  amount: number;
+  referenceCode: string;
+  payerName: string;
+  toAccountName: string;
+}): Promise<void> {
+  const userIds = await listCompanyIncomingPaymentNotifyUserIds(input.companyId);
+  if (userIds.length === 0) return;
+
+  await createUserNotifications(userIds, {
+    type: "ALTA_PAY_RECEIVED",
+    title: "Alta Pay received",
+    body: `${input.companyName} received ${formatFlorin(input.amount)} from ${input.payerName} into ${input.toAccountName}. Reference \`${input.referenceCode}\`.`,
+    linkUrl: "/bank/business",
+    metadata: {
+      referenceCode: input.referenceCode,
+      amount: input.amount,
+      payerName: input.payerName,
+      toAccountName: input.toAccountName,
+      companyId: input.companyId,
+      companyName: input.companyName,
+    },
   });
 }
 
