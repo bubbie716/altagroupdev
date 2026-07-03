@@ -1176,6 +1176,18 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "deposit-completed",
   );
+
+  try {
+    const { notifyDepositApproved } = await import("@/server/banking-notification.service");
+    await notifyDepositApproved(
+      record.bankAccount.userId,
+      decimalToNumber(record.amount),
+      record.referenceCode,
+      reviewNote,
+    );
+  } catch (error) {
+    console.error("[bank] deposit approved notification failed", error);
+  }
 }
 
 export async function denyDeposit(adminId: string, transactionId: string, reviewNote?: string) {
@@ -1209,6 +1221,18 @@ export async function denyDeposit(adminId: string, transactionId: string, review
     description: `Denied deposit ${record.referenceCode}`,
     metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { notifyDepositDenied } = await import("@/server/banking-notification.service");
+    await notifyDepositDenied(
+      record.bankAccount.userId,
+      decimalToNumber(record.amount),
+      record.referenceCode,
+      reviewNote,
+    );
+  } catch (error) {
+    console.error("[bank] deposit denied notification failed", error);
+  }
 }
 
 export async function approveWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
@@ -1262,6 +1286,18 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "withdrawal-completed",
   );
+
+  try {
+    const { notifyWithdrawalApproved } = await import("@/server/banking-notification.service");
+    await notifyWithdrawalApproved(
+      record.bankAccount.userId,
+      decimalToNumber(record.amount),
+      record.referenceCode,
+      reviewNote,
+    );
+  } catch (error) {
+    console.error("[bank] withdrawal approved notification failed", error);
+  }
 }
 
 export async function denyWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
@@ -1295,6 +1331,18 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
     description: `Denied withdrawal ${record.referenceCode}`,
     metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { notifyWithdrawalDenied } = await import("@/server/banking-notification.service");
+    await notifyWithdrawalDenied(
+      record.bankAccount.userId,
+      decimalToNumber(record.amount),
+      record.referenceCode,
+      reviewNote,
+    );
+  } catch (error) {
+    console.error("[bank] withdrawal denied notification failed", error);
+  }
 }
 
 function appendAccountNote(existing: string | null | undefined, note: string): string {

@@ -1,5 +1,3 @@
-import { dispatchInvitationDm } from "@/server/invitation-discord-dispatch.service";
-
 type DiscordDeliveryResult =
   | { status: "skipped"; reason: "not_configured" }
   | { status: "sent" }
@@ -27,14 +25,10 @@ export async function sendAltaPrivateInvitationDiscordNotification(
   }
 
   try {
+    const { dispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
     const result = await dispatchInvitationDm("private", invitationId);
     if (result.sent) return { status: "sent" };
-    logDiscord("invitation DM not sent", {
-      userId,
-      invitationId,
-      reason: result.reason,
-      via: result.via,
-    });
+    logDiscord("invitation DM not sent", { userId, invitationId, reason: result.reason });
     return { status: "failed", error: result.reason ?? "not_sent" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Discord error";
@@ -49,8 +43,21 @@ export async function sendAltaPrivateAcceptedDiscordNotification(
   if (!discordConfigured()) {
     return { status: "skipped", reason: "not_configured" };
   }
-  logDiscord("accepted notification pending — Phase 4", { userId });
-  return { status: "sent" };
+
+  try {
+    const { createUserNotification } = await import("@/server/notification.service");
+    await createUserNotification({
+      userId,
+      type: "ALTA_PRIVATE_MEMBERSHIP_ACTIVATED",
+      title: "Welcome to Alta Private",
+      body: "Your Alta Private membership is now active. Explore private banking on Alta Bank.",
+      linkUrl: "/bank/private",
+    });
+    return { status: "sent" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Discord error";
+    return { status: "failed", error: message };
+  }
 }
 
 export async function sendAltaPrivateDeclinedDiscordNotification(
@@ -59,8 +66,21 @@ export async function sendAltaPrivateDeclinedDiscordNotification(
   if (!discordConfigured()) {
     return { status: "skipped", reason: "not_configured" };
   }
-  logDiscord("declined notification pending — Phase 4", { userId });
-  return { status: "sent" };
+
+  try {
+    const { createUserNotification } = await import("@/server/notification.service");
+    await createUserNotification({
+      userId,
+      type: "ALTA_PRIVATE_INVITATION_DECLINED",
+      title: "Alta Private invitation declined",
+      body: "You declined the Alta Private invitation. You can still use Alta Bank as usual.",
+      linkUrl: "/bank",
+    });
+    return { status: "sent" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown Discord error";
+    return { status: "failed", error: message };
+  }
 }
 
 export function isAltaPrivateDiscordConfigured(): boolean {

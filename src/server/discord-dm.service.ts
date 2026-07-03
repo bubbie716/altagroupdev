@@ -1,5 +1,8 @@
 import type { InvitationDmPayload } from "@/lib/discord/invitation-dm";
+import type { NotificationDmPayload } from "@/lib/discord/notification-dm";
 import { getDiscordBotConfig } from "@/server/discord-embed.service";
+
+type DmPayload = InvitationDmPayload | NotificationDmPayload;
 
 async function createDmChannel(botToken: string, recipientId: string): Promise<string> {
   const response = await fetch("https://discord.com/api/v10/users/@me/channels", {
@@ -44,9 +47,9 @@ async function postChannelMessage(
   return data.id ?? "unknown";
 }
 
-export async function sendDiscordInvitationDm(
+export async function sendDiscordUserDm(
   discordUserId: string,
-  payload: InvitationDmPayload,
+  payload: DmPayload,
 ): Promise<{ sent: true; messageId: string } | { sent: false; reason: "not_configured" }> {
   const config = getDiscordBotConfig();
   if (!config) return { sent: false, reason: "not_configured" };
@@ -54,8 +57,22 @@ export async function sendDiscordInvitationDm(
   const channelId = await createDmChannel(config.botToken, discordUserId);
   const messageId = await postChannelMessage(config.botToken, channelId, {
     embeds: [payload.embed],
-    components: payload.components,
+    components: payload.components.length > 0 ? payload.components : undefined,
   });
 
   return { sent: true, messageId };
+}
+
+export async function sendDiscordInvitationDm(
+  discordUserId: string,
+  payload: InvitationDmPayload,
+): Promise<{ sent: true; messageId: string } | { sent: false; reason: "not_configured" }> {
+  return sendDiscordUserDm(discordUserId, payload);
+}
+
+export async function sendDiscordNotificationDm(
+  discordUserId: string,
+  payload: NotificationDmPayload,
+): Promise<{ sent: true; messageId: string } | { sent: false; reason: "not_configured" }> {
+  return sendDiscordUserDm(discordUserId, payload);
 }

@@ -1279,6 +1279,17 @@ export async function approveLoanApplication(
     { borrowerUserId: application.applicantUserId, companyId: application.companyId },
     loan ? "loan-funded" : "loan-application-accepted",
   );
+
+  try {
+    const { notifyLoanApplicationApproved } = await import("@/server/banking-notification.service");
+    await notifyLoanApplicationApproved(
+      application.applicantUserId,
+      application.id,
+      principalAmount,
+    );
+  } catch (error) {
+    console.error("[loan] application approved notification failed", error);
+  }
 }
 
 export async function denyLoanApplication(
@@ -1336,6 +1347,17 @@ export async function denyLoanApplication(
     "@/server/relationship-refresh-hooks.service"
   );
   await refreshUserRelationshipProfileBestEffort(application.applicantUserId, "loan-application-denied");
+
+  try {
+    const { notifyLoanApplicationDenied } = await import("@/server/banking-notification.service");
+    await notifyLoanApplicationDenied(
+      application.applicantUserId,
+      application.id,
+      input.reviewNote ?? application.reviewNote,
+    );
+  } catch (error) {
+    console.error("[loan] application denied notification failed", error);
+  }
 }
 
 export async function freezeLoan(adminId: string, loanId: string): Promise<void> {

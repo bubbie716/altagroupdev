@@ -10,7 +10,28 @@ export type CreateNotificationInput = {
   metadata?: Record<string, unknown>;
 };
 
-/** In-app notification framework. Email/Discord channels reserved for future delivery workers. */
+async function dispatchDiscordForNotification(input: CreateNotificationInput): Promise<void> {
+  try {
+    const { dispatchNotificationDm } = await import("@/server/notification-discord-dispatch.service");
+    const result = await dispatchNotificationDm({
+      userId: input.userId,
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+    });
+    if (!result.sent && process.env.NODE_ENV !== "test") {
+      console.warn("[notifications] Discord DM not sent", {
+        userId: input.userId,
+        type: input.type,
+        reason: result.reason,
+      });
+    }
+  } catch (error) {
+    console.error("[notifications] Discord dispatch failed", error);
+  }
+}
+
+/** In-app notification with optional Discord DM delivery. */
 export async function createUserNotification(input: CreateNotificationInput): Promise<void> {
   await prisma.userNotification.create({
     data: {
@@ -23,6 +44,8 @@ export async function createUserNotification(input: CreateNotificationInput): Pr
       metadata: input.metadata ?? undefined,
     },
   });
+
+  await dispatchDiscordForNotification(input);
 }
 
 export async function createUserNotifications(
@@ -42,6 +65,10 @@ export async function createUserNotifications(
       metadata: input.metadata ?? undefined,
     })),
   });
+
+  for (const userId of unique) {
+    await dispatchDiscordForNotification({ userId, ...input });
+  }
 }
 
 export type NotificationRow = {

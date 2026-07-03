@@ -360,6 +360,18 @@ export async function approveAltaCardApplication(
     );
   }
 
+  try {
+    const { notifyAltaCardApplicationApproved } = await import("@/server/banking-notification.service");
+    await notifyAltaCardApplicationApproved(
+      application.applicantUserId,
+      application.id,
+      tier,
+      input.approvedLimit,
+    );
+  } catch (error) {
+    console.error("[alta-card] application approved notification failed", error);
+  }
+
   return {
     application: mapInternalAltaCardApplicationRow(result.application),
     card: result.card ? mapAltaCardRow(result.card) : null,
@@ -407,6 +419,17 @@ export async function denyAltaCardApplication(
     application.applicantUserId,
     application.companyId,
   );
+
+  try {
+    const { notifyAltaCardApplicationDenied } = await import("@/server/banking-notification.service");
+    await notifyAltaCardApplicationDenied(
+      application.applicantUserId,
+      application.id,
+      input.denialReason,
+    );
+  } catch (error) {
+    console.error("[alta-card] application denied notification failed", error);
+  }
 
   return mapInternalAltaCardApplicationRow(updated);
 }
