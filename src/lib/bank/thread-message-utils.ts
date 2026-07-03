@@ -18,7 +18,10 @@ export function isOwnThreadMessage(
   if (message.senderRole === "system") return false;
 
   if (variant === "internal") {
-    return message.senderRole === "alta_staff";
+    if (message.senderRole === "alta_staff") {
+      return message.senderUserId != null && message.senderUserId === viewerUserId;
+    }
+    return false;
   }
 
   // Cardholder portal: Alta desk is always the counterparty (left), even when a staff

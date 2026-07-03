@@ -60,3 +60,45 @@ export function buildNotificationDmPayload(input: {
 
   return { embed, components };
 }
+
+export function buildDealRoomOpenedDmPayload(input: {
+  title: string;
+  body: string;
+  discordChannelUrl: string;
+  websiteLinkUrl: string;
+  websiteLinkLabel?: string;
+}): NotificationDmPayload {
+  const websiteUrl = resolvePublicLinkUrl(input.websiteLinkUrl);
+  const description = input.body.slice(0, 4096);
+
+  const embed: Record<string, unknown> = {
+    title: input.title.slice(0, 256),
+    description,
+    url: input.discordChannelUrl,
+    color: INVITE_COLORS.alta,
+    footer: { text: "Alta Bank · Newport" },
+  };
+
+  const buttons: Record<string, unknown>[] = [
+    {
+      type: 2,
+      style: 5,
+      label: "Open Discord Channel",
+      url: input.discordChannelUrl,
+    },
+  ];
+
+  if (websiteUrl) {
+    buttons.push({
+      type: 2,
+      style: 5,
+      label: (input.websiteLinkLabel ?? "Open on Alta Bank").slice(0, 80),
+      url: websiteUrl,
+    });
+  }
+
+  return {
+    embed,
+    components: buttons.length > 0 ? [{ type: 1, components: buttons }] : [],
+  };
+}

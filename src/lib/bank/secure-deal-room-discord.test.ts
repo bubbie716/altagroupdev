@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildChannelOpenedDmBody,
   buildDealRoomChannelName,
+  buildDiscordGuildChannelUrl,
   buildWebsiteToDiscordChannelMessage,
+  resolveDiscordChannelSenderRole,
   sanitizeDiscordReplyContent,
 } from "@/lib/bank/secure-deal-room-discord-copy";
+import { buildDealRoomOpenedDmPayload } from "@/lib/discord/notification-dm";
 import {
   resolveCustomerDealRoomUrl,
   resolveSessionForReply,
@@ -45,10 +49,49 @@ describe("secure deal room discord channel copy", () => {
     assert.match(body, /proof of income/);
   });
 
+  it("builds clickable discord channel links for opened deal room DMs", () => {
+    const url = buildDiscordGuildChannelUrl("guild-1", "channel-9");
+    assert.equal(url, "https://discord.com/channels/guild-1/channel-9");
+
+    const body = buildChannelOpenedDmBody({
+      dealRoomType: "ALTA_CARD_APPLICATION",
+      channelName: "dealroom-trappman1-altacard",
+      discordChannelUrl: url,
+    });
+    assert.match(body, /\[#dealroom-trappman1-altacard\]\(https:\/\/discord\.com\/channels\/guild-1\/channel-9\)/);
+
+    const payload = buildDealRoomOpenedDmPayload({
+      title: "Your Secure Deal Room is ready",
+      body,
+      discordChannelUrl: url,
+      websiteLinkUrl: "/bank/alta-card/applications/app-1/thread",
+    });
+    const row = payload.components[0] as { components: Array<{ label: string; url: string }> };
+    assert.equal(row.components[0]?.label, "Open Discord Channel");
+    assert.equal(row.components[0]?.url, url);
+    assert.equal(row.components[1]?.label, "Open on Alta Bank");
+  });
+
   it("sanitizes and caps discord reply content", () => {
     assert.equal(sanitizeDiscordReplyContent("  hello  "), "hello");
     assert.equal(sanitizeDiscordReplyContent("   "), null);
     assert.equal(sanitizeDiscordReplyContent("x".repeat(5000))?.length, 4000);
+  });
+
+  it("prefers applicant role when discord author is both staff and customer", () => {
+    assert.equal(
+      resolveDiscordChannelSenderRole({ isApplicant: true, isStaff: true }),
+      "APPLICANT",
+    );
+    assert.equal(
+      resolveDiscordChannelSenderRole({ isApplicant: false, isStaff: true }),
+      "ALTA_STAFF",
+    );
+    assert.equal(
+      resolveDiscordChannelSenderRole({ isApplicant: true, isStaff: false }),
+      "APPLICANT",
+    );
+    assert.equal(resolveDiscordChannelSenderRole({ isApplicant: false, isStaff: false }), null);
   });
 });
 

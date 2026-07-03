@@ -14,8 +14,10 @@ import {
   buildChannelOpenedDmTitle,
   buildDealRoomChannelName,
   buildDealRoomChannelWelcomeContent,
+  buildDiscordGuildChannelUrl,
   buildWebsiteToDiscordChannelMessage,
   DEAL_ROOM_CHANNEL_FAILURE_COPY,
+  resolveDiscordChannelSenderRole,
   sanitizeDiscordReplyContent,
 } from "@/lib/bank/secure-deal-room-discord-copy";
 import {
@@ -26,7 +28,7 @@ import {
   type StaffDealRoomMessageNotifyInput,
   type WebsiteMessageSyncInput,
 } from "@/lib/bank/secure-deal-room-discord-types";
-import { buildNotificationDmPayload } from "@/lib/discord/notification-dm";
+import { buildDealRoomOpenedDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
 import {
   dispatchEnsureDealRoomChannel,
@@ -363,12 +365,20 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
   const dmBody = buildChannelOpenedDmBody({
     dealRoomType: input.dealRoomType,
     channelName: channelResult.channelName ?? channelName,
+    discordChannelUrl: buildDiscordGuildChannelUrl(
+      process.env.DISCORD_GUILD_ID?.trim() ?? "",
+      channelResult.channelId,
+    ),
   });
-  const dmPayload = buildNotificationDmPayload({
+  const dmPayload = buildDealRoomOpenedDmPayload({
     title: buildChannelOpenedDmTitle(),
     body: dmBody,
-    linkUrl,
-    linkLabel: "Open on Alta Bank",
+    discordChannelUrl: buildDiscordGuildChannelUrl(
+      process.env.DISCORD_GUILD_ID?.trim() ?? "",
+      channelResult.channelId,
+    ),
+    websiteLinkUrl: linkUrl,
+    websiteLinkLabel: "Open on Alta Bank",
   });
   await sendDiscordUserDm(discordUserId, dmPayload);
 }
@@ -528,7 +538,11 @@ export async function ingestDiscordChannelMessage(
     return { kind: "unauthorized" };
   }
 
-  const senderRole = isStaff ? "ALTA_STAFF" : "APPLICANT";
+  const senderRole = resolveDiscordChannelSenderRole({ isApplicant, isStaff });
+  if (!senderRole) {
+    await recordUnauthorizedDiscordMessage(session, input, altaUser.id);
+    return { kind: "unauthorized" };
+  }
 
   let messageId: string;
   try {
@@ -614,7 +628,7 @@ async function lockDealRoomDiscordChannelBestEffort(input: {
         actorUserId: input.actorUserId,
         dealRoomType: input.dealRoomType,
         dealRoomId: input.dealRoomId,
-        description: "Failed to lock Discord channel when Deal Room closed.",
+        description: "Failed to remove applicant from Discord channel when Deal Room closed.",
         reason: result.reason ?? "channel_lock_failed",
         source: "SYSTEM",
         discordChannelId: input.discordChannelId,
@@ -627,7 +641,7 @@ async function lockDealRoomDiscordChannelBestEffort(input: {
       action: "DEAL_ROOM_DISCORD_CHANNEL_LOCKED",
       entityType: auditEntityTypeForDealRoom(input.dealRoomType),
       entityId: input.dealRoomId,
-      description: "Discord channel locked when Secure Deal Room closed.",
+      description: "Applicant removed from Discord channel when Secure Deal Room closed.",
       metadata: {
         dealRoomType: input.dealRoomType,
         dealRoomId: input.dealRoomId,

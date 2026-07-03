@@ -44,6 +44,24 @@ export type DiscordChannelMessageInput = {
   hasAttachments: boolean;
 };
 
+export type EnsureChannelDispatchInput = {
+  channelName: string;
+  customerDiscordUserId: string;
+  dealRoomType: string;
+  dealRoomId: string;
+  welcomeContent: string;
+  linkUrl: string;
+  existingChannelId?: string | null;
+};
+
+export type EnsureChannelDispatchResult = {
+  ok: boolean;
+  channelId?: string;
+  channelName?: string;
+  linked?: boolean;
+  reason?: string;
+};
+
 export type DiscordChannelMessageResult =
   | { kind: "synced"; messageId: string }
   | { kind: "ignored" }

@@ -40,6 +40,10 @@ export function buildDealRoomChannelWelcomeContent(): string {
   ].join("\n");
 }
 
+export function buildDiscordGuildChannelUrl(guildId: string, channelId: string): string {
+  return `https://discord.com/channels/${guildId.trim()}/${channelId.trim()}`;
+}
+
 export function buildChannelOpenedDmTitle(): string {
   return "Your Secure Deal Room is ready";
 }
@@ -47,6 +51,7 @@ export function buildChannelOpenedDmTitle(): string {
 export function buildChannelOpenedDmBody(input: {
   dealRoomType: SecureDealRoomType;
   channelName: string;
+  discordChannelUrl: string;
 }): string {
   const contextLabel = DEAL_ROOM_TYPE_LABELS[input.dealRoomType];
   return [
@@ -54,10 +59,10 @@ export function buildChannelOpenedDmBody(input: {
     "",
     `A private Discord channel has been created for your ${contextLabel}.`,
     "",
-    "Continue here:",
-    `#${input.channelName}`,
+    "Continue in Discord:",
+    `[#${input.channelName}](${input.discordChannelUrl})`,
     "",
-    "Or open on Alta Bank.",
+    "You can also open your Deal Room on Alta Bank using the button below.",
   ].join("\n");
 }
 
@@ -75,6 +80,9 @@ export function sanitizeDiscordReplyContent(content: string): string | null {
   return trimmed.slice(0, MAX_REPLY_CHARS);
 }
 
+export const DEAL_ROOM_CHANNEL_CLOSED_NOTICE =
+  "This Deal Room is closed on Alta Bank. The applicant no longer has access to this Discord channel. Staff can still review the message history here.";
+
 export const DEAL_ROOM_CHANNEL_FAILURE_COPY = {
   closed:
     "This Secure Deal Room is closed. Please open Alta Bank if you need further assistance.",
@@ -83,3 +91,13 @@ export const DEAL_ROOM_CHANNEL_FAILURE_COPY = {
     "Attachments must be uploaded through Alta Bank for now. Open your Secure Deal Room on the website to share documents.",
   empty: "Please send a text message in your Secure Deal Room channel.",
 } as const;
+
+/** Applicant/customer side wins when a user is both staff and the deal room customer. */
+export function resolveDiscordChannelSenderRole(input: {
+  isApplicant: boolean;
+  isStaff: boolean;
+}): "APPLICANT" | "ALTA_STAFF" | null {
+  if (input.isApplicant) return "APPLICANT";
+  if (input.isStaff) return "ALTA_STAFF";
+  return null;
+}
