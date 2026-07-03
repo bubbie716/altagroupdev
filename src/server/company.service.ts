@@ -356,7 +356,19 @@ export async function sendCompanyInvitation(
     },
   });
 
-  // TODO(bot): dispatch invitation after CompanyInvitation insert
+  try {
+    const { dispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
+    const result = await dispatchInvitationDm("company", invitation.id);
+    if (!result.sent) {
+      console.warn("[invitations] company invitation DM not sent", {
+        invitationId: invitation.id,
+        reason: result.reason,
+      });
+    }
+  } catch (error) {
+    console.error("[invitations] company invitation dispatch failed", error);
+  }
+
   return { invitationId: invitation.id };
 }
 
