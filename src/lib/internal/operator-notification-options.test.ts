@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildOperatorNotificationAuditMetadata,
+  formatSilentNotificationAuditDetail,
   shouldNotifyCustomer,
 } from "./operator-notification-options.ts";
 
@@ -28,5 +29,14 @@ describe("operator notification options", () => {
     assert.equal(meta.silentNotification, false);
     assert.equal(meta.customerNotificationSent, true);
     assert.equal(meta.silentNotificationChosenByUserId, null);
+  });
+
+  it("formats silent notification detail for audit messages", () => {
+    assert.equal(
+      formatSilentNotificationAuditDetail({ silentNotification: true }),
+      "Silent — customer not notified",
+    );
+    assert.equal(formatSilentNotificationAuditDetail({ silentNotification: false }), null);
+    assert.equal(formatSilentNotificationAuditDetail(null), null);
   });
 });

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { notifyDiscordFromAuditLog } from "./audit-log-discord-bridge.ts";
+import { formatStaffAuditMessage } from "./staff-audit-format.ts";
+import { formatSilentNotificationAuditDetail } from "@/lib/internal/operator-notification-options.ts";
 
 describe("audit log Discord bridge", () => {
   it("does not throw for compliance events", () => {
@@ -27,5 +29,28 @@ describe("audit log Discord bridge", () => {
         description: "Timeline event",
       });
     });
+  });
+
+  it("includes silent notification in staff audit details", () => {
+    const silentDetail = formatSilentNotificationAuditDetail({
+      silentNotification: true,
+      amount: 5000,
+      reason: "Verification hold",
+    });
+    assert.equal(silentDetail, "Silent — customer not notified");
+
+    const message = formatStaffAuditMessage({
+      product: "Alta Bank",
+      action: "Account frozen",
+      actorLabel: "Carter Townshend",
+      details: [
+        "ƒ5,000.00",
+        "Reason: Verification hold",
+        silentDetail,
+      ].join(" · "),
+      severity: "WARNING",
+    });
+
+    assert.match(message, /Silent — customer not notified/);
   });
 });

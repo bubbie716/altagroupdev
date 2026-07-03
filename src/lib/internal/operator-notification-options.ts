@@ -21,3 +21,13 @@ export function buildOperatorNotificationAuditMetadata(
     silentNotificationChosenByUserId: silent ? actorUserId : null,
   };
 }
+
+/** Human-readable line for staff Discord and internal audit tables when silent mode was used. */
+export function formatSilentNotificationAuditDetail(
+  metadata: Record<string, unknown> | null | undefined,
+): string | null {
+  if (metadata?.silentNotification === true) {
+    return "Silent — customer not notified";
+  }
+  return null;
+}

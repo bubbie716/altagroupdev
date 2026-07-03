@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
+import { formatSilentNotificationAuditDetail } from "@/lib/internal/operator-notification-options";
 
 export function AccountActivityLink({
   accountId,
@@ -68,7 +69,9 @@ export function InternalAuditTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const silentDetail = formatSilentNotificationAuditDetail(row.metadata);
+              return (
               <tr key={row.id}>
                 <td className="font-mono text-[11px] text-muted-foreground">
                   {formatActivityDateTime(row.createdAt)}
@@ -91,9 +94,17 @@ export function InternalAuditTable({
                     row.entityId?.slice(0, 10) ??
                     "—"}
                 </td>
-                <td className="text-[13px]">{row.description}</td>
+                <td className="text-[13px]">
+                  <div>{row.description}</div>
+                  {silentDetail ? (
+                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-600/90">
+                      {silentDetail}
+                    </div>
+                  ) : null}
+                </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>

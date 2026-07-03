@@ -12,6 +12,7 @@ import {
   internalUserUrl,
   internalWithdrawalsQueueUrl,
 } from "@/lib/staff-audit/staff-audit-internal-urls";
+import { formatSilentNotificationAuditDetail } from "@/lib/internal/operator-notification-options";
 import type { StaffAuditProduct, StaffAuditSeverity, StaffAuditSource } from "@/lib/staff-audit/staff-audit-types";
 import { sendStaffAuditMessage } from "@/server/staff-audit-notification.service";
 
@@ -238,6 +239,11 @@ function buildDetails(input: WriteAuditLogInput, metadata: Record<string, unknow
   const reason = metadata.reason;
   if (typeof reason === "string" && reason.trim()) {
     parts.push(`Reason: ${reason.trim()}`);
+  }
+
+  const silentDetail = formatSilentNotificationAuditDetail(metadata);
+  if (silentDetail) {
+    parts.push(silentDetail);
   }
 
   if (parts.length > 0) return parts.join(" · ");
