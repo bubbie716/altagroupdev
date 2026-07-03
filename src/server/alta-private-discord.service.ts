@@ -53,6 +53,12 @@ export async function sendAltaPrivateAcceptedDiscordNotification(
       body: "Your Alta Private membership is now active. Explore private banking on Alta Bank.",
       linkUrl: "/bank/private",
     });
+
+    const { grantDiscordPrivateRoleBestEffortForUser } = await import(
+      "@/server/discord-guild-role.service"
+    );
+    await grantDiscordPrivateRoleBestEffortForUser(userId);
+
     return { status: "sent" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Discord error";
