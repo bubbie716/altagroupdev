@@ -42,8 +42,10 @@ import {
 } from "@/server/secure-thread-attachment-access";
 import {
   closeDiscordSessionsForDealRoom,
+  notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
   resolveDealRoomContextForStaffMessage,
+  syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
 
 const INITIAL_SYSTEM_MESSAGE = LENDING_THREAD_WELCOME_MESSAGE;
@@ -289,7 +291,14 @@ export async function createThreadForLoanApplication(
     metadata: { threadId: thread.id },
   });
 
-  // TODO: Alta Bot — notify staff (Discord bridge) when a new Secure Deal Room opens.
+  void notifyCustomerDealRoomOpenedBestEffort({
+    dealRoomType: "LOAN_APPLICATION",
+    dealRoomId: application.id,
+    threadId: thread.id,
+    applicantUserId: application.applicantUserId,
+    welcomeBody: INITIAL_SYSTEM_MESSAGE,
+    context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", application.id),
+  });
 
   return { threadId: thread.id, applicationId: application.id };
 }
@@ -411,6 +420,18 @@ export async function sendThreadMessage(
       context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", thread.loanApplicationId),
     });
   }
+
+  void syncWebsiteMessageToDiscordBestEffort({
+    dealRoomType: "LOAN_APPLICATION",
+    dealRoomId: thread.loanApplicationId,
+    threadId: thread.id,
+    messageId: message.id,
+    messageBody: body,
+    senderUserId: userId,
+    senderDisplayName: user.discordUsername,
+    senderRole: as === "staff" ? "ALTA_STAFF" : "APPLICANT",
+    context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", thread.loanApplicationId),
+  });
 
   return mapMessageRow(message);
 }

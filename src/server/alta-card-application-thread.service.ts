@@ -39,8 +39,10 @@ import {
 } from "@/server/secure-thread-attachment-access";
 import {
   closeDiscordSessionsForDealRoom,
+  notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
   resolveDealRoomContextForStaffMessage,
+  syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
@@ -248,7 +250,9 @@ export async function createThreadForAltaCardApplication(
     where: { applicationId },
     select: { id: true, applicationId: true },
   });
-  if (existing) return { threadId: existing.id, applicationId: existing.applicationId };
+  if (existing) {
+    return { threadId: existing.id, applicationId: existing.applicationId };
+  }
 
   const thread = await prisma.$transaction(async (tx) => {
     const created = await tx.altaCardApplicationThread.create({
@@ -270,6 +274,15 @@ export async function createThreadForAltaCardApplication(
     });
 
     return created;
+  });
+
+  void notifyCustomerDealRoomOpenedBestEffort({
+    dealRoomType: "ALTA_CARD_APPLICATION",
+    dealRoomId: application.id,
+    threadId: thread.id,
+    applicantUserId: application.applicantUserId,
+    welcomeBody: systemMessage,
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_APPLICATION", application.id),
   });
 
   return { threadId: thread.id, applicationId: application.id };
@@ -396,6 +409,18 @@ export async function sendAltaCardThreadMessage(
       context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_APPLICATION", input.applicationId),
     });
   }
+
+  void syncWebsiteMessageToDiscordBestEffort({
+    dealRoomType: "ALTA_CARD_APPLICATION",
+    dealRoomId: input.applicationId,
+    threadId: thread.id,
+    messageId: message.id,
+    messageBody: body,
+    senderUserId: userId,
+    senderDisplayName: user.discordUsername,
+    senderRole: as === "staff" ? "ALTA_STAFF" : "APPLICANT",
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_APPLICATION", input.applicationId),
+  });
 
   return mapMessageRow(message);
 }

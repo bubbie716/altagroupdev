@@ -24,19 +24,33 @@ export type StaffDealRoomMessageNotifyInput = {
   context?: SecureDealRoomDiscordContext;
 };
 
-export type DiscordDealRoomReplyInput = {
-  discordUserId: string;
+export type WebsiteMessageSyncInput = {
+  dealRoomType: SecureDealRoomType;
+  dealRoomId: string;
+  threadId: string;
+  messageId: string;
+  messageBody: string | null;
+  senderUserId: string;
+  senderDisplayName: string;
+  senderRole: "APPLICANT" | "ALTA_STAFF";
+  context?: SecureDealRoomDiscordContext;
+};
+
+export type DiscordChannelMessageInput = {
   discordChannelId: string;
   discordMessageId: string;
-  referencedDiscordMessageId?: string | null;
+  discordUserId: string;
   content: string;
   hasAttachments: boolean;
 };
 
-export type DiscordDealRoomReplyResult =
-  | { ok: true; kind: "message_posted"; confirmationText: string }
-  | { ok: true; kind: "picker"; pickerText: string; options: Array<{ label: string; dealRoomType: SecureDealRoomType; dealRoomId: string }> }
-  | { ok: false; replyText: string; linkUrl?: string };
+export type DiscordChannelMessageResult =
+  | { kind: "synced"; messageId: string }
+  | { kind: "ignored" }
+  | { kind: "duplicate" }
+  | { kind: "unauthorized" }
+  | { kind: "closed" }
+  | { kind: "failed"; reason: string };
 
 export const DEAL_ROOM_TYPE_LABELS: Record<SecureDealRoomType, string> = {
   LOAN_APPLICATION: "Loan Application",
@@ -59,6 +73,6 @@ export function sourceCodeFromDb(
 
 export function sourceLabel(source: SecureDealRoomMessageSourceCode): string | null {
   if (source === "discord") return "via Discord";
-  if (source === "website") return null;
+  if (source === "website") return "via Website";
   return null;
 }

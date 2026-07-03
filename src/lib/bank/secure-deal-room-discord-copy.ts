@@ -11,25 +11,62 @@ export function previewDealRoomMessage(body: string | null): string {
   return `${trimmed.slice(0, MAX_PREVIEW_CHARS - 1)}…`;
 }
 
-export function buildStaffDealRoomDmTitle(dealRoomType: SecureDealRoomType): string {
-  return `New message in your Secure Deal Room`;
+export function buildDealRoomChannelName(input: {
+  discordUsername: string;
+  dealRoomType: SecureDealRoomType;
+}): string {
+  const slug =
+    input.discordUsername
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 20) || "customer";
+
+  const suffix = {
+    LOAN_APPLICATION: "loan-app",
+    ALTA_CARD_APPLICATION: "altacard",
+    ALTA_CARD_REVIEW: "card-review",
+  }[input.dealRoomType];
+
+  return `dealroom-${slug}-${suffix}`.slice(0, 100);
 }
 
-export function buildStaffDealRoomDmBody(input: {
+export function buildDealRoomChannelWelcomeContent(): string {
+  return [
+    "This private channel is connected to your Alta Bank Deal Room.",
+    "",
+    "Messages sent here will appear in your Deal Room on Alta Bank.",
+    "",
+    "Please keep all communication related to this application or review in this channel.",
+  ].join("\n");
+}
+
+export function buildChannelOpenedDmTitle(): string {
+  return "Your Secure Deal Room is ready";
+}
+
+export function buildChannelOpenedDmBody(input: {
   dealRoomType: SecureDealRoomType;
-  staffDisplayName: string;
-  messageBody: string | null;
+  channelName: string;
 }): string {
   const contextLabel = DEAL_ROOM_TYPE_LABELS[input.dealRoomType];
-  const preview = previewDealRoomMessage(input.messageBody);
   return [
-    `**${contextLabel}**`,
+    "Your Secure Deal Room is ready.",
     "",
-    `**${input.staffDisplayName}:**`,
-    `> ${preview.replace(/\n/g, "\n> ")}`,
+    `A private Discord channel has been created for your ${contextLabel}.`,
     "",
-    "You can reply directly to this message or continue on Alta Bank.",
+    "Continue here:",
+    `#${input.channelName}`,
+    "",
+    "Or open on Alta Bank.",
   ].join("\n");
+}
+
+export function buildWebsiteToDiscordChannelMessage(input: {
+  senderDisplayName: string;
+  messageBody: string | null;
+}): string {
+  const preview = previewDealRoomMessage(input.messageBody);
+  return `${input.senderDisplayName} via Alta Bank:\n${preview}`.slice(0, 2000);
 }
 
 export function sanitizeDiscordReplyContent(content: string): string | null {
@@ -38,15 +75,11 @@ export function sanitizeDiscordReplyContent(content: string): string | null {
   return trimmed.slice(0, MAX_REPLY_CHARS);
 }
 
-export const DEAL_ROOM_REPLY_FAILURE_COPY = {
-  ambiguous:
-    "Alta could not determine which Secure Deal Room this reply belongs to. Please open your Deal Room on Alta Bank to continue.",
-  pickerPrompt: "You have multiple active Secure Deal Rooms. Choose which one this reply is for:",
+export const DEAL_ROOM_CHANNEL_FAILURE_COPY = {
   closed:
     "This Secure Deal Room is closed. Please open Alta Bank if you need further assistance.",
-  wrongUser: "This Deal Room is only available to the invited customer.",
+  wrongUser: "This Deal Room is only available to the invited customer or Alta staff.",
   attachment:
     "Attachments must be uploaded through Alta Bank for now. Open your Secure Deal Room on the website to share documents.",
-  empty: "Please send a text message to reply to your Secure Deal Room.",
-  posted: "Your message was added to your Secure Deal Room on Alta Bank.",
+  empty: "Please send a text message in your Secure Deal Room channel.",
 } as const;

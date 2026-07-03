@@ -47,8 +47,10 @@ import {
 } from "@/server/secure-thread-attachment-access";
 import {
   closeDiscordSessionsForDealRoom,
+  notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
   resolveDealRoomContextForStaffMessage,
+  syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
@@ -266,6 +268,15 @@ export async function createThreadForReviewRequest(
     return created;
   });
 
+  void notifyCustomerDealRoomOpenedBestEffort({
+    dealRoomType: "ALTA_CARD_REVIEW",
+    dealRoomId: review.id,
+    threadId: thread.id,
+    applicantUserId: review.applicantUserId,
+    welcomeBody: systemMessage,
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", review.id),
+  });
+
   return { threadId: thread.id, reviewRequestId: review.id };
 }
 
@@ -307,6 +318,17 @@ export async function ensureReviewThreadExists(
 
     return created;
   });
+
+  if (!options?.silent) {
+    void notifyCustomerDealRoomOpenedBestEffort({
+      dealRoomType: "ALTA_CARD_REVIEW",
+      dealRoomId: review.id,
+      threadId: thread.id,
+      applicantUserId: review.applicantUserId,
+      welcomeBody: ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE,
+      context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", review.id),
+    });
+  }
 
   return { threadId: thread.id, reviewRequestId: thread.reviewRequestId };
 }
@@ -426,6 +448,18 @@ export async function sendReviewThreadMessage(
       context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", input.reviewRequestId),
     });
   }
+
+  void syncWebsiteMessageToDiscordBestEffort({
+    dealRoomType: "ALTA_CARD_REVIEW",
+    dealRoomId: input.reviewRequestId,
+    threadId: thread.id,
+    messageId: message.id,
+    messageBody: body,
+    senderUserId: userId,
+    senderDisplayName: user.discordUsername,
+    senderRole: as === "staff" ? "ALTA_STAFF" : "APPLICANT",
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", input.reviewRequestId),
+  });
 
   return mapMessageRow(message);
 }

@@ -8,7 +8,8 @@ export type StaffAuditProduct =
   | "Alta Private"
   | "Alta Ops"
   | "Alta Card"
-  | "Companies";
+  | "Companies"
+  | "Deal Room";
 
 export type SendStaffAuditMessageInput = {
   product: StaffAuditProduct;

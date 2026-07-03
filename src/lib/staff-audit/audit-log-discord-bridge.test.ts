@@ -31,6 +31,20 @@ describe("audit log Discord bridge", () => {
     });
   });
 
+  it("skips deal room sync audit rows mirrored via dedicated staff messages", () => {
+    assert.doesNotThrow(() => {
+      notifyDiscordFromAuditLog({
+        actorUserId: "user-1",
+        action: "DEAL_ROOM_DISCORD_MESSAGE_SYNCED_TO_WEBSITE",
+        entityType: "ALTA_CARD",
+        entityId: "app-1",
+        targetUserId: "user-1",
+        description: "Discord channel message synced to Secure Deal Room.",
+        metadata: { source: "DISCORD", messageId: "msg-1" },
+      });
+    });
+  });
+
   it("includes silent notification in staff audit details", () => {
     const silentDetail = formatSilentNotificationAuditDetail({
       silentNotification: true,

@@ -1,29 +1,48 @@
 import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
+import { describe, it } from "node:test";
 import {
-  buildStaffDealRoomDmBody,
+  buildDealRoomChannelName,
+  buildWebsiteToDiscordChannelMessage,
   sanitizeDiscordReplyContent,
 } from "@/lib/bank/secure-deal-room-discord-copy";
 import {
   resolveCustomerDealRoomUrl,
   resolveSessionForReply,
-  resetPendingDiscordRepliesForTests,
-  stashPendingDiscordReply,
 } from "@/server/secure-deal-room-discord.service";
 import { sourceLabel } from "@/lib/bank/secure-deal-room-discord-types";
 
-describe("secure deal room discord copy", () => {
-  it("builds staff DM body with sender preview and reply instructions", () => {
-    const body = buildStaffDealRoomDmBody({
-      dealRoomType: "LOAN_APPLICATION",
-      staffDisplayName: "Alta Credit Desk",
+describe("secure deal room discord channel copy", () => {
+  it("builds short channel names per deal room type", () => {
+    assert.equal(
+      buildDealRoomChannelName({
+        discordUsername: "Carter Townshend",
+        dealRoomType: "ALTA_CARD_REVIEW",
+      }),
+      "dealroom-cartertownshend-card-review",
+    );
+    assert.equal(
+      buildDealRoomChannelName({
+        discordUsername: "FTLCEO",
+        dealRoomType: "LOAN_APPLICATION",
+      }),
+      "dealroom-ftlceo-loan-app",
+    );
+    assert.equal(
+      buildDealRoomChannelName({
+        discordUsername: "FTLCEO",
+        dealRoomType: "ALTA_CARD_APPLICATION",
+      }),
+      "dealroom-ftlceo-altacard",
+    );
+  });
+
+  it("formats website messages for Discord channel sync", () => {
+    const body = buildWebsiteToDiscordChannelMessage({
+      senderDisplayName: "FTLCEO",
       messageBody: "Can you provide proof of income?",
     });
-
-    assert.match(body, /Loan Application/);
-    assert.match(body, /Alta Credit Desk/);
+    assert.match(body, /FTLCEO via Alta Bank:/);
     assert.match(body, /proof of income/);
-    assert.match(body, /reply directly to this message/i);
   });
 
   it("sanitizes and caps discord reply content", () => {
@@ -33,7 +52,7 @@ describe("secure deal room discord copy", () => {
   });
 });
 
-describe("secure deal room session resolution", () => {
+describe("secure deal room session resolution (legacy)", () => {
   const baseSession = {
     id: "sess-1",
     dealRoomType: "LOAN_APPLICATION" as const,
@@ -42,6 +61,7 @@ describe("secure deal room session resolution", () => {
     userId: "user-1",
     discordUserId: "discord-1",
     discordChannelId: "chan-1",
+    discordChannelName: "dealroom-ftlceo-loan-app",
     lastDiscordMessageId: "msg-1",
     status: "ACTIVE" as const,
     contextJson: null,
@@ -59,10 +79,6 @@ describe("secure deal room session resolution", () => {
     const second = { ...baseSession, id: "sess-2", dealRoomId: "app-2", lastDiscordMessageId: "msg-2" };
     assert.equal(resolveSessionForReply([baseSession, second], null), "ambiguous");
   });
-
-  it("uses the only active session when there is just one", () => {
-    assert.equal(resolveSessionForReply([baseSession], null)?.id, "sess-1");
-  });
 });
 
 describe("secure deal room urls and labels", () => {
@@ -73,19 +89,9 @@ describe("secure deal room urls and labels", () => {
     );
   });
 
-  it("labels discord source for UI", () => {
+  it("labels website and discord sources for UI", () => {
     assert.equal(sourceLabel("discord"), "via Discord");
-    assert.equal(sourceLabel("website"), null);
-  });
-});
-
-describe("pending discord reply stash", () => {
-  beforeEach(() => {
-    resetPendingDiscordRepliesForTests();
-  });
-
-  it("stores pending content for ambiguous picker follow-up", () => {
-    stashPendingDiscordReply("discord-9", "Follow-up message", false);
-    assert.doesNotThrow(() => stashPendingDiscordReply("discord-9", "Follow-up message", false));
+    assert.equal(sourceLabel("website"), "via Website");
+    assert.equal(sourceLabel("system"), null);
   });
 });

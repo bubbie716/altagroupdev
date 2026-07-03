@@ -853,6 +853,7 @@ model SecureDealRoomDiscordSession {
   userId               String
   discordUserId        String
   discordChannelId     String?
+  discordChannelName   String?
   lastDiscordMessageId String?
   status               SecureDealRoomDiscordSessionStatus @default(ACTIVE)
   contextJson          Json?
@@ -865,6 +866,7 @@ model SecureDealRoomDiscordSession {
   @@unique([dealRoomType, dealRoomId])
   @@index([userId, status])
   @@index([discordUserId, status])
+  @@index([discordChannelId])
   @@index([lastDiscordMessageId])
 }
 
@@ -893,15 +895,16 @@ model LoanApplicationThread {
 }
 
 model LoanApplicationThreadMessage {
-  id           String                          @id @default(cuid())
-  threadId     String
-  senderUserId String?
-  senderRole   LoanApplicationThreadSenderRole
-  source       SecureDealRoomMessageSource     @default(WEBSITE)
-  body         String?
-  attachments  Json?
-  createdAt    DateTime                        @default(now())
-  deletedAt    DateTime?
+  id                String                          @id @default(cuid())
+  threadId          String
+  senderUserId      String?
+  senderRole        LoanApplicationThreadSenderRole
+  source            SecureDealRoomMessageSource     @default(WEBSITE)
+  discordMessageId  String?                         @unique
+  body              String?
+  attachments       Json?
+  createdAt         DateTime                        @default(now())
+  deletedAt         DateTime?
 
   thread LoanApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                 @relation("LoanApplicationThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
@@ -1818,15 +1821,16 @@ model AltaCardApplicationThread {
 }
 
 model AltaCardApplicationThreadMessage {
-  id           String                              @id @default(cuid())
-  threadId     String
-  senderUserId String?
-  senderRole   AltaCardApplicationThreadSenderRole
-  source       SecureDealRoomMessageSource         @default(WEBSITE)
-  body         String?
-  attachments  Json?
-  createdAt    DateTime                            @default(now())
-  deletedAt    DateTime?
+  id                String                              @id @default(cuid())
+  threadId          String
+  senderUserId      String?
+  senderRole        AltaCardApplicationThreadSenderRole
+  source            SecureDealRoomMessageSource         @default(WEBSITE)
+  discordMessageId  String?                             @unique
+  body              String?
+  attachments       Json?
+  createdAt         DateTime                            @default(now())
+  deletedAt         DateTime?
 
   thread AltaCardApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                     @relation("AltaCardApplicationThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
@@ -1906,15 +1910,16 @@ model AltaCardReviewThread {
 }
 
 model AltaCardReviewThreadMessage {
-  id           String                              @id @default(cuid())
-  threadId     String
-  senderUserId String?
-  senderRole   AltaCardApplicationThreadSenderRole
-  source       SecureDealRoomMessageSource         @default(WEBSITE)
-  body         String?
-  attachments  Json?
-  createdAt    DateTime                            @default(now())
-  deletedAt    DateTime?
+  id                String                              @id @default(cuid())
+  threadId          String
+  senderUserId      String?
+  senderRole        AltaCardApplicationThreadSenderRole
+  source            SecureDealRoomMessageSource         @default(WEBSITE)
+  discordMessageId  String?                             @unique
+  body              String?
+  attachments       Json?
+  createdAt         DateTime                            @default(now())
+  deletedAt         DateTime?
 
   thread AltaCardReviewThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                @relation("AltaCardReviewThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)

@@ -5,63 +5,38 @@ import type {
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import {
+  canAccessInternal,
   canManageBusinessTreasury,
   canViewCompanyDealRoom,
 } from "@/lib/auth/permissions";
 import {
-  buildStaffDealRoomDmBody,
-  buildStaffDealRoomDmTitle,
-  DEAL_ROOM_REPLY_FAILURE_COPY,
+  buildChannelOpenedDmBody,
+  buildChannelOpenedDmTitle,
+  buildDealRoomChannelName,
+  buildDealRoomChannelWelcomeContent,
+  buildWebsiteToDiscordChannelMessage,
+  DEAL_ROOM_CHANNEL_FAILURE_COPY,
   sanitizeDiscordReplyContent,
 } from "@/lib/bank/secure-deal-room-discord-copy";
 import {
   DEAL_ROOM_TYPE_LABELS,
-  type DiscordDealRoomReplyInput,
-  type DiscordDealRoomReplyResult,
+  type DiscordChannelMessageInput,
+  type DiscordChannelMessageResult,
   type SecureDealRoomDiscordContext,
   type StaffDealRoomMessageNotifyInput,
+  type WebsiteMessageSyncInput,
 } from "@/lib/bank/secure-deal-room-discord-types";
 import { buildNotificationDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
+import {
+  dispatchEnsureDealRoomChannel,
+  dispatchLockDealRoomChannel,
+  dispatchPostDealRoomChannelMessage,
+} from "@/server/deal-room-discord-channel-dispatch.service";
 import { sendDiscordUserDm } from "@/server/discord-dm.service";
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { sendStaffAuditMessage } from "@/server/staff-audit-notification.service";
-
-const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
-
-const PENDING_REPLY_TTL_MS = 5 * 60 * 1000;
-const pendingDiscordReplies = new Map<
-  string,
-  { content: string; hasAttachments: boolean; expiresAt: number }
->();
-
-export function resetPendingDiscordRepliesForTests(): void {
-  pendingDiscordReplies.clear();
-}
-
-export function stashPendingDiscordReply(
-  discordUserId: string,
-  content: string,
-  hasAttachments: boolean,
-): void {
-  pendingDiscordReplies.set(discordUserId, {
-    content,
-    hasAttachments,
-    expiresAt: Date.now() + PENDING_REPLY_TTL_MS,
-  });
-}
-
-function consumePendingDiscordReply(discordUserId: string): {
-  content: string;
-  hasAttachments: boolean;
-} | null {
-  const pending = pendingDiscordReplies.get(discordUserId);
-  if (!pending) return null;
-  pendingDiscordReplies.delete(discordUserId);
-  if (pending.expiresAt < Date.now()) return null;
-  return { content: pending.content, hasAttachments: pending.hasAttachments };
-}
 
 type SessionRecord = Prisma.SecureDealRoomDiscordSessionGetPayload<object>;
 
@@ -112,6 +87,7 @@ export function resolveInternalDealRoomUrl(
   }
 }
 
+/** @deprecated DM reply routing — kept for unit tests only. */
 export function resolveSessionForReply(
   sessions: SessionRecord[],
   referencedDiscordMessageId?: string | null,
@@ -133,36 +109,14 @@ export function resolveSessionForReply(
   return "ambiguous";
 }
 
-async function deliverDealRoomDm(input: {
-  userId: string;
-  discordUserId: string;
-  dealRoomType: SecureDealRoomType;
-  title: string;
-  body: string;
-  linkUrl: string;
-}): Promise<{ sent: boolean; messageId?: string; channelId?: string; reason?: string }> {
-  const payload = buildNotificationDmPayload({
-    title: input.title,
-    body: input.body,
-    linkUrl: input.linkUrl,
-    linkLabel: "Open Deal Room",
-  });
-
-  const result = await sendDiscordUserDm(input.discordUserId, payload);
-  if (!result.sent) {
-    return { sent: false, reason: result.reason };
-  }
-  return { sent: true, messageId: result.messageId, channelId: result.channelId };
-}
-
 async function upsertDiscordSession(input: {
   dealRoomType: SecureDealRoomType;
   dealRoomId: string;
   threadId: string;
   userId: string;
   discordUserId: string;
-  discordChannelId?: string | null;
-  lastDiscordMessageId?: string | null;
+  discordChannelId: string;
+  discordChannelName: string;
   context?: SecureDealRoomDiscordContext;
 }): Promise<void> {
   await prisma.secureDealRoomDiscordSession.upsert({
@@ -178,20 +132,20 @@ async function upsertDiscordSession(input: {
       threadId: input.threadId,
       userId: input.userId,
       discordUserId: input.discordUserId,
-      discordChannelId: input.discordChannelId ?? null,
-      lastDiscordMessageId: input.lastDiscordMessageId ?? null,
+      discordChannelId: input.discordChannelId,
+      discordChannelName: input.discordChannelName,
       status: "ACTIVE",
-      contextJson: input.context ?? undefined,
+      contextJson: (input.context ?? undefined) as Prisma.InputJsonValue | undefined,
       lastInteractionAt: new Date(),
     },
     update: {
       threadId: input.threadId,
       userId: input.userId,
       discordUserId: input.discordUserId,
-      discordChannelId: input.discordChannelId ?? undefined,
-      lastDiscordMessageId: input.lastDiscordMessageId ?? undefined,
+      discordChannelId: input.discordChannelId,
+      discordChannelName: input.discordChannelName,
       status: "ACTIVE",
-      contextJson: input.context ?? undefined,
+      contextJson: (input.context ?? undefined) as Prisma.InputJsonValue | undefined,
       lastInteractionAt: new Date(),
     },
   });
@@ -201,15 +155,50 @@ export async function closeDiscordSessionsForDealRoom(
   dealRoomType: SecureDealRoomType,
   dealRoomId: string,
 ): Promise<void> {
+  const sessions = await prisma.secureDealRoomDiscordSession.findMany({
+    where: { dealRoomType, dealRoomId, status: "ACTIVE" },
+  });
+
+  for (const session of sessions) {
+    if (session.discordChannelId) {
+      void lockDealRoomDiscordChannelBestEffort({
+        dealRoomType,
+        dealRoomId,
+        discordChannelId: session.discordChannelId,
+        customerDiscordUserId: session.discordUserId,
+        actorUserId: session.userId,
+      });
+    }
+  }
+
   await prisma.secureDealRoomDiscordSession.updateMany({
     where: { dealRoomType, dealRoomId, status: "ACTIVE" },
     data: { status: "CLOSED", updatedAt: new Date() },
   });
 }
 
+async function createInAppDealRoomOpenedNotification(input: {
+  userId: string;
+  title: string;
+  body: string;
+  linkUrl: string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await prisma.userNotification.create({
+    data: {
+      userId: input.userId,
+      type: "DEAL_ROOM_CREATED",
+      channel: "IN_APP",
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
+  });
+}
+
 async function createInAppDealRoomNotification(input: {
   userId: string;
-  dealRoomType: SecureDealRoomType;
   title: string;
   body: string;
   linkUrl: string;
@@ -223,87 +212,106 @@ async function createInAppDealRoomNotification(input: {
       title: input.title,
       body: input.body,
       linkUrl: input.linkUrl,
-      metadata: input.metadata ?? undefined,
+      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });
 }
 
-export async function notifyCustomerOfStaffDealRoomMessage(
-  input: StaffDealRoomMessageNotifyInput,
+export type DealRoomOpenedNotifyInput = {
+  dealRoomType: SecureDealRoomType;
+  dealRoomId: string;
+  threadId: string;
+  applicantUserId: string;
+  welcomeBody: string;
+  context?: SecureDealRoomDiscordContext;
+};
+
+export async function notifyCustomerDealRoomOpenedBestEffort(
+  input: DealRoomOpenedNotifyInput,
 ): Promise<void> {
+  try {
+    await notifyCustomerDealRoomOpened(input);
+  } catch (error) {
+    logDealRoomDiscord("deal room opened notify failed", {
+      dealRoomId: input.dealRoomId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): Promise<void> {
   const applicant = await prisma.user.findUnique({
     where: { id: input.applicantUserId },
     select: { id: true, discordId: true, discordUsername: true },
   });
 
   const linkUrl = resolveCustomerDealRoomUrl(input.dealRoomType, input.dealRoomId, input.context);
-  const title = buildStaffDealRoomDmTitle(input.dealRoomType);
-  const body = buildStaffDealRoomDmBody({
-    dealRoomType: input.dealRoomType,
-    staffDisplayName: ALTA_CREDIT_DESK_NAME,
-    messageBody: input.messageBody,
-  });
 
-  await createInAppDealRoomNotification({
+  await createInAppDealRoomOpenedNotification({
     userId: input.applicantUserId,
-    dealRoomType: input.dealRoomType,
-    title,
-    body: previewInAppBody(input.messageBody),
+    title: "Your Secure Deal Room is open",
+    body: input.welcomeBody,
     linkUrl,
     metadata: {
       dealRoomType: input.dealRoomType,
       dealRoomId: input.dealRoomId,
       threadId: input.threadId,
-      messageId: input.messageId,
-      staffUserId: input.staffUserId,
+      source: "APPLICATION_OPENED",
     },
   });
 
   const discordUserId = applicant?.discordId?.trim();
   if (!discordUserId) {
-    await writeAuditLog({
-      actorUserId: input.staffUserId,
-      action: "DEAL_ROOM_DISCORD_DM_FAILED",
-      entityType: auditEntityTypeForDealRoom(input.dealRoomType),
-      entityId: input.dealRoomId,
-      targetUserId: input.applicantUserId,
-      description: `Discord DM skipped — customer has no linked Discord account.`,
-      metadata: auditMetadata(input, { reason: "no_discord_id" }),
+    await recordDealRoomSyncFailure({
+      action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+      actorUserId: input.applicantUserId,
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      description: "Discord channel skipped — customer has no linked Discord account.",
+      reason: "no_discord_id",
+      source: "APPLICATION_OPENED",
     });
     return;
   }
 
-  const delivery = await deliverDealRoomDm({
-    userId: input.applicantUserId,
-    discordUserId,
-    dealRoomType: input.dealRoomType,
-    title,
-    body,
-    linkUrl,
+  const existing = await prisma.secureDealRoomDiscordSession.findUnique({
+    where: {
+      dealRoomType_dealRoomId: {
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+      },
+    },
   });
 
-  if (!delivery.sent) {
-    await writeAuditLog({
-      actorUserId: input.staffUserId,
-      action: "DEAL_ROOM_DISCORD_DM_FAILED",
-      entityType: auditEntityTypeForDealRoom(input.dealRoomType),
-      entityId: input.dealRoomId,
-      targetUserId: input.applicantUserId,
-      description: `Discord DM failed for Secure Deal Room message.`,
-      metadata: auditMetadata(input, {
-        reason: delivery.reason ?? "delivery_failed",
-        discordUserId,
-      }),
+  const channelName =
+    existing?.discordChannelName ??
+    buildDealRoomChannelName({
+      discordUsername: applicant?.discordUsername ?? "customer",
+      dealRoomType: input.dealRoomType,
     });
 
-    sendStaffAuditMessage({
-      product: "Alta Bank",
-      action: "Deal Room: Discord DM failed",
-      actorUserId: input.staffUserId,
-      details: `${DEAL_ROOM_TYPE_LABELS[input.dealRoomType]} · ${applicant?.discordUsername ?? input.applicantUserId}`,
-      internalUrl: resolveInternalDealRoomUrl(input.dealRoomType, input.dealRoomId),
-      severity: "WARNING",
-      dedupeKey: `deal-room-dm-failed:${input.messageId}`,
+  const channelResult = await dispatchEnsureDealRoomChannel({
+    channelName,
+    customerDiscordUserId: discordUserId,
+    dealRoomType: input.dealRoomType,
+    dealRoomId: input.dealRoomId,
+    welcomeContent: buildDealRoomChannelWelcomeContent(),
+    linkUrl,
+    existingChannelId: existing?.discordChannelId,
+  });
+
+  if (!channelResult.ok || !channelResult.channelId) {
+    await recordDealRoomSyncFailure({
+      action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+      actorUserId: input.applicantUserId,
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      description: "Discord channel creation failed when Secure Deal Room opened.",
+      reason: channelResult.reason ?? "channel_create_failed",
+      source: "APPLICATION_OPENED",
+      discordChannelId: existing?.discordChannelId ?? undefined,
     });
     return;
   }
@@ -314,24 +322,325 @@ export async function notifyCustomerOfStaffDealRoomMessage(
     threadId: input.threadId,
     userId: input.applicantUserId,
     discordUserId,
-    discordChannelId: delivery.channelId,
-    lastDiscordMessageId: delivery.messageId,
+    discordChannelId: channelResult.channelId,
+    discordChannelName: channelResult.channelName ?? channelName,
     context: input.context,
   });
 
   await writeAuditLog({
-    actorUserId: input.staffUserId,
-    action: "DEAL_ROOM_DISCORD_DM_SENT",
+    actorUserId: input.applicantUserId,
+    action: channelResult.linked
+      ? "DEAL_ROOM_DISCORD_CHANNEL_LINKED"
+      : "DEAL_ROOM_DISCORD_CHANNEL_CREATED",
     entityType: auditEntityTypeForDealRoom(input.dealRoomType),
     entityId: input.dealRoomId,
     targetUserId: input.applicantUserId,
-    description: `Discord DM sent for Secure Deal Room staff message.`,
-    metadata: auditMetadata(input, {
-      discordUserId,
+    description: channelResult.linked
+      ? "Reused existing Discord channel for Secure Deal Room."
+      : "Created private Discord channel for Secure Deal Room.",
+    metadata: {
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      discordChannelId: channelResult.channelId,
+      discordChannelName: channelResult.channelName ?? channelName,
+      source: "APPLICATION_OPENED",
+    },
+  });
+
+  sendStaffAuditMessage({
+    product: "Deal Room",
+    action: channelResult.linked
+      ? "Discord channel linked"
+      : "Discord channel created",
+    actorUserId: input.applicantUserId,
+    details: DEAL_ROOM_TYPE_LABELS[input.dealRoomType],
+    internalUrl: resolveInternalDealRoomUrl(input.dealRoomType, input.dealRoomId),
+    severity: "INFO",
+    dedupeKey: `deal-room-channel-open:${input.dealRoomId}`,
+  });
+
+  const dmBody = buildChannelOpenedDmBody({
+    dealRoomType: input.dealRoomType,
+    channelName: channelResult.channelName ?? channelName,
+  });
+  const dmPayload = buildNotificationDmPayload({
+    title: buildChannelOpenedDmTitle(),
+    body: dmBody,
+    linkUrl,
+    linkLabel: "Open on Alta Bank",
+  });
+  await sendDiscordUserDm(discordUserId, dmPayload);
+}
+
+export async function notifyStaffDealRoomMessageBestEffort(
+  input: StaffDealRoomMessageNotifyInput,
+): Promise<void> {
+  try {
+    const linkUrl = resolveCustomerDealRoomUrl(input.dealRoomType, input.dealRoomId, input.context);
+    await createInAppDealRoomNotification({
+      userId: input.applicantUserId,
+      title: "New message in your Secure Deal Room",
+      body: previewInAppBody(input.messageBody),
+      linkUrl,
+      metadata: {
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+        threadId: input.threadId,
+        messageId: input.messageId,
+        staffUserId: input.staffUserId,
+      },
+    });
+  } catch (error) {
+    logDealRoomDiscord("staff in-app notify failed", {
+      dealRoomId: input.dealRoomId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+export async function syncWebsiteMessageToDiscordBestEffort(
+  input: WebsiteMessageSyncInput,
+): Promise<void> {
+  try {
+    await syncWebsiteMessageToDiscord(input);
+  } catch (error) {
+    logDealRoomDiscord("website sync failed", {
+      dealRoomId: input.dealRoomId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function syncWebsiteMessageToDiscord(input: WebsiteMessageSyncInput): Promise<void> {
+  const session = await prisma.secureDealRoomDiscordSession.findUnique({
+    where: {
+      dealRoomType_dealRoomId: {
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+      },
+    },
+  });
+
+  if (!session?.discordChannelId || session.status !== "ACTIVE") {
+    return;
+  }
+
+  const content = buildWebsiteToDiscordChannelMessage({
+    senderDisplayName: input.senderDisplayName,
+    messageBody: input.messageBody,
+  });
+
+  const delivery = await dispatchPostDealRoomChannelMessage({
+    channelId: session.discordChannelId,
+    content,
+  });
+
+  if (!delivery.ok || !delivery.messageId) {
+    await recordDealRoomSyncFailure({
+      action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+      actorUserId: input.senderUserId,
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      description: "Failed to sync website message to Discord channel.",
+      reason: delivery.reason ?? "message_send_failed",
+      source: "WEBSITE",
+      discordChannelId: session.discordChannelId,
+      messageId: input.messageId,
+    });
+    return;
+  }
+
+  await updateThreadMessageDiscordId(
+    input.dealRoomType,
+    input.messageId,
+    delivery.messageId,
+  );
+
+  await writeAuditLog({
+    actorUserId: input.senderUserId,
+    action: "DEAL_ROOM_WEBSITE_MESSAGE_SYNCED_TO_DISCORD",
+    entityType: auditEntityTypeForDealRoom(input.dealRoomType),
+    entityId: input.dealRoomId,
+    targetUserId: session.userId,
+    description: "Website Deal Room message synced to Discord channel.",
+    metadata: {
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      messageId: input.messageId,
+      discordChannelId: session.discordChannelId,
       discordMessageId: delivery.messageId,
       source: "WEBSITE",
-    }),
+      senderRole: input.senderRole,
+    },
   });
+}
+
+export async function ingestDiscordChannelMessage(
+  input: DiscordChannelMessageInput,
+): Promise<DiscordChannelMessageResult> {
+  if (input.hasAttachments) {
+    return { kind: "failed", reason: "attachments_not_supported" };
+  }
+
+  const body = sanitizeDiscordReplyContent(input.content);
+  if (!body) {
+    return { kind: "failed", reason: "empty_message" };
+  }
+
+  if (await isDiscordMessageAlreadySynced(input.discordMessageId)) {
+    return { kind: "duplicate" };
+  }
+
+  const session = await prisma.secureDealRoomDiscordSession.findFirst({
+    where: { discordChannelId: input.discordChannelId, status: "ACTIVE" },
+  });
+  if (!session) {
+    return { kind: "ignored" };
+  }
+
+  if (await isThreadClosed(session.dealRoomType, session.threadId)) {
+    await closeDiscordSessionsForDealRoom(session.dealRoomType, session.dealRoomId);
+    return { kind: "closed" };
+  }
+
+  const userRecord = await prisma.user.findUnique({
+    where: { discordId: input.discordUserId },
+    include: userWithMembershipsInclude,
+  });
+  if (!userRecord) {
+    await recordUnauthorizedDiscordMessage(session, input);
+    return { kind: "unauthorized" };
+  }
+
+  const altaUser = mapDbUserToAltaUser(userRecord);
+  const isStaff = canAccessInternal(altaUser);
+  const isApplicant = await canUserPostAsApplicant(
+    session.dealRoomType,
+    session.threadId,
+    altaUser,
+  );
+
+  if (!isStaff && !isApplicant) {
+    await recordUnauthorizedDiscordMessage(session, input, altaUser.id);
+    return { kind: "unauthorized" };
+  }
+
+  const senderRole = isStaff ? "ALTA_STAFF" : "APPLICANT";
+
+  let messageId: string;
+  try {
+    messageId = await insertDiscordChannelMessage(
+      session,
+      altaUser.id,
+      body,
+      senderRole,
+      input.discordMessageId,
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "unknown";
+    await recordDealRoomSyncFailure({
+      action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+      actorUserId: altaUser.id,
+      dealRoomType: session.dealRoomType,
+      dealRoomId: session.dealRoomId,
+      threadId: session.threadId,
+      description: "Failed to sync Discord channel message to website.",
+      reason,
+      source: "DISCORD",
+      discordChannelId: session.discordChannelId,
+      discordMessageId: input.discordMessageId,
+    });
+    return { kind: "failed", reason };
+  }
+
+  await prisma.secureDealRoomDiscordSession.update({
+    where: { id: session.id },
+    data: { lastInteractionAt: new Date() },
+  });
+
+  await writeAuditLog({
+    actorUserId: altaUser.id,
+    action: "DEAL_ROOM_DISCORD_MESSAGE_SYNCED_TO_WEBSITE",
+    entityType: auditEntityTypeForDealRoom(session.dealRoomType),
+    entityId: session.dealRoomId,
+    targetUserId: session.userId,
+    description: "Discord channel message synced to Secure Deal Room.",
+    metadata: {
+      dealRoomType: session.dealRoomType,
+      dealRoomId: session.dealRoomId,
+      threadId: session.threadId,
+      messageId,
+      discordChannelId: session.discordChannelId,
+      discordMessageId: input.discordMessageId,
+      source: "DISCORD",
+      senderRole,
+    },
+  });
+
+  if (senderRole === "APPLICANT") {
+    sendStaffAuditMessage({
+      product: "Deal Room",
+      action: "Customer message via Discord channel",
+      actorUserId: altaUser.id,
+      details: `${DEAL_ROOM_TYPE_LABELS[session.dealRoomType]} · ${userRecord.discordUsername}`,
+      internalUrl: resolveInternalDealRoomUrl(session.dealRoomType, session.dealRoomId),
+      severity: "INFO",
+      dedupeKey: `deal-room-discord-channel:${messageId}`,
+    });
+  }
+
+  return { kind: "synced", messageId };
+}
+
+async function lockDealRoomDiscordChannelBestEffort(input: {
+  dealRoomType: SecureDealRoomType;
+  dealRoomId: string;
+  discordChannelId: string;
+  customerDiscordUserId: string;
+  actorUserId: string;
+}): Promise<void> {
+  try {
+    const result = await dispatchLockDealRoomChannel({
+      channelId: input.discordChannelId,
+      customerDiscordUserId: input.customerDiscordUserId,
+    });
+
+    if (!result.ok) {
+      await recordDealRoomSyncFailure({
+        action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+        actorUserId: input.actorUserId,
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+        description: "Failed to lock Discord channel when Deal Room closed.",
+        reason: result.reason ?? "channel_lock_failed",
+        source: "SYSTEM",
+        discordChannelId: input.discordChannelId,
+      });
+      return;
+    }
+
+    await writeAuditLog({
+      actorUserId: input.actorUserId,
+      action: "DEAL_ROOM_DISCORD_CHANNEL_LOCKED",
+      entityType: auditEntityTypeForDealRoom(input.dealRoomType),
+      entityId: input.dealRoomId,
+      description: "Discord channel locked when Secure Deal Room closed.",
+      metadata: {
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+        discordChannelId: input.discordChannelId,
+        source: "SYSTEM",
+      },
+    });
+  } catch (error) {
+    logDealRoomDiscord("channel lock failed", {
+      dealRoomId: input.dealRoomId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 function previewInAppBody(body: string | null): string {
@@ -347,19 +656,42 @@ function auditEntityTypeForDealRoom(
   return "ALTA_CARD";
 }
 
-function auditMetadata(
-  input: StaffDealRoomMessageNotifyInput,
-  extra: Record<string, unknown>,
-): Record<string, unknown> {
-  return {
-    dealRoomType: input.dealRoomType,
-    dealRoomId: input.dealRoomId,
-    threadId: input.threadId,
-    userId: input.applicantUserId,
-    messageId: input.messageId,
-    staffUserId: input.staffUserId,
-    ...extra,
-  };
+async function isDiscordMessageAlreadySynced(discordMessageId: string): Promise<boolean> {
+  const [loan, card, review] = await Promise.all([
+    prisma.loanApplicationThreadMessage.findFirst({ where: { discordMessageId } }),
+    prisma.altaCardApplicationThreadMessage.findFirst({ where: { discordMessageId } }),
+    prisma.altaCardReviewThreadMessage.findFirst({ where: { discordMessageId } }),
+  ]);
+  return !!(loan || card || review);
+}
+
+async function updateThreadMessageDiscordId(
+  dealRoomType: SecureDealRoomType,
+  messageId: string,
+  discordMessageId: string,
+): Promise<void> {
+  switch (dealRoomType) {
+    case "LOAN_APPLICATION":
+      await prisma.loanApplicationThreadMessage.update({
+        where: { id: messageId },
+        data: { discordMessageId },
+      });
+      return;
+    case "ALTA_CARD_APPLICATION":
+      await prisma.altaCardApplicationThreadMessage.update({
+        where: { id: messageId },
+        data: { discordMessageId },
+      });
+      return;
+    case "ALTA_CARD_REVIEW":
+      await prisma.altaCardReviewThreadMessage.update({
+        where: { id: messageId },
+        data: { discordMessageId },
+      });
+      return;
+    default:
+      throw new Error("UNSUPPORTED_DEAL_ROOM_TYPE");
+  }
 }
 
 async function isThreadClosed(
@@ -393,7 +725,7 @@ async function isThreadClosed(
   }
 }
 
-async function canUserReplyAsApplicant(
+async function canUserPostAsApplicant(
   dealRoomType: SecureDealRoomType,
   threadId: string,
   user: AltaUser,
@@ -438,12 +770,15 @@ async function canUserReplyAsApplicant(
   }
 }
 
-async function insertDiscordApplicantMessage(
+async function insertDiscordChannelMessage(
   session: SessionRecord,
   userId: string,
   body: string,
+  senderRole: "APPLICANT" | "ALTA_STAFF",
+  discordMessageId: string,
 ): Promise<string> {
   const source: SecureDealRoomMessageSource = "DISCORD";
+  const nextStatus = senderRole === "ALTA_STAFF" ? "WAITING_ON_APPLICANT" : "WAITING_ON_ALTA";
 
   switch (session.dealRoomType) {
     case "LOAN_APPLICATION": {
@@ -452,14 +787,15 @@ async function insertDiscordApplicantMessage(
           data: {
             threadId: session.threadId,
             senderUserId: userId,
-            senderRole: "APPLICANT",
+            senderRole,
             source,
             body,
+            discordMessageId,
           },
         });
         await tx.loanApplicationThread.update({
           where: { id: session.threadId },
-          data: { status: "WAITING_ON_ALTA", updatedAt: new Date() },
+          data: { status: nextStatus, updatedAt: new Date() },
         });
         return created;
       });
@@ -471,14 +807,15 @@ async function insertDiscordApplicantMessage(
           data: {
             threadId: session.threadId,
             senderUserId: userId,
-            senderRole: "APPLICANT",
+            senderRole,
             source,
             body,
+            discordMessageId,
           },
         });
         await tx.altaCardApplicationThread.update({
           where: { id: session.threadId },
-          data: { status: "WAITING_ON_ALTA", updatedAt: new Date() },
+          data: { status: nextStatus, updatedAt: new Date() },
         });
         return created;
       });
@@ -490,14 +827,15 @@ async function insertDiscordApplicantMessage(
           data: {
             threadId: session.threadId,
             senderUserId: userId,
-            senderRole: "APPLICANT",
+            senderRole,
             source,
             body,
+            discordMessageId,
           },
         });
         await tx.altaCardReviewThread.update({
           where: { id: session.threadId },
-          data: { status: "WAITING_ON_ALTA", updatedAt: new Date() },
+          data: { status: nextStatus, updatedAt: new Date() },
         });
         return created;
       });
@@ -508,241 +846,69 @@ async function insertDiscordApplicantMessage(
   }
 }
 
-function parseSessionContext(session: SessionRecord): SecureDealRoomDiscordContext | null {
-  const raw = session.contextJson;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const record = raw as Record<string, unknown>;
-  return {
-    cardId: typeof record.cardId === "string" ? record.cardId : null,
-    companyId: typeof record.companyId === "string" ? record.companyId : null,
-  };
+async function recordUnauthorizedDiscordMessage(
+  session: SessionRecord,
+  input: DiscordChannelMessageInput,
+  actorUserId?: string,
+): Promise<void> {
+  await writeAuditLog({
+    actorUserId: actorUserId ?? session.userId,
+    action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+    entityType: auditEntityTypeForDealRoom(session.dealRoomType),
+    entityId: session.dealRoomId,
+    targetUserId: session.userId,
+    description: "Unauthorized Discord channel message rejected.",
+    metadata: {
+      dealRoomType: session.dealRoomType,
+      dealRoomId: session.dealRoomId,
+      discordChannelId: input.discordChannelId,
+      discordMessageId: input.discordMessageId,
+      discordUserId: input.discordUserId,
+      source: "DISCORD",
+      reason: "unauthorized",
+    },
+  });
 }
 
-export async function ingestCustomerDiscordDealRoomReply(
-  input: DiscordDealRoomReplyInput,
-): Promise<DiscordDealRoomReplyResult> {
-  if (input.hasAttachments) {
-    const user = await prisma.user.findUnique({
-      where: { discordId: input.discordUserId },
-      select: { id: true },
-    });
-    const sessions = user
-      ? await prisma.secureDealRoomDiscordSession.findMany({
-          where: { userId: user.id, status: "ACTIVE" },
-          orderBy: { lastInteractionAt: "desc" },
-        })
-      : [];
-    const session = resolveSessionForReply(sessions, input.referencedDiscordMessageId);
-    const linkUrl =
-      session && session !== "ambiguous"
-        ? resolveCustomerDealRoomUrl(
-            session.dealRoomType,
-            session.dealRoomId,
-            parseSessionContext(session),
-          )
-        : "/bank";
-    return {
-      ok: false,
-      replyText: DEAL_ROOM_REPLY_FAILURE_COPY.attachment,
-      linkUrl,
-    };
-  }
-
-  const body = sanitizeDiscordReplyContent(input.content);
-  if (!body) {
-    return { ok: false, replyText: DEAL_ROOM_REPLY_FAILURE_COPY.empty };
-  }
-
-  const userRecord = await prisma.user.findUnique({
-    where: { discordId: input.discordUserId },
-    include: userWithMembershipsInclude,
-  });
-  if (!userRecord) {
-    return { ok: false, replyText: DEAL_ROOM_REPLY_FAILURE_COPY.wrongUser };
-  }
-
-  const altaUser = mapDbUserToAltaUser(userRecord);
-  const sessions = await prisma.secureDealRoomDiscordSession.findMany({
-    where: { discordUserId: input.discordUserId, status: "ACTIVE" },
-    orderBy: { lastInteractionAt: "desc" },
-  });
-
-  const resolved = resolveSessionForReply(sessions, input.referencedDiscordMessageId);
-  if (!resolved) {
-    return {
-      ok: false,
-      replyText: DEAL_ROOM_REPLY_FAILURE_COPY.ambiguous,
-      linkUrl: "/bank",
-    };
-  }
-
-  if (resolved === "ambiguous") {
-    stashPendingDiscordReply(input.discordUserId, input.content, input.hasAttachments);
-    return {
-      ok: true,
-      kind: "picker",
-      pickerText: DEAL_ROOM_REPLY_FAILURE_COPY.pickerPrompt,
-      options: sessions
-        .filter((s) => s.status === "ACTIVE")
-        .slice(0, 5)
-        .map((s) => ({
-          label: DEAL_ROOM_TYPE_LABELS[s.dealRoomType],
-          dealRoomType: s.dealRoomType,
-          dealRoomId: s.dealRoomId,
-        })),
-    };
-  }
-
-  const session = resolved;
-  if (session.userId !== altaUser.id && !(await canUserReplyAsApplicant(session.dealRoomType, session.threadId, altaUser))) {
-    return { ok: false, replyText: DEAL_ROOM_REPLY_FAILURE_COPY.wrongUser };
-  }
-
-  if (await isThreadClosed(session.dealRoomType, session.threadId)) {
-    await closeDiscordSessionsForDealRoom(session.dealRoomType, session.dealRoomId);
-    const linkUrl = resolveCustomerDealRoomUrl(
-      session.dealRoomType,
-      session.dealRoomId,
-      parseSessionContext(session),
-    );
-    return { ok: false, replyText: DEAL_ROOM_REPLY_FAILURE_COPY.closed, linkUrl };
-  }
-
-  if (!(await canUserReplyAsApplicant(session.dealRoomType, session.threadId, altaUser))) {
-    return { ok: false, replyText: DEAL_ROOM_REPLY_FAILURE_COPY.wrongUser };
-  }
-
-  let messageId: string;
-  try {
-    messageId = await insertDiscordApplicantMessage(session, altaUser.id, body);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : "unknown";
-    await writeAuditLog({
-      actorUserId: altaUser.id,
-      action: "DEAL_ROOM_CUSTOMER_REPLY_FAILED",
-      entityType: auditEntityTypeForDealRoom(session.dealRoomType),
-      entityId: session.dealRoomId,
-      targetUserId: session.userId,
-      description: "Failed to write Discord reply to Secure Deal Room.",
-      metadata: {
-        dealRoomType: session.dealRoomType,
-        dealRoomId: session.dealRoomId,
-        userId: altaUser.id,
-        discordUserId: input.discordUserId,
-        source: "DISCORD",
-        reason,
-      },
-    });
-    return {
-      ok: false,
-      replyText:
-        "Alta could not post your reply right now. Please open your Secure Deal Room on Alta Bank to continue.",
-      linkUrl: resolveCustomerDealRoomUrl(
-        session.dealRoomType,
-        session.dealRoomId,
-        parseSessionContext(session),
-      ),
-    };
-  }
-
-  await prisma.secureDealRoomDiscordSession.update({
-    where: { id: session.id },
-    data: {
-      lastInteractionAt: new Date(),
+async function recordDealRoomSyncFailure(input: {
+  action: string;
+  actorUserId: string;
+  dealRoomType: SecureDealRoomType;
+  dealRoomId: string;
+  threadId?: string;
+  description: string;
+  reason: string;
+  source: string;
+  discordChannelId?: string | null;
+  discordMessageId?: string;
+  messageId?: string;
+}): Promise<void> {
+  await writeAuditLog({
+    actorUserId: input.actorUserId,
+    action: input.action,
+    entityType: auditEntityTypeForDealRoom(input.dealRoomType),
+    entityId: input.dealRoomId,
+    description: input.description,
+    metadata: {
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
       discordChannelId: input.discordChannelId,
-    },
-  });
-
-  await writeAuditLog({
-    actorUserId: altaUser.id,
-    action: "DEAL_ROOM_CUSTOMER_REPLY_RECEIVED",
-    entityType: auditEntityTypeForDealRoom(session.dealRoomType),
-    entityId: session.dealRoomId,
-    targetUserId: session.userId,
-    description: "Customer replied to Secure Deal Room via Discord.",
-    metadata: {
-      dealRoomType: session.dealRoomType,
-      dealRoomId: session.dealRoomId,
-      userId: altaUser.id,
-      discordUserId: input.discordUserId,
-      source: "DISCORD",
-      messageId,
-    },
-  });
-
-  await writeAuditLog({
-    actorUserId: altaUser.id,
-    action: "DEAL_ROOM_MESSAGE_SOURCE_DISCORD",
-    entityType: auditEntityTypeForDealRoom(session.dealRoomType),
-    entityId: session.dealRoomId,
-    targetUserId: session.userId,
-    description: "Secure Deal Room message recorded with Discord source.",
-    metadata: {
-      dealRoomType: session.dealRoomType,
-      dealRoomId: session.dealRoomId,
-      userId: altaUser.id,
-      discordUserId: input.discordUserId,
-      source: "DISCORD",
-      messageId,
+      discordMessageId: input.discordMessageId,
+      messageId: input.messageId,
+      source: input.source,
+      reason: input.reason,
     },
   });
 
   sendStaffAuditMessage({
-    product: "Alta Bank",
-    action: "Deal Room: Customer replied via Discord",
-    actorUserId: altaUser.id,
-    details: `${DEAL_ROOM_TYPE_LABELS[session.dealRoomType]} · ${userRecord.discordUsername}`,
-    internalUrl: resolveInternalDealRoomUrl(session.dealRoomType, session.dealRoomId),
-    severity: "INFO",
-    dedupeKey: `deal-room-discord-reply:${messageId}`,
-  });
-
-  logDealRoomDiscord("customer reply posted", {
-    dealRoomType: session.dealRoomType,
-    dealRoomId: session.dealRoomId,
-    messageId,
-  });
-
-  return { ok: true, kind: "message_posted", confirmationText: DEAL_ROOM_REPLY_FAILURE_COPY.posted };
-}
-
-export async function ingestCustomerDiscordDealRoomReplyForSession(input: {
-  discordUserId: string;
-  discordChannelId: string;
-  discordMessageId: string;
-  dealRoomType: SecureDealRoomType;
-  dealRoomId: string;
-  content?: string;
-  hasAttachments?: boolean;
-}): Promise<DiscordDealRoomReplyResult> {
-  const pending = consumePendingDiscordReply(input.discordUserId);
-  const content = pending?.content ?? input.content ?? "";
-  const hasAttachments = pending?.hasAttachments ?? input.hasAttachments ?? false;
-
-  const session = await prisma.secureDealRoomDiscordSession.findUnique({
-    where: {
-      dealRoomType_dealRoomId: {
-        dealRoomType: input.dealRoomType,
-        dealRoomId: input.dealRoomId,
-      },
-    },
-  });
-
-  if (!session || session.status !== "ACTIVE") {
-    return {
-      ok: false,
-      replyText: DEAL_ROOM_REPLY_FAILURE_COPY.ambiguous,
-      linkUrl: "/bank",
-    };
-  }
-
-  return ingestCustomerDiscordDealRoomReply({
-    discordUserId: input.discordUserId,
-    discordChannelId: input.discordChannelId,
-    discordMessageId: input.discordMessageId,
-    referencedDiscordMessageId: session.lastDiscordMessageId,
-    content,
-    hasAttachments,
+    product: "Deal Room",
+    action: "Discord sync failed",
+    actorUserId: input.actorUserId,
+    details: `${DEAL_ROOM_TYPE_LABELS[input.dealRoomType]} · ${input.reason}`,
+    internalUrl: resolveInternalDealRoomUrl(input.dealRoomType, input.dealRoomId),
+    severity: "WARNING",
+    dedupeKey: `deal-room-sync-failed:${input.dealRoomId}:${input.reason}:${input.messageId ?? input.discordMessageId ?? "open"}`,
   });
 }
 
@@ -767,17 +933,4 @@ export async function resolveDealRoomContextForStaffMessage(
     return { companyId: app.companyId };
   }
   return undefined;
-}
-
-export async function notifyStaffDealRoomMessageBestEffort(
-  input: StaffDealRoomMessageNotifyInput,
-): Promise<void> {
-  try {
-    await notifyCustomerOfStaffDealRoomMessage(input);
-  } catch (error) {
-    logDealRoomDiscord("staff notify failed", {
-      dealRoomId: input.dealRoomId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
 }
