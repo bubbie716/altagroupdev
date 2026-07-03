@@ -228,17 +228,6 @@ export async function setMaintenanceMode(
     });
   }
 
-  try {
-    const { staffAuditMaintenanceMode } = await import("@/server/staff-audit-events");
-    if (input.enabled && !previous.enabled) {
-      staffAuditMaintenanceMode({ adminId: actorUserId, enabled: true, reason: trimmedReason });
-    } else if (!input.enabled && previous.enabled) {
-      staffAuditMaintenanceMode({ adminId: actorUserId, enabled: false, reason: trimmedReason });
-    }
-  } catch (error) {
-    console.error("[maintenance] staff audit failed", error);
-  }
-
   return getMaintenanceMode();
 }
 
@@ -434,17 +423,6 @@ export async function setCreditDeskStatus(
         : "Reopened the Credit Desk for new applications",
     metadata,
   });
-
-  try {
-    const { staffAuditCreditDesk } = await import("@/server/staff-audit-events");
-    staffAuditCreditDesk({
-      adminId: actorUserId,
-      closed: input.status === "closed",
-      reason: trimmedReason,
-    });
-  } catch (error) {
-    console.error("[credit-desk] staff audit failed", error);
-  }
 
   return getCreditDeskState();
 }

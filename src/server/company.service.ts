@@ -25,6 +25,7 @@ import {
   canAssignCompanyRole,
   canManageCompanyMember,
 } from "@/lib/auth/permissions";
+import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 
 function forbidden(): never {
   throw new Error("FORBIDDEN");
@@ -219,6 +220,18 @@ export async function createCompany(
     },
   });
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "COMPANY_CREATED",
+    entityType: "COMPANY",
+    entityId: company.id,
+    targetCompanyId: company.id,
+    targetUserId: userId,
+    description: `Created company ${company.name}`,
+    metadata: auditSourceMetadata("website", { companyName: company.name }),
+  });
+
   return { companyId: company.id };
 }
 
@@ -281,6 +294,22 @@ export async function updateMemberRole(
     where: { id: input.membershipId },
     data: { role: toDbMemberRole(nextRole) },
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_MEMBER_ROLE_CHANGED",
+    entityType: "COMPANY",
+    entityId: input.companyId,
+    targetCompanyId: input.companyId,
+    targetUserId: target.userId,
+    description: `Changed member role from ${targetRole} to ${nextRole}`,
+    metadata: auditSourceMetadata("website", {
+      membershipId: input.membershipId,
+      previousRole: targetRole,
+      newRole: nextRole,
+    }),
+  });
 }
 
 export async function removeMember(actorUserId: string, input: RemoveMemberInput): Promise<void> {
@@ -303,6 +332,21 @@ export async function removeMember(actorUserId: string, input: RemoveMemberInput
     });
     if (ownerCount <= 1) forbidden();
   }
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_MEMBER_REMOVED",
+    entityType: "COMPANY",
+    entityId: input.companyId,
+    targetCompanyId: input.companyId,
+    targetUserId: target.userId,
+    description: `Removed company member (${targetRole})`,
+    metadata: auditSourceMetadata("website", {
+      membershipId: input.membershipId,
+      role: targetRole,
+    }),
+  });
 
   await prisma.companyMembership.delete({ where: { id: input.membershipId } });
 }
@@ -369,6 +413,26 @@ export async function sendCompanyInvitation(
     console.error("[invitations] company invitation dispatch failed", error);
   }
 
+  const company = await prisma.company.findUnique({
+    where: { id: input.companyId },
+    select: { name: true },
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId,
+    action: "COMPANY_INVITATION_SENT",
+    entityType: "COMPANY",
+    entityId: invitation.id,
+    targetCompanyId: input.companyId,
+    description: `Company invitation sent to ${input.discordIdentifier.trim()}`,
+    metadata: auditSourceMetadata("website", {
+      invitationId: invitation.id,
+      companyName: company?.name,
+      role: input.role,
+    }),
+  });
+
   return { invitationId: invitation.id };
 }
 
@@ -427,18 +491,20 @@ export async function acceptCompanyInvitation(
     }),
   ]);
 
-  try {
-    const { staffAuditCompanyInvitation } = await import("@/server/staff-audit-events");
-    staffAuditCompanyInvitation({
-      action: "Company invitation accepted",
-      actorUserId: userId,
-      companyId: invitation.companyId,
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "COMPANY_INVITATION_ACCEPTED",
+    entityType: "COMPANY",
+    entityId: invitationId,
+    targetCompanyId: invitation.companyId,
+    targetUserId: userId,
+    description: `Accepted invitation to ${invitation.company.name}`,
+    metadata: auditSourceMetadata(auditContext?.source, {
       companyName: invitation.company.name,
-      source: auditContext?.source,
-    });
-  } catch (error) {
-    console.error("[company] staff audit invitation accepted failed", error);
-  }
+      invitationId,
+    }),
+  });
 
   return { companyId: invitation.companyId };
 }
@@ -472,18 +538,20 @@ export async function declineCompanyInvitation(
     data: { status: "DECLINED", respondedAt: new Date(), invitedUserId: userId },
   });
 
-  try {
-    const { staffAuditCompanyInvitation } = await import("@/server/staff-audit-events");
-    staffAuditCompanyInvitation({
-      action: "Company invitation declined",
-      actorUserId: userId,
-      companyId: invitation.companyId,
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "COMPANY_INVITATION_DECLINED",
+    entityType: "COMPANY",
+    entityId: invitationId,
+    targetCompanyId: invitation.companyId,
+    targetUserId: userId,
+    description: `Declined invitation to ${company?.name ?? "company"}`,
+    metadata: auditSourceMetadata(auditContext?.source, {
       companyName: company?.name,
-      source: auditContext?.source,
-    });
-  } catch (error) {
-    console.error("[company] staff audit invitation declined failed", error);
-  }
+      invitationId,
+    }),
+  });
 }
 
 export async function addMember(
@@ -562,21 +630,8 @@ export async function verifyCompany(actorUserId: string, companyId: string, revi
     entityId: companyId,
     targetCompanyId: companyId,
     description: `Verified company ${company.name}`,
-    metadata: { reviewNote: reviewNote ?? null },
+    metadata: auditSourceMetadata("website", { reviewNote: reviewNote ?? null }),
   });
-
-  try {
-    const { staffAuditCompanyVerification } = await import("@/server/staff-audit-events");
-    staffAuditCompanyVerification({
-      adminId: actorUserId,
-      companyId,
-      companyName: company.name,
-      action: "Company verified",
-      reviewNote,
-    });
-  } catch (error) {
-    console.error("[company] staff audit verified failed", error);
-  }
 }
 
 export async function rejectCompanyVerification(
@@ -606,21 +661,8 @@ export async function rejectCompanyVerification(
     entityId: companyId,
     targetCompanyId: companyId,
     description: `Rejected verification for ${company.name}`,
-    metadata: { reviewNote: reviewNote ?? null },
+    metadata: auditSourceMetadata("website", { reviewNote: reviewNote ?? null }),
   });
-
-  try {
-    const { staffAuditCompanyVerification } = await import("@/server/staff-audit-events");
-    staffAuditCompanyVerification({
-      adminId: actorUserId,
-      companyId,
-      companyName: company.name,
-      action: "Company verification rejected",
-      reviewNote,
-    });
-  } catch (error) {
-    console.error("[company] staff audit rejected failed", error);
-  }
 }
 
 export async function revokeCompanyVerification(

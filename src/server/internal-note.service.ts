@@ -53,6 +53,21 @@ export async function createInternalNote(
     include: { author: { select: { discordUsername: true } } },
   });
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: authorUserId,
+    action: "INTERNAL_NOTE_ADDED",
+    entityType: "USER",
+    entityId: row.id,
+    description: `Internal note on ${targetType} ${targetId}`,
+    metadata: auditSourceMetadata("website", {
+      targetType,
+      targetId,
+      notePreview: trimmed.slice(0, 120),
+    }),
+  });
+
   return {
     id: row.id,
     authorUserId: row.authorUserId,

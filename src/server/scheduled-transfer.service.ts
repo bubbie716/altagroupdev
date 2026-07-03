@@ -125,6 +125,22 @@ export async function createUserScheduledTransfer(
     },
   });
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: user.id,
+    action: "BANK_SCHEDULED_TRANSFER_CREATED",
+    entityType: "SCHEDULED_PAYMENT",
+    entityId: row.id,
+    targetAccountId: input.bankAccountId,
+    description: `Scheduled transfer "${input.recipientName.trim()}"`,
+    metadata: auditSourceMetadata("website", {
+      amount: input.amount,
+      transferScope: input.transferScope,
+      paymentType: input.paymentType,
+    }),
+  });
+
   return mapScheduledPayment(row);
 }
 
@@ -150,5 +166,21 @@ export async function cancelUserScheduledTransfer(
     where: { id: paymentId },
     data: { status: "CANCELLED" },
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: user.id,
+    action: "BANK_SCHEDULED_TRANSFER_CANCELLED",
+    entityType: "SCHEDULED_PAYMENT",
+    entityId: paymentId,
+    targetAccountId: existing.bankAccountId,
+    description: `Cancelled scheduled transfer "${existing.label}"`,
+    metadata: auditSourceMetadata("website", {
+      amount: Number(existing.amount.toString()),
+      transferScope: scope,
+    }),
+  });
+
   return mapScheduledPayment(row);
 }

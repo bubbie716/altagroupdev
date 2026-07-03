@@ -512,19 +512,8 @@ export async function updateInternalUserAccountStatus(
     entityId: targetUserId,
     targetUserId,
     description: `Changed account status to ${accountStatus}`,
-    metadata: { accountStatus },
+    metadata: { accountStatus, source: "website" },
   });
-
-  try {
-    const { staffAuditUserStatusChanged } = await import("@/server/staff-audit-events");
-    staffAuditUserStatusChanged({
-      adminId: actorUserId,
-      userId: targetUserId,
-      accountStatus,
-    });
-  } catch (error) {
-    console.error("[internal-users] staff audit status change failed", error);
-  }
 
   return getInternalUserDetail(targetUserId);
 }

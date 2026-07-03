@@ -67,6 +67,13 @@ export async function writeAuditLog(input: WriteAuditLogInput): Promise<void> {
       metadata,
     },
   });
+
+  try {
+    const { notifyDiscordFromAuditLog } = await import("@/lib/staff-audit/audit-log-discord-bridge");
+    notifyDiscordFromAuditLog({ ...input, metadata });
+  } catch (error) {
+    console.error("[audit] Discord staff notification failed", error);
+  }
 }
 
 function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {

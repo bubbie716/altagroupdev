@@ -1,7 +1,15 @@
 import type { AuditEntityType } from "@prisma/client";
 import type { WriteAuditLogInput } from "@/lib/internal/audit.types";
 
-export type AuditSource = "USER" | "ADMIN" | "OPERATOR" | "SYSTEM" | "CRON";
+export type AuditSource = "USER" | "ADMIN" | "OPERATOR" | "SYSTEM" | "CRON" | "WEB" | "WEBSITE" | "DISCORD_BOT";
+
+/** Build metadata with a normalized audit source (website vs Discord bot). */
+export function auditSourceMetadata(
+  source?: "website" | "discord_bot" | "cron" | "system",
+  extra?: Record<string, unknown>,
+): Record<string, unknown> {
+  return { source: source ?? "website", ...extra };
+}
 
 export type AuditSeverity = "info" | "warning" | "critical";
 

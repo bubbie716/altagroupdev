@@ -164,13 +164,18 @@ async function executeSinglePayment(
   const creatorHasDestination = await isAccountAccessibleByUser(destinationAccount.id, payment.createdByUserId);
 
   try {
-    const { referenceCode } = await submitInternalTransfer(payment.createdByUserId, {
-      fromAccountId: payment.bankAccountId,
-      toAccountId: creatorHasDestination ? destinationAccount.id : undefined,
-      toAccountNumber: creatorHasDestination ? undefined : destinationNumber,
-      amount,
-      memo: payment.memo ?? undefined,
-    });
+    const { referenceCode } = await submitInternalTransfer(
+      payment.createdByUserId,
+      {
+        fromAccountId: payment.bankAccountId,
+        toAccountId: creatorHasDestination ? destinationAccount.id : undefined,
+        toAccountNumber: creatorHasDestination ? undefined : destinationNumber,
+        amount,
+        memo: payment.memo ?? undefined,
+      },
+      { source: "cron" },
+      { skipAuditLog: true },
+    );
 
     const bankTransactionId = await findOutTransactionId(referenceCode);
     const executedAt = now;
@@ -204,6 +209,23 @@ async function executeSinglePayment(
         where: { id: payment.id },
         data: paymentUpdate,
       });
+    });
+
+    const { writeAuditLog } = await import("@/server/audit.service");
+    const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+    await writeAuditLog({
+      actorUserId: payment.createdByUserId,
+      action: "BANK_SCHEDULED_TRANSFER_EXECUTED",
+      entityType: "SCHEDULED_PAYMENT",
+      entityId: payment.id,
+      targetAccountId: payment.bankAccountId,
+      targetTransactionId: bankTransactionId ?? undefined,
+      description: `Executed scheduled transfer "${payment.label}"`,
+      metadata: auditSourceMetadata("cron", {
+        amount,
+        referenceCode,
+        scheduledRunAt: scheduledRunAt.toISOString(),
+      }),
     });
 
     return "executed";
@@ -255,6 +277,24 @@ async function recordFailure(
       where: { id: payment.id },
       data: paymentUpdate,
     });
+  });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: payment.createdByUserId,
+    action: "BANK_SCHEDULED_TRANSFER_FAILED",
+    entityType: "SCHEDULED_PAYMENT",
+    entityId: payment.id,
+    targetAccountId: payment.bankAccountId,
+    description: `Scheduled transfer "${payment.label}" failed`,
+    metadata: auditSourceMetadata("cron", {
+      amount: Number(payment.amount.toString()),
+      reason,
+      consecutiveFailures,
+      severity: "warning",
+      requiresAction: shouldPause,
+    }),
   });
 }
 

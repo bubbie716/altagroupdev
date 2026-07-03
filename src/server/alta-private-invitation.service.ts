@@ -17,6 +17,7 @@ import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { isAdmin } from "@/lib/auth/permissions";
+import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 
 const DEFAULT_INVITATION_TTL_DAYS = 30;
 
@@ -198,19 +199,6 @@ export async function sendAltaPrivateInvitation(
     // Discord must never break invitation flow.
   }
 
-  try {
-    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
-    staffAuditAltaPrivateInvitation({
-      action: "Invitation sent",
-      actorUserId,
-      targetUserId: input.userId,
-      invitationId: invitation.id,
-      severity: "ACTION",
-    });
-  } catch (error) {
-    console.error("[alta-private] staff audit invitation sent failed", error);
-  }
-
   return { invitationId: invitation.id };
 }
 
@@ -249,21 +237,8 @@ export async function revokeAltaPrivateInvitation(
     entityType: "USER",
     entityId: fresh.userId,
     description: "Alta Private invitation revoked",
-    metadata: { invitationId, userId: fresh.userId, reason: trimmedReason },
+    metadata: { invitationId, userId: fresh.userId, reason: trimmedReason, source: "website" },
   });
-
-  try {
-    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
-    staffAuditAltaPrivateInvitation({
-      action: "Invitation revoked",
-      actorUserId,
-      targetUserId: fresh.userId,
-      invitationId,
-      severity: "WARNING",
-    });
-  } catch (error) {
-    console.error("[alta-private] staff audit invitation revoked failed", error);
-  }
 }
 
 export async function acceptAltaPrivateInvitation(
@@ -312,7 +287,7 @@ export async function acceptAltaPrivateInvitation(
     entityType: "USER",
     entityId: userId,
     description: "Alta Private invitation accepted",
-    metadata: { invitationId, userId },
+    metadata: auditSourceMetadata(auditContext?.source, { invitationId, userId }),
   });
 
   try {
@@ -322,20 +297,6 @@ export async function acceptAltaPrivateInvitation(
     await sendAltaPrivateAcceptedDiscordNotification(userId);
   } catch {
     // Discord must never break acceptance flow.
-  }
-
-  try {
-    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
-    staffAuditAltaPrivateInvitation({
-      action: "Invitation accepted",
-      actorUserId: userId,
-      targetUserId: userId,
-      invitationId,
-      severity: "INFO",
-      source: auditContext?.source,
-    });
-  } catch (error) {
-    console.error("[alta-private] staff audit invitation accepted failed", error);
   }
 
   return { activated: true };
@@ -378,7 +339,7 @@ export async function declineAltaPrivateInvitation(
     entityType: "USER",
     entityId: userId,
     description: "Alta Private invitation declined",
-    metadata: { invitationId, userId },
+    metadata: auditSourceMetadata(auditContext?.source, { invitationId, userId }),
   });
 
   try {
@@ -388,20 +349,6 @@ export async function declineAltaPrivateInvitation(
     await sendAltaPrivateDeclinedDiscordNotification(userId);
   } catch {
     // Discord must never break decline flow.
-  }
-
-  try {
-    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
-    staffAuditAltaPrivateInvitation({
-      action: "Invitation declined",
-      actorUserId: userId,
-      targetUserId: userId,
-      invitationId,
-      severity: "INFO",
-      source: auditContext?.source,
-    });
-  } catch (error) {
-    console.error("[alta-private] staff audit invitation declined failed", error);
   }
 }
 

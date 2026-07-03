@@ -216,6 +216,22 @@ export async function createLoanApplication(
   const { createThreadForLoanApplication } = await import("@/server/loan-application-thread.service");
   const { threadId } = await createThreadForLoanApplication(userId, record.id);
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "LOAN_APPLICATION_SUBMITTED",
+    entityType: "LOAN_APPLICATION",
+    entityId: record.id,
+    targetUserId: userId,
+    targetCompanyId: record.companyId ?? undefined,
+    description: `Loan application submitted for ƒ${Number(record.requestedAmount.toString())}`,
+    metadata: auditSourceMetadata("website", {
+      amount: Number(record.requestedAmount.toString()),
+      productType: input.productType,
+    }),
+  });
+
   const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
   if (record.companyId) {
     const { recordCompanyTimelineEventIfBusiness } = await import(

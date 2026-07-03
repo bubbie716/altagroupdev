@@ -13,6 +13,7 @@ import type {
   SubmitAltaPayToPersonInput,
 } from "@/lib/bank/alta-pay-types";
 import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
+import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 import {
@@ -41,7 +42,6 @@ async function notifyAltaPaySentBestEffort(
   referenceCode: string,
   payeeName: string,
   fundingSourceLabel: string,
-  auditContext?: BankingStaffAuditContext,
 ): Promise<void> {
   try {
     const { notifyAltaPaySent } = await import("@/server/banking-notification.service");
@@ -49,19 +49,34 @@ async function notifyAltaPaySentBestEffort(
   } catch (error) {
     console.error("[alta-pay] sent notification failed", error);
   }
+}
 
-  try {
-    const { staffAuditAltaPaySent } = await import("@/server/staff-audit-events");
-    staffAuditAltaPaySent({
-      userId: user.id,
-      payeeName,
-      amount,
-      referenceCode,
-      auditContext,
-    });
-  } catch (error) {
-    console.error("[alta-pay] staff audit failed", error);
-  }
+async function recordAltaPaySentAudit(input: {
+  actorUserId: string;
+  referenceCode: string;
+  amount: number;
+  payeeName: string;
+  targetCompanyId?: string;
+  targetUserId?: string;
+  auditContext?: BankingStaffAuditContext;
+  fundingSource?: string;
+}): Promise<void> {
+  const { writeAuditLog } = await import("@/server/audit.service");
+  await writeAuditLog({
+    actorUserId: input.actorUserId,
+    action: "ALTA_PAY_SENT",
+    entityType: "BANK_TRANSACTION",
+    entityId: input.referenceCode,
+    targetUserId: input.targetUserId,
+    targetCompanyId: input.targetCompanyId,
+    description: `Alta Pay ${input.referenceCode} to ${input.payeeName}`,
+    metadata: auditSourceMetadata(input.auditContext?.source, {
+      amount: input.amount,
+      referenceCode: input.referenceCode,
+      payeeName: input.payeeName,
+      fundingSource: input.fundingSource,
+    }),
+  });
 }
 
 function decimalToNumber(value: { toString(): string }): number {
@@ -268,14 +283,29 @@ export async function submitAltaPayToPerson(
   }
 
   const { submitInternalTransfer } = await import("@/server/bank.service");
-  const result = await submitInternalTransfer(user.id, {
-    fromAccountId: input.fundingSource.accountId,
-    toAccountNumber: receiveAccount.accountNumber,
-    amount: input.amount,
-    memo: input.memo,
-  });
+  const result = await submitInternalTransfer(
+    user.id,
+    {
+      fromAccountId: input.fundingSource.accountId,
+      toAccountNumber: receiveAccount.accountNumber,
+      amount: input.amount,
+      memo: input.memo,
+    },
+    auditContext,
+    { skipAuditLog: true },
+  );
 
   const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
+
+  await recordAltaPaySentAudit({
+    actorUserId: user.id,
+    referenceCode: result.referenceCode,
+    amount: input.amount,
+    payeeName: recipientLabel,
+    targetUserId: input.recipientUserId,
+    auditContext,
+    fundingSource: funding.label,
+  });
 
   await notifyAltaPaySentBestEffort(
     user,
@@ -283,7 +313,6 @@ export async function submitAltaPayToPerson(
     result.referenceCode,
     recipientLabel,
     funding.label,
-    auditContext,
   );
 
   return {
@@ -553,13 +582,22 @@ export async function submitAltaPayPayment(
     await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
     await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
+    await recordAltaPaySentAudit({
+      actorUserId: user.id,
+      referenceCode: referenceBase,
+      amount: input.amount,
+      payeeName: company.name,
+      targetCompanyId: company.id,
+      auditContext,
+      fundingSource: sourceAccount.accountName,
+    });
+
     await notifyAltaPaySentBestEffort(
       user,
       input.amount,
       referenceBase,
       company.name,
       sourceAccount.accountName,
-      auditContext,
     );
 
     return {
@@ -613,19 +651,18 @@ export async function submitAltaPayPayment(
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: user.id,
-    action: "ALTA_CARD_ALTA_PAY_CHARGED",
+    action: "ALTA_PAY_SENT",
     entityType: "ALTA_CARD",
     entityId: input.fundingSource.cardId.replace(/^employee:/, ""),
     description: `Alta Pay charge of ${input.amount} to ${company.name}`,
     targetCompanyId: company.id,
-    metadata: {
+    metadata: auditSourceMetadata(auditContext?.source, {
       cardId: input.fundingSource.cardId,
-      transactionId: cardTxId,
+      cardTransactionId: cardTxId,
       amount: input.amount,
-      type: "alta_pay",
-      actorUserId: user.id,
-      relatedAltaPayPaymentId: referenceBase,
-    },
+      fundingSource: fundingSourceLabel,
+      referenceCode: referenceBase,
+    }),
   });
 
   const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
@@ -639,7 +676,6 @@ export async function submitAltaPayPayment(
     referenceBase,
     company.name,
     fundingSourceLabel,
-    auditContext,
   );
 
   return {

@@ -690,6 +690,25 @@ async function processLoanPayment(
     paidOff ? "loan-paid-off" : "loan-payment-made",
   );
 
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId,
+    action: paidOff ? "LOAN_PAID_OFF" : "LOAN_PAYMENT_MADE",
+    entityType: "LOAN",
+    entityId: loanRecord.id,
+    targetLoanId: loanRecord.id,
+    targetUserId: loanRecord.borrowerUserId,
+    targetCompanyId: loanRecord.companyId ?? undefined,
+    description: paidOff
+      ? `Loan ${loanRecord.id.slice(0, 8)} paid off`
+      : `Loan payment ${referenceCode}`,
+    metadata: auditSourceMetadata(options.isAutoPay ? "cron" : "website", {
+      amount,
+      referenceCode,
+    }),
+  });
+
   return { referenceCode, amount };
 }
 
