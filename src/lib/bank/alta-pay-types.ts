@@ -8,6 +8,24 @@ export interface PayableCompany {
   destinationLabel: string;
 }
 
+export type PayableRecipient =
+  | {
+      kind: "company";
+      id: string;
+      name: string;
+      subtitle: string | null;
+      destinationLabel: string;
+      canReceive: true;
+    }
+  | {
+      kind: "person";
+      id: string;
+      name: string;
+      subtitle: string;
+      destinationLabel: string;
+      canReceive: boolean;
+    };
+
 export type AltaPayFundingSource =
   | { kind: "bank_account"; accountId: string }
   | { kind: "alta_card"; cardId: string };
@@ -15,6 +33,13 @@ export type AltaPayFundingSource =
 export interface SubmitAltaPayInput {
   fundingSource: AltaPayFundingSource;
   companyId: string;
+  amount: number;
+  memo?: string;
+}
+
+export interface SubmitAltaPayToPersonInput {
+  fundingSource: AltaPayFundingSource;
+  recipientUserId: string;
   amount: number;
   memo?: string;
 }

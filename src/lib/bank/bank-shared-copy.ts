@@ -16,13 +16,13 @@ export const BANK_REQUEST_SUCCESS_BODY =
   "Your request has been received and is Pending.";
 
 export const INTRABANK_TRANSFER_FORM_INTRO =
-  "Move Florins instantly between your Alta Bank accounts or send to another player by account number.";
+  "Move Florins instantly between your own Alta Bank accounts.";
 
 export const BANK_TRANSFER_SUCCESS_BODY =
   "Your transfer settled instantly and both accounts have been updated.";
 
 export const ALTA_PAY_FORM_INTRO =
-  "Pay verified Newport businesses instantly — from a bank account or your Alta Card.";
+  "Search for a person or company by name. Person payments settle to the recipient's default Alta Pay account from Settings.";
 
 export const BANK_ALTA_PAY_SUCCESS_BODY =
   "Your payment settled instantly to the company's Business Operating Account.";

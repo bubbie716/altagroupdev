@@ -8,16 +8,30 @@ import {
 import { uploadBankProof, type ProofFileInput } from "@/lib/storage/proof-upload";
 import {
   listPayFundingSources,
-  searchPayableCompanies,
+  searchPayableRecipients,
   submitAltaPayPayment,
+  submitAltaPayToPerson,
 } from "@/server/alta-pay.service";
 import { loadAltaUserOrThrow } from "@/server/bank-account-access.service";
+import {
+  assertBotDepositLimit,
+  assertBotTransferAllowed,
+  assertBotWithdrawalLimit,
+  quoteBotTransfer,
+  recordBotTransferUsage,
+  type BotTransferQuote,
+} from "@/server/bot-banking-limits.service";
 import {
   listUserBankAccounts,
   submitDepositRequest,
   submitInternalTransfer,
   submitWithdrawalRequest,
 } from "@/server/bank.service";
+import { prisma } from "@/server/db";
+
+function badRequest(message: string): never {
+  throw new Error(`BAD_REQUEST:${message}`);
+}
 
 export type BotActionAccount = {
   id: string;
@@ -28,9 +42,28 @@ export type BotActionAccount = {
   companyName: string | null;
 };
 
+export type BotPayableRecipient = {
+  kind: "company" | "person";
+  id: string;
+  name: string;
+  subtitle: string | null;
+  destinationLabel: string;
+  canReceive: boolean;
+};
+
 export type BotPayContext = {
   fundingSources: Awaited<ReturnType<typeof listPayFundingSources>>;
-  companies: Awaited<ReturnType<typeof searchPayableCompanies>>;
+};
+
+export type BotAltaPayRecipientInput =
+  | { kind: "company"; companyId: string }
+  | { kind: "person"; recipientUserId: string };
+
+export type BotAltaPaySubmitInput = {
+  fundingSource: SubmitAltaPayInput["fundingSource"];
+  recipient: BotAltaPayRecipientInput;
+  amount: number;
+  memo?: string;
 };
 
 function mapActionAccount(account: UserBankAccount): BotActionAccount {
@@ -87,15 +120,62 @@ export async function listBotTransferDestinationAccounts(
 
 export async function getBotPayContext(userId: string): Promise<BotPayContext> {
   const user = await loadAltaUserOrThrow(userId);
-  const [fundingSources, companies] = await Promise.all([
-    listPayFundingSources(user),
-    searchPayableCompanies(""),
-  ]);
-  return { fundingSources, companies };
+  const fundingSources = await listPayFundingSources(user);
+  return { fundingSources };
 }
 
+export async function searchBotPayRecipients(
+  userId: string,
+  query: string,
+): Promise<BotPayableRecipient[]> {
+  const recipients = await searchPayableRecipients(userId, query);
+  return recipients.map((recipient) => ({
+    kind: recipient.kind,
+    id: recipient.id,
+    name: recipient.name,
+    subtitle: recipient.subtitle,
+    destinationLabel: recipient.destinationLabel,
+    canReceive: recipient.canReceive,
+  }));
+}
+
+/** @deprecated Use searchBotPayRecipients */
 export async function searchBotPayCompanies(query: string) {
+  const { searchPayableCompanies } = await import("@/server/alta-pay.service");
   return searchPayableCompanies(query);
+}
+
+export async function quoteBotTransferForUser(
+  userId: string,
+  amount: number,
+): Promise<BotTransferQuote> {
+  return quoteBotTransfer(userId, amount);
+}
+
+async function collectDiscordTransferFee(
+  accountId: string,
+  fee: number,
+  transferReference: string,
+): Promise<void> {
+  if (fee <= 0) return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.bankAccount.update({
+      where: { id: accountId },
+      data: { balance: { decrement: fee } },
+    });
+    await tx.bankTransaction.create({
+      data: {
+        bankAccountId: accountId,
+        type: "WITHDRAWAL",
+        amount: fee,
+        status: "APPROVED",
+        description: "Discord banking convenience fee",
+        memo: `Transfer ${transferReference}`,
+        referenceCode: `${transferReference}-FEE`,
+      },
+    });
+  });
 }
 
 export async function submitBotDeposit(
@@ -103,6 +183,8 @@ export async function submitBotDeposit(
   input: { bankAccountId: string; amount: number; memo?: string },
   file: { name: string; type: string; size: number; buffer: Buffer },
 ): Promise<{ transactionId: string; referenceCode: string }> {
+  assertBotDepositLimit(input.amount);
+
   const proofFile: ProofFileInput = {
     name: file.name,
     type: file.type,
@@ -137,6 +219,8 @@ export async function submitBotWithdrawal(
   userId: string,
   input: { bankAccountId: string; amount: number; memo?: string },
 ): Promise<{ transactionId: string; referenceCode: string }> {
+  assertBotWithdrawalLimit(input.amount);
+
   return submitWithdrawalRequest(userId, input);
 }
 
@@ -144,18 +228,70 @@ export async function submitBotTransfer(
   userId: string,
   input: { fromAccountId: string; toAccountId: string; amount: number; memo?: string },
 ): Promise<{ referenceCode: string }> {
-  return submitInternalTransfer(userId, {
+  const quote = await assertBotTransferAllowed(userId, input.amount);
+
+  const accounts = await listUserBankAccounts(userId);
+  const fromAccount = accounts.find((account) => account.id === input.fromAccountId);
+  if (!fromAccount) badRequest("That source account is not available.");
+
+  if (fromAccount.availableBalance < quote.totalDebited) {
+    badRequest("This transfer couldn't be completed because your available balance is insufficient.");
+  }
+
+  const result = await submitInternalTransfer(userId, {
     fromAccountId: input.fromAccountId,
     toAccountId: input.toAccountId,
     amount: input.amount,
     memo: input.memo,
   });
+
+  await collectDiscordTransferFee(input.fromAccountId, quote.convenienceFee, result.referenceCode);
+  await recordBotTransferUsage(userId, input.amount);
+
+  return result;
 }
 
 export async function submitBotAltaPay(
   userId: string,
-  input: SubmitAltaPayInput,
-): Promise<Awaited<ReturnType<typeof submitAltaPayPayment>>> {
+  input: BotAltaPaySubmitInput,
+): Promise<{
+  referenceCode: string;
+  amount: number;
+  payeeName: string;
+  fundingSourceLabel: string;
+}> {
   const user = await loadAltaUserOrThrow(userId);
-  return submitAltaPayPayment(user, input);
+
+  if (input.recipient.kind === "company") {
+    const result = await submitAltaPayPayment(user, {
+      fundingSource: input.fundingSource,
+      companyId: input.recipient.companyId,
+      amount: input.amount,
+      memo: input.memo,
+    });
+    return {
+      referenceCode: result.referenceCode,
+      amount: result.amount,
+      payeeName: result.companyName,
+      fundingSourceLabel: result.fundingSourceLabel,
+    };
+  }
+
+  if (input.fundingSource.kind !== "bank_account") {
+    badRequest("Payments to Alta customers require a bank account funding source.");
+  }
+
+  const result = await submitAltaPayToPerson(user, {
+    fundingSource: input.fundingSource,
+    recipientUserId: input.recipient.recipientUserId,
+    amount: input.amount,
+    memo: input.memo,
+  });
+
+  return {
+    referenceCode: result.referenceCode,
+    amount: result.amount,
+    payeeName: result.companyName,
+    fundingSourceLabel: result.fundingSourceLabel,
+  };
 }

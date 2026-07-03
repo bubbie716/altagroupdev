@@ -12,6 +12,18 @@ export type CreateNotificationInput = {
 
 async function dispatchDiscordForNotification(input: CreateNotificationInput): Promise<void> {
   try {
+    const { isDiscordNotificationEnabled } = await import("@/server/bank-settings.service");
+    const enabled = await isDiscordNotificationEnabled(input.userId, input.type);
+    if (!enabled) {
+      if (process.env.NODE_ENV !== "test") {
+        console.info("[notifications] Discord DM skipped by user preference", {
+          userId: input.userId,
+          type: input.type,
+        });
+      }
+      return;
+    }
+
     const { dispatchNotificationDm } = await import("@/server/notification-discord-dispatch.service");
     const result = await dispatchNotificationDm({
       userId: input.userId,

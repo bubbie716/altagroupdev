@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { SubmitAltaPayInput } from "@/lib/bank/alta-pay-types";
+import type { SubmitAltaPayInput, SubmitAltaPayToPersonInput } from "@/lib/bank/alta-pay-types";
 
 export const fetchPaySourceAccounts = createServerFn({ method: "GET" }).handler(async () => {
   const { requireAuth } = await import("@/server/auth.service");
@@ -23,12 +23,29 @@ export const searchPayableCompaniesForPay = createServerFn({ method: "GET" })
     return searchPayableCompanies(query);
   });
 
+export const searchPayableRecipientsForPay = createServerFn({ method: "GET" })
+  .inputValidator((query: string) => query)
+  .handler(async ({ data: query }) => {
+    const { searchPayableRecipients } = await import("@/server/alta-pay.service");
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    return searchPayableRecipients(user.id, query);
+  });
+
 export const submitAltaPay = createServerFn({ method: "POST" })
   .inputValidator((input: SubmitAltaPayInput) => input)
   .handler(async ({ data }) => {
     const { submitAltaPayPayment } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
     return submitAltaPayPayment(await requireAuth(), data);
+  });
+
+export const submitAltaPayToPersonPayment = createServerFn({ method: "POST" })
+  .inputValidator((input: SubmitAltaPayToPersonInput) => input)
+  .handler(async ({ data }) => {
+    const { submitAltaPayToPerson } = await import("@/server/alta-pay.service");
+    const { requireAuth } = await import("@/server/auth.service");
+    return submitAltaPayToPerson(await requireAuth(), data);
   });
 
 export const fetchUserAltaPayHistory = createServerFn({ method: "GET" })

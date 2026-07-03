@@ -1183,7 +1183,6 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
       record.bankAccount.userId,
       decimalToNumber(record.amount),
       record.referenceCode,
-      reviewNote,
     );
   } catch (error) {
     console.error("[bank] deposit approved notification failed", error);
@@ -1228,7 +1227,6 @@ export async function denyDeposit(adminId: string, transactionId: string, review
       record.bankAccount.userId,
       decimalToNumber(record.amount),
       record.referenceCode,
-      reviewNote,
     );
   } catch (error) {
     console.error("[bank] deposit denied notification failed", error);
@@ -1293,7 +1291,6 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
       record.bankAccount.userId,
       decimalToNumber(record.amount),
       record.referenceCode,
-      reviewNote,
     );
   } catch (error) {
     console.error("[bank] withdrawal approved notification failed", error);
@@ -1338,7 +1335,6 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
       record.bankAccount.userId,
       decimalToNumber(record.amount),
       record.referenceCode,
-      reviewNote,
     );
   } catch (error) {
     console.error("[bank] withdrawal denied notification failed", error);

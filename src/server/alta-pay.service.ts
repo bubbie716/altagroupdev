@@ -6,9 +6,11 @@ import type {
   AltaPayReceivedSummary,
   AltaPayVolumeSummary,
   PayableCompany,
+  PayableRecipient,
   PayFundingSourceOption,
   SubmitAltaPayInput,
   SubmitAltaPayResult,
+  SubmitAltaPayToPersonInput,
 } from "@/lib/bank/alta-pay-types";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
@@ -123,6 +125,133 @@ export async function searchPayableCompanies(query: string): Promise<PayableComp
       destinationLabel: `${company.name} · Business Operating Account`,
     };
   });
+}
+
+export async function searchPayableRecipients(
+  payerUserId: string,
+  query: string,
+): Promise<PayableRecipient[]> {
+  const q = query.trim();
+  if (q.length < 1) return [];
+
+  const [companies, users] = await Promise.all([
+    searchPayableCompanies(q),
+    prisma.user.findMany({
+      where: {
+        id: { not: payerUserId },
+        accountStatus: "ACTIVE",
+        OR: [
+          { discordUsername: { contains: q, mode: "insensitive" } },
+          { minecraftUsername: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        discordUsername: true,
+        minecraftUsername: true,
+        bankSettings: {
+          select: {
+            defaultAltaPayReceiveAccount: {
+              select: { accountName: true, accountNumber: true, status: true },
+            },
+          },
+        },
+        bankAccounts: {
+          where: { companyId: null, status: "ACTIVE" },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { accountName: true, accountNumber: true, status: true },
+        },
+      },
+      orderBy: { discordUsername: "asc" },
+      take: 10,
+    }),
+  ]);
+
+  const personRecipients: PayableRecipient[] = users.map((user) => {
+    const configured = user.bankSettings?.defaultAltaPayReceiveAccount;
+    const oldest = user.bankAccounts[0];
+    const receiveAccount =
+      configured?.status === "ACTIVE" ? configured : oldest?.status === "ACTIVE" ? oldest : null;
+    const canReceive = !!receiveAccount;
+    const displayName = user.minecraftUsername?.trim() || user.discordUsername;
+    return {
+      kind: "person",
+      id: user.id,
+      name: displayName,
+      subtitle: user.discordUsername,
+      destinationLabel: canReceive
+        ? `${receiveAccount.accountName} · ${receiveAccount.accountNumber}`
+        : "No active personal Alta Bank account",
+      canReceive,
+    };
+  });
+
+  const companyRecipients: PayableRecipient[] = companies.map((company) => ({
+    kind: "company",
+    id: company.id,
+    name: company.name,
+    subtitle: [company.sector, company.ticker].filter(Boolean).join(" · ") || null,
+    destinationLabel: company.destinationLabel,
+    canReceive: true as const,
+  }));
+
+  return [...personRecipients, ...companyRecipients].slice(0, 20);
+}
+
+export async function submitAltaPayToPerson(
+  user: AltaUser,
+  input: SubmitAltaPayToPersonInput,
+): Promise<SubmitAltaPayResult> {
+  if (input.amount <= 0) badRequest("Amount must be greater than zero.");
+  if (input.fundingSource.kind !== "bank_account") {
+    badRequest("Payments to Alta customers require a bank account funding source.");
+  }
+
+  const allowedFunding = await listPayFundingSources(user);
+  const funding = allowedFunding.find(
+    (source) => source.kind === "bank_account" && source.id === input.fundingSource.accountId,
+  );
+  if (!funding || funding.kind !== "bank_account") {
+    badRequest("Select a valid funding source.");
+  }
+
+  if (input.recipientUserId === user.id) {
+    badRequest("You cannot send Alta Pay to yourself.");
+  }
+
+  const recipient = await prisma.user.findUnique({
+    where: { id: input.recipientUserId },
+    select: {
+      id: true,
+      discordUsername: true,
+      minecraftUsername: true,
+    },
+  });
+  if (!recipient) badRequest("Recipient not found.");
+
+  const { resolveAltaPayReceiveAccount } = await import("@/server/bank-settings.service");
+  const receiveAccount = await resolveAltaPayReceiveAccount(input.recipientUserId);
+  if (!receiveAccount) {
+    badRequest("This customer does not have an active Alta Bank account to receive Alta Pay.");
+  }
+
+  const { submitInternalTransfer } = await import("@/server/bank.service");
+  const result = await submitInternalTransfer(user.id, {
+    fromAccountId: input.fundingSource.accountId,
+    toAccountNumber: receiveAccount.accountNumber,
+    amount: input.amount,
+    memo: input.memo,
+  });
+
+  const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
+
+  return {
+    referenceCode: result.referenceCode,
+    amount: input.amount,
+    companyName: recipientLabel,
+    fundingSourceLabel: funding.label,
+  };
 }
 
 export async function listPayFundingSources(user: AltaUser): Promise<PayFundingSourceOption[]> {

@@ -58,6 +58,7 @@ import { Route as ExchangeApiRouteImport } from './routes/exchange/api'
 import { Route as ExchangeActionsRouteImport } from './routes/exchange/actions'
 import { Route as CompaniesCreateRouteImport } from './routes/companies/create'
 import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
+import { Route as BankSettingsRouteImport } from './routes/bank/settings'
 import { Route as BankProductsRouteImport } from './routes/bank/products'
 import { Route as BankPrivateRouteImport } from './routes/bank/private'
 import { Route as BankPayRouteImport } from './routes/bank/pay'
@@ -462,6 +463,11 @@ const CompaniesCreateRoute = CompaniesCreateRouteImport.update({
 const BankWithdrawRoute = BankWithdrawRouteImport.update({
   id: '/withdraw',
   path: '/withdraw',
+  getParentRoute: () => BankRouteRoute,
+} as any)
+const BankSettingsRoute = BankSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => BankRouteRoute,
 } as any)
 const BankProductsRoute = BankProductsRouteImport.update({
@@ -1397,6 +1403,7 @@ export interface FileRoutesByFullPath {
   '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
+  '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
@@ -1597,6 +1604,7 @@ export interface FileRoutesByTo {
   '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
+  '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
@@ -1797,6 +1805,7 @@ export interface FileRoutesById {
   '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
+  '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
   '/exchange/actions': typeof ExchangeActionsRoute
@@ -2010,6 +2019,7 @@ export interface FileRouteTypes {
     | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
+    | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
@@ -2210,6 +2220,7 @@ export interface FileRouteTypes {
     | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
+    | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
@@ -2409,6 +2420,7 @@ export interface FileRouteTypes {
     | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
+    | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
     | '/exchange/actions'
@@ -2970,6 +2982,13 @@ declare module '@tanstack/react-router' {
       path: '/withdraw'
       fullPath: '/bank/withdraw'
       preLoaderRoute: typeof BankWithdrawRouteImport
+      parentRoute: typeof BankRouteRoute
+    }
+    '/bank/settings': {
+      id: '/bank/settings'
+      path: '/settings'
+      fullPath: '/bank/settings'
+      preLoaderRoute: typeof BankSettingsRouteImport
       parentRoute: typeof BankRouteRoute
     }
     '/bank/products': {
@@ -4370,6 +4389,7 @@ interface BankRouteRouteChildren {
   BankPayRoute: typeof BankPayRoute
   BankPrivateRoute: typeof BankPrivateRouteWithChildren
   BankProductsRoute: typeof BankProductsRoute
+  BankSettingsRoute: typeof BankSettingsRoute
   BankWithdrawRoute: typeof BankWithdrawRoute
   BankIndexRoute: typeof BankIndexRoute
   BankAccountAccountIdRouteRoute: typeof BankAccountAccountIdRouteRouteWithChildren
@@ -4406,6 +4426,7 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankPayRoute: BankPayRoute,
   BankPrivateRoute: BankPrivateRouteWithChildren,
   BankProductsRoute: BankProductsRoute,
+  BankSettingsRoute: BankSettingsRoute,
   BankWithdrawRoute: BankWithdrawRoute,
   BankIndexRoute: BankIndexRoute,
   BankAccountAccountIdRouteRoute: BankAccountAccountIdRouteRouteWithChildren,

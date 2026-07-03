@@ -31,7 +31,7 @@ function BankTransferContactsPage() {
       <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Contacts"
-      description="Saved recipients for intrabank transfers and future interbank wires."
+      description="Saved recipients for Alta Pay, scheduled intrabank transfers, and future interbank wires."
      />
 <TransferPageHeader />
 
@@ -50,7 +50,7 @@ function BankTransferContactsPage() {
           <Section title="Intrabank contacts">
             <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
-                Shortcuts for other Alta Bank clients by account number.
+                Shortcuts for Alta Pay and scheduled intrabank transfers to other Alta customers.
               </p>
               {data.accounts.length === 0 && (
                 <p className="mb-4 text-[13px] text-muted-foreground">

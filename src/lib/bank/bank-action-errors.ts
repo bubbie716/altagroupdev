@@ -10,7 +10,8 @@ export type CustomerSubmissionAction =
   | "cash_advance"
   | "card_review"
   | "statement_generate"
-  | "scheduled_transfer";
+  | "scheduled_transfer"
+  | "settings";
 
 const GENERIC_SERVER_FALLBACKS = new Set([
   "Payment failed",
@@ -41,6 +42,7 @@ const ACTION_FALLBACK: Record<CustomerSubmissionAction, string> = {
   card_review: "Your review request could not be submitted. Please review the form and try again.",
   statement_generate: "Your statement could not be generated. Please verify the account and period, then try again.",
   scheduled_transfer: "This transfer schedule could not be saved. Please review your details and try again.",
+  settings: "Your settings could not be saved. Please review your selections and try again.",
 };
 
 function extractRawMessage(err: unknown): string {

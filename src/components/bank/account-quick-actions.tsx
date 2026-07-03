@@ -5,7 +5,7 @@ import { RouteButton } from "@/components/bank/route-button";
 const actions = [
   {
     title: "Transfer",
-    description: "Send funds within Alta Bank — between your accounts or to another player.",
+    description: "Move money between your own Alta Bank accounts.",
     buttonLabel: "Transfer funds",
     to: "/bank/transfers/" as const,
   },

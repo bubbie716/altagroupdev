@@ -16,6 +16,7 @@ const links = [
   { to: "/bank/withdraw", label: "Withdraw" },
   { to: "/bank/transfers", label: "Transfers", activePaths: ["/bank/transfers"] },
   { to: "/bank/pay", label: "Alta Pay" },
+  { to: "/bank/settings", label: "Settings" },
   { to: "/bank/statements", label: "Statements", activePaths: ["/bank/statements"] },
   { to: "/bank/products", label: "Products", activePaths: ["/bank/products", "/bank/deposits"] },
   { to: "/bank/lending", label: "Lending" },

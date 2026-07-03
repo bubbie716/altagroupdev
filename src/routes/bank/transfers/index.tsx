@@ -39,7 +39,7 @@ function BankTransfersHub() {
           accountId={accountId}
           icon={Building2}
           title="Intrabank"
-          description="Instant, scheduled, and recurring transfers within Alta Bank — between your accounts or to another player."
+          description="Instant, scheduled, and recurring transfers between your own Alta Bank accounts."
           detail="Instant settlement · scheduled & recurring"
         />
         <TransferTypeCard

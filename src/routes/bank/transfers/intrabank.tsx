@@ -60,7 +60,7 @@ function BankIntrabankTransfers() {
       <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Intrabank"
-      description="Move funds instantly within Alta Bank — between your accounts or to another player."
+      description="Move money between your own Alta Bank accounts."
      />
 {showMockData ? (
         <>
@@ -77,7 +77,7 @@ function BankIntrabankTransfers() {
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <EmptyBankState
           title="No active Alta Bank accounts yet."
-          description="Open Alta Bank accounts to transfer between your positions or send to another player."
+          description="Open at least two Alta Bank accounts to move money between your own positions."
         />
         </>
       ) : (
@@ -85,7 +85,6 @@ function BankIntrabankTransfers() {
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <BankInternalTransferForm
             accounts={data.accounts}
-            contacts={data.contacts}
             defaultFromAccountId={accountId}
             onSuccess={() => void router.invalidate()}
           />

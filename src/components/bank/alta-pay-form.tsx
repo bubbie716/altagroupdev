@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Search, ShieldCheck } from "lucide-react";
+import { Search, ShieldCheck, UserRound } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -15,18 +15,20 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
 import {
-  searchPayableCompaniesForPay,
+  searchPayableRecipientsForPay,
   submitAltaPay,
+  submitAltaPayToPersonPayment,
 } from "@/lib/bank/alta-pay.functions";
 import type {
   AltaPayFundingSource,
-  PayableCompany,
+  PayableRecipient,
   PayFundingSourceOption,
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
 import { ALTA_PAY_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
 import {
   formatBankActionError,
+  transferBlockedReason,
   withdrawalBlockedReason,
 } from "@/lib/bank/account-status-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
@@ -40,6 +42,11 @@ import {
 const CARD_COMPANY_PAY_BLOCKED =
   "You cannot use this Alta Card to pay the company it belongs to.";
 
+const PERSON_RECEIVE_ACCOUNT_MISSING =
+  "This customer does not have an active personal Alta Bank account to receive Alta Pay.";
+
+type FormView = "compose" | "review" | "success" | "error";
+
 function employerCompanyIdForFunding(source: PayFundingSourceOption | undefined): string | undefined {
   return source?.employerCompanyId;
 }
@@ -47,8 +54,6 @@ function employerCompanyIdForFunding(source: PayFundingSourceOption | undefined)
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
-
-type FormView = "compose" | "review" | "success" | "error";
 
 function fundingKey(source: PayFundingSourceOption): string {
   return `${source.kind}:${source.id}`;
@@ -70,6 +75,10 @@ export function employeeCardPayFundingKey(employeeCardId: string): string {
 
 export function altaCardPayFundingKey(cardId: string): string {
   return fundingKey({ kind: "alta_card", id: cardId });
+}
+
+export function bankAccountPayFundingKey(accountId: string): string {
+  return fundingKey({ kind: "bank_account", id: accountId });
 }
 
 function parseFundingKey(key: string): AltaPayFundingSource {
@@ -94,6 +103,14 @@ function fundingLabel(source: PayFundingSourceOption): string {
   return `${source.label} · ${source.detail} · ${florin(source.availableBalance)}`;
 }
 
+function bankAccountFundingSources(sources: PayFundingSourceOption[]): PayFundingSourceOption[] {
+  return sources.filter((source) => source.kind === "bank_account");
+}
+
+function recipientIcon(recipient: PayableRecipient) {
+  return recipient.kind === "company" ? ShieldCheck : UserRound;
+}
+
 export function AltaPayForm({
   fundingSources,
   defaultFundingKey,
@@ -106,16 +123,17 @@ export function AltaPayForm({
   onSubmissionSuccess?: (result: BankRequestSubmissionResult) => void;
 }) {
   const router = useRouter();
-  const searchCompanies = useServerFn(searchPayableCompaniesForPay);
-  const pay = useServerFn(submitAltaPay);
+  const searchRecipients = useServerFn(searchPayableRecipientsForPay);
+  const payCompany = useServerFn(submitAltaPay);
+  const payPerson = useServerFn(submitAltaPayToPersonPayment);
 
   const [view, setView] = useState<FormView>("compose");
   const [fundingKeyValue, setFundingKeyValue] = useState(() =>
     resolvePayFundingKey(fundingSources, defaultFundingKey),
   );
-  const [companyQuery, setCompanyQuery] = useState("");
-  const [companyResults, setCompanyResults] = useState<PayableCompany[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<PayableCompany | null>(null);
+  const [recipientQuery, setRecipientQuery] = useState("");
+  const [recipientResults, setRecipientResults] = useState<PayableRecipient[]>([]);
+  const [selectedRecipient, setSelectedRecipient] = useState<PayableRecipient | null>(null);
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [composeError, setComposeError] = useState<string | null>(null);
@@ -123,33 +141,56 @@ export function AltaPayForm({
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
 
+  const activeFundingSources =
+    selectedRecipient?.kind === "person"
+      ? bankAccountFundingSources(fundingSources)
+      : fundingSources;
+
   const selectedFunding =
-    fundingSources.find((s) => fundingKey(s) === fundingKeyValue) ?? fundingSources[0];
+    activeFundingSources.find((s) => fundingKey(s) === fundingKeyValue) ??
+    activeFundingSources[0];
   const availableBalance = selectedFunding?.availableBalance ?? 0;
   const blockedEmployerCompanyId = employerCompanyIdForFunding(selectedFunding);
-  const payableCompanyResults = blockedEmployerCompanyId
-    ? companyResults.filter((company) => company.id !== blockedEmployerCompanyId)
-    : companyResults;
+  const payableResults =
+    selectedRecipient?.kind === "company" && blockedEmployerCompanyId
+      ? recipientResults.filter(
+          (recipient) =>
+            recipient.kind !== "company" || recipient.id !== blockedEmployerCompanyId,
+        )
+      : recipientResults;
 
   useEffect(() => {
-    if (blockedEmployerCompanyId && selectedCompany?.id === blockedEmployerCompanyId) {
-      setSelectedCompany(null);
-      setCompanyQuery("");
+    if (
+      blockedEmployerCompanyId &&
+      selectedRecipient?.kind === "company" &&
+      selectedRecipient.id === blockedEmployerCompanyId
+    ) {
+      setSelectedRecipient(null);
+      setRecipientQuery("");
     }
-  }, [blockedEmployerCompanyId, selectedCompany?.id]);
+  }, [blockedEmployerCompanyId, selectedRecipient]);
 
   useEffect(() => {
-    if (companyQuery.trim().length < 1) {
-      setCompanyResults([]);
+    if (selectedRecipient?.kind === "person") {
+      const bankSources = bankAccountFundingSources(fundingSources);
+      if (bankSources.length > 0 && selectedFunding?.kind === "alta_card") {
+        setFundingKeyValue(fundingKey(bankSources[0]!));
+      }
+    }
+  }, [selectedRecipient, fundingSources, selectedFunding?.kind]);
+
+  useEffect(() => {
+    if (recipientQuery.trim().length < 1) {
+      setRecipientResults([]);
       return;
     }
     const handle = setTimeout(() => {
-      void searchCompanies({ data: companyQuery.trim() })
-        .then(setCompanyResults)
-        .catch(() => setCompanyResults([]));
+      void searchRecipients({ data: recipientQuery.trim() })
+        .then(setRecipientResults)
+        .catch(() => setRecipientResults([]));
     }, 280);
     return () => clearTimeout(handle);
-  }, [companyQuery, searchCompanies]);
+  }, [recipientQuery, searchRecipients]);
 
   function resetForm() {
     setView("compose");
@@ -158,8 +199,8 @@ export function AltaPayForm({
     setSubmission(null);
     setAmount("");
     setMemo("");
-    setSelectedCompany(null);
-    setCompanyQuery("");
+    setSelectedRecipient(null);
+    setRecipientQuery("");
     setFundingKeyValue(resolvePayFundingKey(fundingSources, defaultFundingKey));
   }
 
@@ -168,66 +209,91 @@ export function AltaPayForm({
     setView("error");
   }
 
+  function validateFunding(payAmount: number): string | null {
+    if (!selectedFunding) return "Select a funding source.";
+    if (!payAmount || payAmount <= 0) return "Enter a valid payment amount.";
+    if (payAmount > availableBalance) {
+      return selectedFunding.kind === "bank_account" &&
+        selectedFunding.accountStatusInfo &&
+        selectedFunding.accountStatusInfo.heldFunds > 0
+        ? "This payment couldn't be completed because your available balance is reduced by held funds."
+        : "This payment couldn't be completed because your available balance is insufficient.";
+    }
+    if (selectedFunding.kind === "bank_account" && selectedFunding.accountStatusInfo) {
+      const blocked =
+        selectedRecipient?.kind === "person"
+          ? transferBlockedReason(selectedFunding.accountStatusInfo, "source")
+          : withdrawalBlockedReason(selectedFunding.accountStatusInfo);
+      if (blocked) return blocked;
+    }
+    return null;
+  }
+
   function goToReview() {
     setComposeError(null);
     const payAmount = Number(amount);
-    if (!selectedCompany) {
-      setComposeError("Select a verified company to pay.");
+
+    if (!selectedRecipient) {
+      setComposeError("Select a person or company to pay.");
+      return;
+    }
+    if (selectedRecipient.kind === "person" && !selectedRecipient.canReceive) {
+      setComposeError(PERSON_RECEIVE_ACCOUNT_MISSING);
       return;
     }
     if (
+      selectedRecipient.kind === "company" &&
       blockedEmployerCompanyId &&
-      selectedCompany.id === blockedEmployerCompanyId
+      selectedRecipient.id === blockedEmployerCompanyId
     ) {
       setComposeError(CARD_COMPANY_PAY_BLOCKED);
       return;
     }
-    if (!selectedFunding) {
-      setComposeError("Select a funding source.");
+    if (selectedRecipient.kind === "person" && activeFundingSources.length === 0) {
+      setComposeError("Open an Alta Bank account to send money to another Alta customer.");
       return;
     }
-    if (!payAmount || payAmount <= 0) {
-      setComposeError("Enter a valid payment amount.");
+
+    const fundingError = validateFunding(payAmount);
+    if (fundingError) {
+      setComposeError(fundingError);
       return;
     }
-    if (payAmount > availableBalance) {
-      setComposeError(
-        selectedFunding.kind === "bank_account" &&
-          selectedFunding.accountStatusInfo &&
-          selectedFunding.accountStatusInfo.heldFunds > 0
-          ? "This payment couldn't be completed because your available balance is reduced by held funds."
-          : "This payment couldn't be completed because your available balance is insufficient.",
-      );
-      return;
-    }
-    if (
-      selectedFunding.kind === "bank_account" &&
-      selectedFunding.accountStatusInfo
-    ) {
-      const blocked = withdrawalBlockedReason(selectedFunding.accountStatusInfo);
-      if (blocked) {
-        setComposeError(blocked);
-        return;
-      }
-    }
+
     setView("review");
   }
 
   async function submitPayment(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedCompany || !selectedFunding || submitting) return;
+    if (!selectedRecipient || !selectedFunding || submitting) return;
 
     setSubmitting(true);
 
     try {
-      const result: SubmitAltaPayResult = await pay({
-        data: {
-          fundingSource: parseFundingKey(fundingKeyValue),
-          companyId: selectedCompany.id,
-          amount: Number(amount),
-          memo: memo.trim() || undefined,
-        },
-      });
+      let result: SubmitAltaPayResult;
+
+      if (selectedRecipient.kind === "company") {
+        result = await payCompany({
+          data: {
+            fundingSource: parseFundingKey(fundingKeyValue),
+            companyId: selectedRecipient.id,
+            amount: Number(amount),
+            memo: memo.trim() || undefined,
+          },
+        });
+      } else {
+        const funding = parseFundingKey(fundingKeyValue);
+        if (funding.kind !== "bank_account") return;
+
+        result = await payPerson({
+          data: {
+            fundingSource: funding,
+            recipientUserId: selectedRecipient.id,
+            amount: Number(amount),
+            memo: memo.trim() || undefined,
+          },
+        });
+      }
 
       const submitted: BankRequestSubmissionResult = {
         referenceCode: result.referenceCode,
@@ -257,6 +323,8 @@ export function AltaPayForm({
     }
   }
 
+  const canReview = !!selectedRecipient && !!amount && Number(amount) > 0;
+
   if (view === "success" && submission) {
     return (
       <BankRequestSuccessCard
@@ -279,7 +347,7 @@ export function AltaPayForm({
     );
   }
 
-  if (view === "review" && selectedCompany && selectedFunding) {
+  if (view === "review" && selectedRecipient && selectedFunding) {
     return (
       <form onSubmit={submitPayment} className="mx-auto max-w-2xl space-y-6">
         <Card className="space-y-6 !p-6">
@@ -288,8 +356,8 @@ export function AltaPayForm({
               Review payment
             </div>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              Confirm the details below before sending. Funds settle instantly to the company&apos;s
-              Business Operating Account.
+              Confirm the details below before sending. Funds settle instantly to{" "}
+              {selectedRecipient.destinationLabel}.
               {selectedFunding.kind === "alta_card"
                 ? " Your Alta Card balance will increase and available credit will decrease."
                 : null}
@@ -298,21 +366,21 @@ export function AltaPayForm({
 
           <div className="space-y-4 border-y border-border/60 py-6 text-sm">
             <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">From</span>
-              <span className="text-right font-mono text-[12px]">{fundingLabel(selectedFunding)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">To</span>
               <span className="text-right">
-                <span className="font-medium">{selectedCompany.name}</span>
+                <span className="font-medium">{selectedRecipient.name}</span>
                 <span className="mt-0.5 block text-[12px] text-muted-foreground">
-                  {selectedCompany.destinationLabel}
+                  {selectedRecipient.destinationLabel}
                 </span>
               </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Amount</span>
               <span className="type-finance-nums">{florin(Number(amount))}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">From</span>
+              <span className="text-right font-mono text-[12px]">{fundingLabel(selectedFunding)}</span>
             </div>
             {memo.trim() && (
               <div className="flex justify-between gap-4">
@@ -354,77 +422,79 @@ export function AltaPayForm({
         <p className="text-[13px] leading-relaxed text-muted-foreground">{ALTA_PAY_FORM_INTRO}</p>
 
         <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
-          <label className="block">
-            <span className={fieldLabel}>Pay from</span>
-            <Select value={fundingKeyValue} onValueChange={setFundingKeyValue} disabled={submitting}>
-              <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
-                <SelectValue placeholder="Select funding source" />
-              </SelectTrigger>
-              <SelectContent>
-                {fundingSources.map((source) => (
-                  <SelectItem key={fundingKey(source)} value={fundingKey(source)}>
-                    {fundingLabel(source)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-
           <div>
-            <span className={fieldLabel}>Pay to — search verified company</span>
+            <span className={fieldLabel}>Recipient</span>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 className={`${inputClass} pl-9`}
-                value={companyQuery}
+                value={recipientQuery}
                 onChange={(e) => {
-                  setCompanyQuery(e.target.value);
-                  setSelectedCompany(null);
+                  setRecipientQuery(e.target.value);
+                  setSelectedRecipient(null);
                   setComposeError(null);
                 }}
-                placeholder="Company name, sector, or ticker"
+                placeholder="Person or company name"
               />
             </div>
-            {payableCompanyResults.length > 0 && !selectedCompany && (
+            {payableResults.length > 0 && !selectedRecipient && (
               <ul className="mt-2 overflow-hidden rounded-md border border-border">
-                {payableCompanyResults.map((company) => (
-                  <li key={company.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCompany(company);
-                        setCompanyQuery(company.name);
-                        setCompanyResults([]);
-                        setComposeError(null);
-                      }}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/60"
-                    >
-                      <ShieldCheck className="mt-0.5 size-4 shrink-0 text-gold" />
-                      <span>
-                        <span className="font-medium">{company.name}</span>
-                        <span className="mt-0.5 block text-[12px] text-muted-foreground">
-                          {[company.sector, company.ticker].filter(Boolean).join(" · ")}
+                {payableResults.map((recipient) => {
+                  const Icon = recipientIcon(recipient);
+                  return (
+                    <li key={`${recipient.kind}-${recipient.id}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (recipient.kind === "person" && !recipient.canReceive) {
+                            setComposeError(PERSON_RECEIVE_ACCOUNT_MISSING);
+                            return;
+                          }
+                          setSelectedRecipient(recipient);
+                          setRecipientQuery(recipient.name);
+                          setRecipientResults([]);
+                          setComposeError(null);
+                        }}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/60"
+                      >
+                        <Icon className="mt-0.5 size-4 shrink-0 text-gold" />
+                        <span>
+                          <span className="font-medium">{recipient.name}</span>
+                          <span className="mt-0.5 block text-[12px] text-muted-foreground">
+                            {recipient.kind === "company"
+                              ? recipient.subtitle || "Verified company"
+                              : recipient.subtitle}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                            {recipient.destinationLabel}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
-            {companyQuery.trim().length >= 1 &&
-              companyResults.length > 0 &&
-              payableCompanyResults.length === 0 &&
-              !selectedCompany && (
+            {recipientQuery.trim().length >= 1 &&
+              recipientResults.length > 0 &&
+              payableResults.length === 0 &&
+              !selectedRecipient && (
                 <p className="mt-2 text-[12px] text-muted-foreground">
                   {CARD_COMPANY_PAY_BLOCKED}
                 </p>
               )}
-            {selectedCompany && (
+            {selectedRecipient && (
               <div className="mt-3 rounded-lg border border-gold/25 bg-gold/5 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="size-4 text-gold" />
-                  <span className="font-medium">{selectedCompany.name}</span>
+                  {(() => {
+                    const Icon = recipientIcon(selectedRecipient);
+                    return <Icon className="size-4 text-gold" />;
+                  })()}
+                  <span className="font-medium">{selectedRecipient.name}</span>
                 </div>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  {selectedRecipient.destinationLabel}
+                </p>
               </div>
             )}
           </div>
@@ -440,9 +510,32 @@ export function AltaPayForm({
               onChange={(e) => setAmount(e.target.value)}
               required
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Available {florin(availableBalance)}
-            </p>
+            {selectedFunding && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Available {florin(availableBalance)}
+              </p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={fieldLabel}>From account</span>
+            <Select value={fundingKeyValue} onValueChange={setFundingKeyValue} disabled={submitting}>
+              <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                <SelectValue placeholder="Select funding source" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeFundingSources.map((source) => (
+                  <SelectItem key={fundingKey(source)} value={fundingKey(source)}>
+                    {fundingLabel(source)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedRecipient?.kind === "person" && activeFundingSources.length === 0 && (
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                Open an Alta Bank account to send money to another Alta customer.
+              </p>
+            )}
           </label>
 
           <label className="block">
@@ -452,7 +545,7 @@ export function AltaPayForm({
               className={`${inputClass} min-h-[80px]`}
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              placeholder="Invoice #, order reference, or note to the business"
+              placeholder="Invoice #, order reference, or payment note"
             />
           </label>
         </fieldset>
@@ -463,6 +556,7 @@ export function AltaPayForm({
           kind="alta_pay"
           submitting={false}
           label="Review Payment"
+          disabled={!canReview}
         />
       </Card>
     </form>

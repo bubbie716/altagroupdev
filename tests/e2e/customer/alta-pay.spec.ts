@@ -26,7 +26,7 @@ test.describe("Alta Pay", () => {
       await submitAltaPayReview(page);
 
       await expect(page.locator("form p.text-destructive")).toContainText(
-        /select a verified company to pay/i,
+        /select a person or company to pay/i,
       );
     });
   });

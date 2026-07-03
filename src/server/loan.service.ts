@@ -1353,7 +1353,6 @@ export async function denyLoanApplication(
     await notifyLoanApplicationDenied(
       application.applicantUserId,
       application.id,
-      input.reviewNote ?? application.reviewNote,
     );
   } catch (error) {
     console.error("[loan] application denied notification failed", error);

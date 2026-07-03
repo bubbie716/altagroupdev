@@ -1,9 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Section, Card } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { AltaPayForm, altaCardPayFundingKey, employeeCardPayFundingKey } from "@/components/bank/alta-pay-form";
+import {
+  AltaPayForm,
+  altaCardPayFundingKey,
+  bankAccountPayFundingKey,
+  employeeCardPayFundingKey,
+} from "@/components/bank/alta-pay-form";
 import { AltaPayHistoryTable } from "@/components/bank/alta-pay-received-panel";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
+import { fetchUserBankSettings } from "@/lib/bank/bank-settings.functions";
 import {
   fetchPayFundingSources,
   fetchUserAltaPayHistory,
@@ -30,11 +36,12 @@ export const Route = createFileRoute("/bank/pay")({
     return result;
   },
   loader: async () => {
-    const [fundingSources, history] = await Promise.all([
+    const [fundingSources, history, bankSettings] = await Promise.all([
       fetchPayFundingSources(),
       fetchUserAltaPayHistory({ data: 25 }),
+      fetchUserBankSettings(),
     ]);
-    return { fundingSources, history };
+    return { fundingSources, history, bankSettings };
   },
   head: () => ({
     meta: [{ title: "Alta Pay — Alta Bank" }],
@@ -43,25 +50,27 @@ export const Route = createFileRoute("/bank/pay")({
 });
 
 function AltaPayPage() {
-  const { fundingSources, history } = Route.useLoaderData();
+  const { fundingSources, history, bankSettings } = Route.useLoaderData();
   const { employeeCardId, cardId } = Route.useSearch();
   const defaultFundingKey = employeeCardId
     ? employeeCardPayFundingKey(employeeCardId)
     : cardId
       ? altaCardPayFundingKey(cardId)
-      : undefined;
+      : bankSettings.defaultAltaPayFundingAccountId
+        ? bankAccountPayFundingKey(bankSettings.defaultAltaPayFundingAccountId)
+        : undefined;
 
   return (
     <>
       <BankPageMeta
       eyebrow="Alta Bank · Alta Pay"
-      title="Pay a Business"
-      description="Send Florins to verified Newport companies instantly — from a bank account or your Alta Card."
+      title="Alta Pay"
+      description="Send money to another Alta customer or Alta company."
      />
 {fundingSources.length === 0 ? (
         <EmptyBankState
           title="No eligible payment sources"
-          description="Open a personal Alta Bank account or activate an Alta Card to pay businesses through Alta Pay."
+          description="Open a personal Alta Bank account or activate an Alta Card to send money through Alta Pay."
         />
       ) : (
         <>

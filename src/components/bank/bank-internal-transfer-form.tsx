@@ -9,14 +9,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { submitBankInternalTransfer } from "@/lib/bank/bank.functions";
-import type { SubmitInternalTransferInput, TransferContact, UserBankAccount } from "@/lib/bank/backend-types";
+import type { SubmitInternalTransferInput, UserBankAccount } from "@/lib/bank/backend-types";
 import { florin } from "@/lib/bank/api";
 import { INTRABANK_TRANSFER_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
 import {
   formatBankActionError,
   transferBlockedReason,
 } from "@/lib/bank/account-status-copy";
-import { TransferContactPicker } from "@/components/bank/bank-transfer-contacts-manager";
 import {
   BankRequestErrorCard,
   BankRequestSubmitButton,
@@ -28,9 +27,6 @@ const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
 
-const ACCOUNT_NUMBER_PATTERN = /^AB-\d{4}-\d{6}$/;
-
-type TransferMode = "own" | "player";
 type FormView = "form" | "success" | "error";
 
 function accountLabel(account: UserBankAccount) {
@@ -47,25 +43,21 @@ function resolveInitialFromAccountId(accounts: UserBankAccount[], preferredAccou
 
 export function BankInternalTransferForm({
   accounts,
-  contacts = [],
   defaultFromAccountId,
   onSuccess,
   onSubmissionSuccess,
 }: {
   accounts: UserBankAccount[];
-  contacts?: TransferContact[];
   defaultFromAccountId?: string;
   onSuccess?: () => void;
   onSubmissionSuccess?: (result: BankRequestSubmissionResult) => void;
 }) {
   const canTransferOwn = accounts.length >= 2;
-  const [transferMode, setTransferMode] = useState<TransferMode>(canTransferOwn ? "own" : "player");
 
   const [fromAccountId, setFromAccountId] = useState(() =>
     resolveInitialFromAccountId(accounts, defaultFromAccountId),
   );
   const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? "");
-  const [toAccountNumber, setToAccountNumber] = useState("");
 
   const fromAccount = accounts.find((account) => account.id === fromAccountId);
   const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
@@ -81,19 +73,13 @@ export function BankInternalTransferForm({
 
   const amountInputRef = useRef<HTMLInputElement>(null);
 
-  const normalizedAccountNumber = toAccountNumber.trim().toUpperCase();
-  const accountNumberValid =
-    normalizedAccountNumber.length === 0 || ACCOUNT_NUMBER_PATTERN.test(normalizedAccountNumber);
-
   function resetForm() {
     setView("form");
     setErrorReason(null);
     setSubmission(null);
     setAmount("");
     setMemo("");
-    setToAccountNumber("");
     setFromAccountId(resolveInitialFromAccountId(accounts, defaultFromAccountId));
-    setTransferMode(canTransferOwn ? "own" : "player");
     queueMicrotask(() => amountInputRef.current?.focus());
   }
 
@@ -104,15 +90,10 @@ export function BankInternalTransferForm({
 
   function handleFromAccountChange(nextFromAccountId: string) {
     setFromAccountId(nextFromAccountId);
-    if (transferMode === "own" && nextFromAccountId === toAccountId) {
+    if (nextFromAccountId === toAccountId) {
       const fallback = accounts.find((account) => account.id !== nextFromAccountId);
       setToAccountId(fallback?.id ?? "");
     }
-  }
-
-  function handleTransferModeChange(nextMode: TransferMode) {
-    setTransferMode(nextMode);
-    setErrorReason(null);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -136,28 +117,15 @@ export function BankInternalTransferForm({
       return;
     }
 
-    if (transferMode === "player" && !ACCOUNT_NUMBER_PATTERN.test(normalizedAccountNumber)) {
-      showError("Enter a valid Alta Bank account number (AB-####-######).");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
-      const input: SubmitInternalTransferInput =
-        transferMode === "own"
-          ? {
-              fromAccountId,
-              toAccountId,
-              amount: transferAmount,
-              memo,
-            }
-          : {
-              fromAccountId,
-              toAccountNumber: normalizedAccountNumber,
-              amount: transferAmount,
-              memo,
-            };
+      const input: SubmitInternalTransferInput = {
+        fromAccountId,
+        toAccountId,
+        amount: transferAmount,
+        memo,
+      };
 
       const result = await submitBankInternalTransfer({ data: input });
 
@@ -186,20 +154,11 @@ export function BankInternalTransferForm({
     }
   }
 
-  const canSubmitOwn =
-    transferMode === "own" &&
+  const canSubmit =
+    canTransferOwn &&
     !!fromAccountId &&
     !!toAccountId &&
     fromAccountId !== toAccountId &&
-    !!amount &&
-    Number(amount) > 0 &&
-    Number(amount) <= availableBalance;
-
-  const canSubmitPlayer =
-    transferMode === "player" &&
-    !!fromAccountId &&
-    !!normalizedAccountNumber &&
-    accountNumberValid &&
     !!amount &&
     Number(amount) > 0 &&
     Number(amount) <= availableBalance;
@@ -233,33 +192,6 @@ export function BankInternalTransferForm({
           {INTRABANK_TRANSFER_FORM_INTRO}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={!canTransferOwn || submitting}
-            onClick={() => handleTransferModeChange("own")}
-            className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-              transferMode === "own"
-                ? "border-foreground bg-foreground text-background"
-                : "border-border text-muted-foreground hover:border-border-strong"
-            }`}
-          >
-            My accounts
-          </button>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => handleTransferModeChange("player")}
-            className={`rounded-md border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              transferMode === "player"
-                ? "border-foreground bg-foreground text-background"
-                : "border-border text-muted-foreground hover:border-border-strong"
-            }`}
-          >
-            Another player
-          </button>
-        </div>
-
         <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
           <label className="block">
             <span className={fieldLabel}>From account</span>
@@ -277,54 +209,26 @@ export function BankInternalTransferForm({
             </Select>
           </label>
 
-          {transferMode === "own" ? (
-            canTransferOwn ? (
-              <label className="block">
-                <span className={fieldLabel}>To account</span>
-                <Select value={toAccountId} onValueChange={setToAccountId} disabled={submitting}>
-                  <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {destinationAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {accountLabel(account)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-            ) : (
-              <div className="rounded-xl border border-border/70 bg-surface-2/40 px-4 py-3.5 text-[13px] leading-relaxed text-muted-foreground">
-                Open at least two active Alta Bank accounts to transfer between them, or send to
-                another player.
-              </div>
-            )
+          {canTransferOwn ? (
+            <label className="block">
+              <span className={fieldLabel}>To account</span>
+              <Select value={toAccountId} onValueChange={setToAccountId} disabled={submitting}>
+                <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {destinationAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {accountLabel(account)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
           ) : (
-            <>
-              <TransferContactPicker
-                contacts={contacts}
-                onSelect={(contact) => {
-                  if (contact.accountNumber) setToAccountNumber(contact.accountNumber);
-                }}
-              />
-              <label className="block">
-                <span className={fieldLabel}>Recipient account number</span>
-                <input
-                  type="text"
-                  required
-                  value={toAccountNumber}
-                  onChange={(e) => setToAccountNumber(e.target.value)}
-                  placeholder="AB-2000-482913"
-                  className={`${inputClass} font-mono uppercase`}
-                />
-                {!accountNumberValid && (
-                  <p className="mt-2 text-[12px] text-destructive">
-                    Account numbers use the format AB-####-######
-                  </p>
-                )}
-              </label>
-            </>
+            <div className="rounded-xl border border-border/70 bg-surface-2/40 px-4 py-3.5 text-[13px] leading-relaxed text-muted-foreground">
+              Open at least two active Alta Bank accounts to move money between your own positions.
+            </div>
           )}
 
           <label className="block">
@@ -358,7 +262,7 @@ export function BankInternalTransferForm({
         <BankRequestSubmitButton
           kind="transfer"
           submitting={submitting}
-          disabled={!(canSubmitOwn || canSubmitPlayer)}
+          disabled={!canSubmit}
         />
       </Card>
     </form>

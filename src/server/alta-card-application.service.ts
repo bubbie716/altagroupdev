@@ -425,7 +425,6 @@ export async function denyAltaCardApplication(
     await notifyAltaCardApplicationDenied(
       application.applicantUserId,
       application.id,
-      input.denialReason,
     );
   } catch (error) {
     console.error("[alta-card] application denied notification failed", error);

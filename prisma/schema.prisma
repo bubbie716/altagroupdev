@@ -143,6 +143,22 @@ model User {
   opsExceptionDispositionsActed  OpsExceptionDisposition[] @relation("OpsExceptionDispositionActor")
   altaPrivateInvitationsReceived AltaPrivateInvitation[] @relation("AltaPrivateInvitationRecipient")
   altaPrivateInvitationsSent     AltaPrivateInvitation[] @relation("AltaPrivateInvitationSender")
+  botDailyTransferUsage          BotDailyTransferUsage[]
+  bankSettings                   UserBankSettings?
+}
+
+model BotDailyTransferUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  usageDate DateTime @db.Date
+  volume    Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, usageDate])
+  @@index([userId, usageDate])
 }
 
 model UserTagAssignment {
@@ -378,10 +394,29 @@ model BankAccount {
   loanPaymentsFrom  LoanPayment[]
   altaCardTransactions AltaCardTransaction[] @relation("AltaCardRelatedBankAccount")
   altaCardApplicationsPaymentSource AltaCardApplication[] @relation("AltaCardApplicationPaymentSource")
+  altaPayReceiveForUsers          UserBankSettings[]    @relation("UserAltaPayReceiveAccount")
+  altaPayFundingForUsers          UserBankSettings[]    @relation("UserAltaPayFundingAccount")
 
   @@index([userId])
   @@index([companyId])
   @@index([status])
+}
+
+model UserBankSettings {
+  id                             String   @id @default(cuid())
+  userId                         String   @unique
+  defaultAltaPayReceiveAccountId String?
+  defaultAltaPayFundingAccountId String?
+  discordNotificationPrefs       Json     @default("{}")
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  user                         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultAltaPayReceiveAccount BankAccount? @relation("UserAltaPayReceiveAccount", fields: [defaultAltaPayReceiveAccountId], references: [id], onDelete: SetNull)
+  defaultAltaPayFundingAccount BankAccount? @relation("UserAltaPayFundingAccount", fields: [defaultAltaPayFundingAccountId], references: [id], onDelete: SetNull)
+
+  @@index([defaultAltaPayReceiveAccountId])
+  @@index([defaultAltaPayFundingAccountId])
 }
 
 enum ScheduledTransferScope {
