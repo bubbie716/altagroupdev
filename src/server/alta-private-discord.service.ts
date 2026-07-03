@@ -54,11 +54,6 @@ export async function sendAltaPrivateAcceptedDiscordNotification(
       linkUrl: "/bank/private",
     });
 
-    const { grantDiscordPrivateRoleBestEffortForUser } = await import(
-      "@/server/discord-guild-role.service"
-    );
-    await grantDiscordPrivateRoleBestEffortForUser(userId);
-
     return { status: "sent" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Discord error";

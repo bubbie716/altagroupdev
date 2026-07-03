@@ -95,6 +95,13 @@ async function main() {
     });
   }
 
+  if (tags.includes(UserTag.PRIVATE_CLIENT)) {
+    const { finalizeAltaPrivateMembershipActivation } = await import(
+      "../src/server/alta-private-timeline.service"
+    );
+    await finalizeAltaPrivateMembershipActivation(user.id);
+  }
+
   const current = await listUserTags(user.id);
   console.log(
     `Granted ${tags.map((tag) => TAG_LABELS[tag]).join(", ")} to ${user.discordUsername} (${discordId})`,

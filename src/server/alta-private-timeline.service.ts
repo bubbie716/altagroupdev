@@ -95,4 +95,13 @@ export async function finalizeAltaPrivateMembershipActivation(
     "@/server/relationship-refresh-hooks.service"
   );
   await refreshUserRelationshipProfileBestEffort(userId, "alta-private-activated");
+
+  try {
+    const { grantDiscordPrivateRoleBestEffortForUser } = await import(
+      "@/server/discord-guild-role.service"
+    );
+    await grantDiscordPrivateRoleBestEffortForUser(userId);
+  } catch {
+    // Discord role sync must never block membership activation.
+  }
 }
