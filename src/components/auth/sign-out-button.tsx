@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { logoutUser } from "@/lib/auth/auth.functions";
+import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 
 export function SignOutButton({
   className,
@@ -17,6 +18,7 @@ export function SignOutButton({
 
   async function handleLogout() {
     await logout();
+    invalidateRootSessionCache();
     await router.invalidate();
     await router.navigate({ to: "/login" });
   }

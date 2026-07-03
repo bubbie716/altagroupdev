@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
@@ -35,6 +36,8 @@ const altaCardSubLinks = [
   { to: "/bank/alta-card", label: "Personal" },
   { to: "/bank/alta-card/business", label: "Business" },
 ] as const;
+
+const subNavEase = [0.22, 1, 0.36, 1] as const;
 
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/$/, "") || "/";
@@ -116,25 +119,52 @@ function LendingNavGroup({
   return (
     <div className="flex items-center gap-1">
       <NavLink to="/bank/lending" label="Lending" active={active} />
-      {expanded ? (
-        <div className="flex items-center gap-1">
-          <span className="mx-0.5 h-4 w-px bg-border/80" aria-hidden />
-          {subLinks.map((subLink) => (
-            <RouteButton
-              key={subLink.to}
-              to={subLink.to}
-              className={cn(
-                "type-subnav rounded-md px-3 py-1.5 transition-colors",
-                isLendingSubLinkActive(pathname, subLink)
-                  ? "bg-surface-2 text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {subLink.label}
-            </RouteButton>
-          ))}
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {expanded ? (
+          <motion.div
+            key="lending-sublinks"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "auto" }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.28, ease: subNavEase }}
+            className="flex items-center gap-1 overflow-hidden"
+          >
+            <motion.span
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              exit={{ scaleY: 0, opacity: 0 }}
+              transition={{ duration: 0.16, ease: subNavEase }}
+              className="mx-0.5 h-4 w-px origin-center bg-border/80"
+              aria-hidden
+            />
+            {subLinks.map((subLink, index) => (
+              <motion.div
+                key={subLink.to}
+                initial={{ opacity: 0, x: -14 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{
+                  duration: 0.22,
+                  delay: index * 0.045,
+                  ease: subNavEase,
+                }}
+              >
+                <RouteButton
+                  to={subLink.to}
+                  className={cn(
+                    "type-subnav rounded-md px-3 py-1.5 transition-colors",
+                    isLendingSubLinkActive(pathname, subLink)
+                      ? "bg-surface-2 text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {subLink.label}
+                </RouteButton>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -151,25 +181,52 @@ function AltaCardNavGroup({
   return (
     <div className="flex items-center gap-1">
       <NavLink to="/bank/alta-card" label="Alta Card" active={active} />
-      {expanded ? (
-        <div className="flex items-center gap-1">
-          <span className="mx-0.5 h-4 w-px bg-border/80" aria-hidden />
-          {altaCardSubLinks.map((subLink) => (
-            <RouteButton
-              key={subLink.to}
-              to={subLink.to}
-              className={cn(
-                "type-subnav rounded-md px-3 py-1.5 transition-colors",
-                isAltaCardSubLinkActive(pathname, subLink)
-                  ? "bg-surface-2 text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {subLink.label}
-            </RouteButton>
-          ))}
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {expanded ? (
+          <motion.div
+            key="alta-card-sublinks"
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "auto" }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.28, ease: subNavEase }}
+            className="flex items-center gap-1 overflow-hidden"
+          >
+            <motion.span
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              exit={{ scaleY: 0, opacity: 0 }}
+              transition={{ duration: 0.16, ease: subNavEase }}
+              className="mx-0.5 h-4 w-px origin-center bg-border/80"
+              aria-hidden
+            />
+            {altaCardSubLinks.map((subLink, index) => (
+              <motion.div
+                key={subLink.to}
+                initial={{ opacity: 0, x: -14 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{
+                  duration: 0.22,
+                  delay: index * 0.045,
+                  ease: subNavEase,
+                }}
+              >
+                <RouteButton
+                  to={subLink.to}
+                  className={cn(
+                    "type-subnav rounded-md px-3 py-1.5 transition-colors",
+                    isAltaCardSubLinkActive(pathname, subLink)
+                      ? "bg-surface-2 text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {subLink.label}
+                </RouteButton>
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

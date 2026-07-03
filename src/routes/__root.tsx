@@ -15,6 +15,7 @@ import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
 import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { fetchRootSession } from "@/lib/auth/root-session.functions";
+import { fetchRootSessionCached } from "@/lib/auth/root-session-cache";
 import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
@@ -96,7 +97,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
     let user: AltaUser | null = null;
     let maintenanceEnabled = false;
     try {
-      const session = await fetchRootSession();
+      const session = await fetchRootSessionCached(fetchRootSession);
       user = session.user;
       maintenanceEnabled = session.maintenanceEnabled;
     } catch (error) {

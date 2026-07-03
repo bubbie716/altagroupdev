@@ -6,6 +6,7 @@ import { EMPTY_ALTA_PRIVATE_CLIENT_CONTEXT } from "@/lib/bank/alta-private-clien
 
 export const Route = createFileRoute("/bank")({
   beforeLoad: authBeforeLoad,
+  staleTime: 60_000,
   loader: async () => {
     try {
       return { privateClientContext: await fetchAltaPrivateClientContext() };

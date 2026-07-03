@@ -12,6 +12,7 @@ import {
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { canAccessInternal } from "@/lib/auth/tags";
 import { logoutUser } from "@/lib/auth/auth.functions";
+import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import { useServerFn } from "@tanstack/react-start";
 
 export function AuthUserMenu() {
@@ -35,6 +36,7 @@ export function AuthUserMenu() {
 
   async function handleLogout() {
     await logout();
+    invalidateRootSessionCache();
     await router.invalidate();
     await router.navigate({ to: "/login" });
   }

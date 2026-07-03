@@ -11,6 +11,10 @@ export const getRouter = () => {
     context: { queryClient, user: null } satisfies AltaRouterContext,
     scrollRestoration: false,
     defaultPreloadStaleTime: 30_000,
+    defaultStaleTime: 30_000,
+    defaultGcTime: 5 * 60_000,
+    defaultPendingMs: 300,
+    defaultPendingMinMs: 0,
   });
 
   return router;

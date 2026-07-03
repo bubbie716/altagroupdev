@@ -89,3 +89,62 @@ export async function grantDiscordPrivateRoleBestEffortForUser(userId: string): 
   if (result.reason === "private_role_not_configured") return;
   logRoleGrant("private role grant failed", { userId, reason: result.reason });
 }
+
+export type DiscordGuildRoleJoinSyncResult =
+  | { synced: false; reason: "no_alta_account" }
+  | {
+      synced: true;
+      clientGranted: boolean;
+      privateGranted: boolean;
+      clientSkipped?: boolean;
+      privateSkipped?: boolean;
+    };
+
+/** Grant Discord guild roles when a member joins — based on linked Alta account + tags. */
+export async function syncDiscordGuildRolesForJoin(
+  discordUserId: string,
+): Promise<DiscordGuildRoleJoinSyncResult> {
+  const user = await prisma.user.findUnique({
+    where: { discordId: discordUserId },
+    select: {
+      id: true,
+      tags: { where: { tag: "PRIVATE_CLIENT" }, select: { tag: true } },
+    },
+  });
+
+  if (!user) {
+    return { synced: false, reason: "no_alta_account" };
+  }
+
+  let clientGranted = false;
+  let privateGranted = false;
+  let clientSkipped = resolveDiscordClientRoleId() == null;
+  let privateSkipped = resolveDiscordPrivateRoleId() == null;
+
+  const clientResult = await grantDiscordClientRole(discordUserId);
+  if (clientResult.ok) {
+    clientGranted = true;
+    logRoleGrant("join sync granted client role", { discordUserId, userId: user.id });
+  } else if (clientResult.reason !== "client_role_not_configured") {
+    logRoleGrant("join sync client role failed", { discordUserId, reason: clientResult.reason });
+  }
+
+  const isPrivateClient = user.tags.length > 0;
+  if (isPrivateClient) {
+    const privateResult = await grantDiscordPrivateRole(discordUserId);
+    if (privateResult.ok) {
+      privateGranted = true;
+      logRoleGrant("join sync granted private role", { discordUserId, userId: user.id });
+    } else if (privateResult.reason !== "private_role_not_configured") {
+      logRoleGrant("join sync private role failed", { discordUserId, reason: privateResult.reason });
+    }
+  }
+
+  return {
+    synced: true,
+    clientGranted,
+    privateGranted,
+    ...(clientSkipped ? { clientSkipped: true } : {}),
+    ...(privateSkipped && isPrivateClient ? { privateSkipped: true } : {}),
+  };
+}
