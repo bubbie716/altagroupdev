@@ -44,6 +44,7 @@ export const createOpsReviewFlagOps = createServerFn({ method: "POST" })
       reason: OpsReviewFlagReasonCode;
       customReason?: string;
       note?: string;
+      silentNotification?: boolean;
     }) => input,
   )
   .handler(async ({ data }) => {
@@ -52,10 +53,12 @@ export const createOpsReviewFlagOps = createServerFn({ method: "POST" })
   });
 
 export const resolveOpsReviewFlagOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { flagId: string; reason: string }) => input)
+  .inputValidator((input: { flagId: string; reason: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { resolveOpsReviewFlag } = await import("@/server/ops-review-flag.service");
-    return resolveOpsReviewFlag(await actorId(), data.flagId, data.reason);
+    return resolveOpsReviewFlag(await actorId(), data.flagId, data.reason, {
+      silentNotification: data.silentNotification,
+    });
   });
 
 export const setExceptionDispositionOps = createServerFn({ method: "POST" })

@@ -123,8 +123,11 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
             description="This will credit the selected account and mark the deposit request as approved."
             impact={`Amount ${r.amount} → account ${r.account}`}
             confirmLabel="Confirm approval"
-            onConfirm={async (reason) => {
-              await approveBankDeposit({ data: { transactionId: r.id, reviewNote: reason } });
+            customerNotifies
+            onConfirm={async (reason, options) => {
+              await approveBankDeposit({
+                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+              });
               void router.invalidate();
             }}
           />
@@ -135,8 +138,11 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
             description="This will reject the deposit request. Funds will not be credited."
             impact={`Reference ${r.referenceCode} · ${r.amount}`}
             confirmLabel="Confirm denial"
-            onConfirm={async (reason) => {
-              await denyBankDeposit({ data: { transactionId: r.id, reviewNote: reason } });
+            customerNotifies
+            onConfirm={async (reason, options) => {
+              await denyBankDeposit({
+                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+              });
               void router.invalidate();
             }}
           />

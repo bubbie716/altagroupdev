@@ -38,8 +38,11 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
           description="Credit the account and mark this deposit approved."
           impact={`${florin(tx.amount)} → ${tx.accountNumber} (${tx.holder})`}
           confirmLabel="Confirm approval"
-          onConfirm={async (reason) => {
-            await approveBankDeposit({ data: { transactionId: tx.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await approveBankDeposit({
+              data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
             void router.invalidate();
           }}
         />
@@ -50,8 +53,11 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
           description="Reject this deposit. Funds will not be credited."
           impact={`Reference ${tx.referenceCode}`}
           confirmLabel="Confirm denial"
-          onConfirm={async (reason) => {
-            await denyBankDeposit({ data: { transactionId: tx.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await denyBankDeposit({
+              data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
             void router.invalidate();
           }}
         />
@@ -70,8 +76,11 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
           description="Post this withdrawal to the ledger."
           impact={`${florin(tx.amount)} from ${tx.accountNumber}`}
           confirmLabel="Confirm approval"
-          onConfirm={async (reason) => {
-            await approveBankWithdrawal({ data: { transactionId: tx.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await approveBankWithdrawal({
+              data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
             void router.invalidate();
           }}
         />
@@ -82,8 +91,11 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
           description="Reject this withdrawal request."
           impact={`Reference ${tx.referenceCode}`}
           confirmLabel="Confirm denial"
-          onConfirm={async (reason) => {
-            await denyBankWithdrawal({ data: { transactionId: tx.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await denyBankWithdrawal({
+              data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
             void router.invalidate();
           }}
         />

@@ -108,8 +108,11 @@ export function WithdrawalsQueueView({
             description="This will debit the account and mark the withdrawal as approved for settlement."
             impact={`Amount ${r.amount} from account ${r.account}`}
             confirmLabel="Confirm approval"
-            onConfirm={async (reason) => {
-              await approveBankWithdrawal({ data: { transactionId: r.id, reviewNote: reason } });
+            customerNotifies
+            onConfirm={async (reason, options) => {
+              await approveBankWithdrawal({
+                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+              });
               void router.invalidate();
             }}
           />
@@ -119,8 +122,11 @@ export function WithdrawalsQueueView({
             title="Deny withdrawal"
             description="This will reject the withdrawal request. No funds will leave the account."
             confirmLabel="Confirm denial"
-            onConfirm={async (reason) => {
-              await denyBankWithdrawal({ data: { transactionId: r.id, reviewNote: reason } });
+            customerNotifies
+            onConfirm={async (reason, options) => {
+              await denyBankWithdrawal({
+                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+              });
               void router.invalidate();
             }}
           />

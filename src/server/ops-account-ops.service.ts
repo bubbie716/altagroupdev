@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { isAdmin } from "@/lib/auth/permissions";
+import type { OperatorNotificationOptions } from "@/lib/internal/operator-notification-options";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { submitOperatorInternalTransfer } from "@/server/bank.service";
 import { reversalAdjustmentDescription } from "@/lib/bank/customer-transaction-copy";
@@ -17,6 +18,7 @@ export async function reopenBankAccount(
   actorUserId: string,
   accountId: string,
   reason: string,
+  notificationOptions?: OperatorNotificationOptions,
 ): Promise<void> {
   await requireOperator();
   const trimmed = reason.trim();
@@ -31,16 +33,38 @@ export async function reopenBankAccount(
     data: { status: "ACTIVE" },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: "account_reopened",
+        source: "reopen_account",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ACCOUNT_REOPENED",
+    action: "BANK_ACCOUNT_REOPENED",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetAccountId: accountId,
     targetUserId: account.userId,
     description: `Reopened account ${account.accountNumber}`,
-    metadata: { reason: trimmed },
+    metadata: { reason: trimmed, source: "website", ...auditMetadata },
   });
 }
 
@@ -52,6 +76,7 @@ export async function setAccountRestrictions(
     restrictWithdrawals?: boolean;
     restrictTransfers?: boolean;
     reason: string;
+    silentNotification?: boolean;
   },
 ): Promise<void> {
   await requireOperator();
@@ -61,29 +86,97 @@ export async function setAccountRestrictions(
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) throw new Error("NOT_FOUND");
 
+  const before = {
+    restrictDeposits: account.restrictDeposits,
+    restrictWithdrawals: account.restrictWithdrawals,
+    restrictTransfers: account.restrictTransfers,
+  };
+  const after = {
+    restrictDeposits: input.restrictDeposits ?? account.restrictDeposits,
+    restrictWithdrawals: input.restrictWithdrawals ?? account.restrictWithdrawals,
+    restrictTransfers: input.restrictTransfers ?? account.restrictTransfers,
+  };
+
   await prisma.bankAccount.update({
     where: { id: accountId },
-    data: {
-      restrictDeposits: input.restrictDeposits ?? account.restrictDeposits,
-      restrictWithdrawals: input.restrictWithdrawals ?? account.restrictWithdrawals,
-      restrictTransfers: input.restrictTransfers ?? account.restrictTransfers,
-    },
+    data: after,
   });
+
+  const { detectRestrictionNotificationKinds } = await import(
+    "@/lib/bank/account-restriction-notification"
+  );
+  const { operatorNotificationAuditAction } = await import(
+    "@/lib/bank/customer-operator-notification-copy"
+  );
+  const notificationKinds = detectRestrictionNotificationKinds(before, after);
+  const notificationOptions: OperatorNotificationOptions = {
+    silentNotification: input.silentNotification,
+  };
+
+  let customerNotificationSent = false;
+  if (notificationKinds.length > 0) {
+    const { deliverOperatorCustomerNotification } = await import(
+      "@/server/customer-operator-notification.service"
+    );
+    const result = await deliverOperatorCustomerNotification({
+      actorUserId,
+      notificationOptions,
+      deliver: async () => {
+        const { notifyBankAccountCustomersBestEffort } = await import(
+          "@/server/customer-operator-notification.service"
+        );
+        let sent = false;
+        for (const kind of notificationKinds) {
+          const ok = await notifyBankAccountCustomersBestEffort({
+            account: {
+              id: account.id,
+              accountNumber: account.accountNumber,
+              userId: account.userId,
+              companyId: account.companyId,
+            },
+            kind,
+            source: "set_account_restrictions",
+            silentNotification: input.silentNotification,
+          });
+          sent = sent || ok;
+        }
+        return sent;
+      },
+    });
+    customerNotificationSent = result.customerNotificationSent;
+  }
+
+  const { buildOperatorNotificationAuditMetadata } = await import(
+    "@/lib/internal/operator-notification-options"
+  );
+  const auditMetadata =
+    notificationKinds.length > 0
+      ? buildOperatorNotificationAuditMetadata(
+          actorUserId,
+          notificationOptions,
+          customerNotificationSent,
+        )
+      : buildOperatorNotificationAuditMetadata(actorUserId, notificationOptions, false);
 
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ACCOUNT_RESTRICTIONS_UPDATED",
+    action:
+      notificationKinds.length > 0
+        ? operatorNotificationAuditAction(notificationKinds[0]!)
+        : "ACCOUNT_RESTRICTIONS_UPDATED",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetAccountId: accountId,
+    targetUserId: account.userId,
     description: `Updated account restrictions for ${account.accountNumber}`,
     metadata: {
       reason: trimmed,
-      restrictDeposits: input.restrictDeposits,
-      restrictWithdrawals: input.restrictWithdrawals,
-      restrictTransfers: input.restrictTransfers,
+      before,
+      after,
+      notificationKinds,
       source: "website",
+      ...auditMetadata,
     },
   });
 }
@@ -93,6 +186,7 @@ export async function applyAccountHold(
   accountId: string,
   amount: number,
   reason: string,
+  notificationOptions?: OperatorNotificationOptions,
 ): Promise<{ holdId: string }> {
   await requireOperator();
   if (amount <= 0) badRequest("Hold amount must be greater than zero");
@@ -115,15 +209,39 @@ export async function applyAccountHold(
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: "account_hold_placed",
+        amount,
+        source: "apply_account_hold",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ACCOUNT_HOLD_APPLIED",
+    action: "BANK_ACCOUNT_HOLD_PLACED",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetAccountId: accountId,
+    targetUserId: account.userId,
     description: `Hold of ${amount} on ${account.accountNumber}`,
-    metadata: { holdId: hold.id, amount, reason: trimmed },
+    metadata: { holdId: hold.id, amount, reason: trimmed, source: "website", ...auditMetadata },
   });
 
   return { holdId: hold.id };
@@ -133,6 +251,7 @@ export async function releaseAccountHold(
   actorUserId: string,
   holdId: string,
   reason: string,
+  notificationOptions?: OperatorNotificationOptions,
 ): Promise<void> {
   await requireOperator();
   const trimmed = reason.trim();
@@ -149,15 +268,45 @@ export async function releaseAccountHold(
     data: { status: "RELEASED", releasedById: actorUserId, releasedAt: new Date() },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: hold.bankAccount.id,
+          accountNumber: hold.bankAccount.accountNumber,
+          userId: hold.bankAccount.userId,
+          companyId: hold.bankAccount.companyId,
+        },
+        kind: "account_hold_released",
+        amount: decimalToNumber(hold.amount),
+        source: "release_account_hold",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ACCOUNT_HOLD_RELEASED",
+    action: "BANK_ACCOUNT_HOLD_RELEASED",
     entityType: "BANK_ACCOUNT",
     entityId: hold.bankAccountId,
     targetAccountId: hold.bankAccountId,
+    targetUserId: hold.bankAccount.userId,
     description: `Released hold on ${hold.bankAccount.accountNumber}`,
-    metadata: { holdId, reason: trimmed },
+    metadata: {
+      holdId,
+      reason: trimmed,
+      amount: decimalToNumber(hold.amount),
+      source: "website",
+      ...auditMetadata,
+    },
   });
 }
 
@@ -209,6 +358,7 @@ export async function reverseAdjustment(
   actorUserId: string,
   transactionId: string,
   reason: string,
+  notificationOptions?: OperatorNotificationOptions,
 ): Promise<{ referenceCode: string }> {
   const actorRecord = await prisma.user.findUnique({
     where: { id: actorUserId },
@@ -240,21 +390,34 @@ export async function reverseAdjustment(
     reason: trimmed,
     customerDescription: reversalAdjustmentDescription(original.description),
     allowOverdraft: isAdmin(actor),
+    silentNotification: notificationOptions?.silentNotification,
   });
+
+  const { buildOperatorNotificationAuditMetadata } = await import(
+    "@/lib/internal/operator-notification-options"
+  );
+  const auditMetadata = buildOperatorNotificationAuditMetadata(
+    actorUserId,
+    notificationOptions,
+    !notificationOptions?.silentNotification,
+  );
 
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ADJUSTMENT_REVERSED",
+    action: "BANK_REVERSAL_POSTED",
     entityType: "BANK_TRANSACTION",
     entityId: transactionId,
     targetTransactionId: transactionId,
     targetAccountId: original.bankAccountId,
+    targetUserId: original.bankAccount.userId,
     description: `Reversed adjustment ${original.referenceCode}`,
     metadata: {
       originalReference: original.referenceCode,
       reversalReference: result.referenceCode,
       reason: trimmed,
+      source: "website",
+      ...auditMetadata,
     },
   });
 

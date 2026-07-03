@@ -91,6 +91,7 @@ export async function createOpsReviewFlag(
     reason: OpsReviewFlagReasonCode;
     customReason?: string;
     note?: string;
+    silentNotification?: boolean;
   },
 ): Promise<OpsReviewFlagRow> {
   await requireOperator();
@@ -115,9 +116,50 @@ export async function createOpsReviewFlag(
       ? (input.customReason ?? "Custom")
       : OPS_REVIEW_FLAG_REASON_LABELS[input.reason];
 
+  let auditMetadata: Record<string, boolean | string | null> = {
+    silentNotification: false,
+    customerNotificationSent: false,
+    silentNotificationChosenByUserId: null,
+  };
+
+  if (input.targetType === "BANK_TRANSACTION") {
+    const { deliverOperatorCustomerNotification } = await import(
+      "@/server/customer-operator-notification.service"
+    );
+    const transaction = await prisma.bankTransaction.findUnique({
+      where: { id: input.targetId },
+      include: { bankAccount: true },
+    });
+    if (transaction?.bankAccount) {
+      const result = await deliverOperatorCustomerNotification({
+        actorUserId,
+        notificationOptions: { silentNotification: input.silentNotification },
+        deliver: async () =>
+          (
+            await import("@/server/customer-operator-notification.service")
+          ).notifyBankAccountCustomersBestEffort({
+            account: {
+              id: transaction.bankAccount.id,
+              accountNumber: transaction.bankAccount.accountNumber,
+              userId: transaction.bankAccount.userId,
+              companyId: transaction.bankAccount.companyId,
+            },
+            kind: "transaction_under_review",
+            transactionId: transaction.id,
+            source: "ops_review_flag_created",
+            silentNotification: input.silentNotification,
+          }),
+      });
+      auditMetadata = result.auditMetadata;
+    }
+  }
+
   await writeAuditLog({
     actorUserId,
-    action: "OPS_REVIEW_FLAG_CREATED",
+    action:
+      input.targetType === "BANK_TRANSACTION"
+        ? "BANK_TRANSACTION_UNDER_REVIEW"
+        : "OPS_REVIEW_FLAG_CREATED",
     entityType: input.targetType as import("@prisma/client").AuditEntityType,
     entityId: input.targetId,
     description: `Operational review flag added: ${reasonLabel}`,
@@ -126,6 +168,8 @@ export async function createOpsReviewFlag(
       reason: input.reason,
       customReason: input.customReason ?? null,
       note: input.note ?? null,
+      source: "website",
+      ...auditMetadata,
     },
   });
 
@@ -136,6 +180,7 @@ export async function resolveOpsReviewFlag(
   actorUserId: string,
   flagId: string,
   resolveReason: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ): Promise<OpsReviewFlagRow> {
   await requireOperator();
   const existing = await prisma.opsReviewFlag.findUnique({
@@ -155,14 +200,60 @@ export async function resolveOpsReviewFlag(
     include: flagInclude,
   });
 
+  let auditMetadata: Record<string, boolean | string | null> = {
+    silentNotification: false,
+    customerNotificationSent: false,
+    silentNotificationChosenByUserId: null,
+  };
+
+  if (flag.targetType === "BANK_TRANSACTION") {
+    const { deliverOperatorCustomerNotification } = await import(
+      "@/server/customer-operator-notification.service"
+    );
+    const transaction = await prisma.bankTransaction.findUnique({
+      where: { id: flag.targetId },
+      include: { bankAccount: true },
+    });
+    if (transaction?.bankAccount) {
+      const result = await deliverOperatorCustomerNotification({
+        actorUserId,
+        notificationOptions,
+        deliver: async () =>
+          (
+            await import("@/server/customer-operator-notification.service")
+          ).notifyBankAccountCustomersBestEffort({
+            account: {
+              id: transaction.bankAccount.id,
+              accountNumber: transaction.bankAccount.accountNumber,
+              userId: transaction.bankAccount.userId,
+              companyId: transaction.bankAccount.companyId,
+            },
+            kind: "transaction_released",
+            transactionId: transaction.id,
+            source: "ops_review_flag_resolved",
+            silentNotification: notificationOptions?.silentNotification,
+          }),
+      });
+      auditMetadata = result.auditMetadata;
+    }
+  }
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "OPS_REVIEW_FLAG_RESOLVED",
+    action:
+      flag.targetType === "BANK_TRANSACTION"
+        ? "BANK_TRANSACTION_RELEASED"
+        : "OPS_REVIEW_FLAG_RESOLVED",
     entityType: flag.targetType as import("@prisma/client").AuditEntityType,
     entityId: flag.targetId,
     description: `Operational review flag resolved: ${resolveReason.trim()}`,
-    metadata: { flagId: flag.id, resolveReason: resolveReason.trim() },
+    metadata: {
+      flagId: flag.id,
+      resolveReason: resolveReason.trim(),
+      source: "website",
+      ...auditMetadata,
+    },
   });
 
   return mapFlag(flag);

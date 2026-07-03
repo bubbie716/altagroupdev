@@ -20,7 +20,7 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
   const validReason = reason.trim().length > 0;
   const canSubmit = validAmount && validReason;
 
-  async function runAdjustment(confirmReason: string) {
+  async function runAdjustment(confirmReason: string, silentNotification?: boolean) {
     setError(null);
     setSuccess(null);
     const result = await adminAdjustBankAccountRecord({
@@ -30,6 +30,7 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
         amount: parsed,
         reason: reason.trim() || confirmReason,
         allowOverdraft: direction === "debit" ? allowOverdraft : undefined,
+        silentNotification,
       },
     });
     setSuccess(`Adjustment recorded (${result.referenceCode}).`);
@@ -103,9 +104,10 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
             : undefined
         }
         disabled={!canSubmit}
-        onConfirm={async (confirmReason) => {
+        customerNotifies
+        onConfirm={async (confirmReason, options) => {
           try {
-            await runAdjustment(confirmReason);
+            await runAdjustment(confirmReason, options?.silentNotification);
           } catch (err) {
             setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Adjustment failed.");
             throw err;

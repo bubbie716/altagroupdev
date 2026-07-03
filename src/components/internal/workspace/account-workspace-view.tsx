@@ -64,8 +64,11 @@ export function AccountWorkspaceView({ data, activeTab }: { data: AccountWorkspa
           title="Freeze account"
           description="Blocks debits and most activity."
           impact={florin(account.balance)}
-          onConfirm={async (reason) => {
-            await freezeBankAccountRecord({ data: { accountId: account.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await freezeBankAccountRecord({
+              data: { accountId: account.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
           }}
         />
       )}
@@ -75,8 +78,11 @@ export function AccountWorkspaceView({ data, activeTab }: { data: AccountWorkspa
           variant="primary"
           title="Unfreeze account"
           description="Restores normal activity."
-          onConfirm={async (reason) => {
-            await unfreezeBankAccountRecord({ data: { accountId: account.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await unfreezeBankAccountRecord({
+              data: { accountId: account.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
           }}
         />
       )}
@@ -86,8 +92,11 @@ export function AccountWorkspaceView({ data, activeTab }: { data: AccountWorkspa
           variant="danger"
           title="Close account"
           description="Permanently closes the account."
-          onConfirm={async (reason) => {
-            await closeBankAccountRecord({ data: { accountId: account.id, reviewNote: reason } });
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await closeBankAccountRecord({
+              data: { accountId: account.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
           }}
         />
       )}

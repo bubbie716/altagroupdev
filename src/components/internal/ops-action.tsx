@@ -27,6 +27,7 @@ export function OpsAction({
   impact,
   confirmLabel,
   requireReason = true,
+  customerNotifies = false,
   disabled = false,
   className,
   children,
@@ -39,10 +40,12 @@ export function OpsAction({
   impact?: ReactNode;
   confirmLabel?: string;
   requireReason?: boolean;
+  /** Shows silent-notification toggle in the confirm dialog (default OFF). */
+  customerNotifies?: boolean;
   disabled?: boolean;
   className?: string;
   children?: ReactNode;
-  onConfirm: (reason: string) => void | Promise<void>;
+  onConfirm: (reason: string, options?: import("@/lib/internal/operator-notification-options").OpsConfirmOptions) => void | Promise<void>;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,9 +70,10 @@ export function OpsAction({
         confirmLabel={confirmLabel ?? label}
         variant={variant === "danger" ? "danger" : "default"}
         requireReason={requireReason}
+        showSilentNotificationToggle={customerNotifies}
         onCancel={() => setOpen(false)}
-        onConfirm={async (reason) => {
-          await onConfirm(reason);
+        onConfirm={async (reason, options) => {
+          await onConfirm(reason, options);
           await router.invalidate();
         }}
       >
@@ -95,6 +99,7 @@ export function OpsApproveDenyActions({
   approveImpact,
   denyImpact,
   disabled,
+  customerNotifies = false,
   onApprove,
   onDeny,
 }: {
@@ -107,8 +112,9 @@ export function OpsApproveDenyActions({
   approveImpact?: ReactNode;
   denyImpact?: ReactNode;
   disabled?: boolean;
-  onApprove: (reason: string) => Promise<void>;
-  onDeny: (reason: string) => Promise<void>;
+  customerNotifies?: boolean;
+  onApprove: (reason: string, options?: import("@/lib/internal/operator-notification-options").OpsConfirmOptions) => Promise<void>;
+  onDeny: (reason: string, options?: import("@/lib/internal/operator-notification-options").OpsConfirmOptions) => Promise<void>;
 }) {
   return (
     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
@@ -120,6 +126,7 @@ export function OpsApproveDenyActions({
         impact={approveImpact}
         confirmLabel={approveLabel}
         disabled={disabled}
+        customerNotifies={customerNotifies}
         onConfirm={onApprove}
       />
       <OpsAction
@@ -130,6 +137,7 @@ export function OpsApproveDenyActions({
         impact={denyImpact}
         confirmLabel={denyLabel}
         disabled={disabled}
+        customerNotifies={customerNotifies}
         onConfirm={onDeny}
       />
     </div>

@@ -4,7 +4,6 @@ import type {
   UserBankSummary,
   UserBankTransaction,
 } from "@/lib/bank/backend-types";
-import type { NotificationRow } from "@/server/notification.service";
 import { getCustomerAltaPrivatePageState } from "@/server/alta-private-invitation.service";
 import {
   getUserBankAccountDetail,
@@ -12,22 +11,19 @@ import {
   listUserBankAccounts,
   listUserRecentTransactions,
 } from "@/server/bank.service";
-import { getUserNotifications } from "@/server/notification.service";
 
 export type BotHubContext = {
   summary: UserBankSummary;
   accounts: UserBankAccount[];
   recentTransactions: UserBankTransaction[];
-  notifications: { items: NotificationRow[]; unreadCount: number };
   privateState: AltaPrivateCustomerPageState;
 };
 
 export async function getBotHubContext(userId: string): Promise<BotHubContext> {
-  const [summary, accounts, recentTransactions, notifications, privateState] = await Promise.all([
+  const [summary, accounts, recentTransactions, privateState] = await Promise.all([
     getUserBankSummary(userId),
     listUserBankAccounts(userId),
     listUserRecentTransactions(userId, 8),
-    getUserNotifications(userId, 12),
     getCustomerAltaPrivatePageState(userId),
   ]);
 
@@ -35,7 +31,6 @@ export async function getBotHubContext(userId: string): Promise<BotHubContext> {
     summary,
     accounts,
     recentTransactions,
-    notifications,
     privateState,
   };
 }

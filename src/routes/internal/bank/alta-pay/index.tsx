@@ -77,10 +77,13 @@ function AltaPayOpsPage() {
         description={reverseRef ? `Reverse payment ${reverseRef}. This creates offsetting transactions.` : undefined}
         confirmLabel="Reverse payment"
         variant="danger"
+        showSilentNotificationToggle
         onCancel={() => setReverseRef(null)}
-        onConfirm={async (reason) => {
+        onConfirm={async (reason, options) => {
           if (!reverseRef) return;
-          await reverseFn({ data: { referenceCode: reverseRef, reason } });
+          await reverseFn({
+            data: { referenceCode: reverseRef, reason, silentNotification: options?.silentNotification },
+          });
           setReverseRef(null);
           await router.invalidate();
         }}

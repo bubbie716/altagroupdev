@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { SilentNotificationToggle } from "@/components/internal/silent-notification-toggle";
+import type { OpsConfirmOptions } from "@/lib/internal/operator-notification-options";
 
 export function OpsConfirmDialog({
   open,
@@ -9,6 +11,7 @@ export function OpsConfirmDialog({
   confirmLabel = "Confirm",
   variant = "default",
   requireReason = true,
+  showSilentNotificationToggle = false,
   children,
   onCancel,
   onConfirm,
@@ -19,11 +22,14 @@ export function OpsConfirmDialog({
   confirmLabel?: string;
   variant?: "default" | "danger";
   requireReason?: boolean;
+  /** When true, shows "Silent (Do not notify customer)" — default OFF. */
+  showSilentNotificationToggle?: boolean;
   children?: ReactNode;
   onCancel: () => void;
-  onConfirm: (reason: string) => void | Promise<void>;
+  onConfirm: (reason: string, options?: OpsConfirmOptions) => void | Promise<void>;
 }) {
   const [reason, setReason] = useState("");
+  const [silentNotification, setSilentNotification] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -42,6 +48,7 @@ export function OpsConfirmDialog({
   useEffect(() => {
     if (open) {
       setReason("");
+      setSilentNotification(false);
       setError(null);
       dialogRef.current?.focus();
     }
@@ -57,7 +64,10 @@ export function OpsConfirmDialog({
     setPending(true);
     setError(null);
     try {
-      await onConfirm(reason.trim());
+      await onConfirm(
+        reason.trim(),
+        showSilentNotificationToggle ? { silentNotification } : undefined,
+      );
       setReason("");
       onCancel();
     } catch (e) {
@@ -111,6 +121,15 @@ export function OpsConfirmDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Document why this action is being taken"
+            />
+          </div>
+        ) : null}
+        {showSilentNotificationToggle ? (
+          <div className="mt-4">
+            <SilentNotificationToggle
+              checked={silentNotification}
+              onChange={setSilentNotification}
+              disabled={pending}
             />
           </div>
         ) : null}

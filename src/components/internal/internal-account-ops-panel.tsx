@@ -41,7 +41,8 @@ export function InternalAccountOpsPanel({
   activeHoldTotal: number;
 }) {
   const router = useRouter();
-  const [dialog, setDialog] = useState<null | "reopen" | "hold" | "transfer" | "restrict">(null);
+  const [dialog, setDialog] = useState<null | "reopen" | "hold" | "transfer" | "restrict" | "release">(null);
+  const [releaseHoldId, setReleaseHoldId] = useState<string | null>(null);
   const [holdAmount, setHoldAmount] = useState("");
   const [transferTo, setTransferTo] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
@@ -60,6 +61,7 @@ export function InternalAccountOpsPanel({
 
   function closeDialog() {
     setDialog(null);
+    setReleaseHoldId(null);
     setHoldAmount("");
     setTransferTo("");
     setTransferAmount("");
@@ -112,14 +114,10 @@ export function InternalAccountOpsPanel({
                   <button
                     type="button"
                     className="font-mono text-[10px] uppercase text-gold"
-                    onClick={() =>
-                      void (async () => {
-                        const reason = window.prompt("Reason for releasing hold:");
-                        if (!reason?.trim()) return;
-                        await releaseFn({ data: { holdId: h.id, reason: reason.trim() } });
-                        await router.invalidate();
-                      })()
-                    }
+                    onClick={() => {
+                      setReleaseHoldId(h.id);
+                      setDialog("release");
+                    }}
                   >
                     Release
                   </button>
@@ -135,9 +133,12 @@ export function InternalAccountOpsPanel({
         title="Reopen account"
         description={`Reopen ${accountNumber} for normal operations.`}
         confirmLabel="Reopen"
+        showSilentNotificationToggle
         onCancel={closeDialog}
-        onConfirm={async (reason) => {
-          await reopenFn({ data: { accountId, reason } });
+        onConfirm={async (reason, options) => {
+          await reopenFn({
+            data: { accountId, reason, silentNotification: options?.silentNotification },
+          });
           await router.invalidate();
         }}
       />
@@ -147,13 +148,16 @@ export function InternalAccountOpsPanel({
         title="Apply account hold"
         description="Record a hold against available balance for this account."
         confirmLabel="Apply hold"
+        showSilentNotificationToggle
         onCancel={closeDialog}
-        onConfirm={async (reason) => {
+        onConfirm={async (reason, options) => {
           const amount = Number(holdAmount);
           if (!Number.isFinite(amount) || amount <= 0) {
             throw new Error("BAD_REQUEST:Enter a valid hold amount");
           }
-          await holdFn({ data: { accountId, amount, reason } });
+          await holdFn({
+            data: { accountId, amount, reason, silentNotification: options?.silentNotification },
+          });
           await router.invalidate();
         }}
       >
@@ -233,8 +237,9 @@ export function InternalAccountOpsPanel({
         title="Update account restrictions"
         description="Toggle deposit, withdrawal, and transfer restrictions."
         confirmLabel="Save restrictions"
+        showSilentNotificationToggle
         onCancel={closeDialog}
-        onConfirm={async (reason) => {
+        onConfirm={async (reason, options) => {
           await restrictFn({
             data: {
               accountId,
@@ -242,6 +247,7 @@ export function InternalAccountOpsPanel({
               restrictDeposits: restrictDraft.restrictDeposits,
               restrictWithdrawals: restrictDraft.restrictWithdrawals,
               restrictTransfers: restrictDraft.restrictTransfers,
+              silentNotification: options?.silentNotification,
             },
           });
           await router.invalidate();
@@ -266,6 +272,22 @@ export function InternalAccountOpsPanel({
           ))}
         </div>
       </OpsConfirmDialog>
+
+      <OpsConfirmDialog
+        open={dialog === "release" && !!releaseHoldId}
+        title="Release account hold"
+        description="Release an active hold on this account."
+        confirmLabel="Release hold"
+        showSilentNotificationToggle
+        onCancel={closeDialog}
+        onConfirm={async (reason, options) => {
+          if (!releaseHoldId) return;
+          await releaseFn({
+            data: { holdId: releaseHoldId, reason, silentNotification: options?.silentNotification },
+          });
+          await router.invalidate();
+        }}
+      />
     </div>
   );
 }

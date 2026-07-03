@@ -205,42 +205,50 @@ export const fetchInternalBankOps = createServerFn({ method: "GET" }).handler(as
 });
 
 export const approveBankDeposit = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveDeposit } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await approveDeposit(admin.id, data.transactionId, data.reviewNote);
+    await approveDeposit(admin.id, data.transactionId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
 export const denyBankDeposit = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyDeposit } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await denyDeposit(admin.id, data.transactionId, data.reviewNote);
+    await denyDeposit(admin.id, data.transactionId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
 export const approveBankWithdrawal = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveWithdrawal } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await approveWithdrawal(admin.id, data.transactionId, data.reviewNote);
+    await approveWithdrawal(admin.id, data.transactionId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
 export const denyBankWithdrawal = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { transactionId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyWithdrawal } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await denyWithdrawal(admin.id, data.transactionId, data.reviewNote);
+    await denyWithdrawal(admin.id, data.transactionId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
@@ -255,32 +263,38 @@ export const approveBankAccountOpening = createServerFn({ method: "POST" })
   });
 
 export const freezeBankAccountRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { freezeBankAccount } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await freezeBankAccount(admin.id, data.accountId, data.reviewNote);
+    await freezeBankAccount(admin.id, data.accountId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
 export const unfreezeBankAccountRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { unfreezeBankAccount } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await unfreezeBankAccount(admin.id, data.accountId, data.reviewNote);
+    await unfreezeBankAccount(admin.id, data.accountId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
 export const closeBankAccountRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; reviewNote?: string }) => input)
+  .inputValidator((input: { accountId: string; reviewNote?: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { closeBankAccount } = await import("@/server/bank.service");
     const admin = await requireOperator();
-    await closeBankAccount(admin.id, data.accountId, data.reviewNote);
+    await closeBankAccount(admin.id, data.accountId, data.reviewNote, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
@@ -301,6 +315,8 @@ export const adminAdjustBankAccountRecord = createServerFn({ method: "POST" })
       reason: string;
       referenceCode?: string;
       allowOverdraft?: boolean;
+      customerFacingReason?: string | null;
+      silentNotification?: boolean;
     }) => input,
   )
   .handler(async ({ data }) => {

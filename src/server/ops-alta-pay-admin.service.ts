@@ -1,6 +1,7 @@
 import type { AltaPayAdminRow, PaginatedResult } from "@/lib/internal/ops-types";
 import { altaPayReversalDescription } from "@/lib/bank/customer-transaction-copy";
 import { requireOperator } from "@/server/permissions.service";
+import { prisma } from "@/server/db";
 import type { Prisma } from "@prisma/client";
 
 function decimalToNumber(value: { toString(): string }): number {
@@ -126,6 +127,7 @@ export async function reverseAltaPayPayment(
   actorUserId: string,
   referenceCode: string,
   reason: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ): Promise<{ reversalReference: string }> {
   await requireOperator();
   const trimmed = reason.trim();
@@ -184,15 +186,71 @@ export async function reverseAltaPayPayment(
     });
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions,
+    deliver: async () => {
+      const { notifyBankAccountCustomersBestEffort } = await import(
+        "@/server/customer-operator-notification.service"
+      );
+      const outAccount = await prisma.bankAccount.findUnique({ where: { id: outTx.bankAccountId } });
+      const inAccount = await prisma.bankAccount.findUnique({ where: { id: inTx.bankAccountId } });
+      let sent = false;
+      if (outAccount) {
+        sent =
+          (await notifyBankAccountCustomersBestEffort({
+            account: {
+              id: outAccount.id,
+              accountNumber: outAccount.accountNumber,
+              userId: outAccount.userId,
+              companyId: outAccount.companyId,
+            },
+            kind: "payment_reversed",
+            amount: payment.amount,
+            transactionId: payment.outTransactionId,
+            source: "alta_pay_reversed_payer",
+            silentNotification: notificationOptions?.silentNotification,
+          })) || sent;
+      }
+      if (inAccount && inAccount.id !== outAccount?.id) {
+        sent =
+          (await notifyBankAccountCustomersBestEffort({
+            account: {
+              id: inAccount.id,
+              accountNumber: inAccount.accountNumber,
+              userId: inAccount.userId,
+              companyId: inAccount.companyId,
+            },
+            kind: "payment_reversed",
+            amount: payment.amount,
+            transactionId: payment.inTransactionId,
+            source: "alta_pay_reversed_payee",
+            silentNotification: notificationOptions?.silentNotification,
+          })) || sent;
+      }
+      return sent;
+    },
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ALTA_PAY_REVERSED",
+    action: "BANK_PAYMENT_REVERSED",
     entityType: "BANK_TRANSACTION",
     entityId: payment.outTransactionId,
     targetTransactionId: payment.outTransactionId,
     description: `Reversed Alta Pay ${payment.referenceCode}`,
-    metadata: { referenceCode: payment.referenceCode, reversalReference: revBase, reason: trimmed, amount: payment.amount },
+    metadata: {
+      referenceCode: payment.referenceCode,
+      reversalReference: revBase,
+      reason: trimmed,
+      amount: payment.amount,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 
   return { reversalReference: revBase };

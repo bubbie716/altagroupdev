@@ -48,8 +48,15 @@ export function OpsReviewFlagsPanel({
                   title="Resolve operational review flag"
                   description="Mark this flag as resolved. The record is not blocked — this closes the review indicator."
                   confirmLabel="Resolve flag"
-                  onConfirm={async (reason) => {
-                    await resolveFn({ data: { flagId: flag.id, reason } });
+                  customerNotifies={targetType === "BANK_TRANSACTION"}
+                  onConfirm={async (reason, options) => {
+                    await resolveFn({
+                      data: {
+                        flagId: flag.id,
+                        reason,
+                        silentNotification: options?.silentNotification,
+                      },
+                    });
                     void router.invalidate();
                   }}
                 />
@@ -91,7 +98,8 @@ export function OpsReviewFlagsPanel({
             impact={`${OPS_REVIEW_FLAG_REASON_LABELS[reasonCode]} on ${targetType.replace(/_/g, " ")}`}
             confirmLabel="Add flag"
             disabled={reasonCode === "CUSTOM" && !customReason.trim()}
-            onConfirm={async (note) => {
+            customerNotifies={targetType === "BANK_TRANSACTION"}
+            onConfirm={async (note, options) => {
               await createFn({
                 data: {
                   targetType,
@@ -99,6 +107,7 @@ export function OpsReviewFlagsPanel({
                   reason: reasonCode,
                   customReason: reasonCode === "CUSTOM" ? customReason : undefined,
                   note,
+                  silentNotification: options?.silentNotification,
                 },
               });
               setCustomReason("");

@@ -65,11 +65,13 @@ export const searchAltaPayAdmin = createServerFn({ method: "GET" })
   });
 
 export const reverseAltaPayAdmin = createServerFn({ method: "POST" })
-  .inputValidator((input: { referenceCode: string; reason: string }) => input)
+  .inputValidator((input: { referenceCode: string; reason: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { reverseAltaPayPayment } = await import("@/server/ops-alta-pay-admin.service");
     const id = await actorId();
-    return reverseAltaPayPayment(id, data.referenceCode, data.reason);
+    return reverseAltaPayPayment(id, data.referenceCode, data.reason, {
+      silentNotification: data.silentNotification,
+    });
   });
 
 export const fetchCustomer360 = createServerFn({ method: "GET" })
@@ -98,10 +100,12 @@ export const fetchAccountOpsSummary = createServerFn({ method: "GET" })
   });
 
 export const reopenBankAccountOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; reason: string }) => input)
+  .inputValidator((input: { accountId: string; reason: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { reopenBankAccount } = await import("@/server/ops-account-ops.service");
-    await reopenBankAccount(await actorId(), data.accountId, data.reason);
+    await reopenBankAccount(await actorId(), data.accountId, data.reason, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
@@ -113,6 +117,7 @@ export const setAccountRestrictionsOps = createServerFn({ method: "POST" })
       restrictDeposits?: boolean;
       restrictWithdrawals?: boolean;
       restrictTransfers?: boolean;
+      silentNotification?: boolean;
     }) => input,
   )
   .handler(async ({ data }) => {
@@ -122,17 +127,23 @@ export const setAccountRestrictionsOps = createServerFn({ method: "POST" })
   });
 
 export const applyAccountHoldOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; amount: number; reason: string }) => input)
+  .inputValidator(
+    (input: { accountId: string; amount: number; reason: string; silentNotification?: boolean }) => input,
+  )
   .handler(async ({ data }) => {
     const { applyAccountHold } = await import("@/server/ops-account-ops.service");
-    return applyAccountHold(await actorId(), data.accountId, data.amount, data.reason);
+    return applyAccountHold(await actorId(), data.accountId, data.amount, data.reason, {
+      silentNotification: data.silentNotification,
+    });
   });
 
 export const releaseAccountHoldOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { holdId: string; reason: string }) => input)
+  .inputValidator((input: { holdId: string; reason: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { releaseAccountHold } = await import("@/server/ops-account-ops.service");
-    await releaseAccountHold(await actorId(), data.holdId, data.reason);
+    await releaseAccountHold(await actorId(), data.holdId, data.reason, {
+      silentNotification: data.silentNotification,
+    });
     return { ok: true as const };
   });
 
@@ -152,10 +163,12 @@ export const adminManualTransferOps = createServerFn({ method: "POST" })
   });
 
 export const reverseAdjustmentOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reason: string }) => input)
+  .inputValidator((input: { transactionId: string; reason: string; silentNotification?: boolean }) => input)
   .handler(async ({ data }) => {
     const { reverseAdjustment } = await import("@/server/ops-account-ops.service");
-    return reverseAdjustment(await actorId(), data.transactionId, data.reason);
+    return reverseAdjustment(await actorId(), data.transactionId, data.reason, {
+      silentNotification: data.silentNotification,
+    });
   });
 
 export const bulkApproveDepositsOps = createServerFn({ method: "POST" })

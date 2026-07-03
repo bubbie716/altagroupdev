@@ -304,6 +304,10 @@ export type AdminAccountAdjustmentInput = {
   allowOverdraft?: boolean;
   /** When set, used as the customer-facing bank transaction description. */
   customerDescription?: string;
+  /** Customer-safe explanation for notifications — never internal staff notes. */
+  customerFacingReason?: string | null;
+  /** When true, skip customer Discord / in-app notifications. */
+  silentNotification?: boolean;
 };
 
 export type InternalBankAccountFilters = {

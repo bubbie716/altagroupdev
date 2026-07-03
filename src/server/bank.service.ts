@@ -1298,7 +1298,12 @@ export async function listPendingBankTransactions(
   return transactions.map(mapInternalBankTransactionRow);
 }
 
-export async function approveDeposit(adminId: string, transactionId: string, reviewNote?: string) {
+export async function approveDeposit(
+  adminId: string,
+  transactionId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const record = await prisma.$transaction(async (tx) => {
     const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
@@ -1325,6 +1330,23 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     return row;
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { customerNotificationSent, auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () => {
+      const { notifyDepositApproved } = await import("@/server/banking-notification.service");
+      await notifyDepositApproved(
+        record.bankAccount.userId,
+        decimalToNumber(record.amount),
+        record.referenceCode,
+      );
+      return true;
+    },
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
@@ -1335,7 +1357,12 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     targetAccountId: record.bankAccountId,
     targetTransactionId: transactionId,
     description: `Approved deposit ${record.referenceCode}`,
-    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+    metadata: {
+      amount: decimalToNumber(record.amount),
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 
   const { refreshFromBankAccountContextBestEffort } = await import(
@@ -1345,20 +1372,14 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "deposit-completed",
   );
-
-  try {
-    const { notifyDepositApproved } = await import("@/server/banking-notification.service");
-    await notifyDepositApproved(
-      record.bankAccount.userId,
-      decimalToNumber(record.amount),
-      record.referenceCode,
-    );
-  } catch (error) {
-    console.error("[bank] deposit approved notification failed", error);
-  }
 }
 
-export async function denyDeposit(adminId: string, transactionId: string, reviewNote?: string) {
+export async function denyDeposit(
+  adminId: string,
+  transactionId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const record = await prisma.bankTransaction.findUnique({
     where: { id: transactionId },
     include: { bankAccount: true },
@@ -1377,32 +1398,55 @@ export async function denyDeposit(adminId: string, transactionId: string, review
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: record.bankAccount.id,
+          accountNumber: record.bankAccount.accountNumber,
+          userId: record.bankAccount.userId,
+          companyId: record.bankAccount.companyId,
+        },
+        kind: "payment_blocked",
+        amount: decimalToNumber(record.amount),
+        transactionId,
+        source: "deny_deposit",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
-    action: "DEPOSIT_DENIED",
+    action: "BANK_PAYMENT_BLOCKED",
     entityType: "BANK_TRANSACTION",
     entityId: transactionId,
     targetUserId: record.bankAccount.userId,
     targetAccountId: record.bankAccountId,
     targetTransactionId: transactionId,
     description: `Denied deposit ${record.referenceCode}`,
-    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+    metadata: {
+      amount: decimalToNumber(record.amount),
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
-
-  try {
-    const { notifyDepositDenied } = await import("@/server/banking-notification.service");
-    await notifyDepositDenied(
-      record.bankAccount.userId,
-      decimalToNumber(record.amount),
-      record.referenceCode,
-    );
-  } catch (error) {
-    console.error("[bank] deposit denied notification failed", error);
-  }
 }
 
-export async function approveWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
+export async function approveWithdrawal(
+  adminId: string,
+  transactionId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const record = await prisma.$transaction(async (tx) => {
     const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
@@ -1433,6 +1477,23 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     return row;
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () => {
+      const { notifyWithdrawalApproved } = await import("@/server/banking-notification.service");
+      await notifyWithdrawalApproved(
+        record.bankAccount.userId,
+        decimalToNumber(record.amount),
+        record.referenceCode,
+      );
+      return true;
+    },
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
@@ -1443,7 +1504,12 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     targetAccountId: record.bankAccountId,
     targetTransactionId: transactionId,
     description: `Approved withdrawal ${record.referenceCode}`,
-    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+    metadata: {
+      amount: decimalToNumber(record.amount),
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 
   const { refreshFromBankAccountContextBestEffort } = await import(
@@ -1453,20 +1519,14 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "withdrawal-completed",
   );
-
-  try {
-    const { notifyWithdrawalApproved } = await import("@/server/banking-notification.service");
-    await notifyWithdrawalApproved(
-      record.bankAccount.userId,
-      decimalToNumber(record.amount),
-      record.referenceCode,
-    );
-  } catch (error) {
-    console.error("[bank] withdrawal approved notification failed", error);
-  }
 }
 
-export async function denyWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
+export async function denyWithdrawal(
+  adminId: string,
+  transactionId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const record = await prisma.bankTransaction.findUnique({
     where: { id: transactionId },
     include: { bankAccount: true },
@@ -1485,29 +1545,47 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: record.bankAccount.id,
+          accountNumber: record.bankAccount.accountNumber,
+          userId: record.bankAccount.userId,
+          companyId: record.bankAccount.companyId,
+        },
+        kind: "payment_blocked",
+        amount: decimalToNumber(record.amount),
+        transactionId,
+        source: "deny_withdrawal",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
-    action: "WITHDRAWAL_DENIED",
+    action: "BANK_PAYMENT_BLOCKED",
     entityType: "BANK_TRANSACTION",
     entityId: transactionId,
     targetUserId: record.bankAccount.userId,
     targetAccountId: record.bankAccountId,
     targetTransactionId: transactionId,
     description: `Denied withdrawal ${record.referenceCode}`,
-    metadata: { amount: decimalToNumber(record.amount), reviewNote: reviewNote ?? null },
+    metadata: {
+      amount: decimalToNumber(record.amount),
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
-
-  try {
-    const { notifyWithdrawalDenied } = await import("@/server/banking-notification.service");
-    await notifyWithdrawalDenied(
-      record.bankAccount.userId,
-      decimalToNumber(record.amount),
-      record.referenceCode,
-    );
-  } catch (error) {
-    console.error("[bank] withdrawal denied notification failed", error);
-  }
 }
 
 function appendAccountNote(existing: string | null | undefined, note: string): string {
@@ -1673,7 +1751,12 @@ export async function approveBankAccount(adminId: string, accountId: string, rev
   });
 }
 
-export async function freezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
+export async function freezeBankAccount(
+  adminId: string,
+  accountId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status === "CLOSED") badRequest("Account is closed");
@@ -1688,20 +1771,52 @@ export async function freezeBankAccount(adminId: string, accountId: string, revi
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: "account_frozen",
+        source: "freeze_account",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
-    action: "ACCOUNT_STATUS_CHANGED",
+    action: "BANK_ACCOUNT_FROZEN",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetUserId: account.userId,
     targetAccountId: accountId,
     description: `Froze account ${account.accountNumber}`,
-    metadata: { status: "FROZEN", reviewNote: reviewNote ?? null, source: "website" },
+    metadata: {
+      status: "FROZEN",
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 }
 
-export async function unfreezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
+export async function unfreezeBankAccount(
+  adminId: string,
+  accountId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status !== "FROZEN") badRequest("Account is not frozen");
@@ -1716,20 +1831,52 @@ export async function unfreezeBankAccount(adminId: string, accountId: string, re
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: "account_unfrozen",
+        source: "unfreeze_account",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
-    action: "ACCOUNT_STATUS_CHANGED",
+    action: "BANK_ACCOUNT_UNFROZEN",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetUserId: account.userId,
     targetAccountId: accountId,
     description: `Unfroze account ${account.accountNumber}`,
-    metadata: { status: "ACTIVE", reviewNote: reviewNote ?? null, source: "website" },
+    metadata: {
+      status: "ACTIVE",
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 }
 
-export async function closeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
+export async function closeBankAccount(
+  adminId: string,
+  accountId: string,
+  reviewNote?: string,
+  notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
+) {
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status === "CLOSED") badRequest("Account is already closed");
@@ -1747,16 +1894,43 @@ export async function closeBankAccount(adminId: string, accountId: string, revie
     },
   });
 
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId: adminId,
+    notificationOptions,
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: "account_closed",
+        source: "close_account",
+        silentNotification: notificationOptions?.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId: adminId,
-    action: "ACCOUNT_STATUS_CHANGED",
+    action: "BANK_ACCOUNT_CLOSED",
     entityType: "BANK_ACCOUNT",
     entityId: accountId,
     targetUserId: account.userId,
     targetAccountId: accountId,
     description: `Closed account ${account.accountNumber}`,
-    metadata: { status: "CLOSED", reviewNote: reviewNote ?? null, source: "website" },
+    metadata: {
+      status: "CLOSED",
+      reviewNote: reviewNote ?? null,
+      source: "website",
+      ...auditMetadata,
+    },
   });
 }
 
@@ -1835,6 +2009,12 @@ export async function adminAdjustBankAccount(
     input.referenceCode?.trim() ||
     generateReferenceCode(input.direction === "credit" ? "DEP" : "WDR");
 
+  const customerDescription =
+    input.customerDescription ??
+    (input.direction === "credit"
+      ? creditAdjustmentDescription(reason)
+      : debitAdjustmentDescription(reason));
+
   const transaction = await prisma.$transaction(async (tx) => {
     const created = await tx.bankTransaction.create({
       data: {
@@ -1842,11 +2022,7 @@ export async function adminAdjustBankAccount(
         type: "ADJUSTMENT",
         amount: input.amount,
         status: "APPROVED",
-        description:
-          input.customerDescription ??
-          (input.direction === "credit"
-            ? creditAdjustmentDescription(reason)
-            : debitAdjustmentDescription(reason)),
+        description: customerDescription,
         referenceCode,
         reviewedById: actorUserId,
         reviewedAt: new Date(),
@@ -1867,10 +2043,41 @@ export async function adminAdjustBankAccount(
     return created;
   });
 
+  const {
+    classifyAdjustmentKind,
+    operatorNotificationAuditAction,
+  } = await import("@/lib/bank/customer-operator-notification-copy");
+  const adjustmentKind = classifyAdjustmentKind(customerDescription, input.direction);
+
+  const { deliverOperatorCustomerNotification } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+  const { auditMetadata } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions: { silentNotification: input.silentNotification },
+    deliver: async () =>
+      (
+        await import("@/server/customer-operator-notification.service")
+      ).notifyBankAccountCustomersBestEffort({
+        account: {
+          id: account.id,
+          accountNumber: account.accountNumber,
+          userId: account.userId,
+          companyId: account.companyId,
+        },
+        kind: adjustmentKind,
+        amount: input.amount,
+        transactionId: transaction.id,
+        customerFacingReason: input.customerFacingReason,
+        source: "admin_adjustment",
+        silentNotification: input.silentNotification,
+      }),
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
     actorUserId,
-    action: "ACCOUNT_ADJUSTMENT_CREATED",
+    action: operatorNotificationAuditAction(adjustmentKind),
     entityType: "BANK_TRANSACTION",
     entityId: transaction.id,
     targetUserId: account.userId,
@@ -1883,6 +2090,9 @@ export async function adminAdjustBankAccount(
       reason,
       referenceCode,
       allowOverdraft: input.allowOverdraft ?? false,
+      customerFacingReason: input.customerFacingReason ?? null,
+      source: "website",
+      ...auditMetadata,
     },
   });
 
