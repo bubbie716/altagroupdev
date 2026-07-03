@@ -27,12 +27,16 @@ export async function listBotCompanyInvitations(userId: string) {
   return listUserPendingInvitations(userId, discordId, discordUsername);
 }
 
+const BOT_STAFF_AUDIT: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext = {
+  source: "discord_bot",
+};
+
 export async function acceptBotAltaPrivateInvitation(userId: string, invitationId: string) {
-  return acceptAltaPrivateInvitation(userId, invitationId);
+  return acceptAltaPrivateInvitation(userId, invitationId, BOT_STAFF_AUDIT);
 }
 
 export async function declineBotAltaPrivateInvitation(userId: string, invitationId: string) {
-  return declineAltaPrivateInvitation(userId, invitationId);
+  return declineAltaPrivateInvitation(userId, invitationId, BOT_STAFF_AUDIT);
 }
 
 export async function acceptBotCompanyInvitation(userId: string, invitationId: string) {
@@ -40,7 +44,7 @@ export async function acceptBotCompanyInvitation(userId: string, invitationId: s
     where: { id: invitationId },
     include: { company: { select: { name: true } } },
   });
-  const result = await acceptCompanyInvitation(userId, invitationId);
+  const result = await acceptCompanyInvitation(userId, invitationId, BOT_STAFF_AUDIT);
   return {
     companyId: result.companyId,
     companyName: invitation?.company.name ?? "the company",
@@ -48,5 +52,5 @@ export async function acceptBotCompanyInvitation(userId: string, invitationId: s
 }
 
 export async function declineBotCompanyInvitation(userId: string, invitationId: string) {
-  return declineCompanyInvitation(userId, invitationId);
+  return declineCompanyInvitation(userId, invitationId, BOT_STAFF_AUDIT);
 }

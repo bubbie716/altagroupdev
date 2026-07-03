@@ -178,6 +178,8 @@ async function collectDiscordTransferFee(
   });
 }
 
+const BOT_STAFF_AUDIT: { source: "discord_bot" } = { source: "discord_bot" };
+
 export async function submitBotDeposit(
   userId: string,
   input: { bankAccountId: string; amount: number; memo?: string },
@@ -212,6 +214,7 @@ export async function submitBotDeposit(
       proofSizeBytes: proof.sizeBytes,
       proofUploadedAt: proof.uploadedAt,
     },
+    BOT_STAFF_AUDIT,
   );
 }
 
@@ -221,7 +224,7 @@ export async function submitBotWithdrawal(
 ): Promise<{ transactionId: string; referenceCode: string }> {
   assertBotWithdrawalLimit(input.amount);
 
-  return submitWithdrawalRequest(userId, input);
+  return submitWithdrawalRequest(userId, input, BOT_STAFF_AUDIT);
 }
 
 export async function submitBotTransfer(
@@ -238,12 +241,16 @@ export async function submitBotTransfer(
     badRequest("This transfer couldn't be completed because your available balance is insufficient.");
   }
 
-  const result = await submitInternalTransfer(userId, {
-    fromAccountId: input.fromAccountId,
-    toAccountId: input.toAccountId,
-    amount: input.amount,
-    memo: input.memo,
-  });
+  const result = await submitInternalTransfer(
+    userId,
+    {
+      fromAccountId: input.fromAccountId,
+      toAccountId: input.toAccountId,
+      amount: input.amount,
+      memo: input.memo,
+    },
+    BOT_STAFF_AUDIT,
+  );
 
   await collectDiscordTransferFee(input.fromAccountId, quote.convenienceFee, result.referenceCode);
   await recordBotTransferUsage(userId, input.amount);
@@ -263,12 +270,16 @@ export async function submitBotAltaPay(
   const user = await loadAltaUserOrThrow(userId);
 
   if (input.recipient.kind === "company") {
-    const result = await submitAltaPayPayment(user, {
-      fundingSource: input.fundingSource,
-      companyId: input.recipient.companyId,
-      amount: input.amount,
-      memo: input.memo,
-    });
+    const result = await submitAltaPayPayment(
+      user,
+      {
+        fundingSource: input.fundingSource,
+        companyId: input.recipient.companyId,
+        amount: input.amount,
+        memo: input.memo,
+      },
+      BOT_STAFF_AUDIT,
+    );
     return {
       referenceCode: result.referenceCode,
       amount: result.amount,
@@ -281,12 +292,16 @@ export async function submitBotAltaPay(
     badRequest("Payments to Alta customers require a bank account funding source.");
   }
 
-  const result = await submitAltaPayToPerson(user, {
-    fundingSource: input.fundingSource,
-    recipientUserId: input.recipient.recipientUserId,
-    amount: input.amount,
-    memo: input.memo,
-  });
+  const result = await submitAltaPayToPerson(
+    user,
+    {
+      fundingSource: input.fundingSource,
+      recipientUserId: input.recipient.recipientUserId,
+      amount: input.amount,
+      memo: input.memo,
+    },
+    BOT_STAFF_AUDIT,
+  );
 
   return {
     referenceCode: result.referenceCode,

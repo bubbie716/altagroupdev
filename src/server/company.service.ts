@@ -372,7 +372,11 @@ export async function sendCompanyInvitation(
   return { invitationId: invitation.id };
 }
 
-export async function acceptCompanyInvitation(userId: string, invitationId: string): Promise<{ companyId: string }> {
+export async function acceptCompanyInvitation(
+  userId: string,
+  invitationId: string,
+  auditContext?: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext,
+): Promise<{ companyId: string }> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
@@ -423,15 +427,37 @@ export async function acceptCompanyInvitation(userId: string, invitationId: stri
     }),
   ]);
 
+  try {
+    const { staffAuditCompanyInvitation } = await import("@/server/staff-audit-events");
+    staffAuditCompanyInvitation({
+      action: "Company invitation accepted",
+      actorUserId: userId,
+      companyId: invitation.companyId,
+      companyName: invitation.company.name,
+      source: auditContext?.source,
+    });
+  } catch (error) {
+    console.error("[company] staff audit invitation accepted failed", error);
+  }
+
   return { companyId: invitation.companyId };
 }
 
-export async function declineCompanyInvitation(userId: string, invitationId: string): Promise<void> {
+export async function declineCompanyInvitation(
+  userId: string,
+  invitationId: string,
+  auditContext?: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext,
+): Promise<void> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) notFound();
 
   const invitation = await prisma.companyInvitation.findUnique({ where: { id: invitationId } });
   if (!invitation || invitation.status !== "PENDING") notFound();
+
+  const company = await prisma.company.findUnique({
+    where: { id: invitation.companyId },
+    select: { id: true, name: true },
+  });
 
   const matches = await invitationMatchesUser(
     invitation,
@@ -445,6 +471,19 @@ export async function declineCompanyInvitation(userId: string, invitationId: str
     where: { id: invitationId },
     data: { status: "DECLINED", respondedAt: new Date(), invitedUserId: userId },
   });
+
+  try {
+    const { staffAuditCompanyInvitation } = await import("@/server/staff-audit-events");
+    staffAuditCompanyInvitation({
+      action: "Company invitation declined",
+      actorUserId: userId,
+      companyId: invitation.companyId,
+      companyName: company?.name,
+      source: auditContext?.source,
+    });
+  } catch (error) {
+    console.error("[company] staff audit invitation declined failed", error);
+  }
 }
 
 export async function addMember(
@@ -525,6 +564,19 @@ export async function verifyCompany(actorUserId: string, companyId: string, revi
     description: `Verified company ${company.name}`,
     metadata: { reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { staffAuditCompanyVerification } = await import("@/server/staff-audit-events");
+    staffAuditCompanyVerification({
+      adminId: actorUserId,
+      companyId,
+      companyName: company.name,
+      action: "Company verified",
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[company] staff audit verified failed", error);
+  }
 }
 
 export async function rejectCompanyVerification(
@@ -556,6 +608,19 @@ export async function rejectCompanyVerification(
     description: `Rejected verification for ${company.name}`,
     metadata: { reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { staffAuditCompanyVerification } = await import("@/server/staff-audit-events");
+    staffAuditCompanyVerification({
+      adminId: actorUserId,
+      companyId,
+      companyName: company.name,
+      action: "Company verification rejected",
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[company] staff audit rejected failed", error);
+  }
 }
 
 export async function revokeCompanyVerification(

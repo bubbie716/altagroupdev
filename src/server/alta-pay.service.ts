@@ -12,6 +12,7 @@ import type {
   SubmitAltaPayResult,
   SubmitAltaPayToPersonInput,
 } from "@/lib/bank/alta-pay-types";
+import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 import {
@@ -35,17 +36,31 @@ function badRequest(message: string): never {
 }
 
 async function notifyAltaPaySentBestEffort(
-  userId: string,
+  user: AltaUser,
   amount: number,
   referenceCode: string,
   payeeName: string,
   fundingSourceLabel: string,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<void> {
   try {
     const { notifyAltaPaySent } = await import("@/server/banking-notification.service");
-    await notifyAltaPaySent(userId, amount, referenceCode, payeeName, fundingSourceLabel);
+    await notifyAltaPaySent(user.id, amount, referenceCode, payeeName, fundingSourceLabel);
   } catch (error) {
     console.error("[alta-pay] sent notification failed", error);
+  }
+
+  try {
+    const { staffAuditAltaPaySent } = await import("@/server/staff-audit-events");
+    staffAuditAltaPaySent({
+      userId: user.id,
+      payeeName,
+      amount,
+      referenceCode,
+      auditContext,
+    });
+  } catch (error) {
+    console.error("[alta-pay] staff audit failed", error);
   }
 }
 
@@ -217,6 +232,7 @@ export async function searchPayableRecipients(
 export async function submitAltaPayToPerson(
   user: AltaUser,
   input: SubmitAltaPayToPersonInput,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
   if (input.fundingSource.kind !== "bank_account") {
@@ -262,11 +278,12 @@ export async function submitAltaPayToPerson(
   const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
 
   await notifyAltaPaySentBestEffort(
-    user.id,
+    user,
     input.amount,
     result.referenceCode,
     recipientLabel,
     funding.label,
+    auditContext,
   );
 
   return {
@@ -433,6 +450,7 @@ async function listPaySourceAccountIds(user: AltaUser): Promise<string[]> {
 export async function submitAltaPayPayment(
   user: AltaUser,
   input: SubmitAltaPayInput,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
 
@@ -536,11 +554,12 @@ export async function submitAltaPayPayment(
     await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
     await notifyAltaPaySentBestEffort(
-      user.id,
+      user,
       input.amount,
       referenceBase,
       company.name,
       sourceAccount.accountName,
+      auditContext,
     );
 
     return {
@@ -615,11 +634,12 @@ export async function submitAltaPayPayment(
   await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
   await notifyAltaPaySentBestEffort(
-    user.id,
+    user,
     input.amount,
     referenceBase,
     company.name,
     fundingSourceLabel,
+    auditContext,
   );
 
   return {

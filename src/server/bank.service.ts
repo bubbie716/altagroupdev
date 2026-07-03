@@ -53,6 +53,7 @@ import {
   formatBankRequestDenialMessage,
   formatBankRequestDisplayStatus,
 } from "@/lib/bank/bank-request-status-copy";
+import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
 import { isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
@@ -681,10 +682,24 @@ export async function openBankAccount(
   const statusLabel =
     status === "ACTIVE" ? "Active" : "Pending Review";
 
+  const accountTypeLabel = formatBankAccountTypeLabel(input.accountType);
+
+  try {
+    const { staffAuditAccountOpened } = await import("@/server/staff-audit-events");
+    staffAuditAccountOpened({
+      userId,
+      accountId: account.id,
+      accountName: account.accountName,
+      accountTypeLabel,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit account opened failed", error);
+  }
+
   return {
     accountId: account.id,
     accountName,
-    accountTypeLabel: formatBankAccountTypeLabel(input.accountType),
+    accountTypeLabel,
     accountNumber,
     routingNumber: getRoutingNumber(),
     statusLabel,
@@ -696,6 +711,7 @@ export async function submitDepositRequest(
   userId: string,
   input: SubmitDepositInput,
   proof: BankProofInput,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<{ transactionId: string; referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
@@ -735,12 +751,26 @@ export async function submitDepositRequest(
     console.error("[bank] deposit submitted notification failed", error);
   }
 
+  try {
+    const { staffAuditDepositSubmitted } = await import("@/server/staff-audit-events");
+    staffAuditDepositSubmitted({
+      userId,
+      transactionId: transaction.id,
+      referenceCode: transaction.referenceCode,
+      amount: input.amount,
+      auditContext,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit deposit submitted failed", error);
+  }
+
   return { transactionId: transaction.id, referenceCode: transaction.referenceCode };
 }
 
 export async function submitWithdrawalRequest(
   userId: string,
   input: SubmitWithdrawalInput,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<{ transactionId: string; referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
@@ -781,12 +811,26 @@ export async function submitWithdrawalRequest(
     console.error("[bank] withdrawal submitted notification failed", error);
   }
 
+  try {
+    const { staffAuditWithdrawalSubmitted } = await import("@/server/staff-audit-events");
+    staffAuditWithdrawalSubmitted({
+      userId,
+      transactionId: transaction.id,
+      referenceCode: transaction.referenceCode,
+      amount: input.amount,
+      auditContext,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit withdrawal submitted failed", error);
+  }
+
   return { transactionId: transaction.id, referenceCode: transaction.referenceCode };
 }
 
 export async function submitInternalTransfer(
   userId: string,
   input: SubmitInternalTransferInput,
+  auditContext?: BankingStaffAuditContext,
 ): Promise<{ referenceCode: string }> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero");
 
@@ -892,6 +936,20 @@ export async function submitInternalTransfer(
       );
     } catch (error) {
       console.error("[bank] transfer completed notification failed", error);
+    }
+
+    try {
+      const { staffAuditTransferCompleted } = await import("@/server/staff-audit-events");
+      staffAuditTransferCompleted({
+        userId,
+        referenceCode: referenceBase,
+        amount,
+        fromAccountName: fromAccount.accountName,
+        toAccountName: toAccount.accountName,
+        auditContext,
+      });
+    } catch (error) {
+      console.error("[bank] staff audit transfer completed failed", error);
     }
   }
 
@@ -1227,6 +1285,20 @@ export async function approveDeposit(adminId: string, transactionId: string, rev
   } catch (error) {
     console.error("[bank] deposit approved notification failed", error);
   }
+
+  try {
+    const { staffAuditDepositReviewed } = await import("@/server/staff-audit-events");
+    staffAuditDepositReviewed({
+      adminId,
+      transactionId,
+      referenceCode: record.referenceCode,
+      amount: decimalToNumber(record.amount),
+      approved: true,
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit deposit approved failed", error);
+  }
 }
 
 export async function denyDeposit(adminId: string, transactionId: string, reviewNote?: string) {
@@ -1270,6 +1342,20 @@ export async function denyDeposit(adminId: string, transactionId: string, review
     );
   } catch (error) {
     console.error("[bank] deposit denied notification failed", error);
+  }
+
+  try {
+    const { staffAuditDepositReviewed } = await import("@/server/staff-audit-events");
+    staffAuditDepositReviewed({
+      adminId,
+      transactionId,
+      referenceCode: record.referenceCode,
+      amount: decimalToNumber(record.amount),
+      approved: false,
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit deposit denied failed", error);
   }
 }
 
@@ -1335,6 +1421,20 @@ export async function approveWithdrawal(adminId: string, transactionId: string, 
   } catch (error) {
     console.error("[bank] withdrawal approved notification failed", error);
   }
+
+  try {
+    const { staffAuditWithdrawalReviewed } = await import("@/server/staff-audit-events");
+    staffAuditWithdrawalReviewed({
+      adminId,
+      transactionId,
+      referenceCode: record.referenceCode,
+      amount: decimalToNumber(record.amount),
+      approved: true,
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit withdrawal approved failed", error);
+  }
 }
 
 export async function denyWithdrawal(adminId: string, transactionId: string, reviewNote?: string) {
@@ -1379,9 +1479,21 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
   } catch (error) {
     console.error("[bank] withdrawal denied notification failed", error);
   }
-}
 
-function appendAccountNote(existing: string | null | undefined, note: string): string {
+  try {
+    const { staffAuditWithdrawalReviewed } = await import("@/server/staff-audit-events");
+    staffAuditWithdrawalReviewed({
+      adminId,
+      transactionId,
+      referenceCode: record.referenceCode,
+      amount: decimalToNumber(record.amount),
+      approved: false,
+      reviewNote,
+    });
+  } catch (error) {
+    console.error("[bank] staff audit withdrawal denied failed", error);
+  }
+}
   return existing ? `${existing}\n${note}` : note;
 }
 
@@ -1570,6 +1682,18 @@ export async function freezeBankAccount(adminId: string, accountId: string, revi
     description: `Froze account ${account.accountNumber}`,
     metadata: { status: "FROZEN", reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { staffAuditAccountStatusChanged } = await import("@/server/staff-audit-events");
+    staffAuditAccountStatusChanged({
+      adminId,
+      accountId,
+      action: "Account frozen",
+      severity: "WARNING",
+    });
+  } catch (error) {
+    console.error("[bank] staff audit account frozen failed", error);
+  }
 }
 
 export async function unfreezeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
@@ -1598,6 +1722,18 @@ export async function unfreezeBankAccount(adminId: string, accountId: string, re
     description: `Unfroze account ${account.accountNumber}`,
     metadata: { status: "ACTIVE", reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { staffAuditAccountStatusChanged } = await import("@/server/staff-audit-events");
+    staffAuditAccountStatusChanged({
+      adminId,
+      accountId,
+      action: "Account unfrozen",
+      severity: "INFO",
+    });
+  } catch (error) {
+    console.error("[bank] staff audit account unfrozen failed", error);
+  }
 }
 
 export async function closeBankAccount(adminId: string, accountId: string, reviewNote?: string) {
@@ -1629,6 +1765,18 @@ export async function closeBankAccount(adminId: string, accountId: string, revie
     description: `Closed account ${account.accountNumber}`,
     metadata: { status: "CLOSED", reviewNote: reviewNote ?? null },
   });
+
+  try {
+    const { staffAuditAccountStatusChanged } = await import("@/server/staff-audit-events");
+    staffAuditAccountStatusChanged({
+      adminId,
+      accountId,
+      action: "Account closed",
+      severity: "WARNING",
+    });
+  } catch (error) {
+    console.error("[bank] staff audit account closed failed", error);
+  }
 }
 
 export async function getInternalBankAccountDetail(accountId: string): Promise<InternalBankAccountDetail> {

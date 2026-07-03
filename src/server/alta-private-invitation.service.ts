@@ -198,6 +198,19 @@ export async function sendAltaPrivateInvitation(
     // Discord must never break invitation flow.
   }
 
+  try {
+    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
+    staffAuditAltaPrivateInvitation({
+      action: "Invitation sent",
+      actorUserId,
+      targetUserId: input.userId,
+      invitationId: invitation.id,
+      severity: "ACTION",
+    });
+  } catch (error) {
+    console.error("[alta-private] staff audit invitation sent failed", error);
+  }
+
   return { invitationId: invitation.id };
 }
 
@@ -238,11 +251,25 @@ export async function revokeAltaPrivateInvitation(
     description: "Alta Private invitation revoked",
     metadata: { invitationId, userId: fresh.userId, reason: trimmedReason },
   });
+
+  try {
+    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
+    staffAuditAltaPrivateInvitation({
+      action: "Invitation revoked",
+      actorUserId,
+      targetUserId: fresh.userId,
+      invitationId,
+      severity: "WARNING",
+    });
+  } catch (error) {
+    console.error("[alta-private] staff audit invitation revoked failed", error);
+  }
 }
 
 export async function acceptAltaPrivateInvitation(
   userId: string,
   invitationId: string,
+  auditContext?: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext,
 ): Promise<{ activated: true }> {
   await expireStalePendingInvitations(userId);
 
@@ -297,12 +324,27 @@ export async function acceptAltaPrivateInvitation(
     // Discord must never break acceptance flow.
   }
 
+  try {
+    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
+    staffAuditAltaPrivateInvitation({
+      action: "Invitation accepted",
+      actorUserId: userId,
+      targetUserId: userId,
+      invitationId,
+      severity: "INFO",
+      source: auditContext?.source,
+    });
+  } catch (error) {
+    console.error("[alta-private] staff audit invitation accepted failed", error);
+  }
+
   return { activated: true };
 }
 
 export async function declineAltaPrivateInvitation(
   userId: string,
   invitationId: string,
+  auditContext?: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext,
 ): Promise<void> {
   await expireStalePendingInvitations(userId);
 
@@ -347,9 +389,21 @@ export async function declineAltaPrivateInvitation(
   } catch {
     // Discord must never break decline flow.
   }
-}
 
-export async function getCustomerAltaPrivatePageState(userId: string): Promise<AltaPrivateCustomerPageState> {
+  try {
+    const { staffAuditAltaPrivateInvitation } = await import("@/server/staff-audit-events");
+    staffAuditAltaPrivateInvitation({
+      action: "Invitation declined",
+      actorUserId: userId,
+      targetUserId: userId,
+      invitationId,
+      severity: "INFO",
+      source: auditContext?.source,
+    });
+  } catch (error) {
+    console.error("[alta-private] staff audit invitation declined failed", error);
+  }
+}
   await expireStalePendingInvitations(userId);
 
   const userRecord = await prisma.user.findUnique({

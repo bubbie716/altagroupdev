@@ -515,5 +515,16 @@ export async function updateInternalUserAccountStatus(
     metadata: { accountStatus },
   });
 
+  try {
+    const { staffAuditUserStatusChanged } = await import("@/server/staff-audit-events");
+    staffAuditUserStatusChanged({
+      adminId: actorUserId,
+      userId: targetUserId,
+      accountStatus,
+    });
+  } catch (error) {
+    console.error("[internal-users] staff audit status change failed", error);
+  }
+
   return getInternalUserDetail(targetUserId);
 }

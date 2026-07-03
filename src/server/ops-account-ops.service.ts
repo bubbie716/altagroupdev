@@ -85,6 +85,17 @@ export async function setAccountRestrictions(
       restrictTransfers: input.restrictTransfers,
     },
   });
+
+  try {
+    const { staffAuditAccountRestrictionsUpdated } = await import("@/server/staff-audit-events");
+    staffAuditAccountRestrictionsUpdated({
+      adminId: actorUserId,
+      accountId,
+      reason: trimmed,
+    });
+  } catch (error) {
+    console.error("[ops-account] staff audit restrictions failed", error);
+  }
 }
 
 export async function applyAccountHold(
