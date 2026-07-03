@@ -6,6 +6,7 @@ export async function notifyDepositSubmitted(
   amount: number,
   referenceCode: string,
   accountName: string,
+  proofImageUrl?: string | null,
 ): Promise<void> {
   await createUserNotification({
     userId,
@@ -14,6 +15,7 @@ export async function notifyDepositSubmitted(
     body: `Your deposit of ${formatFlorin(amount)} to ${accountName} (${referenceCode}) is pending Alta review.`,
     linkUrl: "/bank",
     metadata: { referenceCode, amount, accountName },
+    embedImageUrl: proofImageUrl,
   });
 }
 

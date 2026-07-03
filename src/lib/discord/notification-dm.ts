@@ -24,9 +24,11 @@ export function buildNotificationDmPayload(input: {
   body: string;
   linkUrl?: string | null;
   linkLabel?: string;
+  embedImageUrl?: string | null;
 }): NotificationDmPayload {
   const absoluteLink = resolvePublicLinkUrl(input.linkUrl);
   const description = input.body.slice(0, 4096);
+  const imageUrl = input.embedImageUrl?.trim();
 
   const embed: Record<string, unknown> = {
     title: input.title.slice(0, 256),
@@ -36,6 +38,9 @@ export function buildNotificationDmPayload(input: {
   };
   if (absoluteLink) {
     embed.url = absoluteLink;
+  }
+  if (imageUrl && (imageUrl.startsWith("http://") || imageUrl.startsWith("https://"))) {
+    embed.image = { url: imageUrl };
   }
 
   const components: Record<string, unknown>[] = [];

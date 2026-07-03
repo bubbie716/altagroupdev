@@ -13,6 +13,7 @@ export type UserNotificationDmInput = {
   body: string;
   linkUrl?: string | null;
   linkLabel?: string;
+  embedImageUrl?: string | null;
 };
 
 export async function deliverUserNotificationDm(
@@ -33,6 +34,7 @@ export async function deliverUserNotificationDm(
     body: input.body,
     linkUrl: input.linkUrl,
     linkLabel: input.linkLabel,
+    embedImageUrl: input.embedImageUrl,
   });
 
   try {

@@ -8,6 +8,7 @@ export type CreateNotificationInput = {
   body: string;
   linkUrl?: string;
   metadata?: Record<string, unknown>;
+  embedImageUrl?: string | null;
 };
 
 async function dispatchDiscordForNotification(input: CreateNotificationInput): Promise<void> {
@@ -30,6 +31,7 @@ async function dispatchDiscordForNotification(input: CreateNotificationInput): P
       title: input.title,
       body: input.body,
       linkUrl: input.linkUrl,
+      embedImageUrl: input.embedImageUrl,
     });
     if (!result.sent && process.env.NODE_ENV !== "test") {
       console.warn("[notifications] Discord DM not sent", {

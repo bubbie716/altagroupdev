@@ -724,7 +724,13 @@ export async function submitDepositRequest(
 
   try {
     const { notifyDepositSubmitted } = await import("@/server/banking-notification.service");
-    await notifyDepositSubmitted(userId, input.amount, transaction.referenceCode, account.accountName);
+    await notifyDepositSubmitted(
+      userId,
+      input.amount,
+      transaction.referenceCode,
+      account.accountName,
+      getProofFileUrl(proof.proofImageUrl),
+    );
   } catch (error) {
     console.error("[bank] deposit submitted notification failed", error);
   }
