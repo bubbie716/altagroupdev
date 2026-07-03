@@ -7,7 +7,7 @@ Date: June 22, 2026
 
 
 ================================================================================
-EXECUTIVE SUMMARY
+EXECUTIVE SUMMARY.
 ================================================================================
 
 Alta Bank has a coherent foundation: Prisma-backed accounts, a denormalized
