@@ -22,7 +22,9 @@ import {
   stripAltaPayFromPrefix,
   stripAltaPayToPrefix,
 } from "@/lib/bank/customer-transaction-copy";
+import { UserTag } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { isSystemActorUserId, SYSTEM_ACTOR_USER_ID } from "@/server/system-actor.service";
 
 function forbidden(): never {
   throw new Error("FORBIDDEN");
@@ -208,6 +210,12 @@ export async function searchPayableRecipients(
       where: {
         id: { not: payerUserId },
         accountStatus: "ACTIVE",
+        NOT: {
+          OR: [
+            { id: SYSTEM_ACTOR_USER_ID },
+            { tags: { some: { tag: UserTag.SYSTEM } } },
+          ],
+        },
         OR: [
           { discordUsername: { contains: q, mode: "insensitive" } },
           { minecraftUsername: { contains: q, mode: "insensitive" } },
@@ -287,6 +295,9 @@ export async function submitAltaPayToPerson(
 
   if (input.recipientUserId === user.id) {
     badRequest("You cannot send Alta Pay to yourself.");
+  }
+  if (await isSystemActorUserId(input.recipientUserId)) {
+    badRequest("You cannot send Alta Pay to this recipient.");
   }
 
   const recipient = await prisma.user.findUnique({
