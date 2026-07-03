@@ -404,6 +404,10 @@ export async function declineAltaPrivateInvitation(
     console.error("[alta-private] staff audit invitation declined failed", error);
   }
 }
+
+export async function getCustomerAltaPrivatePageState(
+  userId: string,
+): Promise<AltaPrivateCustomerPageState> {
   await expireStalePendingInvitations(userId);
 
   const userRecord = await prisma.user.findUnique({

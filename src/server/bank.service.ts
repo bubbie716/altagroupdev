@@ -1494,6 +1494,8 @@ export async function denyWithdrawal(adminId: string, transactionId: string, rev
     console.error("[bank] staff audit withdrawal denied failed", error);
   }
 }
+
+function appendAccountNote(existing: string | null | undefined, note: string): string {
   return existing ? `${existing}\n${note}` : note;
 }
 
