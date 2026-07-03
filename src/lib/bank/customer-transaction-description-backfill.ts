@@ -170,7 +170,9 @@ export function rewriteBankTransactionDescription(
       if (status === "PENDING") return DEPOSIT_PENDING_DESCRIPTION;
       if (status === "DENIED") return DEPOSIT_DECLINED_DESCRIPTION;
     }
-    if (d === "Deposit — Declined") return DEPOSIT_DECLINED_DESCRIPTION;
+    if (d === "Deposit — Declined" || d === `Deposit${TX_DESC_SEP}Declined`) {
+      return DEPOSIT_DECLINED_DESCRIPTION;
+    }
   }
 
   if (type === "WITHDRAWAL") {
@@ -184,7 +186,9 @@ export function rewriteBankTransactionDescription(
       if (status === "PENDING") return WITHDRAWAL_PENDING_DESCRIPTION;
       if (status === "DENIED") return WITHDRAWAL_DECLINED_DESCRIPTION;
     }
-    if (d === "Withdrawal — Declined") return WITHDRAWAL_DECLINED_DESCRIPTION;
+    if (d === "Withdrawal — Declined" || d === `Withdrawal${TX_DESC_SEP}Declined`) {
+      return WITHDRAWAL_DECLINED_DESCRIPTION;
+    }
   }
 
   const transferTo = parseTransfer(d, "to");

@@ -34,6 +34,21 @@ function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
 }
 
+async function notifyAltaPaySentBestEffort(
+  userId: string,
+  amount: number,
+  referenceCode: string,
+  payeeName: string,
+  fundingSourceLabel: string,
+): Promise<void> {
+  try {
+    const { notifyAltaPaySent } = await import("@/server/banking-notification.service");
+    await notifyAltaPaySent(userId, amount, referenceCode, payeeName, fundingSourceLabel);
+  } catch (error) {
+    console.error("[alta-pay] sent notification failed", error);
+  }
+}
+
 function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
 }
@@ -245,6 +260,14 @@ export async function submitAltaPayToPerson(
   });
 
   const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
+
+  await notifyAltaPaySentBestEffort(
+    user.id,
+    input.amount,
+    result.referenceCode,
+    recipientLabel,
+    funding.label,
+  );
 
   return {
     referenceCode: result.referenceCode,
@@ -512,6 +535,14 @@ export async function submitAltaPayPayment(
     await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
     await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
+    await notifyAltaPaySentBestEffort(
+      user.id,
+      input.amount,
+      referenceBase,
+      company.name,
+      sourceAccount.accountName,
+    );
+
     return {
       referenceCode: referenceBase,
       amount: input.amount,
@@ -582,6 +613,14 @@ export async function submitAltaPayPayment(
     await import("@/server/relationship-refresh-hooks.service");
   await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
   await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
+
+  await notifyAltaPaySentBestEffort(
+    user.id,
+    input.amount,
+    referenceBase,
+    company.name,
+    fundingSourceLabel,
+  );
 
   return {
     referenceCode: referenceBase,

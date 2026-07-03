@@ -1,6 +1,22 @@
 import { formatFlorin } from "@/lib/bank/format";
 import { createUserNotification } from "@/server/notification.service";
 
+export async function notifyDepositSubmitted(
+  userId: string,
+  amount: number,
+  referenceCode: string,
+  accountName: string,
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "DEPOSIT_SUBMITTED",
+    title: "Deposit submitted",
+    body: `Your deposit of ${formatFlorin(amount)} to ${accountName} (${referenceCode}) is pending Alta review.`,
+    linkUrl: "/bank",
+    metadata: { referenceCode, amount, accountName },
+  });
+}
+
 export async function notifyDepositApproved(
   userId: string,
   amount: number,
@@ -24,10 +40,26 @@ export async function notifyDepositDenied(
   await createUserNotification({
     userId,
     type: "DEPOSIT_DENIED",
-    title: "Deposit declined",
-    body: `Your deposit of ${formatFlorin(amount)} (${referenceCode}) was declined.`,
+    title: "Deposit denied",
+    body: `Your deposit of ${formatFlorin(amount)} (${referenceCode}) was denied.`,
     linkUrl: "/bank",
     metadata: { referenceCode, amount },
+  });
+}
+
+export async function notifyWithdrawalSubmitted(
+  userId: string,
+  amount: number,
+  referenceCode: string,
+  accountName: string,
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "WITHDRAWAL_SUBMITTED",
+    title: "Withdrawal submitted",
+    body: `Your withdrawal of ${formatFlorin(amount)} from ${accountName} (${referenceCode}) is pending Alta processing.`,
+    linkUrl: "/bank",
+    metadata: { referenceCode, amount, accountName },
   });
 }
 
@@ -54,10 +86,44 @@ export async function notifyWithdrawalDenied(
   await createUserNotification({
     userId,
     type: "WITHDRAWAL_DENIED",
-    title: "Withdrawal declined",
-    body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) was declined.`,
+    title: "Withdrawal denied",
+    body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) was denied.`,
     linkUrl: "/bank",
     metadata: { referenceCode, amount },
+  });
+}
+
+export async function notifyTransferCompleted(
+  userId: string,
+  amount: number,
+  referenceCode: string,
+  fromAccountName: string,
+  toAccountName: string,
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "TRANSFER_COMPLETED",
+    title: "Transfer complete",
+    body: `Moved ${formatFlorin(amount)} from ${fromAccountName} to ${toAccountName}. Reference \`${referenceCode}\`.`,
+    linkUrl: "/bank/transfers/intrabank",
+    metadata: { referenceCode, amount, fromAccountName, toAccountName },
+  });
+}
+
+export async function notifyAltaPaySent(
+  userId: string,
+  amount: number,
+  referenceCode: string,
+  payeeName: string,
+  fundingSourceLabel: string,
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "ALTA_PAY_SENT",
+    title: "Alta Pay sent",
+    body: `Paid ${formatFlorin(amount)} to ${payeeName} from ${fundingSourceLabel}. Reference \`${referenceCode}\`.`,
+    linkUrl: "/bank/pay",
+    metadata: { referenceCode, amount, payeeName, fundingSourceLabel },
   });
 }
 

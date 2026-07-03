@@ -722,6 +722,13 @@ export async function submitDepositRequest(
     },
   });
 
+  try {
+    const { notifyDepositSubmitted } = await import("@/server/banking-notification.service");
+    await notifyDepositSubmitted(userId, input.amount, transaction.referenceCode, account.accountName);
+  } catch (error) {
+    console.error("[bank] deposit submitted notification failed", error);
+  }
+
   return { transactionId: transaction.id, referenceCode: transaction.referenceCode };
 }
 
@@ -755,6 +762,18 @@ export async function submitWithdrawalRequest(
       referenceCode: generateReferenceCode("WDR"),
     },
   });
+
+  try {
+    const { notifyWithdrawalSubmitted } = await import("@/server/banking-notification.service");
+    await notifyWithdrawalSubmitted(
+      userId,
+      input.amount,
+      transaction.referenceCode,
+      account.accountName,
+    );
+  } catch (error) {
+    console.error("[bank] withdrawal submitted notification failed", error);
+  }
 
   return { transactionId: transaction.id, referenceCode: transaction.referenceCode };
 }
@@ -854,6 +873,21 @@ export async function submitInternalTransfer(
       },
     });
   });
+
+  if (input.toAccountId) {
+    try {
+      const { notifyTransferCompleted } = await import("@/server/banking-notification.service");
+      await notifyTransferCompleted(
+        userId,
+        amount,
+        referenceBase,
+        fromAccount.accountName,
+        toAccount.accountName,
+      );
+    } catch (error) {
+      console.error("[bank] transfer completed notification failed", error);
+    }
+  }
 
   return { referenceCode: referenceBase };
 }
