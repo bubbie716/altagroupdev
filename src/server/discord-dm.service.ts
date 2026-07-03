@@ -50,7 +50,10 @@ async function postChannelMessage(
 export async function sendDiscordUserDm(
   discordUserId: string,
   payload: DmPayload,
-): Promise<{ sent: true; messageId: string } | { sent: false; reason: "not_configured" }> {
+): Promise<
+  | { sent: true; messageId: string; channelId: string }
+  | { sent: false; reason: "not_configured" }
+> {
   const config = getDiscordBotConfig();
   if (!config) return { sent: false, reason: "not_configured" };
 
@@ -60,7 +63,7 @@ export async function sendDiscordUserDm(
     components: payload.components.length > 0 ? payload.components : undefined,
   });
 
-  return { sent: true, messageId };
+  return { sent: true, messageId, channelId };
 }
 
 export async function sendDiscordInvitationDm(

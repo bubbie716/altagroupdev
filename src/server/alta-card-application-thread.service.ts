@@ -27,6 +27,7 @@ import {
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
 import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
 import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
+import { sourceCodeFromDb } from "@/lib/bank/secure-deal-room-discord-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
@@ -36,6 +37,11 @@ import {
   assertSecureThreadUploadAccess,
   SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
 } from "@/server/secure-thread-attachment-access";
+import {
+  closeDiscordSessionsForDealRoom,
+  notifyStaffDealRoomMessageBestEffort,
+  resolveDealRoomContextForStaffMessage,
+} from "@/server/secure-deal-room-discord.service";
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
 
@@ -152,6 +158,7 @@ function mapMessageRow(
         : null,
     body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
+    source: sourceCodeFromDb(msg.source),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
   };
@@ -257,6 +264,7 @@ export async function createThreadForAltaCardApplication(
       data: {
         threadId: created.id,
         senderRole: "SYSTEM",
+        source: "SYSTEM",
         body: systemMessage,
       },
     });
@@ -277,13 +285,14 @@ export async function postAltaCardApplicationSystemMessage(
 
   await prisma.$transaction(async (tx) => {
     await tx.altaCardApplicationThreadMessage.create({
-      data: { threadId: thread.id, senderRole: "SYSTEM", body },
+      data: { threadId: thread.id, senderRole: "SYSTEM", source: "SYSTEM", body },
     });
     if (closeThread) {
       await tx.altaCardApplicationThread.update({
         where: { id: thread.id },
         data: { status: "CLOSED", closedAt: new Date() },
       });
+      await closeDiscordSessionsForDealRoom("ALTA_CARD_APPLICATION", applicationId);
     }
   });
 }
@@ -343,6 +352,7 @@ export async function sendAltaCardThreadMessage(
         threadId: thread.id,
         senderUserId: userId,
         senderRole,
+        source: "WEBSITE",
         body,
         attachments: attachments.length ? attachments : undefined,
       },
@@ -373,6 +383,20 @@ export async function sendAltaCardThreadMessage(
     },
   });
 
+  if (as === "staff") {
+    void notifyStaffDealRoomMessageBestEffort({
+      dealRoomType: "ALTA_CARD_APPLICATION",
+      dealRoomId: input.applicationId,
+      threadId: thread.id,
+      applicantUserId: thread.applicantUserId,
+      staffUserId: userId,
+      staffDisplayName: user.discordUsername,
+      messageId: message.id,
+      messageBody: body,
+      context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_APPLICATION", input.applicationId),
+    });
+  }
+
   return mapMessageRow(message);
 }
 
@@ -392,6 +416,10 @@ export async function updateAltaCardThreadStatus(
     },
     include: threadInclude,
   });
+
+  if (input.status === "closed") {
+    await closeDiscordSessionsForDealRoom("ALTA_CARD_APPLICATION", input.applicationId);
+  }
 
   return mapThreadContext(updated, user, "internal");
 }

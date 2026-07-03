@@ -36,6 +36,7 @@ import {
 import { mapAltaCardThreadContextToLoan } from "@/lib/bank/alta-card-thread-adapter";
 import { mapAltaCardReviewThreadContextToLoan } from "@/lib/bank/alta-card-review-thread-adapter";
 import { linkifyText, ThreadAttachmentList } from "@/components/bank/loan-thread/thread-attachments";
+import { sourceLabel } from "@/lib/bank/secure-deal-room-discord-types";
 import {
   isTerminalThreadDecisionStatus,
   threadClosedDecisionMessage,
@@ -667,6 +668,11 @@ function ThreadMessageBubble({
             <span className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-muted-foreground/80">
               {timeLabel}
             </span>
+            {sourceLabel(message.source) ? (
+              <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground/70">
+                {sourceLabel(message.source)}
+              </span>
+            ) : null}
           </div>
         )}
         <div

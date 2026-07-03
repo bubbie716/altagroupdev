@@ -6,6 +6,8 @@ export type LoanApplicationThreadStatusCode =
 
 export type ThreadSenderRoleCode = "applicant" | "alta_staff" | "system";
 
+export type ThreadMessageSourceCode = "website" | "discord" | "system";
+
 export type ThreadAttachmentType = "FILE" | "IMAGE" | "LINK";
 
 export type ThreadAttachment = {
@@ -29,6 +31,7 @@ export type LoanApplicationThreadMessageRow = {
   senderAvatarUrl: string | null;
   body: string | null;
   attachments: ThreadAttachment[];
+  source: ThreadMessageSourceCode;
   createdAt: string;
   createdAtLabel: string;
 };

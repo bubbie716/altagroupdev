@@ -28,8 +28,9 @@ import {
 } from "@/lib/bank/secure-deal-room-system-copy";
 import { applicationListStatusLabel, THREAD_STATUS_LABELS, THREAD_STATUS_LABELS_INTERNAL } from "@/lib/bank/loan-application-thread-types";
 import { LOAN_PRODUCT_LABELS } from "@/lib/bank/lending-types";
-import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
+import { sourceCodeFromDb } from "@/lib/bank/secure-deal-room-discord-types";
 import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
+import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { fromDbLoanProductType } from "@/server/lending-mapper";
 import { prisma } from "@/server/db";
@@ -39,6 +40,11 @@ import {
   assertSecureThreadUploadAccess,
   SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
 } from "@/server/secure-thread-attachment-access";
+import {
+  closeDiscordSessionsForDealRoom,
+  notifyStaffDealRoomMessageBestEffort,
+  resolveDealRoomContextForStaffMessage,
+} from "@/server/secure-deal-room-discord.service";
 
 const INITIAL_SYSTEM_MESSAGE = LENDING_THREAD_WELCOME_MESSAGE;
 
@@ -164,6 +170,7 @@ function mapMessageRow(
         : null,
     body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
+    source: sourceCodeFromDb(msg.source),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
   };
@@ -263,6 +270,7 @@ export async function createThreadForLoanApplication(
       data: {
         threadId: created.id,
         senderRole: "SYSTEM",
+        source: "SYSTEM",
         body: INITIAL_SYSTEM_MESSAGE,
       },
     });
@@ -364,6 +372,7 @@ export async function sendThreadMessage(
         threadId: thread.id,
         senderUserId: userId,
         senderRole,
+        source: "WEBSITE",
         body,
         attachments: attachments.length > 0 ? attachments : undefined,
       },
@@ -389,8 +398,19 @@ export async function sendThreadMessage(
     metadata: { threadId: thread.id, messageId: message.id, senderRole },
   });
 
-  // TODO: Alta Bot — DM applicant when Alta Credit Desk replies in the Secure Deal Room.
-  // TODO: Alta Bot / staff Discord bridge when applicant sends a Secure Deal Room message.
+  if (as === "staff") {
+    void notifyStaffDealRoomMessageBestEffort({
+      dealRoomType: "LOAN_APPLICATION",
+      dealRoomId: thread.loanApplicationId,
+      threadId: thread.id,
+      applicantUserId: thread.applicantUserId,
+      staffUserId: userId,
+      staffDisplayName: user.discordUsername,
+      messageId: message.id,
+      messageBody: body,
+      context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", thread.loanApplicationId),
+    });
+  }
 
   return mapMessageRow(message);
 }
@@ -465,6 +485,8 @@ export async function closeThread(
     description: `Application thread closed.`,
   });
 
+  await closeDiscordSessionsForDealRoom("LOAN_APPLICATION", applicationId);
+
   return mapThreadContext(updated, actor, "internal");
 }
 
@@ -491,6 +513,7 @@ export async function closeThreadForApplicationIfOpen(
         data: {
           threadId: thread.id,
           senderRole: "SYSTEM",
+          source: "SYSTEM",
           body: systemMessage,
         },
       });
@@ -512,6 +535,8 @@ export async function closeThreadForApplicationIfOpen(
     metadata: { threadId: thread.id, reason },
     description: reason,
   });
+
+  await closeDiscordSessionsForDealRoom("LOAN_APPLICATION", applicationId);
 }
 
 export async function reopenThread(

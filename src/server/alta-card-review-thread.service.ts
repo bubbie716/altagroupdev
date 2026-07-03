@@ -32,6 +32,7 @@ import type { AltaCardThreadAttachment } from "@/lib/bank/alta-card-application-
 import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
 import { enrichLegacyThreadMessage, sanitizeThreadMessageBodyForAudience } from "@/lib/bank/thread-message-utils";
 import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
+import { sourceCodeFromDb } from "@/lib/bank/secure-deal-room-discord-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
 import {
@@ -44,6 +45,11 @@ import {
   assertSecureThreadUploadAccess,
   SECURE_THREAD_CLOSED_UPLOAD_MESSAGES,
 } from "@/server/secure-thread-attachment-access";
+import {
+  closeDiscordSessionsForDealRoom,
+  notifyStaffDealRoomMessageBestEffort,
+  resolveDealRoomContextForStaffMessage,
+} from "@/server/secure-deal-room-discord.service";
 
 const ALTA_CREDIT_DESK_NAME = "Alta Credit Desk";
 
@@ -161,6 +167,7 @@ function mapMessageRow(
         : null,
     body: sanitizeThreadMessageBodyForAudience(msg.body, senderRole, audience),
     attachments: parseAttachments(msg.attachments),
+    source: sourceCodeFromDb(msg.source),
     createdAt: msg.createdAt.toISOString(),
     createdAtLabel: formatActivityDateTime(msg.createdAt),
   };
@@ -253,7 +260,7 @@ export async function createThreadForReviewRequest(
     });
 
     await tx.altaCardReviewThreadMessage.create({
-      data: { threadId: created.id, senderRole: "SYSTEM", body: systemMessage },
+      data: { threadId: created.id, senderRole: "SYSTEM", source: "SYSTEM", body: systemMessage },
     });
 
     return created;
@@ -292,6 +299,7 @@ export async function ensureReviewThreadExists(
         data: {
           threadId: created.id,
           senderRole: "SYSTEM",
+          source: "SYSTEM",
           body: ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE,
         },
       });
@@ -313,13 +321,14 @@ export async function postReviewSystemMessage(
 
   await prisma.$transaction(async (tx) => {
     await tx.altaCardReviewThreadMessage.create({
-      data: { threadId: thread.id, senderRole: "SYSTEM", body },
+      data: { threadId: thread.id, senderRole: "SYSTEM", source: "SYSTEM", body },
     });
     if (closeThread) {
       await tx.altaCardReviewThread.update({
         where: { id: thread.id },
         data: { status: "CLOSED", closedAt: new Date() },
       });
+      await closeDiscordSessionsForDealRoom("ALTA_CARD_REVIEW", reviewRequestId);
     }
   });
 }
@@ -387,6 +396,7 @@ export async function sendReviewThreadMessage(
         threadId: thread.id,
         senderUserId: userId,
         senderRole,
+        source: "WEBSITE",
         body,
         attachments: attachments.length ? attachments : undefined,
       },
@@ -402,6 +412,20 @@ export async function sendReviewThreadMessage(
 
     return created;
   });
+
+  if (as === "staff") {
+    void notifyStaffDealRoomMessageBestEffort({
+      dealRoomType: "ALTA_CARD_REVIEW",
+      dealRoomId: input.reviewRequestId,
+      threadId: thread.id,
+      applicantUserId: thread.applicantUserId,
+      staffUserId: userId,
+      staffDisplayName: user.discordUsername,
+      messageId: message.id,
+      messageBody: body,
+      context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", input.reviewRequestId),
+    });
+  }
 
   return mapMessageRow(message);
 }
@@ -421,6 +445,10 @@ export async function updateReviewThreadStatus(
     },
     include: threadInclude,
   });
+
+  if (input.status === "closed") {
+    await closeDiscordSessionsForDealRoom("ALTA_CARD_REVIEW", input.reviewRequestId);
+  }
 
   return mapThreadContext(updated, user, "internal");
 }

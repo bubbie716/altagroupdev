@@ -28,6 +28,7 @@ export type AltaCardApplicationThreadMessageRow = {
   senderAvatarUrl: string | null;
   body: string | null;
   attachments: AltaCardThreadAttachment[];
+  source: import("@/lib/bank/loan-application-thread-types").ThreadMessageSourceCode;
   createdAt: string;
   createdAtLabel: string;
 };

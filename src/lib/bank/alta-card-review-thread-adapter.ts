@@ -42,6 +42,7 @@ export function mapAltaCardReviewThreadMessagesToLoan(
     senderAvatarUrl: message.senderAvatarUrl,
     body: message.body,
     attachments: message.attachments,
+    source: message.source ?? "website",
     createdAt: message.createdAt,
     createdAtLabel: message.createdAtLabel,
   }));
