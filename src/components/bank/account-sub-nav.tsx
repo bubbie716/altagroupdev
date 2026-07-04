@@ -14,7 +14,6 @@ const MODULE_LABELS: Record<BusinessAccountModule, string> = {
   overview: "Overview",
   activity: "Activity",
   payments: "Payments",
-  invoices: "Invoices",
   payroll: "Payroll",
   statements: "Statements",
   representatives: "Representatives",
@@ -25,7 +24,6 @@ const MODULE_PATHS: Record<BusinessAccountModule, string> = {
   overview: "",
   activity: "/activity",
   payments: "/payments",
-  invoices: "/invoices",
   payroll: "/payroll",
   statements: "/statements",
   representatives: "/representatives",
@@ -54,7 +52,6 @@ export function BusinessAccountSubNav({
           | "/bank/account/$accountId"
           | "/bank/account/$accountId/activity"
           | "/bank/account/$accountId/payments"
-          | "/bank/account/$accountId/invoices"
           | "/bank/account/$accountId/payroll"
           | "/bank/account/$accountId/statements"
           | "/bank/account/$accountId/representatives"

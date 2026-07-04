@@ -31,6 +31,8 @@ export function paymentTypeToTransferGroupType(paymentType: PaymentType): Transf
       return "INTERBANK_TRANSFER";
     case "MERCHANT_INVOICE":
       return "MERCHANT_INVOICE";
+    case "PAYMENT_LINK":
+      return "PAYMENT_LINK";
     default:
       return "OTHER";
   }

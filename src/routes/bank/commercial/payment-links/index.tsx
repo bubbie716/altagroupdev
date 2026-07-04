@@ -1,13 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { Section } from "@/components/page-shell";
-import { MerchantInvoiceDashboardPanel } from "@/components/bank/merchant-invoices/merchant-invoice-dashboard";
+import { PaymentLinkDashboardPanel } from "@/components/bank/payment-links/payment-link-dashboard";
 import { CommercialAccountBackLink } from "@/components/bank/commercial-account-back-link";
-import { fetchMerchantInvoiceDashboard } from "@/lib/bank/merchant-invoice.functions";
+import { fetchPaymentLinkDashboard } from "@/lib/bank/payment-link.functions";
 import { resolveBusinessOperatingAccountRedirect } from "@/lib/bank/business-account.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
-export const Route = createFileRoute("/bank/commercial/invoices/")({
+export const Route = createFileRoute("/bank/commercial/payment-links/")({
   beforeLoad: authBeforeLoad,
   loader: async ({ location }) => {
     const companyId = new URLSearchParams(location.searchStr).get("companyId") ?? undefined;
@@ -16,22 +16,22 @@ export const Route = createFileRoute("/bank/commercial/invoices/")({
       throw redirect({ to: "/bank/business" });
     }
     const activeCompanyId = companyId ?? resolved.companyId;
-    const dashboard = await fetchMerchantInvoiceDashboard({ data: activeCompanyId });
+    const dashboard = await fetchPaymentLinkDashboard({ data: activeCompanyId });
     return { dashboard, companyId: activeCompanyId, accountId: resolved.accountId };
   },
-  head: () => ({ meta: [{ title: "Merchant Invoices — Alta Bank" }] }),
-  component: MerchantInvoicesPage,
+  head: () => ({ meta: [{ title: "Payment Links — Alta Bank" }] }),
+  component: PaymentLinksPage,
 });
 
-function MerchantInvoicesPage() {
+function PaymentLinksPage() {
   const { dashboard, companyId, accountId } = Route.useLoaderData();
 
   return (
     <>
-      <BankPageMeta eyebrow="Commercial Banking" title="Merchant Invoices" />
+      <BankPageMeta eyebrow="Commercial Banking" title="Payment Links" />
       <CommercialAccountBackLink accountId={accountId} />
-      <Section title="Invoice dashboard">
-        <MerchantInvoiceDashboardPanel
+      <Section title="Payment link dashboard">
+        <PaymentLinkDashboardPanel
           dashboard={dashboard}
           companyId={companyId}
           accountId={accountId}

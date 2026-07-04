@@ -35,6 +35,7 @@ import { Route as TerminalPortfolioRouteImport } from './routes/terminal/portfol
 import { Route as TerminalNewsRouteImport } from './routes/terminal/news'
 import { Route as TerminalLeaderboardRouteImport } from './routes/terminal/leaderboard'
 import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
+import { Route as PaySlugRouteImport } from './routes/pay/$slug'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
 import { Route as InternalReportsRouteImport } from './routes/internal/reports'
@@ -157,6 +158,7 @@ import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchang
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
 import { Route as BankLendingDealRoomsIndexRouteImport } from './routes/bank/lending/deal-rooms/index'
 import { Route as BankLendingApplicationsIndexRouteImport } from './routes/bank/lending/applications/index'
+import { Route as BankCommercialPaymentLinksIndexRouteImport } from './routes/bank/commercial/payment-links/index'
 import { Route as BankCommercialInvoicesIndexRouteImport } from './routes/bank/commercial/invoices/index'
 import { Route as BankAltaCardBusinessIndexRouteImport } from './routes/bank/alta-card/business/index'
 import { Route as BankAltaCardCardIdIndexRouteImport } from './routes/bank/alta-card/$cardId/index'
@@ -171,6 +173,8 @@ import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchang
 import { Route as BankPrivateInvitationInvitationIdRouteImport } from './routes/bank/private/invitation/$invitationId'
 import { Route as BankLendingLoansLoanIdRouteImport } from './routes/bank/lending/loans/$loanId'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
+import { Route as BankCommercialPaymentLinksNewRouteImport } from './routes/bank/commercial/payment-links/new'
+import { Route as BankCommercialPaymentLinksLinkIdRouteImport } from './routes/bank/commercial/payment-links/$linkId'
 import { Route as BankCommercialInvoicesNewRouteImport } from './routes/bank/commercial/invoices/new'
 import { Route as BankCommercialInvoicesInvoiceIdRouteImport } from './routes/bank/commercial/invoices/$invoiceId'
 import { Route as BankAltaCardBusinessApplyRouteImport } from './routes/bank/alta-card/business/apply'
@@ -359,6 +363,11 @@ const TerminalIpoRoute = TerminalIpoRouteImport.update({
   id: '/ipo',
   path: '/ipo',
   getParentRoute: () => TerminalRouteRoute,
+} as any)
+const PaySlugRoute = PaySlugRouteImport.update({
+  id: '/pay/$slug',
+  path: '/pay/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InternalTerminalRoute = InternalTerminalRouteImport.update({
   id: '/terminal',
@@ -1006,6 +1015,12 @@ const BankLendingApplicationsIndexRoute =
     path: '/',
     getParentRoute: () => BankLendingApplicationsRouteRoute,
   } as any)
+const BankCommercialPaymentLinksIndexRoute =
+  BankCommercialPaymentLinksIndexRouteImport.update({
+    id: '/payment-links/',
+    path: '/payment-links/',
+    getParentRoute: () => BankCommercialRouteRoute,
+  } as any)
 const BankCommercialInvoicesIndexRoute =
   BankCommercialInvoicesIndexRouteImport.update({
     id: '/invoices/',
@@ -1087,6 +1102,18 @@ const BankLendingDealRoomsDealRoomIdRoute =
     id: '/$dealRoomId',
     path: '/$dealRoomId',
     getParentRoute: () => BankLendingDealRoomsRouteRoute,
+  } as any)
+const BankCommercialPaymentLinksNewRoute =
+  BankCommercialPaymentLinksNewRouteImport.update({
+    id: '/payment-links/new',
+    path: '/payment-links/new',
+    getParentRoute: () => BankCommercialRouteRoute,
+  } as any)
+const BankCommercialPaymentLinksLinkIdRoute =
+  BankCommercialPaymentLinksLinkIdRouteImport.update({
+    id: '/payment-links/$linkId',
+    path: '/payment-links/$linkId',
+    getParentRoute: () => BankCommercialRouteRoute,
   } as any)
 const BankCommercialInvoicesNewRoute =
   BankCommercialInvoicesNewRouteImport.update({
@@ -1494,6 +1521,7 @@ export interface FileRoutesByFullPath {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -1606,6 +1634,8 @@ export interface FileRoutesByFullPath {
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/commercial/invoices/$invoiceId': typeof BankCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/commercial/invoices/new': typeof BankCommercialInvoicesNewRoute
+  '/bank/commercial/payment-links/$linkId': typeof BankCommercialPaymentLinksLinkIdRoute
+  '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
@@ -1620,6 +1650,7 @@ export interface FileRoutesByFullPath {
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
   '/bank/alta-card/business/': typeof BankAltaCardBusinessIndexRoute
   '/bank/commercial/invoices/': typeof BankCommercialInvoicesIndexRoute
+  '/bank/commercial/payment-links/': typeof BankCommercialPaymentLinksIndexRoute
   '/bank/lending/applications/': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
@@ -1705,6 +1736,7 @@ export interface FileRoutesByTo {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -1806,6 +1838,8 @@ export interface FileRoutesByTo {
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/commercial/invoices/$invoiceId': typeof BankCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/commercial/invoices/new': typeof BankCommercialInvoicesNewRoute
+  '/bank/commercial/payment-links/$linkId': typeof BankCommercialPaymentLinksLinkIdRoute
+  '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
@@ -1820,6 +1854,7 @@ export interface FileRoutesByTo {
   '/bank/alta-card/$cardId': typeof BankAltaCardCardIdIndexRoute
   '/bank/alta-card/business': typeof BankAltaCardBusinessIndexRoute
   '/bank/commercial/invoices': typeof BankCommercialInvoicesIndexRoute
+  '/bank/commercial/payment-links': typeof BankCommercialPaymentLinksIndexRoute
   '/bank/lending/applications': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
@@ -1916,6 +1951,7 @@ export interface FileRoutesById {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -2028,6 +2064,8 @@ export interface FileRoutesById {
   '/bank/alta-card/business/apply': typeof BankAltaCardBusinessApplyRoute
   '/bank/commercial/invoices/$invoiceId': typeof BankCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/commercial/invoices/new': typeof BankCommercialInvoicesNewRoute
+  '/bank/commercial/payment-links/$linkId': typeof BankCommercialPaymentLinksLinkIdRoute
+  '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
@@ -2042,6 +2080,7 @@ export interface FileRoutesById {
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
   '/bank/alta-card/business/': typeof BankAltaCardBusinessIndexRoute
   '/bank/commercial/invoices/': typeof BankCommercialInvoicesIndexRoute
+  '/bank/commercial/payment-links/': typeof BankCommercialPaymentLinksIndexRoute
   '/bank/lending/applications/': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
@@ -2140,6 +2179,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -2252,6 +2292,8 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/apply'
     | '/bank/commercial/invoices/$invoiceId'
     | '/bank/commercial/invoices/new'
+    | '/bank/commercial/payment-links/$linkId'
+    | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/private/invitation/$invitationId'
@@ -2266,6 +2308,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId/'
     | '/bank/alta-card/business/'
     | '/bank/commercial/invoices/'
+    | '/bank/commercial/payment-links/'
     | '/bank/lending/applications/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
@@ -2351,6 +2394,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -2452,6 +2496,8 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/apply'
     | '/bank/commercial/invoices/$invoiceId'
     | '/bank/commercial/invoices/new'
+    | '/bank/commercial/payment-links/$linkId'
+    | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/private/invitation/$invitationId'
@@ -2466,6 +2512,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId'
     | '/bank/alta-card/business'
     | '/bank/commercial/invoices'
+    | '/bank/commercial/payment-links'
     | '/bank/lending/applications'
     | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
@@ -2561,6 +2608,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -2673,6 +2721,8 @@ export interface FileRouteTypes {
     | '/bank/alta-card/business/apply'
     | '/bank/commercial/invoices/$invoiceId'
     | '/bank/commercial/invoices/new'
+    | '/bank/commercial/payment-links/$linkId'
+    | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/private/invitation/$invitationId'
@@ -2687,6 +2737,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId/'
     | '/bank/alta-card/business/'
     | '/bank/commercial/invoices/'
+    | '/bank/commercial/payment-links/'
     | '/bank/lending/applications/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
@@ -2745,6 +2796,7 @@ export interface RootRouteChildren {
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
   ProfileRoute: typeof ProfileRoute
+  PaySlugRoute: typeof PaySlugRoute
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
   ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
   ApiBankWithdrawalRequestRoute: typeof ApiBankWithdrawalRequestRoute
@@ -2949,6 +3001,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/terminal/ipo'
       preLoaderRoute: typeof TerminalIpoRouteImport
       parentRoute: typeof TerminalRouteRoute
+    }
+    '/pay/$slug': {
+      id: '/pay/$slug'
+      path: '/pay/$slug'
+      fullPath: '/pay/$slug'
+      preLoaderRoute: typeof PaySlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/internal/terminal': {
       id: '/internal/terminal'
@@ -3804,6 +3863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankLendingApplicationsIndexRouteImport
       parentRoute: typeof BankLendingApplicationsRouteRoute
     }
+    '/bank/commercial/payment-links/': {
+      id: '/bank/commercial/payment-links/'
+      path: '/payment-links'
+      fullPath: '/bank/commercial/payment-links/'
+      preLoaderRoute: typeof BankCommercialPaymentLinksIndexRouteImport
+      parentRoute: typeof BankCommercialRouteRoute
+    }
     '/bank/commercial/invoices/': {
       id: '/bank/commercial/invoices/'
       path: '/invoices'
@@ -3901,6 +3967,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/lending/deal-rooms/$dealRoomId'
       preLoaderRoute: typeof BankLendingDealRoomsDealRoomIdRouteImport
       parentRoute: typeof BankLendingDealRoomsRouteRoute
+    }
+    '/bank/commercial/payment-links/new': {
+      id: '/bank/commercial/payment-links/new'
+      path: '/payment-links/new'
+      fullPath: '/bank/commercial/payment-links/new'
+      preLoaderRoute: typeof BankCommercialPaymentLinksNewRouteImport
+      parentRoute: typeof BankCommercialRouteRoute
+    }
+    '/bank/commercial/payment-links/$linkId': {
+      id: '/bank/commercial/payment-links/$linkId'
+      path: '/payment-links/$linkId'
+      fullPath: '/bank/commercial/payment-links/$linkId'
+      preLoaderRoute: typeof BankCommercialPaymentLinksLinkIdRouteImport
+      parentRoute: typeof BankCommercialRouteRoute
     }
     '/bank/commercial/invoices/new': {
       id: '/bank/commercial/invoices/new'
@@ -4350,14 +4430,20 @@ const BankCommercialInvoicesInvoiceIdRouteWithChildren =
 interface BankCommercialRouteRouteChildren {
   BankCommercialInvoicesInvoiceIdRoute: typeof BankCommercialInvoicesInvoiceIdRouteWithChildren
   BankCommercialInvoicesNewRoute: typeof BankCommercialInvoicesNewRoute
+  BankCommercialPaymentLinksLinkIdRoute: typeof BankCommercialPaymentLinksLinkIdRoute
+  BankCommercialPaymentLinksNewRoute: typeof BankCommercialPaymentLinksNewRoute
   BankCommercialInvoicesIndexRoute: typeof BankCommercialInvoicesIndexRoute
+  BankCommercialPaymentLinksIndexRoute: typeof BankCommercialPaymentLinksIndexRoute
 }
 
 const BankCommercialRouteRouteChildren: BankCommercialRouteRouteChildren = {
   BankCommercialInvoicesInvoiceIdRoute:
     BankCommercialInvoicesInvoiceIdRouteWithChildren,
   BankCommercialInvoicesNewRoute: BankCommercialInvoicesNewRoute,
+  BankCommercialPaymentLinksLinkIdRoute: BankCommercialPaymentLinksLinkIdRoute,
+  BankCommercialPaymentLinksNewRoute: BankCommercialPaymentLinksNewRoute,
   BankCommercialInvoicesIndexRoute: BankCommercialInvoicesIndexRoute,
+  BankCommercialPaymentLinksIndexRoute: BankCommercialPaymentLinksIndexRoute,
 }
 
 const BankCommercialRouteRouteWithChildren =
@@ -5094,6 +5180,7 @@ const rootRouteChildren: RootRouteChildren = {
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
   ProfileRoute: ProfileRoute,
+  PaySlugRoute: PaySlugRoute,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
   ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,
   ApiBankWithdrawalRequestRoute: ApiBankWithdrawalRequestRoute,

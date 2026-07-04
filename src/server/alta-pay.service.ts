@@ -15,6 +15,10 @@ import type {
 import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
 import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
+import {
+  CUSTOMER_RECEIVED_DEPOSIT_REFERENCE_FILTERS,
+  extractReceivedCustomerPayerLabel,
+} from "@/server/customer-payments-received";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 import {
   altaPayFromDescription,
@@ -863,7 +867,7 @@ export async function listCompanyAltaPayReceived(
       bankAccountId: operating.id,
       type: "DEPOSIT",
       status: "APPROVED",
-      referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-IN" },
+      OR: CUSTOMER_RECEIVED_DEPOSIT_REFERENCE_FILTERS,
     },
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -875,7 +879,7 @@ export async function listCompanyAltaPayReceived(
   const company = await prisma.company.findUnique({ where: { id: companyId } });
 
   const recentPayments = received.slice(0, 20).map((tx) => {
-    const payer = stripAltaPayFromPrefix(tx.description);
+    const payer = extractReceivedCustomerPayerLabel(tx.description);
     return mapPayRow(
       tx,
       "received",

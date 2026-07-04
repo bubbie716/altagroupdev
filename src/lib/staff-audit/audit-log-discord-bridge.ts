@@ -55,6 +55,11 @@ const DISCORD_SKIP_ACTIONS = new Set([
   "MERCHANT_INVOICE_VIEWED",
   "MERCHANT_INVOICE_REMINDER_SENT",
   "MERCHANT_INVOICE_CANCELLED",
+  "PAYMENT_LINK_CREATED",
+  "PAYMENT_LINK_UPDATED",
+  "PAYMENT_LINK_PAUSED",
+  "PAYMENT_LINK_ACTIVATED",
+  "PAYMENT_LINK_CANCELLED",
 ]);
 
 const ACTION_LABELS: Record<string, string> = {
@@ -87,6 +92,8 @@ const ACTION_LABELS: Record<string, string> = {
   ALTA_PAY_REVERSED: "Alta Pay reversed",
   MERCHANT_INVOICE_SENT: "Merchant invoice sent",
   MERCHANT_INVOICE_PAID: "Merchant invoice paid",
+  PAYMENT_LINK_PAID: "Payment link paid",
+  PAYMENT_LINK_PAYMENT_FAILED: "Payment link payment failed",
   ALTA_CARD_ALTA_PAY_CHARGED: "Alta Pay sent (card-funded)",
   ALTA_PRIVATE_INVITATION_SENT: "Alta Private invitation sent",
   ALTA_PRIVATE_INVITATION_REVOKED: "Alta Private invitation revoked",
@@ -191,6 +198,7 @@ function inferSeverity(action: string, metadata: Record<string, unknown> | undef
     action.includes("REQUEST") ||
     action === "MERCHANT_INVOICE_SENT" ||
     action === "MERCHANT_INVOICE_PAID" ||
+    action === "PAYMENT_LINK_PAID" ||
     (action.includes("CREATED") && action.includes("INVITATION"))
   ) {
     return "ACTION";
@@ -208,6 +216,7 @@ function productFor(input: WriteAuditLogInput): StaffAuditProduct {
   if (action.startsWith("COMPANY_") || action === "BUSINESS_ACCOUNT_OPENED") return "Companies";
   if (action.startsWith("ALTA_PAY") || action === "ALTA_CARD_ALTA_PAY_CHARGED") return "Alta Pay";
   if (action.startsWith("MERCHANT_INVOICE") || entityType === "MERCHANT_INVOICE") return "Alta Bank";
+  if (action.startsWith("PAYMENT_LINK") || entityType === "PAYMENT_LINK") return "Alta Bank";
   if (
     action.startsWith("MAINTENANCE") ||
     action.startsWith("CREDIT_DESK") ||

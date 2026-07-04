@@ -159,6 +159,8 @@ model User {
   merchantInvoicesCreated        MerchantInvoice[]              @relation("MerchantInvoiceCreator")
   merchantInvoicesReceived       MerchantInvoice[]              @relation("MerchantInvoiceRecipient")
   merchantInvoicePaymentsInitiated MerchantInvoicePayment[]     @relation("MerchantInvoicePaymentInitiator")
+  paymentLinksCreated              PaymentLink[]                  @relation("PaymentLinkCreator")
+  paymentLinkPaymentsInitiated   PaymentLinkPayment[]           @relation("PaymentLinkPaymentInitiator")
 }
 
 model BotDailyTransferUsage {
@@ -225,6 +227,7 @@ model Company {
   relationshipTimelineEvents   CompanyRelationshipTimelineEvent[]
   merchantInvoices             MerchantInvoice[]
   merchantInvoicesReceived     MerchantInvoice[] @relation("MerchantInvoiceRecipientCompany")
+  paymentLinks                 PaymentLink[]
 }
 
 model CompanyMembership {
@@ -416,6 +419,7 @@ model BankAccount {
   paymentsAsSource                Payment[]             @relation("PaymentSourceAccount")
   paymentsAsDestination           Payment[]             @relation("PaymentDestinationAccount")
   merchantInvoicesDestination     MerchantInvoice[]     @relation("MerchantInvoiceDestination")
+  paymentLinksDestination         PaymentLink[]         @relation("PaymentLinkDestination")
 
   @@index([userId])
   @@index([companyId])
@@ -1182,6 +1186,8 @@ enum UserNotificationType {
   MERCHANT_INVOICE_SENT
   MERCHANT_INVOICE_VIEWED
   MERCHANT_INVOICE_OVERDUE
+  PAYMENT_LINK_PAID
+  PAYMENT_LINK_RECEIPT
 }
 
 enum DealRoomParticipantRole {
@@ -1582,6 +1588,7 @@ enum AuditEntityType {
   PLATFORM
   ALTA_CARD
   MERCHANT_INVOICE
+  PAYMENT_LINK
 }
 
 enum InternalNoteTargetType {
@@ -2594,6 +2601,7 @@ enum PaymentType {
   INTRABANK_TRANSFER
   INTERBANK_TRANSFER
   MERCHANT_INVOICE
+  PAYMENT_LINK
 }
 
 enum PaymentStatus {
@@ -2610,6 +2618,7 @@ enum TransferGroupType {
   INTRABANK_TRANSFER
   INTERBANK_TRANSFER
   MERCHANT_INVOICE
+  PAYMENT_LINK
   ADJUSTMENT_REVERSAL
   MANUAL_REVERSAL
   OTHER
@@ -2727,6 +2736,7 @@ model Payment {
   initiatedBy        User           @relation("PaymentInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
   transferGroup      TransferGroup? @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
   merchantInvoice    MerchantInvoice?
+  paymentLinkPayment PaymentLinkPayment?
 
   @@index([paymentType, status])
   @@index([payerUserId])
@@ -2979,4 +2989,116 @@ model MerchantInvoiceEvent {
   invoice MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId, createdAt])
+}
+
+enum PaymentLinkAmountType {
+  FIXED
+  OPEN
+}
+
+enum PaymentLinkUsageType {
+  ONE_TIME
+  REUSABLE
+}
+
+enum PaymentLinkStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentLinkPaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentLinkEventType {
+  CREATED
+  UPDATED
+  PAUSED
+  ACTIVATED
+  CANCELLED
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  EXPIRED
+}
+
+model PaymentLink {
+  id                   String               @id @default(cuid())
+  slug                 String               @unique
+  referenceCode        String               @unique
+  merchantCompanyId    String
+  destinationAccountId String
+  title                String?
+  description          String
+  internalMemo         String?
+  amountType           PaymentLinkAmountType
+  usageType            PaymentLinkUsageType
+  amount               Decimal?             @db.Decimal(18, 2)
+  minAmount            Decimal?             @db.Decimal(18, 2)
+  maxAmount            Decimal?             @db.Decimal(18, 2)
+  currency             String               @default("FLR")
+  status               PaymentLinkStatus    @default(ACTIVE)
+  expiresAt            DateTime?
+  paymentCount         Int                  @default(0)
+  totalCollected       Decimal              @default(0) @db.Decimal(18, 2)
+  createdByUserId      String
+  pausedAt             DateTime?
+  cancelledAt          DateTime?
+  completedAt          DateTime?
+  metadata             Json?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  merchantCompany    Company              @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  destinationAccount BankAccount          @relation("PaymentLinkDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  createdBy          User                 @relation("PaymentLinkCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  payments           PaymentLinkPayment[]
+  events             PaymentLinkEvent[]
+
+  @@index([merchantCompanyId, status])
+  @@index([expiresAt, status])
+  @@index([createdAt])
+}
+
+model PaymentLinkPayment {
+  id                String                   @id @default(cuid())
+  paymentLinkId     String
+  amount            Decimal                  @db.Decimal(18, 2)
+  feeAmount         Decimal                  @default(0) @db.Decimal(18, 2)
+  status            PaymentLinkPaymentStatus @default(PENDING)
+  idempotencyKey    String                   @unique
+  paymentId         String?                  @unique
+  transferGroupId   String?
+  initiatedByUserId String
+  payerLabel        String?
+  fundingSource     Json
+  failureReason     String?
+  source            String                   @default("website")
+  createdAt         DateTime                 @default(now())
+  completedAt       DateTime?
+
+  paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  initiatedBy User        @relation("PaymentLinkPaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+  payment     Payment?    @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([paymentLinkId])
+  @@index([status])
+}
+
+model PaymentLinkEvent {
+  id            String               @id @default(cuid())
+  paymentLinkId String
+  eventType     PaymentLinkEventType
+  actorUserId   String?
+  source        String               @default("website")
+  metadata      Json?
+  createdAt     DateTime             @default(now())
+
+  paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+
+  @@index([paymentLinkId, createdAt])
 }

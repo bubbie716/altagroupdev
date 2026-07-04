@@ -8,6 +8,7 @@ import {
   BANK_LOAN_PAYMENT_SUCCESS_BODY,
   BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY,
   BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY,
+  BANK_PAYMENT_LINK_CHECKOUT_SUCCESS_BODY,
   BANK_REQUEST_SUCCESS_BODY,
   BANK_SUBMISSION_ERROR_FALLBACK,
   BANK_TRANSFER_SUCCESS_BODY,
@@ -30,6 +31,7 @@ export type BankRequestKind =
   | "alta_pay"
   | "merchant_invoice"
   | "merchant_invoice_payment"
+  | "payment_link_checkout"
   | "cash_advance"
   | "card_payment"
   | "loan_payment";
@@ -110,6 +112,19 @@ const COPY = {
       <>
         You can review this payment in your{" "}
         <strong className="font-medium text-foreground">Received Invoices</strong> inbox.
+      </>
+    ),
+  },
+  payment_link_checkout: {
+    submit: "Confirm Payment",
+    submitting: "Processing Payment…",
+    successTitle: "Payment Complete",
+    submitAnother: "Back to Alta Bank",
+    successBody: BANK_PAYMENT_LINK_CHECKOUT_SUCCESS_BODY,
+    successHint: (
+      <>
+        Your receipt is available in{" "}
+        <strong className="font-medium text-foreground">Notifications</strong>.
       </>
     ),
   },

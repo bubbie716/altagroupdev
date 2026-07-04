@@ -42,7 +42,7 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
     <div className="min-w-0 space-y-8">
       <div className="grid min-w-0 gap-4 sm:grid-cols-2">
         <BankStatCard
-          label="Alta Pay received this month"
+          label="Payments received this month"
           value={florin(summary.totalThisMonth)}
           sub={`${summary.paymentCountThisMonth} payment${summary.paymentCountThisMonth === 1 ? "" : "s"}`}
           accent
@@ -62,9 +62,8 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
         </div>
         {summary.recentPayments.length === 0 ? (
           <p className="px-5 py-4 text-[13px] text-muted-foreground sm:px-6">
-            No Alta Pay payments received yet. Customers can pay you at{" "}
-            <span className="font-mono text-foreground">/bank/pay</span> once your company is verified
-            with an active Business Operating Account.
+            No customer payments received yet. Payments from Alta Pay, invoices, and payment links
+            will appear here once customers pay your verified Business Operating Account.
           </p>
         ) : (
           <>

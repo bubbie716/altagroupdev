@@ -258,3 +258,15 @@ export function canPayReceivedMerchantInvoice(
   }
   return false;
 }
+
+/** Roles that may create and manage payment links. */
+export const PAYMENT_LINK_MANAGE_ROLES = MERCHANT_INVOICE_MANAGE_ROLES;
+export const PAYMENT_LINK_VIEW_ROLES = MERCHANT_INVOICE_VIEW_ROLES;
+
+export function canManagePaymentLinks(user: AltaUser, scope: CompanyScope): boolean {
+  return canManageMerchantInvoices(user, scope);
+}
+
+export function canViewPaymentLinks(user: AltaUser, scope: CompanyScope): boolean {
+  return canViewMerchantInvoices(user, scope);
+}

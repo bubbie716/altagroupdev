@@ -39,6 +39,12 @@ export const BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY =
 export const BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY =
   "Your invoice payment settled instantly to the merchant's Business Operating Account.";
 
+export const PAYMENT_LINK_FORM_INTRO =
+  "Create a shareable checkout link. Customers open the link, choose an Alta account, and pay instantly.";
+
+export const BANK_PAYMENT_LINK_CHECKOUT_SUCCESS_BODY =
+  "Your payment settled instantly. A receipt has been saved to your notifications.";
+
 export const BANK_CASH_ADVANCE_SUCCESS_BODY =
   "Your cash advance settled instantly. Funds were deposited to your selected account and your card balance was updated.";
 
