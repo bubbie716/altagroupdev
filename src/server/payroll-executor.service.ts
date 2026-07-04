@@ -117,6 +117,40 @@ async function recordPayrollFailure(
       },
     });
   });
+
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: run.createdByUserId,
+    action: "BANK_PAYROLL_RUN_FAILED",
+    entityType: "PAYROLL_RUN",
+    entityId: run.id,
+    targetAccountId: run.bankAccountId,
+    targetCompanyId: run.companyId,
+    description: `Payroll batch "${run.label}" failed`,
+    metadata: auditSourceMetadata("cron", {
+      amount: Number(run.totalAmount.toString()),
+      reason,
+      consecutiveFailures,
+      severity: "warning",
+      requiresAction: shouldFail,
+    }),
+  });
+
+  try {
+    const { notifyPayrollRunFailed } = await import("@/server/banking-notification.service");
+    await notifyPayrollRunFailed(run.createdByUserId, {
+      label: run.label,
+      totalAmount: Number(run.totalAmount.toString()),
+      reason,
+      bankAccountId: run.bankAccountId,
+      companyId: run.companyId,
+      payrollRunId: run.id,
+      failedPermanently: shouldFail,
+    });
+  } catch (error) {
+    console.error("[payroll] failed notification error", error);
+  }
 }
 
 async function executeSinglePayrollRun(
@@ -257,6 +291,38 @@ async function executeSinglePayrollRun(
       },
     });
   });
+
+  const totalAmount = Number(run.totalAmount.toString());
+  const { writeAuditLog } = await import("@/server/audit.service");
+  const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
+  await writeAuditLog({
+    actorUserId: run.createdByUserId,
+    action: "BANK_PAYROLL_RUN_EXECUTED",
+    entityType: "PAYROLL_RUN",
+    entityId: run.id,
+    targetAccountId: run.bankAccountId,
+    targetCompanyId: run.companyId,
+    description: `Executed payroll batch "${run.label}"`,
+    metadata: auditSourceMetadata("cron", {
+      amount: totalAmount,
+      employeeCount: lineItems.length,
+      scheduledRunAt: scheduledRunAt.toISOString(),
+    }),
+  });
+
+  try {
+    const { notifyPayrollRunExecuted } = await import("@/server/banking-notification.service");
+    await notifyPayrollRunExecuted(run.createdByUserId, {
+      label: run.label,
+      totalAmount,
+      employeeCount: lineItems.length,
+      bankAccountId: run.bankAccountId,
+      companyId: run.companyId,
+      payrollRunId: run.id,
+    });
+  } catch (error) {
+    console.error("[payroll] executed notification failed", error);
+  }
 
   return "executed";
 }

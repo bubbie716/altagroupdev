@@ -27,7 +27,11 @@ export function BusinessAccountLayout({
         description={`Business Operating Account · ${account.accountNumber}`}
       />
       <AccountPageToolbar accounts={accounts} currentAccountId={account.id} />
-      <BusinessAccountSubNav accountId={account.id} role={businessContext.role} />
+      <BusinessAccountSubNav
+        accountId={account.id}
+        companyId={businessContext.companyId}
+        role={businessContext.role}
+      />
       <Outlet />
     </>
   );

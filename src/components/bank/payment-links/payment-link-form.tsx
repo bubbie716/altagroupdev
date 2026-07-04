@@ -9,12 +9,19 @@ import { createPaymentLinkRecord } from "@/lib/bank/payment-link.functions";
 import { PAYMENT_LINK_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { BankRequestErrorCard, BankRequestSubmitButton } from "@/components/bank/bank-request-submission-ui";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
-export function PaymentLinkForm({ companyId }: { companyId: string }) {
+export function PaymentLinkForm({
+  companyId,
+  accountId,
+}: {
+  companyId: string;
+  accountId: string;
+}) {
   const router = useRouter();
   const createLink = useServerFn(createPaymentLinkRecord);
 
@@ -58,9 +65,8 @@ export function PaymentLinkForm({ companyId }: { companyId: string }) {
         },
       });
       await router.navigate({
-        to: "/bank/commercial/payment-links/$linkId",
-        params: { linkId: link.id },
-        search: { companyId },
+        to: accountCommercialRoutes.paymentLinkDetail,
+        params: { accountId, linkId: link.id },
       });
     } catch (err) {
       setError(formatCustomerActionError(err));

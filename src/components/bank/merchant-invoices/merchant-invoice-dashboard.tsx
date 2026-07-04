@@ -3,7 +3,7 @@ import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import type { MerchantInvoiceDashboard } from "@/lib/bank/merchant-invoice-types";
 import { MerchantInvoiceStatusBadge } from "@/components/bank/merchant-invoices/merchant-invoice-status-badge";
-import { commercialCompanySearch } from "@/components/bank/commercial-account-back-link";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export function MerchantInvoiceDashboardPanel({
   dashboard,
@@ -13,10 +13,9 @@ export function MerchantInvoiceDashboardPanel({
 }: {
   dashboard: MerchantInvoiceDashboard;
   companyId: string;
-  accountId?: string;
+  accountId: string;
   canCreate?: boolean;
 }) {
-  const search = commercialCompanySearch(companyId, accountId);
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -39,16 +38,16 @@ export function MerchantInvoiceDashboardPanel({
           <h3 className="text-sm font-medium">Recent invoices</h3>
           <div className="flex items-center gap-2">
             <Link
-              to="/bank/commercial/payment-links"
-              search={search}
+              to={accountCommercialRoutes.paymentLinks}
+              params={{ accountId }}
               className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-surface-2/60"
             >
               Payment links
             </Link>
             {canCreate ? (
             <Link
-              to="/bank/commercial/invoices/new"
-              search={search}
+              to={accountCommercialRoutes.invoicesNew}
+              params={{ accountId }}
               className="inline-flex items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
             >
               New invoice
@@ -63,9 +62,8 @@ export function MerchantInvoiceDashboardPanel({
             {dashboard.recent.map((invoice) => (
               <Link
                 key={invoice.id}
-                to="/bank/commercial/invoices/$invoiceId"
-                params={{ invoiceId: invoice.id }}
-                search={search}
+                to={accountCommercialRoutes.invoiceDetail}
+                params={{ accountId, invoiceId: invoice.id }}
                 className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40"
               >
                 <div className="min-w-0">

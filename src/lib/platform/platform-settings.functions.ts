@@ -46,3 +46,32 @@ export const setCreditDeskStatusOps = createServerFn({ method: "POST" })
     const user = await requireAuth();
     return setCreditDeskStatus(user.id, data);
   });
+
+export const fetchCommercialPlanPlatformSettings = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { getCommercialPlatformSettingsView } = await import(
+      "@/server/commercial-platform-settings.service"
+    );
+    return getCommercialPlatformSettingsView();
+  },
+);
+
+export const setCommercialPlanPlatformSettingsOps = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: {
+      proMonthlyFee: number;
+      coreInvoiceMonthlyLimit: number;
+      coreActivePaymentLinkLimit: number;
+      coreTeamMemberLimit: number;
+      proBillingGracePeriodDays: number;
+      reason: string;
+    }) => input,
+  )
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const { setCommercialPlatformSettings } = await import(
+      "@/server/commercial-platform-settings.service"
+    );
+    const user = await requireAuth();
+    return setCommercialPlatformSettings(user.id, data);
+  });

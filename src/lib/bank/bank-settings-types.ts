@@ -39,6 +39,8 @@ export const BANK_DISCORD_NOTIFICATION_OPTIONS = [
   { type: "ALTA_PAY_FAILED", label: "Alta Pay failed" },
   { type: "SCHEDULED_TRANSFER_EXECUTED", label: "Scheduled transfer completed" },
   { type: "SCHEDULED_TRANSFER_FAILED", label: "Scheduled transfer failed" },
+  { type: "PAYROLL_RUN_EXECUTED", label: "Payroll batch completed" },
+  { type: "PAYROLL_RUN_FAILED", label: "Payroll batch failed" },
   { type: "LOAN_APPLICATION_APPROVED", label: "Loan application approved" },
   { type: "LOAN_APPLICATION_DENIED", label: "Loan application declined" },
   { type: "LOAN_PAYMENT_MADE", label: "Loan payment received" },

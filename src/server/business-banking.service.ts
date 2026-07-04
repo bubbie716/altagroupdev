@@ -239,6 +239,13 @@ export async function createPayrollEmployee(
   input: CreatePayrollEmployeeInput,
 ): Promise<PayrollEmployeeRow> {
   await requireTreasuryManage(user, input.companyId);
+  const { loadCommercialPlanSettings, companyHasCommercialFeature } = await import(
+    "@/server/commercial-plan.service"
+  );
+  const plan = await loadCommercialPlanSettings(input.companyId);
+  if (!companyHasCommercialFeature(plan, "payroll")) {
+    badRequest("Payroll requires Alta Commercial Pro.");
+  }
   if (!input.displayName.trim()) badRequest("Employee name is required.");
   if (input.payAmount <= 0) badRequest("Pay amount must be greater than zero.");
   const accountNumber = input.accountNumber?.trim();
@@ -365,6 +372,13 @@ export async function createPayrollRun(
   input: CreatePayrollRunInput,
 ): Promise<PayrollRunRow> {
   await requireTreasuryManage(user, input.companyId);
+  const { loadCommercialPlanSettings, companyHasCommercialFeature } = await import(
+    "@/server/commercial-plan.service"
+  );
+  const plan = await loadCommercialPlanSettings(input.companyId);
+  if (!companyHasCommercialFeature(plan, "payroll")) {
+    badRequest("Payroll requires Alta Commercial Pro.");
+  }
   await assertOperatingAccount(input.companyId, input.bankAccountId);
 
   if (!input.label.trim()) badRequest("Batch label is required.");

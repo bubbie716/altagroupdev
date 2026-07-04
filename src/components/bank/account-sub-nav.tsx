@@ -1,6 +1,7 @@
+"use client";
+
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { type } from "@/lib/typography";
 import { RouteButton } from "@/components/bank/route-button";
 import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 import {
@@ -9,6 +10,10 @@ import {
   type BusinessAccountModule,
 } from "@/lib/bank/business-account-access";
 import type { CompanyRole } from "@/lib/auth/types";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { canViewMerchantInvoices } from "@/lib/auth/permissions";
+import { isAccountCommercialPath } from "@/lib/bank/account-commercial-path";
+import { AccountCommercialNavGroup } from "@/components/bank/commercial/account-commercial-sub-nav";
 
 const MODULE_LABELS: Record<BusinessAccountModule, string> = {
   overview: "Overview",
@@ -32,13 +37,21 @@ const MODULE_PATHS: Record<BusinessAccountModule, string> = {
 
 export function BusinessAccountSubNav({
   accountId,
+  companyId,
   role,
 }: {
   accountId: string;
+  companyId: string;
   role: CompanyRole;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const user = useCurrentUser();
   const base = `/bank/account/${accountId}`;
+  const showMerchant =
+    user !== null && canViewMerchantInvoices(user, { companyId });
+  const showPayroll = canAccessBusinessModule(role, "payroll");
+  const showCommercial = showMerchant || showPayroll;
+  const commercialActive = isAccountCommercialPath(pathname, accountId);
 
   const visibleModules = BUSINESS_ACCOUNT_MODULES.filter((mod) =>
     canAccessBusinessModule(role, mod),
@@ -51,11 +64,8 @@ export function BusinessAccountSubNav({
         const to = `${base}${MODULE_PATHS[mod]}` as
           | "/bank/account/$accountId"
           | "/bank/account/$accountId/activity"
-          | "/bank/account/$accountId/payments"
-          | "/bank/account/$accountId/payroll"
           | "/bank/account/$accountId/statements"
-          | "/bank/account/$accountId/representatives"
-          | "/bank/account/$accountId/settings";
+          | "/bank/account/$accountId/representatives";
         const path = mod === "overview" ? base : `${base}${MODULE_PATHS[mod]}`;
         const active =
           mod === "overview"
@@ -78,6 +88,14 @@ export function BusinessAccountSubNav({
           </RouteButton>
         );
       })}
+      {showCommercial ? (
+        <AccountCommercialNavGroup
+          accountId={accountId}
+          active={commercialActive}
+          showMerchant={showMerchant}
+          showPayroll={showPayroll}
+        />
+      ) : null}
       </nav>
     </BankSubNavScroll>
   );
@@ -91,7 +109,6 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
     { suffix: "", label: "Overview", mod: "overview" },
     { suffix: "/activity", label: "Activity", mod: "activity" },
     { suffix: "/statements", label: "Statements", mod: "statements" },
-    { suffix: "/settings", label: "Settings", mod: "settings" },
   ] as const;
 
   return (

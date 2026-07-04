@@ -28,6 +28,7 @@ import {
   BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { cn } from "@/lib/utils";
 
 type FormView = "compose" | "review" | "success" | "draft_saved" | "error";
@@ -101,9 +102,11 @@ function dueDateInputValue(dueDate: string | null): string {
 
 export function MerchantInvoiceForm({
   companyId,
+  accountId,
   initialInvoice,
 }: {
   companyId: string;
+  accountId: string;
   initialInvoice?: MerchantInvoiceDetail;
 }) {
   const router = useRouter();
@@ -286,9 +289,8 @@ export function MerchantInvoiceForm({
               className="font-medium text-foreground underline-offset-2 hover:underline"
               onClick={() =>
                 void router.navigate({
-                  to: "/bank/commercial/invoices/$invoiceId",
-                  params: { invoiceId: savedInvoiceId },
-                  search: { companyId },
+                  to: accountCommercialRoutes.invoiceDetail,
+                  params: { accountId, invoiceId: savedInvoiceId },
                 })
               }
             >
@@ -328,9 +330,8 @@ export function MerchantInvoiceForm({
             className="w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-[14px] font-medium tracking-tight text-foreground transition-colors hover:bg-surface-2/60"
             onClick={() =>
               void router.navigate({
-                to: "/bank/commercial/invoices/$invoiceId",
-                params: { invoiceId: savedInvoiceId },
-                search: { companyId },
+                to: accountCommercialRoutes.invoiceDetail,
+                params: { accountId, invoiceId: savedInvoiceId },
               })
             }
           >

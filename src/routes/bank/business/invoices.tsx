@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { resolveBusinessOperatingAccountRedirect } from "@/lib/bank/business-account.functions";
 
-/** Legacy redirect — merchant invoices live under /bank/commercial/invoices. */
+/** Legacy redirect — merchant invoices live under the business account commercial section. */
 export const Route = createFileRoute("/bank/business/invoices")({
   loader: async ({ location }) => {
     const companyId = new URLSearchParams(location.searchStr).get("companyId") ?? undefined;
@@ -10,8 +10,8 @@ export const Route = createFileRoute("/bank/business/invoices")({
       throw redirect({ to: "/bank/business" });
     }
     throw redirect({
-      to: "/bank/commercial/invoices",
-      search: { companyId: companyId ?? resolved.companyId },
+      to: "/bank/account/$accountId/commercial/invoices",
+      params: { accountId: resolved.accountId },
     });
   },
 });

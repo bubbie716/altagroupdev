@@ -15,6 +15,7 @@ import {
 } from "@/server/alta-card-billing-scheduler.service";
 import { runBankAccountStatementSchedulerJob } from "@/server/bank-statement-scheduler.service";
 import { runDepositInterestSchedulerJob } from "@/server/deposit-interest-scheduler.service";
+import { runCommercialProBillingJob } from "@/server/commercial-pro-billing-job.service";
 import { recordOpsJobRunDetail } from "@/server/ops-job-run.service";
 
 const DAILY_SERVICING_JOB_LABEL = "Daily servicing";
@@ -36,7 +37,8 @@ async function runDailyServicing() {
   const startedAt = new Date();
 
   try {
-    const [loanServicing, altaCard, bankStatements, depositInterest] = await Promise.all([
+    const [loanServicing, altaCard, bankStatements, depositInterest, commercialBilling] =
+      await Promise.all([
       runCronSubJob("loan-servicing", () => runLoanServicingJob()),
       runCronSubJob("alta-card", async () => {
         const statements = await runAltaCardStatementSchedulerJob({ trigger: "cron" });
@@ -45,6 +47,7 @@ async function runDailyServicing() {
       }),
       runCronSubJob("bank-statements", () => runBankAccountStatementSchedulerJob({ trigger: "cron" })),
       runCronSubJob("deposit-interest", () => runDepositInterestSchedulerJob({ trigger: "cron" })),
+      runCronSubJob("commercial-pro-billing", () => runCommercialProBillingJob({ trigger: "cron" })),
     ]);
 
     const subJobErrors = [
@@ -52,6 +55,7 @@ async function runDailyServicing() {
       isCronSubJobError(altaCard) ? altaCard.error : null,
       isCronSubJobError(bankStatements) ? bankStatements.error : null,
       isCronSubJobError(depositInterest) ? depositInterest.error : null,
+      isCronSubJobError(commercialBilling) ? commercialBilling.error : null,
     ].filter((message): message is string => message != null);
 
     const completedAt = new Date();
@@ -63,11 +67,11 @@ async function runDailyServicing() {
         startedAt: startedAt.toISOString(),
         completedAt: completedAt.toISOString(),
         durationMs: completedAt.getTime() - startedAt.getTime(),
-        processedCount: 4,
-        successCount: 4 - subJobErrors.length,
+        processedCount: 5,
+        successCount: 5 - subJobErrors.length,
         failureCount: subJobErrors.length,
         errorSummary: subJobErrors[0] ?? null,
-        details: { loanServicing, altaCard, bankStatements, depositInterest },
+        details: { loanServicing, altaCard, bankStatements, depositInterest, commercialBilling },
       },
     );
 
@@ -80,6 +84,7 @@ async function runDailyServicing() {
       altaCard,
       bankStatements,
       depositInterest,
+      commercialBilling,
     };
   } finally {
     await releaseDailyCronLock(DAILY_SERVICING_LOCK_KEY);

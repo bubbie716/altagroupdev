@@ -33,6 +33,10 @@ export function extractAccountPathSuffix(pathname: string, accountId: string): s
   const base = `/bank/account/${accountId}`;
   if (!pathname.startsWith(base)) return "";
   const rest = pathname.slice(base.length);
+  if (!rest || rest === "/") return "";
+  if (rest.startsWith("/commercial")) return rest;
+  if (rest === "/payments" || rest.startsWith("/payments/")) return "/commercial";
+  if (rest === "/payroll" || rest.startsWith("/payroll/")) return "/commercial/payroll";
   const segmentMatch = rest.match(/^\/[^/]+/);
   return segmentMatch ? segmentMatch[0] : "";
 }
@@ -47,6 +51,14 @@ function suffixAllowedForAccount(
   }
 
   if (!suffix) return true;
+
+  if (suffix.startsWith("/commercial")) {
+    if (!companyRole) return false;
+    if (suffix === "/commercial/payroll" || suffix.startsWith("/commercial/payroll/")) {
+      return canAccessBusinessModule(companyRole, "payroll");
+    }
+    return true;
+  }
 
   const module = SUFFIX_TO_BUSINESS_MODULE[suffix];
   if (!module || !BUSINESS_ACCOUNT_MODULES.includes(module)) return false;

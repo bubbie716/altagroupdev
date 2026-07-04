@@ -302,6 +302,24 @@ export async function payPaymentLink(
     });
 
     try {
+      const { recordMerchantPaymentReceivedAudit } = await import(
+        "@/server/commercial-audit.service"
+      );
+      await recordMerchantPaymentReceivedAudit({
+        actorUserId: user.id,
+        companyId: result.locked.merchantCompanyId,
+        source: "payment_link",
+        referenceCode: paymentReferenceCode,
+        amount: fees.totalDebited,
+        customerLabel: result.resolvedPayerLabel,
+        entityId: result.locked.id,
+        auditSource: source,
+      });
+    } catch (auditError) {
+      console.error("[payment-link] commercial payment received audit failed", auditError);
+    }
+
+    try {
       const { notifyPaymentLinkPaid } = await import(
         "@/server/payment-link-notification.service"
       );
@@ -392,6 +410,36 @@ export async function payPaymentLink(
       source,
       metadata: { failureReason },
     });
+
+    try {
+      const {
+        recordMerchantPaymentFailedAudit,
+        notifyMerchantPaymentFailed,
+        listMerchantFinanceUserIds,
+      } = await import("@/server/commercial-audit.service");
+      await recordMerchantPaymentFailedAudit({
+        actorUserId: user.id,
+        companyId: link.merchantCompanyId,
+        source: "payment_link",
+        referenceCode: link.referenceCode,
+        amount: grossAmount,
+        customerLabel: payerLabel,
+        entityId: link.id,
+        failureReason,
+        auditSource: source,
+      });
+      const merchantUserIds = await listMerchantFinanceUserIds(link.merchantCompanyId);
+      await notifyMerchantPaymentFailed({
+        companyId: link.merchantCompanyId,
+        merchantUserIds,
+        title: "Payment link payment failed",
+        body: `A payment attempt for link ${link.referenceCode} could not be completed.`,
+        linkUrl: `/bank/commercial/payment-links/${link.id}?companyId=${link.merchantCompanyId}`,
+        metadata: { paymentLinkId: link.id, failureReason },
+      });
+    } catch (notifyError) {
+      console.error("[payment-link] merchant payment failed notification error", notifyError);
+    }
 
     try {
       const { alertPaymentLinkPaymentFailed } = await import(

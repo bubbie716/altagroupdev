@@ -305,38 +305,145 @@ export async function notifyAltaPayFailedBestEffort(
 
 export async function notifyScheduledTransferExecuted(
   userId: string,
-  input: { label: string; amount: number; referenceCode?: string },
+  input: {
+    label: string;
+    amount: number;
+    referenceCode?: string;
+    paymentType?: "ONE_TIME" | "SCHEDULED" | "RECURRING";
+    bankAccountId?: string;
+    companyId?: string | null;
+  },
 ): Promise<void> {
+  const kind =
+    input.paymentType === "RECURRING"
+      ? "Recurring transfer"
+      : input.paymentType === "SCHEDULED"
+        ? "Scheduled transfer"
+        : "Scheduled transfer";
+  const linkUrl = input.companyId && input.bankAccountId
+    ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
+    : "/bank/transfers/intrabank";
+
   await createUserNotification({
     userId,
     type: "SCHEDULED_TRANSFER_EXECUTED",
-    title: "Scheduled transfer completed",
-    body: `Your scheduled transfer "${input.label}" for ${formatFlorin(input.amount)} was sent successfully.${
+    title: `${kind} completed`,
+    body: `Your ${kind.toLowerCase()} "${input.label}" for ${formatFlorin(input.amount)} was sent successfully.${
       input.referenceCode ? ` Reference \`${input.referenceCode}\`.` : ""
     }`,
-    linkUrl: "/bank/transfers/scheduled",
-    metadata: { label: input.label, amount: input.amount, referenceCode: input.referenceCode ?? null },
+    linkUrl,
+    metadata: {
+      label: input.label,
+      amount: input.amount,
+      referenceCode: input.referenceCode ?? null,
+      paymentType: input.paymentType ?? null,
+      bankAccountId: input.bankAccountId ?? null,
+      companyId: input.companyId ?? null,
+    },
   });
 }
 
 export async function notifyScheduledTransferFailed(
   userId: string,
-  input: { label: string; amount: number; reason: string; paused?: boolean },
+  input: {
+    label: string;
+    amount: number;
+    reason: string;
+    paused?: boolean;
+    paymentType?: "ONE_TIME" | "SCHEDULED" | "RECURRING";
+    bankAccountId?: string;
+    companyId?: string | null;
+  },
 ): Promise<void> {
+  const kind =
+    input.paymentType === "RECURRING"
+      ? "Recurring transfer"
+      : input.paymentType === "SCHEDULED"
+        ? "Scheduled transfer"
+        : "Scheduled transfer";
   const pausedNote = input.paused
     ? " The schedule has been paused after repeated failures."
     : "";
+  const linkUrl = input.companyId && input.bankAccountId
+    ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
+    : "/bank/transfers/intrabank";
+
   await createUserNotification({
     userId,
     type: "SCHEDULED_TRANSFER_FAILED",
-    title: "Scheduled transfer failed",
-    body: `Your scheduled transfer "${input.label}" for ${formatFlorin(input.amount)} could not be sent. ${input.reason}${pausedNote}`,
-    linkUrl: "/bank/transfers/scheduled",
+    title: `${kind} failed`,
+    body: `Your ${kind.toLowerCase()} "${input.label}" for ${formatFlorin(input.amount)} could not be sent. ${input.reason}${pausedNote}`,
+    linkUrl,
     metadata: {
       label: input.label,
       amount: input.amount,
       reason: input.reason,
       paused: input.paused ?? false,
+      paymentType: input.paymentType ?? null,
+      bankAccountId: input.bankAccountId ?? null,
+      companyId: input.companyId ?? null,
+    },
+  });
+}
+
+export async function notifyPayrollRunExecuted(
+  userId: string,
+  input: {
+    label: string;
+    totalAmount: number;
+    employeeCount: number;
+    bankAccountId: string;
+    companyId: string;
+    payrollRunId: string;
+  },
+): Promise<void> {
+  const employeeLabel = input.employeeCount === 1 ? "employee" : "employees";
+  await createUserNotification({
+    userId,
+    type: "PAYROLL_RUN_EXECUTED",
+    title: "Payroll completed",
+    body: `Payroll batch "${input.label}" for ${formatFlorin(input.totalAmount)} was sent to ${input.employeeCount} ${employeeLabel}.`,
+    linkUrl: `/bank/account/${input.bankAccountId}/commercial/payroll`,
+    metadata: {
+      label: input.label,
+      totalAmount: input.totalAmount,
+      employeeCount: input.employeeCount,
+      bankAccountId: input.bankAccountId,
+      companyId: input.companyId,
+      payrollRunId: input.payrollRunId,
+    },
+  });
+}
+
+export async function notifyPayrollRunFailed(
+  userId: string,
+  input: {
+    label: string;
+    totalAmount: number;
+    reason: string;
+    bankAccountId: string;
+    companyId: string;
+    payrollRunId: string;
+    failedPermanently?: boolean;
+  },
+): Promise<void> {
+  const failedNote = input.failedPermanently
+    ? " The payroll batch has been marked failed after repeated errors."
+    : "";
+  await createUserNotification({
+    userId,
+    type: "PAYROLL_RUN_FAILED",
+    title: "Payroll failed",
+    body: `Payroll batch "${input.label}" for ${formatFlorin(input.totalAmount)} could not be completed. ${input.reason}${failedNote}`,
+    linkUrl: `/bank/account/${input.bankAccountId}/commercial/payroll`,
+    metadata: {
+      label: input.label,
+      totalAmount: input.totalAmount,
+      reason: input.reason,
+      failedPermanently: input.failedPermanently ?? false,
+      bankAccountId: input.bankAccountId,
+      companyId: input.companyId,
+      payrollRunId: input.payrollRunId,
     },
   });
 }
@@ -497,6 +604,128 @@ export async function notifyCompanyRoleChanged(
     body: `Your role at ${input.companyName} is now ${input.newRole.replaceAll("_", " ")}.`,
     linkUrl: "/bank/business",
     metadata: { companyId: input.companyId, companyName: input.companyName, newRole: input.newRole },
+  });
+}
+
+async function notifyCommercialBillingUsers(
+  companyId: string,
+  input: {
+    type:
+      | "COMMERCIAL_PRO_ACTIVATED"
+      | "COMMERCIAL_PRO_BILLING_SUCCEEDED"
+      | "COMMERCIAL_PRO_BILLING_FAILED"
+      | "COMMERCIAL_PRO_PAST_DUE"
+      | "COMMERCIAL_PRO_DOWNGRADED"
+      | "COMMERCIAL_BILLING_ACCOUNT_CHANGED";
+    title: string;
+    body: string;
+    linkUrl: string;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<void> {
+  const { listCommercialBillingNotifyUserIds } = await import("@/server/commercial-audit.service");
+  const userIds = await listCommercialBillingNotifyUserIds(companyId);
+  if (userIds.length === 0) return;
+  await createUserNotifications(
+    userIds.map((userId) => ({
+      userId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      metadata: input.metadata,
+    })),
+  );
+}
+
+export async function notifyCommercialProActivated(input: {
+  companyId: string;
+  monthlyFee: number;
+  nextBillingAt: string;
+  billingAccountId: string;
+}): Promise<void> {
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_PRO_ACTIVATED",
+    title: "Alta Commercial Pro activated",
+    body: `Your company is now on Alta Commercial Pro at ${formatFlorin(input.monthlyFee)} per month. Next billing date: ${new Date(input.nextBillingAt).toLocaleDateString()}.`,
+    linkUrl: `/bank/account/${input.billingAccountId}/commercial/settings`,
+    metadata: input,
+  });
+}
+
+export async function notifyCommercialProBillingSucceeded(input: {
+  companyId: string;
+  amount: number;
+  nextBillingAt: string;
+  billingAccountId: string;
+}): Promise<void> {
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_PRO_BILLING_SUCCEEDED",
+    title: "Commercial Pro billing succeeded",
+    body: `Alta Commercial Pro was billed ${formatFlorin(input.amount)}. Next billing date: ${new Date(input.nextBillingAt).toLocaleDateString()}.`,
+    linkUrl: `/bank/account/${input.billingAccountId}/commercial/settings`,
+    metadata: input,
+  });
+}
+
+export async function notifyCommercialProBillingFailed(input: {
+  companyId: string;
+  amount: number;
+  reason: string;
+  billingAccountId: string;
+}): Promise<void> {
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_PRO_BILLING_FAILED",
+    title: "Commercial Pro billing failed",
+    body: `We could not bill ${formatFlorin(input.amount)} for Alta Commercial Pro. ${input.reason}`,
+    linkUrl: `/bank/account/${input.billingAccountId}/commercial/settings`,
+    metadata: input,
+  });
+}
+
+export async function notifyCommercialProPastDue(input: {
+  companyId: string;
+  amount: number;
+  billingAccountId: string;
+}): Promise<void> {
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_PRO_PAST_DUE",
+    title: "Commercial Pro billing past due",
+    body: `Alta Commercial Pro billing of ${formatFlorin(input.amount)} is past due. Add funds to your billing account to keep Pro features active.`,
+    linkUrl: `/bank/account/${input.billingAccountId}/commercial/settings`,
+    metadata: input,
+  });
+}
+
+export async function notifyCommercialProDowngraded(input: {
+  companyId: string;
+  reason: string;
+}): Promise<void> {
+  const account = await prisma.bankAccount.findFirst({
+    where: { companyId: input.companyId, accountType: "BUSINESS_OPERATING", status: "ACTIVE" },
+    select: { id: true },
+  });
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_PRO_DOWNGRADED",
+    title: "Downgraded to Alta Commercial Core",
+    body: `Your company was downgraded to Alta Commercial Core. ${input.reason}`,
+    linkUrl: account
+      ? `/bank/account/${account.id}/commercial/settings`
+      : "/bank/business",
+    metadata: input,
+  });
+}
+
+export async function notifyCommercialBillingAccountChanged(input: {
+  companyId: string;
+  billingAccountId: string;
+}): Promise<void> {
+  await notifyCommercialBillingUsers(input.companyId, {
+    type: "COMMERCIAL_BILLING_ACCOUNT_CHANGED",
+    title: "Commercial Pro billing account updated",
+    body: "Your Alta Commercial Pro billing account was changed.",
+    linkUrl: `/bank/account/${input.billingAccountId}/commercial/settings`,
+    metadata: input,
   });
 }
 

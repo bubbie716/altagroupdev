@@ -348,6 +348,9 @@ export async function createMerchantInvoiceDraft(
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
   if (!input.description.trim()) badRequest("Description is required.");
 
+  const { assertCommercialInvoiceLimit } = await import("@/server/commercial-limits.service");
+  await assertCommercialInvoiceLimit(input.companyId);
+
   const { company, operatingAccount } = await assertVerifiedCompanyWithOperatingAccount(
     input.companyId,
   );

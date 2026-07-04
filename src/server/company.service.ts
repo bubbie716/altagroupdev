@@ -377,6 +377,9 @@ export async function sendCompanyInvitation(
   if (!canManageMembers(actorRole)) forbidden();
   if (!canAssignCompanyRole(actorRole, input.role)) forbidden();
 
+  const { assertCommercialTeamMemberLimit } = await import("@/server/commercial-limits.service");
+  await assertCommercialTeamMemberLimit(input.companyId);
+
   const parsed = parseDiscordIdentifier(input.discordIdentifier);
   const user = await prisma.user.findFirst({
     where: {
@@ -493,6 +496,9 @@ export async function acceptCompanyInvitation(
     });
     return { companyId: invitation.companyId };
   }
+
+  const { assertCommercialTeamMemberLimit } = await import("@/server/commercial-limits.service");
+  await assertCommercialTeamMemberLimit(invitation.companyId);
 
   await prisma.$transaction([
     prisma.companyMembership.create({

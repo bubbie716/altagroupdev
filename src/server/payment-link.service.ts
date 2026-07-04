@@ -269,6 +269,8 @@ export async function createPaymentLink(
 ): Promise<PaymentLinkDetail> {
   requireManage(user, input.companyId);
   validateCreateInput(input);
+  const { assertCommercialPaymentLinkLimit } = await import("@/server/commercial-limits.service");
+  await assertCommercialPaymentLinkLimit(input.companyId);
   const { company, operatingAccount } = await assertVerifiedCompanyWithOperatingAccount(
     input.companyId,
   );

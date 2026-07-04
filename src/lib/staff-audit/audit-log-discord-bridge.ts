@@ -75,6 +75,8 @@ const ACTION_LABELS: Record<string, string> = {
   BANK_SCHEDULED_TRANSFER_CANCELLED: "Scheduled transfer cancelled",
   BANK_SCHEDULED_TRANSFER_EXECUTED: "Scheduled transfer executed",
   BANK_SCHEDULED_TRANSFER_FAILED: "Scheduled transfer failed",
+  BANK_PAYROLL_RUN_EXECUTED: "Payroll batch executed",
+  BANK_PAYROLL_RUN_FAILED: "Payroll batch failed",
   DEPOSIT_APPROVED: "Deposit approved",
   DEPOSIT_DENIED: "Deposit denied",
   WITHDRAWAL_APPROVED: "Withdrawal approved",
@@ -94,6 +96,19 @@ const ACTION_LABELS: Record<string, string> = {
   MERCHANT_INVOICE_PAID: "Merchant invoice paid",
   PAYMENT_LINK_PAID: "Payment link paid",
   PAYMENT_LINK_PAYMENT_FAILED: "Payment link payment failed",
+  COMMERCIAL_PLAN_CHANGED: "Commercial plan changed",
+  COMMERCIAL_FEATURE_ENABLED: "Commercial feature enabled",
+  COMMERCIAL_FEATURE_DISABLED: "Commercial feature disabled",
+  COMMERCIAL_PRO_PURCHASED: "Commercial Pro purchased",
+  COMMERCIAL_PRO_PURCHASE_FAILED: "Commercial Pro purchase failed",
+  COMMERCIAL_PRO_BILLING_SUCCEEDED: "Commercial Pro billing succeeded",
+  COMMERCIAL_PRO_BILLING_FAILED: "Commercial Pro billing failed",
+  COMMERCIAL_PRO_PAST_DUE: "Commercial Pro billing past due",
+  COMMERCIAL_PRO_DOWNGRADED: "Commercial Pro downgraded to Core",
+  COMMERCIAL_BILLING_ACCOUNT_CHANGED: "Commercial billing account changed",
+  COMMERCIAL_PLAN_SETTING_CHANGED: "Commercial plan settings changed",
+  MERCHANT_PAYMENT_RECEIVED: "Merchant payment received",
+  MERCHANT_PAYMENT_FAILED: "Merchant payment failed",
   ALTA_CARD_ALTA_PAY_CHARGED: "Alta Pay sent (card-funded)",
   ALTA_PRIVATE_INVITATION_SENT: "Alta Private invitation sent",
   ALTA_PRIVATE_INVITATION_REVOKED: "Alta Private invitation revoked",
@@ -199,6 +214,8 @@ function inferSeverity(action: string, metadata: Record<string, unknown> | undef
     action === "MERCHANT_INVOICE_SENT" ||
     action === "MERCHANT_INVOICE_PAID" ||
     action === "PAYMENT_LINK_PAID" ||
+    action === "MERCHANT_PAYMENT_RECEIVED" ||
+    action === "MERCHANT_PAYMENT_FAILED" ||
     (action.includes("CREATED") && action.includes("INVITATION"))
   ) {
     return "ACTION";
@@ -217,6 +234,7 @@ function productFor(input: WriteAuditLogInput): StaffAuditProduct {
   if (action.startsWith("ALTA_PAY") || action === "ALTA_CARD_ALTA_PAY_CHARGED") return "Alta Pay";
   if (action.startsWith("MERCHANT_INVOICE") || entityType === "MERCHANT_INVOICE") return "Alta Bank";
   if (action.startsWith("PAYMENT_LINK") || entityType === "PAYMENT_LINK") return "Alta Bank";
+  if (action.startsWith("COMMERCIAL_") || action.startsWith("MERCHANT_PAYMENT")) return "Alta Bank";
   if (
     action.startsWith("MAINTENANCE") ||
     action.startsWith("CREDIT_DESK") ||

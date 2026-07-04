@@ -20,14 +20,17 @@ import {
   BankRequestActionButton,
   BankRequestErrorCard,
 } from "@/components/bank/bank-request-submission-ui";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export function MerchantInvoiceDetailPanel({
   invoice,
   companyId,
+  accountId,
   user,
 }: {
   invoice: MerchantInvoiceDetail;
   companyId: string;
+  accountId: string;
   user: AltaUser;
 }) {
   const router = useRouter();
@@ -44,7 +47,10 @@ export function MerchantInvoiceDetailPanel({
     try {
       await cancelInvoice({ data: { companyId, invoiceId: invoice.id } });
       if (invoice.status === "DRAFT") {
-        await router.navigate({ to: "/bank/commercial/invoices", search: { companyId } });
+        await router.navigate({
+          to: accountCommercialRoutes.invoices,
+          params: { accountId },
+        });
         return;
       }
       await router.invalidate();
@@ -131,9 +137,8 @@ export function MerchantInvoiceDetailPanel({
               Send invoice
             </BankRequestActionButton>
             <Link
-              to="/bank/commercial/invoices/$invoiceId/edit"
-              params={{ invoiceId: invoice.id }}
-              search={{ companyId }}
+              to={accountCommercialRoutes.invoiceEdit}
+              params={{ accountId, invoiceId: invoice.id }}
               className="inline-flex items-center rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/60"
             >
               Edit draft

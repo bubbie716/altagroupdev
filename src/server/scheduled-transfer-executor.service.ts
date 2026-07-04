@@ -234,6 +234,9 @@ async function executeSinglePayment(
         label: payment.label,
         amount,
         referenceCode,
+        paymentType: payment.paymentType,
+        bankAccountId: payment.bankAccountId,
+        companyId: payment.companyId,
       });
     } catch (error) {
       console.error("[scheduled-transfer] executed notification failed", error);
@@ -315,6 +318,9 @@ async function recordFailure(
       amount: Number(payment.amount.toString()),
       reason,
       paused: shouldPause,
+      paymentType: payment.paymentType,
+      bankAccountId: payment.bankAccountId,
+      companyId: payment.companyId,
     });
   } catch (error) {
     console.error("[scheduled-transfer] failed notification error", error);

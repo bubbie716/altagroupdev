@@ -14,7 +14,7 @@ export const Route = createFileRoute("/bank/business/payments")({
     });
     if (!resolved) throw redirect({ to: "/bank/business" });
     throw redirect({
-      to: "/bank/account/$accountId/payments",
+      to: "/bank/account/$accountId/commercial",
       params: { accountId: resolved.accountId },
     });
   },

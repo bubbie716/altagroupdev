@@ -311,6 +311,24 @@ export async function payMerchantInvoice(
     });
 
     try {
+      const { recordMerchantPaymentReceivedAudit } = await import(
+        "@/server/commercial-audit.service"
+      );
+      await recordMerchantPaymentReceivedAudit({
+        actorUserId: user.id,
+        companyId: result.locked.merchantCompanyId,
+        source: "invoice",
+        referenceCode: paymentReferenceCode,
+        amount: fees.totalDebited,
+        customerLabel: result.resolvedPayerLabel,
+        entityId: result.locked.id,
+        auditSource: source,
+      });
+    } catch (auditError) {
+      console.error("[merchant-invoice] commercial payment received audit failed", auditError);
+    }
+
+    try {
       const { notifyMerchantInvoicePaid } = await import(
         "@/server/merchant-invoice-notification.service"
       );
@@ -384,6 +402,36 @@ export async function payMerchantInvoice(
       source,
       metadata: { failureReason },
     });
+
+    try {
+      const {
+        recordMerchantPaymentFailedAudit,
+        notifyMerchantPaymentFailed,
+        listMerchantFinanceUserIds,
+      } = await import("@/server/commercial-audit.service");
+      await recordMerchantPaymentFailedAudit({
+        actorUserId: user.id,
+        companyId: invoice.merchantCompanyId,
+        source: "invoice",
+        referenceCode: invoice.referenceCode,
+        amount: decimalToNumber(invoice.amount),
+        customerLabel: payerLabel,
+        entityId: invoice.id,
+        failureReason,
+        auditSource: source,
+      });
+      const merchantUserIds = await listMerchantFinanceUserIds(invoice.merchantCompanyId);
+      await notifyMerchantPaymentFailed({
+        companyId: invoice.merchantCompanyId,
+        merchantUserIds,
+        title: "Invoice payment failed",
+        body: `A payment attempt for invoice ${invoice.referenceCode} could not be completed.`,
+        linkUrl: `/bank/commercial/invoices/${invoice.id}?companyId=${invoice.merchantCompanyId}`,
+        metadata: { invoiceId: invoice.id, failureReason },
+      });
+    } catch (notifyError) {
+      console.error("[merchant-invoice] merchant payment failed notification error", notifyError);
+    }
 
     try {
       const { alertMerchantInvoicePaymentFailed } = await import(

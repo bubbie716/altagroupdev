@@ -77,11 +77,8 @@ export function canManageBusinessModule(role: CompanyRole, module: BusinessAccou
 export const BUSINESS_ACCOUNT_MODULES: BusinessAccountModule[] = [
   "overview",
   "activity",
-  "payments",
-  "payroll",
   "statements",
   "representatives",
-  "settings",
 ];
 
 export const PERSONAL_ACCOUNT_MODULES = [

@@ -1,42 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { Section } from "@/components/page-shell";
-import { MerchantInvoiceDashboardPanel } from "@/components/bank/merchant-invoices/merchant-invoice-dashboard";
-import { CommercialAccountBackLink } from "@/components/bank/commercial-account-back-link";
-import { fetchMerchantInvoiceDashboard } from "@/lib/bank/merchant-invoice.functions";
-import { resolveBusinessOperatingAccountRedirect } from "@/lib/bank/business-account.functions";
+import { createFileRoute } from "@tanstack/react-router";
+import { redirectLegacyCommercialRoute } from "@/lib/bank/account-commercial-loader";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 export const Route = createFileRoute("/bank/commercial/invoices/")({
   beforeLoad: authBeforeLoad,
   loader: async ({ location }) => {
-    const companyId = new URLSearchParams(location.searchStr).get("companyId") ?? undefined;
-    const resolved = await resolveBusinessOperatingAccountRedirect({ data: companyId ?? undefined });
-    if (!resolved) {
-      throw redirect({ to: "/bank/business" });
-    }
-    const activeCompanyId = companyId ?? resolved.companyId;
-    const dashboard = await fetchMerchantInvoiceDashboard({ data: activeCompanyId });
-    return { dashboard, companyId: activeCompanyId, accountId: resolved.accountId };
+    await redirectLegacyCommercialRoute(location.searchStr, { kind: "invoices" });
   },
-  head: () => ({ meta: [{ title: "Merchant Invoices — Alta Bank" }] }),
-  component: MerchantInvoicesPage,
 });
-
-function MerchantInvoicesPage() {
-  const { dashboard, companyId, accountId } = Route.useLoaderData();
-
-  return (
-    <>
-      <BankPageMeta eyebrow="Commercial Banking" title="Merchant Invoices" />
-      <CommercialAccountBackLink accountId={accountId} />
-      <Section title="Invoice dashboard">
-        <MerchantInvoiceDashboardPanel
-          dashboard={dashboard}
-          companyId={companyId}
-          accountId={accountId}
-        />
-      </Section>
-    </>
-  );
-}

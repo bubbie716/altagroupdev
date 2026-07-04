@@ -62,6 +62,23 @@ enum CompanyRole {
   VIEWER
 }
 
+enum CommercialPlan {
+  CORE
+  PRO
+}
+
+enum CommercialPlanStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum CommercialBillingStatus {
+  NOT_BILLED
+  CURRENT
+  PAST_DUE
+}
+
 model User {
   id                    String                @id @default(cuid())
   discordId             String                @unique
@@ -228,6 +245,16 @@ model Company {
   merchantInvoices             MerchantInvoice[]
   merchantInvoicesReceived     MerchantInvoice[] @relation("MerchantInvoiceRecipientCompany")
   paymentLinks                 PaymentLink[]
+  commercialPlan                 CommercialPlan               @default(CORE)
+  planStatus                     CommercialPlanStatus         @default(ACTIVE)
+  billingStatus                  CommercialBillingStatus      @default(NOT_BILLED)
+  commercialMonthlyFee           Decimal?                     @db.Decimal(18, 2)
+  commercialEnabledFeatures      Json?
+  commercialBillingAccountId     String?
+  commercialNextBillingAt        DateTime?
+  commercialPastDueAt            DateTime?
+  commercialProSubscribedAt      DateTime?
+  commercialBillingAccount       BankAccount?                 @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
 }
 
 model CompanyMembership {
@@ -400,6 +427,7 @@ model BankAccount {
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  commercialBillingForCompanies Company[] @relation("CommercialBillingAccount")
   holds        BankAccountHold[]
   transactions      BankTransaction[]
   interestAccruals  BankInterestAccrual[]
@@ -1169,6 +1197,8 @@ enum UserNotificationType {
   ALTA_PAY_FAILED
   SCHEDULED_TRANSFER_EXECUTED
   SCHEDULED_TRANSFER_FAILED
+  PAYROLL_RUN_EXECUTED
+  PAYROLL_RUN_FAILED
   LOAN_PAYMENT_MADE
   LOAN_PAID_OFF
   LOAN_AUTOPAY_FAILED
@@ -1188,6 +1218,13 @@ enum UserNotificationType {
   MERCHANT_INVOICE_OVERDUE
   PAYMENT_LINK_PAID
   PAYMENT_LINK_RECEIPT
+  MERCHANT_PAYMENT_FAILED
+  COMMERCIAL_PRO_ACTIVATED
+  COMMERCIAL_PRO_BILLING_SUCCEEDED
+  COMMERCIAL_PRO_BILLING_FAILED
+  COMMERCIAL_PRO_PAST_DUE
+  COMMERCIAL_PRO_DOWNGRADED
+  COMMERCIAL_BILLING_ACCOUNT_CHANGED
 }
 
 enum DealRoomParticipantRole {
@@ -1584,6 +1621,7 @@ enum AuditEntityType {
   LOAN_APPLICATION
   DEAL_ROOM
   SCHEDULED_PAYMENT
+  PAYROLL_RUN
   STATEMENT
   PLATFORM
   ALTA_CARD
