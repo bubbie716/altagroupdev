@@ -36,12 +36,22 @@ export type WebsiteMessageSyncInput = {
   context?: SecureDealRoomDiscordContext;
 };
 
+export type DiscordChannelAttachmentInput = {
+  discordAttachmentId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  buffer: Buffer;
+};
+
 export type DiscordChannelMessageInput = {
   discordChannelId: string;
   discordMessageId: string;
   discordUserId: string;
   content: string;
-  hasAttachments: boolean;
+  /** @deprecated Prefer attachments.length > 0 */
+  hasAttachments?: boolean;
+  attachments?: DiscordChannelAttachmentInput[];
 };
 
 export type EnsureChannelDispatchInput = {

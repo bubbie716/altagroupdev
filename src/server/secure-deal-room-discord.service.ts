@@ -39,6 +39,8 @@ import { createUserNotification, deliverNotificationDiscord } from "@/server/not
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { sendStaffAuditMessage } from "@/server/staff-audit-notification.service";
+import { storeDiscordDealRoomAttachments } from "@/server/secure-deal-room-discord-attachment.service";
+import type { AltaCardThreadAttachment } from "@/lib/bank/alta-card-application-thread-types";
 
 type SessionRecord = Prisma.SecureDealRoomDiscordSessionGetPayload<object>;
 
@@ -558,12 +560,9 @@ async function syncWebsiteMessageToDiscord(input: WebsiteMessageSyncInput): Prom
 export async function ingestDiscordChannelMessage(
   input: DiscordChannelMessageInput,
 ): Promise<DiscordChannelMessageResult> {
-  if (input.hasAttachments) {
-    return { kind: "failed", reason: "attachments_not_supported" };
-  }
-
-  const body = sanitizeDiscordReplyContent(input.content);
-  if (!body) {
+  const attachmentsInput = input.attachments ?? [];
+  const body = sanitizeDiscordReplyContent(input.content) || null;
+  if (!body && attachmentsInput.length === 0) {
     return { kind: "failed", reason: "empty_message" };
   }
 
@@ -611,6 +610,38 @@ export async function ingestDiscordChannelMessage(
     return { kind: "unauthorized" };
   }
 
+  let storedAttachments: AltaCardThreadAttachment[] = [];
+  if (attachmentsInput.length > 0) {
+    try {
+      storedAttachments = await storeDiscordDealRoomAttachments({
+        dealRoomType: session.dealRoomType,
+        dealRoomId: session.dealRoomId,
+        threadId: session.threadId,
+        actorUserId: altaUser.id,
+        attachments: attachmentsInput,
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message.replace(/^BAD_REQUEST:/, "") : "upload_failed";
+      await recordDealRoomSyncFailure({
+        action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+        actorUserId: altaUser.id,
+        dealRoomType: session.dealRoomType,
+        dealRoomId: session.dealRoomId,
+        threadId: session.threadId,
+        description: "Failed to store Discord channel attachments for Secure Deal Room.",
+        reason,
+        source: "DISCORD",
+        discordChannelId: session.discordChannelId,
+        discordMessageId: input.discordMessageId,
+      });
+      return { kind: "failed", reason: reason.includes("not supported") ? "invalid_attachment" : reason };
+    }
+
+    if (storedAttachments.length === 0) {
+      return { kind: "failed", reason: "invalid_attachment" };
+    }
+  }
+
   let messageId: string;
   try {
     messageId = await insertDiscordChannelMessage(
@@ -619,6 +650,7 @@ export async function ingestDiscordChannelMessage(
       body,
       senderRole,
       input.discordMessageId,
+      storedAttachments,
     );
   } catch (error) {
     const reason = error instanceof Error ? error.message : "unknown";
@@ -658,6 +690,8 @@ export async function ingestDiscordChannelMessage(
       discordMessageId: input.discordMessageId,
       source: "DISCORD",
       senderRole,
+      attachmentCount: storedAttachments.length,
+      attachmentIds: storedAttachments.map((item) => item.id).filter(Boolean),
     },
   });
 
@@ -854,12 +888,15 @@ async function canUserPostAsApplicant(
 async function insertDiscordChannelMessage(
   session: SessionRecord,
   userId: string,
-  body: string,
+  body: string | null,
   senderRole: "APPLICANT" | "ALTA_STAFF",
   discordMessageId: string,
+  attachments: AltaCardThreadAttachment[] = [],
 ): Promise<string> {
   const source: SecureDealRoomMessageSource = "DISCORD";
   const nextStatus = senderRole === "ALTA_STAFF" ? "WAITING_ON_APPLICANT" : "WAITING_ON_ALTA";
+  const attachmentsJson =
+    attachments.length > 0 ? (attachments as unknown as Prisma.InputJsonValue) : undefined;
 
   switch (session.dealRoomType) {
     case "LOAN_APPLICATION": {
@@ -871,6 +908,7 @@ async function insertDiscordChannelMessage(
             senderRole,
             source,
             body,
+            attachments: attachmentsJson,
             discordMessageId,
           },
         });
@@ -891,6 +929,7 @@ async function insertDiscordChannelMessage(
             senderRole,
             source,
             body,
+            attachments: attachmentsJson,
             discordMessageId,
           },
         });
@@ -911,6 +950,7 @@ async function insertDiscordChannelMessage(
             senderRole,
             source,
             body,
+            attachments: attachmentsJson,
             discordMessageId,
           },
         });
