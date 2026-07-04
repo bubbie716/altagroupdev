@@ -29,9 +29,13 @@ function nyDayKey(date: Date): string {
   }).format(date);
 }
 
-function signedTransactionAmount(type: DbBankTransactionType, amount: { toString(): string }): number {
+function signedTransactionAmount(
+  type: DbBankTransactionType,
+  amount: { toString(): string },
+  referenceCode: string,
+): number {
   const code = fromDbBankTransactionType(type);
-  return getSignedBankTransactionAmount(code, Number(amount));
+  return getSignedBankTransactionAmount(code, Number(amount), referenceCode);
 }
 
 function floorToFiveMinutes(atMs: number): number {
@@ -40,7 +44,12 @@ function floorToFiveMinutes(atMs: number): number {
 
 function buildDailyBalanceSeries(
   openingBalance: number,
-  transactions: { createdAt: Date; type: DbBankTransactionType; amount: { toString(): string } }[],
+  transactions: {
+    createdAt: Date;
+    type: DbBankTransactionType;
+    amount: { toString(): string };
+    referenceCode: string;
+  }[],
   endDay: Date,
 ): HomePortfolioChartPoint[] {
   const startDay = shiftChartDays(endDay, -CHART_HISTORY_DAYS);
@@ -48,7 +57,7 @@ function buildDailyBalanceSeries(
 
   for (const tx of transactions) {
     const key = nyDayKey(tx.createdAt);
-    dailyDelta.set(key, (dailyDelta.get(key) ?? 0) + signedTransactionAmount(tx.type, tx.amount));
+    dailyDelta.set(key, (dailyDelta.get(key) ?? 0) + signedTransactionAmount(tx.type, tx.amount, tx.referenceCode));
   }
 
   const points: HomePortfolioChartPoint[] = [];
@@ -66,7 +75,12 @@ function buildDailyBalanceSeries(
 /** Today's balance path from real approved transaction timestamps (5-minute buckets). */
 function buildTodayIntradaySeries(
   dayOpenBalance: number,
-  transactions: { createdAt: Date; type: DbBankTransactionType; amount: { toString(): string } }[],
+  transactions: {
+    createdAt: Date;
+    type: DbBankTransactionType;
+    amount: { toString(): string };
+    referenceCode: string;
+  }[],
   currentBalance: number,
   now: Date,
 ): HomePortfolioChartPoint[] {
@@ -78,7 +92,7 @@ function buildTodayIntradaySeries(
   for (const tx of transactions) {
     const at = tx.createdAt.getTime();
     if (at < dayStart) continue;
-    running += signedTransactionAmount(tx.type, tx.amount);
+    running += signedTransactionAmount(tx.type, tx.amount, tx.referenceCode);
     byBucket.set(floorToFiveMinutes(at), running);
   }
 
@@ -132,12 +146,12 @@ export async function getHomePortfolioSnapshot(userId: string): Promise<HomePort
       status: "APPROVED",
       createdAt: { gte: startDay },
     },
-    select: { createdAt: true, type: true, amount: true },
+    select: { createdAt: true, type: true, amount: true, referenceCode: true },
     orderBy: { createdAt: "asc" },
   });
 
   const periodNetChange = transactions.reduce(
-    (sum, tx) => sum + signedTransactionAmount(tx.type, tx.amount),
+    (sum, tx) => sum + signedTransactionAmount(tx.type, tx.amount, tx.referenceCode),
     0,
   );
   const openingBalance = florinBalance - periodNetChange;

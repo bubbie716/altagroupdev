@@ -21,7 +21,13 @@ export function isBankTransactionDebit(type: BankTransactionTypeCode): boolean {
 export function getSignedBankTransactionAmount(
   type: BankTransactionTypeCode,
   amount: number,
+  referenceCode?: string | null,
 ): number {
   const abs = Math.abs(amount);
+  if (type === "adjustment") {
+    const ref = referenceCode?.trim().toUpperCase() ?? "";
+    if (ref.startsWith("WDR")) return -abs;
+    return abs;
+  }
   return isBankTransactionDebit(type) ? -abs : abs;
 }

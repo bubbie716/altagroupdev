@@ -5,6 +5,7 @@ import {
   attachPointDates,
   buildChartBucketsForRange,
   buildDisplaySeriesForRange,
+  computePeriodChangePercent,
   DISPLAY_INTERVAL_MS,
   formatPortfolioChartHoverDate,
   getPeriodBoundaryValues,
@@ -56,6 +57,18 @@ function assertStableLabels(
   );
   assert.equal(new Set(labels).size, 1, `expected stable label, got ${labels.join(" | ")}`);
 }
+
+describe("portfolio chart period change percent", () => {
+  it("uses end value as basis when start is negative and end is positive", () => {
+    const percent = computePeriodChangePercent(-20_000, 10_316_760.32);
+    assert.ok(percent > 99 && percent <= 101);
+  });
+
+  it("keeps standard percent when start is positive", () => {
+    const percent = computePeriodChangePercent(100_000, 110_000);
+    assert.equal(percent, 10);
+  });
+});
 
 describe("portfolio chart range boundaries", () => {
   it("1D starts at local midnight, not noon", () => {

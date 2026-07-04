@@ -560,6 +560,11 @@ export function computePeriodChangePercent(startValue: number, endValue: number)
   const delta = end - start;
 
   if (Math.abs(delta) < PERCENT_BASIS_EPSILON) return 0;
+  // Crossing from zero or negative into positive — % vs start is meaningless.
+  if (start <= 0 && end > 0) return (delta / end) * 100;
+  if (start < 0 && end <= 0 && Math.abs(start) >= PERCENT_BASIS_EPSILON) {
+    return (delta / Math.abs(start)) * 100;
+  }
   if (Math.abs(start) >= PERCENT_BASIS_EPSILON) return (delta / start) * 100;
   if (Math.abs(end) >= PERCENT_BASIS_EPSILON) return (delta / end) * 100;
   return 0;
@@ -576,8 +581,12 @@ export function computeHoverChangePercent(
   const delta = hover - start;
 
   if (Math.abs(delta) < PERCENT_BASIS_EPSILON) return 0;
+  if (start <= 0 && hover > 0) return (delta / hover) * 100;
+  if (start < 0 && hover <= 0 && Math.abs(start) >= PERCENT_BASIS_EPSILON) {
+    return (delta / Math.abs(start)) * 100;
+  }
   if (Math.abs(start) >= PERCENT_BASIS_EPSILON) return (delta / start) * 100;
-  if (Math.abs(end) >= PERCENT_BASIS_EPSILON) return (delta / end) * 100;
+  if (Math.abs(hover) >= PERCENT_BASIS_EPSILON) return (delta / hover) * 100;
   return 0;
 }
 
