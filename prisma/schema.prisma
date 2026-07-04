@@ -156,6 +156,9 @@ model User {
   staffAssignments               StaffAssignment[]              @relation("StaffAssignmentStaff")
   staffAssignmentsCreated        StaffAssignment[]              @relation("StaffAssignmentAssigner")
   documentsUploaded              Document[]                     @relation("DocumentUploader")
+  merchantInvoicesCreated        MerchantInvoice[]              @relation("MerchantInvoiceCreator")
+  merchantInvoicesReceived       MerchantInvoice[]              @relation("MerchantInvoiceRecipient")
+  merchantInvoicePaymentsInitiated MerchantInvoicePayment[]     @relation("MerchantInvoicePaymentInitiator")
 }
 
 model BotDailyTransferUsage {
@@ -220,6 +223,8 @@ model Company {
   relationshipSnapshots        CompanyRelationshipProfileSnapshot[]
   relationshipRecommendations  CompanyRelationshipRecommendation[]
   relationshipTimelineEvents   CompanyRelationshipTimelineEvent[]
+  merchantInvoices             MerchantInvoice[]
+  merchantInvoicesReceived     MerchantInvoice[] @relation("MerchantInvoiceRecipientCompany")
 }
 
 model CompanyMembership {
@@ -410,6 +415,7 @@ model BankAccount {
   altaPayFundingForUsers          UserBankSettings[]    @relation("UserAltaPayFundingAccount")
   paymentsAsSource                Payment[]             @relation("PaymentSourceAccount")
   paymentsAsDestination           Payment[]             @relation("PaymentDestinationAccount")
+  merchantInvoicesDestination     MerchantInvoice[]     @relation("MerchantInvoiceDestination")
 
   @@index([userId])
   @@index([companyId])
@@ -1169,6 +1175,13 @@ enum UserNotificationType {
   ALTA_CARD_ACTIVATED
   COMPANY_VERIFIED
   COMPANY_ROLE_CHANGED
+  MERCHANT_INVOICE_RECEIVED
+  MERCHANT_INVOICE_REMINDER
+  MERCHANT_INVOICE_PAID
+  MERCHANT_INVOICE_CANCELLED
+  MERCHANT_INVOICE_SENT
+  MERCHANT_INVOICE_VIEWED
+  MERCHANT_INVOICE_OVERDUE
 }
 
 enum DealRoomParticipantRole {
@@ -1568,6 +1581,7 @@ enum AuditEntityType {
   STATEMENT
   PLATFORM
   ALTA_CARD
+  MERCHANT_INVOICE
 }
 
 enum InternalNoteTargetType {
@@ -2438,6 +2452,8 @@ enum CompanyRelationshipTimelineEventType {
   DEPOSIT_MILESTONE
   WITHDRAWAL_MILESTONE
   ALTA_PAY_MILESTONE
+  MERCHANT_INVOICE_SENT
+  MERCHANT_INVOICE_PAID
   ALTA_CARD_OPENED
   ALTA_CARD_TIER_CHANGED
   ALTA_CARD_LIMIT_CHANGED
@@ -2577,6 +2593,7 @@ enum PaymentType {
   ALTA_PAY
   INTRABANK_TRANSFER
   INTERBANK_TRANSFER
+  MERCHANT_INVOICE
 }
 
 enum PaymentStatus {
@@ -2592,6 +2609,7 @@ enum TransferGroupType {
   ALTA_PAY
   INTRABANK_TRANSFER
   INTERBANK_TRANSFER
+  MERCHANT_INVOICE
   ADJUSTMENT_REVERSAL
   MANUAL_REVERSAL
   OTHER
@@ -2708,6 +2726,7 @@ model Payment {
   destinationAccount BankAccount?   @relation("PaymentDestinationAccount", fields: [destinationBankAccountId], references: [id], onDelete: SetNull)
   initiatedBy        User           @relation("PaymentInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
   transferGroup      TransferGroup? @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  merchantInvoice    MerchantInvoice?
 
   @@index([paymentType, status])
   @@index([payerUserId])
@@ -2831,4 +2850,133 @@ model StaffAssignment {
   @@index([staffUserId, status])
   @@index([subjectType, subjectId])
   @@index([assignmentType, status])
+}
+
+enum MerchantInvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  VOIDED
+}
+
+enum MerchantInvoicePaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum MerchantInvoiceEventType {
+  CREATED
+  UPDATED
+  SENT
+  VIEWED
+  REMINDER_SENT
+  PAYMENT_INITIATED
+  PAYMENT_COMPLETED
+  PAYMENT_FAILED
+  CANCELLED
+  VOIDED
+  OVERDUE_MARKED
+}
+
+model MerchantInvoice {
+  id                    String                @id @default(cuid())
+  referenceCode         String                @unique
+  merchantCompanyId     String
+  destinationAccountId  String
+  recipientUserId       String?
+  recipientCompanyId    String?
+  recipientDiscordId    String?
+  amount                Decimal               @db.Decimal(18, 2)
+  currency              String                @default("FLR")
+  feeAmount             Decimal               @default(0) @db.Decimal(18, 2)
+  netAmount             Decimal?              @db.Decimal(18, 2)
+  amountPaid            Decimal               @default(0) @db.Decimal(18, 2)
+  description           String
+  memo                  String?
+  dueDate               DateTime?
+  status                MerchantInvoiceStatus @default(DRAFT)
+  createdByUserId       String
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  paidAt                DateTime?
+  cancelledAt           DateTime?
+  voidedAt              DateTime?
+  lastReminderSentAt    DateTime?
+  paymentId             String?               @unique
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  merchantCompany    Company                  @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  destinationAccount BankAccount              @relation("MerchantInvoiceDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  recipient          User?                    @relation("MerchantInvoiceRecipient", fields: [recipientUserId], references: [id], onDelete: Restrict)
+  recipientCompany   Company?                 @relation("MerchantInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: Restrict)
+  createdBy          User                     @relation("MerchantInvoiceCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  payment            Payment?                 @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  lineItems          MerchantInvoiceLineItem[]
+  payments           MerchantInvoicePayment[]
+  events             MerchantInvoiceEvent[]
+
+  @@index([merchantCompanyId, status])
+  @@index([recipientUserId, status])
+  @@index([recipientCompanyId, status])
+  @@index([dueDate, status])
+  @@index([createdAt])
+}
+
+model MerchantInvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(18, 4)
+  unitAmount  Decimal  @db.Decimal(18, 2)
+  lineTotal   Decimal  @db.Decimal(18, 2)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  invoice MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model MerchantInvoicePayment {
+  id                String                       @id @default(cuid())
+  invoiceId         String
+  amount            Decimal                      @db.Decimal(18, 2)
+  feeAmount         Decimal                      @default(0) @db.Decimal(18, 2)
+  status            MerchantInvoicePaymentStatus @default(PENDING)
+  idempotencyKey    String                       @unique
+  paymentId         String?
+  transferGroupId   String?
+  initiatedByUserId String
+  fundingSource     Json
+  failureReason     String?
+  source            String                       @default("website")
+  createdAt         DateTime                     @default(now())
+  completedAt       DateTime?
+
+  invoice       MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  initiatedBy   User            @relation("MerchantInvoicePaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([status])
+}
+
+model MerchantInvoiceEvent {
+  id          String                   @id @default(cuid())
+  invoiceId   String
+  eventType   MerchantInvoiceEventType
+  actorUserId String?
+  source      String                   @default("website")
+  metadata    Json?
+  createdAt   DateTime                 @default(now())
+
+  invoice MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, createdAt])
 }

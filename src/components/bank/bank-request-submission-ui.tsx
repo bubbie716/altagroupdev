@@ -6,6 +6,8 @@ import {
   BANK_CARD_PAYMENT_SUCCESS_BODY,
   BANK_CASH_ADVANCE_SUCCESS_BODY,
   BANK_LOAN_PAYMENT_SUCCESS_BODY,
+  BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY,
+  BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY,
   BANK_REQUEST_SUCCESS_BODY,
   BANK_SUBMISSION_ERROR_FALLBACK,
   BANK_TRANSFER_SUCCESS_BODY,
@@ -26,6 +28,8 @@ export type BankRequestKind =
   | "withdrawal"
   | "transfer"
   | "alta_pay"
+  | "merchant_invoice"
+  | "merchant_invoice_payment"
   | "cash_advance"
   | "card_payment"
   | "loan_payment";
@@ -80,6 +84,32 @@ const COPY = {
       <>
         You can review this payment below in{" "}
         <strong className="font-medium text-foreground">Payment History</strong>.
+      </>
+    ),
+  },
+  merchant_invoice: {
+    submit: "Send Invoice",
+    submitting: "Sending Invoice…",
+    successTitle: "Invoice Sent",
+    submitAnother: "Send Another Invoice",
+    successBody: BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY,
+    successHint: (
+      <>
+        Track status and send reminders from your{" "}
+        <strong className="font-medium text-foreground">Merchant Invoices</strong> dashboard.
+      </>
+    ),
+  },
+  merchant_invoice_payment: {
+    submit: "Confirm Payment",
+    submitting: "Processing Payment…",
+    successTitle: "Invoice Paid",
+    submitAnother: "View Invoices",
+    successBody: BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY,
+    successHint: (
+      <>
+        You can review this payment in your{" "}
+        <strong className="font-medium text-foreground">Received Invoices</strong> inbox.
       </>
     ),
   },
@@ -184,6 +214,42 @@ function SecondaryButton({
       className="w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-[14px] font-medium tracking-tight text-foreground transition-colors hover:bg-surface-2/60"
     >
       {children}
+    </button>
+  );
+}
+
+const primaryActionButtonClass =
+  "inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto";
+
+/** Primary action button for non-form flows (onClick handlers). */
+export function BankRequestActionButton({
+  children,
+  onClick,
+  submitting = false,
+  submittingLabel,
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  submitting?: boolean;
+  submittingLabel?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || submitting}
+      className={primaryActionButtonClass}
+    >
+      {submitting ? (
+        <>
+          <Loader2 className="size-4 animate-spin opacity-80" aria-hidden />
+          {submittingLabel ?? "Working…"}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }

@@ -217,3 +217,44 @@ export const ALTA_PAY_RECEIVED_VIEW_ROLES: readonly CompanyRole[] = [
 export function canViewAltaPayReceived(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, ALTA_PAY_RECEIVED_VIEW_ROLES);
 }
+
+/** Roles that may create, send, and cancel merchant invoices. */
+export const MERCHANT_INVOICE_MANAGE_ROLES = BUSINESS_TREASURY_MANAGE_ROLES;
+
+/** Roles that may view merchant invoice dashboard and details. */
+export const MERCHANT_INVOICE_VIEW_ROLES = BUSINESS_TREASURY_VIEW_ROLES;
+
+export function canManageMerchantInvoices(user: AltaUser, scope: CompanyScope): boolean {
+  return hasCompanyRole(user, scope, MERCHANT_INVOICE_MANAGE_ROLES);
+}
+
+export function canViewMerchantInvoices(user: AltaUser, scope: CompanyScope): boolean {
+  return hasCompanyRole(user, scope, MERCHANT_INVOICE_VIEW_ROLES);
+}
+
+export type MerchantInvoiceRecipientScope = {
+  recipientUserId: string | null;
+  recipientCompanyId: string | null;
+};
+
+export function canViewReceivedMerchantInvoice(
+  user: AltaUser,
+  invoice: MerchantInvoiceRecipientScope,
+): boolean {
+  if (invoice.recipientUserId) return invoice.recipientUserId === user.id;
+  if (invoice.recipientCompanyId) {
+    return canViewMerchantInvoices(user, { companyId: invoice.recipientCompanyId });
+  }
+  return false;
+}
+
+export function canPayReceivedMerchantInvoice(
+  user: AltaUser,
+  invoice: MerchantInvoiceRecipientScope,
+): boolean {
+  if (invoice.recipientUserId) return invoice.recipientUserId === user.id;
+  if (invoice.recipientCompanyId) {
+    return canManageMerchantInvoices(user, { companyId: invoice.recipientCompanyId });
+  }
+  return false;
+}

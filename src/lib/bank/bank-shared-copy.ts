@@ -24,8 +24,20 @@ export const BANK_TRANSFER_SUCCESS_BODY =
 export const ALTA_PAY_FORM_INTRO =
   "Search for a person or company by name. Person payments settle to the recipient's default Alta Pay account from Settings.";
 
+export const MERCHANT_INVOICE_FORM_INTRO =
+  "Search for a customer or company to invoice. Save as a draft to finish later, or send when you're ready.";
+
+export const BANK_MERCHANT_INVOICE_DRAFT_SAVED_BODY =
+  "Your invoice draft was saved. Send it whenever you're ready from the invoice detail page.";
+
 export const BANK_ALTA_PAY_SUCCESS_BODY =
   "Your payment settled instantly to the company's Business Operating Account.";
+
+export const BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY =
+  "Your invoice was sent. The recipient can view and pay it from Alta Bank.";
+
+export const BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY =
+  "Your invoice payment settled instantly to the merchant's Business Operating Account.";
 
 export const BANK_CASH_ADVANCE_SUCCESS_BODY =
   "Your cash advance settled instantly. Funds were deposited to your selected account and your card balance was updated.";

@@ -4,6 +4,7 @@ export type BusinessAccountModule =
   | "overview"
   | "activity"
   | "payments"
+  | "invoices"
   | "payroll"
   | "statements"
   | "representatives"
@@ -16,6 +17,7 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     overview: "manage",
     activity: "manage",
     payments: "manage",
+    invoices: "manage",
     payroll: "manage",
     statements: "manage",
     representatives: "manage",
@@ -25,6 +27,7 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     overview: "manage",
     activity: "manage",
     payments: "manage",
+    invoices: "manage",
     payroll: "manage",
     statements: "manage",
     representatives: "manage",
@@ -34,6 +37,7 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     overview: "view",
     activity: "view",
     payments: "manage",
+    invoices: "manage",
     payroll: "manage",
     statements: "manage",
     representatives: "view",
@@ -43,6 +47,7 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     overview: "view",
     activity: "view",
     payments: "none",
+    invoices: "view",
     payroll: "none",
     statements: "view",
     representatives: "view",
@@ -52,6 +57,7 @@ const MODULE_MATRIX: Record<CompanyRole, Record<BusinessAccountModule, BusinessM
     overview: "view",
     activity: "view",
     payments: "none",
+    invoices: "none",
     payroll: "none",
     statements: "none",
     representatives: "none",
@@ -78,6 +84,7 @@ export const BUSINESS_ACCOUNT_MODULES: BusinessAccountModule[] = [
   "overview",
   "activity",
   "payments",
+  "invoices",
   "payroll",
   "statements",
   "representatives",

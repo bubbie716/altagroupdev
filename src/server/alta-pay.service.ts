@@ -481,7 +481,7 @@ export async function listPersonalPaySourceAccounts(userId: string) {
   return listPaySourceAccounts(mapDbUserToAltaUser(record));
 }
 
-async function resolvePaySourceAccount(user: AltaUser, fromAccountId: string) {
+export async function resolvePaySourceAccount(user: AltaUser, fromAccountId: string) {
   const account = await prisma.bankAccount.findFirst({
     where: { id: fromAccountId },
     include: { user: true, company: true },

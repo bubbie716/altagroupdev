@@ -536,3 +536,30 @@ export async function submitBotAltaPay(
     throw error;
   }
 }
+
+export async function quoteBotMerchantInvoicePayment(userId: string, invoiceId: string) {
+  const user = await loadAltaUserOrThrow(userId);
+  const { quoteMerchantInvoicePayment } = await import("@/server/merchant-invoice-payment.service");
+  return quoteMerchantInvoicePayment(user, invoiceId);
+}
+
+export async function payBotMerchantInvoice(
+  userId: string,
+  input: {
+    invoiceId: string;
+    fundingAccountId: string;
+    idempotencyKey: string;
+  },
+) {
+  const user = await loadAltaUserOrThrow(userId);
+  const { payMerchantInvoice } = await import("@/server/merchant-invoice-payment.service");
+  return payMerchantInvoice(
+    user,
+    {
+      invoiceId: input.invoiceId,
+      fundingSource: { kind: "bank_account", accountId: input.fundingAccountId },
+      idempotencyKey: input.idempotencyKey,
+    },
+    BOT_STAFF_AUDIT,
+  );
+}

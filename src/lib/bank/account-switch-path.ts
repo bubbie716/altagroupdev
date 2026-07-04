@@ -12,6 +12,7 @@ const BUSINESS_MODULE_SUFFIX: Record<BusinessAccountModule, string> = {
   overview: "",
   activity: "/activity",
   payments: "/payments",
+  invoices: "/invoices",
   payroll: "/payroll",
   statements: "/statements",
   representatives: "/representatives",

@@ -13,6 +13,8 @@ export const RELATIONSHIP_TIMELINE_EVENT_LABELS = {
   DEPOSIT_MILESTONE: "Deposit Milestone Reached",
   WITHDRAWAL_MILESTONE: "Withdrawal Milestone Reached",
   ALTA_PAY_MILESTONE: "Alta Pay Milestone Reached",
+  MERCHANT_INVOICE_SENT: "Merchant Invoice Sent",
+  MERCHANT_INVOICE_PAID: "Merchant Invoice Paid",
   ALTA_CARD_OPENED: "Alta Card Opened",
   ALTA_CARD_TIER_CHANGED: "Alta Card Upgraded",
   ALTA_CARD_LIMIT_CHANGED: "Alta Card Limit Increased",

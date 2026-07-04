@@ -9,15 +9,27 @@ export type OperationalControlsJobResult = {
   notificationRetry: Awaited<ReturnType<typeof processNotificationRetryQueue>>;
   queueEscalation: Awaited<ReturnType<typeof runQueueEscalationJob>>;
   balanceReconciliation: Awaited<ReturnType<typeof reconcileBankAccountBalances>>;
+  merchantInvoiceOverdue: Awaited<
+    ReturnType<
+      typeof import("@/server/merchant-invoice-overdue.job").runMerchantInvoiceOverdueJob
+    >
+  >;
 };
 
 export async function runOperationalControlsJob(): Promise<OperationalControlsJobResult> {
   const startedAt = new Date();
 
-  const [notificationRetry, queueEscalation, balanceReconciliation] = await Promise.all([
+  const [notificationRetry, queueEscalation, balanceReconciliation, merchantInvoiceOverdue] =
+    await Promise.all([
     processNotificationRetryQueue(startedAt),
     runQueueEscalationJob(startedAt),
     reconcileBankAccountBalances(),
+    (async () => {
+      const { runMerchantInvoiceOverdueJob } = await import(
+        "@/server/merchant-invoice-overdue.job"
+      );
+      return runMerchantInvoiceOverdueJob();
+    })(),
   ]);
 
   const completedAt = new Date();
@@ -30,7 +42,10 @@ export async function runOperationalControlsJob(): Promise<OperationalControlsJo
       completedAt: completedAt.toISOString(),
       durationMs: completedAt.getTime() - startedAt.getTime(),
       processedCount:
-        notificationRetry.processed + queueEscalation.warnings.length + balanceReconciliation.accountsChecked,
+        notificationRetry.processed +
+        queueEscalation.warnings.length +
+        balanceReconciliation.accountsChecked +
+        merchantInvoiceOverdue.overdueMarked,
       successCount:
         notificationRetry.sent +
         (balanceReconciliation.mismatchCount === 0 ? balanceReconciliation.accountsChecked : 0),
@@ -38,9 +53,9 @@ export async function runOperationalControlsJob(): Promise<OperationalControlsJo
         notificationRetry.permanentFailures +
         balanceReconciliation.mismatchCount +
         queueEscalation.escalations.length,
-      details: { notificationRetry, queueEscalation, balanceReconciliation },
+      details: { notificationRetry, queueEscalation, balanceReconciliation, merchantInvoiceOverdue },
     },
   );
 
-  return { notificationRetry, queueEscalation, balanceReconciliation };
+  return { notificationRetry, queueEscalation, balanceReconciliation, merchantInvoiceOverdue };
 }

@@ -29,6 +29,8 @@ export function paymentTypeToTransferGroupType(paymentType: PaymentType): Transf
       return "INTRABANK_TRANSFER";
     case "INTERBANK_TRANSFER":
       return "INTERBANK_TRANSFER";
+    case "MERCHANT_INVOICE":
+      return "MERCHANT_INVOICE";
     default:
       return "OTHER";
   }
