@@ -1,5 +1,5 @@
 /** Polling intervals for Secure Thread live updates. */
-export const SECURE_THREAD_LIVE_ACTIVE_INTERVAL_MS = 8_000;
+export const SECURE_THREAD_LIVE_ACTIVE_INTERVAL_MS = 5_000;
 export const SECURE_THREAD_LIVE_INACTIVE_INTERVAL_MS = 60_000;
 
 /** Distance from bottom (px) treated as "at bottom" for auto-scroll. */
