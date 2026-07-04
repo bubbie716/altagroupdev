@@ -67,7 +67,9 @@ async function ensureViaBot(
 
 async function messageViaBot(input: {
   channelId: string;
-  content: string;
+  content?: string;
+  embedTitle?: string;
+  embedDescription?: string;
 }): Promise<{ ok: boolean; messageId?: string; reason?: string } | null> {
   return postToBot<{ ok: boolean; messageId?: string; reason?: string }>(
     "/internal/deal-room/channel/message",
@@ -111,7 +113,9 @@ export async function dispatchEnsureDealRoomChannel(
 
 export async function dispatchPostDealRoomChannelMessage(input: {
   channelId: string;
-  content: string;
+  content?: string;
+  embedTitle?: string;
+  embedDescription?: string;
 }): Promise<{ ok: boolean; messageId?: string; reason?: string }> {
   const direct = await directPostDealRoomChannelMessage(input);
   if (direct.ok) {

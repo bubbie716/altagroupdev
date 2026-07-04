@@ -4,6 +4,7 @@ import {
   buildChannelOpenedDmBody,
   buildDealRoomChannelName,
   buildDiscordGuildChannelUrl,
+  buildWebsiteToDiscordChannelEmbed,
   buildWebsiteToDiscordChannelMessage,
   resolveDiscordChannelSenderRole,
   sanitizeDiscordReplyContent,
@@ -41,12 +42,18 @@ describe("secure deal room discord channel copy", () => {
   });
 
   it("formats website messages for Discord channel sync", () => {
-    const body = buildWebsiteToDiscordChannelMessage({
+    const embed = buildWebsiteToDiscordChannelEmbed({
       senderDisplayName: "FTLCEO",
       messageBody: "Can you provide proof of income?",
     });
-    assert.match(body, /FTLCEO via Alta Bank:/);
-    assert.match(body, /proof of income/);
+    assert.equal(embed.title, "FTLCEO");
+    assert.match(embed.description, /proof of income/);
+
+    const legacy = buildWebsiteToDiscordChannelMessage({
+      senderDisplayName: "FTLCEO",
+      messageBody: "Can you provide proof of income?",
+    });
+    assert.match(legacy, /FTLCEO via Alta Bank:/);
   });
 
   it("builds clickable discord channel links for opened deal room DMs", () => {
@@ -67,9 +74,9 @@ describe("secure deal room discord channel copy", () => {
       websiteLinkUrl: "/bank/alta-card/applications/app-1/thread",
     });
     const row = payload.components[0] as { components: Array<{ label: string; url: string }> };
-    assert.equal(row.components[0]?.label, "Open Discord Channel");
+    assert.equal(row.components[0]?.label, "Open channel");
     assert.equal(row.components[0]?.url, url);
-    assert.equal(row.components[1]?.label, "Open on Alta Bank");
+    assert.equal(row.components[1]?.label, "Open Alta Bank");
   });
 
   it("sanitizes and caps discord reply content", () => {

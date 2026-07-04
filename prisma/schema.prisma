@@ -146,6 +146,16 @@ model User {
   botDailyTransferUsage          BotDailyTransferUsage[]
   bankSettings                   UserBankSettings?
   secureDealRoomDiscordSessions  SecureDealRoomDiscordSession[]
+  notificationDeliveryQueue      NotificationDeliveryQueue[]
+  paymentsInitiated              Payment[]                      @relation("PaymentInitiatedBy")
+  paymentsAsPayer                Payment[]                      @relation("PaymentPayer")
+  paymentsAsRecipient            Payment[]                      @relation("PaymentRecipient")
+  privateBankingAsCustomer       PrivateBankingRelationship[] @relation("PrivateBankingCustomer")
+  privateBankingAsBanker         PrivateBankingRelationship[] @relation("PrivateBankingBanker")
+  privateBankingAssigned         PrivateBankingRelationship[] @relation("PrivateBankingAssignedBy")
+  staffAssignments               StaffAssignment[]              @relation("StaffAssignmentStaff")
+  staffAssignmentsCreated        StaffAssignment[]              @relation("StaffAssignmentAssigner")
+  documentsUploaded              Document[]                     @relation("DocumentUploader")
 }
 
 model BotDailyTransferUsage {
@@ -361,6 +371,7 @@ model BankAccount {
   id            String            @id @default(cuid())
   userId        String
   companyId     String?
+  ownershipType BankAccountOwnershipType @default(PERSONAL)
   accountType   BankAccountType
   accountName   String
   accountNumber String            @unique
@@ -397,9 +408,12 @@ model BankAccount {
   altaCardApplicationsPaymentSource AltaCardApplication[] @relation("AltaCardApplicationPaymentSource")
   altaPayReceiveForUsers          UserBankSettings[]    @relation("UserAltaPayReceiveAccount")
   altaPayFundingForUsers          UserBankSettings[]    @relation("UserAltaPayFundingAccount")
+  paymentsAsSource                Payment[]             @relation("PaymentSourceAccount")
+  paymentsAsDestination           Payment[]             @relation("PaymentDestinationAccount")
 
   @@index([userId])
   @@index([companyId])
+  @@index([ownershipType])
   @@index([status])
 }
 
@@ -642,9 +656,12 @@ model BankTransaction {
   reviewedById  String?
   reviewedAt    DateTime?
   reviewNote    String?
+  transferGroupId String?
+  ledgerRole    TransferLedgerRole?
 
   bankAccount                BankAccount                  @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
   reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  transferGroup              TransferGroup?               @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
   scheduledTransferExecution ScheduledTransferExecution[]
   payrollRunLineExecution    PayrollRunLineExecution[]
   loanPayment                LoanPayment?
@@ -655,6 +672,7 @@ model BankTransaction {
   @@index([bankAccountId])
   @@index([status])
   @@index([type])
+  @@index([transferGroupId])
 }
 
 model BankInterestAccrual {
@@ -1137,6 +1155,20 @@ enum UserNotificationType {
   DEAL_ROOM_TASK_DUE
   DEAL_ROOM_TASK_OVERDUE
   DEAL_ROOM_STAGE_CHANGED
+  TRANSFER_FAILED
+  ALTA_PAY_FAILED
+  SCHEDULED_TRANSFER_EXECUTED
+  SCHEDULED_TRANSFER_FAILED
+  LOAN_PAYMENT_MADE
+  LOAN_PAID_OFF
+  LOAN_AUTOPAY_FAILED
+  ALTA_CARD_PAYMENT_MADE
+  ALTA_CARD_AUTOPAY_SUCCEEDED
+  ALTA_CARD_AUTOPAY_FAILED
+  ALTA_CARD_REVIEW_DECIDED
+  ALTA_CARD_ACTIVATED
+  COMPANY_VERIFIED
+  COMPANY_ROLE_CHANGED
 }
 
 enum DealRoomParticipantRole {
@@ -1514,8 +1546,9 @@ model UserNotification {
   body         String
   linkUrl      String?
   metadata     Json?
-  readAt       DateTime?
-  createdAt    DateTime                @default(now())
+  readAt            DateTime?
+  discordNotifiedAt DateTime?
+  createdAt         DateTime                @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1606,6 +1639,36 @@ model AuditLog {
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
+}
+
+enum NotificationDeliveryQueueStatus {
+  PENDING
+  RETRYING
+  SENT
+  PERMANENT_FAILURE
+}
+
+model NotificationDeliveryQueue {
+  id               String                          @id @default(cuid())
+  userId           String
+  channel          String                          @default("DISCORD_DM")
+  payload          Json
+  dedupeKey        String?                         @unique
+  attempts         Int                             @default(0)
+  maxAttempts      Int                             @default(5)
+  nextRetryAt      DateTime?
+  lastError        String?
+  status           NotificationDeliveryQueueStatus @default(PENDING)
+  sourceAction     String?
+  sourceEntityType String?
+  sourceEntityId   String?
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRetryAt])
+  @@index([userId])
 }
 
 model InternalNote {
@@ -2498,4 +2561,274 @@ model CompanyRelationshipTimelineEvent {
   @@index([profileId])
   @@index([eventType])
   @@index([relatedEntityType, relatedEntityId])
+}
+
+// =============================================================================
+// Core financial abstractions (Schema Sprint 3)
+// Shared foundation for banking, NCC, Exchange, and Terminal.
+// =============================================================================
+
+enum BankAccountOwnershipType {
+  PERSONAL
+  COMPANY
+}
+
+enum PaymentType {
+  ALTA_PAY
+  INTRABANK_TRANSFER
+  INTERBANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum TransferGroupType {
+  ALTA_PAY
+  INTRABANK_TRANSFER
+  INTERBANK_TRANSFER
+  ADJUSTMENT_REVERSAL
+  MANUAL_REVERSAL
+  OTHER
+}
+
+enum TransferGroupStatus {
+  PENDING
+  COMPLETED
+  REVERSED
+  FAILED
+}
+
+enum TransferLedgerRole {
+  DEBIT
+  CREDIT
+  SINGLE
+  REVERSAL_DEBIT
+  REVERSAL_CREDIT
+}
+
+enum FinancialInstitutionType {
+  BANK
+  CLEARING_HOUSE
+  BROKER_DEALER
+  CUSTODIAN
+  OTHER
+}
+
+enum FinancialInstitutionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum RoutingNumberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PrivateBankingRelationshipStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum DocumentSubjectType {
+  BANK_TRANSACTION
+  LOAN_APPLICATION
+  LOAN
+  ALTA_CARD
+  DEAL_ROOM
+  COMPANY
+  USER
+  EXCHANGE_LISTING
+  OTHER
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum StaffAssignmentSubjectType {
+  USER
+  COMPANY
+  LOAN_APPLICATION
+  ALTA_CARD_APPLICATION
+  ALTA_CARD_REVIEW
+  DEAL_ROOM
+  COMPANY_VERIFICATION
+  EXCHANGE_LISTING
+  OTHER
+}
+
+enum StaffAssignmentType {
+  ALTA_PRIVATE_BANKER
+  COMMERCIAL_BANKER
+  CREDIT_DESK
+  DEAL_ROOM_OFFICER
+  COMPANY_VERIFICATION
+  EXCHANGE_REVIEWER
+  OTHER
+}
+
+enum StaffAssignmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+}
+
+model Payment {
+  id                       String        @id @default(cuid())
+  paymentType              PaymentType
+  status                   PaymentStatus @default(PENDING)
+  payerUserId              String?
+  recipientUserId          String?
+  sourceBankAccountId      String?
+  destinationBankAccountId String?
+  amount                   Decimal       @db.Decimal(18, 2)
+  currency                 String        @default("FLR")
+  referenceCode            String        @unique
+  memo                     String?
+  initiatedByUserId        String
+  metadata                 Json?
+  transferGroupId          String?       @unique
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  completedAt              DateTime?
+
+  payer              User?          @relation("PaymentPayer", fields: [payerUserId], references: [id], onDelete: SetNull)
+  recipient          User?          @relation("PaymentRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  sourceAccount      BankAccount?   @relation("PaymentSourceAccount", fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
+  destinationAccount BankAccount?   @relation("PaymentDestinationAccount", fields: [destinationBankAccountId], references: [id], onDelete: SetNull)
+  initiatedBy        User           @relation("PaymentInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+  transferGroup      TransferGroup? @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+
+  @@index([paymentType, status])
+  @@index([payerUserId])
+  @@index([recipientUserId])
+  @@index([sourceBankAccountId])
+  @@index([destinationBankAccountId])
+  @@index([initiatedByUserId])
+  @@index([createdAt])
+}
+
+model TransferGroup {
+  id            String              @id @default(cuid())
+  groupType     TransferGroupType
+  status        TransferGroupStatus @default(PENDING)
+  referenceCode String?             @unique
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  completedAt   DateTime?
+
+  payment       Payment?
+  ledgerEntries BankTransaction[]
+
+  @@index([groupType, status])
+  @@index([createdAt])
+}
+
+model FinancialInstitution {
+  id               String                     @id @default(cuid())
+  name             String
+  shortName        String
+  routingPrefix    String?                    @unique
+  institutionType  FinancialInstitutionType
+  status           FinancialInstitutionStatus @default(ACTIVE)
+  isAlta           Boolean                    @default(false)
+  isNCCParticipant Boolean                    @default(false)
+  metadata         Json?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  routingNumbers RoutingNumber[]
+
+  @@index([status])
+  @@index([isAlta])
+}
+
+model RoutingNumber {
+  id                     String              @id @default(cuid())
+  routingNumber          String              @unique
+  financialInstitutionId String
+  status                 RoutingNumberStatus @default(ACTIVE)
+  label                  String?
+  metadata               Json?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  financialInstitution FinancialInstitution @relation(fields: [financialInstitutionId], references: [id], onDelete: Cascade)
+
+  @@index([financialInstitutionId])
+  @@index([status])
+}
+
+model PrivateBankingRelationship {
+  id               String                           @id @default(cuid())
+  customerUserId   String
+  bankerUserId     String
+  status           PrivateBankingRelationshipStatus @default(ACTIVE)
+  assignedAt       DateTime                         @default(now())
+  assignedByUserId String?
+  notes            String?
+  metadata         Json?
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+
+  customer   User  @relation("PrivateBankingCustomer", fields: [customerUserId], references: [id], onDelete: Cascade)
+  banker     User  @relation("PrivateBankingBanker", fields: [bankerUserId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("PrivateBankingAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([customerUserId, status])
+  @@index([bankerUserId, status])
+}
+
+model Document {
+  id               String              @id @default(cuid())
+  subjectType      DocumentSubjectType
+  subjectId        String
+  documentKind     String
+  fileName         String
+  mimeType         String?
+  sizeBytes        Int?
+  storageKey       String
+  uploadedByUserId String?
+  status           DocumentStatus      @default(ACTIVE)
+  metadata         Json?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  uploadedBy User? @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([subjectType, subjectId])
+  @@index([status])
+  @@index([uploadedByUserId])
+}
+
+model StaffAssignment {
+  id               String                     @id @default(cuid())
+  staffUserId      String
+  subjectType      StaffAssignmentSubjectType
+  subjectId        String
+  assignmentType   StaffAssignmentType
+  status           StaffAssignmentStatus      @default(ACTIVE)
+  assignedAt       DateTime                   @default(now())
+  assignedByUserId String?
+  metadata         Json?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  staffUser  User  @relation("StaffAssignmentStaff", fields: [staffUserId], references: [id], onDelete: Cascade)
+  assignedBy User? @relation("StaffAssignmentAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([staffUserId, status])
+  @@index([subjectType, subjectId])
+  @@index([assignmentType, status])
 }

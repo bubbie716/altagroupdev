@@ -37,7 +37,20 @@ export const submitAltaPay = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitAltaPayPayment } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
-    return submitAltaPayPayment(await requireAuth(), data);
+    const user = await requireAuth();
+    try {
+      return await submitAltaPayPayment(user, data);
+    } catch (error) {
+      const { notifyAltaPayFailedBestEffort, friendlyFailureReason } = await import(
+        "@/server/banking-notification.service"
+      );
+      await notifyAltaPayFailedBestEffort(user.id, {
+        amount: data.amount,
+        reason: friendlyFailureReason(error),
+        payeeLabel: data.companyId,
+      });
+      throw error;
+    }
   });
 
 export const submitAltaPayToPersonPayment = createServerFn({ method: "POST" })
@@ -45,7 +58,20 @@ export const submitAltaPayToPersonPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitAltaPayToPerson } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
-    return submitAltaPayToPerson(await requireAuth(), data);
+    const user = await requireAuth();
+    try {
+      return await submitAltaPayToPerson(user, data);
+    } catch (error) {
+      const { notifyAltaPayFailedBestEffort, friendlyFailureReason } = await import(
+        "@/server/banking-notification.service"
+      );
+      await notifyAltaPayFailedBestEffort(user.id, {
+        amount: data.amount,
+        reason: friendlyFailureReason(error),
+        payeeLabel: data.recipientUserId,
+      });
+      throw error;
+    }
   });
 
 export const fetchUserAltaPayHistory = createServerFn({ method: "GET" })

@@ -62,26 +62,10 @@ export async function sendAltaPrivateAcceptedDiscordNotification(
 }
 
 export async function sendAltaPrivateDeclinedDiscordNotification(
-  userId: string,
+  _userId: string,
 ): Promise<DiscordDeliveryResult> {
-  if (!discordConfigured()) {
-    return { status: "skipped", reason: "not_configured" };
-  }
-
-  try {
-    const { createUserNotification } = await import("@/server/notification.service");
-    await createUserNotification({
-      userId,
-      type: "ALTA_PRIVATE_INVITATION_DECLINED",
-      title: "Alta Private invitation declined",
-      body: "You declined the Alta Private invitation. You can still use Alta Bank as usual.",
-      linkUrl: "/bank",
-    });
-    return { status: "sent" };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown Discord error";
-    return { status: "failed", error: message };
-  }
+  // Decline is recorded in audit only — no customer DM per product policy.
+  return { status: "skipped", reason: "not_configured" };
 }
 
 export function isAltaPrivateDiscordConfigured(): boolean {

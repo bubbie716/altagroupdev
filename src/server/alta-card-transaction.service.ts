@@ -608,6 +608,9 @@ export async function chargeAltaCardInTransaction(
   tx: Prisma.TransactionClient,
   params: ChargeAltaCardParams,
 ): Promise<AltaCardTransactionRow> {
+  const { lockAltaCardRow } = await import("@/server/financial-integrity.service");
+  await lockAltaCardRow(tx, params.cardId);
+
   const card = await tx.altaCard.findUnique({ where: { id: params.cardId } });
   if (!card) notFound();
 
@@ -929,6 +932,18 @@ export async function submitCardPayment(
     { ownerUserId: card.ownerUserId, companyId: card.companyId },
     "alta-card-payment-made",
   );
+
+  try {
+    const { notifyAltaCardPaymentMade } = await import("@/server/banking-notification.service");
+    await notifyAltaCardPaymentMade(card.ownerUserId, {
+      cardId: card.id,
+      amount: paymentAmount,
+      referenceCode,
+      cardLastFour: card.cardLastFour,
+    });
+  } catch (error) {
+    console.error("[alta-card] payment notification failed", error);
+  }
 
   return {
     transaction: result.cardTx,

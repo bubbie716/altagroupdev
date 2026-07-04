@@ -11,7 +11,6 @@ import { fetchTransferContacts } from "@/lib/bank/bank.functions";
 import { fetchPaySourceAccounts } from "@/lib/bank/alta-pay.functions";
 import {
   cancelUserScheduledTransferRecord,
-  createUserScheduledTransferRecord,
   fetchUserScheduledTransfers,
 } from "@/lib/bank/scheduled-transfer.functions";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
@@ -106,7 +105,6 @@ function InterbankScheduledTransfers({
   data: NonNullable<ReturnType<typeof Route.useLoaderData>>;
   defaultSourceAccountId?: string;
 }) {
-  const createTransfer = useServerFn(createUserScheduledTransferRecord);
   const cancelTransfer = useServerFn(cancelUserScheduledTransferRecord);
 
   return (
@@ -121,9 +119,11 @@ function InterbankScheduledTransfers({
       }))}
       payments={data.scheduledTransfers}
       contacts={data.contacts}
-      canManage
-      onCreate={async (input) => {
-        await createTransfer({ data: { ...input, transferScope: "interbank" } });
+      canManage={false}
+      onCreate={async () => {
+        throw new Error(
+          "Interbank wire transfers are not yet available. NCC settlement infrastructure is still being built.",
+        );
       }}
       onCancel={async (paymentId) => {
         await cancelTransfer({ data: { paymentId, transferScope: "interbank" } });

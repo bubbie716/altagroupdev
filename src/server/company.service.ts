@@ -310,6 +310,23 @@ export async function updateMemberRole(
       newRole: nextRole,
     }),
   });
+
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: input.companyId },
+      select: { name: true },
+    });
+    if (company) {
+      const { notifyCompanyRoleChanged } = await import("@/server/banking-notification.service");
+      await notifyCompanyRoleChanged(target.userId, {
+        companyId: input.companyId,
+        companyName: company.name,
+        newRole: nextRole,
+      });
+    }
+  } catch (error) {
+    console.error("[company] role changed notification failed", error);
+  }
 }
 
 export async function removeMember(actorUserId: string, input: RemoveMemberInput): Promise<void> {
@@ -632,6 +649,20 @@ export async function verifyCompany(actorUserId: string, companyId: string, revi
     description: `Verified company ${company.name}`,
     metadata: auditSourceMetadata("website", { reviewNote: reviewNote ?? null }),
   });
+
+  try {
+    const members = await prisma.companyMembership.findMany({
+      where: { companyId },
+      select: { userId: true },
+    });
+    const { notifyCompanyVerified } = await import("@/server/banking-notification.service");
+    await notifyCompanyVerified(
+      members.map((member) => member.userId),
+      { companyId, companyName: company.name },
+    );
+  } catch (error) {
+    console.error("[company] verified notification failed", error);
+  }
 }
 
 export async function rejectCompanyVerification(
@@ -639,6 +670,9 @@ export async function rejectCompanyVerification(
   companyId: string,
   reviewNote?: string,
 ): Promise<void> {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Rejection reason");
+
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
   if (company.verificationStatus === "VERIFIED") {
@@ -661,7 +695,7 @@ export async function rejectCompanyVerification(
     entityId: companyId,
     targetCompanyId: companyId,
     description: `Rejected verification for ${company.name}`,
-    metadata: auditSourceMetadata("website", { reviewNote: reviewNote ?? null }),
+    metadata: auditSourceMetadata("website", { reviewNote: trimmedNote }),
   });
 }
 
@@ -670,6 +704,9 @@ export async function revokeCompanyVerification(
   companyId: string,
   reviewNote?: string,
 ): Promise<void> {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Revocation reason");
+
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) notFound();
   if (company.verificationStatus !== "VERIFIED") {
@@ -689,6 +726,6 @@ export async function revokeCompanyVerification(
     entityId: companyId,
     targetCompanyId: companyId,
     description: `Revoked verification for ${company.name}`,
-    metadata: { reviewNote: reviewNote ?? null },
+    metadata: { reviewNote: trimmedNote },
   });
 }

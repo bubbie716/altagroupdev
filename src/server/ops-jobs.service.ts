@@ -169,6 +169,18 @@ export async function runManualOpsJob(
       summary = `Interest: ${result.interest.accrued} accrued · Autopay: ${result.autoPay.executedCount} executed · ${result.autoPay.failedCount} failed`;
       break;
     }
+    case "operational_controls": {
+      const { runOperationalControlsJob } = await import("@/server/operational-controls-job.service");
+      const result = await runOperationalControlsJob();
+      summary = `DM retry: ${result.notificationRetry.sent} sent · Queue: ${result.queueEscalation.escalations.length} escalations · Reconciliation: ${result.balanceReconciliation.mismatchCount} mismatches`;
+      break;
+    }
+    case "balance_reconciliation": {
+      const { reconcileBankAccountBalances } = await import("@/server/balance-reconciliation.service");
+      const result = await reconcileBankAccountBalances({ actorUserId });
+      summary = `${result.accountsChecked} accounts checked · ${result.mismatchCount} mismatch(es)`;
+      break;
+    }
     default:
       throw new Error(`BAD_REQUEST:Unknown or non-runnable job: ${jobKey}`);
   }

@@ -41,13 +41,9 @@ function validateScheduledTransferInput(input: CreateUserScheduledTransferInput)
   }
 
   if (input.transferScope === "interbank") {
-    if (!input.recipientInstitution?.trim()) {
-      badRequest("Recipient institution is required for interbank transfers.");
-    }
-    if (!input.routingNumber?.trim()) badRequest("Routing number is required for interbank transfers.");
-    if (!input.wireAccountNumber?.trim()) {
-      badRequest("Wire account number is required for interbank transfers.");
-    }
+    badRequest(
+      "Interbank wire transfers are not yet available. NCC settlement infrastructure is still being built.",
+    );
   }
 
   if (input.transferScope === "intrabank") {

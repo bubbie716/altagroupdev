@@ -379,6 +379,11 @@ async function recordAutopayRun(
   metadata: Record<string, unknown>,
   failureReason?: string | null,
 ): Promise<void> {
+  const card = await prisma.altaCard.findUnique({
+    where: { id: cardId },
+    select: { ownerUserId: true },
+  });
+
   await prisma.altaCard.update({
     where: { id: cardId },
     data: {
@@ -409,8 +414,37 @@ async function recordAutopayRun(
     metadata: { cardId, actorUserId, ...metadata },
   });
 
-  // TODO: notify cardholder on autopay success
-  // TODO: notify cardholder on autopay failure
+  if (!card?.ownerUserId) return;
+
+  try {
+    const {
+      notifyAltaCardAutopaySucceededBestEffort,
+      notifyAltaCardAutopayFailedBestEffort,
+    } = await import("@/server/banking-notification.service");
+    const amount = typeof metadata.amount === "number" ? metadata.amount : 0;
+    const referenceCode =
+      typeof metadata.referenceCode === "string"
+        ? metadata.referenceCode
+        : typeof metadata.paymentReferenceCode === "string"
+          ? metadata.paymentReferenceCode
+          : null;
+
+    if (status === "SUCCESS") {
+      await notifyAltaCardAutopaySucceededBestEffort(card.ownerUserId, {
+        cardId,
+        amount,
+        referenceCode,
+      });
+    } else if (status === "FAILED") {
+      await notifyAltaCardAutopayFailedBestEffort(card.ownerUserId, {
+        cardId,
+        amount,
+        reason: failureReason ?? "Autopay could not be completed.",
+      });
+    }
+  } catch (error) {
+    console.error("[alta-card-autopay] notification failed", error);
+  }
 }
 
 export type RunAutopayForCardResult = {

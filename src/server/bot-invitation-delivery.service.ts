@@ -43,6 +43,12 @@ export async function deliverAltaPrivateInvitationDm(
     const result = await sendDiscordInvitationDm(discordUserId, payload);
     if (!result.sent) {
       logDelivery("Alta Private invitation skipped — Discord not configured", { invitationId });
+      await recordInvitationDeliveryFailure({
+        invitationId,
+        invitationKind: "private",
+        userId: invitation.userId,
+        reason: result.reason ?? "not_configured",
+      });
       return { sent: false, reason: "not_configured" };
     }
 
@@ -56,8 +62,35 @@ export async function deliverAltaPrivateInvitationDm(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     logDelivery("Alta Private invitation DM failed", { invitationId, error: message });
+    await recordInvitationDeliveryFailure({
+      invitationId,
+      invitationKind: "private",
+      userId: invitation.userId,
+      reason: message,
+    });
     return { sent: false, reason: message };
   }
+}
+
+async function recordInvitationDeliveryFailure(input: {
+  invitationId: string;
+  invitationKind: "private" | "company";
+  userId: string;
+  reason: string;
+}): Promise<void> {
+  const { recordCustomerDmDeliveryFailure, isRetryableDeliveryFailure } = await import(
+    "@/server/notification-delivery-audit.service"
+  );
+  const retryable = isRetryableDeliveryFailure(input.reason);
+  await recordCustomerDmDeliveryFailure({
+    actorUserId: input.userId,
+    userId: input.userId,
+    title: "Invitation DM",
+    reason: input.reason,
+    retryable,
+    sourceAction: `invitation_${input.invitationKind}`,
+    metadata: { invitationId: input.invitationId, invitationKind: input.invitationKind },
+  });
 }
 
 export async function deliverCompanyInvitationDm(
@@ -67,8 +100,8 @@ export async function deliverCompanyInvitationDm(
     where: { id: invitationId },
     include: {
       company: { select: { name: true } },
-      invitedBy: { select: { discordUsername: true } },
-      invitedUser: { select: { discordId: true } },
+      invitedBy: { select: { id: true, discordUsername: true } },
+      invitedUser: { select: { id: true, discordId: true } },
     },
   });
 
@@ -96,6 +129,12 @@ export async function deliverCompanyInvitationDm(
     const result = await sendDiscordInvitationDm(discordUserId, payload);
     if (!result.sent) {
       logDelivery("Company invitation skipped — Discord not configured", { invitationId });
+      await recordInvitationDeliveryFailure({
+        invitationId,
+        invitationKind: "company",
+        userId: invitation.invitedUser?.id ?? invitation.invitedBy.id,
+        reason: result.reason ?? "not_configured",
+      });
       return { sent: false, reason: "not_configured" };
     }
 
@@ -109,6 +148,12 @@ export async function deliverCompanyInvitationDm(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     logDelivery("Company invitation DM failed", { invitationId, error: message });
+    await recordInvitationDeliveryFailure({
+      invitationId,
+      invitationKind: "company",
+      userId: invitation.invitedUser?.id ?? invitation.invitedBy.id,
+      reason: message,
+    });
     return { sent: false, reason: message };
   }
 }

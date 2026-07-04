@@ -9,6 +9,7 @@ import {
   denyBankDeposit,
   denyBankWithdrawal,
 } from "@/lib/bank/bank.functions";
+import { reverseAdjustmentOps } from "@/lib/internal/ops-platform.functions";
 
 type TxLike = {
   id: string;
@@ -19,12 +20,39 @@ type TxLike = {
   accountNumber: string;
   holder: string;
   description: string;
+  canReverseAdjustment?: boolean;
 };
 
 export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
   const router = useRouter();
   const isPending = tx.status.toUpperCase() === "PENDING";
   const type = tx.type.toUpperCase();
+
+  if (type === "ADJUSTMENT" && tx.status.toUpperCase() === "APPROVED" && tx.canReverseAdjustment) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <OpsAction
+          label="Reverse adjustment"
+          variant="danger"
+          title="Reverse adjustment"
+          description="Post an offsetting adjustment. The original ledger entry is preserved."
+          impact={`${florin(tx.amount)} · ${tx.referenceCode}`}
+          confirmLabel="Post reversal"
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await reverseAdjustmentOps({
+              data: {
+                transactionId: tx.id,
+                reason,
+                silentNotification: options?.silentNotification,
+              },
+            });
+            void router.invalidate();
+          }}
+        />
+      </div>
+    );
+  }
 
   if (!isPending) return null;
 

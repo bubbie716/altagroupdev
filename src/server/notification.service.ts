@@ -1,4 +1,5 @@
 import type { UserNotificationType as DbNotificationType } from "@prisma/client";
+import type { NotificationDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
 
 export type CreateNotificationInput = {
@@ -7,47 +8,41 @@ export type CreateNotificationInput = {
   title: string;
   body: string;
   linkUrl?: string;
+  linkLabel?: string;
   metadata?: Record<string, unknown>;
   embedImageUrl?: string | null;
+  actorUserId?: string;
+  /** When true, only creates the in-app row (caller delivers DM separately). */
+  skipDiscord?: boolean;
+  /** Optional custom Discord payload for specialized embeds. */
+  customDmPayload?: NotificationDmPayload;
 };
 
-async function dispatchDiscordForNotification(input: CreateNotificationInput): Promise<void> {
-  try {
-    const { isDiscordNotificationEnabled } = await import("@/server/bank-settings.service");
-    const enabled = await isDiscordNotificationEnabled(input.userId, input.type);
-    if (!enabled) {
-      if (process.env.NODE_ENV !== "test") {
-        console.info("[notifications] Discord DM skipped by user preference", {
-          userId: input.userId,
-          type: input.type,
-        });
-      }
-      return;
-    }
-
-    const { dispatchNotificationDm } = await import("@/server/notification-discord-dispatch.service");
-    const result = await dispatchNotificationDm({
-      userId: input.userId,
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      embedImageUrl: input.embedImageUrl,
-    });
-    if (!result.sent && process.env.NODE_ENV !== "test") {
-      console.warn("[notifications] Discord DM not sent", {
-        userId: input.userId,
-        type: input.type,
-        reason: result.reason,
-      });
-    }
-  } catch (error) {
-    console.error("[notifications] Discord dispatch failed", error);
-  }
+async function dispatchDiscordForNotification(
+  notificationId: string,
+  input: CreateNotificationInput,
+): Promise<void> {
+  const { deliverCustomerNotificationDm } = await import(
+    "@/server/customer-notification-delivery.service"
+  );
+  await deliverCustomerNotificationDm({
+    notificationId,
+    userId: input.userId,
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    linkUrl: input.linkUrl,
+    linkLabel: input.linkLabel,
+    embedImageUrl: input.embedImageUrl,
+    actorUserId: input.actorUserId,
+    metadata: input.metadata,
+    customPayload: input.customDmPayload,
+  });
 }
 
-/** In-app notification with optional Discord DM delivery. */
-export async function createUserNotification(input: CreateNotificationInput): Promise<void> {
-  await prisma.userNotification.create({
+/** In-app notification with optional Discord DM delivery. Returns notification id. */
+export async function createUserNotification(input: CreateNotificationInput): Promise<string> {
+  const notification = await prisma.userNotification.create({
     data: {
       userId: input.userId,
       type: input.type,
@@ -59,7 +54,11 @@ export async function createUserNotification(input: CreateNotificationInput): Pr
     },
   });
 
-  await dispatchDiscordForNotification(input);
+  if (!input.skipDiscord) {
+    await dispatchDiscordForNotification(notification.id, input);
+  }
+
+  return notification.id;
 }
 
 export async function createUserNotifications(
@@ -68,21 +67,18 @@ export async function createUserNotifications(
 ): Promise<void> {
   const unique = [...new Set(userIds.filter(Boolean))];
   if (unique.length === 0) return;
-  await prisma.userNotification.createMany({
-    data: unique.map((userId) => ({
-      userId,
-      type: input.type,
-      channel: "IN_APP" as const,
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl ?? null,
-      metadata: input.metadata ?? undefined,
-    })),
-  });
 
   for (const userId of unique) {
-    await dispatchDiscordForNotification({ userId, ...input });
+    await createUserNotification({ userId, ...input });
   }
+}
+
+/** Delivers a DM for an existing in-app notification (e.g. deal room opened after channel setup). */
+export async function deliverNotificationDiscord(
+  notificationId: string,
+  input: Omit<CreateNotificationInput, "skipDiscord">,
+): Promise<void> {
+  await dispatchDiscordForNotification(notificationId, input);
 }
 
 export type NotificationRow = {

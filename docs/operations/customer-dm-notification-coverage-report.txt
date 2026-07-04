@@ -1,0 +1,453 @@
+Alta Customer DM Notification Coverage Report
+==============================================
+Scope: Alta web app (altaweb) + Alta Companion Discord Bot (altabot)
+Date: July 3, 2026
+
+Architecture
+------------
+Customer DMs are sent via Discord REST API (discord-dm.service.ts). The bot
+exposes internal HTTP fallback endpoints; hub banking UI uses interaction replies,
+not DMs.
+
+Delivery paths:
+  1. Standard — createUserNotification -> in-app row + optional DM (respects prefs)
+  2. Operator — deliverOperatorCustomerNotification -> DM only, supports silent
+     mode, bypasses user prefs
+  3. Direct — invitations + Secure Deal Room opened (bypass dispatch/prefs in some
+     cases)
+
+
+================================================================================
+1. DMS CURRENTLY IMPLEMENTED
+================================================================================
+
+Banking (standard path — prefs apply)
+-------------------------------------
+Event                    Type                      DM?   In-app?  Copy source
+-----------------------  ------------------------  ----  -------  ---------------------------
+Deposit submitted        DEPOSIT_SUBMITTED         Yes   Yes      banking-notification.service.ts
+Deposit approved         DEPOSIT_APPROVED          Yes   Yes      same
+Withdrawal submitted     WITHDRAWAL_SUBMITTED      Yes   Yes      same
+Withdrawal approved      WITHDRAWAL_APPROVED       Yes   Yes      same
+Deposit denied           payment_blocked (operator) Yes  No       customer-operator-notification-copy.ts
+Withdrawal denied        payment_blocked (operator) Yes  No       same
+Intrabank transfer       TRANSFER_COMPLETED        Yes   Yes      banking-notification.service.ts
+  (sender)
+Intrabank transfer       TRANSFER_RECEIVED         Yes   Yes      same (+ company treasury roles)
+  (recipient)
+Alta Pay sent            ALTA_PAY_SENT             Yes   Yes      same
+Alta Pay received        ALTA_PAY_RECEIVED         Yes   Yes      same (+ company treasury roles)
+
+Bot: Deposit/withdrawal/transfer/Alta Pay success paths use the same web services
+with source: discord_bot. Hub responses are ephemeral embeds, not DMs.
+
+
+Admin account actions (operator path — silent supported, no prefs)
+------------------------------------------------------------------
+All 19 operator kinds send [Alta Bank]-prefixed DMs via
+customer-operator-notification.service.ts:
+
+  manual_credit, manual_debit, fee_posted, reversal_posted, correction_posted
+  account_frozen, account_unfrozen, account_closed, account_reopened
+  account_restricted, restriction_removed
+  account_hold_placed, account_hold_released
+  withdrawal_hold_placed, withdrawal_hold_released
+  transaction_under_review, transaction_released
+  payment_blocked, payment_reversed
+
+Company accounts notify OWNER / EXECUTIVE / FINANCE_MANAGER members.
+
+
+Programs
+--------
+Event                         DM mechanism
+----------------------------  ------------------------------------------
+Alta Private invitation       Invitation DM with Accept/Decline buttons
+                              (invitation-dm.ts)
+Alta Private accepted         Welcome DM: ALTA_PRIVATE_MEMBERSHIP_ACTIVATED
+Alta Private declined         Ack DM: ALTA_PRIVATE_INVITATION_DECLINED
+Company invitation            Invitation DM with Accept/Decline buttons
+
+
+Credit — Lending
+----------------
+Event                              DM?
+---------------------------------  ------------------------------------------
+Loan application approved          Yes — LOAN_APPLICATION_APPROVED
+Loan application denied            Yes — LOAN_APPLICATION_DENIED
+Loan funded                        Yes — DEAL_ROOM_FUNDING_COMPLETE via deal room
+                                   stakeholders
+Agreement ready / borrower signed  Yes — deal room stakeholder notifications
+Document uploaded/requested        Yes — deal room stakeholder notifications
+Secure Deal Room opened            Yes — direct DM with Discord channel +
+  (loan thread)                      website buttons
+Staff message in Secure Deal Room  In-app only — no DM
+Loan payment made/failed           No
+
+
+Credit — Alta Card
+------------------
+Event                              DM?
+---------------------------------  ------------------------------------------
+Application approved/denied        Yes — ALTA_CARD_APPLICATION_*
+Secure Deal Room opened            Yes — direct DM with channel buttons
+  (app/review thread)
+Staff message in Secure Deal Room  In-app only — no DM
+Card opened, payment made/failed,  No (audit only)
+  frozen, review outcome
+Autopay success/failure            No (TODOs in code)
+
+
+Deal Rooms (legacy lending ops)
+-------------------------------
+Event                    DM?
+-----------------------  ------------------------------------------
+Deal room created        Yes — DEAL_ROOM_CREATED
+Officer assigned         Yes — DEAL_ROOM_OFFICER_ASSIGNED
+Docs, agreements,        Yes — stakeholder notifications
+  funding
+Task assigned            Yes — DEAL_ROOM_TASK_ASSIGNED
+Staff message            In-app only for secure threads
+
+
+Bot-specific
+------------
+Event                         DM?
+----------------------------  ------------------------------------------
+Invitation DMs                Web triggers; bot HTTP fallback + startup sync
+Invitation accept/decline     Updates existing DM embed (no new DM)
+Alta Private accept           Extra welcome DM after button click
+Banking success               Same as web (via shared services)
+Banking failure               No DM — error embed in hub only
+Deal room guild messages      Guild channel, not customer DM
+
+
+================================================================================
+2. MISSING DMS
+================================================================================
+
+High priority (customer should know)
+------------------------------------
+Missing event                    Today              Recommendation
+-------------------------------  -----------------  -----------------------------
+Intrabank transfer failed        Nothing            DM sender when transfer fails
+Alta Pay failed                  Nothing            DM payer on failure
+Scheduled transfer executed      Audit only         DM account owner on success
+Scheduled transfer failed        Audit only         DM on failure with reason
+Scheduled transfer               Audit only         Optional confirmation DM
+  created/cancelled
+Interbank transfer submitted     Audit only         DM confirming wire request
+Interbank completed/failed       No execution path  DM when wire workflow exists
+Loan payment made                Audit only         DM confirming payment
+Loan payment failed              Nothing            DM with reason
+Loan paid off                    Audit only         DM congratulation + closure
+Loan payment due reminder        Nothing            DM before due date
+Alta Card payment made           Audit only         DM receipt
+Alta Card payment failed         Nothing            DM with reason
+Alta Card payment due reminder   TODO in autopay   DM before statement due
+Alta Card autopay success/fail   TODO in code       DM on autopay run outcome
+Alta Card review approved/denied Audit only         DM with outcome + link
+Alta Card frozen/unfrozen        Operator if staff  Verify operator path wired
+Secure Deal Room staff message   In-app only        DM when staff sends message
+Deal room channel closed/locked  Audit only         DM when channel closes
+Company verified/rejected        Audit only         DM to company owners
+Company role changed/removed     Audit only         DM affected member
+Company invitation accepted      Embed update only  Optional confirmation to inviter
+Invitation DM delivery failed    Console only       Retry + staff alert
+Failed sensitive bot action      Hub embed only     Consider DM for repeated failures
+Suspicious account activity      Nothing            DM + link to review (future)
+
+
+Moderate priority
+-----------------
+  - Loan application submitted — optional "received" DM
+  - Alta Card application submitted — same
+  - Private banker assigned/changed — feature not in DB yet
+  - Membership deactivated — should notify when tag revoked
+  - Operator manual transfer — consider DM to affected accounts
+
+
+Correctly missing (do not add)
+------------------------------
+Staff notes, internal risk labels, cron success, page views, UI actions, every
+audit row, compliance chatter, relationship score changes, deal room sync
+infrastructure events.
+
+
+================================================================================
+3. DMS THAT SHOULD BE REMOVED OR RETHINK
+================================================================================
+
+Current behavior                   Issue                         Recommendation
+---------------------------------  ----------------------------  ---------------------------
+ALTA_PRIVATE_INVITATION_DECLINED   User just clicked Decline;    Remove DM, keep in-app only
+  ack DM                           redundant
+DEAL_ROOM_TASK_ASSIGNED            Granular ops noise            Keep in-app; remove DM unless
+                                                                 task requires action
+notifyDepositDenied /              Never called; prefs include   Remove dead helpers; align
+  notifyWithdrawalDenied           DEPOSIT_DENIED types          prefs with denial path
+Operator DMs bypass user toggles   Cannot opt out of freeze/fee  Keep for compliance; document
+                                   DMs                           as mandatory
+Deal room doc upload blasts        Could overwhelm               Batch or digest for low-priority
+                                                                 doc events
+
+Nothing currently sends DMs for pure staff/internal events — good.
+
+
+================================================================================
+4. RECOMMENDED CUSTOMER-SAFE MESSAGE COPY
+================================================================================
+
+Format: Title (<=256 chars) + Body (<=4096, short paragraphs) + optional Reason:
+block for operator actions.
+
+Banking
+-------
+Event                  Title                          Body
+---------------------  -----------------------------  ------------------------------
+Deposit submitted      Deposit submitted              Your deposit of {amount} to
+                                                      {account} ({ref}) is pending Alta
+                                                      review.
+Deposit approved       Deposit approved               Your deposit of {amount} ({ref})
+                                                      has been credited.
+Deposit denied         Payment not approved           A deposit of {amount} on account
+                                                      ending {last4} was not approved.
+Withdrawal submitted   Withdrawal submitted           Your withdrawal of {amount} from
+                                                      {account} ({ref}) is pending
+                                                      processing.
+Withdrawal approved    Withdrawal approved            Your withdrawal of {amount}
+                                                      ({ref}) has been approved.
+Transfer complete      Transfer complete              Moved {amount} from {from} to {to}.
+                                                      Ref `{code}`.
+Transfer received      Transfer received              Received {amount} from {sender}
+                                                      into {account}. Ref `{code}`.
+Transfer failed        Transfer could not be          We couldn't complete your transfer
+                       completed                      of {amount}. {reason}
+Alta Pay sent          Alta Pay sent                  Paid {amount} to {payee} from
+                                                      {source}. Ref `{code}`.
+Alta Pay received      Alta Pay received              Received {amount} from {payer}
+                                                      into {account}. Ref `{code}`.
+Alta Pay failed        Alta Pay could not be sent     We couldn't send {amount} to
+                                                      {payee}. {reason}
+Scheduled transfer     Scheduled transfer sent        Your scheduled transfer of
+  executed                                              {amount} to {recipient} was sent.
+                                                      Ref `{code}`.
+Scheduled transfer     Scheduled transfer failed      Your scheduled transfer of
+  failed                                                {amount} to {recipient} did not run.
+                                                      {reason}
+
+
+Credit
+------
+Event              Title                      Body
+-----------------  -------------------------  ------------------------------------------
+Loan approved      Loan application approved  Your application was approved for
+                                              {amount}. Review terms in your Secure
+                                              Deal Room.
+Loan denied        Loan application declined  Your lending application was declined.
+Loan funded        Loan funded                Your loan has been funded. {amount} has
+                                              been disbursed to your account.
+Loan payment made  Loan payment received      Your payment of {amount} was received.
+                                              Remaining balance: {balance}.
+Loan paid off      Loan paid in full          Your loan is paid in full. Thank you for
+                                              banking with Alta.
+Card approved      Alta Card approved         Your Alta Card was approved ({tier},
+                                              limit {amount}). Accept terms to activate.
+Card denied        Alta Card declined         Your Alta Card application was declined.
+Card payment made  Card payment received      Your payment of {amount} was applied to
+                                              your Alta Card.
+Card frozen        Alta Card frozen           Your Alta Card ending {last4} has been
+                                              temporarily frozen.
+Review approved    Account review complete    Your Alta Card review was approved.
+                                              Updated limit: {amount}.
+
+
+Programs & companies
+--------------------
+Event                  Title                      Body
+---------------------  -------------------------  ------------------------------------------
+Alta Private           Alta Private invitation    You've been invited to Alta Private.
+  invitation                                        Accept or decline below.
+Alta Private activated Welcome to Alta Private    Your membership is active. Explore
+                                                    private banking on Alta Bank.
+Company invitation     Company invitation         You've been invited to join {company}
+                                                    as {role}. Accept or decline below.
+Company verified       Company verified           {company} has been verified on Alta Bank.
+Role changed           Company access updated     Your role at {company} is now {role}.
+
+
+Deal rooms
+----------
+Event              Title                          Body
+-----------------  -----------------------------  ------------------------------
+Deal room opened   Your Secure Deal Room is open  {welcomeBody} Use Discord for
+                                                    real-time messaging with Alta staff.
+New staff message  New message from Alta          {preview} Open your Secure Deal Room
+                                                    to reply.
+Channel closing    Secure Deal Room closing       Your Discord channel for this
+                                                    application will close on {date}.
+                                                    Messages remain on Alta Bank.
+
+Operator actions: Keep existing copy in customer-operator-notification-copy.ts —
+already customer-safe with sanitized Reason: block.
+
+
+================================================================================
+5. DMS THAT SHOULD INCLUDE BUTTONS/LINKS
+================================================================================
+
+Event                              Buttons/links
+---------------------------------  ------------------------------------------
+Deposit/withdrawal                 View on Alta Bank -> /bank or activity
+  submitted/approved/denied
+Transfers / Alta Pay               View on Alta Bank -> relevant page
+Loan/card application outcomes     View application -> application detail URL
+Alta Private invitation            Accept / Decline (interaction buttons)
+Company invitation                 Accept / Decline (interaction buttons)
+Secure Deal Room opened            Open Discord Channel + Open on Alta Bank
+                                   (already implemented)
+Agreement ready                    Review agreement -> deal room URL
+Staff message                      Open Secure Deal Room (+ optional Open Discord)
+Operator account actions           View account or View activity (already implemented)
+Payment failed                     Try again -> relevant action page
+
+All links should use resolvePublicLinkUrl() for absolute URLs in Discord embeds.
+
+
+================================================================================
+6. DMS THAT SHOULD SUPPORT SILENT MODE
+================================================================================
+
+Silent mode (silentNotification: true) is implemented for operator actions only
+via deliverOperatorCustomerNotification.
+
+Should support silent (already do)
+----------------------------------
+All 19 operator kinds: manual credit/debit, fees, reversals, corrections,
+freeze/unfreeze, close/reopen, holds, restrictions, transaction review,
+payment blocked/reversed.
+
+Should support silent (not yet)
+-------------------------------
+  - Deal room stakeholder notifications (internal doc uploads)
+  - Loan/card application denied (sensitive — staff may want in-app only)
+  - Scheduled transfer failure (ops may fix before customer knows)
+
+Should NOT support silent
+-------------------------
+  - Customer-initiated submissions (deposit, withdrawal, transfer)
+  - Invitations (must reach invitee)
+  - Alta Pay sent/received (both parties need record)
+  - Security / freeze — silent off by default; require explicit staff choice with
+    audit trail
+
+
+Silent mode verification (current behavior)
+-------------------------------------------
+Requirement                              Status
+---------------------------------------  ------------------------------------------
+Default is notify customer               Yes — shouldNotifyCustomer() true unless
+                                           silentNotification === true
+Silent skips customer DM                 Yes
+Silent still creates audit log           Yes — audit written with metadata regardless
+Silent still sends staff audit Discord   Yes — "Silent — customer not notified"
+Silent recorded in audit metadata        Yes — silentNotification,
+                                           customerNotificationSent,
+                                           silentNotificationChosenByUserId
+
+Gap: Silent toggle only on operator UI panels — not on loan/card approve/deny
+(which use standard notifications without silent option).
+
+
+================================================================================
+7. FAILURE HANDLING GAPS
+================================================================================
+
+Gap                                    Impact                    Detail
+-------------------------------------  ------------------------  ---------------------------
+No notification delivery tracking      Failed DMs lost           Unlike invitations
+                                                                 (discordNotifiedAt),
+                                                                 notification DMs are
+                                                                 fire-and-forget
+No retry queue                         Transient failures        Direct + bot fallback try
+                                       permanent                 once
+Deal room opened DM bypasses dispatch  No bot fallback           sendDiscordUserDm direct only
+Deal room opened: channel before DM    Orphan channel            DM failure leaves channel
+                                                                 without customer notify
+syncUndeliveredInvitationDmsForUser    No catch-up after         Only bot restart sync
+  unused                               Discord link
+Invitation delivery failures           Console/warn only         No audit, no staff alert
+Notification dispatch failures         console.warn only         No audit, no staff alert
+Operator DM delivery failure           customerNotificationSent  Good for audit, no retry
+                                       : false in metadata
+User pref skipped                      Logged as info            Customer disabled DMs
+No Discord ID                          Skip silently             Deal room records audit
+Bot hub failures                       Ephemeral error embed     No DM, no audit
+Prefs mismatch                         DEPOSIT_DENIED in UI      Toggle has no effect on
+                                       but denials use           actual denial DMs
+                                       payment_blocked
+Deal room / Alta Private not in        Always on                 May be intentional
+  settings
+
+
+================================================================================
+8. PRIORITY ORDER FOR FIXES
+================================================================================
+
+P0 — Customer money & trust
+  1. DM on transfer/pay/scheduled transfer failure
+  2. DM on loan payment made + paid off
+  3. DM on Alta Card payment made
+  4. Secure Deal Room staff message -> DM
+  5. Fix deal room opened delivery — use dispatchNotificationDm for bot fallback
+  6. Invitation DM retry when user links Discord — wire syncUndeliveredInvitationDmsForUser
+
+P1 — Coverage & consistency
+  7. Scheduled transfer executed/failed DMs
+  8. Alta Card review outcome + card activated DMs
+  9. Autopay success/failure DMs (TODOs in code)
+ 10. Payment due reminders (loan + card)
+ 11. Company verified/rejected + role changed DMs
+ 12. Align notification prefs with denial path; remove dead notifyDepositDenied helpers
+ 13. Add deal room + Alta Private types to settings (or document as mandatory)
+ 14. Extend silent mode to application deny and selected deal room events
+
+P2 — Reliability & ops
+ 15. Notification delivery tracking (discordNotifiedAt on UserNotification)
+ 16. Audit OPS_NOTIFICATION_DELIVERY_FAILED when DM fails after in-app created
+ 17. Staff alert on repeated DM failures for pending deposits/invitations
+ 18. Remove redundant Alta Private decline ack DM
+ 19. Reduce deal room noise — DM only for actionable events
+
+P3 — Future
+ 20. Security/suspicious activity DMs
+ 21. Private banker assigned DM when feature ships
+ 22. Interbank wire lifecycle DMs when execution exists
+ 23. Notification digest option for high-volume deal room activity
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+Alta has a solid foundation for customer DMs on core banking submissions,
+approvals, transfers, Alta Pay, operator account actions (with silent mode),
+invitations, and deal room milestones.
+
+Biggest gaps:
+  - Failure notifications (transfer, pay, scheduled transfer)
+  - Loan/card payment lifecycle
+  - Secure Deal Room staff messages (in-app only today)
+  - Scheduled transfer outcomes
+  - Unreliable delivery tracking/retry
+
+Key source files:
+  - altaweb/src/server/notification.service.ts
+  - altaweb/src/server/banking-notification.service.ts
+  - altaweb/src/server/customer-operator-notification.service.ts
+  - altaweb/src/server/bot-notification-delivery.service.ts
+  - altaweb/src/server/notification-discord-dispatch.service.ts
+  - altaweb/src/lib/discord/notification-dm.ts
+  - altaweb/src/lib/discord/invitation-dm.ts
+  - altaweb/src/server/secure-deal-room-discord.service.ts
+  - altaweb/src/lib/internal/operator-notification-options.ts

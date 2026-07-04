@@ -1,4 +1,4 @@
-import { INVITE_COLORS } from "@/lib/discord/invitation-dm";
+import { INVITE_COLORS, notificationColorForTitle } from "@/lib/discord/invitation-dm";
 
 export type NotificationDmPayload = {
   embed: Record<string, unknown>;
@@ -33,7 +33,7 @@ export function buildNotificationDmPayload(input: {
   const embed: Record<string, unknown> = {
     title: input.title.slice(0, 256),
     description,
-    color: INVITE_COLORS.alta,
+    color: notificationColorForTitle(input.title),
     footer: { text: "Alta Bank · Newport" },
   };
   if (absoluteLink) {
@@ -83,7 +83,7 @@ export function buildDealRoomOpenedDmPayload(input: {
     {
       type: 2,
       style: 5,
-      label: "Open Discord Channel",
+      label: "Open channel",
       url: input.discordChannelUrl,
     },
   ];
@@ -92,7 +92,7 @@ export function buildDealRoomOpenedDmPayload(input: {
     buttons.push({
       type: 2,
       style: 5,
-      label: (input.websiteLinkLabel ?? "Open on Alta Bank").slice(0, 80),
+      label: "Open Alta Bank",
       url: websiteUrl,
     });
   }

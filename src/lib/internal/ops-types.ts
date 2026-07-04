@@ -114,6 +114,7 @@ export type TransactionDetail = TransactionExplorerRow & {
   relatedLoanId: string | null;
   relatedAltaPayRef: string | null;
   relatedStatementId: string | null;
+  canReverseAdjustment: boolean;
 };
 
 export type AltaPayAdminRow = {

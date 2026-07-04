@@ -10,6 +10,13 @@ import {
   shouldNotifyCustomer,
   type OperatorNotificationOptions,
 } from "@/lib/internal/operator-notification-options";
+import {
+  assertSilentNotificationAllowed,
+  isSilentNotificationForbidden,
+  silentNotificationForbiddenMessage,
+} from "@/lib/internal/silent-notification-restrictions";
+import type { SilentForbiddenAction } from "@/lib/internal/silent-notification-restrictions";
+import type { OperatorCustomerNotificationKind } from "@/lib/bank/customer-operator-notification-copy";
 import { prisma } from "@/server/db";
 
 const COMPANY_INCOMING_NOTIFY_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
@@ -29,6 +36,7 @@ export type SendCustomerOperatorNotificationInput = {
   /** Customer-safe explanation only — never internal staff notes. */
   customerFacingReason?: string | null;
   source?: string;
+  actorUserId?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -63,6 +71,7 @@ export async function notifyBankAccountCustomersBestEffort(input: {
   source?: string;
   metadata?: Record<string, unknown>;
   silentNotification?: boolean;
+  actorUserId?: string;
 }): Promise<boolean> {
   if (!shouldNotifyCustomer(input)) return false;
 
@@ -73,7 +82,7 @@ export async function notifyBankAccountCustomersBestEffort(input: {
     ? buildOperatorTransactionLink(input.transactionId)
     : buildOperatorAccountLink(input.account.id);
 
-  await notifyCustomerOperatorUsersBestEffort({
+  const { sent } = await notifyCustomerOperatorUsersBestEffort({
     userIds,
     kind: input.kind,
     accountNumber: input.account.accountNumber,
@@ -83,9 +92,10 @@ export async function notifyBankAccountCustomersBestEffort(input: {
     customerFacingReason: input.customerFacingReason,
     linkUrl,
     source: input.source,
+    actorUserId: input.actorUserId,
     metadata: input.metadata,
   });
-  return true;
+  return sent > 0;
 }
 
 export async function notifyCustomerOperatorUsersBestEffort(input: {
@@ -98,10 +108,11 @@ export async function notifyCustomerOperatorUsersBestEffort(input: {
   customerFacingReason?: string | null;
   linkUrl?: string;
   source?: string;
+  actorUserId?: string;
   metadata?: Record<string, unknown>;
-}): Promise<void> {
+}): Promise<{ attempted: number; sent: number }> {
   const uniqueUserIds = [...new Set(input.userIds.filter(Boolean))];
-  if (uniqueUserIds.length === 0) return;
+  if (uniqueUserIds.length === 0) return { attempted: 0, sent: 0 };
 
   const copy = buildOperatorCustomerNotificationCopy({
     kind: input.kind,
@@ -123,14 +134,16 @@ export async function notifyCustomerOperatorUsersBestEffort(input: {
       ? "View activity"
       : "View account";
 
+  let sent = 0;
   for (const userId of uniqueUserIds) {
-    await sendCustomerOperatorDiscordNotification({
+    const result = await sendCustomerOperatorDiscordNotification({
       userId,
       title: copy.title,
       body: copy.body,
       linkUrl,
       linkLabel,
       source: input.source,
+      actorUserId: input.actorUserId,
       metadata: {
         kind: input.kind,
         accountId: input.accountId,
@@ -138,7 +151,9 @@ export async function notifyCustomerOperatorUsersBestEffort(input: {
         ...input.metadata,
       },
     });
+    if (result.sent) sent += 1;
   }
+  return { attempted: uniqueUserIds.length, sent };
 }
 
 /** Sends a customer-safe operator action DM. Never throws — failures are logged only. */
@@ -149,6 +164,7 @@ export async function sendCustomerOperatorDiscordNotification(input: {
   linkUrl: string;
   linkLabel?: string;
   source?: string;
+  actorUserId?: string;
   metadata?: Record<string, unknown>;
 }): Promise<{ sent: boolean; reason?: string }> {
   try {
@@ -157,7 +173,7 @@ export async function sendCustomerOperatorDiscordNotification(input: {
     );
     const result = await dispatchNotificationDm({
       userId: input.userId,
-      title: `[Alta Bank] ${input.title}`,
+      title: input.title,
       body: input.body,
       linkUrl: input.linkUrl,
       linkLabel: input.linkLabel ?? "View on Alta Bank",
@@ -171,6 +187,48 @@ export async function sendCustomerOperatorDiscordNotification(input: {
         source: input.source,
         metadata: input.metadata,
       });
+
+      const actorUserId = input.actorUserId ?? input.userId;
+      const { recordCustomerDmDeliveryFailure } = await import(
+        "@/server/notification-delivery-audit.service"
+      );
+      const { isRetryableDeliveryFailure } = await import(
+        "@/server/notification-delivery-audit.service"
+      );
+      const retryable = isRetryableDeliveryFailure(result.reason);
+      await recordCustomerDmDeliveryFailure({
+        actorUserId,
+        userId: input.userId,
+        title: input.title,
+        reason: result.reason ?? "not_sent",
+        retryable,
+        source: input.source,
+        sourceAction: typeof input.metadata?.kind === "string" ? input.metadata.kind : undefined,
+        metadata: input.metadata,
+      });
+
+      if (retryable) {
+        const kind = typeof input.metadata?.kind === "string" ? input.metadata.kind : "generic";
+        const entityId =
+          typeof input.metadata?.transactionId === "string"
+            ? input.metadata.transactionId
+            : input.linkUrl;
+        const { enqueueCustomerDmRetry } = await import("@/server/notification-retry-queue.service");
+        await enqueueCustomerDmRetry({
+          userId: input.userId,
+          payload: {
+            title: input.title,
+            body: input.body,
+            linkUrl: input.linkUrl,
+            linkLabel: input.linkLabel,
+          },
+          dedupeKey: `customer-dm:${input.userId}:${kind}:${entityId}`,
+          sourceAction: kind,
+          sourceEntityId: entityId,
+          reason: result.reason,
+        });
+      }
+
       return { sent: false, reason: result.reason };
     }
 
@@ -192,8 +250,33 @@ export async function sendCustomerOperatorDiscordNotification(input: {
 export async function deliverOperatorCustomerNotification(input: {
   actorUserId: string;
   notificationOptions?: OperatorNotificationOptions;
+  silentRestriction?: {
+    kind?: OperatorCustomerNotificationKind;
+    action?: SilentForbiddenAction;
+  };
   deliver: () => Promise<boolean>;
 }): Promise<{ customerNotificationSent: boolean; auditMetadata: Record<string, boolean | string | null> }> {
+  if (
+    isSilentNotificationForbidden(input.silentRestriction ?? {}, input.notificationOptions)
+  ) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId: input.actorUserId,
+      actionAttempted: "SILENT_NOTIFICATION",
+      auditAction: "OPS_SILENT_NOTIFICATION_REJECTED",
+      failureReason: silentNotificationForbiddenMessage(input.silentRestriction ?? {}),
+      entityType: "USER",
+      source: "INTERNAL",
+    });
+    throw new Error(
+      `BAD_REQUEST:${silentNotificationForbiddenMessage(input.silentRestriction ?? {})}`,
+    );
+  }
+
+  if (input.silentRestriction) {
+    assertSilentNotificationAllowed(input.silentRestriction, input.notificationOptions);
+  }
+
   let customerNotificationSent = false;
   if (shouldNotifyCustomer(input.notificationOptions)) {
     try {

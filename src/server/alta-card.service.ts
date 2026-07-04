@@ -566,6 +566,13 @@ export async function activateAltaCard(actorUserId: string, cardId: string): Pro
     card.companyId,
   );
 
+  try {
+    const { notifyAltaCardActivated } = await import("@/server/banking-notification.service");
+    await notifyAltaCardActivated(card.ownerUserId, cardId, card.cardLastFour);
+  } catch (error) {
+    console.error("[alta-card] activation notification failed", error);
+  }
+
   return mapAltaCardRow(updated);
 }
 

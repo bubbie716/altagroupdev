@@ -62,6 +62,16 @@ export async function sendStaffAuditMessageAsync(
       action: input.action,
       reason: result.reason,
     });
+    const { recordStaffAuditMessageFailure } = await import(
+      "@/server/notification-delivery-audit.service"
+    );
+    void recordStaffAuditMessageFailure({
+      actorUserId: input.actorUserId,
+      product: input.product,
+      action: input.action,
+      reason: result.reason ?? "not_sent",
+      metadata: { dedupeKey: input.dedupeKey ?? null },
+    });
     return { sent: false, reason: result.reason };
   }
 

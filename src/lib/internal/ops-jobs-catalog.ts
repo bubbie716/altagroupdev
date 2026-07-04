@@ -12,6 +12,25 @@ export type OpsJobCatalogEntry = {
 
 export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
   {
+    jobKey: "operational_controls",
+    label: "Operational controls",
+    description:
+      "Notification DM retries, queue aging escalation, and bank balance reconciliation.",
+    cronEndpoint: "/api/cron/operational-controls",
+    nextSchedule: "Daily via cron",
+    manualRunKey: "operational_controls",
+    manualImpact:
+      "Retries failed customer DMs, escalates aged queue items, and checks ledger balance drift.",
+  },
+  {
+    jobKey: "balance_reconciliation",
+    label: "Balance reconciliation",
+    description: "Compares stored bank account balances to transaction ledger totals.",
+    nextSchedule: "Included in operational controls cron",
+    manualRunKey: "balance_reconciliation",
+    manualImpact: "Reports balance drift mismatches without auto-correcting.",
+  },
+  {
     jobKey: "scheduled_transfers",
     label: "Scheduled transfers",
     description: "Executes due intrabank scheduled Alta-to-Alta transfers.",

@@ -1,0 +1,348 @@
+Alta Companion Discord Bot — Product Functionality Audit
+=========================================================
+Lens: V1 launch readiness for a lightweight banking app inside Discord
+Not in scope: Code quality, embed redesign
+Sources: altabot/ hub, commands, deal-room bridge, plus altaweb backend contracts
+Date: July 3, 2026
+
+
+Overall Launch Readiness Score: 7.2 / 10
+-----------------------------------------
+Ship as a companion with a short pre-launch fix list — not as primary banking.
+Core read/write banking is real and boundaries are strong. Safety and polish gaps
+(especially Alta Pay) keep it from feeling finished.
+
+Area                      Score   Notes
+------------------------  ------  ------------------------------------------
+Feature completeness      7/10    Core V1 scope mostly met; notifications read
+                                  is push-only
+Navigation                8/10    Clean tab-bar model; at Discord button limits
+Task speed                6.5/10  Deposit/withdraw fast; Alta Pay slow/fragmented
+Transfer vs Alta Pay      7/10    Copy good; behavior inconsistent
+Accounts experience       7/10    Solid read; no shortcuts
+Business in Accounts      7.5/10  Well separated; could use stronger visual cues
+Notifications             6.5/10  Push DMs work; no in-bot read/history
+Deal Rooms                8/10    Private channels + sync is the right model
+Alta Private              6/10    Invitation DMs strong; hub is thin
+Security boundaries       9/10    Linking, limits, staff gates, channel perms
+Website handoff           8/10    Good for transfers; uneven elsewhere
+Future readiness          7/10    Hub + push-DM architecture scales
+
+
+================================================================================
+1. TOP STRENGTHS
+================================================================================
+
+  1. Real banking in Discord — deposit (with proof), withdraw, transfer, Alta Pay
+     are implemented, not link wrappers
+  2. Correct product boundary — lending, card apps, admin, exchange, company mgmt
+     stay on web
+  3. Mobile-app navigation — persistent Home / Accounts / Deposit / Withdraw /
+     Transfer + Alta Pay row feels familiar
+  4. Transfer confirmation with fees — bank-grade disclosure before money moves
+     between own accounts
+  5. Alta Pay breadth for V1 — people, verified companies, bank accounts, Alta Card
+     funding (with employer guardrails)
+  6. Personal vs business accounts — separate sections, labels, treasury-aware Alta Pay
+  7. Deal Rooms as private channels — better than DMs for staff/customer threads;
+     bidirectional sync with website as record
+  8. Alta Private invitation DMs — ceremonial accept/decline; conditional nav feels
+     earned
+  9. Discord-specific limits + web escalation — e.g. large transfers hand off to web
+ 10. Push notification pipeline — scales to Exchange, Terminal, NCC without
+     rebuilding bot UX
+
+
+================================================================================
+2. TOP WEAKNESSES
+================================================================================
+
+  1. Alta Pay has no confirmation step — Transfer confirms; Alta Pay sends
+     immediately after amount entry
+  2. Notifications "read" gap — no hub inbox/history; only outbound DMs
+  3. No smart defaults — website Alta Pay funding default ignored; every action
+     re-picks accounts
+  4. Alta Pay UX fragmentation — recipient search opens separate ephemeral message
+  5. Home is passive — balances and counts, but no pending detail, quick actions,
+     or Transfer vs Pay explainer
+  6. Pending requests opaque — deposit/withdraw counts only, no ref/amount/status
+  7. Alta Pay limits not surfaced — unlike Transfer, no visible limits in bot
+  8. Session expiry mid-flow — "Run /bank again" frustrating during multi-step pay
+  9. Alta Private member hub is a signpost — status + web link only
+ 10. Inconsistent safety UX — Transfer protected; Alta Pay and large withdrawals less
+
+
+================================================================================
+3. V1 MUST-FIX FEATURES (SHIP BLOCKERS)
+================================================================================
+
+  #  Feature                           Why
+  -  --------------------------------  ------------------------------------------
+  1  Alta Pay confirmation screen      Recipient, amount, funding, Confirm/Cancel
+                                       — parity with Transfer
+  2  Alta Pay limits/disclosure        Customers must see boundaries before sending
+  3  Home/footer explainer             Transfer = your accounts; Alta Pay = pay
+                                       someone else; updates via DM; settings on web
+  4  Clarify notifications in V1       Either minimal "Recent updates" on Home OR
+                                       officially scope to push-only only
+  5  Pending deposit/withdrawal list   Counts alone aren't enough for "where's my
+     on Home                           money?"
+
+Strongly recommended for week-one (not quite blockers):
+  - Honor website default Alta Pay funding account
+  - Link to Bank Settings -> Discord notifications from Home
+  - Consolidate Alta Pay recipient search into hub message (no second ephemeral)
+  - Clickable web link when deposit/withdraw exceeds Discord limits (today text-only)
+
+
+================================================================================
+4. V1 NICE-TO-HAVE FEATURES
+================================================================================
+
+  Feature                                    Value
+  -----------------------------------------  ----------------------------------
+  Account detail quick actions               Cuts 1-2 taps (Deposit/Withdraw/Pay)
+  Recent Alta Pay recipients (last 3-5)      Speed for repeat payees
+  Business account visual badge in lists     Reduces wrong-account errors
+  Status explanations on frozen/restricted   Compliance clarity
+  Copy reference / share receipt after       Social proof, support
+    success
+  Hide Alta Private nav for eligible-but-    Less marketing noise in bank app
+    not-invited aspirants
+  Session persistence hint on action pages  Sets expectations
+
+
+================================================================================
+5. V2 FEATURES (DO NOT BUILD FOR V1)
+================================================================================
+
+  Feature                          Rationale
+  -------------------------------  ------------------------------------------
+  In-bot notification inbox        Discord wrong medium; web is record
+  Favorite / primary / default     Power-user polish
+    account memory
+  Invoices (create, send, pay)     New product surface
+  Payment requests                 Inverse Alta Pay — new flow
+  QR / terminal checkout from bot  Deep link -> confirm is enough initially
+  Merchant payments / Alta         Company complexity stays web
+    Commercial treasury
+  Scheduled transfers in bot       Planning/archive work on web
+  Card/loan payment initiation     Card/loan mgmt stays web
+  Statements / tax docs            Screen real estate + compliance
+  Company role management          Out of scope
+  Exchange/Terminal/NCC management Push notifications only in V2
+
+
+================================================================================
+6. FEATURES TO AVOID
+================================================================================
+
+  Avoid                              Why
+  ---------------------------------  ------------------------------------------
+  Re-adding Notifications hub/inbox  Second inbox in wrong medium
+  Merging Transfer + Alta Pay        Different mental models (self vs other)
+  Loan/card application flows        Document-heavy, compliance, web-owned
+  Admin approvals in bot             Staff workflows belong on web
+  Opening accounts in bot            KYC/onboarding on web
+  Full company management            Role/audit complexity
+  Minecraft auto-credit (Server Box) Risky; parser exists but disabled
+  Marketing nav for non-invited        Feels un-bank-like in /bank
+    Alta Private aspirants
+  Actionable Exchange/Terminal       Inform-only; execution stays on platform
+    trade buttons in DMs
+
+
+================================================================================
+7. FINAL RECOMMENDED V1 BOT FEATURE LIST
+================================================================================
+
+Commands
+--------
+  /bank              Banking hub (linked users only)
+  /ping              Health + link status
+  /dealrooms         delete-closed — staff cleanup only
+
+/bank — Read
+------------
+  Home               Total balance, active accounts, pending deposit/withdraw
+                     counts, 5 recent transactions
+  Accounts           Personal + business lists, pagination, account detail
+  Alta Private       Member / invited / eligible states; web handoff;
+                     invitation accept/decline via DM only
+  Notifications      Push DMs only (+ recommend minimal Home "recent updates"
+                     if "read notifications" stays in scope)
+
+/bank — Write
+-------------
+  Deposit            Account pick -> amount + proof upload -> pending review
+  Withdraw           Account pick -> amount -> pending review
+  Transfer           Own accounts only -> amount + memo -> confirm with fees
+  Alta Pay           Funding pick (bank or card) -> recipient search ->
+                     pay person or verified company -> MUST ADD CONFIRM IN V1
+
+Deal Rooms (outside /bank)
+--------------------------
+  Private Discord channel per Secure Deal Room
+  Website <-> Discord message sync
+  Website remains official record
+  Channel create/lock/cleanup via internal API
+  Welcome message + "Open on Alta Bank" link
+
+Invitations (DM-native)
+-----------------------
+  Alta Private invitation (Accept/Decline buttons)
+  Company invitation (Accept/Decline buttons)
+
+Push notifications (web-triggered)
+----------------------------------
+  Banking, application outcomes, operator actions, deal room events,
+  Alta Private lifecycle
+
+Explicitly OUT of V1 bot
+------------------------
+  Account opening, lending, Alta Card apps/management, admin ops, Exchange,
+  Terminal, company management, scheduled transfers, statements, notification
+  preference UI, notification inbox
+
+
+================================================================================
+SPECIFIC QUESTIONS — DIRECT ANSWERS
+================================================================================
+
+Is /bank too crowded?
+  No. Row 1 is at Discord's 5-button max and maps to a mobile tab bar. Row 2
+  (Alta Pay, optional Alta Private, Open Website) is appropriate. Crowding is
+  in Alta Pay sub-flows, not top-level nav.
+
+Are there too many buttons?
+  Top level: no. Per-screen: sometimes — Transfer confirm adds 2; Accounts
+  pagination adds up to 4. Acceptable for power users with many accounts.
+
+Should any features be hidden unless relevant?
+  Yes, recommended:
+    - Alta Private nav — members + active invitees only; hide eligible tease
+    - Alta Pay card funding — only if user has Alta Card
+    - Business sections — hide when zero business accounts
+    - Transfer — hide or explain when only one account
+
+Are Deposit, Withdraw, Transfer, and Alta Pay clear?
+  Mostly yes in copy ("your own accounts" vs "another customer or company").
+  Behavior undermines clarity: Transfer confirms; Alta Pay doesn't; search
+  breaks out of hub. Fix: confirmation + Home explainer + inline search.
+
+Are company accounts easy to understand inside Accounts?
+  Yes structurally — separate Personal/Business, Account · Company labels,
+  company field on detail. Could improve with business badge and "treasury
+  account" wording.
+
+Should users have default accounts?
+  For Alta Pay funding: yes — honor website defaultAltaPayFundingAccountId.
+  For deposit/withdraw/transfer: V2 — last-used memory nice but not V1-critical.
+
+Should there be quick actions on account pages?
+  Yes — V1 nice-to-have, high value. Deposit/Withdraw/Transfer/Pay from this
+  account would materially improve speed.
+
+Should Alta Pay support people and companies in V1?
+  Yes — keep both. Already implemented with sensible rules (person = bank-funded;
+  card = companies only, employer excluded). Differentiator; don't cut it.
+
+Are Deal Rooms better as private channels than DMs?
+  Yes. Multi-party, persistent, staff-visible. Website sync preserves official
+  record. Correct V1 architecture.
+
+Are any website-only features missing from Discord?
+  Intentionally missing (correct): lending apps, card apps, statements,
+  scheduled transfers, settings, full history.
+
+  Gaps customers may notice:
+    - Pending request detail
+    - Notification history / settings link
+    - Alta Pay confirmation parity
+    - Default funding account
+    - Staff Secure Deal Room message alerts (in-app on web; DM gap)
+
+Are any Discord features risky and should move to website?
+  Alta Pay without confirmation     Fix in bot, don't remove
+  Large withdrawals without confirm  Consider confirm above threshold
+  Deposit proof in Discord           Keep — native advantage
+  Card-funded Alta Pay to companies  Keep with confirmation + copy
+  Deal Room chat in Discord          Keep — channel model is right
+  Server Box auto-credit             Keep disabled / avoid
+
+
+================================================================================
+FUTURE READINESS (V1 vs V2)
+================================================================================
+
+Future capability    V1 foundation         V1 must-have?  V2 opportunity
+-------------------  --------------------  -------------  -------------------------
+Invoices             Alta Pay + company    No             Create/send/pay objects
+Payment requests     Alta Pay search       No             Request from [name]
+Merchant payments    Pay verified company  Partial        Terminal/merchant IDs
+QR payments          Web deep links        No             Link -> Discord confirm
+Card/loan payments   Card as Pay funding   No             Payment due reminder DMs
+Alta Commercial      Business in hub       No             Treasury dashboard web
+Exchange notifs      Push DM pipeline      No             Inform-only DMs
+Terminal notifs      Same pipeline         No             Inform-only DMs
+NCC notifs           Same pipeline         No             Inform-only DMs
+
+Architecture verdict: Hub pages + action modals + push DMs scales well. Alta Pay
+should own pay-to-other flows; Transfer owns self-custody only; notifications
+stay outbound, never a full inbox.
+
+
+================================================================================
+V1 SCOPE CHECKLIST (USER-DEFINED)
+================================================================================
+
+Current V1 scope                          Status
+--------------------------------------  ------------------------------------------
+/bank interactive hub                   IMPLEMENTED
+Read: accounts (personal/business)      IMPLEMENTED
+Read: recent activity                   IMPLEMENTED (Home + account detail)
+Read: notifications                     PARTIAL — push DMs only, no hub read
+Read: Alta Private if active/invited    IMPLEMENTED
+Write: deposit request                  IMPLEMENTED
+Write: withdrawal request               IMPLEMENTED
+Write: intrabank transfer               IMPLEMENTED
+Write: Alta Pay                         IMPLEMENTED (needs confirmation)
+Deal Rooms: private channel             IMPLEMENTED
+Deal Rooms: website <-> Discord sync    IMPLEMENTED
+Deal Rooms: website official record     IMPLEMENTED
+Out of scope: opening accounts          CORRECTLY ABSENT
+Out of scope: loan/card applications    CORRECTLY ABSENT
+Out of scope: admin approvals           CORRECTLY ABSENT
+Out of scope: Exchange/Terminal         CORRECTLY ABSENT
+Out of scope: company management        CORRECTLY ABSENT
+Out of scope: lending/card pages        CORRECTLY ABSENT
+
+
+================================================================================
+CLOSING RECOMMENDATION
+================================================================================
+
+Ship V1 with positioning:
+
+  "Full banking on alta.bank. Use /bank in Discord for everyday money moves
+   when you're already here."
+
+Before launch:
+  - Alta Pay confirmation
+  - Limits copy
+  - Home explainer
+  - Pending requests on Home
+  - Decision on notifications read (minimal recent list vs push-only scope)
+
+Do not hold for invoices, favorites, inbox, or embed redesign.
+
+Related internal audit: altabot/ALTA_COMPANION_BOT_PRODUCT_AUDIT.txt
+
+Key source files:
+  - altabot/src/discord/hub/router.ts
+  - altabot/src/discord/hub/views.ts
+  - altabot/src/discord/hub/actions/handlers.ts
+  - altabot/src/discord/hub/actions/views.ts
+  - altabot/src/discord/deal-room/channel-service.ts
+  - altaweb/src/server/bot-actions.service.ts
+  - altaweb/src/server/bot-hub.service.ts

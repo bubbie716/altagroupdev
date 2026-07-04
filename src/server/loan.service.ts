@@ -567,9 +567,6 @@ async function processLoanPayment(
     if (!src || src.status !== "ACTIVE") badRequest("Source account must be active");
   }
 
-  const available = await getAvailableBalance(input.sourceBankAccountId);
-  if (available < amount) badRequest("Insufficient available balance in source account");
-
   const allocation = allocateLoanPayment(amount, principalOutstanding, accruedInterest);
   const newPayoff = syncOutstandingBalance({
     principalOutstanding: allocation.newPrincipalOutstanding,
@@ -581,6 +578,11 @@ async function processLoanPayment(
   const referenceCode = generateReferenceCode("LNP");
 
   await prisma.$transaction(async (tx) => {
+    const { assertAccountAvailableForDebitInTx } = await import("@/server/financial-integrity.service");
+    await assertAccountAvailableForDebitInTx(tx, input.sourceBankAccountId, amount, {
+      message: "Insufficient available balance in source account",
+    });
+
     const bankTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: input.sourceBankAccountId,
@@ -708,6 +710,27 @@ async function processLoanPayment(
       referenceCode,
     }),
   });
+
+  try {
+    const {
+      notifyLoanPaymentMade,
+      notifyLoanPaidOff,
+    } = await import("@/server/banking-notification.service");
+    if (paidOff) {
+      await notifyLoanPaidOff(loanRecord.borrowerUserId, {
+        loanId: loanRecord.id,
+        referenceCode,
+      });
+    } else {
+      await notifyLoanPaymentMade(loanRecord.borrowerUserId, {
+        loanId: loanRecord.id,
+        amount,
+        referenceCode,
+      });
+    }
+  } catch (error) {
+    console.error("[loan] payment notification failed", error);
+  }
 
   return { referenceCode, amount };
 }
@@ -860,13 +883,26 @@ export async function executeDueLoanAutoPayments(
       executedCount += 1;
     } catch (error) {
       failedCount += 1;
+      const failureReason = toAutoPayFailureReason(error);
       await prisma.loanPaymentScheduleItem.update({
         where: { id: item.id },
         data: {
           autoPayAttemptedAt: now,
-          autoPayFailureReason: toAutoPayFailureReason(error),
+          autoPayFailureReason: failureReason,
         },
       });
+      try {
+        const { notifyLoanAutopayFailedBestEffort } = await import(
+          "@/server/banking-notification.service"
+        );
+        await notifyLoanAutopayFailedBestEffort(loan.borrowerUserId, {
+          loanId: loan.id,
+          amount: decimalToNumber(item.scheduledAmount),
+          reason: failureReason,
+        });
+      } catch (notifyError) {
+        console.error("[loan] autopay failed notification error", notifyError);
+      }
     }
   }
 

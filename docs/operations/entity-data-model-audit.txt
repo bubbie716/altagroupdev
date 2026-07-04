@@ -1,0 +1,647 @@
+Alta Bank — Entity & Data Model Audit
+========================================
+Scope: Core data model only (altaweb/prisma/schema.prisma + entity usage
+patterns). No UI, customer workflows, or code quality review.
+
+Perspective: Chief Systems Architect — final architecture review before
+long-term development.
+
+Method: Full schema review (58 models, ~90 enums), cross-referenced with
+service-layer usage and planned products (Exchange, Terminal, NCC,
+Commercial).
+
+Date: July 3, 2026
+
+
+================================================================================
+1. OVERALL ARCHITECTURE SCORE
+================================================================================
+
+61 / 100 — Strong Banking Core, Incomplete Capital Markets Foundation
+
+Domain                              Score   Assessment
+----------------------------------  ------  ------------------------------------------
+Identity & access (User, tags)      78      Clean, extensible
+Company & membership                80      Well-normalized junction model
+Core banking (accounts, txns)       72      Functional but overloaded; denormalized balance
+Payments (Alta Pay, scheduled)      65      Works; Alta Pay is not a first-class entity
+Lending (applications, loans)       75      Mature sub-ledger pattern
+Alta Card                           74      Complete card lifecycle; separate ledger
+Deal rooms & secure threads         58      Dual architectures; triplicated thread models
+Ops & audit (AuditLog, notes)       70      Good intent; weak polymorphic FK integrity
+Relationship intelligence           55      Over-designed CRM mirror; premature denorm
+Alta Private / Commercial           50      Tag + invitation only; no relationship entity
+Exchange / Terminal / NCC           0       No database models exist
+
+Verdict: Alta's banking schema can support current products without redesign.
+Exchange, Terminal, NCC, crypto, bonds, ETFs, custody, and settlement require
+major new schema layers. Building those products on today's model without first
+introducing shared abstractions will produce fragmentation and painful
+migrations.
+
+
+================================================================================
+2. ENTITY RELATIONSHIP DIAGRAM (TEXT)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           IDENTITY & ACCESS                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  User ──< UserTagAssignment (ADMIN|OPERATOR|PRIVATE_CLIENT|...)             │
+│    │                                                                         │
+│    ├──< Session                                                              │
+│    ├──< UserBankSettings ──> BankAccount (Alta Pay defaults)                │
+│    └──< BotDailyTransferUsage                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+┌──────────────────────┐  ┌─────────────────┐  ┌──────────────────────────┐
+│      COMPANY         │  │   BANK ACCOUNT   │  │    RELATIONSHIP CRM      │
+├──────────────────────┤  ├─────────────────┤  ├──────────────────────────┤
+│ Company                │  │ BankAccount      │  │ RelationshipProfile      │
+│  ├─< CompanyMembership│  │  userId (req!)   │  │  (User 1:1)              │
+│  ├─< CompanyInvitation│  │  companyId?      │  │ CompanyRelationshipProfile│
+│  ├─ ticker, type,     │  │  balance (denorm)│  │  (Company 1:1)           │
+│  │   verification     │  │  ├─< BankTransaction (ledger + requests)       │
+│  └─ status             │  │  ├─< BankAccountHold                         │
+└──────────────────────┘  │  ├─< BankInterestAccrual                      │
+         │                 │  ├─< BankStatement                            │
+         │                 │  └─< ScheduledPayment, PayrollRun             │
+         │                 └─────────────────┘                             │
+         │                          │                                         │
+         │              ┌───────────┴───────────┐                          │
+         │              ▼                       ▼                          │
+         │     [TRF-*-OUT/IN pairs]    [PAY-*-OUT/IN pairs]                │
+         │     (intrabank transfer)     (Alta Pay — NO TABLE)               │
+         │                                                                   │
+         └───────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              LENDING                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  LoanApplication ──1:1──> Loan                                              │
+│       │                      ├─< LoanPayment ──> BankTransaction           │
+│       ├──1:1──> DealRoom     ├─< LoanLedgerEntry (proper sub-ledger)      │
+│       └──1:1──> LoanApplicationThread (V1 secure messaging)                 │
+│                                                                              │
+│  DealRoom (legacy full workflow)                                             │
+│    ├─< DealRoomParticipant, DealRoomMessage, DealRoomOffer                  │
+│    ├─< DealRoomDocument, DealRoomDocumentRequest                            │
+│    ├─< DealRoomAgreement ──< DealRoomAgreementDraft ──< Signatures         │
+│    ├─< DealRoomTask, DealRoomStageHistory                                   │
+│    └──> Loan (executed)                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ALTA CARD                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  AltaCardApplication ──1:1──> AltaCard ──< AltaCardTransaction             │
+│       └── AltaCardApplicationThread          ├─ reversesTransactionId       │
+│  AltaCardReviewRequest ──> AltaCardReviewThread   AltaCardStatement         │
+│  AltaEmployeeCard (child of business AltaCard)       AltaCardFee            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    OPS, AUDIT, NOTIFICATIONS                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  AuditLog (polymorphic: entityType + entityId, NO FK)                        │
+│  InternalNote (polymorphic: targetType + targetId, NO FK)                   │
+│  OpsReviewFlag, OpsExceptionDisposition                                      │
+│  UserNotification (userId + type, metadata Json — NO entity FK)              │
+│  SecureDealRoomDiscordSession (polymorphic: dealRoomType + dealRoomId)       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              PLANNED — NOT IN SCHEMA (mock UI only)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Security / Listing / IPO / Order / Trade / Portfolio / Holding              │
+│  Watchlist / MarketData / CorporateAction / Dividend                         │
+│  Institution / RoutingNumber / Settlement / NCCClearing                      │
+│  Invoice / PaymentRequest / Merchant / CustodyAccount                        │
+│  ApiKey / ApiApplication / PrivateBankingRelationship                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+3. TOP 20 STRONGEST ENTITIES
+================================================================================
+
+Rank  Entity                              Why it's strong
+----  ----------------------------------  ------------------------------------------
+1     User                                Central identity; Discord-linked; clean relations
+2     Company                             Rich type enum (ISSUER, BROKERAGE, INSTITUTION);
+                                          ticker-ready
+3     CompanyMembership                   Proper junction with role enum and unique constraint
+4     CompanyInvitation                   Full lifecycle (PENDING→ACCEPTED/DECLINED/EXPIRED/
+                                          CANCELLED)
+5     Loan + LoanLedgerEntry              Correct sub-ledger; balanceAfter on each entry
+6     LoanPaymentScheduleItem             Installment tracking with unique (loanId,
+                                          installmentNumber)
+7     AltaCardTransaction                 reversesTransactionId self-link — best reversal
+                                          pattern in schema
+8     DealRoomAgreementDraft              Versioned drafts with EXECUTED/VOID/SUPERSEDED
+                                          lifecycle
+9     DealRoomAgreementSignature          Immutable signatures with party uniqueness
+10    ScheduledTransferExecution          Idempotent execution tracking per scheduled run
+11    PayrollRunLineExecution             Granular per-employee execution with bank tx link
+12    BankInterestAccrual                 Period uniqueness; links to resulting transaction
+13    BankAccountHold                     Clean ACTIVE/RELEASED with creator/releaser
+                                          attribution
+14    AltaCardStatement                   Complete billing period model with status lifecycle
+15    SecureDealRoomDiscordSession        Polymorphic session with unique (dealRoomType,
+                                          dealRoomId)
+16    UserTagAssignment                   Simple composite PK RBAC
+17    AltaPrivateInvitation               TTL, status machine, sender/recipient FKs
+18    DealRoomStageHistory                Workflow audit with enteredAt/exitedAt
+19    PlatformSetting                     Key-value JSON for institutional toggles
+20    Session                             Standard auth with expiry index
+
+
+================================================================================
+4. TOP 20 WEAKEST ENTITIES
+================================================================================
+
+Rank  Entity / Concept                    Why it's weak
+----  ----------------------------------  ------------------------------------------
+1     Alta Pay (no table)                 Derived from paired BankTransaction refs; no
+                                          payment entity, no reversal link
+2     Interbank transfers                 Fields on ScheduledPayment only; no Institution,
+                                          RoutingNumber, or Settlement
+3     Legacy DealRoom vs V1 threads       Two parallel deal-room architectures for same domain
+4     LoanApplicationThread /             Triplicated message thread schemas
+      AltaCardApplicationThread /
+      AltaCardReviewThread
+5     RelationshipProfile                 20+ denormalized aggregate fields; will drift from
+                                          source data
+6     CompanyRelationshipProfile          Near-duplicate of user CRM with parallel
+                                          snapshot/recommendation/timeline
+7     BankAccount.balance                 Denormalized with no DB constraint; no
+                                          reconciliation entity
+8     BankTransaction                     Overloaded: deposit request, withdrawal request,
+                                          transfer leg, adjustment, interest, loan payment
+9     AuditLog                            Polymorphic entityId without FK; incomplete
+                                          entityType enum vs usage
+10    InternalNote                        Polymorphic targetId without FK; visibility column
+                                          unused
+11    PayrollRun.lineItems                JSON blob instead of normalized line items
+12    TransferContact                     Nullable field matrix for intrabank vs interbank
+                                          in one table
+13    UserNotification                    No entity FK; metadata-only linking
+14    Alta Private                        Tag + invitation only; banker is static config,
+                                          not a relationship record
+15    OpsExceptionDisposition             String exceptionKey only; no structured case entity
+16    assignedStaffId on threads          Deprecated column retained; assignment model
+                                          inconsistent
+17    BankAccount.userId required         Business accounts always tied to creating user,
+                                          not company-primary
+18    DealRoomParticipant                 Orphan risk on officer reassignment (no cleanup)
+19    Exchange / Terminal / NCC           Zero schema — entire product lines have no
+                                          foundation
+20    Document storage                    Split across transaction proof fields,
+                                          DealRoomDocument, JSON attachments — no unified
+                                          Document entity
+
+
+================================================================================
+5. MISSING ENTITIES
+================================================================================
+
+Critical for planned products
+
+Entity                              Needed for
+----------------------------------  ------------------------------------------
+Instrument / Security               Exchange listings, Terminal, bonds, ETFs, crypto, indices
+Listing                             Exchange IPO workflow, company ↔ security link
+MarketDataSnapshot / PriceHistory   Terminal, watchlists, portfolio valuation
+BrokerageAccount / CustodyAccount   Terminal holdings, custody
+Portfolio / Holding / Position      Terminal portfolio, corporate treasury investments
+Order / Trade / Execution           Terminal trading
+Watchlist / WatchlistItem           Terminal
+CorporateAction / DividendRecord    Exchange, portfolio performance
+Settlement / ClearingRecord         NCC, interbank, securities
+FinancialInstitution / RoutingNumber NCC, wires, interbank
+WireTransfer (or PaymentInstruction) Interbank fulfillment beyond ScheduledPayment fields
+Invoice / PaymentRequest /          Merchant payments, Alta Pay evolution
+MerchantAccount
+PrivateBankingRelationship          Alta Private banker assignment, service tier
+StaffAssignment / RelationshipManager Private/commercial RM tracking
+ComplianceCase                      Ops investigations (referenced in feature audits)
+Document / FileAttachment           Unified proof, filing, deal room, issuer documents
+ApiApplication / ApiKey             Developer API
+ListingApplication / IPOApplication Exchange onboarding
+Index / IndexConstituent            Market indices
+CardDispute                         Alta Card chargebacks
+
+Banking gaps (current products)
+
+Entity                              Gap
+----------------------------------  ------------------------------------------
+Payment / Transfer (first-class)    Transfers and Alta Pay are implicit transaction pairs
+AltaPayPayment                      Admin search derives from reference prefix patterns
+BankBalanceSnapshot                 Reconciliation / audit trail for denormalized balance
+TransactionLink / TransferGroup     Links OUT/IN legs, reversals, and offsetting adjustments
+
+
+================================================================================
+6. DUPLICATE ENTITIES
+================================================================================
+
+Duplication                         Detail                              Recommendation
+----------------------------------  ----------------------------------  ------------------
+DealRoom vs SecureDealRoom threads  Legacy DealRoom (full workflow) +   Unify on one
+                                    V1 *ApplicationThread (messaging)   SecureConversation
+3 thread message tables             LoanApplicationThreadMessage,       Single
+                                    AltaCardApplicationThreadMessage,   SecureThreadMessage
+                                    AltaCardReviewThreadMessage
+RelationshipProfile vs              Parallel profile/snapshot/          Generic
+CompanyRelationshipProfile        recommendation/timeline × 2         RelationshipSubject
+Deposit/Withdrawal vs transactions  Same BankTransaction row serves as  Acceptable if typed
+                                    request and ledger entry            clearly; add
+                                                                        TransferGroup
+DealRoomMessage vs Thread messages Two messaging systems for          Merge into unified
+                                    lending/card                        conversation model
+User.accountStatus vs               User-level and account-level        Intentional but
+BankAccount.status                  restriction                         document hierarchy
+AltaCard.currentBalance vs          Denormalized like bank              Same pattern; needs
+transaction sum                                                         reconcile helper
+Loan.outstandingBalance vs          Denormalized + proper ledger        Correct pattern if
+LoanLedgerEntry                                                         kept in sync
+
+
+================================================================================
+7. MISSING RELATIONSHIPS
+================================================================================
+
+Missing link                        Impact
+----------------------------------  ------------------------------------------
+BankTransaction ↔ BankTransaction   Cannot query "this deposit's reversal" without
+(transfer pair, reversal)           reference parsing
+Alta Pay payment ↔ both leg txns    No FK; admin derives by reference prefix
+Company ↔ Listing/Security          Exchange cannot anchor to verified companies
+User ↔ PrivateBanker                Alta Private banker is config, not FK
+AuditLog → entity                   No FK on entityId; orphan-safe but not integrity-checked
+InternalNote → entity               Same polymorphic gap
+UserNotification → triggering       Investigations require metadata parsing
+entity
+Loan ↔ DealRoom (V1 thread)         Loan has legacy DealRoom; V1 uses separate thread
+AltaCardTransaction ↔ Alta Pay      relatedAltaPayPaymentId is string, not FK
+ScheduledPayment (interbank) ↔        Recipient institution is free text
+Institution
+PayrollEmployee ↔ User              Employee identified by account number only, not User FK
+Company ↔ AltaCard merchant         merchantCompanyId on card tx exists; no MerchantProfile
+
+
+================================================================================
+8. DANGEROUS RELATIONSHIPS
+================================================================================
+
+Relationship                        Risk
+----------------------------------  ------------------------------------------
+BankAccount.userId ON DELETE CASCADE Deleting user cascades all accounts and transactions —
+                                    catastrophic for institutional records
+BankAccount.companyId               Company deletion orphans business accounts from company
+ON DELETE SET NULL                  context
+Loan.approvedBy ON DELETE RESTRICT  Good — prevents deleting approver
+Polymorphic AuditLog without FK     Audit rows survive entity deletion but become
+                                    unresolvable
+DealRoom ↔ LoanApplication          loanApplicationId unique on DealRoom but Loan also has
+optional both ways                  sourceDealRoomId — circular optional refs
+AltaCard.companyId ON DELETE CASCADE Company deletion destroys all cards and transaction
+                                    history
+PayrollRun.lineItems as Json        No FK integrity for employee payments; partial failure
+                                    leaves ambiguous state
+SecureDealRoomDiscordSession.       No FK to thread; orphaned sessions if thread deleted
+dealRoomId as String
+RelationshipProfile aggregates      Denormalized totals can diverge from BankAccount/Loan/
+                                    Card sums silently
+Dual balance models                 BankAccount.balance + BankTransaction sum can drift
+                                    with no DB enforcement
+
+
+================================================================================
+9. NORMALIZATION RECOMMENDATIONS
+================================================================================
+
+Merge
+-----
+- Three secure thread types → one SecureThread + SecureThreadMessage
+- User and Company relationship CRM stacks → parameterized by subject type
+- Deal room messaging (legacy + V1) → single conversation abstraction
+
+Split
+-----
+- BankTransaction → separate PaymentInstruction (pending request) from
+  LedgerEntry (posted movement), OR add explicit role: REQUEST | LEG | REVERSAL
+  discriminator
+- TransferContact → IntrabankContact and WireBeneficiary tables
+- PayrollRun.lineItems → PayrollRunLine normalized table (partially exists in
+  execution layer only)
+
+Add junction tables
+-------------------
+- TransferGroup (id, type, status) linking 2+ BankTransactions
+- AltaPayPayment linking payer OUT + payee IN transactions
+- InstrumentListing (companyId, instrumentId, listingDate, status)
+- PortfolioHolding (accountId, instrumentId, quantity, costBasis)
+- StaffClientAssignment (staffUserId, clientUserId/companyId, product, assignedAt)
+
+Add lookup tables
+-----------------
+- FinancialInstitution (name, routingPrefix, nccMemberId, status)
+- InstrumentType (EQUITY, BOND, ETF, CRYPTO, INDEX)
+- CorporateActionType lookup
+
+Fix duplicate fields
+--------------------
+- LoanApplicationThread.assignedStaffId — remove or unify with
+  DealRoom.assignedOfficerId
+- Company.desiredTicker vs Company.ticker — correct pattern; ensure Exchange
+  Listing references official ticker only
+- Thread status enums duplicated across 3 thread models — single enum
+
+
+================================================================================
+10. OWNERSHIP RECOMMENDATIONS
+================================================================================
+
+Entity              Current owner                   Recommended rule
+------------------  ------------------------------  ------------------------------------------
+BankAccount         userId (required) +             Business accounts: companyId primary;
+                    companyId optional              userId = authorized rep or null with
+                                                    membership check
+BankTransaction     bankAccountId                   Immutable after APPROVED; owned by
+                                                    account's user/company
+Loan                borrowerUserId OR companyId     Company loans: companyId primary;
+                                                    userId = signatory
+AltaCard            ownerUserId OR companyId        Same as loan
+DealRoom            borrowerUserId +                Officer reassignment should update
+                    assignedOfficerId               participants, not just FK
+AuditLog            actorUserId                     Never deleted; actor FK CASCADE is risky —
+                                                    consider RESTRICT
+InternalNote        authorUserId                    Append-only; never transfer ownership
+UserNotification    userId                          Ephemeral; archivable after N days
+Company             No single owner in schema       OWNER role in membership is effective owner
+Secure threads      applicantUserId                 Staff assignment via StaffAssignment table,
+                                                    not deprecated column
+
+Can ownership change?
+- Bank accounts: no (close and reopen)
+- Loans/cards: no borrower change without new application
+- Deal room officer: yes — must sync participants
+- Company membership: role changes yes; company itself persists
+
+
+================================================================================
+11. LIFECYCLE RECOMMENDATIONS
+================================================================================
+
+Entity              Current states                  Missing / recommended
+------------------  ------------------------------  ------------------------------------------
+BankTransaction     PENDING→APPROVED/DENIED/        Add REVERSED terminal; link to reversal tx
+                    CANCELLED
+BankAccount         PENDING→ACTIVE→FROZEN→CLOSED    Add ARCHIVED (closed + retained); never
+                                                    hard delete
+Loan                ACTIVE→PAID_OFF/DEFAULTED/      DEFAULTED needs workout sub-states
+                    CANCELLED/FROZEN
+AltaCard            PENDING→ACTIVE→…→CLOSED         Good coverage
+DealRoom            11 status + 14 workflow stages  Overlap between status and workflowStage —
+                                                    consolidate
+Secure threads      OPEN/WAITING_*/CLOSED           Reopen should create audit event; consider
+                                                    REOPENED state
+Company             PENDING→ACTIVE→LISTED/          LISTED should FK to Exchange Listing when
+                    SUSPENDED/REJECTED              built
+ScheduledPayment    Includes PENDING_REVIEW for     Add EXPIRED; wire-specific EXECUTING state
+                    interbank
+AuditLog            Created only                    Immutable forever — correct
+InternalNote        Created only                    Correct; add SUPERSEDED if ever needed
+
+Terminal states should be immutable: APPROVED transactions, EXECUTED agreements,
+ACCEPTED invitations, REVERSED card transactions, PAID_OFF loans.
+
+Reopen: Deal room threads yes (with new audit row); closed accounts via
+reopenBankAccount; terminal loan/card decisions should not reopen — new
+application instead.
+
+
+================================================================================
+12. FUTURE PRODUCT COMPATIBILITY REPORT
+================================================================================
+
+Product                 Fits naturally today?   Schema changes required
+----------------------  --------------------  ------------------------------------------
+Commercial Banking      Partial               Company + BUSINESS_OPERATING accounts +
+                                              payroll exist. Need: treasury products,
+                                              commercial RM assignment, invoice/payables,
+                                              multi-entity authorization
+Alta Private            Partial               Tag + PRIVATE accounts + invitation. Need:
+                                              PrivateBankingRelationship, banker FK, service
+                                              tier, fee schedule
+Alta Pay (merchant)     Partial               Card merchant link exists. Need:
+                                              MerchantAccount, Invoice, PaymentRequest
+Payroll                 Yes                   PayrollEmployee, PayrollRun, executions — solid
+Exchange listings       No                    Need Instrument, Listing, ListingApplication,
+                                              company↔security
+IPO workflow            No                    Need IPOApplication, offering terms, allocation
+Terminal                No                    Need BrokerageAccount, Portfolio, Holding,
+                                              Order, Trade, Watchlist
+NCC                     No                    Need Institution, Settlement, ClearingRecord,
+                                              routing registry
+Crypto / Bonds / ETFs   No                    Need Instrument with type hierarchy; same core
+                                              as Exchange
+Indices                 No                    Need Index, IndexConstituent, rebalance history
+Corporate actions       No                    Need CorporateAction, entitlement, dividend
+                                              processing
+Portfolio performance   No                    Need holdings + market data + cost basis
+Dividend processing     No                    Need dividend record + bank/card credit link
+Settlement / custody    No                    Need custody accounts, settlement batches
+Interbank / wires       Partial               ScheduledPayment has interbank fields; need
+                                              Institution, WireTransfer, settlement
+Developer API           No                    Need ApiApplication, ApiKey, rate limits
+Credit Desk             Yes                   PlatformSetting + application queues — works
+Relationship Intelligence Yes                 Over-built but functional for CRM
+
+
+================================================================================
+13. SCALABILITY ASSESSMENT
+================================================================================
+
+Will survive at target scale
+
+Entity                              50k users / 10k companies / millions of txns
+----------------------------------  ------------------------------------------
+User, Company, Membership           Yes — indexed, normalized
+BankTransaction                     Yes with partitioning by createdAt or bankAccountId
+LoanLedgerEntry, AltaCardTransaction Yes — append-only, indexed
+AuditLog                            Yes with partitioning + archival; indexed on createdAt
+UserNotification                    Needs archival policy — unbounded growth
+RelationshipTimelineEvent           Needs partitioning — event stream grows fast
+
+Bottlenecks
+
+Bottleneck                          Cause
+----------------------------------  ------------------------------------------
+Denormalized balances               BankAccount.balance, AltaCard.currentBalance,
+                                    Loan.outstandingBalance — reconciliation at scale is
+                                    expensive
+Polymorphic queries                 AuditLog, InternalNote, OpsReviewFlag filter by (type,
+                                    id) without FK indexes on target
+RelationshipProfile recalc          Aggregating all user/company financial data on each cron
+                                    run — O(users × products)
+JSON columns                        PayrollRun.lineItems, DealRoomAgreement.fieldData,
+                                    notification metadata — hard to query at scale
+No table partitioning strategy      Single BankTransaction table for all types will exceed
+                                    10M rows
+SecureDealRoomDiscordSession        One row per deal room; Discord channel proliferation
+Duplicate CRM tables                8 relationship models × 2 subjects = maintenance burden
+                                    doubles
+
+Index gaps for scale
+- BankTransaction: missing composite (bankAccountId, createdAt DESC) for statements
+- AuditLog: missing (entityType, entityId, createdAt)
+- UserNotification: missing (userId, createdAt DESC) for pagination — has (userId, readAt)
+
+
+================================================================================
+14. RECOMMENDED SCHEMA IMPROVEMENTS (PRIORITY ORDER)
+================================================================================
+
+P0 — Before building Exchange or Terminal
+
+1. Introduce Instrument master table — securityId, symbol, name, type
+   (EQUITY|BOND|ETF|CRYPTO|INDEX), issuerCompanyId, currency, status
+2. Introduce Listing — links Company ↔ Instrument with listing date, market,
+   status
+3. Introduce TransferGroup / Payment — first-class link for transaction pairs,
+   Alta Pay, reversals
+4. Add FinancialInstitution + RoutingNumber — required before NCC or live
+   interbank
+5. Unify secure messaging — one thread + message model replacing 3 duplicates
+
+P1 — Before scaling banking to 10k+ customers
+
+6. Add BankBalanceSnapshot or reconciliation job entity
+7. DB constraint or check on non-negative balance (or move to ledger-only
+   balance derivation)
+8. Normalize PayrollRun.lineItems → PayrollRunLine
+9. Add FK indexes on AuditLog (entityType, entityId)
+10. Create AltaPayPayment entity with FKs to both leg transactions
+11. Fix BankAccount ownership — company-primary accounts for business banking
+12. Add PrivateBankingRelationship — userId, bankerUserId, tier, assignedAt
+
+P2 — Before Exchange IPO / Terminal trading
+
+13. BrokerageAccount + Portfolio + Holding
+14. Order + Trade + Execution
+15. MarketDataSnapshot (instrumentId, price, asOf)
+16. Watchlist + WatchlistItem
+17. ListingApplication / IPOApplication
+18. Settlement + ClearingRecord (NCC foundation)
+
+P3 — Consolidation & cleanup
+
+19. Merge legacy DealRoom into unified conversation/workflow model or clearly
+    deprecate
+20. Consolidate Relationship CRM — single subject-polymorphic profile
+21. Unified Document entity for proofs, filings, deal room docs
+22. User CASCADE review — change to RESTRICT on financial entities
+23. Remove deprecated assignedStaffId or wire to StaffAssignment
+24. Extend AuditEntityType — add ALTA_PAY, SECURE_THREAD, INSTRUMENT, etc.
+
+
+================================================================================
+15. FINAL VERDICT
+================================================================================
+
+If Alta continues building on this data model, will it still be solid after
+adding Exchange, Terminal, Commercial Banking, NCC, Crypto, Bonds, ETFs, and
+future financial products?
+
+No — not without deliberate foundational work first.
+
+What will hold up:
+- User, Company, and membership model — extensible to issuers, brokerages,
+  institutions
+- Core banking account and transaction model — can serve as cash leg for
+  settlement
+- Loan and card sub-ledger patterns — good templates for other credit/instrument
+  ledgers
+- Audit, ops flags, and platform settings — cross-product infrastructure
+- Payroll and scheduled payments — commercial banking foundation exists
+
+What will break or require painful migration:
+- Building Exchange/Terminal as separate mock-then-bolt-on schemas will
+  duplicate Company/ticker concepts and diverge from banking
+- Alta Pay and transfers as implicit transaction pairs will become unmaintainable
+  at millions of transactions
+- Three duplicate secure thread models will multiply with every new product
+  (Commercial onboarding, Exchange listing review, NCC membership)
+- Denormalized balances across bank, card, and loan without unified
+  reconciliation will corrupt at concurrency scale
+- Zero NCC/settlement/institution models mean interbank ScheduledPayments have
+  no fulfillment path
+- Relationship CRM duplication (user + company × 4 tables each) will not scale
+  to 50k subjects
+
+Recommended path:
+
+1. Now: Introduce Instrument, Payment/TransferGroup, and FinancialInstitution as
+   shared abstractions — even before Exchange UI goes live.
+2. Before Exchange: Add Listing, BrokerageAccount, Holding — anchor to existing
+   Company.ticker.
+3. Before NCC: Add Settlement and routing registry — extend ScheduledPayment
+   interbank to reference Institution FK.
+4. Consolidate: Merge secure threads and relationship CRM before adding
+   Commercial/Private RM workflows.
+
+Bottom line: Alta's banking schema is institution-grade for V1 bank + card +
+lending. It is not yet a capital markets foundation. Treat the next schema sprint
+as infrastructure, not feature work — add 5–8 generic entities before building
+Exchange or Terminal features, or expect a costly redesign within 12–18 months.
+
+
+================================================================================
+DIRECT ANSWERS TO SPECIFIC QUESTIONS
+================================================================================
+
+Question                            Answer
+----------------------------------  ------------------------------------------
+Strongest entities                  User, Company, CompanyMembership,
+                                    Loan+LoanLedgerEntry, AltaCardTransaction,
+                                    DealRoomAgreementDraft, ScheduledTransferExecution,
+                                    BankInterestAccrual
+Need redesign                       Secure thread triplication, Relationship CRM
+                                    duplication, Alta Pay (non-entity),
+                                    BankTransaction overload, dual DealRoom architecture
+Too tightly coupled                 BankAccount.userId required for business accounts;
+                                    LoanApplication↔DealRoom↔Loan atomic chain;
+                                    AltaCard↔BankAccount autopay
+Under-designed                      Exchange/Terminal/NCC (missing entirely), Alta Pay,
+                                    interbank, Private Banking relationship, merchant
+                                    payments, documents
+Over-designed                       RelationshipProfile aggregates, legacy DealRoom (14
+                                    workflow stages + 11 statuses + full document/agreement
+                                    stack overlapping V1 threads)
+Fit naturally                       Payroll, scheduled transfers (intrabank), company
+                                    verification, card lifecycle, loan servicing, audit/ops
+Require schema changes              Exchange, Terminal, NCC, crypto, bonds, ETFs, indices,
+                                    IPO, corporate actions, custody, settlement, invoices,
+                                    developer API
+Should become generic first         Instrument (all securities), Payment/TransferGroup (all
+                                    money movement), SecureThread (all deal rooms),
+                                    FinancialInstitution (NCC/interbank), Document (all
+                                    file storage), StaffAssignment (all RM/officer routing)
+
+
+================================================================================
+KEY SOURCE FILES
+================================================================================
+
+Purpose                         Path
+------------------------------  -----------------------------------------------
+Prisma schema (58 models)       altaweb/prisma/schema.prisma
+Bank backend docs               altaweb/docs/bank-backend.md
+Companies docs                  altaweb/docs/companies.md
+Architecture audit              altaweb/docs/architecture-audit.txt
+Product readiness audit         altaweb/PRODUCT_READINESS_AUDIT.txt
+Administrative ops audit        altaweb/docs/operations/administrative-operations-audit.txt

@@ -1,0 +1,657 @@
+Alta Companion Discord Bot — UI/UX Design Audit
+================================================
+Lens: Modern, premium, Discord-native banking companion (design only — no functionality changes)
+Sources: altabot/ hub, embeds, modals, buttons; altaweb/src/lib/discord/ shared payloads
+Date: July 3, 2026
+
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+The bot already avoids emoji spam and uses calm financial language — a strong base.
+The main gaps versus "clean banking app in Discord" are:
+
+  1. Gold-as-default embed color instead of navy
+  2. Description-heavy layouts instead of scannable fields
+  3. Generic error title ("Something went wrong") undermining otherwise good bodies
+  4. Discord UI tutorial copy on Accounts
+  5. Missing Alta Pay confirmation and plain-text Deal Room sync breaking consistency
+
+Implementing P0–P2 would materially shift perception from "capable Discord bot" to
+"Alta Bank companion" without changing any business logic.
+
+
+================================================================================
+1. CURRENT DESIGN PROBLEMS
+================================================================================
+
+BRAND & EMBED SYSTEM
+--------------------
+
+  Issue                              Where                    Impact
+  ---------------------------------  -----------------------  ---------------------------
+  Primary embed color is gold,       brand.ts (0xc9a227)      Reads as economy-bot accent,
+  not navy                                                    not Alta deep-navy identity
+
+  No semantic embed colors           createAltaEmbed only     Success, pending, info all
+                                                              look identical
+
+  Timestamp on every embed           factory.ts               Clutters mobile; banking apps
+                                                              rarely show "posted at" on
+                                                              every screen
+
+  No embed fields                    All hub views            Everything is bold-inline
+                                                              markdown in description —
+                                                              harder to scan than fields
+
+  Error title always                 createErrorEmbed         Violates error principles;
+  "Something went wrong"                                        feels generic even when body
+                                                              copy is good
+
+  Logo URL is Discord default        brand.ts                 Missed brand moment;
+  avatar                                                      footer-only identity
+
+
+/BANK HUB NAVIGATION
+--------------------
+
+  - Row 1 is 5 buttons (Discord max): Home · Accounts · Deposit · Withdraw · Transfer
+    — cramped on mobile, no breathing room
+  - Active page = Primary + disabled: correct pattern, but Primary (blurple) fights
+    Alta brand; reads as Discord UI, not Alta
+  - No dedicated Back/Home on action flows: users rely on nav row; success screens
+    keep full nav but no contextual "Done"
+  - Deposit/Withdraw/Transfer/Alta Pay share no visual "step" indicator: multi-step
+    flows feel like static pages, not a wizard
+
+
+SCREEN-SPECIFIC
+---------------
+
+  Home
+    Good: concise tagline, pending counts, recent activity
+    Weak: "Recent activity" is a bullet list in description — long on mobile; no
+          empty-state CTA
+    Missing: one-line explainer for Transfer vs Alta Pay
+
+  Accounts
+    Discord UX tutorial in embed ("Open a dropdown below…", "Discord shows up to 25…")
+    — reads like bot documentation, not a bank app
+    Pagination labels use arrows (◀ Personal, Personal ▶) — functional but not premium
+    Account detail mixes 5+ labeled lines + 6 transactions in one description block
+
+  Deposit / Withdraw
+    Numbered steps + limit disclaimers in italics — informative but dense
+    Limits buried in "_Discord limit: max ƒ250,000…_" — should be scannable fields
+    or a single status line
+
+  Transfer
+    Confirm screen is the best-designed flow (clear amounts, fee line, Confirm/Cancel)
+    Pre-confirm embed repeats limits in italics; dynamic "From" line updates well
+    Alta Pay has no confirm screen — goes modal → immediate success
+
+  Alta Pay
+    Recipient select shows "Person · Name" / "Company · Name" — technical prefixes
+    Search results embed repeats funding + query as bold lines
+    No memo in pay modal (backend supports it)
+
+  Alta Private
+    Invited state tells user to "Check your DMs" — hub and DM duplicate content
+    Bronze private color (0x8b7355) is reasonable but disconnected from web navy/gold
+
+  Notifications (DMs)
+    Single-sentence bodies with reference codes — good length
+    Same gold embed for everything; no distinction between submitted vs completed
+    vs denied
+    Operator DMs prefix [Alta Bank] in title — slightly noisy
+
+  Deal Room
+    Channel welcome is plain embed description — 4 sentences, no title hierarchy
+    Sync messages are plain text, not embeds: "Name via Alta Bank:\nbody"
+    Closed notice duplicates copy in channel embed and constants file
+    DM opener has two link buttons — good; labels slightly long
+
+  Staff audit
+    Plain text: [INFO] [PRODUCT] action — actor — details — View: url
+    Correct for staff, not styled; no severity color coding
+
+  /ping
+    Exposes "Database: connected/not configured" — internal/dev tone, not customer-facing
+
+
+BUTTONS
+-------
+
+  Issue                              Example
+  ---------------------------------  ------------------------------------------
+  Inconsistent link labels           "Open Website" vs "Full account on web" vs
+                                     "Alta Private on web"
+  Back pattern inconsistent          "← All accounts" (Secondary) vs no back on
+                                     action success
+  Confirm uses Success (green)       Good for transfer; Alta Pay lacks equivalent
+  Invitations: Accept=Success,       Standard Discord; for banking, Secondary +
+  Decline=Danger                     Danger may feel more restrained
+  Primary used for "Find recipient"  Competes with nav Primary styling semantics
+
+
+MODALS
+------
+
+  - Titles vary in tone: "Deposit request" vs "Transfer between your accounts" vs
+    "Find Alta Pay recipient"
+  - Amount label says "florins" — correct for Alta; placeholder "e.g. 500" is good
+  - Deposit modal is modern (LabelBuilder + file upload) — best modal in the bot
+  - Pay modal title "Alta Pay" — too short; doesn't say amount/recipient context
+  - No confirm modal pattern — money moves without review step (except transfer)
+
+
+ERRORS (SYSTEMIC)
+-----------------
+
+  - createErrorEmbed title: "Something went wrong" on ~30 call sites
+  - Fallback strings: "Something went wrong with that action", "Something went wrong
+    loading that page", "Something went wrong submitting that form"
+  - formatActionError fallback: "Unable to complete that action. Try again or use
+    the website." — better, but still wrapped in bad title
+  - Linked-account errors use error styling for onboarding — should be info/neutral
+    embed, not red error
+  - Transfer over-limit embeds raw URL in error description — functional but ugly
+
+
+WHAT'S WORKING WELL
+-------------------
+
+  - No emoji spam — aligns with premium direction
+  - Clean financial language in success titles ("Deposit submitted", "Transfer complete")
+  - Ephemeral hub — correct Discord-native pattern
+  - Message editing on hub navigation — feels app-like
+  - Reference codes in monospace — good scan pattern
+  - Calm, specific validation errors in handlers (amount, proof upload, balance)
+
+
+================================================================================
+2. RECOMMENDED EMBED TEMPLATES
+================================================================================
+
+Define 5+ embed types in factory.ts (conceptual — not implementing yet):
+
+
+A. HUB SCREEN (DEFAULT)
+-----------------------
+  Title:     {Screen name}          e.g. "Accounts", "Deposit"
+  Color:     Navy (#0F1729 / 0x0f1729)
+  Footer:    Alta Bank · Newport
+  Timestamp: OFF for hub screens
+  Body:      1–2 lines max in description OR use fields
+  Fields:    Up to 3 inline fields for key metrics
+
+
+B. HUB DETAIL (ACCOUNT, CONFIRM)
+--------------------------------
+  Title:     {Account name} | Confirm transfer
+  Fields:
+    Type          Checking
+    Available     ƒ12,450.00
+    Status        Active
+  Description: Optional single line context only
+
+
+C. SUCCESS
+----------
+  Title:     {Action past tense}     e.g. "Deposit submitted"
+  Color:     Success green (#047857 / 0x047857) — matches web --success
+  Description: One outcome sentence
+  Fields (inline):
+    Amount     ƒ500.00
+    Reference  DEP-2026-0042
+  Footer:    What happens next (one line)
+
+
+D. ERROR
+--------
+  Title:     {Specific problem}      e.g. "Insufficient balance" — NOT generic
+  Color:     Destructive (#B91C1C / 0xb91c1c)
+  Description: What happened + what to do (max 2 sentences)
+  Optional:  Link button "Continue on Alta Bank"
+
+
+E. INFO / ONBOARDING
+--------------------
+  Title:     Link your Alta account
+  Color:     Navy (same as hub — not red)
+  Description: Sign-in instructions
+  Button:    Link to alta.bank
+
+
+F. NOTIFICATION DM
+----------------
+  Title:     {Event}                 e.g. "Deposit approved"
+  Color:     Navy default; green for completed; amber for pending; red for denied
+  Body:      One sentence with amount + account
+  Button:    "View on Alta Bank" (consistent label)
+
+
+G. DEAL ROOM CHANNEL
+--------------------
+  Title:     Secure Deal Room
+  Color:     Navy
+  Fields:
+    Connected to    Alta Bank
+    Messages sync   Both ways
+  Description: One line of behavior expectation
+  Button:    Open on Alta Bank
+
+
+H. DEAL ROOM SYNC (CHANNEL MESSAGE)
+-----------------------------------
+  Embed (not plain text):
+  Title:     {Sender name}
+  Description: {Message preview}
+  Footer:    via Alta Bank
+  Color:     Navy (staff) / slightly muted (applicant) — optional
+
+
+================================================================================
+3. RECOMMENDED BUTTON LAYOUTS
+================================================================================
+
+GLOBAL NAV (2 ROWS — KEEP STRUCTURE, REFINE LABELS)
+---------------------------------------------------
+
+  Row 1 — Money movement
+    Home | Accounts | Deposit | Withdraw | Transfer
+    Secondary except current page (use disabled Secondary, not Primary blurple)
+
+  Row 2 — Pay & exit
+    Alta Pay | Alta Private* | Website
+    *conditional | Link button, label: "Alta Bank" (shorter than "Open Website")
+
+  Rationale: Drop Primary/disabled pattern for nav — use Secondary + disabled for
+  active tab. Reads more "segmented control" than "Discord command bot."
+
+
+ACCOUNT DETAIL ROW
+------------------
+  Alta Bank ↗ (link) | ← Accounts
+  Link first (primary action), back second
+
+
+TRANSFER CONFIRM ROW (KEEP)
+---------------------------
+  Confirm transfer (Success) | Cancel (Secondary)
+  Place below nav rows, alone on row 3
+
+
+ALTA PAY FLOW (ADD CONFIRM ROW)
+-------------------------------
+  Confirm payment (Success) | Cancel (Secondary)
+  After recipient + amount review embed
+
+
+ALTA PAY SEARCH ROW
+-------------------
+  Find recipient (Secondary)
+  Not Primary — reserve emphasis for confirm
+
+
+INVITATION DMS
+--------------
+  Accept (Secondary or Success) | Decline (Secondary)
+  For premium banking: both Secondary; Decline alone is not Danger unless regulatory need
+
+
+DEAL ROOM DM
+------------
+  Discord channel ↗ | Alta Bank ↗
+  Short labels: "Open channel" · "Open Alta Bank"
+
+
+PAGINATION
+----------
+  Replace "◀ Personal" with "Previous" / "Next" + context in embed field:
+  "Personal · 26–50 of 72"
+
+
+================================================================================
+4. RECOMMENDED MODAL COPY
+================================================================================
+
+  Modal        Title              Fields
+  -----------  -----------------  ------------------------------------------
+  Deposit      Deposit            Amount (ƒ) · Screenshot proof
+  Withdraw     Withdraw           Amount (ƒ)
+  Transfer     Transfer           Amount (ƒ) · Memo (optional)
+  Pay search   Find recipient     Name
+  Pay submit   Send payment       Amount (ƒ) · Memo (optional)
+
+  Field labels: Drop "(florins)" from label — use "Amount (ƒ)" once globally.
+
+  Placeholders:
+    Amount:     500.00
+    Memo:       Optional note
+    Recipient:  Name or company
+    Proof desc: PNG, JPG, or WebP · max 8 MB
+
+  Validation (modal-adjacent ephemeral):
+    Amount:  "Enter an amount greater than zero."
+    Proof:   "Add one screenshot (PNG, JPG, or WebP, max 8 MB)."
+    Search:  "Enter at least 2 characters."
+
+
+================================================================================
+5. RECOMMENDED SUCCESS / ERROR COPY
+================================================================================
+
+SUCCESS TITLES
+--------------
+
+  Action          Title                      Body
+  --------------  -------------------------  ----------------------------------
+  Deposit         Deposit submitted          Pending Alta review. Funds credit
+                                             after approval.
+  Withdraw        Withdrawal submitted       Pending Alta processing.
+  Transfer        Transfer complete          Moved between your Alta accounts.
+  Alta Pay        Payment sent               Paid {payee} from {source}.
+  Invite accept   Welcome to Alta Private    Membership is active.
+  Deal room       Secure Deal Room ready     Private channel created for your
+                                             application.
+
+
+ERROR TITLES (REPLACE "SOMETHING WENT WRONG")
+---------------------------------------------
+
+  Situation              Title                      Body
+  ---------------------  -------------------------  ---------------------------
+  Generic failure        Couldn't complete request  Try again, or continue on
+                                                    Alta Bank.
+  Not linked             Account not linked         Sign in at Alta Bank with
+                                                    Discord to link.
+  Session expired        Session expired            Run /bank to continue.
+  Insufficient balance   Insufficient balance       Reduce the amount or choose
+                                                    another account.
+  Over limit             Amount exceeds Discord     Max ƒ{X} per request. Continue
+                         limit                      on Alta Bank.
+  Permission             Access denied              You don't have permission for
+                                                    this action.
+  Proof invalid          Invalid screenshot         Upload PNG, JPG, or WebP
+                                                    (max 8 MB).
+  Account unavailable    Account unavailable        That account can't be used
+                                                    for this action.
+
+
+NOTIFICATION DM TITLES
+----------------------
+  Drop [Alta Bank] prefix — footer handles brand.
+
+  - Deposit submitted / approved / denied
+  - Withdrawal submitted / approved / denied
+  - Transfer complete / received
+  - Alta Pay sent / received
+
+  Denied notifications — add calm next step:
+    "Your deposit of ƒ500 (DEP-0042) was denied. Open Alta Bank for details or
+     contact support."
+
+
+================================================================================
+6. COLOR PALETTE
+================================================================================
+
+Align Discord embeds with altaweb/src/styles.css:
+
+  Token                  Hex        Discord color  Use
+  ---------------------  ---------  -------------  ---------------------------
+  Navy (primary)         #0F1729     0x0f1729       Default hub, info, Deal Room,
+                                                    DMs
+  Ivory (text ref)       #F7F3EA     —              Not an embed color; copy tone
+  Gold (accent)          #C9A45C     0xc9a45c       Alta Private, premium
+                                                    highlights — NOT default stripe
+  Gold muted (Private)   #8B7355     0x8b7355       Alta Private member screens
+  Success                #047857     0x047857       Completed transfers,
+                                                    approvals, confirm
+  Pending / warning      #B45309     0xb45309       Submitted, pending review
+  Error                  #B91C1C     0xb91c1c       Denied, validation, blocked
+  Muted text             #526071     —              Footer, secondary lines
+
+  Rule: Default banking embed = navy. Gold is accent, not background color.
+  Current all-gold embeds are the single biggest "generic bot" signal.
+
+
+================================================================================
+7. MESSAGE LENGTH RULES
+================================================================================
+
+  Surface            Title        Description     Fields              Total feel
+  -----------------  -----------  --------------  ------------------  ------------
+  Hub screen         ≤40 chars    ≤120 chars or   ≤3 fields,          5-second scan
+                                    0 if fields     ≤40 chars/value
+  Account detail     Account name 0               4 inline + 5 bullets
+  Action explainer   Screen name  1 sentence      Limits as 1 field
+  Confirm            Confirm {x}  0               4–6 inline fields
+  Success            Past tense   1 sentence      Amount + Reference
+  Error              Specific     ≤2 sentences    0                   Actionable
+  Modal              ≤25 chars    —               ≤5 inputs
+  Button label       ≤20 chars    —               —                   No arrows unless
+                                                                      pagination
+  DM notification    Event name   1 sentence      0
+  Deal Room welcome  Secure Deal  1 sentence      2 inline fields
+                     Room
+  Deal Room sync     Sender name  ≤280 chars      0
+  Staff audit        —            Plain text OK   —                   ≤1 line
+
+
+NEVER IN CUSTOMER EMBEDS:
+  - Discord UI instructions (move to placeholder text or one-time tooltip)
+  - Stack traces or internal codes (DOWNLOAD_FAILED, FORBIDDEN)
+  - Raw URLs in description (use link buttons)
+  - More than 6 bullet lines in one embed
+
+
+================================================================================
+8. BEFORE / AFTER EXAMPLES
+================================================================================
+
+HOME EMBED
+----------
+
+  Before:
+    Title: Alta Bank
+    Description:
+      Your everyday banking in Discord.
+
+      **Total balance** ƒ45,200.00
+      **Active accounts** 3
+      **Pending deposits** 1
+
+      **Recent activity**
+      • Jul 1 · Deposit · ƒ500.00
+      • Jun 30 · Transfer · -ƒ200.00
+      ...
+    Color: gold · Timestamp: yes
+
+  After:
+    Title: Alta Bank
+    Color: navy · Timestamp: no
+
+    Fields (inline):
+      Total balance    ƒ45,200.00
+      Active accounts  3
+      Pending          1 deposit
+
+    Description:
+      Recent activity
+      • Jul 1 · Deposit · ƒ500.00
+      • Jun 30 · Transfer · -ƒ200.00
+      (up to 5 lines)
+
+
+ACCOUNTS (REMOVE DISCORD TUTORIAL)
+----------------------------------
+
+  Before:
+    _Open a dropdown below, then scroll the list to pick an account._
+    _Discord shows up to 25 accounts per menu; use ▶ if you have more._
+
+  After:
+    Fields:
+      Personal  12 accounts
+      Business  4 accounts
+
+    Description: (empty)
+    Placeholder on select: "Choose personal account"
+    Pagination: Secondary buttons "Previous" / "Next" only when needed
+
+
+ERROR EMBED
+-----------
+
+  Before:
+    Title: Something went wrong
+    Description: This transfer couldn't be completed because your available
+                 balance is insufficient.
+    Color: red
+
+  After:
+    Title: Insufficient balance
+    Description: Reduce the amount or choose another account.
+    Color: red
+    Button: (none — user is already in hub)
+
+
+TRANSFER CONFIRM (MINOR POLISH)
+-------------------------------
+
+  Before: description with 6 bold lines
+
+  After: fields
+    From          Checking ···4821
+    To            Savings ···9102
+    Amount        ƒ1,000.00
+    Fee           ƒ0.00
+    Total debited ƒ1,000.00
+
+
+ALTA PAY (ADD CONFIRM — DESIGN GAP)
+-----------------------------------
+
+  Before: Modal → immediate success embed
+
+  After:  Modal → Confirm payment embed with fields (Pay to, From, Amount) →
+          Confirm / Cancel → Success embed (green)
+
+
+DEAL ROOM SYNC
+--------------
+
+  Before (plain text):
+    Jane Applicant via Alta Bank:
+    I've uploaded the documents you requested.
+
+  After (embed):
+    Title: Jane Applicant
+    Description: I've uploaded the documents you requested.
+    Footer: Alta Bank · Secure Deal Room
+    Color: navy
+
+
+/PING (CUSTOMER-FACING)
+-----------------------
+
+  Before:
+    Database: connected
+    Alta account: **username**
+
+  After:
+    Title: Alta Bank
+    Fields:
+      Status     Online
+      Account    Linked as **username**
+    Description: Use /bank to open your dashboard.
+    (Omit database entirely)
+
+
+STAFF AUDIT (OPTIONAL EMBED UPGRADE — LOWER PRIORITY)
+-----------------------------------------------------
+
+  Before:
+    [INFO] [BANKING] Deposit approved — @staff — ƒ500 — View: https://...
+
+  After (if embed adopted):
+    Title: Deposit approved
+    Color: green (INFO) / amber (WARN) / red (CRITICAL)
+    Fields: Actor · Amount · Reference
+    Footer: View on internal dashboard (link)
+
+
+================================================================================
+9. PRIORITY ORDER FOR REDESIGN
+================================================================================
+
+P0 — FOUNDATION (UNBLOCKS EVERYTHING)
+-------------------------------------
+  1. Embed factory overhaul — navy default, semantic success/pending/error/info,
+     remove timestamp on hub, fix error titles
+  2. Replace all "Something went wrong" titles with specific titles at call sites
+  3. Not-linked flow — info embed, not error red
+
+
+P1 — HUB FEEL (HIGHEST USER VISIBILITY)
+---------------------------------------
+  4. Nav button styling — Secondary/disabled active tab; shorten "Open Website"
+     → "Alta Bank"
+  5. Home + Accounts — move metrics to fields; remove Discord UX tutorial text
+  6. Account detail — fields for metadata; cap transactions at 5
+  7. Action pages (Deposit/Withdraw/Transfer/Alta Pay) — one-line description +
+     limits as field; shorten step copy
+
+
+P2 — MONEY MOVEMENT TRUST
+-------------------------
+  8. Alta Pay confirmation screen — match transfer confirm pattern
+  9. Success embeds — green color + structured fields
+  10. Transfer/error over-limit — link button instead of raw URL in description
+
+
+P3 — CONSISTENCY PASS
+---------------------
+  11. Modal title/label standardization (Section 4)
+  12. Button label consistency (link buttons, back buttons)
+  13. Notification DMs — semantic colors; remove [Alta Bank] title prefix
+  14. Invitation DMs — navy default; softer button styles
+
+
+P4 — DEAL ROOM & STAFF
+----------------------
+  15. Deal Room welcome embed — template G
+  16. Deal Room sync — embed format instead of plain text
+  17. Deal Room closed — shorter, single-purpose embed
+  18. /ping cleanup — remove internal diagnostics
+  19. Staff audit embeds (optional) — severity colors
+
+
+P5 — POLISH
+-----------
+  20. Author icon / thumbnail — Alta mark in embed corner
+  21. Alta Private — align private bronze with web private section
+  22. Pagination copy — remove arrow characters
+  23. Pay modal memo field
+
+
+================================================================================
+KEY SOURCE FILES (FOR IMPLEMENTATION)
+================================================================================
+
+  altabot/src/discord/embeds/factory.ts       Embed factory, error embed
+  altabot/src/config/brand.ts                 Colors, footer
+  altabot/src/discord/hub/views.ts            Home, accounts, private screens
+  altabot/src/discord/hub/actions/views.ts    Deposit, withdraw, transfer, pay
+  altabot/src/discord/hub/actions/modals.ts   Modal titles and fields
+  altabot/src/discord/hub/actions/handlers.ts Success/error ephemeral replies
+  altabot/src/alta/actions.ts                 Success titles, formatActionError
+  altabot/src/events/interactionCreate.ts     Generic error fallbacks
+  altaweb/src/lib/discord/notification-dm.ts  Customer DM payloads
+  altaweb/src/lib/discord/invitation-dm.ts    Invitation DM payloads
+  altaweb/src/lib/bank/secure-deal-room-discord-copy.ts  Deal Room copy
+  altaweb/src/lib/staff-audit/staff-audit-format.ts      Staff audit messages
+  altaweb/src/styles.css                      Web color tokens (reference)

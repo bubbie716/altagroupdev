@@ -3,8 +3,13 @@ import { requireOperator } from "@/server/permissions.service";
 import { isAdmin } from "@/lib/auth/permissions";
 import type { OperatorNotificationOptions } from "@/lib/internal/operator-notification-options";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
-import { submitOperatorInternalTransfer } from "@/server/bank.service";
+import { submitOperatorInternalTransfer, normalizeAccountNumber } from "@/server/bank.service";
+import { formatFlorin } from "@/lib/bank/format";
 import { reversalAdjustmentDescription } from "@/lib/bank/customer-transaction-copy";
+import {
+  adjustmentReversalNote,
+  isAdjustmentReversalNote,
+} from "@/lib/bank/adjustment-reversal";
 
 function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
@@ -12,6 +17,10 @@ function decimalToNumber(value: { toString(): string }): number {
 
 function badRequest(msg: string): never {
   throw new Error(`BAD_REQUEST:${msg}`);
+}
+
+function notFound(): never {
+  throw new Error("NOT_FOUND");
 }
 
 export async function reopenBankAccount(
@@ -327,18 +336,89 @@ export async function adminManualTransfer(
     amount: number;
     memo: string;
     reason: string;
+    silentNotification?: boolean;
   },
 ): Promise<{ referenceCode: string }> {
   await requireOperator();
   const trimmed = input.reason.trim();
   if (!trimmed) badRequest("Reason is required");
 
-  const result = await submitOperatorInternalTransfer({
-    fromAccountId: input.fromAccountId,
-    toAccountNumber: input.toAccountNumber,
-    amount: input.amount,
-    memo: `${input.memo.trim() || "Operator transfer"} · ${trimmed}`,
+  const fromAccount = await prisma.bankAccount.findUnique({ where: { id: input.fromAccountId } });
+  if (!fromAccount) notFound();
+
+  const toAccountNumber = normalizeAccountNumber(input.toAccountNumber);
+  const toAccount = await prisma.bankAccount.findUnique({ where: { accountNumber: toAccountNumber } });
+
+  let result: { referenceCode: string };
+  try {
+    result = await submitOperatorInternalTransfer({
+      fromAccountId: input.fromAccountId,
+      toAccountNumber: input.toAccountNumber,
+      amount: input.amount,
+      memo: `${input.memo.trim() || "Operator transfer"} · ${trimmed}`,
+    });
+  } catch (error) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId,
+      actionAttempted: "ADMIN_MANUAL_TRANSFER",
+      failureReason: error instanceof Error ? error.message.replace(/^BAD_REQUEST:/, "") : "Transfer failed",
+      entityType: "BANK_ACCOUNT",
+      entityId: input.fromAccountId,
+      targetAccountId: input.fromAccountId,
+      amount: input.amount,
+      source: "INTERNAL",
+      internalLink: `/internal/bank/accounts/${input.fromAccountId}`,
+    });
+    throw error;
+  }
+
+  const notificationOptions = { silentNotification: input.silentNotification };
+  const { deliverOperatorCustomerNotification, notifyBankAccountCustomersBestEffort } = await import(
+    "@/server/customer-operator-notification.service"
+  );
+
+  const { auditMetadata: sourceAudit } = await deliverOperatorCustomerNotification({
+    actorUserId,
+    notificationOptions,
+    deliver: async () =>
+      notifyBankAccountCustomersBestEffort({
+        account: {
+          id: fromAccount.id,
+          accountNumber: fromAccount.accountNumber,
+          userId: fromAccount.userId,
+          companyId: fromAccount.companyId,
+        },
+        kind: "manual_debit",
+        amount: input.amount,
+        customerFacingReason: "Funds were transferred from your account by Alta Bank.",
+        source: "admin_manual_transfer",
+        actorUserId,
+        silentNotification: input.silentNotification,
+      }),
   });
+
+  if (toAccount) {
+    await deliverOperatorCustomerNotification({
+      actorUserId,
+      notificationOptions,
+      deliver: async () =>
+        notifyBankAccountCustomersBestEffort({
+          account: {
+            id: toAccount.id,
+            accountNumber: toAccount.accountNumber,
+            userId: toAccount.userId,
+            companyId: toAccount.companyId,
+          },
+          kind: "manual_credit",
+          amount: input.amount,
+          customerFacingReason: "Funds were deposited to your account by Alta Bank.",
+          source: "admin_manual_transfer",
+          actorUserId,
+          silentNotification: input.silentNotification,
+        }),
+    });
+  }
 
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
@@ -348,7 +428,17 @@ export async function adminManualTransfer(
     entityId: input.fromAccountId,
     targetAccountId: input.fromAccountId,
     description: `Manual transfer ${result.referenceCode}`,
-    metadata: { ...input, reason: trimmed },
+    metadata: { ...input, reason: trimmed, source: "website", ...sourceAudit },
+  });
+
+  const { sendStaffAuditMessage } = await import("@/server/staff-audit-notification.service");
+  sendStaffAuditMessage({
+    product: "Banking",
+    action: "Manual operator transfer",
+    actorUserId,
+    details: `${formatFlorin(input.amount)} · ${fromAccount.accountNumber} → ${toAccountNumber}`,
+    internalUrl: `/internal/bank/accounts/${input.fromAccountId}`,
+    severity: "INFO",
   });
 
   return result;
@@ -371,6 +461,23 @@ export async function reverseAdjustment(
   const trimmed = reason.trim();
   if (!trimmed) badRequest("Reason is required");
 
+  const { isSilentNotificationForbidden, silentNotificationForbiddenMessage } = await import(
+    "@/lib/internal/silent-notification-restrictions"
+  );
+  if (isSilentNotificationForbidden({ kind: "payment_reversed", action: "payment_reversal" }, notificationOptions)) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId,
+      actionAttempted: "SILENT_NOTIFICATION",
+      auditAction: "OPS_SILENT_NOTIFICATION_REJECTED",
+      failureReason: silentNotificationForbiddenMessage({ kind: "payment_reversed", action: "payment_reversal" }),
+      entityType: "BANK_TRANSACTION",
+      entityId: transactionId,
+      source: "INTERNAL",
+    });
+    badRequest(silentNotificationForbiddenMessage({ kind: "payment_reversed", action: "payment_reversal" }));
+  }
+
   const original = await prisma.bankTransaction.findUnique({
     where: { id: transactionId },
     include: { bankAccount: true },
@@ -378,20 +485,67 @@ export async function reverseAdjustment(
   if (!original || original.type !== "ADJUSTMENT" || original.status !== "APPROVED") {
     badRequest("Only approved adjustments can be reversed");
   }
+  if (isAdjustmentReversalNote(original.reviewNote)) {
+    badRequest("Cannot reverse a reversal adjustment.");
+  }
+
+  const existingReversal = await prisma.bankTransaction.findFirst({
+    where: {
+      bankAccountId: original.bankAccountId,
+      type: "ADJUSTMENT",
+      status: "APPROVED",
+      reviewNote: { contains: adjustmentReversalNote(original.referenceCode) },
+    },
+  });
+  if (existingReversal) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId,
+      actionAttempted: "ADJUSTMENT_REVERSAL",
+      auditAction: "OPS_ACTION_FAILED",
+      failureReason: "Adjustment already reversed",
+      entityType: "BANK_TRANSACTION",
+      entityId: transactionId,
+      targetTransactionId: transactionId,
+      targetAccountId: original.bankAccountId,
+      source: "INTERNAL",
+      internalLink: `/internal/bank/transactions/${transactionId}`,
+    });
+    badRequest(`This adjustment was already reversed (${existingReversal.referenceCode}).`);
+  }
 
   const amount = decimalToNumber(original.amount);
   const direction = /debit adjustment|admin debit/i.test(original.description) ? "credit" : "debit";
+  const linkNote = adjustmentReversalNote(original.referenceCode);
 
   const { adminAdjustBankAccount } = await import("@/server/bank.service");
-  const result = await adminAdjustBankAccount(actorUserId, {
-    accountId: original.bankAccountId,
-    direction: direction as "credit" | "debit",
-    amount,
-    reason: trimmed,
-    customerDescription: reversalAdjustmentDescription(original.description),
-    allowOverdraft: isAdmin(actor),
-    silentNotification: notificationOptions?.silentNotification,
-  });
+  let result: { transactionId: string; referenceCode: string };
+  try {
+    result = await adminAdjustBankAccount(actorUserId, {
+      accountId: original.bankAccountId,
+      direction: direction as "credit" | "debit",
+      amount,
+      reason: `${trimmed} (${linkNote})`,
+      customerDescription: reversalAdjustmentDescription(original.description),
+      allowOverdraft: isAdmin(actor),
+      silentNotification: notificationOptions?.silentNotification,
+    });
+  } catch (error) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId,
+      actionAttempted: "ADJUSTMENT_REVERSAL",
+      failureReason: error instanceof Error ? error.message.replace(/^BAD_REQUEST:/, "") : "Reversal failed",
+      entityType: "BANK_TRANSACTION",
+      entityId: transactionId,
+      targetTransactionId: transactionId,
+      targetAccountId: original.bankAccountId,
+      amount,
+      source: "INTERNAL",
+      internalLink: `/internal/bank/transactions/${transactionId}`,
+    });
+    throw error;
+  }
 
   const { buildOperatorNotificationAuditMetadata } = await import(
     "@/lib/internal/operator-notification-options"
@@ -402,7 +556,21 @@ export async function reverseAdjustment(
     !notificationOptions?.silentNotification,
   );
 
+  await prisma.$transaction(async (tx) => {
+    const { recordAdjustmentReversalGroupInTx } = await import("@/server/payment-entity.service");
+    await recordAdjustmentReversalGroupInTx(tx, {
+      referenceCode: result.referenceCode,
+      originalTransactionId: transactionId,
+      originalReferenceCode: original.referenceCode,
+      reversalTransactionId: result.transactionId,
+      reversalReferenceCode: result.referenceCode,
+      reversedByUserId: actorUserId,
+      reason: trimmed,
+    });
+  });
+
   const { writeAuditLog } = await import("@/server/audit.service");
+  const { buildLinkedReversalMetadata } = await import("@/lib/internal/transaction-reversal-link");
   await writeAuditLog({
     actorUserId,
     action: "BANK_REVERSAL_POSTED",
@@ -414,9 +582,20 @@ export async function reverseAdjustment(
     description: `Reversed adjustment ${original.referenceCode}`,
     metadata: {
       originalReference: original.referenceCode,
+      originalTransactionId: transactionId,
       reversalReference: result.referenceCode,
       reason: trimmed,
+      reversesAdjustment: original.referenceCode,
       source: "website",
+      ...buildLinkedReversalMetadata({
+        originalTransactionId: transactionId,
+        originalReferenceCode: original.referenceCode,
+        reversalTransactionId: result.transactionId,
+        reversalReferenceCode: result.referenceCode,
+        reversalReason: trimmed,
+        reversedByUserId: actorUserId,
+        reversalKind: "adjustment",
+      }),
       ...auditMetadata,
     },
   });

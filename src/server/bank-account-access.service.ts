@@ -25,6 +25,8 @@ export function bankAccountAccessWhere(
   access: CompanyBankAccountAccess,
 ): Prisma.BankAccountWhereInput {
   const companyIds = companyIdsForBankAccess(user, access);
+  // Company-owned accounts (ownershipType COMPANY) are accessed via membership —
+  // not solely through the creating user's userId.
   return {
     OR: [
       { userId: user.id, companyId: null },

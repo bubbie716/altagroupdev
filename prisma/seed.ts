@@ -68,6 +68,42 @@ const devMemberships: Record<string, { companyId: string; role: CompanyRole }[]>
 };
 
 async function main() {
+  await prisma.financialInstitution.upsert({
+    where: { id: "inst-alta-bank" },
+    create: {
+      id: "inst-alta-bank",
+      name: "Alta Bank",
+      shortName: "Alta",
+      routingPrefix: "AB",
+      institutionType: "BANK",
+      status: "ACTIVE",
+      isAlta: true,
+      isNCCParticipant: false,
+    },
+    update: {
+      name: "Alta Bank",
+      shortName: "Alta",
+      routingPrefix: "AB",
+      status: "ACTIVE",
+      isAlta: true,
+    },
+  });
+
+  await prisma.routingNumber.upsert({
+    where: { routingNumber: "011000001" },
+    create: {
+      id: "rn-alta-primary",
+      routingNumber: "011000001",
+      financialInstitutionId: "inst-alta-bank",
+      status: "ACTIVE",
+      label: "Alta Bank Primary Routing",
+    },
+    update: {
+      status: "ACTIVE",
+      financialInstitutionId: "inst-alta-bank",
+    },
+  });
+
   for (const company of companies) {
     await prisma.company.upsert({
       where: { id: company.id },

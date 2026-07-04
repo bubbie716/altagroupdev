@@ -41,6 +41,7 @@ import {
   closeDiscordSessionsForDealRoom,
   notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
+  resyncDealRoomDiscordOnReopenBestEffort,
   resolveDealRoomContextForStaffMessage,
   syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
@@ -489,6 +490,15 @@ export async function reopenAltaCardApplicationThread(
     entityId: applicationId,
     description: "Alta Card application thread reopened",
     metadata: { applicationId, threadId: thread.id },
+  });
+
+  void resyncDealRoomDiscordOnReopenBestEffort({
+    dealRoomType: "ALTA_CARD_APPLICATION",
+    dealRoomId: applicationId,
+    threadId: thread.id,
+    applicantUserId: thread.applicantUserId,
+    welcomeBody: "Your Alta Card application Secure Deal Room has been reopened.",
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_APPLICATION", applicationId),
   });
 
   return mapThreadContext(updated, user, "internal");

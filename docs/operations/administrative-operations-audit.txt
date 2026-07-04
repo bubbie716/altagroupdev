@@ -1,0 +1,775 @@
+Alta Bank — Administrative Operations Audit
+=============================================
+Scope: Internal operations only (permissions, money movement, approvals, audit,
+recovery, deal rooms, notifications, data integrity, scalability). No
+customer-facing product review, no code quality review, no visual UI critique.
+
+Perspective: COO / CRO / CCO preparing for a premium digital institution.
+
+Method: Full codebase review of altaweb server layer, internal ops services,
+audit infrastructure, and altabot staff paths — cross-referenced with existing
+ops reports in altaweb/docs/operations/.
+
+Date: July 3, 2026
+
+
+================================================================================
+1. OVERALL OPERATIONAL READINESS SCORE
+================================================================================
+
+64 / 100 — Conditionally Ready for Controlled Launch
+
+Domain                              Score   Assessment
+----------------------------------  ------  ------------------------------------------
+Auditability                        78      Strong centralized writeAuditLog() (~155
+                                            actions); gaps on failures and non-atomic audit
+Permissions & separation of duties  55      Tag model exists; operator ≈ admin for money;
+                                            Discord staff bypass
+Money movement controls             58      Good confirm/reason UX; weak server
+                                            enforcement and concurrency
+Approval workflows                  50      Single-operator everywhere; no expiry, no
+                                            dual control
+Operational safety / idempotency    62      Status guards work; races and double-reversal
+                                            paths remain
+Recovery & corrections              65      Adjustments/Alta Pay/Card reversible;
+                                            deposit/withdrawal approval not
+Deal room operations                60      V1 threads solid; legacy ops + Discord sync
+                                            fragile on reopen
+Internal notes                      70      Append-only, audited; no visibility tiers or
+                                            edit lifecycle
+Notifications                       72      Operator DMs + staff audit channel; no retry,
+                                            some blind spots
+Data integrity                      52      TOCTOU overdraft, withdrawal approval ignores
+                                            holds
+Scalability (10k / 1k / 100 staff)  62      V1 hardening helps reads; write-heavy ops and
+                                            unbounded lists lag
+
+Verdict: Alta can run day-to-day ops for a few hundred customers with a
+disciplined team. It is NOT yet institution-grade for 10,000 customers, 100
+staff, and concurrent money movement without fixing financial integrity and
+control gaps.
+
+
+================================================================================
+2. TOP STRENGTHS
+================================================================================
+
+1. Centralized audit architecture — Every meaningful operator action flows
+   through writeAuditLog() → AuditLog → optional staff Discord channel. Money
+   movement, company verification, lending/card decisions, deal room ops, and
+   internal notes are covered.
+
+2. Consistent operator action pattern — OpsConfirmDialog requires a reason for
+   most money-moving actions; silent customer notification is explicit, logged,
+   and defaults to notify. This is the right institutional instinct.
+
+3. Status-guarded approvals — Deposits, withdrawals, loan/card applications,
+   and company verification reject double-approve/double-deny at the status
+   level. Bulk ops exist with aggregate impact preview.
+
+4. Correction-by-offset model — Manual credits/debits, Alta Pay reversals, Alta
+   Card transaction reversals, and account reopen create new ledger entries
+   rather than mutating history. Audit trail stays court-readable.
+
+5. Credit Desk institutional controls — Admin-only desk open/close; closing
+   bulk-cancels pending applications with system messages and thread closure.
+   Real bank behavior.
+
+6. Internal notes are append-only and audited — INTERNAL_NOTE_ADDED on every
+   note; no silent deletion. Good for investigations.
+
+7. Tag management has real guardrails — Last-admin protection, self-admin
+   lockout, operator cannot grant/revoke staff tags. Alta Private invitations
+   are admin-only.
+
+8. V1 performance hardening — Deduped loaders, debounced search, scoped 360
+   views. Shows ops scalability was considered.
+
+
+================================================================================
+3. TOP OPERATIONAL RISKS
+================================================================================
+
+#   Risk                                              Severity   Why it matters
+--  ------------------------------------------------  ---------  -----------------
+1   No dual control on any money movement             Critical   One operator can
+                                                                   credit, debit,
+                                                                   approve, and
+                                                                   reverse without
+                                                                   oversight
+2   TOCTOU balance races                              Critical   Concurrent
+                                                                   transfers, Alta
+                                                                   Pay, loan payments
+                                                                   can overdraw; no
+                                                                   DB non-negative
+                                                                   constraint
+3   Withdrawal approval ignores pending withdrawals   Critical   Operators can
+    + holds                                                      approve more
+                                                                   outflow than
+                                                                   available balance
+4   Alta Pay double-reversal                          High       Original stays
+                                                                   APPROVED; no
+                                                                   reversal linkage
+                                                                   — repeat reversal
+                                                                   creates duplicate
+                                                                   money
+5   Interbank scheduled transfers stuck in            High       No approve/reject/
+    PENDING_REVIEW                                               execute path —
+                                                                   customer-facing
+                                                                   feature with no
+                                                                   ops fulfillment
+6   Operator ≈ Admin for banking                      High       requireOperator()
+                                                                   gates nearly all
+                                                                   financial ops;
+                                                                   admin separation
+                                                                   is cosmetic
+7   Discord staff role bypasses Alta tag system       High       DISCORD_DEAL_ROOM_
+                                                                   STAFF_ROLE_IDS
+                                                                   grants bot/deal-
+                                                                   room staff without
+                                                                   DB tag or audit of
+                                                                   grant
+8   Audit not co-transactional with money             High       Money can commit
+                                                                   while audit write
+                                                                   fails — compliance
+                                                                   gap under failure
+9   No undo for approved deposit/withdrawal           High       Wrong approval
+                                                                   requires manual
+                                                                   offsetting
+                                                                   adjustment —
+                                                                   error-prone, no
+                                                                   linked reversal
+10  Deal room reopen leaves Discord locked            Medium     Website thread
+                                                                   works; Discord
+                                                                   sync dead until
+                                                                   manual fix
+11  Company viewer can move money server-side         Medium     Business treasury
+                                                                   UI restricts
+                                                                   roles; core bank
+                                                                   APIs check
+                                                                   membership only
+12  Failed money-movement attempts not audited        Medium     No trail for
+                                                                   blocked/failed bot
+                                                                   or web transfers
+                                                                   — investigations
+                                                                   blind
+
+
+================================================================================
+4. MISSING OPERATIONAL CONTROLS
+================================================================================
+
+Control                              Current state                    Needed
+-----------------------------------  -------------------------------  ------------------
+Dual approval for high-value actions None                             Threshold-based
+                                                                      second approver
+Approval assignment / lock on        None                             Prevent two
+queue items                                                           operators working
+                                                                      same item
+Pending deposit/withdrawal expiry    Items sit forever                Auto-expire or
+                                                                      escalate after SLA
+Interbank wire fulfillment workflow  Created as PENDING_REVIEW,       Approve → execute
+                                     no ops path                      → audit
+Generic bank transaction reversal    Only adjustments, Alta Pay,      Linked reversal
+                                     Alta Card                        for approved
+                                                                      deposit/withdrawal
+Balance reconciliation job           Alta Card has                    Nightly balance vs.
+                                     reconcileBusinessCardLedger();   transaction sum
+                                     bank has none                    check
+Failed-attempt audit trail           Missing                          Log all blocked
+                                                                      transfers, pay
+                                                                      failures,
+                                                                      validation rejects
+Permission-denied audit              OPS_PERMISSION_DENIED not logged Security
+                                                                      investigations
+                                                                      need this
+Notification delivery tracking       Fire-and-forget DMs                Retry queue +
+                                                                      OPS_NOTIFICATION_
+                                                                      DELIVERY_FAILED
+                                                                      audit
+Case management                      Exceptions queue has             Open case → owner
+                                     disposition only                 → resolution for
+                                                                      investigations
+Card dispute workflow                Missing                          Intake, investigate,
+                                                                      resolve chargebacks
+Queue SLA alerting                   Aging UI exists; no proactive    Notify ops when
+                                     alerts                           items breach policy
+Approval amount thresholds           None                             e.g. manual credit
+                                                                      > ƒX requires admin
+                                                                      or second approver
+Service-layer auth on sensitive      Many rely on caller-side         Defense-in-depth in
+mutations                            requireOperator()                bank.service.ts,
+                                                                      etc.
+
+
+================================================================================
+5. MISSING PERMISSIONS
+================================================================================
+
+Gap                                  Detail
+-----------------------------------  ------------------------------------------
+Tiered operator roles                Only admin and operator; no Credit Desk
+                                     officer, Ops specialist, or read-only
+                                     auditor
+Read-only internal access            No auditor/compliance role that can view
+                                     audit + accounts but not move money
+Scoped company access for staff      Admin/operator see all companies and Alta
+                                     Cards regardless of assignment
+Freeze restricted to admin           Correct for frozen; but operator can close,
+                                     restrict, hold, adjust — effectively same
+                                     power
+Operator can grant developer and     Broader than pure banking ops
+issuer tags
+Deal room cleanup without            deleteClosedDealRoomChannels trusts caller;
+service-level check                  bot command checks staff first
+No per-action permission matrix      Docs acknowledge future split
+                                     (permissions.md); not implemented
+
+Recommended permission tiers (practical, not bureaucratic):
+
+- Operator — Queue review (deposit/withdraw/verify), notes, deal room
+  messaging, flags
+- Senior Operator / Credit Desk — Manual adjustments up to threshold,
+  loan/card decisions, Alta Pay reverse
+- Admin — Tag management, platform toggles, overdraft debits, manual interest,
+  Alta Private, cron jobs, unlimited adjustments
+- Auditor (read-only) — Audit log, account/transaction view, no mutations
+
+
+================================================================================
+6. MISSING APPROVAL WORKFLOWS
+================================================================================
+
+Workflow                    Current                              Gap
+--------------------------  -----------------------------------  ------------------
+Deposits / withdrawals      Single operator                      No second approver
+                                                                 for large amounts
+Manual credit/debit         Immediate on submit                  No approval queue;
+                                                                 operator posts
+                                                                 directly
+Manual operator transfer    Immediate                            No review; no
+                                                                 customer DM
+Loan approval               Single operator; creates loan        No undo;
+                            atomically                           disbursement coupled
+                                                                 to approval
+Alta Card approval          Single operator                      No tiered approval
+                                                                 for high limits
+Company verification        Single operator                      Revoke exists; no
+                                                                 dual verify for
+                                                                 high-risk entities
+Alta Private invitation     Admin sends; customer accepts        Correct — no gap
+Interbank scheduled         PENDING_REVIEW forever               No workflow at all
+transfer
+Account opening             Single operator                      Fine for V1
+(review-type)
+Bulk approve                Single operator, sequential loop     No atomic batch;
+                                                                 partial failures
+                                                                 possible
+Credit desk close           Admin only                           Good — bulk cancel
+                                                                 is institutional
+
+
+================================================================================
+7. MISSING RECOVERY WORKFLOWS
+================================================================================
+
+Mistake                     Recovery today                       Gap
+--------------------------  -----------------------------------  ------------------
+Wrong manual credit/debit   reverseAdjustment() or offsetting    API exists; no UI
+                            adjustment                           wired for
+                                                                 reverseAdjustmentOps
+Wrong Alta Pay              reverseAltaPayPayment()                Works; double-
+                                                                 reversal not blocked
+Wrong Alta Card charge      reverseAltaCardTransaction()         Works; marks original
+                                                                 REVERSED
+Wrong approved deposit      Manual debit adjustment              No linked reversal;
+                                                                 no dedicated "undo
+                                                                 approval"
+Wrong approved withdrawal   Manual credit adjustment             Same
+Wrong loan approval         None                                 Loan + optional
+                                                                 disbursement
+                                                                 created; no rollback
+Wrong company verification  revokeCompanyVerification()          Works
+Accidental account close    reopenBankAccount()                  Works
+Accidental freeze           unfreezeBankAccount()                Works; admin-only
+                                                                 for freeze
+Deal room closed by         reopenThread()                       Works on web;
+mistake                                                          Discord stays locked
+Wrong officer assignment    Reassign                             Old participant rows
+                                                                 may retain access
+
+Principle violation: Corrections should preserve history via offsetting entries
+(mostly done) but should link original ↔ reversal in metadata. Alta Pay and
+deposit/withdrawal approvals lack this linkage.
+
+
+================================================================================
+8. DANGEROUS WORKFLOWS
+================================================================================
+
+Workflow                    Danger                               Mechanism
+--------------------------  -----------------------------------  ------------------
+Bulk approve withdrawals    Over-approve aggregate outflow       Each item checks
+                                                                 raw balance only,
+                                                                 not cumulative
+                                                                 pending
+Alta Pay reverse (repeat)   Duplicate money                      No mark on original;
+                                                                 status stays APPROVED
+Manual operator transfer    Silent to customer                   Audit only; customer
+                                                                 never notified
+Concurrent cron + manual    Double accrual                       Interest guarantee
+interest                                                         race documented in
+                                                                 admin audit
+Payroll partial failure     Some employees paid, run marked      Retry may double-pay
+                            FAILED
+Loan approve + disburse     Irreversible funding                 Atomic; no separation
+                                                                 of approve vs. fund
+Credit desk close           Bulk terminal decisions              Correct behavior but
+                                                                 irreversible for
+                                                                 pending apps
+Silent notification on deny Customer unaware of block           Allowed by design;
+                                                                 must be restricted
+                                                                 for certain actions
+UI Lab mode in production   Everyone is admin                    Env misconfiguration
+                                                                 = catastrophic
+Grant-tag CLI               Unconstrained admin grant            Anyone with DB access
+
+
+================================================================================
+9. RECOMMENDED CONFIRMATION REQUIREMENTS
+================================================================================
+
+Actions that should always require explicit confirmation dialog (most already
+do via OpsConfirmDialog):
+
+Action                      Confirm type
+--------------------------  ------------------------------------------
+Manual credit/debit         Reason + confirm
+Manual operator transfer    Reason + confirm + show destination/account summary
+Alta Pay reverse            Danger confirm + reason
+Account freeze / close      Confirm + reason
+Bulk approve/deny (any)     Aggregate impact summary + reason
+Loan approve (with          Confirm amount + terms + reason
+disbursement)
+Company verify / reject     Confirm + reason
+Manual interest apply       Typed confirmation phrase (already admin-only)
+Credit desk close           Admin confirm with impact count
+Tag grant/revoke (staff)    Confirm + reason
+Deal room close             Confirm + reason (currently closes without system
+                            message on manual close)
+
+Add confirmation where missing:
+- Manual operator transfer (has reason; add explicit "You are moving ƒX from A
+  to B")
+- Loan disbursement if separated from approval in future
+- revokeCompanyVerification (has audit; ensure confirm dialog)
+- Bulk freeze accounts (backend exists; ensure UI confirm if exposed)
+
+
+================================================================================
+10. RECOMMENDED MANDATORY REASON REQUIREMENTS
+================================================================================
+
+Always require reason (server-enforced, not UI-only):
+
+Action                      Server today                         Fix
+--------------------------  -----------------------------------  ----
+Manual credit/debit         Required                             ✓
+Holds, restrictions, reopen Required                             ✓
+Alta Pay reverse            Required                             ✓
+Manual transfer             Required                             ✓
+Admin loan payment          Required                             ✓
+Freeze/unfreeze/close       Required                             ✓
+Deposit/withdraw            Optional (reviewNote?.trim() ||      Enforce server-side
+approve/deny                null)
+Account opening approve     Optional                             Enforce
+Bulk ops shared reason      Required in UI                       Enforce server-side
+Company verify/reject/      Partial                              Enforce on all
+revoke
+Loan/card approve/deny      Decision notes exist                 Enforce non-empty
+Internal notes              Required                             ✓
+Exception disposition       Should require                       Verify
+Deal room close (manual)    Missing system message               Add reason → system
+                                                                 message
+
+Silent notification should NEVER be allowed for:
+- Account freeze
+- Withdrawal denial
+- Deposit denial (customer should know funds weren't credited)
+- Restriction placed
+- Company verification rejected
+- Loan/card denial
+- Alta Pay reverse (both parties affected)
+
+Silent notification MAY be allowed for:
+- Manual credit (investigation credit)
+- Hold placed (if communicating separately)
+- Transaction under review flag
+- Manual debit correction (offsetting prior error)
+- Unfreeze / restriction removed
+
+
+================================================================================
+11. RECOMMENDED TWO-PERSON APPROVAL REQUIREMENTS
+================================================================================
+
+Keep this minimal — Alta is a Minecraft institution, not a Tier-1 bank. Dual
+control only where mistake = real harm:
+
+Action                              Second approver              Rationale
+----------------------------------  ---------------------------  ------------------
+Manual credit/debit above ƒ10,000   Admin or second operator     Direct money
+(configurable)                                                   creation
+Manual operator transfer above      Second operator              Bypasses normal
+threshold                                                        controls
+Loan approval with disbursement     Optional: approver ≠         Separation of credit
+                                    disburser                    decision vs. funding
+Company verification (first         Not required for V1          Single operator fine
+verify)                                                          at current scale
+Alta Private invitation             Already admin-only           Sufficient
+Tag grant (admin, operator)         Recommend admin-only + log   Already admin-only
+                                                                 for staff tags
+Platform maintenance mode           Admin-only                   ✓
+Credit desk close                   Admin-only                   ✓
+Bulk approve > N items              Second confirm or admin      Prevent mis-clicks
+
+Do NOT require dual approval for: routine deposit/withdrawal queue review,
+internal notes, deal room messaging, review flag create/resolve, company member
+role changes.
+
+
+================================================================================
+12. RECOMMENDED IMMUTABLE RECORDS
+================================================================================
+
+Record                              Should be immutable?   Current
+----------------------------------  -------------------  -------------------------
+Approved bank transactions          Yes — correct via      Mostly; adjustments
+                                    offsetting entry only  create new rows
+Audit log rows                      Yes                  Append-only ✓
+Internal notes                      Append-only; no      ✓
+                                    delete
+Deposit/withdrawal approval         Yes after terminal   Terminal statuses
+decision                            status               enforced
+Loan/card application decision      Yes after terminal   Enforced
+Company verification decision       Revoke allowed (new  Correct pattern
+                                    audit row)
+Deal room thread messages           Soft-delete on       Customer/staff messages
+                                    internal notes only  persist
+reviewNote / decisionNote on        Immutable after set  Not editable ✓
+entities
+Alta Card reversed transaction      Mark REVERSED; block  ✓
+                                    re-reverse
+Alta Pay original payment           Should mark REVERSED   Not done — gap
+                                    or link reversal
+
+Lock after completion:
+- Closed deal room threads (reopen should be explicit, audited, rare)
+- Executed loan agreements
+- Accepted Alta Private invitations
+- Bulk audit summary rows
+
+
+================================================================================
+13. RECOMMENDED OPERATIONAL NOTIFICATIONS
+================================================================================
+
+Staff (audit channel / assigned officer)
+
+Event                               Notify
+----------------------------------  ------------------------------------------
+Deposit/withdrawal submitted        Staff audit channel (requires action) ✓
+Deposit/withdrawal approved/denied  Staff audit channel ✓
+Manual credit/debit above threshold Staff audit + admin mention
+Account freeze/close                Staff audit ✓
+Company verified/rejected           Staff audit ✓
+Loan/card decision                  Staff audit ✓
+Alta Pay reverse                    Staff audit ✓
+Credit desk close                   Staff audit ✓
+Failed money movement (bot/web)     Staff audit — missing
+Permission denied (sensitive action) Security channel — missing
+Queue item aging past SLA           Ops alert — missing
+Balance reconciliation mismatch     Admin alert — missing
+Deal room officer assigned          Assigned officer DM ✓
+Deal room reopened                  Assigned officer + previous officer
+
+Customer
+
+Event                               Notify                   Silent allowed?
+----------------------------------  -----------------------  ------------------
+Deposit approved                    Yes                      Yes (investigation)
+Withdrawal approved                 Yes                      Rarely
+Deposit/withdrawal denied           Yes                      Never
+Manual credit/debit                 Yes                      Yes for corrections
+Freeze                              Yes                      Never
+Alta Pay reverse                    Both parties             Never
+Manual operator transfer            Should notify            Currently no DM
+Loan/card decision                  Yes                      Deny: never silent
+Deal room staff message             In-app only              Consider DM for
+                                                             responsiveness
+Deal room closed                    Missing                  N/A
+
+
+================================================================================
+14. PRIORITY ORDER FOR IMPROVEMENTS
+================================================================================
+
+P0 — Launch blockers (financial integrity & broken workflows)
+
+1. Fix withdrawal approval — Check available balance (balance − holds − pending
+   withdrawals)
+2. Fix TOCTOU balance checks — Move balance validation inside $transaction or
+   use row locks
+3. Block Alta Pay double-reversal — Mark original reversed or check for existing
+   PAY-REV-* pair
+4. Interbank scheduled transfer ops workflow — Approve/reject/execute or disable
+   customer-facing creation
+5. Enforce reason server-side on deposit/withdraw approve/deny
+6. Fix company viewer money movement — Align accessibleAccountWhere with
+   treasury role checks
+7. Wire reverseAdjustment to internal console — Recovery path for mistaken
+   adjustments
+
+P1 — Institution credibility (before scaling to 1k+ customers)
+
+8. Dual approval threshold for manual credits/debits above configurable limit
+9. Audit failed money-movement attempts (bot + web)
+10. Notification delivery failure audit + basic retry
+11. Deal room reopen → reactivate Discord session or explicit "Discord resync"
+    action
+12. Linked reversal metadata for deposit/withdrawal undo (offsetting adjustment
+    with reversesTransactionId)
+13. Pending queue expiry/escalation (deposits/withdrawals > 7 days)
+14. Balance reconciliation cron job
+15. Restrict silent notification on freeze, deny, Alta Pay reverse
+16. Customer DM on manual operator transfer
+17. Log OPS_PERMISSION_DENIED on sensitive endpoints
+
+P2 — Scale to 10k customers / 100 staff
+
+18. Tiered operator roles (auditor read-only, senior operator)
+19. Queue assignment/claim to prevent duplicate operator work
+20. Pagination on legacy deal room dashboard and unbounded lists
+21. Case management for exceptions/compliance
+22. Card dispute workflow
+23. Historical reporting / CSV export beyond 5k audit rows
+24. Remove or harden Discord staff role bypass — require linked Alta tag
+25. Service-layer requireOperator() on all sensitive mutations
+
+P3 — Polish
+
+26. Deal room manual close system message
+27. Officer reassignment participant cleanup
+28. Internal note visibility tiers
+29. Card-scoped notes (not just cardholder USER)
+30. Dead code cleanup (staff-audit-events.ts)
+
+
+================================================================================
+15. FINAL LAUNCH READINESS ASSESSMENT
+================================================================================
+
+Can Alta launch as a premium digital financial institution today?
+
+Controlled soft launch: Yes, with a small ops team (<10 staff), <500 active
+customers, and explicit runbook acknowledgment of known gaps.
+
+Full institution launch at stated scale (10k customers, 1k companies, 100
+staff): No.
+
+What works today
+
+Alta behaves like a real bank in the ways that matter most for trust: money
+doesn't move on deposit/withdraw until an operator approves; every significant
+action leaves an audit row; operator actions require reasons in the console;
+corrections create offsetting ledger entries; Credit Desk open/close is
+institutional; internal notes are append-only and attributed.
+
+An experienced ops lead could run Alta today with written procedures
+compensating for missing dual control and manual recovery paths.
+
+What would embarrass Alta under scrutiny
+
+- An operator approves three pending withdrawals that collectively exceed
+  available balance
+- Alta Pay reversed twice, creating duplicate credits
+- Interbank transfer sits in PENDING_REVIEW forever with no ops path
+- Audit row missing after a successful transfer due to non-atomic audit write
+- Deal room reopened on web but customer can't use Discord channel
+- Compliance asks "show me all failed transfer attempts" — nothing exists
+
+Brutally honest summary
+
+Alta's operational philosophy is correct: accountability, auditability, reason
+capture, and correction-by-offset are built into the architecture. The internal
+console is functionally complete for V1 banking ops — queues, workspaces, bulk
+actions, exceptions disposition, and audit export exist.
+
+The gaps are not missing buttons. They are financial integrity defects
+(concurrency, withdrawal approval math), missing control depth (single-operator
+money creation, no dual approval), and incomplete recovery/linkage (Alta Pay
+double-reverse, no deposit/withdrawal undo, adjustment reverse without UI).
+
+For a Minecraft institution aiming at premium realism: you are 70% of the way to
+"real bank ops" and 50% of the way to "safe at scale." Fix P0 before marketing
+Alta as institution-grade. Fix P1 before scaling past a few hundred customers
+or more than ~15 concurrent operators.
+
+
+================================================================================
+DIRECT ANSWERS TO SPECIFIC QUESTIONS
+================================================================================
+
+Question                                                    Answer
+----------------------------------------------------------  ------------------
+Actions that should always require a reason                 All money movement,
+                                                            all account status
+                                                            changes, all
+                                                            verification
+                                                            decisions, all
+                                                            reversals, all bulk
+                                                            ops, all deal room
+                                                            closes, all tag
+                                                            changes
+Actions that should always require confirmation             Manual credit/debit,
+                                                            transfer, reverse,
+                                                            freeze, close, bulk
+                                                            ops, loan approve+
+                                                            fund, credit desk
+                                                            close, staff tag
+                                                            grant
+Two-person approval                                         Manual credit/debit
+                                                            above threshold,
+                                                            manual transfer
+                                                            above threshold,
+                                                            optionally loan
+                                                            disbursement
+                                                            separate from
+                                                            approval
+Irreversible actions                                        Terminal audit rows,
+                                                            terminal application
+                                                            decisions, executed
+                                                            loan funding,
+                                                            accepted invitations
+                                                            — correct via offset,
+                                                            not edit
+Adjustment records instead of editing history               All balance
+                                                            corrections,
+                                                            reversals, fee
+                                                            corrections,
+                                                            verification revoke
+Lock records after completion                               Approved
+                                                            transactions,
+                                                            terminal applications,
+                                                            closed deal rooms,
+                                                            reversed Alta Card
+                                                            txns, executed
+                                                            agreements
+Notify customer                                             All approve/deny, all
+                                                            status changes, all
+                                                            reversals, manual
+                                                            transfer (currently
+                                                            missing), deal room
+                                                            open/close
+Notify staff                                                All money movement,
+                                                            all verification,
+                                                            all manual adjustments
+                                                            above threshold,
+                                                            failures, SLA
+                                                            breaches,
+                                                            reconciliation
+                                                            mismatches
+Require comments                                            Same as reason — all
+                                                            operator mutations;
+                                                            internal notes for
+                                                            investigation context
+Create follow-up tasks                                      Exception disposition,
+                                                            review flags, failed
+                                                            notification delivery,
+                                                            queue items past SLA,
+                                                            reconciliation
+                                                            mismatches
+
+
+================================================================================
+AUDIT AREA SUMMARIES (SECTIONS 1–12)
+================================================================================
+
+1. Administrative Permissions — Two-tier model (admin/operator) with thin
+   separation. Operators perform nearly all banking. Discord staff roles create
+   unaudited parallel access. Tag management rules are strong. Missing: auditor
+   role, scoped access, service-layer defense-in-depth.
+
+2. Money Movement Controls — Deposit/withdraw require approval; instant flows
+   (transfer, Alta Pay) do not. Reason required in UI for most actions; server
+   gaps on queue review. Silent notification well-implemented where exposed.
+   Bulk approve lacks silent toggle. Manual transfer has no customer notify.
+
+3. Approval Workflows — Single-operator everywhere. No expiry on pending
+   banking items. Customer confirmation exists for card acceptance and loan
+   agreements (not staff dual control). Interbank broken.
+
+4. Operational Safety — Status guards prevent double-approve. Bulk ops
+   sequential without batch atomicity. Alta Pay and adjustment reversal lack
+   idempotency. Concurrent balance races are the largest safety hole.
+
+5. Administrative Recovery — Good for adjustments, Alta Pay, Card, account
+   reopen, company revoke. Bad for approved deposit/withdrawal and loan
+   approval. Adjustment reverse API exists without UI.
+
+6. Audit Integrity — Strong for successful paths. Gaps: failed attempts, Discord
+   dispatch failures, non-atomic writes, naming inconsistency
+   (BANK_PAYMENT_BLOCKED vs denial codes), bot source attribution on Alta
+   Private activation.
+
+7. Internal Notes — Append-only, operator-only, audited. visibility column
+   unused. No edit/delete (correct). Card notes attach to USER not card entity.
+
+8. Deal Room Operations — V1 threads solid for messaging. Legacy DealRoom has
+   officer assignment but participant cleanup on reassignment is weak. Reopen
+   breaks Discord. Lock/sync best-effort, non-blocking. Dual deal-room model
+   creates confusion.
+
+9. Administrative UX (workflow, not visual UI) — Confirm+reason pattern is
+   good. Bulk ops reduce clicks. Gaps: no queue claim, no adjustment reverse in
+   console, interbank dead-end, manual transfer invisible to customer, legacy
+   deal room dashboard unbounded.
+
+10. Operational Notifications — Staff audit channel well-built with noise
+    filtering. Customer operator DMs comprehensive with silent mode. Missing:
+    failure alerts, retry, deal room close DM, staff message DM.
+
+11. Data Integrity — Denormalized balances with TOCTOU risk. Unique constraints
+    on reference codes and Discord message IDs. No bank reconciliation job.
+    Orphan Discord channels possible. Payroll partial failure state ambiguous.
+
+12. Operational Scalability — V1 hardening supports low thousands. Unbounded
+    deal room queries, 5k audit export cap, in-memory staff dedupe, sequential
+    Discord cleanup, and 100 uncoordinated operators will strain at target
+    scale.
+
+
+================================================================================
+KEY SOURCE FILES
+================================================================================
+
+Purpose                         Path
+------------------------------  -----------------------------------------------
+Permission docs                 altaweb/docs/permissions.md
+Internal admin docs             altaweb/docs/internal-admin.md
+Banking approvals               altaweb/src/server/bank.service.ts
+Bulk ops                        altaweb/src/server/ops-bulk.service.ts
+Account ops / reversals         altaweb/src/server/ops-account-ops.service.ts
+Alta Pay admin                  altaweb/src/server/ops-alta-pay-admin.service.ts
+Audit core                      altaweb/src/server/audit.service.ts
+Staff Discord bridge            altaweb/src/lib/staff-audit/audit-log-discord-bridge.ts
+Permissions / guards            altaweb/src/server/permissions.service.ts
+Tag management RBAC             altaweb/src/server/internal-user-management.service.ts
+Internal notes                  altaweb/src/server/internal-note.service.ts
+Deal room ops                   altaweb/src/server/deal-room.service.ts
+Deal room ops dashboard         altaweb/src/server/deal-room-ops.service.ts
+Customer operator DMs           altaweb/src/server/customer-operator-notification.service.ts
+Prior admin audit               altaweb/ALTA_BANK_ADMIN_AUDIT.txt
+Audit logging coverage          altaweb/docs/operations/audit-logging-coverage-report.txt
+Customer DM coverage            altaweb/docs/operations/customer-dm-notification-coverage-report.txt
+Internal console feature audit  altaweb/docs/operations/internal-console-feature-audit.txt

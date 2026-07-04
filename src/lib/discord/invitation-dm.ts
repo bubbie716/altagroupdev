@@ -1,9 +1,31 @@
 export const INVITE_PREFIX = "alta:invite";
 
 export const INVITE_COLORS = {
-  alta: 0xc9a227,
+  alta: 0x0f1729,
   altaPrivate: 0x8b7355,
+  success: 0x047857,
+  pending: 0xb45309,
+  error: 0xb91c1c,
 } as const;
+
+export function notificationColorForTitle(title: string): number {
+  const normalized = title.toLowerCase();
+  if (normalized.includes("denied") || normalized.includes("declined")) {
+    return INVITE_COLORS.error;
+  }
+  if (
+    normalized.includes("approved") ||
+    normalized.includes("complete") ||
+    normalized.includes("received") ||
+    normalized.includes("sent")
+  ) {
+    return normalized.includes("submitted") ? INVITE_COLORS.pending : INVITE_COLORS.success;
+  }
+  if (normalized.includes("submitted") || normalized.includes("pending")) {
+    return INVITE_COLORS.pending;
+  }
+  return INVITE_COLORS.alta;
+}
 
 export function invitePrivateAcceptId(invitationId: string): string {
   return `${INVITE_PREFIX}:private:accept:${invitationId}`;
@@ -58,13 +80,13 @@ export function buildPrivateInvitationDmPayload(input: {
         components: [
           {
             type: 2,
-            style: 3,
+            style: 2,
             label: "Accept",
             custom_id: invitePrivateAcceptId(input.invitationId),
           },
           {
             type: 2,
-            style: 4,
+            style: 2,
             label: "Decline",
             custom_id: invitePrivateDeclineId(input.invitationId),
           },
@@ -101,13 +123,13 @@ export function buildCompanyInvitationDmPayload(input: {
         components: [
           {
             type: 2,
-            style: 3,
+            style: 2,
             label: "Accept",
             custom_id: inviteCompanyAcceptId(input.invitationId),
           },
           {
             type: 2,
-            style: 4,
+            style: 2,
             label: "Decline",
             custom_id: inviteCompanyDeclineId(input.invitationId),
           },
@@ -122,11 +144,18 @@ export function buildInvitationResultDmPayload(input: {
   description: string;
   isPrivate?: boolean;
 }): InvitationDmPayload {
+  const isSuccess =
+    input.title.toLowerCase().includes("welcome") ||
+    input.title.toLowerCase().includes("accepted");
   return {
     embed: {
       title: input.title,
       description: input.description,
-      color: input.isPrivate ? INVITE_COLORS.altaPrivate : INVITE_COLORS.alta,
+      color: input.isPrivate
+        ? INVITE_COLORS.altaPrivate
+        : isSuccess
+          ? INVITE_COLORS.success
+          : INVITE_COLORS.alta,
       footer: {
         text: input.isPrivate ? "Alta Private · Alta Bank" : "Alta Bank · Newport",
       },

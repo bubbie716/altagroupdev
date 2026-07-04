@@ -96,6 +96,14 @@ export const reopenLoanApplicationThread = createServerFn({ method: "POST" })
     return reopenThread(userId, applicationId);
   });
 
+export const resyncLoanDealRoomDiscord = createServerFn({ method: "POST" })
+  .inputValidator((applicationId: string) => applicationId)
+  .handler(async ({ data: applicationId }) => {
+    const { resyncDealRoomDiscordChannel } = await import("@/server/secure-deal-room-discord.service");
+    const userId = await requireInternalActorId();
+    return resyncDealRoomDiscordChannel(userId, "LOAN_APPLICATION", applicationId);
+  });
+
 export const ensureInternalLoanApplicationThread = createServerFn({ method: "POST" })
   .inputValidator((applicationId: string) => applicationId)
   .handler(async ({ data: applicationId }) => {

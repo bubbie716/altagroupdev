@@ -672,6 +672,7 @@ export async function openBankAccount(
     data: {
       userId,
       companyId,
+      ownershipType: companyId ? "COMPANY" : "PERSONAL",
       accountType: toDbBankAccountType(input.accountType),
       accountName,
       accountNumber,
@@ -837,21 +838,23 @@ export async function submitWithdrawalRequest(
     badRequest("Withdrawals are currently unavailable for this account.");
   }
 
-  const availableBalance = await getAvailableBalance(account.id);
-  if (input.amount > availableBalance) {
-    badRequest("This withdrawal couldn't be completed because your available balance is insufficient.");
-  }
+  const transaction = await prisma.$transaction(async (tx) => {
+    const { assertAccountAvailableForDebitInTx } = await import("@/server/financial-integrity.service");
+    await assertAccountAvailableForDebitInTx(tx, account.id, input.amount, {
+      message: "This withdrawal couldn't be completed because your available balance is insufficient.",
+    });
 
-  const transaction = await prisma.bankTransaction.create({
-    data: {
-      bankAccountId: account.id,
-      type: "WITHDRAWAL",
-      amount: input.amount,
-      status: "PENDING",
-      description: WITHDRAWAL_PENDING_DESCRIPTION,
-      memo: input.memo?.trim() || null,
-      referenceCode: generateReferenceCode("WDR"),
-    },
+    return tx.bankTransaction.create({
+      data: {
+        bankAccountId: account.id,
+        type: "WITHDRAWAL",
+        amount: input.amount,
+        status: "PENDING",
+        description: WITHDRAWAL_PENDING_DESCRIPTION,
+        memo: input.memo?.trim() || null,
+        referenceCode: generateReferenceCode("WDR"),
+      },
+    });
   });
 
   try {
@@ -936,11 +939,6 @@ export async function submitInternalTransfer(
     badRequest("This transfer couldn't be completed because deposits are currently restricted on the destination account.");
   }
 
-  const availableBalance = await getAvailableBalance(fromAccount.id);
-  if (input.amount > availableBalance) {
-    badRequest("This transfer couldn't be completed because your available balance is insufficient.");
-  }
-
   const referenceBase = generateReferenceCode("TRF");
   const outReference = `${referenceBase}-OUT`;
   const inReference = `${referenceBase}-IN`;
@@ -948,6 +946,14 @@ export async function submitInternalTransfer(
   const amount = input.amount;
 
   await prisma.$transaction(async (tx) => {
+    const { assertAccountAvailableForDebitInTx, lockBankAccountsInOrder } = await import(
+      "@/server/financial-integrity.service"
+    );
+    await lockBankAccountsInOrder(tx, [fromAccount.id, toAccount.id]);
+    await assertAccountAvailableForDebitInTx(tx, fromAccount.id, amount, {
+      message: "This transfer couldn't be completed because your available balance is insufficient.",
+    });
+
     await tx.bankAccount.update({
       where: { id: fromAccount.id },
       data: { balance: { decrement: amount } },
@@ -957,7 +963,7 @@ export async function submitInternalTransfer(
       data: { balance: { increment: amount } },
     });
 
-    await tx.bankTransaction.create({
+    const outTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: fromAccount.id,
         type: "WITHDRAWAL",
@@ -970,7 +976,7 @@ export async function submitInternalTransfer(
       },
     });
 
-    await tx.bankTransaction.create({
+    const inTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: toAccount.id,
         type: "DEPOSIT",
@@ -981,6 +987,21 @@ export async function submitInternalTransfer(
         referenceCode: inReference,
         proofImageUrl: null,
       },
+    });
+
+    const { recordPairedPaymentInTx } = await import("@/server/payment-entity.service");
+    await recordPairedPaymentInTx(tx, {
+      paymentType: "INTRABANK_TRANSFER",
+      referenceCode: referenceBase,
+      payerUserId: fromAccount.userId,
+      recipientUserId: toAccount.userId,
+      sourceBankAccountId: fromAccount.id,
+      destinationBankAccountId: toAccount.id,
+      amount,
+      initiatedByUserId: userId,
+      memo,
+      debitTransactionId: outTx.id,
+      creditTransactionId: inTx.id,
     });
   });
 
@@ -1049,11 +1070,6 @@ export async function submitOperatorInternalTransfer(input: {
   if (toAccount.id === fromAccount.id) badRequest("Choose a different recipient account");
   if (toAccount.status !== "ACTIVE") badRequest("Destination account must be active");
 
-  const availableBalance = await getAvailableBalance(fromAccount.id);
-  if (input.amount > availableBalance) {
-    badRequest("Insufficient available balance for this transfer");
-  }
-
   const referenceBase = generateReferenceCode("TRF");
   const outReference = `${referenceBase}-OUT`;
   const inReference = `${referenceBase}-IN`;
@@ -1061,6 +1077,14 @@ export async function submitOperatorInternalTransfer(input: {
   const amount = input.amount;
 
   await prisma.$transaction(async (tx) => {
+    const { assertAccountAvailableForDebitInTx, lockBankAccountsInOrder } = await import(
+      "@/server/financial-integrity.service"
+    );
+    await lockBankAccountsInOrder(tx, [fromAccount.id, toAccount.id]);
+    await assertAccountAvailableForDebitInTx(tx, fromAccount.id, amount, {
+      message: "Insufficient available balance for this transfer",
+    });
+
     await tx.bankAccount.update({
       where: { id: fromAccount.id },
       data: { balance: { decrement: amount } },
@@ -1070,7 +1094,7 @@ export async function submitOperatorInternalTransfer(input: {
       data: { balance: { increment: amount } },
     });
 
-    await tx.bankTransaction.create({
+    const outTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: fromAccount.id,
         type: "WITHDRAWAL",
@@ -1083,7 +1107,7 @@ export async function submitOperatorInternalTransfer(input: {
       },
     });
 
-    await tx.bankTransaction.create({
+    const inTx = await tx.bankTransaction.create({
       data: {
         bankAccountId: toAccount.id,
         type: "DEPOSIT",
@@ -1094,6 +1118,22 @@ export async function submitOperatorInternalTransfer(input: {
         referenceCode: inReference,
         proofImageUrl: null,
       },
+    });
+
+    const { recordPairedPaymentInTx } = await import("@/server/payment-entity.service");
+    await recordPairedPaymentInTx(tx, {
+      paymentType: "INTRABANK_TRANSFER",
+      referenceCode: referenceBase,
+      payerUserId: fromAccount.userId,
+      recipientUserId: toAccount.userId,
+      sourceBankAccountId: fromAccount.id,
+      destinationBankAccountId: toAccount.id,
+      amount,
+      initiatedByUserId: fromAccount.userId,
+      memo,
+      debitTransactionId: outTx.id,
+      creditTransactionId: inTx.id,
+      metadata: { operatorInitiated: true },
     });
   });
 
@@ -1304,6 +1344,9 @@ export async function approveDeposit(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Review note");
+
   const record = await prisma.$transaction(async (tx) => {
     const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
@@ -1319,7 +1362,7 @@ export async function approveDeposit(
         description: DEPOSIT_APPROVED_DESCRIPTION,
         reviewedById: adminId,
         reviewedAt: new Date(),
-        reviewNote: reviewNote?.trim() || null,
+        reviewNote: trimmedNote,
       },
     });
 
@@ -1359,7 +1402,7 @@ export async function approveDeposit(
     description: `Approved deposit ${record.referenceCode}`,
     metadata: {
       amount: decimalToNumber(record.amount),
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1380,6 +1423,9 @@ export async function denyDeposit(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Review note");
+
   const record = await prisma.bankTransaction.findUnique({
     where: { id: transactionId },
     include: { bankAccount: true },
@@ -1394,7 +1440,7 @@ export async function denyDeposit(
       description: DEPOSIT_DECLINED_DESCRIPTION,
       reviewedById: adminId,
       reviewedAt: new Date(),
-      reviewNote: reviewNote?.trim() || null,
+      reviewNote: trimmedNote,
     },
   });
 
@@ -1404,6 +1450,7 @@ export async function denyDeposit(
   const { auditMetadata } = await deliverOperatorCustomerNotification({
     actorUserId: adminId,
     notificationOptions,
+    silentRestriction: { kind: "payment_blocked", action: "deny_deposit" },
     deliver: async () =>
       (
         await import("@/server/customer-operator-notification.service")
@@ -1419,6 +1466,7 @@ export async function denyDeposit(
         transactionId,
         source: "deny_deposit",
         silentNotification: notificationOptions?.silentNotification,
+        actorUserId: adminId,
       }),
   });
 
@@ -1434,7 +1482,7 @@ export async function denyDeposit(
     description: `Denied deposit ${record.referenceCode}`,
     metadata: {
       amount: decimalToNumber(record.amount),
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1447,35 +1495,76 @@ export async function approveWithdrawal(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
-  const record = await prisma.$transaction(async (tx) => {
-    const row = await tx.bankTransaction.findUnique({
-      where: { id: transactionId },
-      include: { bankAccount: true },
-    });
-    if (!row) notFound();
-    if (row.type !== "WITHDRAWAL" || row.status !== "PENDING") badRequest("Invalid withdrawal request");
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Review note");
 
-    const balance = decimalToNumber(row.bankAccount.balance);
-    const amount = decimalToNumber(row.amount);
-    if (balance < amount) badRequest("Insufficient balance");
+  let record;
+  try {
+    record = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "BankTransaction" WHERE id = ${transactionId} FOR UPDATE`;
 
-    await tx.bankTransaction.update({
-      where: { id: transactionId },
-      data: {
-        status: "APPROVED",
-        description: WITHDRAWAL_APPROVED_DESCRIPTION,
-        reviewedById: adminId,
-        reviewedAt: new Date(),
-        reviewNote: reviewNote?.trim() || null,
-      },
-    });
+      const row = await tx.bankTransaction.findUnique({
+        where: { id: transactionId },
+        include: { bankAccount: true },
+      });
+      if (!row) notFound();
+      if (row.type !== "WITHDRAWAL" || row.status !== "PENDING") {
+        badRequest("Invalid withdrawal request");
+      }
 
-    await tx.bankAccount.update({
-      where: { id: row.bankAccountId },
-      data: { balance: { decrement: row.amount } },
+      const amount = decimalToNumber(row.amount);
+      const { assertAccountAvailableForDebitInTx } = await import("@/server/financial-integrity.service");
+      await assertAccountAvailableForDebitInTx(tx, row.bankAccountId, amount, {
+        excludePendingWithdrawalId: transactionId,
+        message:
+          "Insufficient available balance to approve this withdrawal. Check holds and other pending withdrawals.",
+      });
+
+      await tx.bankTransaction.update({
+        where: { id: transactionId },
+        data: {
+          status: "APPROVED",
+          description: WITHDRAWAL_APPROVED_DESCRIPTION,
+          reviewedById: adminId,
+          reviewedAt: new Date(),
+          reviewNote: trimmedNote,
+        },
+      });
+
+      await tx.bankAccount.update({
+        where: { id: row.bankAccountId },
+        data: { balance: { decrement: row.amount } },
+      });
+      return row;
     });
-    return row;
-  });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Insufficient available balance")) {
+      const pending = await prisma.bankTransaction.findUnique({
+        where: { id: transactionId },
+        include: { bankAccount: true },
+      });
+      if (pending) {
+        const { writeAuditLog } = await import("@/server/audit.service");
+        await writeAuditLog({
+          actorUserId: adminId,
+          action: "BANK_WITHDRAWAL_APPROVAL_REJECTED",
+          entityType: "BANK_TRANSACTION",
+          entityId: transactionId,
+          targetUserId: pending.bankAccount.userId,
+          targetAccountId: pending.bankAccountId,
+          targetTransactionId: transactionId,
+          description: `Rejected withdrawal approval ${pending.referenceCode} — insufficient available balance`,
+          metadata: {
+            amount: decimalToNumber(pending.amount),
+            reason: "insufficient_available_balance",
+            reviewNote: trimmedNote,
+            source: "website",
+          },
+        });
+      }
+    }
+    throw error;
+  }
 
   const { deliverOperatorCustomerNotification } = await import(
     "@/server/customer-operator-notification.service"
@@ -1506,7 +1595,7 @@ export async function approveWithdrawal(
     description: `Approved withdrawal ${record.referenceCode}`,
     metadata: {
       amount: decimalToNumber(record.amount),
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1527,6 +1616,9 @@ export async function denyWithdrawal(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Review note");
+
   const record = await prisma.bankTransaction.findUnique({
     where: { id: transactionId },
     include: { bankAccount: true },
@@ -1541,7 +1633,7 @@ export async function denyWithdrawal(
       description: WITHDRAWAL_DECLINED_DESCRIPTION,
       reviewedById: adminId,
       reviewedAt: new Date(),
-      reviewNote: reviewNote?.trim() || null,
+      reviewNote: trimmedNote,
     },
   });
 
@@ -1551,6 +1643,7 @@ export async function denyWithdrawal(
   const { auditMetadata } = await deliverOperatorCustomerNotification({
     actorUserId: adminId,
     notificationOptions,
+    silentRestriction: { kind: "payment_blocked", action: "deny_withdrawal" },
     deliver: async () =>
       (
         await import("@/server/customer-operator-notification.service")
@@ -1566,6 +1659,7 @@ export async function denyWithdrawal(
         transactionId,
         source: "deny_withdrawal",
         silentNotification: notificationOptions?.silentNotification,
+        actorUserId: adminId,
       }),
   });
 
@@ -1581,7 +1675,7 @@ export async function denyWithdrawal(
     description: `Denied withdrawal ${record.referenceCode}`,
     metadata: {
       amount: decimalToNumber(record.amount),
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1757,6 +1851,9 @@ export async function freezeBankAccount(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Reason");
+
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status === "CLOSED") badRequest("Account is closed");
@@ -1765,9 +1862,7 @@ export async function freezeBankAccount(
     where: { id: accountId },
     data: {
       status: "FROZEN",
-      openingNotes: reviewNote?.trim()
-        ? [account.openingNotes, `Frozen: ${reviewNote.trim()}`].filter(Boolean).join("\n")
-        : account.openingNotes,
+      openingNotes: [account.openingNotes, `Frozen: ${trimmedNote}`].filter(Boolean).join("\n"),
     },
   });
 
@@ -1777,6 +1872,7 @@ export async function freezeBankAccount(
   const { auditMetadata } = await deliverOperatorCustomerNotification({
     actorUserId: adminId,
     notificationOptions,
+    silentRestriction: { kind: "account_frozen", action: "account_freeze" },
     deliver: async () =>
       (
         await import("@/server/customer-operator-notification.service")
@@ -1790,6 +1886,7 @@ export async function freezeBankAccount(
         kind: "account_frozen",
         source: "freeze_account",
         silentNotification: notificationOptions?.silentNotification,
+        actorUserId: adminId,
       }),
   });
 
@@ -1804,7 +1901,7 @@ export async function freezeBankAccount(
     description: `Froze account ${account.accountNumber}`,
     metadata: {
       status: "FROZEN",
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1817,6 +1914,9 @@ export async function unfreezeBankAccount(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Reason");
+
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status !== "FROZEN") badRequest("Account is not frozen");
@@ -1825,9 +1925,7 @@ export async function unfreezeBankAccount(
     where: { id: accountId },
     data: {
       status: "ACTIVE",
-      openingNotes: reviewNote?.trim()
-        ? [account.openingNotes, `Unfrozen: ${reviewNote.trim()}`].filter(Boolean).join("\n")
-        : account.openingNotes,
+      openingNotes: [account.openingNotes, `Unfrozen: ${trimmedNote}`].filter(Boolean).join("\n"),
     },
   });
 
@@ -1864,7 +1962,7 @@ export async function unfreezeBankAccount(
     description: `Unfroze account ${account.accountNumber}`,
     metadata: {
       status: "ACTIVE",
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1877,6 +1975,9 @@ export async function closeBankAccount(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperatorReason } = await import("@/server/operator-reason.service");
+  const trimmedNote = requireOperatorReason(reviewNote, "Reason");
+
   const account = await prisma.bankAccount.findUnique({ where: { id: accountId } });
   if (!account) notFound();
   if (account.status === "CLOSED") badRequest("Account is already closed");
@@ -1888,9 +1989,7 @@ export async function closeBankAccount(
     where: { id: accountId },
     data: {
       status: "CLOSED",
-      openingNotes: reviewNote?.trim()
-        ? [account.openingNotes, `Closed: ${reviewNote.trim()}`].filter(Boolean).join("\n")
-        : account.openingNotes,
+      openingNotes: [account.openingNotes, `Closed: ${trimmedNote}`].filter(Boolean).join("\n"),
     },
   });
 
@@ -1927,7 +2026,7 @@ export async function closeBankAccount(
     description: `Closed account ${account.accountNumber}`,
     metadata: {
       status: "CLOSED",
-      reviewNote: reviewNote ?? null,
+      reviewNote: trimmedNote,
       source: "website",
       ...auditMetadata,
     },
@@ -1998,13 +2097,6 @@ export async function adminAdjustBankAccount(
   if (!account) notFound();
   if (account.status !== "ACTIVE") badRequest("Account must be active for adjustments.");
 
-  const balance = decimalToNumber(account.balance);
-  if (input.direction === "debit" && input.amount > balance) {
-    if (!input.allowOverdraft || !isAdmin(actor)) {
-      badRequest("Insufficient balance for debit. Admin override required.");
-    }
-  }
-
   const referenceCode =
     input.referenceCode?.trim() ||
     generateReferenceCode(input.direction === "credit" ? "DEP" : "WDR");
@@ -2016,7 +2108,20 @@ export async function adminAdjustBankAccount(
       : debitAdjustmentDescription(reason));
 
   const transaction = await prisma.$transaction(async (tx) => {
-    const created = await tx.bankTransaction.create({
+    const { creditBankAccountInTx, debitBankAccountInTx } = await import(
+      "@/server/financial-integrity.service"
+    );
+
+    if (input.direction === "credit") {
+      await creditBankAccountInTx(tx, account.id, input.amount);
+    } else {
+      await debitBankAccountInTx(tx, account.id, input.amount, {
+        allowOverdraft: !!(input.allowOverdraft && isAdmin(actor)),
+        message: "Insufficient balance for debit. Admin override required.",
+      });
+    }
+
+    return tx.bankTransaction.create({
       data: {
         bankAccountId: account.id,
         type: "ADJUSTMENT",
@@ -2029,18 +2134,6 @@ export async function adminAdjustBankAccount(
         reviewNote: reason,
       },
     });
-
-    await tx.bankAccount.update({
-      where: { id: account.id },
-      data: {
-        balance:
-          input.direction === "credit"
-            ? { increment: input.amount }
-            : { decrement: input.amount },
-      },
-    });
-
-    return created;
   });
 
   const {

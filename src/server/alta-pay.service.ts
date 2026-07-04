@@ -581,14 +581,17 @@ export async function submitAltaPayPayment(
       badRequest("Cannot pay your own company through Alta Pay from its operating account.");
     }
 
-    const available = await getAvailableBalance(sourceAccount.id);
-    if (input.amount > available) {
-      badRequest("This payment couldn't be completed because your available balance is insufficient.");
-    }
-
     const outReference = `${referenceBase}-OUT`;
 
     await prisma.$transaction(async (tx) => {
+      const { assertAccountAvailableForDebitInTx, lockBankAccountsInOrder } = await import(
+        "@/server/financial-integrity.service"
+      );
+      await lockBankAccountsInOrder(tx, [sourceAccount.id, destination.id]);
+      await assertAccountAvailableForDebitInTx(tx, sourceAccount.id, input.amount, {
+        message: "This payment couldn't be completed because your available balance is insufficient.",
+      });
+
       await tx.bankAccount.update({
         where: { id: sourceAccount.id },
         data: { balance: { decrement: input.amount } },
@@ -598,7 +601,7 @@ export async function submitAltaPayPayment(
         data: { balance: { increment: input.amount } },
       });
 
-      await tx.bankTransaction.create({
+      const outTx = await tx.bankTransaction.create({
         data: {
           bankAccountId: sourceAccount.id,
           type: "WITHDRAWAL",
@@ -611,7 +614,7 @@ export async function submitAltaPayPayment(
         },
       });
 
-      await tx.bankTransaction.create({
+      const inTx = await tx.bankTransaction.create({
         data: {
           bankAccountId: destination.id,
           type: "DEPOSIT",
@@ -622,6 +625,21 @@ export async function submitAltaPayPayment(
           referenceCode: inReference,
           proofImageUrl: null,
         },
+      });
+
+      const { recordPairedPaymentInTx } = await import("@/server/payment-entity.service");
+      await recordPairedPaymentInTx(tx, {
+        paymentType: "ALTA_PAY",
+        referenceCode: referenceBase,
+        payerUserId: user.id,
+        sourceBankAccountId: sourceAccount.id,
+        destinationBankAccountId: destination.id,
+        amount: input.amount,
+        initiatedByUserId: user.id,
+        memo,
+        debitTransactionId: outTx.id,
+        creditTransactionId: inTx.id,
+        metadata: { companyId: company.id, payeeName: company.name },
       });
     });
 

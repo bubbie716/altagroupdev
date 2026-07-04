@@ -1,5 +1,6 @@
 import type { AltaPayAdminRow, PaginatedResult } from "@/lib/internal/ops-types";
 import { altaPayReversalDescription } from "@/lib/bank/customer-transaction-copy";
+import { altaPayReversalMarker } from "@/lib/bank/alta-pay-reversal";
 import { requireOperator } from "@/server/permissions.service";
 import { prisma } from "@/server/db";
 import type { Prisma } from "@prisma/client";
@@ -133,6 +134,24 @@ export async function reverseAltaPayPayment(
   const trimmed = reason.trim();
   if (!trimmed) throw new Error("BAD_REQUEST:Reason is required");
 
+  const { isSilentNotificationForbidden, silentNotificationForbiddenMessage } = await import(
+    "@/lib/internal/silent-notification-restrictions"
+  );
+  if (isSilentNotificationForbidden({ kind: "payment_reversed", action: "alta_pay_reversal" }, notificationOptions)) {
+    const { recordFailedAction } = await import("@/server/failed-action-audit.service");
+    await recordFailedAction({
+      actorUserId,
+      actionAttempted: "SILENT_NOTIFICATION",
+      auditAction: "OPS_SILENT_NOTIFICATION_REJECTED",
+      failureReason: silentNotificationForbiddenMessage({ kind: "payment_reversed", action: "alta_pay_reversal" }),
+      entityType: "BANK_TRANSACTION",
+      source: "INTERNAL",
+    });
+    throw new Error(
+      `BAD_REQUEST:${silentNotificationForbiddenMessage({ kind: "payment_reversed", action: "alta_pay_reversal" })}`,
+    );
+  }
+
   const payment = await getAltaPayPaymentDetail(referenceCode);
   if (payment.status !== "APPROVED") throw new Error("BAD_REQUEST:Only approved payments can be reversed");
 
@@ -142,49 +161,84 @@ export async function reverseAltaPayPayment(
     : null;
   if (!outTx || !inTx) throw new Error("NOT_FOUND");
 
+  const originalBase = payment.referenceCode;
+  const reversalMarker = altaPayReversalMarker(originalBase);
+
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
   const revBase = `PAY-REV-${date}-${suffix}`;
   const now = new Date();
 
-  await prisma.$transaction(async (tx) => {
-    await tx.bankAccount.update({
-      where: { id: inTx.bankAccountId },
-      data: { balance: { decrement: outTx.amount } },
+  try {
+    await prisma.$transaction(async (tx) => {
+      const { assertAltaPayNotReversed } = await import("@/server/alta-pay-reversal.service");
+      const { lockBankAccountsInOrder, assertAccountAvailableForDebitInTx } = await import(
+        "@/server/financial-integrity.service"
+      );
+
+      await assertAltaPayNotReversed(tx, originalBase);
+      await lockBankAccountsInOrder(tx, [inTx.bankAccountId, outTx.bankAccountId]);
+      await assertAccountAvailableForDebitInTx(tx, inTx.bankAccountId, Number(outTx.amount.toString()), {
+        message: "Payee account has insufficient balance to reverse this Alta Pay payment.",
+      });
+
+      await tx.bankAccount.update({
+        where: { id: inTx.bankAccountId },
+        data: { balance: { decrement: outTx.amount } },
+      });
+      await tx.bankAccount.update({
+        where: { id: outTx.bankAccountId },
+        data: { balance: { increment: outTx.amount } },
+      });
+      await tx.bankTransaction.create({
+        data: {
+          bankAccountId: inTx.bankAccountId,
+          type: "WITHDRAWAL",
+          amount: outTx.amount,
+          status: "APPROVED",
+          description: altaPayReversalDescription(payment.merchantName),
+          memo: reversalMarker,
+          referenceCode: `${revBase}-OUT`,
+          reviewedById: actorUserId,
+          reviewedAt: now,
+          reviewNote: `${trimmed} · ${reversalMarker}`,
+        },
+      });
+      await tx.bankTransaction.create({
+        data: {
+          bankAccountId: outTx.bankAccountId,
+          type: "DEPOSIT",
+          amount: outTx.amount,
+          status: "APPROVED",
+          description: altaPayReversalDescription(payment.merchantName),
+          memo: reversalMarker,
+          referenceCode: `${revBase}-IN`,
+          reviewedById: actorUserId,
+          reviewedAt: now,
+          reviewNote: `${trimmed} · ${reversalMarker}`,
+        },
+      });
     });
-    await tx.bankAccount.update({
-      where: { id: outTx.bankAccountId },
-      data: { balance: { increment: outTx.amount } },
-    });
-    await tx.bankTransaction.create({
-      data: {
-        bankAccountId: inTx.bankAccountId,
-        type: "WITHDRAWAL",
-        amount: outTx.amount,
-        status: "APPROVED",
-        description: altaPayReversalDescription(payment.merchantName),
-        memo: trimmed,
-        referenceCode: `${revBase}-OUT`,
-        reviewedById: actorUserId,
-        reviewedAt: now,
-        reviewNote: trimmed,
-      },
-    });
-    await tx.bankTransaction.create({
-      data: {
-        bankAccountId: outTx.bankAccountId,
-        type: "DEPOSIT",
-        amount: outTx.amount,
-        status: "APPROVED",
-        description: altaPayReversalDescription(payment.merchantName),
-        memo: trimmed,
-        referenceCode: `${revBase}-IN`,
-        reviewedById: actorUserId,
-        reviewedAt: now,
-        reviewNote: trimmed,
-      },
-    });
-  });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("already reversed")) {
+      const { writeAuditLog } = await import("@/server/audit.service");
+      await writeAuditLog({
+        actorUserId,
+        action: "ALTA_PAY_REVERSAL_REJECTED",
+        entityType: "BANK_TRANSACTION",
+        entityId: payment.outTransactionId,
+        targetTransactionId: payment.outTransactionId,
+        description: `Rejected duplicate Alta Pay reversal for ${originalBase}`,
+        metadata: {
+          referenceCode: originalBase,
+          reason: trimmed,
+          rejectionReason: "already_reversed",
+          source: "website",
+        },
+      });
+    }
+    throw error;
+  }
 
   const { deliverOperatorCustomerNotification } = await import(
     "@/server/customer-operator-notification.service"
@@ -192,6 +246,7 @@ export async function reverseAltaPayPayment(
   const { auditMetadata } = await deliverOperatorCustomerNotification({
     actorUserId,
     notificationOptions,
+    silentRestriction: { kind: "payment_reversed", action: "alta_pay_reversal" },
     deliver: async () => {
       const { notifyBankAccountCustomersBestEffort } = await import(
         "@/server/customer-operator-notification.service"
@@ -236,6 +291,7 @@ export async function reverseAltaPayPayment(
   });
 
   const { writeAuditLog } = await import("@/server/audit.service");
+  const { buildLinkedReversalMetadata } = await import("@/lib/internal/transaction-reversal-link");
   await writeAuditLog({
     actorUserId,
     action: "BANK_PAYMENT_REVERSED",
@@ -248,7 +304,17 @@ export async function reverseAltaPayPayment(
       reversalReference: revBase,
       reason: trimmed,
       amount: payment.amount,
+      reversesPayment: originalBase,
+      idempotencyKey: `alta-pay-reversal:${originalBase}`,
       source: "website",
+      ...buildLinkedReversalMetadata({
+        originalTransactionId: payment.outTransactionId,
+        originalReferenceCode: originalBase,
+        reversalReferenceCode: revBase,
+        reversalReason: trimmed,
+        reversedByUserId: actorUserId,
+        reversalKind: "alta_pay",
+      }),
       ...auditMetadata,
     },
   });

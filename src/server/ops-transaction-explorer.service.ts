@@ -1,4 +1,5 @@
 import type { PaginatedResult, TransactionDetail, TransactionExplorerRow } from "@/lib/internal/ops-types";
+import { isAdjustmentReversalNote, adjustmentReversalNote } from "@/lib/bank/adjustment-reversal";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import type { Prisma } from "@prisma/client";
@@ -145,6 +146,20 @@ export async function getTransactionDetail(transactionId: string): Promise<Trans
     ? tx.referenceCode.replace(/-OUT$|-IN$/, "")
     : null;
 
+  let canReverseAdjustment = false;
+  if (tx.type === "ADJUSTMENT" && tx.status === "APPROVED" && !isAdjustmentReversalNote(tx.reviewNote)) {
+    const existingReversal = await prisma.bankTransaction.findFirst({
+      where: {
+        bankAccountId: tx.bankAccountId,
+        type: "ADJUSTMENT",
+        status: "APPROVED",
+        reviewNote: { contains: adjustmentReversalNote(tx.referenceCode) },
+      },
+      select: { id: true },
+    });
+    canReverseAdjustment = !existingReversal;
+  }
+
   return {
     ...base,
     accountId: tx.bankAccountId,
@@ -159,5 +174,6 @@ export async function getTransactionDetail(transactionId: string): Promise<Trans
     relatedLoanId: tx.loanPayment?.loanId ?? null,
     relatedAltaPayRef,
     relatedStatementId: null,
+    canReverseAdjustment,
   };
 }

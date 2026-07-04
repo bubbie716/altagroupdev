@@ -107,7 +107,18 @@ export const submitBankInternalTransfer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitInternalTransfer } = await import("@/server/bank.service");
     const userId = await actorId();
-    return submitInternalTransfer(userId, data);
+    try {
+      return await submitInternalTransfer(userId, data);
+    } catch (error) {
+      const { notifyTransferFailedBestEffort, friendlyFailureReason } = await import(
+        "@/server/banking-notification.service"
+      );
+      await notifyTransferFailedBestEffort(userId, {
+        amount: data.amount,
+        reason: friendlyFailureReason(error),
+      });
+      throw error;
+    }
   });
 
 export const fetchUserInternalTransfers = createServerFn({ method: "GET" })

@@ -95,6 +95,7 @@ async function userHasPrivateMembership(userId: string): Promise<boolean> {
 async function activateAltaPrivateMembership(
   userId: string,
   actorUserId: string | null,
+  auditContext?: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext,
 ): Promise<void> {
   const alreadyMember = await userHasPrivateMembership(userId);
   if (!alreadyMember) {
@@ -113,7 +114,7 @@ async function activateAltaPrivateMembership(
     entityType: "USER",
     entityId: userId,
     description: "Alta Private membership activated",
-    metadata: { userId, actorUserId },
+    metadata: auditSourceMetadata(auditContext?.source, { userId, actorUserId }),
   });
 
   if (!alreadyMember) {
@@ -124,7 +125,12 @@ async function activateAltaPrivateMembership(
       entityType: "USER",
       entityId: userId,
       description: "Alta Private membership activated",
-      metadata: { userId, actorUserId, before: false, after: true },
+      metadata: auditSourceMetadata(auditContext?.source, {
+        userId,
+        actorUserId,
+        before: false,
+        after: true,
+      }),
     });
   }
 
@@ -277,7 +283,7 @@ export async function acceptAltaPrivateInvitation(
     data: { status: "ACCEPTED", acceptedAt: now, updatedAt: now },
   });
 
-  await activateAltaPrivateMembership(userId, userId);
+  await activateAltaPrivateMembership(userId, userId, auditContext);
 
   const { writeAuditLog } = await import("@/server/audit.service");
   await writeAuditLog({
@@ -341,15 +347,6 @@ export async function declineAltaPrivateInvitation(
     description: "Alta Private invitation declined",
     metadata: auditSourceMetadata(auditContext?.source, { invitationId, userId }),
   });
-
-  try {
-    const { sendAltaPrivateDeclinedDiscordNotification } = await import(
-      "@/server/alta-private-discord.service"
-    );
-    await sendAltaPrivateDeclinedDiscordNotification(userId);
-  } catch {
-    // Discord must never break decline flow.
-  }
 }
 
 export async function getCustomerAltaPrivatePageState(

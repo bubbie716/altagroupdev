@@ -147,6 +147,7 @@ npm run dev
 | Path | Purpose |
 |------|---------|
 | `prisma/schema.prisma` | Models and enums |
+| `docs/architecture/core-financial-abstractions.md` | Payment, TransferGroup, institution, and assignment foundations |
 | `prisma/seed.ts` | Demo companies |
 | `src/server/db.ts` | Prisma client singleton |
 | `src/server/user.service.ts` | Upsert user from Discord |

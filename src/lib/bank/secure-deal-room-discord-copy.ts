@@ -31,13 +31,7 @@ export function buildDealRoomChannelName(input: {
 }
 
 export function buildDealRoomChannelWelcomeContent(): string {
-  return [
-    "This private channel is connected to your Alta Bank Deal Room.",
-    "",
-    "Messages sent here will appear in your Deal Room on Alta Bank.",
-    "",
-    "Please keep all communication related to this application or review in this channel.",
-  ].join("\n");
+  return "Keep application-related messages in this channel. Alta Bank is the official record.";
 }
 
 export function buildDiscordGuildChannelUrl(guildId: string, channelId: string): string {
@@ -66,6 +60,17 @@ export function buildChannelOpenedDmBody(input: {
   ].join("\n");
 }
 
+export function buildWebsiteToDiscordChannelEmbed(input: {
+  senderDisplayName: string;
+  messageBody: string | null;
+}): { title: string; description: string } {
+  return {
+    title: input.senderDisplayName.trim().slice(0, 256) || "Alta Bank",
+    description: previewDealRoomMessage(input.messageBody),
+  };
+}
+
+/** @deprecated Use buildWebsiteToDiscordChannelEmbed for Discord delivery. */
 export function buildWebsiteToDiscordChannelMessage(input: {
   senderDisplayName: string;
   messageBody: string | null;
@@ -81,7 +86,7 @@ export function sanitizeDiscordReplyContent(content: string): string | null {
 }
 
 export const DEAL_ROOM_CHANNEL_CLOSED_NOTICE =
-  "This Deal Room is closed on Alta Bank. The applicant no longer has access to this Discord channel. Staff can still review the message history here.";
+  "This Deal Room is closed on Alta Bank. Staff may still review message history here.";
 
 export const DEAL_ROOM_CHANNEL_FAILURE_COPY = {
   closed:

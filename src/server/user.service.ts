@@ -48,6 +48,15 @@ export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<Al
       include: userWithMembershipsInclude,
     });
 
+    try {
+      const { syncUndeliveredInvitationDmsForUser } = await import(
+        "@/server/bot-invitation-delivery.service"
+      );
+      await syncUndeliveredInvitationDmsForUser(user.id);
+    } catch {
+      // Invitation catch-up must never block login.
+    }
+
     return mapDbUserToAltaUser(refreshed);
   }
 
@@ -80,6 +89,15 @@ export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<Al
     await grantDiscordClientRoleBestEffort(profile.id);
   } catch {
     // Discord role sync must never block account creation.
+  }
+
+  try {
+    const { syncUndeliveredInvitationDmsForUser } = await import(
+      "@/server/bot-invitation-delivery.service"
+    );
+    await syncUndeliveredInvitationDmsForUser(user.id);
+  } catch {
+    // Invitation catch-up must never block account creation.
   }
 
   return mapDbUserToAltaUser(user);

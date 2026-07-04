@@ -125,6 +125,7 @@ import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/client
 import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
 import { Route as ApiCronScheduledTransfersRouteImport } from './routes/api/cron/scheduled-transfers'
 import { Route as ApiCronRelationshipIntelligenceRouteImport } from './routes/api/cron/relationship-intelligence'
+import { Route as ApiCronOperationalControlsRouteImport } from './routes/api/cron/operational-controls'
 import { Route as ApiCronLoanInterestRouteImport } from './routes/api/cron/loan-interest'
 import { Route as ApiCronDailyServicingRouteImport } from './routes/api/cron/daily-servicing'
 import { Route as ApiCronBankStatementsRouteImport } from './routes/api/cron/bank-statements'
@@ -817,6 +818,12 @@ const ApiCronRelationshipIntelligenceRoute =
     path: '/api/cron/relationship-intelligence',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiCronOperationalControlsRoute =
+  ApiCronOperationalControlsRouteImport.update({
+    id: '/api/cron/operational-controls',
+    path: '/api/cron/operational-controls',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCronLoanInterestRoute = ApiCronLoanInterestRouteImport.update({
   id: '/api/cron/loan-interest',
   path: '/api/cron/loan-interest',
@@ -1456,6 +1463,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -1649,6 +1657,7 @@ export interface FileRoutesByTo {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -1858,6 +1867,7 @@ export interface FileRoutesById {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
@@ -2072,6 +2082,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -2265,6 +2276,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -2473,6 +2485,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
     | '/bank/accounts/open'
@@ -2627,6 +2640,7 @@ export interface RootRouteChildren {
   ApiCronBankStatementsRoute: typeof ApiCronBankStatementsRoute
   ApiCronDailyServicingRoute: typeof ApiCronDailyServicingRoute
   ApiCronLoanInterestRoute: typeof ApiCronLoanInterestRoute
+  ApiCronOperationalControlsRoute: typeof ApiCronOperationalControlsRoute
   ApiCronRelationshipIntelligenceRoute: typeof ApiCronRelationshipIntelligenceRoute
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
@@ -3451,6 +3465,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/relationship-intelligence'
       fullPath: '/api/cron/relationship-intelligence'
       preLoaderRoute: typeof ApiCronRelationshipIntelligenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/operational-controls': {
+      id: '/api/cron/operational-controls'
+      path: '/api/cron/operational-controls'
+      fullPath: '/api/cron/operational-controls'
+      preLoaderRoute: typeof ApiCronOperationalControlsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/loan-interest': {
@@ -4864,6 +4885,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronBankStatementsRoute: ApiCronBankStatementsRoute,
   ApiCronDailyServicingRoute: ApiCronDailyServicingRoute,
   ApiCronLoanInterestRoute: ApiCronLoanInterestRoute,
+  ApiCronOperationalControlsRoute: ApiCronOperationalControlsRoute,
   ApiCronRelationshipIntelligenceRoute: ApiCronRelationshipIntelligenceRoute,
   ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute:

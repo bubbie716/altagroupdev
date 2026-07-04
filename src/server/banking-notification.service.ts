@@ -48,21 +48,6 @@ export async function notifyDepositApproved(
   });
 }
 
-export async function notifyDepositDenied(
-  userId: string,
-  amount: number,
-  referenceCode: string,
-): Promise<void> {
-  await createUserNotification({
-    userId,
-    type: "DEPOSIT_DENIED",
-    title: "Deposit denied",
-    body: `Your deposit of ${formatFlorin(amount)} (${referenceCode}) was denied.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount },
-  });
-}
-
 export async function notifyWithdrawalSubmitted(
   userId: string,
   amount: number,
@@ -89,21 +74,6 @@ export async function notifyWithdrawalApproved(
     type: "WITHDRAWAL_APPROVED",
     title: "Withdrawal approved",
     body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) has been approved.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount },
-  });
-}
-
-export async function notifyWithdrawalDenied(
-  userId: string,
-  amount: number,
-  referenceCode: string,
-): Promise<void> {
-  await createUserNotification({
-    userId,
-    type: "WITHDRAWAL_DENIED",
-    title: "Withdrawal denied",
-    body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) was denied.`,
     linkUrl: "/bank",
     metadata: { referenceCode, amount },
   });
@@ -289,3 +259,245 @@ export async function notifyAltaCardApplicationDenied(
     metadata: { applicationId },
   });
 }
+
+function friendlyFailureReason(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  return raw.replace(/^BAD_REQUEST:/, "").trim() || "The request could not be completed.";
+}
+
+export async function notifyTransferFailedBestEffort(
+  userId: string,
+  input: { amount: number; reason: string },
+): Promise<void> {
+  try {
+    await createUserNotification({
+      userId,
+      type: "TRANSFER_FAILED",
+      title: "Transfer could not be completed",
+      body: `Your transfer of ${formatFlorin(input.amount)} did not go through. ${input.reason}`,
+      linkUrl: "/bank/transfers/intrabank",
+      metadata: { amount: input.amount, reason: input.reason },
+    });
+  } catch (error) {
+    console.error("[banking-notification] transfer failed notification error", error);
+  }
+}
+
+export async function notifyAltaPayFailedBestEffort(
+  userId: string,
+  input: { amount: number; reason: string; payeeLabel?: string },
+): Promise<void> {
+  try {
+    const payee = input.payeeLabel?.trim();
+    const payeePart = payee ? ` to ${payee}` : "";
+    await createUserNotification({
+      userId,
+      type: "ALTA_PAY_FAILED",
+      title: "Alta Pay could not be completed",
+      body: `Your Alta Pay of ${formatFlorin(input.amount)}${payeePart} did not go through. ${input.reason}`,
+      linkUrl: "/bank/pay",
+      metadata: { amount: input.amount, reason: input.reason, payeeLabel: payee ?? null },
+    });
+  } catch (error) {
+    console.error("[banking-notification] alta pay failed notification error", error);
+  }
+}
+
+export async function notifyScheduledTransferExecuted(
+  userId: string,
+  input: { label: string; amount: number; referenceCode?: string },
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "SCHEDULED_TRANSFER_EXECUTED",
+    title: "Scheduled transfer completed",
+    body: `Your scheduled transfer "${input.label}" for ${formatFlorin(input.amount)} was sent successfully.${
+      input.referenceCode ? ` Reference \`${input.referenceCode}\`.` : ""
+    }`,
+    linkUrl: "/bank/transfers/scheduled",
+    metadata: { label: input.label, amount: input.amount, referenceCode: input.referenceCode ?? null },
+  });
+}
+
+export async function notifyScheduledTransferFailed(
+  userId: string,
+  input: { label: string; amount: number; reason: string; paused?: boolean },
+): Promise<void> {
+  const pausedNote = input.paused
+    ? " The schedule has been paused after repeated failures."
+    : "";
+  await createUserNotification({
+    userId,
+    type: "SCHEDULED_TRANSFER_FAILED",
+    title: "Scheduled transfer failed",
+    body: `Your scheduled transfer "${input.label}" for ${formatFlorin(input.amount)} could not be sent. ${input.reason}${pausedNote}`,
+    linkUrl: "/bank/transfers/scheduled",
+    metadata: {
+      label: input.label,
+      amount: input.amount,
+      reason: input.reason,
+      paused: input.paused ?? false,
+    },
+  });
+}
+
+export async function notifyLoanPaymentMade(
+  userId: string,
+  input: { loanId: string; amount: number; referenceCode: string },
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "LOAN_PAYMENT_MADE",
+    title: "Loan payment received",
+    body: `We received your loan payment of ${formatFlorin(input.amount)}. Reference \`${input.referenceCode}\`.`,
+    linkUrl: `/bank/lending/loans/${input.loanId}`,
+    metadata: { loanId: input.loanId, amount: input.amount, referenceCode: input.referenceCode },
+  });
+}
+
+export async function notifyLoanPaidOff(
+  userId: string,
+  input: { loanId: string; referenceCode: string },
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "LOAN_PAID_OFF",
+    title: "Loan paid off",
+    body: `Congratulations — your loan is paid in full. Reference \`${input.referenceCode}\`.`,
+    linkUrl: `/bank/lending/loans/${input.loanId}`,
+    metadata: { loanId: input.loanId, referenceCode: input.referenceCode },
+  });
+}
+
+export async function notifyLoanAutopayFailedBestEffort(
+  userId: string,
+  input: { loanId: string; amount: number; reason: string },
+): Promise<void> {
+  try {
+    await createUserNotification({
+      userId,
+      type: "LOAN_AUTOPAY_FAILED",
+      title: "Loan autopay failed",
+      body: `Automatic loan payment of ${formatFlorin(input.amount)} could not be processed. ${input.reason}`,
+      linkUrl: `/bank/lending/loans/${input.loanId}`,
+      metadata: { loanId: input.loanId, amount: input.amount, reason: input.reason },
+    });
+  } catch (error) {
+    console.error("[banking-notification] loan autopay failed notification error", error);
+  }
+}
+
+export async function notifyAltaCardPaymentMade(
+  userId: string,
+  input: { cardId: string; amount: number; referenceCode: string; cardLastFour: string },
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "ALTA_CARD_PAYMENT_MADE",
+    title: "Alta Card payment received",
+    body: `We received your payment of ${formatFlorin(input.amount)} on card ending ${input.cardLastFour}. Reference \`${input.referenceCode}\`.`,
+    linkUrl: "/bank/alta-card",
+    metadata: {
+      cardId: input.cardId,
+      amount: input.amount,
+      referenceCode: input.referenceCode,
+      cardLastFour: input.cardLastFour,
+    },
+  });
+}
+
+export async function notifyAltaCardAutopaySucceededBestEffort(
+  userId: string,
+  input: { cardId: string; amount: number; referenceCode?: string | null },
+): Promise<void> {
+  try {
+    await createUserNotification({
+      userId,
+      type: "ALTA_CARD_AUTOPAY_SUCCEEDED",
+      title: "Alta Card autopay completed",
+      body: `Your Alta Card autopay of ${formatFlorin(input.amount)} was processed successfully.${
+        input.referenceCode ? ` Reference \`${input.referenceCode}\`.` : ""
+      }`,
+      linkUrl: "/bank/alta-card",
+      metadata: { cardId: input.cardId, amount: input.amount, referenceCode: input.referenceCode ?? null },
+    });
+  } catch (error) {
+    console.error("[banking-notification] card autopay success notification error", error);
+  }
+}
+
+export async function notifyAltaCardAutopayFailedBestEffort(
+  userId: string,
+  input: { cardId: string; amount: number; reason: string },
+): Promise<void> {
+  try {
+    await createUserNotification({
+      userId,
+      type: "ALTA_CARD_AUTOPAY_FAILED",
+      title: "Alta Card autopay failed",
+      body: `Automatic Alta Card payment of ${formatFlorin(input.amount)} could not be processed. ${input.reason}`,
+      linkUrl: "/bank/alta-card",
+      metadata: { cardId: input.cardId, amount: input.amount, reason: input.reason },
+    });
+  } catch (error) {
+    console.error("[banking-notification] card autopay failed notification error", error);
+  }
+}
+
+export async function notifyAltaCardReviewDecided(
+  userId: string,
+  input: { cardId: string; status: "APPROVED" | "PARTIALLY_APPROVED" | "DENIED"; reason?: string },
+): Promise<void> {
+  const approved = input.status === "APPROVED" || input.status === "PARTIALLY_APPROVED";
+  await createUserNotification({
+    userId,
+    type: "ALTA_CARD_REVIEW_DECIDED",
+    title: approved ? "Alta Card review approved" : "Alta Card review declined",
+    body: approved
+      ? "Your Alta Card account review was approved. Open Alta Bank to see your updated terms."
+      : `Your Alta Card account review was declined.${input.reason?.trim() ? ` ${input.reason.trim()}` : ""}`,
+    linkUrl: "/bank/alta-card",
+    metadata: { cardId: input.cardId, status: input.status, reason: input.reason ?? null },
+  });
+}
+
+export async function notifyAltaCardActivated(userId: string, cardId: string, cardLastFour: string): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "ALTA_CARD_ACTIVATED",
+    title: "Alta Card activated",
+    body: `Your Alta Card ending ${cardLastFour} is now active.`,
+    linkUrl: "/bank/alta-card",
+    metadata: { cardId, cardLastFour },
+  });
+}
+
+export async function notifyCompanyVerified(
+  userIds: string[],
+  input: { companyId: string; companyName: string },
+): Promise<void> {
+  if (userIds.length === 0) return;
+  await createUserNotifications(userIds, {
+    type: "COMPANY_VERIFIED",
+    title: "Company verified",
+    body: `${input.companyName} is now verified on Alta Bank. Business banking features are fully available.`,
+    linkUrl: "/bank/business",
+    metadata: { companyId: input.companyId, companyName: input.companyName },
+  });
+}
+
+export async function notifyCompanyRoleChanged(
+  userId: string,
+  input: { companyId: string; companyName: string; newRole: string },
+): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "COMPANY_ROLE_CHANGED",
+    title: "Company role updated",
+    body: `Your role at ${input.companyName} is now ${input.newRole.replaceAll("_", " ")}.`,
+    linkUrl: "/bank/business",
+    metadata: { companyId: input.companyId, companyName: input.companyName, newRole: input.newRole },
+  });
+}
+
+export { friendlyFailureReason };

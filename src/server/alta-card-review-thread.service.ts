@@ -35,6 +35,7 @@ import type { ThreadMessageAudience } from "@/lib/bank/thread-message-utils";
 import { sourceCodeFromDb } from "@/lib/bank/secure-deal-room-discord-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/server/db";
+import { writeAuditLog } from "@/server/audit.service";
 import {
   toAltaCardReviewStatusCode,
   toAltaCardTierCode,
@@ -49,6 +50,7 @@ import {
   closeDiscordSessionsForDealRoom,
   notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
+  resyncDealRoomDiscordOnReopenBestEffort,
   resolveDealRoomContextForStaffMessage,
   syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
@@ -524,6 +526,24 @@ export async function reopenReviewThread(
     where: { id: thread.id },
     data: { status: "WAITING_ON_ALTA", closedAt: null },
     include: threadInclude,
+  });
+
+  await writeAuditLog({
+    actorUserId: userId,
+    action: "ALTA_CARD_REVIEW_THREAD_REOPENED",
+    entityType: "ALTA_CARD",
+    entityId: reviewRequestId,
+    description: "Alta Card review thread reopened",
+    metadata: { reviewRequestId, threadId: thread.id },
+  });
+
+  void resyncDealRoomDiscordOnReopenBestEffort({
+    dealRoomType: "ALTA_CARD_REVIEW",
+    dealRoomId: reviewRequestId,
+    threadId: thread.id,
+    applicantUserId: thread.applicantUserId,
+    welcomeBody: "Your Alta Card review Secure Deal Room has been reopened.",
+    context: await resolveDealRoomContextForStaffMessage("ALTA_CARD_REVIEW", reviewRequestId),
   });
 
   return mapThreadContext(updated, user, "internal");

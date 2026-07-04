@@ -44,6 +44,7 @@ import {
   closeDiscordSessionsForDealRoom,
   notifyCustomerDealRoomOpenedBestEffort,
   notifyStaffDealRoomMessageBestEffort,
+  resyncDealRoomDiscordOnReopenBestEffort,
   resolveDealRoomContextForStaffMessage,
   syncWebsiteMessageToDiscordBestEffort,
 } from "@/server/secure-deal-room-discord.service";
@@ -582,6 +583,15 @@ export async function reopenThread(
     entityId: applicationId,
     metadata: { threadId: thread.id },
     description: `Secure Deal Room reopened.`,
+  });
+
+  void resyncDealRoomDiscordOnReopenBestEffort({
+    dealRoomType: "LOAN_APPLICATION",
+    dealRoomId: applicationId,
+    threadId: thread.id,
+    applicantUserId: thread.applicantUserId,
+    welcomeBody: "Your loan application Secure Deal Room has been reopened.",
+    context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", applicationId),
   });
 
   return mapThreadContext(updated, actor, "internal");

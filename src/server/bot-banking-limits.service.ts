@@ -4,12 +4,21 @@ import { prisma } from "@/server/db";
 export const DISCORD_BANKING_LIMITS = {
   dailyFreeTransferVolume: 25_000,
   maxTransferAmount: 100_000,
+  maxAltaPayAmount: 100_000,
   maxDepositRequestAmount: 250_000,
   maxWithdrawalRequestAmount: 100_000,
   convenienceFeeRate: 0.0025,
   minConvenienceFee: 50,
   maxConvenienceFee: 1_000,
 } as const;
+
+export type BotAltaPayQuote = {
+  allowed: boolean;
+  reason?: string;
+  payAmount: number;
+  totalDebited: number;
+  requiresWebsite: boolean;
+};
 
 export type BotTransferQuote = {
   allowed: boolean;
@@ -131,6 +140,49 @@ export async function recordBotTransferUsage(userId: string, amount: number): Pr
     create: { userId, usageDate, volume: amount },
     update: { volume: { increment: amount } },
   });
+}
+
+export function quoteBotAltaPay(amount: number, availableBalance: number): BotAltaPayQuote {
+  if (amount <= 0) {
+    return {
+      allowed: false,
+      reason: "Amount must be greater than zero.",
+      payAmount: amount,
+      totalDebited: amount,
+      requiresWebsite: false,
+    };
+  }
+
+  if (amount > DISCORD_BANKING_LIMITS.maxAltaPayAmount) {
+    return {
+      allowed: false,
+      reason: websiteRedirectMessage("This Alta Pay"),
+      payAmount: amount,
+      totalDebited: amount,
+      requiresWebsite: true,
+    };
+  }
+
+  if (amount > availableBalance) {
+    return {
+      allowed: false,
+      reason: "This payment couldn't be completed because your available balance is insufficient.",
+      payAmount: amount,
+      totalDebited: amount,
+      requiresWebsite: false,
+    };
+  }
+
+  return {
+    allowed: true,
+    payAmount: amount,
+    totalDebited: amount,
+    requiresWebsite: false,
+  };
+}
+
+export function formatBotAltaPayLimitsDisclosure(): string {
+  return `_Discord limit: max ${formatFlorin(DISCORD_BANKING_LIMITS.maxAltaPayAmount)} per Alta Pay. Larger payments require Alta Bank._`;
 }
 
 export function formatBotTransferQuoteLines(quote: BotTransferQuote): string[] {

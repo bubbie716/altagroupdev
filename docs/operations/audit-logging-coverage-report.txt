@@ -1,0 +1,509 @@
+Alta Audit Logging Coverage Report
+===================================
+Scope: Alta web app (altaweb) + Alta Companion Discord Bot (altabot)
+Date: July 3, 2026
+
+Architecture
+------------
+All DB audit rows flow through writeAuditLog() -> AuditLog table -> optional Discord
+staff channel via audit-log-discord-bridge.ts. The bot never writes audit rows
+directly; it calls shared altaweb services with metadata.source: "discord_bot".
+
+Overall assessment: Money-movement and operator actions are well covered (~155
+distinct action codes). Gaps cluster around failed attempts, attribution/source
+accuracy, naming inconsistency, and high-volume automated events that inflate the
+court record without adding legal value.
+
+
+================================================================================
+1. EVENTS ALREADY AUDITED
+================================================================================
+
+Customer Banking
+----------------
+Event                              Action code(s)                          Source(s)           Staff Discord
+---------------------------------  --------------------------------------  ------------------  -------------
+Personal account opened            BANK_ACCOUNT_OPENED                     Web                 Yes
+Business account opened            BUSINESS_ACCOUNT_OPENED                 Web                 Yes
+Account opening approved           ACCOUNT_STATUS_CHANGED                  Web (operator)      Yes
+Deposit request submitted          BANK_DEPOSIT_REQUEST_SUBMITTED          Web, Discord bot    Yes (requiresAction)
+Withdrawal request submitted       BANK_WITHDRAWAL_REQUEST_SUBMITTED       Web, Discord bot    Yes (requiresAction)
+Deposit approved                   DEPOSIT_APPROVED                        Web (operator)      Yes
+Withdrawal approved                WITHDRAWAL_APPROVED                     Web (operator)      Yes
+Deposit/withdrawal denied          BANK_PAYMENT_BLOCKED                    Web (operator)      Yes ("Payment blocked")
+Intrabank transfer completed       BANK_INTERNAL_TRANSFER_COMPLETED        Web, Discord bot    Yes
+Alta Pay sent                      ALTA_PAY_SENT                           Web, Discord bot    Yes
+Scheduled transfer created         BANK_SCHEDULED_TRANSFER_CREATED         Web                 Yes
+Scheduled transfer cancelled       BANK_SCHEDULED_TRANSFER_CANCELLED     Web                 Yes
+Scheduled transfer executed        BANK_SCHEDULED_TRANSFER_EXECUTED        Cron                Yes
+Scheduled transfer failed          BANK_SCHEDULED_TRANSFER_FAILED          Cron                Yes
+Interbank transfer requested       Same as scheduled; metadata includes    Web                 Yes
+                                   transferScope: "interbank"
+Account frozen/unfrozen/closed     BANK_ACCOUNT_FROZEN, UNFROZEN, CLOSED,  Operator            Yes
+                                   BANK_ACCOUNT_REOPENED
+Account holds                      BANK_ACCOUNT_HOLD_PLACED, RELEASED      Operator            Yes
+Withdrawal holds                   BANK_WITHDRAWAL_HOLD_PLACED, RELEASED    Operator            Yes
+Restrictions                       BANK_ACCOUNT_RESTRICTED, UNRESTRICTED,  Operator            Yes
+                                   ACCOUNT_RESTRICTIONS_UPDATED
+Manual credits/debits/fees/        BANK_MANUAL_CREDIT_POSTED, DEBIT_POSTED, Operator            Yes
+reversals/corrections              BANK_FEE_POSTED, BANK_REVERSAL_POSTED,
+                                   BANK_CORRECTION_POSTED
+Admin manual transfer              ADMIN_MANUAL_TRANSFER                   Operator            Yes
+Transaction under review           BANK_TRANSACTION_UNDER_REVIEW, RELEASED Operator            Yes
+Alta Pay reversal (operator)       BANK_PAYMENT_REVERSED                   Operator            Yes
+Bulk deposit/withdrawal ops        BULK_DEPOSITS_APPROVED, DENIED,         Operator            Partial
+                                   BULK_WITHDRAWALS_DENIED
+Interest accrual                   ACCOUNT_INTEREST_ACCRUED,               Cron                Partial
+                                   ACCOUNT_INTEREST_BATCH_RUN
+Manual interest                    MANUAL_INTEREST_APPLIED, SCHEDULED,     Operator/Cron       Preview skipped
+                                   SCHEDULE_CANCELLED, PREVIEWED           from Discord
+
+
+Customer Programs — Alta Private
+---------------------------------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Invitation sent                    ALTA_PRIVATE_INVITATION_SENT            Yes
+Invitation revoked                 ALTA_PRIVATE_INVITATION_REVOKED         Yes
+Invitation accepted/declined       ALTA_PRIVATE_INVITATION_ACCEPTED,       Yes (bot sets discord_bot)
+                                   DECLINED
+Membership activated               ALTA_PRIVATE_ACTIVATED                  Yes (source often wrong)
+Private client tag granted/removed PRIVATE_BANKING_CLIENT_MARKED, REMOVED  Yes
+
+Note: No dedicated ALTA_PRIVATE_DEACTIVATED; deactivation is covered by
+USER_TAG_REVOKED + PRIVATE_BANKING_CLIENT_REMOVED. Private banker assignment
+is not implemented (static config only).
+
+
+Companies
+---------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Company created                    COMPANY_CREATED                         Yes
+Verified/rejected/revoked          COMPANY_VERIFIED, REJECTED,             Yes
+                                   VERIFICATION_REVOKED
+Invitation sent/accepted/declined  COMPANY_INVITATION_SENT, ACCEPTED,      Yes
+                                   DECLINED
+Member role changed / removed      COMPANY_MEMBER_ROLE_CHANGED, REMOVED    Yes
+Business account opened            BUSINESS_ACCOUNT_OPENED                 Yes
+
+
+Credit — Lending
+----------------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Application submitted              LOAN_APPLICATION_SUBMITTED              Yes
+Application cancelled              LOAN_APPLICATION_CANCELLED              Partial
+  (credit desk close)
+Approved/denied                    LOAN_APPROVED, LOAN_DENIED              Yes
+Customer acceptance (agreement)    DEAL_ROOM_AGREEMENT_BORROWER_SIGNED     Partial
+Funded/disbursed                   LOAN_FUNDED, LOAN_DISBURSED, LOAN_CREATED Partial
+Payment made / paid off            LOAN_PAYMENT_MADE, LOAN_PAID_OFF        Yes
+Operator payment recorded          ADMIN_LOAN_PAYMENT_RECORDED             Yes
+Thread messages                    LOAN_THREAD_MESSAGE_SENT, etc.          Skipped from Discord
+
+
+Credit — Alta Card
+------------------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Application created/submitted      ALTA_CARD_APPLICATION_CREATED,          Partial
+                                   STATUS_CHANGED
+Approved/denied/accepted           ALTA_CARD_APPLICATION_APPROVED, DENIED, Partial
+                                   ACCEPTED
+Card opened/activated              ALTA_CARD_ACTIVATED,                    Partial
+                                   CREATED_FROM_APPLICATION
+Frozen/unfrozen/closed             ALTA_CARD_FROZEN, UNFROZEN, CLOSED,     Partial
+                                   STATUS_CHANGED
+Review submitted/approved/denied   ALTA_CARD_REVIEW_REQUEST_CREATED,       Partial
+                                   APPROVED, DENIED, etc.
+Limit/rate/tier changed            ALTA_CARD_LIMIT_CHANGED (admin) vs    Partial
+                                   LIMIT_UPDATED (review) — duplicate naming
+Payment made                       ALTA_CARD_PAYMENT_MADE,                 Partial
+                                   ALTA_CARD_STATEMENT_PAID
+Autopay                            ALTA_CARD_AUTOPAY_*                     Partial
+Cash advance, fees, interest,      Multiple ALTA_CARD_* actions          Partial
+statements
+
+
+Credit Desk
+-----------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Opened/closed                      CREDIT_DESK_OPENED, CLOSED              Yes
+
+
+Deal Rooms
+----------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Room created, officer assigned,    DEAL_ROOM_CREATED, OFFICER_ASSIGNED,    Partial
+status/stage changed               etc.
+Messages, documents, offers,       ~35 DEAL_ROOM_* actions                 Partial
+agreements, execution
+Discord channel created/linked/    DEAL_ROOM_DISCORD_CHANNEL_*             Skipped from Discord
+locked/cleaned                     (DB only)
+Discord <-> website message sync   DEAL_ROOM_DISCORD_MESSAGE_SYNCED_*,     Skipped from Discord
+                                   WEBSITE_MESSAGE_SYNCED_TO_DISCORD
+Sync failed                        DEAL_ROOM_DISCORD_SYNC_FAILED           Yes
+Applicant message via Discord      Direct sendStaffAuditMessage            Yes
+
+
+Operations
+----------
+Event                              Action code(s)                          Staff Discord
+---------------------------------  --------------------------------------  -------------
+Maintenance mode                   MAINTENANCE_MODE_ENABLED, DISABLED,     Yes
+                                   MESSAGE_UPDATED
+User tag grant/revoke,             USER_TAG_GRANTED, REVOKED,              Yes
+status change                      USER_STATUS_CHANGED
+Internal notes                     INTERNAL_NOTE_ADDED                     Yes
+Ops job manual run                 OPS_JOB_MANUAL_RUN                      Yes
+Review flags                       OPS_REVIEW_FLAG_CREATED, RESOLVED       Yes
+Exception disposition              OPS_EXCEPTION_DISPOSITION               Partial
+Cron jobs (per-domain)             BANK_STATEMENT_CRON_*,                  Partial
+                                   ALTA_CARD_BILLING_JOB_*, etc.
+
+
+Bot (via shared services)
+-------------------------
+Event                              Audited    Source tagged
+---------------------------------  ---------  -------------
+Deposit/withdrawal submit          Yes        discord_bot
+Intrabank transfer                 Yes        discord_bot
+Alta Pay                           Yes        discord_bot
+Private/company invitation         Yes        discord_bot
+accept/decline
+Deal room message ingest           Yes (DB)   Varies
+Deal room sync failure             Yes        Yes
+Channel cleanup                    Yes        discord_bot
+
+
+================================================================================
+2. EVENTS MISSING AUDIT LOGS
+================================================================================
+
+Critical Gaps (money, access, or legal significance)
+----------------------------------------------------
+Missing event                          Where it happens              Risk
+-------------------------------------  ----------------------------  ---------------------------
+Intrabank/interbank transfer failed    bank.service.ts, bot handlers No failed-attempt trail
+  (customer attempt)
+Alta Pay failed                        alta-pay.service.ts, bot      Success only (ALTA_PAY_SENT)
+Alta Pay reversed (customer-initiated) N/A today                     Only operator reversal audited
+Card-funded Alta Pay distinct action   Uses generic ALTA_PAY_SENT    Hard to filter card vs bank
+Discord transfer convenience fee       bot-actions.service.ts        Money movement, no audit row
+                                       collectDiscordTransferFee()
+Loan payment failed                    loan.service.ts               Only success paths logged
+Alta Card manual payment failed        alta-card-transaction.service Only PAYMENT_MADE on success
+Interbank transfer executed            Executor only runs INTRABANK; No execution audit when staff
+                                       interbank stays pending       fulfills wire
+Permission denied on sensitive action  Widespread forbidden() throws No security/access audit trail
+Customer/bot notification delivery     Multiple services             Ops blind to failed comms
+  failed                               (console.error only)
+Invitation DM delivery failed          bot-notification-delivery     Silent failure
+Staff Discord audit dispatch failed    audit.service.ts              Console only, not DB
+Bot command/hub/modal failures         Bot handlers                  Console only
+
+
+Moderate Gaps
+-------------
+Missing event                          Notes
+-------------------------------------  ------------------------------------------
+Company invitation revoked             Alta Private revoke exists; no
+                                       COMPANY_INVITATION_REVOKED
+Alta Private deactivated (explicit)    Covered via tag revoke; no single canonical event
+Private banker assigned/changed        Feature not in DB; no audit possible yet
+Business account access changed        Only COMPANY_MEMBER_ROLE_CHANGED; no per-module grant
+  (module-level)
+Customer bank settings changed         Intentionally unlogged (correct per DO NOT LOG)
+System/platform settings beyond        No audit for other platform toggles if added
+  maintenance + credit desk
+Generic cron failure                   Per-job failures exist; no unified OPS_CRON_JOB_FAILED
+Deal room customer reply               In skip list but never written
+Attachment download                    Uploaded/downloaded audited; downloads may be over-audited
+
+
+Bot-Specific Gaps
+-----------------
+- Pre-submit validation failures (amount, proof, balance) — user embed only
+- Transfer limit / requiresWebsite blocks — no audit
+- User not linked to Alta account — no audit
+- Guild role sync failures — console only
+- Server-box receipt parsing — by design (parse-only, no auto-credit)
+
+
+================================================================================
+3. DUPLICATE / NOISY AUDIT LOGS
+================================================================================
+
+Naming Duplicates (same semantic event, different codes)
+--------------------------------------------------------
+Issue                    Codes                                    Recommendation
+-----------------------  ---------------------------------------  ---------------------------
+Denial naming            BANK_PAYMENT_BLOCKED vs DEPOSIT_DENIED / Standardize on one set
+                         WITHDRAWAL_DENIED (bridge labels)
+Hold naming              BANK_ACCOUNT_HOLD_PLACED vs              Pick BANK_* prefix
+                         ACCOUNT_HOLD_APPLIED (bridge)
+Card limit change        ALTA_CARD_LIMIT_CHANGED (admin) vs       Single code + changeSource
+                         LIMIT_UPDATED (review)                   metadata
+Card tier/rate           Same pattern for TIER_* and RATE_*       Consolidate
+Alta Pay card-funded     Docs: ALTA_CARD_ALTA_PAY_CHARGED;        Distinct action or mandatory
+                         code: ALTA_PAY_SENT                      fundingSource metadata
+Alta Private activation  Accept writes 3 rows: ACCEPTED,         Keep all 3 for court; fix
+side-effects             ACTIVATED, PRIVATE_BANKING_CLIENT_MARKED source attribution
+
+
+High-Volume / Low-Value for Court Record
+-----------------------------------------
+Action                               Why noisy                    Discord handling
+-----------------------------------  ---------------------------  ---------------------------
+ACCOUNT_INTEREST_ACCRUED             One row per account per      Not skipped — can flood staff
+                                     period
+RELATIONSHIP_PROFILE_*               Automated CRM recompute      Skipped
+RELATIONSHIP_SCORE/TIER_CHANGED      Automated scoring            Skipped
+RELATIONSHIP_*_VIEWED                Operator UI reads            Skipped
+LOAN_THREAD_MESSAGE_SENT             Every secure message         Skipped
+ALTA_CARD_APPLICATION_MESSAGE_SENT   Every secure message         Skipped
+DEAL_ROOM_DISCORD_MESSAGE_SYNCED_*   Every sync                   Skipped
+DEAL_ROOM_DISCORD_CHANNEL_*          Infrastructure               Skipped
+MANUAL_INTEREST_PREVIEWED            Read-only preview            Skipped
+ALTA_CARD_STATEMENT_GENERATED        Batch automation             Partial — review volume
+RELATIONSHIP_TIMELINE_BACKFILLED     Backfill                     Skipped
+
+
+Dead / Misleading Code
+----------------------
+- staff-audit-events.ts — never imported; duplicate of bridge logic
+- Bridge ACTION_LABELS — ~80+ written actions lack labels; fallback humanize inconsistent
+- DISCORD_SKIP_ACTIONS entries never written: DEAL_ROOM_CUSTOMER_REPLY_RECEIVED,
+  DEAL_ROOM_MESSAGE_SOURCE_DISCORD
+
+
+Correctly NOT Logged (per criteria)
+-----------------------------------
+Page views, navigation, chart interactions, form typing, dropdown opens, read-only
+data fetches, normal account viewing — none of these write audit rows today.
+
+
+================================================================================
+4. RECOMMENDED STANDARDIZED EVENT NAMES
+================================================================================
+
+Adopt strict {DOMAIN}_{ENTITY}_{VERB} pattern.
+
+Banking
+-------
+BANK_ACCOUNT_OPENED
+BANK_ACCOUNT_STATUS_CHANGED
+BANK_DEPOSIT_REQUESTED
+BANK_DEPOSIT_APPROVED
+BANK_DEPOSIT_DENIED
+BANK_WITHDRAWAL_REQUESTED
+BANK_WITHDRAWAL_APPROVED
+BANK_WITHDRAWAL_DENIED
+BANK_TRANSFER_INTRABANK_COMPLETED
+BANK_TRANSFER_INTRABANK_FAILED
+BANK_TRANSFER_INTERBANK_REQUESTED
+BANK_TRANSFER_INTERBANK_COMPLETED
+BANK_TRANSFER_INTERBANK_FAILED
+BANK_ALTA_PAY_SENT
+BANK_ALTA_PAY_FAILED
+BANK_ALTA_PAY_REVERSED
+BANK_SCHEDULED_TRANSFER_CREATED | CANCELLED | EXECUTED | FAILED
+BANK_ACCOUNT_FROZEN | UNFROZEN | CLOSED | REOPENED
+BANK_ACCOUNT_HOLD_PLACED | RELEASED
+BANK_ACCOUNT_RESTRICTED | UNRESTRICTED
+BANK_ADJUSTMENT_CREDIT | DEBIT | FEE | REVERSAL | CORRECTION
+BANK_TRANSACTION_REVIEW_FLAGGED | RELEASED
+
+Programs
+--------
+ALTA_PRIVATE_INVITATION_SENT | REVOKED | ACCEPTED | DECLINED
+ALTA_PRIVATE_MEMBERSHIP_ACTIVATED | DEACTIVATED
+ALTA_PRIVATE_BANKER_ASSIGNED | CHANGED
+COMPANY_CREATED | VERIFIED | REJECTED | VERIFICATION_REVOKED
+COMPANY_INVITATION_SENT | ACCEPTED | DECLINED | REVOKED
+COMPANY_MEMBER_ROLE_CHANGED | REMOVED
+COMPANY_BUSINESS_ACCOUNT_OPENED
+COMPANY_BUSINESS_ACCESS_CHANGED
+
+Credit
+------
+LOAN_APPLICATION_SUBMITTED | APPROVED | DENIED | CANCELLED | ACCEPTED
+LOAN_FUNDED | PAYMENT_SUCCEEDED | PAYMENT_FAILED | PAID_OFF
+ALTA_CARD_APPLICATION_SUBMITTED | APPROVED | DENIED | ACCEPTED
+ALTA_CARD_REVIEW_SUBMITTED | APPROVED | DENIED
+ALTA_CARD_OPENED | FROZEN | UNFROZEN | CLOSED
+ALTA_CARD_PAYMENT_SUCCEEDED | FAILED
+ALTA_CARD_LIMIT_CHANGED | TIER_CHANGED | STATUS_CHANGED
+CREDIT_DESK_OPENED | CLOSED
+
+Deal Rooms & Ops
+----------------
+DEAL_ROOM_CREATED | MESSAGE_SENT | CLOSED
+DEAL_ROOM_DISCORD_CHANNEL_CREATED | LINKED | LOCKED | CLOSED
+DEAL_ROOM_SYNC_WEB_TO_DISCORD | DISCORD_TO_WEB | SYNC_FAILED
+PLATFORM_MAINTENANCE_CHANGED
+PLATFORM_SETTING_CHANGED
+OPS_CRON_JOB_STARTED | COMPLETED | FAILED
+OPS_PERMISSION_DENIED
+OPS_USER_TAG_GRANTED | REVOKED
+OPS_NOTIFICATION_DELIVERY_FAILED
+
+Bot prefix convention: use metadata.source: "discord_bot" on all bot-originated
+events. Do not duplicate action names with BOT_ prefix unless the bot performs an
+action the website cannot (e.g. BOT_CONVENIENCE_FEE_CHARGED).
+
+
+================================================================================
+5. RECOMMENDED METADATA FIELDS
+================================================================================
+
+Required fields in metadata (every audit row):
+  source        "website" | "discord_bot" | "cron" | "system" | "operator"
+  severity      "info" | "warning" | "critical"
+  timestamp     ISO 8601 (already auto-injected)
+  correlationId string — tie multi-row events (accept -> activate -> tag)
+  ipAddress     string? — web customer actions where available
+  userAgent     string? — web customer actions
+
+Domain-specific fields:
+  Banking       amount, currency, referenceCode, transactionId, fromAccountId,
+                toAccountId, transferScope, failureReason
+  Alta Pay      fundingSource (bank_account | alta_card), cardId, recipientType,
+                recipientId
+  Credit        applicationId, loanId, cardId, previousStatus, newStatus,
+                previousLimit, newLimit
+  Operator      reason, reviewNote, ticketId, customerNotificationSent,
+                silentNotification
+  Deal rooms    dealRoomId, dealRoomType, messageId, discordChannelId,
+                syncDirection
+  Cron          jobKey, runId, durationMs, recordsProcessed, failureCount
+  Failures      errorCode, errorMessage (sanitized, no PII/secrets)
+  Bot           discordUserId, guildId, interactionId
+
+Court-ready description template:
+  {Actor} {verb} {entity} for {target} — {amount/reference} — {reason if operator}
+
+
+================================================================================
+6. STAFF DISCORD AUDIT MESSAGES
+================================================================================
+
+Should send Discord (actionable / high-signal):
+  - Requires staff action: deposit/withdrawal submitted, review flags, sync failed,
+    credit desk state change
+  - Money movement: transfers, Alta Pay, loan/card payments, manual adjustments, fees
+  - Access/security: account frozen, tag granted/revoked, permission denied (when
+    added), maintenance enabled
+  - Credit decisions: loan/card application approved/denied, review outcomes
+  - Customer comms failure: notification delivery failed (when added) — critical
+  - Bot failures on sensitive actions: transfer/pay/deposit submit failures (when added)
+
+Should NOT send Discord (DB only):
+  - Automated CRM: relationship profile/score/tier/recommendation (already skipped)
+  - Message sync: deal room Discord<->web sync (already skipped)
+  - Thread messages: loan/card application thread messages (already skipped)
+  - Infrastructure: channel created/linked/locked (already skipped)
+  - Batch automation: per-account interest accrual — should be added to skip list;
+    keep batch summary only
+  - Read-only ops: previews, readiness views (already skipped)
+
+Fix attribution bugs for Discord:
+  - ALTA_PRIVATE_ACTIVATED and PRIVATE_BANKING_CLIENT_MARKED after bot accept must
+    carry source: "discord_bot"
+  - Add Discord labels for ~80 actions currently using fallback humanize
+
+
+================================================================================
+7. CUSTOMER NOTIFICATION REQUIREMENTS
+================================================================================
+
+Event                              Customer notification    Today
+---------------------------------  ---------------------    ---------------------------
+Deposit/withdrawal submitted       Yes (pending)            Yes; delivery fail -> console
+Deposit/withdrawal approved/denied Yes                      Yes
+Transfer completed                 Yes                      Yes
+Alta Pay sent/received             Yes                      Yes
+Scheduled transfer executed/failed Yes                      Partial
+Account frozen/restricted/closed   Yes                      Via operator notification
+Alta Private invitation            Yes (DM + web)           Yes; DM fail unaudited
+Company invitation                 Yes                      Yes
+Loan application approved/denied   Yes                      Yes
+Alta Card application approved/    Yes                      Yes
+denied
+Loan payment succeeded             Yes                      Yes
+Loan payment failed                Yes                      Not implemented
+Card payment / autopay success     Yes                      Yes
+Card autopay failed                Yes                      Audit exists; notification TODO
+Deal room message (staff reply)    Yes                      Separate notification path
+Credit desk closed                 Yes                      Via application status
+Maintenance mode enabled           Public banner            Yes
+Operator manual adjustment         Configurable (silent)    Tracked in audit metadata
+Bot action failures                User embed only          No notification beyond embed
+Permission denied                  No (security)            Correct
+Settings changes                   No                       Correct
+
+
+================================================================================
+8. PRIORITY ORDER FOR FIXES
+================================================================================
+
+P0 — Legal / money integrity (do first)
+  1. Audit bot banking failures — deposit/withdrawal/transfer/Alta Pay blocked or
+     errored attempts with failureReason, source: discord_bot
+  2. Audit Discord convenience fee — BANK_FEE_POSTED or dedicated fee action when
+     collectDiscordTransferFee() runs
+  3. Add BANK_TRANSFER_*_FAILED and BANK_ALTA_PAY_FAILED on web + bot error paths
+  4. Fix ALTA_PRIVATE_ACTIVATED source attribution on bot accept path
+  5. Add fundingSource metadata (or split ALTA_CARD_ALTA_PAY_CHARGED) for
+     card-funded Alta Pay
+
+P1 — Court readiness / consistency
+  6. Standardize denial action names — migrate BANK_PAYMENT_BLOCKED ->
+     BANK_DEPOSIT_DENIED / BANK_WITHDRAWAL_DENIED (or alias in exports)
+  7. Consolidate card limit/tier/rate actions — single code per event type with
+     changeSource: "admin" | "review"
+  8. Add OPS_PERMISSION_DENIED for staff/operator forbidden attempts on sensitive
+     endpoints
+  9. Add COMPANY_INVITATION_REVOKED when/if revoke flow is built
+ 10. Add OPS_NOTIFICATION_DELIVERY_FAILED audit when customer notification fails
+
+P2 — Noise reduction
+ 11. Skip ACCOUNT_INTEREST_ACCRUED from Discord — keep ACCOUNT_INTEREST_BATCH_RUN
+     summary only
+ 12. Remove dead code — staff-audit-events.ts, unused DISCORD_SKIP_ACTIONS entries
+ 13. Complete ACTION_LABELS for deal room, Alta Card, relationship, and cron actions
+ 14. Review attachment download auditing — uploads yes; downloads may be excessive
+
+P3 — Completeness / future-proofing
+ 15. Interbank execution audit when wire fulfillment workflow exists
+ 16. ALTA_PRIVATE_BANKER_ASSIGNED when per-client banker is stored in DB
+ 17. COMPANY_BUSINESS_ACCESS_CHANGED for module-level permission changes
+ 18. Unified OPS_CRON_JOB_STARTED/COMPLETED/FAILED wrapper around all cron entry points
+ 19. Bot infrastructure failures — command crashes, internal HTTP 5xx
+ 20. Introduce action enum / registry in TypeScript to prevent naming drift
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+Alta's audit system has a solid foundation: a single write path, rich deal-room
+and Alta Card coverage, and sensible Discord noise filtering for CRM/message sync.
+
+Main weaknesses for a court-ready record:
+  - Missing failure trails
+  - Inconsistent action naming
+  - Misattributed bot events
+  - Per-account interest accrual potentially spamming staff Discord
+
+Addressing P0–P1 items would materially improve defensibility without adding UI noise.
+
+Key source files:
+  - altaweb/src/server/audit.service.ts
+  - altaweb/src/lib/staff-audit/audit-log-discord-bridge.ts
+  - altaweb/src/lib/internal/audit-metadata.ts
+  - altaweb/prisma/schema.prisma (AuditLog model)
+  - altaweb/src/server/bot-actions.service.ts

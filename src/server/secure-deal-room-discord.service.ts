@@ -15,7 +15,7 @@ import {
   buildDealRoomChannelName,
   buildDealRoomChannelWelcomeContent,
   buildDiscordGuildChannelUrl,
-  buildWebsiteToDiscordChannelMessage,
+  buildWebsiteToDiscordChannelEmbed,
   DEAL_ROOM_CHANNEL_FAILURE_COPY,
   resolveDiscordChannelSenderRole,
   sanitizeDiscordReplyContent,
@@ -35,7 +35,7 @@ import {
   dispatchLockDealRoomChannel,
   dispatchPostDealRoomChannelMessage,
 } from "@/server/deal-room-discord-channel-dispatch.service";
-import { sendDiscordUserDm } from "@/server/discord-dm.service";
+import { createUserNotification, deliverNotificationDiscord } from "@/server/notification.service";
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { sendStaffAuditMessage } from "@/server/staff-audit-notification.service";
@@ -179,46 +179,6 @@ export async function closeDiscordSessionsForDealRoom(
   });
 }
 
-async function createInAppDealRoomOpenedNotification(input: {
-  userId: string;
-  title: string;
-  body: string;
-  linkUrl: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  await prisma.userNotification.create({
-    data: {
-      userId: input.userId,
-      type: "DEAL_ROOM_CREATED",
-      channel: "IN_APP",
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
-    },
-  });
-}
-
-async function createInAppDealRoomNotification(input: {
-  userId: string;
-  title: string;
-  body: string;
-  linkUrl: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  await prisma.userNotification.create({
-    data: {
-      userId: input.userId,
-      type: "DEAL_ROOM_MESSAGE_RECEIVED",
-      channel: "IN_APP",
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
-    },
-  });
-}
-
 export type DealRoomOpenedNotifyInput = {
   dealRoomType: SecureDealRoomType;
   dealRoomId: string;
@@ -241,6 +201,94 @@ export async function notifyCustomerDealRoomOpenedBestEffort(
   }
 }
 
+const DEAL_ROOM_REOPENED_MESSAGE =
+  "Your Secure Deal Room has been reopened. You can continue the conversation on Alta Bank and in Discord.";
+
+/** Re-activates Discord channel state when a deal room thread is reopened on the website. */
+export async function resyncDealRoomDiscordOnReopenBestEffort(
+  input: DealRoomOpenedNotifyInput,
+): Promise<void> {
+  await notifyCustomerDealRoomOpenedBestEffort({
+    ...input,
+    welcomeBody: input.welcomeBody?.trim() ? input.welcomeBody : DEAL_ROOM_REOPENED_MESSAGE,
+  });
+}
+
+export async function resyncDealRoomDiscordChannel(
+  actorUserId: string,
+  dealRoomType: SecureDealRoomType,
+  dealRoomId: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    if (dealRoomType === "LOAN_APPLICATION") {
+      const thread = await prisma.loanApplicationThread.findUnique({
+        where: { loanApplicationId: dealRoomId },
+        include: { loanApplication: true },
+      });
+      if (!thread) return { ok: false, reason: "thread_not_found" };
+      await resyncDealRoomDiscordOnReopenBestEffort({
+        dealRoomType,
+        dealRoomId,
+        threadId: thread.id,
+        applicantUserId: thread.applicantUserId,
+        welcomeBody: DEAL_ROOM_REOPENED_MESSAGE,
+        context: await resolveDealRoomContextForStaffMessage(dealRoomType, dealRoomId),
+      });
+    } else if (dealRoomType === "ALTA_CARD_APPLICATION") {
+      const thread = await prisma.altaCardApplicationThread.findUnique({
+        where: { applicationId: dealRoomId },
+      });
+      if (!thread) return { ok: false, reason: "thread_not_found" };
+      await resyncDealRoomDiscordOnReopenBestEffort({
+        dealRoomType,
+        dealRoomId,
+        threadId: thread.id,
+        applicantUserId: thread.applicantUserId,
+        welcomeBody: DEAL_ROOM_REOPENED_MESSAGE,
+        context: await resolveDealRoomContextForStaffMessage(dealRoomType, dealRoomId),
+      });
+    } else if (dealRoomType === "ALTA_CARD_REVIEW") {
+      const thread = await prisma.altaCardReviewThread.findUnique({
+        where: { reviewRequestId: dealRoomId },
+      });
+      if (!thread) return { ok: false, reason: "thread_not_found" };
+      await resyncDealRoomDiscordOnReopenBestEffort({
+        dealRoomType,
+        dealRoomId,
+        threadId: thread.id,
+        applicantUserId: thread.applicantUserId,
+        welcomeBody: DEAL_ROOM_REOPENED_MESSAGE,
+        context: await resolveDealRoomContextForStaffMessage(dealRoomType, dealRoomId),
+      });
+    } else {
+      return { ok: false, reason: "unsupported_deal_room_type" };
+    }
+
+    await writeAuditLog({
+      actorUserId,
+      action: "DEAL_ROOM_DISCORD_CHANNEL_RESYNCED",
+      entityType: auditEntityTypeForDealRoom(dealRoomType),
+      entityId: dealRoomId,
+      description: "Staff resynced Secure Deal Room Discord channel.",
+      metadata: { dealRoomType, dealRoomId, source: "INTERNAL" },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    await recordDealRoomSyncFailure({
+      action: "DEAL_ROOM_DISCORD_SYNC_FAILED",
+      actorUserId,
+      dealRoomType,
+      dealRoomId,
+      description: "Staff Discord resync failed.",
+      reason,
+      source: "RESYNC",
+    });
+    return { ok: false, reason };
+  }
+}
+
 async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): Promise<void> {
   const applicant = await prisma.user.findUnique({
     where: { id: input.applicantUserId },
@@ -249,11 +297,13 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
 
   const linkUrl = resolveCustomerDealRoomUrl(input.dealRoomType, input.dealRoomId, input.context);
 
-  await createInAppDealRoomOpenedNotification({
+  const notificationId = await createUserNotification({
     userId: input.applicantUserId,
+    type: "DEAL_ROOM_CREATED",
     title: "Your Secure Deal Room is open",
     body: input.welcomeBody,
     linkUrl,
+    skipDiscord: true,
     metadata: {
       dealRoomType: input.dealRoomType,
       dealRoomId: input.dealRoomId,
@@ -370,8 +420,9 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
       channelResult.channelId,
     ),
   });
+  const dmTitle = buildChannelOpenedDmTitle();
   const dmPayload = buildDealRoomOpenedDmPayload({
-    title: buildChannelOpenedDmTitle(),
+    title: dmTitle,
     body: dmBody,
     discordChannelUrl: buildDiscordGuildChannelUrl(
       process.env.DISCORD_GUILD_ID?.trim() ?? "",
@@ -380,7 +431,21 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
     websiteLinkUrl: linkUrl,
     websiteLinkLabel: "Open on Alta Bank",
   });
-  await sendDiscordUserDm(discordUserId, dmPayload);
+  await deliverNotificationDiscord(notificationId, {
+    userId: input.applicantUserId,
+    type: "DEAL_ROOM_CREATED",
+    title: dmTitle,
+    body: dmBody,
+    linkUrl,
+    linkLabel: "Open on Alta Bank",
+    customDmPayload: dmPayload,
+    metadata: {
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      threadId: input.threadId,
+      source: "APPLICATION_OPENED",
+    },
+  });
 }
 
 export async function notifyStaffDealRoomMessageBestEffort(
@@ -388,8 +453,9 @@ export async function notifyStaffDealRoomMessageBestEffort(
 ): Promise<void> {
   try {
     const linkUrl = resolveCustomerDealRoomUrl(input.dealRoomType, input.dealRoomId, input.context);
-    await createInAppDealRoomNotification({
+    await createUserNotification({
       userId: input.applicantUserId,
+      type: "DEAL_ROOM_MESSAGE_RECEIVED",
       title: "New message in your Secure Deal Room",
       body: previewInAppBody(input.messageBody),
       linkUrl,
@@ -436,14 +502,15 @@ async function syncWebsiteMessageToDiscord(input: WebsiteMessageSyncInput): Prom
     return;
   }
 
-  const content = buildWebsiteToDiscordChannelMessage({
+  const embed = buildWebsiteToDiscordChannelEmbed({
     senderDisplayName: input.senderDisplayName,
     messageBody: input.messageBody,
   });
 
   const delivery = await dispatchPostDealRoomChannelMessage({
     channelId: session.discordChannelId,
-    content,
+    embedTitle: embed.title,
+    embedDescription: embed.description,
   });
 
   if (!delivery.ok || !delivery.messageId) {

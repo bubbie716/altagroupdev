@@ -228,6 +228,17 @@ async function executeSinglePayment(
       }),
     });
 
+    try {
+      const { notifyScheduledTransferExecuted } = await import("@/server/banking-notification.service");
+      await notifyScheduledTransferExecuted(payment.createdByUserId, {
+        label: payment.label,
+        amount,
+        referenceCode,
+      });
+    } catch (error) {
+      console.error("[scheduled-transfer] executed notification failed", error);
+    }
+
     return "executed";
   } catch (error) {
     const reason = toFriendlyFailureReason(error);
@@ -296,6 +307,18 @@ async function recordFailure(
       requiresAction: shouldPause,
     }),
   });
+
+  try {
+    const { notifyScheduledTransferFailed } = await import("@/server/banking-notification.service");
+    await notifyScheduledTransferFailed(payment.createdByUserId, {
+      label: payment.label,
+      amount: Number(payment.amount.toString()),
+      reason,
+      paused: shouldPause,
+    });
+  } catch (error) {
+    console.error("[scheduled-transfer] failed notification error", error);
+  }
 }
 
 export async function executeDueScheduledTransfers(

@@ -56,9 +56,12 @@ const DISCORD_SKIP_ACTIONS = new Set([
 const ACTION_LABELS: Record<string, string> = {
   BANK_ACCOUNT_OPENED: "Account opened",
   BANK_DEPOSIT_REQUEST_SUBMITTED: "Deposit request submitted",
+  BANK_DEPOSIT_REQUEST_FAILED: "Deposit request failed",
   BANK_WITHDRAWAL_REQUEST_SUBMITTED: "Withdrawal request submitted",
+  BANK_WITHDRAWAL_REQUEST_FAILED: "Withdrawal request failed",
   BANK_INTERNAL_TRANSFER_COMPLETED: "Internal transfer completed",
   BANK_INTERNAL_TRANSFER_FAILED: "Internal transfer failed",
+  DISCORD_TRANSFER_CONVENIENCE_FEE: "Discord transfer convenience fee",
   BANK_SCHEDULED_TRANSFER_CREATED: "Scheduled transfer created",
   BANK_SCHEDULED_TRANSFER_CANCELLED: "Scheduled transfer cancelled",
   BANK_SCHEDULED_TRANSFER_EXECUTED: "Scheduled transfer executed",
@@ -112,6 +115,10 @@ const ACTION_LABELS: Record<string, string> = {
   INTERNAL_NOTE_ADDED: "Internal note added",
   OPS_JOB_MANUAL_RUN: "Ops job manual run",
   OPS_CRON_JOB_FAILED: "Scheduled job failed",
+  OPS_ACTION_FAILED: "Action failed",
+  OPS_PERMISSION_DENIED: "Permission denied",
+  CUSTOMER_DM_DELIVERY_FAILED: "Customer DM delivery failed",
+  STAFF_AUDIT_MESSAGE_FAILED: "Staff audit message failed",
   OPS_REVIEW_FLAG_CREATED: "Review flag created",
   OPS_REVIEW_FLAG_RESOLVED: "Review flag resolved",
   BANK_MANUAL_CREDIT_POSTED: "Manual credit posted",
@@ -133,6 +140,8 @@ const ACTION_LABELS: Record<string, string> = {
   BANK_TRANSACTION_RELEASED: "Transaction released",
   BANK_PAYMENT_BLOCKED: "Payment blocked",
   BANK_PAYMENT_REVERSED: "Payment reversed",
+  DEAL_ROOM_DISCORD_SYNC_FAILED: "Deal Room Discord sync failed",
+  PRIVATE_BANKING_CLIENT_MARKED: "Alta Private client marked",
 };
 
 function humanizeAction(action: string): string {

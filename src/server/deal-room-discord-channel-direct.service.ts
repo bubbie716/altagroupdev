@@ -181,17 +181,33 @@ export async function directEnsureDealRoomChannel(
 
 export async function directPostDealRoomChannelMessage(input: {
   channelId: string;
-  content: string;
+  content?: string;
+  embedTitle?: string;
+  embedDescription?: string;
 }): Promise<{ ok: boolean; messageId?: string; reason?: string }> {
   const config = getDiscordBotConfig();
   if (!config) return { ok: false, reason: "discord_not_configured" };
+
+  const payload =
+    input.embedTitle && input.embedDescription
+      ? {
+          embeds: [
+            {
+              title: input.embedTitle.slice(0, 256),
+              description: input.embedDescription.slice(0, 4096),
+              color: 0x0f1729,
+              footer: { text: "Alta Bank · Secure Deal Room" },
+            },
+          ],
+        }
+      : { content: (input.content ?? "").slice(0, 2000) };
 
   const result = await discordApi<{ id: string }>(
     config.botToken,
     `/channels/${input.channelId}/messages`,
     {
       method: "POST",
-      body: JSON.stringify({ content: input.content.slice(0, 2000) }),
+      body: JSON.stringify(payload),
     },
   );
 

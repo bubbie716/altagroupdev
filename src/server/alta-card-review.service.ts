@@ -658,6 +658,16 @@ export async function processReviewDecision(
       review.id,
       formatReviewDeniedThreadMessage(input.reason.trim()),
     );
+    try {
+      const { notifyAltaCardReviewDecided } = await import("@/server/banking-notification.service");
+      await notifyAltaCardReviewDecided(review.applicantUserId, {
+        cardId,
+        status: "DENIED",
+        reason: input.reason.trim(),
+      });
+    } catch (error) {
+      console.error("[alta-card-review] denied notification failed", error);
+    }
     return mapReviewRow(updated);
   }
 
@@ -869,6 +879,17 @@ export async function processReviewDecision(
   });
 
   await finalizeReviewThreadDecision(staffUserId, review.id, statusMessage);
+
+  try {
+    const { notifyAltaCardReviewDecided } = await import("@/server/banking-notification.service");
+    await notifyAltaCardReviewDecided(review.applicantUserId, {
+      cardId,
+      status: finalStatus,
+      reason: input.reason.trim(),
+    });
+  } catch (error) {
+    console.error("[alta-card-review] decision notification failed", error);
+  }
 
   return mapReviewRow(updated);
 }

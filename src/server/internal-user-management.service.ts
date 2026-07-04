@@ -425,6 +425,7 @@ export async function revokeInternalUserTag(
   actorUserId: string,
   targetUserId: string,
   tag: UserTag,
+  reason?: string,
 ): Promise<InternalUserDetail> {
   const actorRecord = await prisma.user.findUnique({
     where: { id: actorUserId },
@@ -443,8 +444,39 @@ export async function revokeInternalUserTag(
   if (!target) notFound();
 
   if (tag === "private_client") {
+    const { requireOperatorReason } = await import("@/server/operator-reason.service");
+    const trimmedReason = requireOperatorReason(reason, "Revocation reason");
+    if (trimmedReason.length < 5) badRequest("Revocation reason must be at least 5 characters.");
+
     const { liquidatePrivateBankingOnAccessRevoked } = await import("@/server/bank.service");
     await liquidatePrivateBankingOnAccessRevoked(targetUserId);
+
+    await prisma.userTagAssignment.deleteMany({
+      where: { userId: targetUserId, tag: toDbUserTag(tag) },
+    });
+
+    const { writeAuditLog } = await import("@/server/audit.service");
+    await writeAuditLog({
+      actorUserId,
+      action: "USER_TAG_REVOKED",
+      entityType: "USER",
+      entityId: targetUserId,
+      targetUserId,
+      description: `Revoked ${formatUserTag(tag)} tag`,
+      metadata: { tag, reason: trimmedReason },
+    });
+
+    await writeAuditLog({
+      actorUserId,
+      action: "PRIVATE_BANKING_CLIENT_REMOVED",
+      entityType: "USER",
+      entityId: targetUserId,
+      targetUserId,
+      description: "Alta Private membership removed",
+      metadata: { userId: targetUserId, actorUserId, reason: trimmedReason, before: true, after: false },
+    });
+
+    return getInternalUserDetail(targetUserId);
   }
 
   await prisma.userTagAssignment.deleteMany({
@@ -461,18 +493,6 @@ export async function revokeInternalUserTag(
     description: `Revoked ${formatUserTag(tag)} tag`,
     metadata: { tag },
   });
-
-  if (tag === "private_client") {
-    await writeAuditLog({
-      actorUserId,
-      action: "PRIVATE_BANKING_CLIENT_REMOVED",
-      entityType: "USER",
-      entityId: targetUserId,
-      targetUserId,
-      description: "Alta Private membership removed",
-      metadata: { userId: targetUserId, actorUserId, before: true, after: false },
-    });
-  }
 
   return getInternalUserDetail(targetUserId);
 }
