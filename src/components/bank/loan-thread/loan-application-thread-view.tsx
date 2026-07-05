@@ -446,7 +446,7 @@ export function LoanApplicationThreadView({
         className="h-full overflow-y-auto overscroll-contain px-4 py-6 sm:px-6"
         style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto min-w-0 max-w-3xl">
           {decisionFinal ? (
             <ThreadDecisionBanner status={ctx.applicationStatus} label={ctx.applicationStatusLabel} />
           ) : null}
@@ -587,7 +587,7 @@ function renderMessageStream(
     );
     prevSenderKey = m.senderRole === "system" ? "" : senderKey;
   }
-  return <div className="flex flex-col gap-1">{nodes}</div>;
+  return <div className="flex min-w-0 flex-col gap-1">{nodes}</div>;
 }
 
 function DaySeparator({ date }: { date: string }) {
@@ -626,7 +626,7 @@ function ThreadMessageBubble({
               {copy.systemDeskLabel}
             </span>
           </div>
-          <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/85">
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-[12.5px] leading-relaxed text-foreground/85">
             {message.body}
           </p>
         </div>
@@ -646,7 +646,7 @@ function ThreadMessageBubble({
   return (
     <div
       className={cn(
-        "flex items-end gap-2",
+        "flex w-full min-w-0 items-end gap-2",
         isOwnMessage ? "flex-row-reverse" : "flex-row",
         grouped ? "mt-0.5" : "mt-3",
       )}
@@ -659,7 +659,12 @@ function ThreadMessageBubble({
             <ThreadUserAvatar avatarUrl={avatarUrl} initials={initials} name={senderName} />
           ))}
       </div>
-      <div className={cn("flex max-w-[82%] flex-col sm:max-w-[72%]", isOwnMessage ? "items-end" : "items-start")}>
+      <div
+        className={cn(
+          "flex min-w-0 max-w-[82%] flex-col sm:max-w-[72%]",
+          isOwnMessage ? "items-end" : "items-start",
+        )}
+      >
         {!grouped && (
           <div className="mb-1 flex items-center gap-2 px-1">
             <span className="text-[11.5px] font-medium text-foreground/80">
@@ -677,7 +682,7 @@ function ThreadMessageBubble({
         )}
         <div
           className={cn(
-            "rounded-2xl px-4 py-2.5 text-[14.5px] leading-relaxed",
+            "min-w-0 max-w-full rounded-2xl px-4 py-2.5 text-[14.5px] leading-relaxed",
             isOwnMessage
               ? "bg-[#0f1729] text-white"
               : "border border-border/70 bg-white text-[#0f1729] dark:bg-surface-1 dark:text-foreground",
@@ -691,7 +696,9 @@ function ThreadMessageBubble({
           )}
         >
           {message.body && (
-            <p className="whitespace-pre-wrap break-words">{linkifyText(message.body)}</p>
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+              {linkifyText(message.body)}
+            </p>
           )}
           <ThreadAttachmentList attachments={message.attachments} tone={tone} />
         </div>
