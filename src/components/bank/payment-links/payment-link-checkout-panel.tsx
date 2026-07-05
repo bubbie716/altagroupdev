@@ -35,6 +35,10 @@ import {
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 import { PaymentLinkStatusBadge } from "@/components/bank/payment-links/payment-link-status-badge";
+import {
+  CommercialBrandedCheckoutShell,
+  CommercialBrandedReceiptShell,
+} from "@/components/bank/commercial/commercial-branded-checkout-shell";
 
 type FormView = "detail" | "review" | "success" | "error";
 
@@ -173,11 +177,17 @@ export function PaymentLinkCheckoutPanel({
 
   if (view === "success" && submission) {
     return (
-      <BankRequestSuccessCard
-        kind="payment_link_checkout"
-        result={submission}
-        onSubmitAnother={() => void router.navigate({ to: "/bank" })}
-      />
+      <CommercialBrandedReceiptShell
+        branding={checkout.branding}
+        merchantName={checkout.merchantName}
+        footerText={checkout.branding?.paymentLinkFooterText}
+      >
+        <BankRequestSuccessCard
+          kind="payment_link_checkout"
+          result={submission}
+          onSubmitAnother={() => void router.navigate({ to: "/bank" })}
+        />
+      </CommercialBrandedReceiptShell>
     );
   }
 
@@ -195,8 +205,13 @@ export function PaymentLinkCheckoutPanel({
 
   if (view === "review" && quote && selectedSource) {
     return (
-      <form onSubmit={submitPayment} className="mx-auto max-w-lg space-y-6">
-        <Card className="space-y-6 !p-6">
+      <CommercialBrandedCheckoutShell
+        branding={checkout.branding}
+        merchantName={checkout.merchantName}
+        footerText={checkout.branding?.paymentLinkFooterText}
+      >
+        <form onSubmit={submitPayment} className="space-y-6">
+          <Card className="space-y-6 !p-6">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
               Confirm payment
@@ -246,12 +261,17 @@ export function PaymentLinkCheckoutPanel({
             />
           </fieldset>
         </Card>
-      </form>
+        </form>
+      </CommercialBrandedCheckoutShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <CommercialBrandedCheckoutShell
+      branding={checkout.branding}
+      merchantName={checkout.merchantName}
+      footerText={checkout.branding?.paymentLinkFooterText}
+    >
       <Card className="space-y-5 !p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -349,6 +369,6 @@ export function PaymentLinkCheckoutPanel({
           </>
         )}
       </Card>
-    </div>
+    </CommercialBrandedCheckoutShell>
   );
 }

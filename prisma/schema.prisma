@@ -270,6 +270,29 @@ model Company {
   commercialProGrantSource       CommercialProGrantSource?
   commercialProExpiresAt         DateTime?
   commercialBillingAccount       BankAccount?                 @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
+  branding                       CompanyBranding?
+}
+
+model CompanyBranding {
+  id                    String    @id @default(cuid())
+  companyId             String    @unique
+  logoUrl               String?
+  logoPathname          String?
+  brandColor            String?
+  accentColor           String?
+  invoiceFooterText     String?
+  paymentLinkFooterText String?
+  supportEmail          String?
+  supportDiscord        String?
+  websiteUrl            String?
+  displayNameOverride   String?
+  showPoweredByAlta     Boolean   @default(true)
+  rejectedAt            DateTime?
+  rejectedReason        String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model CompanyMembership {

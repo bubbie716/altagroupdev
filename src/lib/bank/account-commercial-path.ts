@@ -4,7 +4,8 @@ export type AccountCommercialSegment =
   | "payment-links"
   | "analytics"
   | "settings"
-  | "payroll";
+  | "payroll"
+  | "branding";
 
 export function accountCommercialBase(accountId: string): string {
   return `/bank/account/${accountId}/commercial`;
@@ -35,5 +36,6 @@ export const accountCommercialRoutes = {
   paymentLinkDetail: "/bank/account/$accountId/commercial/payment-links/$linkId",
   analytics: "/bank/account/$accountId/commercial/analytics",
   settings: "/bank/account/$accountId/commercial/settings",
+  branding: "/bank/account/$accountId/commercial/branding",
   payroll: "/bank/account/$accountId/commercial/payroll",
 } as const;

@@ -65,6 +65,8 @@ export type MerchantInvoiceEventRow = {
   createdAt: string;
 };
 
+import type { CustomerFacingBranding } from "@/lib/bank/company-branding-types";
+
 export type MerchantInvoiceSummaryRow = {
   id: string;
   referenceCode: string;
@@ -92,6 +94,7 @@ export type MerchantInvoiceDetail = MerchantInvoiceSummaryRow & {
   lineItems: MerchantInvoiceLineItemRow[];
   events: MerchantInvoiceEventRow[];
   paymentReferenceCode: string | null;
+  branding?: CustomerFacingBranding;
 };
 
 export type MerchantInvoiceDashboard = {

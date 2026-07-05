@@ -79,6 +79,8 @@ export function canAccessCommercialPayroll(plan: CommercialPlanSettings): boolea
   return isCommercialProActive(plan) && companyHasCommercialFeature(plan, "payroll");
 }
 
+export { canPublishInvoiceBranding } from "@/lib/bank/commercial-banking-types";
+
 export function canAccessBasicMerchantAnalytics(plan: CommercialPlanSettings): boolean {
   return plan.planStatus === "ACTIVE";
 }

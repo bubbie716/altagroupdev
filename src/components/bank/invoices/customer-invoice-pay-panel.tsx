@@ -35,6 +35,10 @@ import {
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 import { MerchantInvoiceStatusBadge } from "@/components/bank/merchant-invoices/merchant-invoice-status-badge";
+import {
+  CommercialBrandedCheckoutShell,
+  CommercialBrandedReceiptShell,
+} from "@/components/bank/commercial/commercial-branded-checkout-shell";
 
 type FormView = "detail" | "review" | "success" | "error";
 
@@ -164,13 +168,19 @@ export function CustomerInvoicePayPanel({
 
   if (view === "success" && submission) {
     return (
-      <BankRequestSuccessCard
-        kind="merchant_invoice_payment"
-        result={submission}
-        onSubmitAnother={() =>
-          void router.navigate({ to: "/bank/invoices" })
-        }
-      />
+      <CommercialBrandedReceiptShell
+        branding={invoice.branding}
+        merchantName={invoice.merchantName}
+        footerText={invoice.branding?.invoiceFooterText}
+      >
+        <BankRequestSuccessCard
+          kind="merchant_invoice_payment"
+          result={submission}
+          onSubmitAnother={() =>
+            void router.navigate({ to: "/bank/invoices" })
+          }
+        />
+      </CommercialBrandedReceiptShell>
     );
   }
 
@@ -188,8 +198,13 @@ export function CustomerInvoicePayPanel({
 
   if (view === "review" && quote && selectedSource) {
     return (
-      <form onSubmit={submitPayment} className="mx-auto max-w-2xl space-y-6">
-        <Card className="space-y-6 !p-6">
+      <CommercialBrandedCheckoutShell
+        branding={invoice.branding}
+        merchantName={invoice.merchantName}
+        footerText={invoice.branding?.invoiceFooterText}
+      >
+        <form onSubmit={submitPayment} className="space-y-6">
+          <Card className="space-y-6 !p-6">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
               Review payment
@@ -248,12 +263,18 @@ export function CustomerInvoicePayPanel({
             />
           </fieldset>
         </Card>
-      </form>
+        </form>
+      </CommercialBrandedCheckoutShell>
     );
   }
 
   return (
-    <Card className="mx-auto max-w-2xl space-y-6 !p-6">
+    <CommercialBrandedCheckoutShell
+      branding={invoice.branding}
+      merchantName={invoice.merchantName}
+      footerText={invoice.branding?.invoiceFooterText}
+    >
+      <Card className="space-y-6 !p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="type-meta text-muted-foreground">{invoice.referenceCode}</p>
@@ -338,6 +359,7 @@ export function CustomerInvoicePayPanel({
           Paid{invoice.paymentReferenceCode ? ` · ${invoice.paymentReferenceCode}` : ""}.
         </p>
       ) : null}
-    </Card>
+      </Card>
+    </CommercialBrandedCheckoutShell>
   );
 }

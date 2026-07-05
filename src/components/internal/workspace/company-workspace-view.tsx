@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
 import { AdminCommercialProGrantPanel } from "@/components/internal/admin-commercial-pro-grant-panel";
+import { CompanyBrandingAdminPanel } from "@/components/internal/workspace/company-branding-admin-panel";
 import { AdminOnly } from "@/components/internal/admin-only";
 import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
 import { OpsReviewFlagsBanner } from "@/components/internal/ops-review-flags-banner";
@@ -130,6 +131,7 @@ export function CompanyWorkspaceView({
               companyName={company.name}
               commercialPlan={commercialPlan}
             />
+            <CompanyBrandingAdminPanel companyId={company.id} />
           </AdminOnly>
         </div>
       ),

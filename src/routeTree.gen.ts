@@ -199,6 +199,7 @@ import { Route as BankAccountAccountIdActivityRouteImport } from './routes/bank/
 import { Route as ApiLoanThreadsApplicationIdAttachmentsRouteImport } from './routes/api/loan-threads/$applicationId/attachments'
 import { Route as ApiInternalDiscordEmbedRouteImport } from './routes/api/internal/discord/embed'
 import { Route as ApiDealRoomsDealRoomIdDocumentsRouteImport } from './routes/api/deal-rooms/$dealRoomId/documents'
+import { Route as ApiCompanyBrandingCompanyIdLogoRouteImport } from './routes/api/company-branding/$companyId/logo'
 import { Route as ApiAuthDiscordCallbackRouteImport } from './routes/api/auth/discord/callback'
 import { Route as ApiAltaCardThreadsApplicationIdAttachmentsRouteImport } from './routes/api/alta-card-threads/$applicationId/attachments'
 import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport } from './routes/api/alta-card-review-threads/$reviewId/attachments'
@@ -224,6 +225,7 @@ import { Route as BankAltaCardApplicationsApplicationIdThreadRouteImport } from 
 import { Route as BankAltaCardCardIdStatementsStatementIdRouteImport } from './routes/bank/alta-card/$cardId/statements/$statementId'
 import { Route as BankAccountAccountIdCommercialSettingsRouteImport } from './routes/bank/account/$accountId/commercial/settings'
 import { Route as BankAccountAccountIdCommercialPayrollRouteImport } from './routes/bank/account/$accountId/commercial/payroll'
+import { Route as BankAccountAccountIdCommercialBrandingRouteImport } from './routes/bank/account/$accountId/commercial/branding'
 import { Route as BankAccountAccountIdCommercialAnalyticsRouteImport } from './routes/bank/account/$accountId/commercial/analytics'
 import { Route as ApiDealRoomsDocumentsDocumentIdDownloadRouteImport } from './routes/api/deal-rooms/documents/$documentId/download'
 import { Route as ApiDealRoomsAgreementDraftsDraftIdDownloadRouteImport } from './routes/api/deal-rooms/agreement-drafts/$draftId/download'
@@ -1270,6 +1272,12 @@ const ApiDealRoomsDealRoomIdDocumentsRoute =
     path: '/api/deal-rooms/$dealRoomId/documents',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiCompanyBrandingCompanyIdLogoRoute =
+  ApiCompanyBrandingCompanyIdLogoRouteImport.update({
+    id: '/api/company-branding/$companyId/logo',
+    path: '/api/company-branding/$companyId/logo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAuthDiscordCallbackRoute = ApiAuthDiscordCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -1417,6 +1425,12 @@ const BankAccountAccountIdCommercialPayrollRoute =
   BankAccountAccountIdCommercialPayrollRouteImport.update({
     id: '/payroll',
     path: '/payroll',
+    getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
+  } as any)
+const BankAccountAccountIdCommercialBrandingRoute =
+  BankAccountAccountIdCommercialBrandingRouteImport.update({
+    id: '/branding',
+    path: '/branding',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
   } as any)
 const BankAccountAccountIdCommercialAnalyticsRoute =
@@ -1719,6 +1733,7 @@ export interface FileRoutesByFullPath {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
   '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
@@ -1773,6 +1788,7 @@ export interface FileRoutesByFullPath {
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
+  '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -1936,6 +1952,7 @@ export interface FileRoutesByTo {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
   '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
@@ -1989,6 +2006,7 @@ export interface FileRoutesByTo {
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
+  '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -2177,6 +2195,7 @@ export interface FileRoutesById {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
   '/api/loan-threads/$applicationId/attachments': typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
@@ -2231,6 +2250,7 @@ export interface FileRoutesById {
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
+  '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -2420,6 +2440,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
     | '/api/loan-threads/$applicationId/attachments'
@@ -2474,6 +2495,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
+    | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -2637,6 +2659,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
     | '/api/loan-threads/$applicationId/attachments'
@@ -2690,6 +2713,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
+    | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -2877,6 +2901,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
     | '/api/loan-threads/$applicationId/attachments'
@@ -2931,6 +2956,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
+    | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -2998,6 +3024,7 @@ export interface RootRouteChildren {
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   ApiAltaCardThreadsApplicationIdAttachmentsRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
+  ApiCompanyBrandingCompanyIdLogoRoute: typeof ApiCompanyBrandingCompanyIdLogoRoute
   ApiDealRoomsDealRoomIdDocumentsRoute: typeof ApiDealRoomsDealRoomIdDocumentsRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
   ApiLoanThreadsApplicationIdAttachmentsRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
@@ -4338,6 +4365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDealRoomsDealRoomIdDocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/company-branding/$companyId/logo': {
+      id: '/api/company-branding/$companyId/logo'
+      path: '/api/company-branding/$companyId/logo'
+      fullPath: '/api/company-branding/$companyId/logo'
+      preLoaderRoute: typeof ApiCompanyBrandingCompanyIdLogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/discord/callback': {
       id: '/api/auth/discord/callback'
       path: '/callback'
@@ -4511,6 +4545,13 @@ declare module '@tanstack/react-router' {
       path: '/payroll'
       fullPath: '/bank/account/$accountId/commercial/payroll'
       preLoaderRoute: typeof BankAccountAccountIdCommercialPayrollRouteImport
+      parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
+    }
+    '/bank/account/$accountId/commercial/branding': {
+      id: '/bank/account/$accountId/commercial/branding'
+      path: '/branding'
+      fullPath: '/bank/account/$accountId/commercial/branding'
+      preLoaderRoute: typeof BankAccountAccountIdCommercialBrandingRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
     }
     '/bank/account/$accountId/commercial/analytics': {
@@ -4838,6 +4879,7 @@ const BankAccountAccountIdCommercialInvoicesInvoiceIdRouteWithChildren =
 
 interface BankAccountAccountIdCommercialRouteRouteChildren {
   BankAccountAccountIdCommercialAnalyticsRoute: typeof BankAccountAccountIdCommercialAnalyticsRoute
+  BankAccountAccountIdCommercialBrandingRoute: typeof BankAccountAccountIdCommercialBrandingRoute
   BankAccountAccountIdCommercialPayrollRoute: typeof BankAccountAccountIdCommercialPayrollRoute
   BankAccountAccountIdCommercialSettingsRoute: typeof BankAccountAccountIdCommercialSettingsRoute
   BankAccountAccountIdCommercialIndexRoute: typeof BankAccountAccountIdCommercialIndexRoute
@@ -4853,6 +4895,8 @@ const BankAccountAccountIdCommercialRouteRouteChildren: BankAccountAccountIdComm
   {
     BankAccountAccountIdCommercialAnalyticsRoute:
       BankAccountAccountIdCommercialAnalyticsRoute,
+    BankAccountAccountIdCommercialBrandingRoute:
+      BankAccountAccountIdCommercialBrandingRoute,
     BankAccountAccountIdCommercialPayrollRoute:
       BankAccountAccountIdCommercialPayrollRoute,
     BankAccountAccountIdCommercialSettingsRoute:
@@ -5555,6 +5599,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren,
   ApiAltaCardThreadsApplicationIdAttachmentsRoute:
     ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren,
+  ApiCompanyBrandingCompanyIdLogoRoute: ApiCompanyBrandingCompanyIdLogoRoute,
   ApiDealRoomsDealRoomIdDocumentsRoute: ApiDealRoomsDealRoomIdDocumentsRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
   ApiLoanThreadsApplicationIdAttachmentsRoute:

@@ -779,7 +779,10 @@ export async function getMerchantInvoiceDetail(
     include: invoiceInclude,
   });
   if (!invoice) notFound();
-  return mapDetail(invoice);
+  const detail = mapDetail(invoice);
+  const { resolveBrandingForMerchantCompany } = await import("@/server/company-branding.service");
+  detail.branding = await resolveBrandingForMerchantCompany(companyId);
+  return detail;
 }
 
 export async function listReceivedInvoices(user: AltaUser): Promise<MerchantInvoiceSummaryRow[]> {
@@ -829,7 +832,10 @@ export async function getCustomerInvoice(
   });
   if (!invoice || invoice.status === "DRAFT") notFound();
   if (!canViewReceivedMerchantInvoice(user, invoice)) forbidden();
-  return mapDetail(invoice);
+  const detail = mapDetail(invoice);
+  const { resolveBrandingForMerchantCompany } = await import("@/server/company-branding.service");
+  detail.branding = await resolveBrandingForMerchantCompany(invoice.merchantCompanyId);
+  return detail;
 }
 
 function mapDetail(invoice: {

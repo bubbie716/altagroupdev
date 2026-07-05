@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
+import { RouteButton } from "@/components/bank/route-button";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import { CommercialProUpgradePanel } from "@/components/bank/commercial/commerci
 import { CommercialProDowngradePanel } from "@/components/bank/commercial/commercial-pro-downgrade-panel";
 import type { CommercialBillingAccountOption } from "@/lib/bank/commercial-billing-types";
 import type { CommercialSettingsView } from "@/lib/bank/commercial-banking-types";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import {
   COMMERCIAL_PLAN_DESCRIPTIONS,
   COMMERCIAL_PLAN_LABELS,
@@ -242,6 +244,27 @@ export function CommercialSettingsPanel({
           ) : null}
         </Card>
       ) : null}
+
+      <Card className="!p-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+          Invoice & payment link branding
+        </p>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+          Customize customer-facing invoices, payment links, and receipts with your logo and colors.
+          {isPro
+            ? " Your branding is live on customer checkout pages."
+            : " Available on Alta Commercial Pro."}
+        </p>
+        {isPro ? (
+          <RouteButton
+            to={accountCommercialRoutes.branding}
+            params={{ accountId }}
+            className="mt-4 inline-block rounded-md border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2/60"
+          >
+            Manage branding
+          </RouteButton>
+        ) : null}
+      </Card>
 
       <Card className="!p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">

@@ -38,7 +38,11 @@ function isCommercialSubLinkActive(
 ): boolean {
   const path = normalizePath(pathname);
   const target = normalizePath(accountCommercialPath(accountId, segment as CommercialSubLink["segment"]));
-  return path === target || path.startsWith(`${target}/`);
+  if (path === target || path.startsWith(`${target}/`)) return true;
+  if (segment === "settings") {
+    return path === normalizePath(accountCommercialPath(accountId, "branding"));
+  }
+  return false;
 }
 
 export function AccountCommercialNavGroup({

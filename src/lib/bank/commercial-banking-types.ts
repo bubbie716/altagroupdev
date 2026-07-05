@@ -63,6 +63,10 @@ export function isCommercialProActive(plan: CommercialPlanSettings): boolean {
   return plan.commercialPlan === "PRO" && plan.planStatus === "ACTIVE";
 }
 
+export function canPublishInvoiceBranding(plan: CommercialPlanSettings): boolean {
+  return isCommercialProActive(plan) && plan.enabledFeatures.includes("invoice_branding");
+}
+
 export type CommercialBankingContext = {
   companyId: string;
   companyName: string;

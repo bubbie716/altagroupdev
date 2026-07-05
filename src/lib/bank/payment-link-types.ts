@@ -36,6 +36,8 @@ export type UpdatePaymentLinkInput = {
   expiresAt?: string | null;
 };
 
+import type { CustomerFacingBranding } from "@/lib/bank/company-branding-types";
+
 export type PaymentLinkSummaryRow = {
   id: string;
   slug: string;
@@ -109,6 +111,7 @@ export type PaymentLinkCheckoutContext = {
   expiresAt: string | null;
   payable: boolean;
   statusMessage: string | null;
+  branding?: CustomerFacingBranding;
 };
 
 export type PaymentLinkPaymentQuote = {

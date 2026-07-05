@@ -606,6 +606,12 @@ export async function getPaymentLinkCheckoutContext(
     expiresAt: link.expiresAt?.toISOString() ?? null,
     payable,
     statusMessage,
+    branding: await (async () => {
+      const { resolveBrandingForMerchantCompany } = await import(
+        "@/server/company-branding.service"
+      );
+      return resolveBrandingForMerchantCompany(link.merchantCompanyId);
+    })(),
   };
 }
 
