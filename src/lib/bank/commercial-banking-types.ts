@@ -155,6 +155,8 @@ export type CommercialSettingsView = CommercialPlanSettings & {
   nextBillingAt: string | null;
   pastDueAt: string | null;
   proSubscribedAt: string | null;
+  grantSource: "PURCHASED" | "ADMIN_GRANT" | null;
+  expiresAt: string | null;
   usage: {
     invoicesThisMonth: number;
     activePaymentLinks: number;

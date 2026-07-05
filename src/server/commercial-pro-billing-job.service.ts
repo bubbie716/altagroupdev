@@ -174,6 +174,30 @@ async function processGraceDowngrades(
   return downgradedCount;
 }
 
+async function processExpiredAdminGrants(actorUserId: string, now: Date): Promise<number> {
+  const expired = await prisma.company.findMany({
+    where: {
+      commercialPlan: "PRO",
+      planStatus: "ACTIVE",
+      commercialProGrantSource: "ADMIN_GRANT",
+      commercialProExpiresAt: { lte: now },
+    },
+    select: { id: true },
+  });
+
+  let downgradedCount = 0;
+  for (const company of expired) {
+    await downgradeCommercialProToCore(
+      company.id,
+      actorUserId,
+      "Admin-granted Commercial Pro expired",
+      "cron",
+    );
+    downgradedCount += 1;
+  }
+  return downgradedCount;
+}
+
 export async function runCommercialProBillingJob(options?: {
   actorUserId?: string;
   trigger?: "cron" | "manual";
@@ -189,6 +213,7 @@ export async function runCommercialProBillingJob(options?: {
       commercialPlan: "PRO",
       planStatus: "ACTIVE",
       commercialNextBillingAt: { lte: now },
+      commercialProGrantSource: { not: "ADMIN_GRANT" },
     },
     select: {
       id: true,
@@ -213,11 +238,12 @@ export async function runCommercialProBillingJob(options?: {
     }
   }
 
-  const downgradedCount = await processGraceDowngrades(
-    actorUserId,
-    platformSettings.proBillingGracePeriodDays,
-    now,
-  );
+  const downgradedCount =
+    (await processGraceDowngrades(
+      actorUserId,
+      platformSettings.proBillingGracePeriodDays,
+      now,
+    )) + (await processExpiredAdminGrants(actorUserId, now));
 
   const completedAt = new Date();
   const result: CommercialProBillingJobResult = {

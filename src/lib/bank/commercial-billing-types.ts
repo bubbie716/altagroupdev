@@ -29,6 +29,14 @@ export type CommercialPurchaseResult = {
   referenceCode: string;
 };
 
+export type AdminCommercialProGrantResult = {
+  companyId: string;
+  companyName: string;
+  monthsGranted: number;
+  expiresAt: string;
+  memberCount: number;
+};
+
 export type CommercialSettingsBillingView = {
   billingAccountId: string | null;
   nextBillingAt: string | null;

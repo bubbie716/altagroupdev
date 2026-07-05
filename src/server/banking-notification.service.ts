@@ -729,4 +729,39 @@ export async function notifyCommercialBillingAccountChanged(input: {
   });
 }
 
+export async function notifyCommercialProAdminGranted(input: {
+  companyId: string;
+  companyName: string;
+  months: number;
+  expiresAt: string;
+  linkUrl: string;
+}): Promise<void> {
+  const { listCompanyMemberUserIds } = await import("@/server/commercial-audit.service");
+  const userIds = await listCompanyMemberUserIds(input.companyId);
+  if (userIds.length === 0) return;
+
+  const expiryLabel = new Date(input.expiresAt).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const monthLabel = input.months === 1 ? "1 month" : `${input.months} months`;
+
+  await createUserNotifications(
+    userIds.map((userId) => ({
+      userId,
+      type: "COMMERCIAL_PRO_ADMIN_GRANTED" as const,
+      title: "Alta Commercial Pro granted",
+      body: `${input.companyName} received Alta Commercial Pro for ${monthLabel}, active through ${expiryLabel}.`,
+      linkUrl: input.linkUrl,
+      metadata: {
+        companyId: input.companyId,
+        companyName: input.companyName,
+        months: input.months,
+        expiresAt: input.expiresAt,
+      },
+    })),
+  );
+}
+
 export { friendlyFailureReason };

@@ -21,7 +21,7 @@ export async function getInternalCompany360(
   const company = await getInternalCompanyDetail(companyId);
   if (!company) throw new Error("NOT_FOUND");
 
-  const [notes, timeline, accounts, loans, altaPay] = await Promise.all([
+  const [notes, timeline, accounts, loans, altaPay, companyCommercial] = await Promise.all([
     listInternalNotes("COMPANY", companyId),
     includeTimeline ? buildUniversalCompanyTimeline(companyId, 60) : Promise.resolve([]),
     prisma.bankAccount.findMany({
@@ -41,6 +41,15 @@ export async function getInternalCompany360(
       orderBy: { createdAt: "desc" },
       take: 25,
       include: { bankAccount: true },
+    }),
+    prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        commercialPlan: true,
+        commercialProGrantSource: true,
+        commercialProExpiresAt: true,
+        billingStatus: true,
+      },
     }),
   ]);
 
@@ -103,5 +112,11 @@ export async function getInternalCompany360(
       createdAt: tx.createdAt.toISOString(),
     })),
     statements: [],
+    commercialPlan: {
+      commercialPlan: companyCommercial?.commercialPlan ?? "CORE",
+      grantSource: companyCommercial?.commercialProGrantSource ?? null,
+      expiresAt: companyCommercial?.commercialProExpiresAt?.toISOString() ?? null,
+      billingStatus: companyCommercial?.billingStatus ?? "NOT_BILLED",
+    },
   };
 }

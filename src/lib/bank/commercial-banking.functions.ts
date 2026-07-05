@@ -67,6 +67,8 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
         commercialNextBillingAt: true,
         commercialPastDueAt: true,
         commercialProSubscribedAt: true,
+        commercialProGrantSource: true,
+        commercialProExpiresAt: true,
       },
     });
 
@@ -81,6 +83,8 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
       nextBillingAt: company?.commercialNextBillingAt?.toISOString() ?? null,
       pastDueAt: company?.commercialPastDueAt?.toISOString() ?? null,
       proSubscribedAt: company?.commercialProSubscribedAt?.toISOString() ?? null,
+      grantSource: company?.commercialProGrantSource ?? null,
+      expiresAt: company?.commercialProExpiresAt?.toISOString() ?? null,
       usage: {
         invoicesThisMonth: usage.invoicesThisMonth,
         activePaymentLinks: usage.activePaymentLinks,

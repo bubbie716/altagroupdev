@@ -15,7 +15,8 @@ export type CommercialAuditAction =
   | "COMMERCIAL_PRO_PAST_DUE"
   | "COMMERCIAL_PRO_DOWNGRADED"
   | "COMMERCIAL_BILLING_ACCOUNT_CHANGED"
-  | "COMMERCIAL_PLAN_SETTING_CHANGED";
+  | "COMMERCIAL_PLAN_SETTING_CHANGED"
+  | "COMMERCIAL_PRO_ADMIN_GRANTED";
 
 async function writeCommercialAudit(input: {
   actorUserId: string;
@@ -198,6 +199,25 @@ export async function recordCommercialProDowngradedAudit(input: {
   });
 }
 
+export async function recordCommercialProAdminGrantedAudit(input: {
+  actorUserId: string;
+  companyId: string;
+  companyName: string;
+  months: number;
+  expiresAt: string;
+  reason: string;
+  source: string;
+}): Promise<void> {
+  await writeCommercialAudit({
+    actorUserId: input.actorUserId,
+    action: "COMMERCIAL_PRO_ADMIN_GRANTED",
+    companyId: input.companyId,
+    source: input.source,
+    description: `Alta Commercial Pro granted for ${input.months} months`,
+    metadata: input,
+  });
+}
+
 export async function recordCommercialBillingAccountChangedAudit(input: {
   actorUserId: string;
   companyId: string;
@@ -324,4 +344,12 @@ export async function listMerchantFinanceUserIds(companyId: string): Promise<str
 
 export async function listCommercialBillingNotifyUserIds(companyId: string): Promise<string[]> {
   return listMerchantFinanceUserIds(companyId);
+}
+
+export async function listCompanyMemberUserIds(companyId: string): Promise<string[]> {
+  const memberships = await prisma.companyMembership.findMany({
+    where: { companyId },
+    select: { userId: true },
+  });
+  return memberships.map((row) => row.userId);
 }

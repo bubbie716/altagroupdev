@@ -110,6 +110,31 @@ describe("commercial billing cycle helpers", () => {
     assert.equal(next.getUTCDate(), 15);
   });
 
+  it("extends active admin grants from current expiry", async () => {
+    const { resolveAdminGrantExpiresAt } = await import("@/server/commercial-billing.service");
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const currentExpiresAt = new Date("2026-06-01T00:00:00.000Z");
+    const extended = resolveAdminGrantExpiresAt({
+      now,
+      months: 3,
+      currentExpiresAt,
+      isActiveAdminGrant: true,
+    });
+    assert.equal(extended.toISOString(), "2026-09-01T00:00:00.000Z");
+  });
+
+  it("starts admin grant duration from now when not extending", async () => {
+    const { resolveAdminGrantExpiresAt } = await import("@/server/commercial-billing.service");
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const expiresAt = resolveAdminGrantExpiresAt({
+      now,
+      months: 2,
+      currentExpiresAt: null,
+      isActiveAdminGrant: false,
+    });
+    assert.equal(expiresAt.toISOString(), "2026-03-01T00:00:00.000Z");
+  });
+
   it("detects grace period expiry", () => {
     const pastDueAt = new Date("2026-01-01T00:00:00.000Z");
     const beforeGraceEnds = new Date("2026-01-07T23:59:59.000Z");
@@ -139,6 +164,7 @@ describe("commercial audit helpers", () => {
     assert.equal(typeof audit.recordCommercialProBillingSucceededAudit, "function");
     assert.equal(typeof audit.recordCommercialProDowngradedAudit, "function");
     assert.equal(typeof audit.recordCommercialBillingAccountChangedAudit, "function");
+    assert.equal(typeof audit.recordCommercialProAdminGrantedAudit, "function");
   });
 
   it("exports billing notification helpers", async () => {
@@ -146,6 +172,7 @@ describe("commercial audit helpers", () => {
     assert.equal(typeof notifications.notifyCommercialProActivated, "function");
     assert.equal(typeof notifications.notifyCommercialProBillingFailed, "function");
     assert.equal(typeof notifications.notifyCommercialProDowngraded, "function");
+    assert.equal(typeof notifications.notifyCommercialProAdminGranted, "function");
   });
 });
 

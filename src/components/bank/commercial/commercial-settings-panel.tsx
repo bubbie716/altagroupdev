@@ -139,9 +139,13 @@ export function CommercialSettingsPanel({
             <p className="font-medium">{COMMERCIAL_PLAN_LABELS[settings.commercialPlan]}</p>
             <p className="mt-2 text-[13px] text-muted-foreground">
               {isPro
-                ? settings.monthlyFee != null
-                  ? `${florin(settings.monthlyFee)} / month`
-                  : "Active Pro subscription"
+                ? settings.grantSource === "ADMIN_GRANT"
+                  ? settings.expiresAt
+                    ? `Complimentary Pro through ${formatActivityDateTime(settings.expiresAt)}`
+                    : "Complimentary Pro"
+                  : settings.monthlyFee != null
+                    ? `${florin(settings.monthlyFee)} / month`
+                    : "Active Pro subscription"
                 : "Free business banking with Core limits"}
             </p>
             {settings.billingStatus === "PAST_DUE" ? (

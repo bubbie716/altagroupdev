@@ -105,6 +105,7 @@ const ACTION_LABELS: Record<string, string> = {
   COMMERCIAL_PRO_BILLING_FAILED: "Commercial Pro billing failed",
   COMMERCIAL_PRO_PAST_DUE: "Commercial Pro billing past due",
   COMMERCIAL_PRO_DOWNGRADED: "Commercial Pro downgraded to Core",
+  COMMERCIAL_PRO_ADMIN_GRANTED: "Commercial Pro admin grant",
   COMMERCIAL_BILLING_ACCOUNT_CHANGED: "Commercial billing account changed",
   COMMERCIAL_PLAN_SETTING_CHANGED: "Commercial plan settings changed",
   MERCHANT_PAYMENT_RECEIVED: "Merchant payment received",

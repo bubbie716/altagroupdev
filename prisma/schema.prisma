@@ -79,6 +79,11 @@ enum CommercialBillingStatus {
   PAST_DUE
 }
 
+enum CommercialProGrantSource {
+  PURCHASED
+  ADMIN_GRANT
+}
+
 model User {
   id                    String                @id @default(cuid())
   discordId             String                @unique
@@ -254,6 +259,8 @@ model Company {
   commercialNextBillingAt        DateTime?
   commercialPastDueAt            DateTime?
   commercialProSubscribedAt      DateTime?
+  commercialProGrantSource       CommercialProGrantSource?
+  commercialProExpiresAt         DateTime?
   commercialBillingAccount       BankAccount?                 @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
 }
 
@@ -1225,6 +1232,7 @@ enum UserNotificationType {
   COMMERCIAL_PRO_PAST_DUE
   COMMERCIAL_PRO_DOWNGRADED
   COMMERCIAL_BILLING_ACCOUNT_CHANGED
+  COMMERCIAL_PRO_ADMIN_GRANTED
 }
 
 enum DealRoomParticipantRole {

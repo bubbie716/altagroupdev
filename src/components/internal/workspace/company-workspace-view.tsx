@@ -3,6 +3,8 @@
 import { Link } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
+import { AdminCommercialProGrantPanel } from "@/components/internal/admin-commercial-pro-grant-panel";
+import { AdminOnly } from "@/components/internal/admin-only";
 import { InternalActivityTimeline } from "@/components/internal/internal-activity-timeline";
 import { OpsReviewFlagsBanner } from "@/components/internal/ops-review-flags-banner";
 import { OpsReviewFlagsPanel } from "@/components/internal/ops-review-flags-panel";
@@ -61,7 +63,8 @@ export function CompanyWorkspaceView({
   reviewFlags?: OpsReviewFlagRow[];
   activeTab: string;
 }) {
-  const { company, notes, timeline, bankAccounts, loans, altaPayActivity, statements } = data;
+  const { company, notes, timeline, bankAccounts, loans, altaPayActivity, statements, commercialPlan } =
+    data;
   const display = relationship?.calculated ?? relationship?.profile;
   const totalAssets = bankAccounts.reduce((s, a) => s + a.balance, 0);
   const creditExposure = loans.reduce((s, l) => s + l.outstandingBalance, 0);
@@ -121,6 +124,13 @@ export function CompanyWorkspaceView({
             verificationStatus={company.verificationStatus}
             companyName={company.name}
           />
+          <AdminOnly>
+            <AdminCommercialProGrantPanel
+              companyId={company.id}
+              companyName={company.name}
+              commercialPlan={commercialPlan}
+            />
+          </AdminOnly>
         </div>
       ),
     },

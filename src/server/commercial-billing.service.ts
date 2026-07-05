@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
 import { canManageBusinessTreasury, canManageCompany } from "@/lib/auth/permissions";
 import type {
+  AdminCommercialProGrantResult,
   CommercialBillingAccountOption,
   CommercialBillingPreview,
   CommercialPurchaseResult,
@@ -12,6 +13,7 @@ import { debitBankAccountInTx } from "@/server/financial-integrity.service";
 import { getCommercialPlatformSettings } from "@/server/commercial-platform-settings.service";
 import { loadCommercialPlanSettings } from "@/server/commercial-plan.service";
 import { getAccountAvailableBalance } from "@/server/account-balance.service";
+import { requireAdmin } from "@/server/permissions.service";
 
 function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
@@ -84,6 +86,109 @@ async function assertUserCanAccessBillingAccount(
 ) {
   if (!canManageBusinessTreasury(user, { companyId })) forbidden();
   return loadBillingAccountForCompany(companyId, billingAccountId);
+}
+
+export function resolveAdminGrantExpiresAt(input: {
+  now: Date;
+  months: number;
+  currentExpiresAt?: Date | null;
+  isActiveAdminGrant?: boolean;
+}): Date {
+  if (
+    input.isActiveAdminGrant &&
+    input.currentExpiresAt &&
+    input.currentExpiresAt.getTime() > input.now.getTime()
+  ) {
+    return addBillingMonths(input.currentExpiresAt, input.months);
+  }
+  return addBillingMonths(input.now, input.months);
+}
+
+export async function adminGrantCommercialPro(
+  actorUserId: string,
+  input: { companyId: string; months: number; reason: string },
+  source = "internal-admin",
+): Promise<AdminCommercialProGrantResult> {
+  await requireAdmin();
+  const reason = input.reason.trim();
+  if (!reason) badRequest("Reason is required.");
+  if (!Number.isInteger(input.months) || input.months < 1) {
+    badRequest("Duration must be at least 1 month.");
+  }
+  if (input.months > 120) badRequest("Duration cannot exceed 120 months.");
+
+  const company = await prisma.company.findUnique({
+    where: { id: input.companyId },
+    include: {
+      bankAccounts: {
+        where: { accountType: "BUSINESS_OPERATING", status: "ACTIVE" },
+        take: 1,
+      },
+      memberships: { select: { userId: true } },
+    },
+  });
+  if (!company) notFound();
+
+  const now = new Date();
+  const expiresAt = resolveAdminGrantExpiresAt({
+    now,
+    months: input.months,
+    currentExpiresAt: company.commercialProExpiresAt,
+    isActiveAdminGrant:
+      company.commercialPlan === "PRO" &&
+      company.commercialProGrantSource === "ADMIN_GRANT",
+  });
+
+  await prisma.company.update({
+    where: { id: input.companyId },
+    data: {
+      commercialPlan: "PRO",
+      planStatus: "ACTIVE",
+      billingStatus: "NOT_BILLED",
+      commercialMonthlyFee: null,
+      commercialEnabledFeatures: DEFAULT_COMMERCIAL_FEATURES.PRO,
+      commercialProGrantSource: "ADMIN_GRANT",
+      commercialProExpiresAt: expiresAt,
+      commercialProSubscribedAt: company.commercialProSubscribedAt ?? now,
+      commercialBillingAccountId: null,
+      commercialNextBillingAt: null,
+      commercialPastDueAt: null,
+    },
+  });
+
+  const { recordCommercialProAdminGrantedAudit } = await import("@/server/commercial-audit.service");
+  const { notifyCommercialProAdminGranted } = await import("@/server/banking-notification.service");
+
+  await recordCommercialProAdminGrantedAudit({
+    actorUserId,
+    companyId: company.id,
+    companyName: company.name,
+    months: input.months,
+    expiresAt: expiresAt.toISOString(),
+    reason,
+    source,
+  });
+
+  const accountId = company.bankAccounts[0]?.id;
+  const linkUrl = accountId
+    ? `/bank/account/${accountId}/commercial/settings`
+    : "/bank/business";
+
+  await notifyCommercialProAdminGranted({
+    companyId: company.id,
+    companyName: company.name,
+    months: input.months,
+    expiresAt: expiresAt.toISOString(),
+    linkUrl,
+  });
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
+    monthsGranted: input.months,
+    expiresAt: expiresAt.toISOString(),
+    memberCount: company.memberships.length,
+  };
 }
 
 export async function listCommercialBillingAccounts(
@@ -257,6 +362,8 @@ export async function purchaseCommercialPro(
       commercialNextBillingAt: nextBillingAt,
       commercialPastDueAt: null,
       commercialProSubscribedAt: now,
+      commercialProGrantSource: "PURCHASED",
+      commercialProExpiresAt: null,
     },
   });
 
@@ -352,6 +459,8 @@ export async function downgradeCommercialProToCore(
       commercialEnabledFeatures: DEFAULT_COMMERCIAL_FEATURES.CORE,
       commercialNextBillingAt: null,
       commercialPastDueAt: null,
+      commercialProGrantSource: null,
+      commercialProExpiresAt: null,
     },
   });
 
