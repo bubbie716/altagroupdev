@@ -100,6 +100,26 @@ describe("company branding Pro gating", () => {
     assert.equal(canPublishInvoiceBranding(corePlan), false);
   });
 
+  it("blocks suspended Pro companies from publishing branding", () => {
+    assert.equal(
+      canPublishInvoiceBranding({
+        ...proPlan,
+        planStatus: "SUSPENDED",
+      }),
+      false,
+    );
+  });
+
+  it("blocks Pro companies without invoice_branding feature", () => {
+    assert.equal(
+      canPublishInvoiceBranding({
+        ...proPlan,
+        enabledFeatures: proPlan.enabledFeatures.filter((f) => f !== "invoice_branding"),
+      }),
+      false,
+    );
+  });
+
   it("applies custom branding publicly for active Pro companies", () => {
     const resolved = resolveCustomerFacingBranding({
       companyName: "District Construction LLC",

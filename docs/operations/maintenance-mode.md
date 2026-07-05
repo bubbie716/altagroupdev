@@ -9,6 +9,7 @@ When maintenance mode is **enabled**:
 - Anonymous visitors see `/maintenance` instead of normal site pages.
 - Signed-in users who are **not** admins or operators are also redirected to `/maintenance`.
 - Bank, Exchange, profile, companies, and other public platform routes are blocked at the root router guard (server-side).
+- The **Discord bot** blocks slash commands, hub buttons/modals, invitation actions, and deal room channel sync for the same users. Outbound bot delivery (DMs, staff audit posts, web-initiated deal room setup) continues.
 
 When maintenance mode is **disabled**, routing behaves normally.
 
@@ -88,6 +89,7 @@ WHERE "key" = 'maintenanceModeEnabled';
 ## Related files
 
 - `src/server/platform-settings.service.ts` — read/write helpers
+- `src/server/bot-maintenance.service.ts` — Discord bot maintenance gate
 - `src/lib/platform/maintenance-guard.ts` — exempt paths and bypass logic
 - `src/routes/__root.tsx` — root maintenance guard
 - `src/routes/maintenance.tsx` — public maintenance page
