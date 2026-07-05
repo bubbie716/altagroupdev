@@ -180,7 +180,11 @@ export async function updateMerchantAutopayApproval(
   });
 
   const { recordMerchantAutopayApprovalUpdatedAudit } = await import("@/server/payments-engine-audit.service");
+  const { notifyMerchantAutopayApprovalUpdatedBestEffort } = await import(
+    "@/server/payments-engine-notification.service"
+  );
   await recordMerchantAutopayApprovalUpdatedAudit(user.id, row.id, row.merchantCompany.name);
+  await notifyMerchantAutopayApprovalUpdatedBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 
@@ -193,7 +197,11 @@ export async function pauseMerchantAutopayApproval(user: AltaUser, approvalId: s
     include: approvalInclude,
   });
   const { recordMerchantAutopayApprovalPausedAudit } = await import("@/server/payments-engine-audit.service");
+  const { notifyMerchantAutopayApprovalPausedBestEffort } = await import(
+    "@/server/payments-engine-notification.service"
+  );
   await recordMerchantAutopayApprovalPausedAudit(user.id, row.id, row.merchantCompany.name);
+  await notifyMerchantAutopayApprovalPausedBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 
@@ -205,7 +213,11 @@ export async function cancelMerchantAutopayApproval(user: AltaUser, approvalId: 
     include: approvalInclude,
   });
   const { recordMerchantAutopayApprovalCancelledAudit } = await import("@/server/payments-engine-audit.service");
+  const { notifyMerchantAutopayApprovalCancelledBestEffort } = await import(
+    "@/server/payments-engine-notification.service"
+  );
   await recordMerchantAutopayApprovalCancelledAudit(user.id, row.id, row.merchantCompany.name);
+  await notifyMerchantAutopayApprovalCancelledBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 
@@ -305,6 +317,26 @@ export async function attemptMerchantInvoiceAutopay(invoiceId: string): Promise<
   if (!invoice || !invoice.recipientUserId) return { paid: false, reason: "Invoice not found." };
 
   const evaluation = await evaluateMerchantAutopayForInvoice(invoice);
+  if (evaluation.requiresConfirmation) {
+    const amount = decimalToNumber(invoice.amount);
+    const { buildAutopayConfirmationDmPayload } = await import(
+      "@/server/merchant-invoice-notification.service"
+    );
+    const { notifyMerchantAutopayConfirmationRequiredBestEffort } = await import(
+      "@/server/payments-engine-notification.service"
+    );
+    const customDmPayload = await buildAutopayConfirmationDmPayload(invoice.id);
+    await notifyMerchantAutopayConfirmationRequiredBestEffort({
+      userId: invoice.recipientUserId,
+      invoiceId: invoice.id,
+      merchantName: invoice.merchantCompany.name,
+      amount,
+      referenceCode: invoice.referenceCode,
+      customDmPayload: customDmPayload ?? undefined,
+    });
+    return { paid: false, reason: evaluation.reason ?? "Confirmation required." };
+  }
+
   if (!evaluation.allowed || !evaluation.approvalId || !evaluation.fundingSource) {
     return { paid: false, reason: evaluation.reason };
   }
@@ -339,6 +371,8 @@ export async function attemptMerchantInvoiceAutopay(invoiceId: string): Promise<
       invoice.merchantCompany.name,
       result.amount,
       invoice.referenceCode,
+      undefined,
+      invoice.id,
     );
 
     return { paid: true };

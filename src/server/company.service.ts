@@ -703,6 +703,17 @@ export async function rejectCompanyVerification(
     description: `Rejected verification for ${company.name}`,
     metadata: auditSourceMetadata("website", { reviewNote: trimmedNote }),
   });
+
+  try {
+    const { notifyCompanyVerificationRejected } = await import("@/server/commercial-notification.service");
+    await notifyCompanyVerificationRejected({
+      companyId,
+      companyName: company.name,
+      reason: trimmedNote,
+    });
+  } catch (error) {
+    console.error("[company] rejection notification failed", error);
+  }
 }
 
 export async function revokeCompanyVerification(
@@ -734,4 +745,15 @@ export async function revokeCompanyVerification(
     description: `Revoked verification for ${company.name}`,
     metadata: { reviewNote: trimmedNote },
   });
+
+  try {
+    const { notifyCompanyVerificationRevoked } = await import("@/server/commercial-notification.service");
+    await notifyCompanyVerificationRevoked({
+      companyId,
+      companyName: company.name,
+      reason: trimmedNote,
+    });
+  } catch (error) {
+    console.error("[company] revocation notification failed", error);
+  }
 }

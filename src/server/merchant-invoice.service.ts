@@ -802,6 +802,23 @@ export async function listReceivedInvoices(user: AltaUser): Promise<MerchantInvo
   return invoices.map(mapSummary);
 }
 
+export async function countUnreadReceivedInvoices(user: AltaUser): Promise<number> {
+  const companyIds = user.companyMemberships
+    .filter((membership) => canViewMerchantInvoices(user, { companyId: membership.companyId }))
+    .map((membership) => membership.companyId);
+
+  return prisma.merchantInvoice.count({
+    where: {
+      viewedAt: null,
+      status: { in: ["SENT", "OVERDUE"] },
+      OR: [
+        { recipientUserId: user.id },
+        ...(companyIds.length > 0 ? [{ recipientCompanyId: { in: companyIds } }] : []),
+      ],
+    },
+  });
+}
+
 export async function getCustomerInvoice(
   user: AltaUser,
   invoiceId: string,

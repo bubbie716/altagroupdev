@@ -597,6 +597,13 @@ export async function freezeAltaCard(actorUserId: string, cardId: string): Promi
     card.companyId,
   );
 
+  try {
+    const { notifyAltaCardFrozen } = await import("@/server/banking-notification.service");
+    await notifyAltaCardFrozen(card.ownerUserId, card.cardLastFour);
+  } catch (error) {
+    console.error("[alta-card] freeze notification failed", error);
+  }
+
   return mapAltaCardRow(updated);
 }
 
@@ -620,6 +627,13 @@ export async function unfreezeAltaCard(actorUserId: string, cardId: string): Pro
     card.ownerUserId,
     card.companyId,
   );
+
+  try {
+    const { notifyAltaCardUnfrozen } = await import("@/server/banking-notification.service");
+    await notifyAltaCardUnfrozen(card.ownerUserId, card.cardLastFour);
+  } catch (error) {
+    console.error("[alta-card] unfreeze notification failed", error);
+  }
 
   return mapAltaCardRow(updated);
 }

@@ -363,6 +363,20 @@ export async function payPaymentLink(
     }
 
     try {
+      const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
+        "@/server/commercial-notification.service"
+      );
+      await notifyMerchantFirstPaymentReceivedBestEffort({
+        companyId: result.locked.merchantCompanyId,
+        merchantName: result.locked.merchantCompany.name,
+        amount: fees.totalDebited,
+        source: "payment_link",
+      });
+    } catch (error) {
+      console.error("[payment-link] first payment notification failed", error);
+    }
+
+    try {
       const { maybeAlertHighValuePaymentLinkPaid } = await import(
         "@/server/payment-link-staff-audit.service"
       );
@@ -396,11 +410,16 @@ export async function payPaymentLink(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Payment failed.";
-    const failureReason = message.startsWith("BAD_REQUEST:")
-      ? message.slice("BAD_REQUEST:".length)
-      : message.startsWith("CONFLICT:")
-        ? message.slice("CONFLICT:".length)
-        : "Payment could not be completed.";
+    const { toCustomerSafePaymentFailureReason } = await import(
+      "@/lib/bank/customer-payment-failure-reason"
+    );
+    const failureReason = toCustomerSafePaymentFailureReason(
+      message.startsWith("BAD_REQUEST:")
+        ? message.slice("BAD_REQUEST:".length)
+        : message.startsWith("CONFLICT:")
+          ? message.slice("CONFLICT:".length)
+          : message,
+    );
 
     await prisma.paymentLinkPayment.upsert({
       where: { idempotencyKey: input.idempotencyKey },
@@ -462,9 +481,20 @@ export async function payPaymentLink(
         companyId: link.merchantCompanyId,
         merchantUserIds,
         title: "Payment link payment failed",
-        body: `A payment attempt for link ${link.referenceCode} could not be completed.`,
+        body: `A payment attempt for link ${link.referenceCode} (${`ƒ${grossAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}) could not be completed. ${failureReason}`,
         linkUrl: `/bank/commercial/payment-links/${link.id}?companyId=${link.merchantCompanyId}`,
         metadata: { paymentLinkId: link.id, failureReason },
+      });
+
+      const { notifyPayerPaymentFailedBestEffort } = await import("@/server/commercial-notification.service");
+      await notifyPayerPaymentFailedBestEffort({
+        payerUserId: user.id,
+        merchantName: link.merchantCompany.name,
+        amount: grossAmount,
+        referenceCode: link.referenceCode,
+        reason: failureReason,
+        tryAgainUrl: `/pay/${link.slug}`,
+        source: "payment_link",
       });
     } catch (notifyError) {
       console.error("[payment-link] merchant payment failed notification error", notifyError);

@@ -28,6 +28,90 @@ async function resolveSystemActorUserId(): Promise<string> {
   return resolveSystemActorUserId();
 }
 
+async function processRenewalReminders(now: Date): Promise<number> {
+  const reminderStart = new Date(now.getTime() + 3 * 86_400_000);
+  const reminderEnd = new Date(now.getTime() + 4 * 86_400_000);
+
+  const companies = await prisma.company.findMany({
+    where: {
+      commercialPlan: "PRO",
+      planStatus: "ACTIVE",
+      commercialNextBillingAt: { gte: reminderStart, lt: reminderEnd },
+      commercialProGrantSource: { not: "ADMIN_GRANT" },
+      commercialBillingAccountId: { not: null },
+    },
+    select: {
+      id: true,
+      commercialBillingAccountId: true,
+      commercialMonthlyFee: true,
+      commercialNextBillingAt: true,
+      commercialBillingAccount: {
+        select: { accountName: true, accountNumber: true },
+      },
+    },
+  });
+
+  const platformSettings = await getCommercialPlatformSettings();
+  let sent = 0;
+
+  for (const company of companies) {
+    if (!company.commercialBillingAccountId || !company.commercialNextBillingAt) continue;
+    const amount = company.commercialMonthlyFee
+      ? Number(company.commercialMonthlyFee.toString())
+      : platformSettings.proMonthlyFee;
+    const billingAccountLabel = company.commercialBillingAccount
+      ? `${company.commercialBillingAccount.accountName} · ${company.commercialBillingAccount.accountNumber.slice(-4)}`
+      : "billing account";
+
+    const { notifyCommercialProRenewalReminderBestEffort } = await import(
+      "@/server/commercial-notification.service"
+    );
+    await notifyCommercialProRenewalReminderBestEffort({
+      companyId: company.id,
+      amount,
+      billingAccountLabel,
+      renewalDate: company.commercialNextBillingAt.toISOString(),
+      billingAccountId: company.commercialBillingAccountId,
+    });
+    sent += 1;
+  }
+
+  return sent;
+}
+
+async function maybeWarnLowBillingBalance(input: {
+  companyId: string;
+  billingAccountId: string;
+  requiredAmount: number;
+  context: string;
+}): Promise<void> {
+  try {
+    const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+    const account = await prisma.bankAccount.findUnique({
+      where: { id: input.billingAccountId },
+      select: { accountName: true, accountNumber: true },
+    });
+    if (!account) return;
+
+    const availableBalance = await getAccountAvailableBalance(input.billingAccountId);
+    if (availableBalance >= input.requiredAmount) return;
+
+    const { notifyCommercialBillingLowBalanceWarningBestEffort } = await import(
+      "@/server/commercial-notification.service"
+    );
+    await notifyCommercialBillingLowBalanceWarningBestEffort({
+      companyId: input.companyId,
+      billingAccountId: input.billingAccountId,
+      billingAccountLabel: `${account.accountName} · ${account.accountNumber.slice(-4)}`,
+      requiredAmount: input.requiredAmount,
+      availableBalance,
+      context: input.context,
+    });
+  } catch (error) {
+    console.error("[commercial-pro-billing] low balance warning failed", error);
+  }
+}
+
 async function processDueBilling(
   company: {
     id: string;
@@ -46,6 +130,13 @@ async function processDueBilling(
   const amount = company.commercialMonthlyFee
     ? Number(company.commercialMonthlyFee.toString())
     : (await getCommercialPlatformSettings()).proMonthlyFee;
+
+  await maybeWarnLowBillingBalance({
+    companyId: company.id,
+    billingAccountId,
+    requiredAmount: amount,
+    context: "Commercial Pro renewal",
+  });
 
   const {
     recordCommercialProBillingFailedAudit,
@@ -207,6 +298,8 @@ export async function runCommercialProBillingJob(options?: {
   const actorUserId = options?.actorUserId ?? (await resolveSystemActorUserId());
   const now = new Date();
   const platformSettings = await getCommercialPlatformSettings();
+
+  await processRenewalReminders(now);
 
   const dueCompanies = await prisma.company.findMany({
     where: {

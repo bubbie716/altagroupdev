@@ -9,6 +9,7 @@ import {
   type PayMerchantInvoiceResult,
 } from "@/lib/bank/merchant-invoice-types";
 import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
+import { formatFlorin } from "@/lib/bank/format";
 import { prisma } from "@/server/db";
 import {
   settleCommercialPaymentFromAltaCardInTx,
@@ -367,6 +368,20 @@ export async function payMerchantInvoice(
       console.error("[merchant-invoice] paid notification failed", error);
     }
 
+    try {
+      const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
+        "@/server/commercial-notification.service"
+      );
+      await notifyMerchantFirstPaymentReceivedBestEffort({
+        companyId: result.locked.merchantCompanyId,
+        merchantName: result.locked.merchantCompany.name,
+        amount: fees.totalDebited,
+        source: "invoice",
+      });
+    } catch (error) {
+      console.error("[merchant-invoice] first payment notification failed", error);
+    }
+
     const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
       await import("@/server/relationship-refresh-hooks.service");
     await refreshUserRelationshipProfileBestEffort(user.id, "merchant-invoice-paid");
@@ -387,11 +402,16 @@ export async function payMerchantInvoice(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Payment failed.";
-    const failureReason = message.startsWith("BAD_REQUEST:")
-      ? message.slice("BAD_REQUEST:".length)
-      : message.startsWith("CONFLICT:")
-        ? message.slice("CONFLICT:".length)
-        : "Payment could not be completed.";
+    const { toCustomerSafePaymentFailureReason } = await import(
+      "@/lib/bank/customer-payment-failure-reason"
+    );
+    const failureReason = toCustomerSafePaymentFailureReason(
+      message.startsWith("BAD_REQUEST:")
+        ? message.slice("BAD_REQUEST:".length)
+        : message.startsWith("CONFLICT:")
+          ? message.slice("CONFLICT:".length)
+          : message,
+    );
 
     await prisma.merchantInvoicePayment.upsert({
       where: { idempotencyKey: input.idempotencyKey },
@@ -455,9 +475,20 @@ export async function payMerchantInvoice(
         companyId: invoice.merchantCompanyId,
         merchantUserIds,
         title: "Invoice payment failed",
-        body: `A payment attempt for invoice ${invoice.referenceCode} could not be completed.`,
+        body: `A payment attempt for invoice ${invoice.referenceCode} (${formatFlorin(decimalToNumber(invoice.amount))}) could not be completed. ${failureReason}`,
         linkUrl: `/bank/commercial/invoices/${invoice.id}?companyId=${invoice.merchantCompanyId}`,
         metadata: { invoiceId: invoice.id, failureReason },
+      });
+
+      const { notifyPayerPaymentFailedBestEffort } = await import("@/server/commercial-notification.service");
+      await notifyPayerPaymentFailedBestEffort({
+        payerUserId: user.id,
+        merchantName: invoice.merchantCompany.name,
+        amount: decimalToNumber(invoice.amount),
+        referenceCode: invoice.referenceCode,
+        reason: failureReason,
+        tryAgainUrl: `/bank/invoices/${invoice.id}`,
+        source: "invoice",
       });
     } catch (notifyError) {
       console.error("[merchant-invoice] merchant payment failed notification error", notifyError);

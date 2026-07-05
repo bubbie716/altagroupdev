@@ -61,7 +61,10 @@ export async function deliverCustomerNotificationDm(
 ): Promise<{ sent: boolean; reason?: string; skipped?: boolean }> {
   try {
     const { isDiscordNotificationEnabled } = await import("@/server/bank-settings.service");
-    const enabled = await isDiscordNotificationEnabled(input.userId, input.type);
+    const { isMandatoryDiscordNotification } = await import("@/lib/bank/notification-pref-rules");
+    const enabled =
+      isMandatoryDiscordNotification(input.type) ||
+      (await isDiscordNotificationEnabled(input.userId, input.type));
     if (!enabled) {
       logDelivery("Discord DM skipped by user preference", {
         userId: input.userId,

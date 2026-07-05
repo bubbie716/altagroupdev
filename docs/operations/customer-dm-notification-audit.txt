@@ -1,0 +1,526 @@
+Alta Customer Discord DM Notification Audit
+=============================================
+Scope: altaweb — all customer-facing Discord DMs across banking, commercial,
+merchant, payments engine, deal rooms, credit, companies, and security.
+Date: July 5, 2026
+Status: Audit only — no code changes.
+
+Note: docs/operations/customer-dm-notification-coverage-report.txt (July 3) is
+partially outdated. Many items it lists as missing (transfer/Alta Pay failures,
+scheduled transfers, loan/card payments, staff deal-room messages) are now
+implemented.
+
+
+================================================================================
+1. OVERALL DM NOTIFICATION COVERAGE SCORE
+================================================================================
+
+Metric                                              Score
+--------------------------------------------------  -----
+Overall coverage (events that should exist today)   ~74%
+Banking core (deposits, transfers, Alta Pay, etc.)  ~90%
+Operator / security actions                         ~95%
+Merchant invoices & payment links                   ~75%
+Commercial Pro billing                              ~85%
+AutoPay & payment engine                            ~60%
+Deal rooms                                          ~70%
+Credit (loan + Alta Card)                           ~65%
+Companies & invitations                             ~55%
+
+Delivery infrastructure: Strong. Three paths (standard, operator, invitation)
+with retry queue (5 attempts: 5m, 15m, 1h, 4h, 24h), delivery audit, and
+dedupe keys.
+
+Systemic gaps dragging the score:
+  - paymentEngineNotificationPrefs stored but never enforced
+  - Merchant/commercial/deal-room types not exposed in user settings UI
+    (always default-on)
+  - Several enum types defined in Prisma but never sent
+  - Invitation DMs have no retry queue (login re-sync only)
+  - Raw/internal error strings can leak into payer-facing failure copy
+
+
+DELIVERY ARCHITECTURE (REFERENCE)
+---------------------------------
+
+Path          Entry                                              In-app  Prefs   Retry  Silent
+------------  -------------------------------------------------  ------  ------  -----  ------
+Standard      createUserNotification -> deliverCustomer...       Yes     Yes     Yes    No
+Operator      deliverOperatorCustomerNotification                No      Bypass  Yes    Yes*
+Invitation    dispatchInvitationDm                               No      No      Re-sync No
+Deal room     createUserNotification(skipDiscord) + deliver...   Yes     Yes     Yes    No
+
+* Silent mode with restrictions (see section 9).
+
+Standard embeds: title + body + optional "View on Alta Bank" link button
+(lib/discord/notification-dm.ts).
+
+
+================================================================================
+2. DMS CURRENTLY IMPLEMENTED
+================================================================================
+
+BANKING — STANDARD PATH (banking-notification.service.ts)
+---------------------------------------------------------
+
+Event                         Type                        Recipient
+----------------------------  --------------------------  ---------------------------
+Deposit submitted             DEPOSIT_SUBMITTED           Account owner
+Deposit approved              DEPOSIT_APPROVED            Account owner
+Withdrawal submitted          WITHDRAWAL_SUBMITTED        Account owner
+Withdrawal approved           WITHDRAWAL_APPROVED         Account owner
+Transfer completed (sender)   TRANSFER_COMPLETED          Sender
+Transfer received (personal)  TRANSFER_RECEIVED           Recipient user
+Transfer received (company)   TRANSFER_RECEIVED           OWNER / EXECUTIVE / FINANCE_MANAGER
+Transfer failed               TRANSFER_FAILED             Sender
+Alta Pay sent                 ALTA_PAY_SENT               Payer
+Alta Pay received (personal)  ALTA_PAY_RECEIVED           Payee user
+Alta Pay received (company)   ALTA_PAY_RECEIVED           Treasury roles
+Alta Pay failed               ALTA_PAY_FAILED             Payer
+Scheduled transfer executed   SCHEDULED_TRANSFER_EXECUTED Schedule creator
+Scheduled transfer failed     SCHEDULED_TRANSFER_FAILED   Schedule creator
+Payroll executed / failed     PAYROLL_RUN_*               Run creator
+
+Triggers: bank.service.ts, alta-pay.service.ts, scheduled-transfer-executor,
+payroll-executor, bank.functions.ts, alta-pay.functions.ts, bot-actions.service.ts
+
+
+BANKING — OPERATOR PATH (customer-operator-notification.service.ts)
+-------------------------------------------------------------------
+
+All 19 kinds via buildOperatorCustomerNotificationCopy. Company accounts notify
+OWNER / EXECUTIVE / FINANCE_MANAGER.
+
+Kind                          Trigger examples              Silent forbidden?
+----------------------------  ----------------------------  -----------------
+manual_credit/debit           Admin adjustments             No
+fee_posted                    Admin fee                     No
+reversal_posted               Reversal                      No
+correction_posted             Balance correction            No
+account_frozen/unfrozen       Freeze/unfreeze               Freeze: YES
+account_restricted/removed    Restriction ops               Restrict: YES
+account_hold placed/released  Hold ops                      No
+withdrawal_hold placed/rel.   Withdrawal hold               No
+account_closed/reopened       Close/reopen                  No
+transaction_under_review      Review flags                  No
+transaction_released          Review complete               No
+payment_blocked               Deposit/withdrawal DENIAL     YES
+payment_reversed              Alta Pay reversal, etc.       YES
+
+Deposit/withdrawal denials use payment_blocked — NOT the DEPOSIT_DENIED /
+WITHDRAWAL_DENIED enum types (those exist in schema + prefs UI labels but are
+never sent).
+
+
+MERCHANT (merchant-invoice-notification, payment-link-notification,
+         commercial-audit.service.ts)
+-------------------------------------------------------------------
+
+Event                         Type                            Recipient
+----------------------------  ------------------------------  ---------------------------
+Invoice received              MERCHANT_INVOICE_RECEIVED       Recipient / company finance
+Invoice reminder              MERCHANT_INVOICE_REMINDER       Recipient
+Invoice overdue (recipient)   MERCHANT_INVOICE_REMINDER       Recipient
+Invoice overdue (merchant)    MERCHANT_INVOICE_OVERDUE        Merchant finance
+Invoice paid (payer)          MERCHANT_INVOICE_PAID           Payer (skipped on autopay)
+Invoice paid (merchant)       MERCHANT_INVOICE_PAID           Merchant finance
+Invoice cancelled             MERCHANT_INVOICE_CANCELLED      Recipient
+Payment link paid (merchant)  PAYMENT_LINK_PAID               Merchant finance
+Payment link receipt (payer)  PAYMENT_LINK_RECEIPT            Payer
+Invoice/link payment failed   MERCHANT_PAYMENT_FAILED         Merchant finance only
+Recurring invoice received    MERCHANT_RECURRING_INVOICE_*    Personal recipient only
+
+Invoice received uses custom embed + "View Invoice" + "Pay Now" interaction.
+
+notifyMerchantPaymentReceived in commercial-audit.service.ts is defined but
+NEVER CALLED (invoice paid uses notifyMerchantInvoicePaid instead).
+
+
+COMMERCIAL PRO (banking-notification.service.ts)
+------------------------------------------------
+
+Event                         Type
+----------------------------  ------------------------------
+Pro activated                 COMMERCIAL_PRO_ACTIVATED
+Billing succeeded             COMMERCIAL_PRO_BILLING_SUCCEEDED
+Billing failed                COMMERCIAL_PRO_BILLING_FAILED
+Past due                      COMMERCIAL_PRO_PAST_DUE
+Downgraded to Core            COMMERCIAL_PRO_DOWNGRADED
+Billing account changed       COMMERCIAL_BILLING_ACCOUNT_CHANGED
+Admin Pro grant               COMMERCIAL_PRO_ADMIN_GRANTED (all company members)
+
+
+PAYMENT ENGINE & AUTOPAY (payments-engine-notification.service.ts)
+------------------------------------------------------------------
+
+Event                         Type
+----------------------------  ------------------------------
+Alta Pay schedule created     PAYMENT_SCHEDULED_CREATED / PAYMENT_RECURRING_CREATED
+Alta Pay schedule executed    PAYMENT_SCHEDULED_EXECUTED / PAYMENT_RECURRING_EXECUTED
+Alta Pay schedule failed      PAYMENT_SCHEDULED_FAILED / PAYMENT_RECURRING_FAILED /
+                              PAYMENT_RETRY_FINAL_FAILED
+AutoPay approval created      MERCHANT_AUTOPAY_APPROVAL_CREATED
+Invoice autopaid              MERCHANT_INVOICE_AUTOPAID
+AutoPay failed                MERCHANT_AUTOPAY_FAILED
+
+notifyMerchantRecurringInvoiceGeneratedBestEffort exists but is NEVER CALLED
+from the recurring invoice job.
+
+
+DEAL ROOMS
+----------
+
+Secure deal rooms (secure-deal-room-discord.service.ts):
+
+Event                         Type                        Buttons
+----------------------------  --------------------------  ---------------------------
+Channel opened                DEAL_ROOM_CREATED           Open channel + Open Alta Bank
+Staff message                 DEAL_ROOM_MESSAGE_RECEIVED  View on Alta Bank
+
+Legacy lending deal rooms (deal-room-ops, deal-room-document, etc.):
+
+Event                         Type                        Recipient
+----------------------------  --------------------------  ---------------------------
+Deal room created             DEAL_ROOM_CREATED           Borrower (+ officer)
+Officer assigned              DEAL_ROOM_OFFICER_ASSIGNED  Officer (internal)
+Document uploaded/requested   DEAL_ROOM_DOCUMENT_*        Borrower + officer
+Agreement ready               DEAL_ROOM_AGREEMENT_READY   Borrower + officer
+Borrower signed               DEAL_ROOM_BORROWER_SIGNED     Officer
+Loan funded                   DEAL_ROOM_FUNDING_COMPLETE    Borrower + officer
+Task assigned                 DEAL_ROOM_TASK_ASSIGNED       Staff (internal)
+
+Channel lock on close: in-channel embed only — no customer DM.
+
+
+CREDIT
+------
+
+Event                         Type
+----------------------------  ------------------------------
+Loan approved/denied          LOAN_APPLICATION_*
+Loan payment made             LOAN_PAYMENT_MADE
+Loan paid off                 LOAN_PAID_OFF
+Loan autopay failed           LOAN_AUTOPAY_FAILED
+Alta Card app approved/denied ALTA_CARD_APPLICATION_*
+Alta Card review decided      ALTA_CARD_REVIEW_DECIDED
+Alta Card activated           ALTA_CARD_ACTIVATED
+Alta Card payment made        ALTA_CARD_PAYMENT_MADE
+Alta Card autopay success/fail ALTA_CARD_AUTOPAY_*
+
+
+COMPANIES & PROGRAMS
+--------------------
+
+Event                         Mechanism                   Recipient
+----------------------------  --------------------------  ---------------------------
+Company invitation            Invitation DM               Invitee (Accept/Decline)
+Alta Private invitation       Invitation DM               Invitee (Accept/Decline)
+Alta Private activated        ALTA_PRIVATE_MEMBERSHIP_*   Member
+Alta Private declined         No DM (audit only)          —
+Company verified              COMPANY_VERIFIED            All members
+Company role changed          COMPANY_ROLE_CHANGED        Affected member
+
+
+================================================================================
+3. MISSING HIGH-PRIORITY DMS
+================================================================================
+
+Event                           Today           Who should receive
+------------------------------  --------------  ---------------------------
+Company verification rejected   Audit only      Company owners
+Company verification revoked    Audit only      Company owners
+Company member removed          Audit only      Removed member
+Payer payment failure (invoice) Merchant only   Payer
+Payer payment failure (link)    Merchant only   Payer
+AutoPay requires confirmation   Silent skip     Payer
+AutoPay approval paused/cancelled Audit only    Payer
+Recurring invoice gen. failed   Audit only      Merchant creator
+Alta Card frozen/unfrozen       Audit only      Card owner
+Deal room channel closing       In-channel only Applicant
+Loan payment failed (manual)    Nothing         Borrower
+Alta Card payment failed        Nothing         Card owner
+
+
+================================================================================
+4. MISSING MEDIUM-PRIORITY DMS
+================================================================================
+
+Event                           Today           Recommendation
+------------------------------  --------------  ------------------------------------------
+Scheduled transfer created/cancelled Audit only Optional confirmation DM
+Alta Pay schedule paused/cancelled Audit only Notify creator
+AutoPay approval updated        Audit only      Notify payer
+AutoPay approval expired        No detection    Notify before/at expiry
+Invoice viewed (merchant)       Audit only      Correctly skip — low value
+Loan/card application submitted Nothing         Optional "received" acknowledgment
+Loan payment due reminder       Nothing         Cron before due date
+Alta Card payment due reminder  Nothing         Before statement due
+Business/personal account opened Audit/timeline Welcome DM with next steps
+Company invitation accepted     Embed update    Optional confirmation to inviter
+Interbank wire lifecycle        No execution    Defer until wires ship
+Commercial usage limit reached  Nothing         When limits enforced in product
+Deal room offer lifecycle       Audit only      When offers are customer-facing
+
+
+================================================================================
+5. NOISY / REDUNDANT DMS
+================================================================================
+
+Issue                           Details                         Severity
+------------------------------  ------------------------------  --------
+Double DM on recurring invoice  sendMerchantInvoice sends full  HIGH
+                                invoice DM, then job also sends
+                                notifyRecurringInvoiceReceivedBestEffort
+Overdue type reuse              Recipient overdue uses          Medium
+                                MERCHANT_INVOICE_REMINDER (same
+                                as manual reminder)
+AutoPay payer duplicate         Fixed — payer no longer gets    Resolved
+                                both "Invoice paid" + autopay DM
+Same person payer + merchant    Merchant still gets autopay     Low
+                                notification when owner — OK
+Legacy + secure deal room       Both systems may notify on      Medium
+                                some flows
+Commercial billing failed +     Customer may get both if cron   Low
+  past due                      runs multiple states
+Dead helper                     notifyMerchantRecurringInvoice  Confusing
+                                GeneratedBestEffort never called
+
+
+================================================================================
+6. DMS THAT SHOULD BE REMOVED OR RETHINK
+================================================================================
+
+Current                         Issue                           Recommendation
+------------------------------  ------------------------------  ---------------------------
+notifyRecurringInvoiceReceived  Redundant after full invoice DM Remove generic recurring DM
+  after notifyMerchantInvoiceReceived
+notifyMerchantPaymentReceived   Never called                    Remove dead code
+DEPOSIT_DENIED / WITHDRAWAL_DENIED enum Never sent; denials use payment_blocked Align enum/prefs
+DEAL_ROOM_TASK_ASSIGNED DM      Ops noise to staff              In-app only unless action needed
+Legacy deal room doc blasts     Multiple DMs per upload         Consider digest
+ALTA_PRIVATE_INVITATION_DECLINED enum No DM sent (correct)      Document as in-app-only
+
+
+================================================================================
+7. DMS THAT NEED COPY IMPROVEMENTS
+================================================================================
+
+Area                            Issue                           Fix
+------------------------------  ------------------------------  ---------------------------
+Payment engine notifications    Uses raw toLocaleString not     Standardize formatFlorin
+                                formatFlorin
+AutoPay / Alta Pay failures     Raw error.message can expose    Map to customer-safe messages
+                                internal phrasing
+Operator titles                 "Manual Credit Posted" — ops    "Credit posted to your account"
+Payment blocked (denial)        Title applies to deposits too   Context-specific titles
+Merchant payment failed         No reason, no amount in body    Add amount + sanitized reason
+Recurring invoice received      Generic vs rich invoice DM      Remove duplicate
+Commercial Pro admin grant      Goes to ALL members             Confirm intent
+
+Already good: operator body templates with sanitized Reason block, invoice
+received custom embed, deal room opened dual buttons, friendlyFailureReason
+for banking failures.
+
+
+================================================================================
+8. DMS THAT NEED BUTTONS / LINKS
+================================================================================
+
+Event                           Current                         Should add
+------------------------------  ------------------------------  ---------------------------
+Invoice received                View Invoice + Pay Now          OK — best-in-class
+Deal room opened                Open Discord + Open Alta Bank     OK
+Invitations                     Accept / Decline                  OK
+Transfer / Alta Pay failures    View on Alta Bank                 "Try again" action link
+AutoPay confirmation required   No DM                           Review invoice + Pay manually
+Loan/card denied                View application                  OK
+Company rejected                No DM                           View company + support
+Alta Card frozen                No DM                           View card + next steps
+Payment link failure (payer)    No DM                           Try again -> /pay/{slug}
+
+
+================================================================================
+9. SILENT MODE RECOMMENDATIONS
+================================================================================
+
+CURRENTLY IMPLEMENTED (silent-notification-restrictions.ts)
+-----------------------------------------------------------
+
+Forbidden (correct):
+  - deny_deposit, deny_withdrawal
+  - alta_pay_reversal, payment_reversal
+  - account_freeze, account_restriction
+  - company_verification_rejection, company_verification_revocation
+  - loan_denial, alta_card_denial
+  - Kinds: account_frozen, account_restricted, payment_blocked, payment_reversed
+
+Allowed:
+  - manual credit/debit, fees, corrections
+  - holds (non-restriction), unfrozen, close/reopen
+  - transaction review
+
+Silent rejection creates OPS_SILENT_NOTIFICATION_REJECTED audit — good.
+
+
+RECOMMENDATIONS
+---------------
+
+Action                          Recommendation
+------------------------------  ------------------------------------------
+Deposit/withdrawal denial       Never silent — enforced
+Account freeze / restriction    Never silent — enforced
+Payment reversal                Never silent — enforced
+Company rejection/revocation    Never silent — add DM + enforce
+Loan/card denial (standard)     Never silent — ensure staff cannot bypass
+Manual credit during investigation Allow silent — OK
+Hold placed (non-restriction)   Allow silent — OK
+Scheduled transfer failure      Do not add silent — customer should know
+Deal room messages              Never silent — customer must see staff replies
+
+
+================================================================================
+10. NOTIFICATION PREFERENCE RECOMMENDATIONS
+================================================================================
+
+Issue                           Recommendation
+------------------------------  ------------------------------------------
+paymentEngineNotificationPrefs  Wire enforcement in payments-engine-notification
+  (beforePayment, afterPayment,  .service.ts or map to UserNotificationType
+  failedPayment, etc.)
+Merchant/commercial/deal-room   Add toggles for invoice received, paid,
+  types not in settings UI        payment link, deal room message
+Operator DMs bypass prefs       Keep for compliance; document as mandatory
+DEPOSIT_DENIED / WITHDRAWAL_DENIED Remove from prefs UI or wire to denial path
+Default-on for undefined keys   Correct (isDiscordNotificationEnabled)
+Invitation DMs                  Correctly not pref-gated
+
+Suggested pref groupings for settings UI:
+  - Banking & transfers
+  - Alta Pay & scheduled payments
+  - Invoices & payment links
+  - Commercial Pro billing
+  - Deal rooms & lending
+  - Credit (loan + Alta Card)
+
+
+================================================================================
+11. RETRY / FAILURE HANDLING GAPS
+================================================================================
+
+Area                            Status              Gap
+------------------------------  ------------------  ------------------------------------------
+Standard path DMs               Retry + audit       —
+Operator path DMs               Retry + audit       —
+Invitation DMs                  Audit on failure    No retry queue; login re-sync only
+Deal room Discord sync failure  Audit only          No customer DM when channel creation fails
+Bot banking failure             Hub embed + audit   No DM for deposit/withdraw submit failures
+BestEffort wrappers             Log only            No staff alert on repeated delivery failure
+Dedupe keys                     customer-dm:...     Good — prevents retry spam
+
+
+================================================================================
+12. RECOMMENDED STANDARDIZED DM TEMPLATES
+================================================================================
+
+Short, professional, action-oriented. All include footer "Alta Bank · Newport".
+
+Banking success:
+  Title:  {Action} complete
+  Body:   {Amount} {direction phrase}. Ref `{code}`.
+  Button: View on Alta Bank
+
+Banking failure:
+  Title:  {Action} could not be completed
+  Body:   We couldn't {action} {amount} {to/from phrase}. {Customer-safe reason}
+  Button: Try again
+
+Merchant invoice (recipient):
+  Title:  Invoice received
+  Body:   {Merchant} sent an invoice for {amount}. Due {date}. Ref `{code}`.
+  Buttons: View Invoice · Pay Now
+
+AutoPay:
+  Title:  Invoice paid automatically
+  Body:   {Merchant} invoice `{code}` for {amount} was paid via AutoPay.
+  Button: View invoice
+
+  Title:  AutoPay failed
+  Body:   We couldn't auto-pay {merchant}'s invoice. {Reason — customer safe}
+  Button: Pay manually
+
+Operator (mandatory):
+  Title:  {Customer-facing action title}
+  Body:   {Specific account ending {last4} change}.
+          Reason: {sanitized operator reason — optional}
+  Button: View account
+
+Deal room:
+  Title:  Your Secure Deal Room is ready
+  Body:   {Welcome one-liner}. Message Alta staff in Discord or on Alta Bank.
+  Buttons: Open channel · Open Alta Bank
+
+  Title:  New message from Alta
+  Body:   {Preview <=120 chars}
+  Button: Open Secure Deal Room
+
+Commercial Pro:
+  Title:  Alta Commercial Pro billing failed
+  Body:   We couldn't charge {amount} for Pro. Update billing account by {date}.
+  Button: Commercial settings
+
+
+================================================================================
+13. PRIORITY ORDER FOR FIXES
+================================================================================
+
+Priority  Item                                                    Effort
+--------  ------------------------------------------------------  ------
+P0        Remove duplicate recurring invoice DM                     Small
+P0        Add payer DM on invoice/payment-link payment failure      Medium
+P0        Add company verification rejected/revoked DM              Medium
+P1        Enforce paymentEngineNotificationPrefs at send time       Medium
+P1        Add AutoPay "confirmation required" DM with pay link      Medium
+P1        Add recurring invoice generation failed DM to merchant    Small
+P1        Sanitize failure reasons in AutoPay/merchant payment copy Small
+P1        Add Alta Card frozen/unfrozen customer DM                 Medium
+P2        Add AutoPay paused/cancelled/updated confirmation DMs     Small
+P2        Wire notifyMerchantRecurringInvoiceGenerated OR delete    Small
+P2        Add merchant/commercial notification toggles to settings  Medium
+P2        Invitation DM retry queue                                 Medium
+P2        Deal room channel-closing DM to customer                  Medium
+P2        Deal room Discord sync failure fallback                   Medium
+P3        Loan/card payment due reminders (cron)                    Large
+P3        Application submitted acknowledgment DMs                  Small
+P3        Business account opened welcome DM                        Small
+P3        Align DEPOSIT_DENIED enum with operator denial path       Small
+P3        Remove dead notifyMerchantPaymentReceived                 Trivial
+P4        Interbank wire DMs (when product ships)                   Deferred
+P4        Commercial usage limit DM (when limits enforced)          Deferred
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+Alta has a solid notification foundation: ~70 distinct customer DM surfaces,
+consistent embed format, retry queue, silent-mode guardrails for compliance
+actions, and rich invoice/deal-room buttons where it matters most.
+
+The biggest gaps are incomplete wiring and consistency: company rejection DMs,
+payer-side payment failures, AutoPay lifecycle confirmations, payment-engine
+pref enforcement, one clear duplicate on recurring invoices, and several
+enum-defined types that are never sent.
+
+Key file index:
+  src/server/notification.service.ts
+  src/server/customer-notification-delivery.service.ts
+  src/server/customer-operator-notification.service.ts
+  src/server/banking-notification.service.ts
+  src/server/merchant-invoice-notification.service.ts
+  src/server/payments-engine-notification.service.ts
+  src/server/payment-link-notification.service.ts
+  src/server/secure-deal-room-discord.service.ts
+  src/lib/discord/notification-dm.ts
+  src/lib/internal/silent-notification-restrictions.ts
+  src/lib/bank/bank-settings-types.ts
+  src/lib/bank/customer-operator-notification-copy.ts

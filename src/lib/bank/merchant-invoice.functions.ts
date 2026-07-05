@@ -126,6 +126,11 @@ export const fetchReceivedInvoices = createServerFn({ method: "GET" }).handler(a
   return listReceivedInvoices(await actor());
 });
 
+export const fetchUnreadReceivedInvoiceCount = createServerFn({ method: "GET" }).handler(async () => {
+  const { countUnreadReceivedInvoices } = await import("@/server/merchant-invoice.service");
+  return countUnreadReceivedInvoices(await actor());
+});
+
 export const fetchCustomerInvoice = createServerFn({ method: "GET" })
   .inputValidator((invoiceId: string) => invoiceId)
   .handler(async ({ data: invoiceId }) => {

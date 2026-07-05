@@ -1,4 +1,5 @@
 import { formatFlorin } from "@/lib/bank/format";
+import { friendlyFailureReason, toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
 import { createUserNotification, createUserNotifications } from "@/server/notification.service";
 import { prisma } from "@/server/db";
 
@@ -90,10 +91,25 @@ export async function notifyTransferCompleted(
     userId,
     type: "TRANSFER_COMPLETED",
     title: "Transfer complete",
-    body: `Moved ${formatFlorin(amount)} from ${fromAccountName} to ${toAccountName}. Reference \`${referenceCode}\`.`,
+    body: `Moved ${formatFlorin(amount)} from ${fromAccountName} to ${toAccountName}. Ref \`${referenceCode}\`.`,
     linkUrl: "/bank/transfers/intrabank",
     metadata: { referenceCode, amount, fromAccountName, toAccountName },
   });
+
+  try {
+    const { maybeNotifyLargeMoneyMovementBestEffort } = await import(
+      "@/server/commercial-notification.service"
+    );
+    await maybeNotifyLargeMoneyMovementBestEffort({
+      userIds: [userId],
+      amount,
+      description: `Transfer from ${fromAccountName} to ${toAccountName}.`,
+      referenceCode,
+      linkUrl: "/bank/transfers/intrabank",
+    });
+  } catch (error) {
+    console.error("[banking-notification] large movement alert failed", error);
+  }
 }
 
 export async function notifyTransferReceived(
@@ -151,10 +167,25 @@ export async function notifyAltaPaySent(
     userId,
     type: "ALTA_PAY_SENT",
     title: "Alta Pay sent",
-    body: `Paid ${formatFlorin(amount)} to ${payeeName} from ${fundingSourceLabel}. Reference \`${referenceCode}\`.`,
+    body: `Paid ${formatFlorin(amount)} to ${payeeName} from ${fundingSourceLabel}. Ref \`${referenceCode}\`.`,
     linkUrl: "/bank/pay",
     metadata: { referenceCode, amount, payeeName, fundingSourceLabel },
   });
+
+  try {
+    const { maybeNotifyLargeMoneyMovementBestEffort } = await import(
+      "@/server/commercial-notification.service"
+    );
+    await maybeNotifyLargeMoneyMovementBestEffort({
+      userIds: [userId],
+      amount,
+      description: `Alta Pay to ${payeeName}.`,
+      referenceCode,
+      linkUrl: "/bank/pay",
+    });
+  } catch (error) {
+    console.error("[banking-notification] large movement alert failed", error);
+  }
 }
 
 export async function notifyAltaPayReceived(
@@ -260,9 +291,8 @@ export async function notifyAltaCardApplicationDenied(
   });
 }
 
-function friendlyFailureReason(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error);
-  return raw.replace(/^BAD_REQUEST:/, "").trim() || "The request could not be completed.";
+function sanitizeFailureReason(reason: string): string {
+  return toCustomerSafePaymentFailureReason(reason);
 }
 
 export async function notifyTransferFailedBestEffort(
@@ -270,13 +300,15 @@ export async function notifyTransferFailedBestEffort(
   input: { amount: number; reason: string },
 ): Promise<void> {
   try {
+    const safeReason = sanitizeFailureReason(input.reason);
     await createUserNotification({
       userId,
       type: "TRANSFER_FAILED",
       title: "Transfer could not be completed",
-      body: `Your transfer of ${formatFlorin(input.amount)} did not go through. ${input.reason}`,
+      body: `We couldn't complete your transfer of ${formatFlorin(input.amount)}. ${safeReason}`,
       linkUrl: "/bank/transfers/intrabank",
-      metadata: { amount: input.amount, reason: input.reason },
+      linkLabel: "Try again",
+      metadata: { amount: input.amount, reason: safeReason },
     });
   } catch (error) {
     console.error("[banking-notification] transfer failed notification error", error);
@@ -290,13 +322,15 @@ export async function notifyAltaPayFailedBestEffort(
   try {
     const payee = input.payeeLabel?.trim();
     const payeePart = payee ? ` to ${payee}` : "";
+    const safeReason = sanitizeFailureReason(input.reason);
     await createUserNotification({
       userId,
       type: "ALTA_PAY_FAILED",
       title: "Alta Pay could not be completed",
-      body: `Your Alta Pay of ${formatFlorin(input.amount)}${payeePart} did not go through. ${input.reason}`,
+      body: `We couldn't send ${formatFlorin(input.amount)}${payeePart}. ${safeReason}`,
       linkUrl: "/bank/pay",
-      metadata: { amount: input.amount, reason: input.reason, payeeLabel: payee ?? null },
+      linkLabel: "Try again",
+      metadata: { amount: input.amount, reason: safeReason, payeeLabel: payee ?? null },
     });
   } catch (error) {
     console.error("[banking-notification] alta pay failed notification error", error);
@@ -361,6 +395,7 @@ export async function notifyScheduledTransferFailed(
       : input.paymentType === "SCHEDULED"
         ? "Scheduled transfer"
         : "Scheduled transfer";
+  const safeReason = sanitizeFailureReason(input.reason);
   const pausedNote = input.paused
     ? " The schedule has been paused after repeated failures."
     : "";
@@ -371,13 +406,14 @@ export async function notifyScheduledTransferFailed(
   await createUserNotification({
     userId,
     type: "SCHEDULED_TRANSFER_FAILED",
-    title: `${kind} failed`,
-    body: `Your ${kind.toLowerCase()} "${input.label}" for ${formatFlorin(input.amount)} could not be sent. ${input.reason}${pausedNote}`,
+    title: `${kind} could not be completed`,
+    body: `We couldn't send your ${kind.toLowerCase()} "${input.label}" for ${formatFlorin(input.amount)}. ${safeReason}${pausedNote}`,
     linkUrl,
+    linkLabel: "Try again",
     metadata: {
       label: input.label,
       amount: input.amount,
-      reason: input.reason,
+      reason: safeReason,
       paused: input.paused ?? false,
       paymentType: input.paymentType ?? null,
       bankAccountId: input.bankAccountId ?? null,
@@ -576,6 +612,31 @@ export async function notifyAltaCardActivated(userId: string, cardId: string, ca
     body: `Your Alta Card ending ${cardLastFour} is now active.`,
     linkUrl: "/bank/alta-card",
     metadata: { cardId, cardLastFour },
+  });
+}
+
+export async function notifyAltaCardFrozen(userId: string, cardLastFour: string, reason?: string | null): Promise<void> {
+  const { sanitizeCustomerFacingReason } = await import("@/lib/bank/customer-operator-notification-copy");
+  const reasonText = sanitizeCustomerFacingReason(reason);
+  const reasonLine = reasonText ? ` ${reasonText}` : "";
+  await createUserNotification({
+    userId,
+    type: "ALTA_CARD_FROZEN",
+    title: "Alta Card frozen",
+    body: `Your Alta Card ending in ${cardLastFour} has been temporarily frozen.${reasonLine}`,
+    linkUrl: "/bank/alta-card",
+    metadata: { cardLastFour },
+  });
+}
+
+export async function notifyAltaCardUnfrozen(userId: string, cardLastFour: string): Promise<void> {
+  await createUserNotification({
+    userId,
+    type: "ALTA_CARD_UNFROZEN",
+    title: "Alta Card unfrozen",
+    body: `Your Alta Card ending in ${cardLastFour} is active again.`,
+    linkUrl: "/bank/alta-card",
+    metadata: { cardLastFour },
   });
 }
 

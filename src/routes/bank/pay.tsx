@@ -14,6 +14,7 @@ import {
   fetchAltaPaySchedules,
   fetchMerchantAutopayApprovals,
 } from "@/lib/bank/payments-engine.functions";
+import { fetchUnreadReceivedInvoiceCount } from "@/lib/bank/merchant-invoice.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 type AltaPaySearch = {
@@ -41,7 +42,8 @@ export const Route = createFileRoute("/bank/pay")({
     const bankSettings = await fetchUserBankSettings();
     const schedules = await fetchAltaPaySchedules();
     const autopayApprovals = await fetchMerchantAutopayApprovals();
-    return { fundingSources, history, bankSettings, schedules, autopayApprovals };
+    const unreadInvoiceCount = await fetchUnreadReceivedInvoiceCount();
+    return { fundingSources, history, bankSettings, schedules, autopayApprovals, unreadInvoiceCount };
   },
   head: () => ({
     meta: [{ title: "Alta Pay — Alta Bank" }],
@@ -50,7 +52,8 @@ export const Route = createFileRoute("/bank/pay")({
 });
 
 function AltaPayPage() {
-  const { fundingSources, history, bankSettings, schedules, autopayApprovals } = Route.useLoaderData();
+  const { fundingSources, history, bankSettings, schedules, autopayApprovals, unreadInvoiceCount } =
+    Route.useLoaderData();
   const { employeeCardId, cardId } = Route.useSearch();
   const defaultFundingKey = employeeCardId
     ? employeeCardPayFundingKey(employeeCardId)
@@ -80,6 +83,7 @@ function AltaPayPage() {
             history={history}
             schedules={schedules}
             autopayApprovals={autopayApprovals}
+            unreadInvoiceCount={unreadInvoiceCount}
           />
         </Section>
       )}

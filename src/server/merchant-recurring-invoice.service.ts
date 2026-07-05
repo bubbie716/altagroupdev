@@ -201,6 +201,8 @@ export async function executeDueRecurringInvoiceSchedules(options?: { now?: Date
     include: {
       merchantCompany: { select: { name: true } },
       createdBy: true,
+      recipientUser: { select: { discordUsername: true, minecraftUsername: true } },
+      recipientCompany: { select: { name: true } },
     },
   });
 
@@ -246,18 +248,6 @@ export async function executeDueRecurringInvoiceSchedules(options?: { now?: Date
         await sendMerchantInvoice(user, schedule.merchantCompanyId, invoice.id, "recurring_schedule");
         const { tryAutopayAfterInvoiceSent } = await import("@/server/merchant-autopay.service");
         await tryAutopayAfterInvoiceSent(invoice.id);
-
-        if (schedule.recipientUserId) {
-          const { notifyRecurringInvoiceReceivedBestEffort } = await import(
-            "@/server/payments-engine-notification.service"
-          );
-          await notifyRecurringInvoiceReceivedBestEffort(
-            schedule.recipientUserId,
-            schedule.merchantCompany.name,
-            schedule.templateName,
-            decimalToNumber(schedule.amount),
-          );
-        }
       }
 
       const nextRun = calculateNextRunDate(schedule.frequency, schedule.nextRunDate ?? now);
@@ -289,6 +279,24 @@ export async function executeDueRecurringInvoiceSchedules(options?: { now?: Date
       });
       const { recordMerchantRecurringInvoiceFailedAudit } = await import("@/server/payments-engine-audit.service");
       await recordMerchantRecurringInvoiceFailedAudit(schedule.createdByUserId, schedule.id, reason);
+
+      const recipientLabel = schedule.recipientCompany
+        ? schedule.recipientCompany.name
+        : schedule.recipientUser
+          ? schedule.recipientUser.minecraftUsername?.trim() || schedule.recipientUser.discordUsername
+          : null;
+
+      const { notifyMerchantRecurringInvoiceFailedBestEffort } = await import(
+        "@/server/commercial-notification.service"
+      );
+      await notifyMerchantRecurringInvoiceFailedBestEffort({
+        companyId: schedule.merchantCompanyId,
+        scheduleId: schedule.id,
+        templateName: schedule.templateName,
+        recipientLabel,
+        reason,
+      });
+
       failedCount += 1;
     }
   }

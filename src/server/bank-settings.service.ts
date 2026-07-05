@@ -225,12 +225,27 @@ export async function isDiscordNotificationEnabled(
   userId: string,
   type: UserNotificationType,
 ): Promise<boolean> {
+  const { isMandatoryDiscordNotification } = await import("@/lib/bank/notification-pref-rules");
+  if (isMandatoryDiscordNotification(type)) return true;
+
   const settings = await prisma.userBankSettings.findUnique({
     where: { userId },
-    select: { discordNotificationPrefs: true },
+    select: { discordNotificationPrefs: true, paymentEngineNotificationPrefs: true },
   });
   if (!settings) return true;
+
   const prefs = parseDiscordPrefs(settings.discordNotificationPrefs);
-  if (prefs[type] === undefined) return true;
-  return prefs[type] !== false;
+  if (prefs[type] === false) return false;
+  if (prefs[type] === true) return true;
+
+  const { paymentEnginePrefKeyForNotificationType } = await import(
+    "@/lib/bank/notification-pref-rules"
+  );
+  const engineKey = paymentEnginePrefKeyForNotificationType(type);
+  if (engineKey) {
+    const enginePrefs = parsePaymentEnginePrefs(settings.paymentEngineNotificationPrefs);
+    if (enginePrefs[engineKey] === false) return false;
+  }
+
+  return true;
 }

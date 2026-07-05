@@ -312,24 +312,6 @@ export async function notifyMerchantPaymentFailed(input: {
   });
 }
 
-export async function notifyMerchantPaymentReceived(input: {
-  companyId: string;
-  merchantUserIds: string[];
-  title: string;
-  body: string;
-  linkUrl: string;
-  metadata?: Record<string, unknown>;
-}): Promise<void> {
-  const { createUserNotifications } = await import("@/server/notification.service");
-  await createUserNotifications(input.merchantUserIds, {
-    type: "MERCHANT_INVOICE_PAID",
-    title: input.title,
-    body: input.body,
-    linkUrl: input.linkUrl,
-    metadata: input.metadata,
-  });
-}
-
 export async function listMerchantFinanceUserIds(companyId: string): Promise<string[]> {
   const memberships = await prisma.companyMembership.findMany({
     where: {

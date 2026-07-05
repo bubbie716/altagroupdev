@@ -36,7 +36,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:seed": "tsx tests/e2e/scripts/seed-e2e-data.ts",
     "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts",
-    "test:unit": "tsx --test src/lib/account/portfolio-chart-series.test.ts src/lib/account/portfolio-chart-range-selection.test.ts src/lib/account/asset-allocation.test.ts src/lib/bank/relationship-timeline-customer-copy.test.ts src/lib/bank/relationship-terminology.test.ts src/lib/bank/relationship-timeline-customer-view.test.ts src/lib/bank/alta-private-invitation.test.ts src/lib/bank/alta-private-client-experience.test.ts src/lib/bank/financial-integrity.test.ts src/lib/internal/operational-controls.test.ts src/lib/bank/schema-foundation.test.ts"
+    "test:unit": "tsx --test src/lib/account/portfolio-chart-series.test.ts src/lib/account/portfolio-chart-range-selection.test.ts src/lib/account/asset-allocation.test.ts src/lib/bank/relationship-timeline-customer-copy.test.ts src/lib/bank/relationship-terminology.test.ts src/lib/bank/relationship-timeline-customer-view.test.ts src/lib/bank/alta-private-invitation.test.ts src/lib/bank/alta-private-client-experience.test.ts src/lib/bank/financial-integrity.test.ts src/lib/bank/customer-notification.test.ts src/lib/internal/operational-controls.test.ts src/lib/bank/schema-foundation.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

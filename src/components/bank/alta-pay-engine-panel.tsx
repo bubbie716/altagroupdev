@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import { AltaPayForm } from "@/components/bank/alta-pay-form";
@@ -35,7 +35,6 @@ import type { PayableRecipient } from "@/lib/bank/alta-pay-types";
 type EngineTab = "now" | "scheduled" | "recurring" | "autopay";
 
 const tabs: { id: EngineTab; label: string }[] = [
-  { id: "now", label: "Pay now" },
   { id: "scheduled", label: "Scheduled" },
   { id: "recurring", label: "Recurring" },
   { id: "autopay", label: "AutoPay merchants" },
@@ -446,12 +445,14 @@ export function AltaPayEnginePanel({
   history,
   schedules,
   autopayApprovals,
+  unreadInvoiceCount = 0,
 }: {
   fundingSources: PayFundingSourceOption[];
   defaultFundingKey?: string;
   history: AltaPayPaymentRow[];
   schedules: AltaPayScheduleRow[];
   autopayApprovals: MerchantAutopayApprovalRow[];
+  unreadInvoiceCount?: number;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<EngineTab>("now");
@@ -468,7 +469,29 @@ export function AltaPayEnginePanel({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap gap-2 border-b border-border pb-1">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-1">
+        <button
+          type="button"
+          onClick={() => setTab("now")}
+          className={`rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
+            tab === "now"
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Pay now
+        </button>
+        <Link
+          to="/bank/invoices"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Received invoices
+          {unreadInvoiceCount > 0 ? (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[11px] font-medium leading-none text-background tabular-nums">
+              {unreadInvoiceCount > 99 ? "99+" : unreadInvoiceCount}
+            </span>
+          ) : null}
+        </Link>
         {tabs.map((item) => (
           <button
             key={item.id}

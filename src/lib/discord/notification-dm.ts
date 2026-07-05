@@ -1,22 +1,26 @@
 import { INVITE_COLORS, notificationColorForTitle } from "@/lib/discord/invitation-dm";
 
+/** Default absolute URL base for Discord notification link buttons. */
+export const DEFAULT_ALTA_WEB_BASE_URL = "https://altagroup.dev";
+
 export type NotificationDmPayload = {
   embed: Record<string, unknown>;
   components: Record<string, unknown>[];
 };
+
+export function resolveAltaWebBaseUrl(): string {
+  const configured = process.env.ALTA_WEB_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  return DEFAULT_ALTA_WEB_BASE_URL;
+}
 
 export function resolvePublicLinkUrl(linkUrl?: string | null): string | undefined {
   const trimmed = linkUrl?.trim();
   if (!trimmed) return undefined;
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
 
-  const base =
-    process.env.ALTA_WEB_BASE_URL?.trim() ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-
-  const normalizedBase = base.replace(/\/$/, "");
   const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `${normalizedBase}${path}`;
+  return `${resolveAltaWebBaseUrl()}${path}`;
 }
 
 export function buildNotificationDmPayload(input: {

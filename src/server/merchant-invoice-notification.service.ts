@@ -1,5 +1,5 @@
 import { formatFlorin } from "@/lib/bank/format";
-import { buildNotificationDmPayload } from "@/lib/discord/notification-dm";
+import { buildNotificationDmPayload, resolvePublicLinkUrl } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
 import { createUserNotification } from "@/server/notification.service";
 
@@ -63,11 +63,13 @@ export async function buildMerchantInvoiceReceivedDmPayload(invoiceId: string) {
   const due = formatDueDate(invoice.dueDate);
   const description = invoice.description.trim().slice(0, 1024);
   const billTo = invoice.recipientCompany?.name ?? null;
+  const recurring = invoice.isRecurring;
+  const viewInvoiceUrl = resolvePublicLinkUrl(invoiceUrl(invoiceId));
 
   return {
     embed: {
-      title: "Invoice received",
-      description: `Reference \`${invoice.referenceCode}\``,
+      title: recurring ? "Recurring invoice received" : "Invoice received",
+      description: `Reference \`${invoice.referenceCode}\`${recurring ? " · Recurring" : ""}`,
       color: 0x0f1729,
       fields: [
         { name: "Merchant", value: invoice.merchantCompany.name, inline: true },
@@ -86,7 +88,7 @@ export async function buildMerchantInvoiceReceivedDmPayload(invoiceId: string) {
             type: 2,
             style: 5,
             label: "View Invoice",
-            url: `${process.env.APP_BASE_URL ?? "http://localhost:3000"}${invoiceUrl(invoiceId)}`,
+            url: viewInvoiceUrl,
           },
           {
             type: 2,
@@ -107,13 +109,15 @@ export async function notifyMerchantInvoiceReceived(invoiceId: string): Promise<
   const customDmPayload = await buildMerchantInvoiceReceivedDmPayload(invoiceId);
   const amount = decimalToNumber(invoice.amount);
   const notifyUserIds = await listRecipientNotifyUserIds(invoice);
+  const title = invoice.isRecurring ? "Recurring invoice received" : "Invoice received";
+  const recurringHint = invoice.isRecurring ? " (recurring)" : "";
 
   for (const userId of notifyUserIds) {
     await createUserNotification({
       userId,
       type: "MERCHANT_INVOICE_RECEIVED",
-      title: "Invoice received",
-      body: `${invoice.merchantCompany.name} sent ${invoice.recipientCompany ? `${invoice.recipientCompany.name} ` : ""}an invoice for ${formatFlorin(amount)}. Reference \`${invoice.referenceCode}\`.`,
+      title,
+      body: `${invoice.merchantCompany.name} sent ${invoice.recipientCompany ? `${invoice.recipientCompany.name} ` : ""}an invoice${recurringHint} for ${formatFlorin(amount)}. Reference \`${invoice.referenceCode}\`. Due ${formatDueDate(invoice.dueDate)}.`,
       linkUrl: invoiceUrl(invoiceId),
       metadata: {
         invoiceId,
@@ -270,3 +274,48 @@ export async function notifyMerchantInvoiceOverdue(invoiceId: string): Promise<v
 }
 
 export { buildNotificationDmPayload };
+
+export async function buildAutopayConfirmationDmPayload(invoiceId: string) {
+  const invoice = await loadInvoiceNotificationContext(invoiceId);
+  if (!invoice) return null;
+
+  const amount = formatFlorin(decimalToNumber(invoice.amount));
+  const invoiceLink = resolvePublicLinkUrl(invoiceUrl(invoiceId));
+  const payLink = invoiceLink;
+
+  return {
+    embed: {
+      title: "AutoPay confirmation required",
+      description: `${invoice.merchantCompany.name} invoice \`${invoice.referenceCode}\` for ${amount} requires your confirmation before AutoPay can run.`,
+      color: 0x0f1729,
+      footer: { text: "Alta Bank · Newport" },
+    },
+    components: [
+      {
+        type: 1,
+        components: [
+          ...(invoiceLink
+            ? [
+                {
+                  type: 2,
+                  style: 5,
+                  label: "Review Invoice",
+                  url: invoiceLink,
+                },
+              ]
+            : []),
+          ...(payLink
+            ? [
+                {
+                  type: 2,
+                  style: 5,
+                  label: "Pay Manually",
+                  url: payLink,
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
+  };
+}

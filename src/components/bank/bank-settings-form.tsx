@@ -12,10 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BANK_DISCORD_NOTIFICATION_OPTIONS,
+  BANK_DISCORD_NOTIFICATION_GROUPS,
+  PAYMENT_ENGINE_NOTIFICATION_OPTIONS,
   type DiscordNotificationPrefs,
   type UserBankSettingsView,
 } from "@/lib/bank/bank-settings-types";
+import type { PaymentEngineNotificationPrefs } from "@/lib/bank/payments-engine-types";
+import { DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS } from "@/lib/bank/payments-engine-types";
 import { updateUserBankSettingsRecord } from "@/lib/bank/bank-settings.functions";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
@@ -31,6 +34,7 @@ type SettingsBaseline = {
   receiveAccountId: string;
   fundingAccountId: string;
   notificationPrefs: DiscordNotificationPrefs;
+  engineNotificationPrefs: PaymentEngineNotificationPrefs;
 };
 
 function baselineFromSettings(settings: UserBankSettingsView): SettingsBaseline {
@@ -39,6 +43,7 @@ function baselineFromSettings(settings: UserBankSettingsView): SettingsBaseline 
       settings.explicitDefaultAltaPayReceiveAccountId ?? NONE_VALUE,
     fundingAccountId: settings.defaultAltaPayFundingAccountId ?? NONE_VALUE,
     notificationPrefs: settings.discordNotificationPrefs,
+    engineNotificationPrefs: settings.paymentEngineNotificationPrefs,
   };
 }
 
@@ -54,9 +59,22 @@ function settingsAreDirty(current: SettingsBaseline, baseline: SettingsBaseline)
     return true;
   }
 
-  return BANK_DISCORD_NOTIFICATION_OPTIONS.some((option) => {
-    const currentEnabled = current.notificationPrefs[option.type] !== false;
-    const baselineEnabled = baseline.notificationPrefs[option.type] !== false;
+  const discordDirty = BANK_DISCORD_NOTIFICATION_GROUPS.some((group) =>
+    group.options.some((option) => {
+      const currentEnabled = current.notificationPrefs[option.type] !== false;
+      const baselineEnabled = baseline.notificationPrefs[option.type] !== false;
+      return currentEnabled !== baselineEnabled;
+    }),
+  );
+  if (discordDirty) return true;
+
+  return PAYMENT_ENGINE_NOTIFICATION_OPTIONS.some((option) => {
+    const currentEnabled =
+      (current.engineNotificationPrefs[option.key] ??
+        DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS[option.key]) !== false;
+    const baselineEnabled =
+      (baseline.engineNotificationPrefs[option.key] ??
+        DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS[option.key]) !== false;
     return currentEnabled !== baselineEnabled;
   });
 }
@@ -142,6 +160,9 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
   );
   const [fundingAccountId, setFundingAccountId] = useState(baseline.fundingAccountId);
   const [notificationPrefs, setNotificationPrefs] = useState(baseline.notificationPrefs);
+  const [engineNotificationPrefs, setEngineNotificationPrefs] = useState(
+    baseline.engineNotificationPrefs,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -152,16 +173,17 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
     setReceiveAccountId(receiveAccountSelectValue(initialSettings));
     setFundingAccountId(nextBaseline.fundingAccountId);
     setNotificationPrefs(nextBaseline.notificationPrefs);
+    setEngineNotificationPrefs(nextBaseline.engineNotificationPrefs);
     setSaved(false);
   }, [initialSettings]);
 
   const isDirty = useMemo(
     () =>
       settingsAreDirty(
-        { receiveAccountId, fundingAccountId, notificationPrefs },
+        { receiveAccountId, fundingAccountId, notificationPrefs, engineNotificationPrefs },
         baseline,
       ),
-    [receiveAccountId, fundingAccountId, notificationPrefs, baseline],
+    [receiveAccountId, fundingAccountId, notificationPrefs, engineNotificationPrefs, baseline],
   );
 
   useEffect(() => {
@@ -181,6 +203,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
           defaultAltaPayFundingAccountId:
             fundingAccountId === NONE_VALUE ? null : fundingAccountId,
           discordNotificationPrefs: notificationPrefs,
+          paymentEngineNotificationPrefs: engineNotificationPrefs,
         },
       });
 
@@ -189,6 +212,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
       setReceiveAccountId(receiveAccountSelectValue(updated));
       setFundingAccountId(nextBaseline.fundingAccountId);
       setNotificationPrefs(nextBaseline.notificationPrefs);
+    setEngineNotificationPrefs(nextBaseline.engineNotificationPrefs);
       setSaved(true);
       await router.invalidate();
     } catch (err) {
@@ -284,13 +308,65 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
           </p>
         </div>
 
+        <div className="space-y-6">
+          {BANK_DISCORD_NOTIFICATION_GROUPS.map((group) => (
+            <div key={group.id}>
+              <h3 className="text-[13px] font-medium text-foreground">{group.label}</h3>
+              <div className="mt-3 overflow-hidden rounded-xl bg-surface-2/50">
+                {group.options.map((option, index) => {
+                  const enabled = notificationPrefs[option.type] !== false;
+                  const switchId = `discord-notification-${option.type}`;
+                  return (
+                    <div
+                      key={option.type}
+                      className={cn(
+                        "flex min-h-11 items-center justify-between gap-4 px-4 py-2",
+                        index > 0 && "border-t border-border/50",
+                      )}
+                    >
+                      <label
+                        htmlFor={switchId}
+                        className="cursor-pointer text-[15px] leading-snug select-none"
+                      >
+                        {option.label}
+                      </label>
+                      <NotificationSwitch
+                        id={switchId}
+                        checked={enabled}
+                        disabled={saving}
+                        onCheckedChange={(checked) =>
+                          setNotificationPrefs((current) => ({
+                            ...current,
+                            [option.type]: checked,
+                          }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="space-y-6 !p-6">
+        <div>
+          <h2 className="type-section-title">Payment engine alerts</h2>
+          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            Alta Pay schedules, recurring payments, and merchant AutoPay notifications.
+          </p>
+        </div>
+
         <div className="overflow-hidden rounded-xl bg-surface-2/50">
-          {BANK_DISCORD_NOTIFICATION_OPTIONS.map((option, index) => {
-            const enabled = notificationPrefs[option.type] !== false;
-            const switchId = `discord-notification-${option.type}`;
+          {PAYMENT_ENGINE_NOTIFICATION_OPTIONS.map((option, index) => {
+            const enabled =
+              (engineNotificationPrefs[option.key] ??
+                DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS[option.key]) !== false;
+            const switchId = `payment-engine-notification-${option.key}`;
             return (
               <div
-                key={option.type}
+                key={option.key}
                 className={cn(
                   "flex min-h-11 items-center justify-between gap-4 px-4 py-2",
                   index > 0 && "border-t border-border/50",
@@ -307,9 +383,9 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
                   checked={enabled}
                   disabled={saving}
                   onCheckedChange={(checked) =>
-                    setNotificationPrefs((current) => ({
+                    setEngineNotificationPrefs((current) => ({
                       ...current,
-                      [option.type]: checked,
+                      [option.key]: checked,
                     }))
                   }
                 />
