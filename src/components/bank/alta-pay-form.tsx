@@ -39,17 +39,22 @@ import {
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 
-const CARD_COMPANY_PAY_BLOCKED =
-  "You cannot use this Alta Card to pay the company it belongs to.";
+const ALTA_PAY_SELF_COMPANY_BLOCKED = "Companies cannot send Alta Pay to themselves.";
 
 const PERSON_RECEIVE_ACCOUNT_MISSING =
   "This customer does not have an active personal Alta Bank account to receive Alta Pay.";
 
 type FormView = "compose" | "review" | "success" | "error";
 
-function employerCompanyIdForFunding(source: PayFundingSourceOption | undefined): string | undefined {
-  return source?.employerCompanyId;
+function selfPayBlockedCompanyIdForFunding(
+  source: PayFundingSourceOption | undefined,
+): string | undefined {
+  if (!source) return undefined;
+  if (source.kind === "bank_account") return source.companyId ?? undefined;
+  return source.employerCompanyId;
 }
+
+export { selfPayBlockedCompanyIdForFunding };
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -88,7 +93,11 @@ function parseFundingKey(key: string): AltaPayFundingSource {
   return { kind: "bank_account", accountId: id };
 }
 
-function fundingLabel(source: PayFundingSourceOption): string {
+export function parsePayFundingKey(key: string): AltaPayFundingSource {
+  return parseFundingKey(key);
+}
+
+export function payFundingLabel(source: PayFundingSourceOption): string {
   if (source.kind === "alta_card") {
     if (
       source.label.includes("Employee") ||
@@ -150,25 +159,25 @@ export function AltaPayForm({
     activeFundingSources.find((s) => fundingKey(s) === fundingKeyValue) ??
     activeFundingSources[0];
   const availableBalance = selectedFunding?.availableBalance ?? 0;
-  const blockedEmployerCompanyId = employerCompanyIdForFunding(selectedFunding);
+  const blockedSelfPayCompanyId = selfPayBlockedCompanyIdForFunding(selectedFunding);
   const payableResults =
-    selectedRecipient?.kind === "company" && blockedEmployerCompanyId
+    selectedRecipient?.kind === "company" && blockedSelfPayCompanyId
       ? recipientResults.filter(
           (recipient) =>
-            recipient.kind !== "company" || recipient.id !== blockedEmployerCompanyId,
+            recipient.kind !== "company" || recipient.id !== blockedSelfPayCompanyId,
         )
       : recipientResults;
 
   useEffect(() => {
     if (
-      blockedEmployerCompanyId &&
+      blockedSelfPayCompanyId &&
       selectedRecipient?.kind === "company" &&
-      selectedRecipient.id === blockedEmployerCompanyId
+      selectedRecipient.id === blockedSelfPayCompanyId
     ) {
       setSelectedRecipient(null);
       setRecipientQuery("");
     }
-  }, [blockedEmployerCompanyId, selectedRecipient]);
+  }, [blockedSelfPayCompanyId, selectedRecipient]);
 
   useEffect(() => {
     if (selectedRecipient?.kind === "person") {
@@ -243,10 +252,10 @@ export function AltaPayForm({
     }
     if (
       selectedRecipient.kind === "company" &&
-      blockedEmployerCompanyId &&
-      selectedRecipient.id === blockedEmployerCompanyId
+      blockedSelfPayCompanyId &&
+      selectedRecipient.id === blockedSelfPayCompanyId
     ) {
-      setComposeError(CARD_COMPANY_PAY_BLOCKED);
+      setComposeError(ALTA_PAY_SELF_COMPANY_BLOCKED);
       return;
     }
     if (selectedRecipient.kind === "person" && activeFundingSources.length === 0) {
@@ -380,7 +389,7 @@ export function AltaPayForm({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">From</span>
-              <span className="text-right font-mono text-[12px]">{fundingLabel(selectedFunding)}</span>
+              <span className="text-right font-mono text-[12px]">{payFundingLabel(selectedFunding)}</span>
             </div>
             {memo.trim() && (
               <div className="flex justify-between gap-4">
@@ -480,7 +489,7 @@ export function AltaPayForm({
               payableResults.length === 0 &&
               !selectedRecipient && (
                 <p className="mt-2 text-[12px] text-muted-foreground">
-                  {CARD_COMPANY_PAY_BLOCKED}
+                  {ALTA_PAY_SELF_COMPANY_BLOCKED}
                 </p>
               )}
             {selectedRecipient && (
@@ -526,7 +535,7 @@ export function AltaPayForm({
               <SelectContent>
                 {activeFundingSources.map((source) => (
                   <SelectItem key={fundingKey(source)} value={fundingKey(source)}>
-                    {fundingLabel(source)}
+                    {payFundingLabel(source)}
                   </SelectItem>
                 ))}
               </SelectContent>

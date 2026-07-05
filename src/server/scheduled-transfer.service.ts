@@ -4,14 +4,14 @@ import type {
   ScheduledPaymentRow,
   ScheduledTransferScopeCode,
 } from "@/lib/bank/business-banking-types";
-import { listPaySourceAccounts } from "@/server/alta-pay.service";
+import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
+import { listActiveDepositAccounts } from "@/server/bank.service";
 import {
   mapScheduledPayment,
   toDbPaymentFrequency,
   toDbPaymentType,
   toDbTransferScope,
 } from "@/server/business-banking-mapper";
-import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { prisma } from "@/server/db";
 
@@ -28,10 +28,29 @@ function badRequest(message: string): never {
 }
 
 async function assertTransferSourceAccount(user: AltaUser, bankAccountId: string) {
-  const allowedIds = new Set((await listPaySourceAccounts(user)).map((a) => a.id));
+  const allowedIds = new Set((await listActiveDepositAccounts(user.id)).map((a) => a.id));
   if (!allowedIds.has(bankAccountId)) {
     badRequest("Select a valid source account.");
   }
+}
+
+async function assertOwnAccountDestination(
+  user: AltaUser,
+  sourceAccountId: string,
+  recipientAccountNumber: string,
+) {
+  const { isAccountAccessibleByUser, normalizeAccountNumber } = await import("@/server/bank.service");
+  const normalized = normalizeAccountNumber(recipientAccountNumber);
+  const recipient = await prisma.bankAccount.findUnique({ where: { accountNumber: normalized } });
+  if (!recipient) badRequest("Select a valid destination account.");
+  if (recipient.id === sourceAccountId) badRequest("Choose two different accounts.");
+  if (!(await isAccountAccessibleByUser(recipient.id, user.id))) {
+    badRequest(
+      "Scheduled intrabank transfers can only send to your own accounts. Use Alta Pay to pay other people or businesses.",
+    );
+  }
+  if (recipient.status !== "ACTIVE") badRequest("Destination account must be active.");
+  return recipient;
 }
 
 function validateScheduledTransferInput(input: CreateUserScheduledTransferInput) {
@@ -83,6 +102,7 @@ export async function listUserScheduledTransfers(
       companyId: null,
       createdByUserId: user.id,
       transferScope: toDbTransferScope(scope),
+      paymentChannel: "TRANSFER",
     },
     orderBy: { createdAt: "desc" },
   });
@@ -96,17 +116,31 @@ export async function createUserScheduledTransfer(
   await assertTransferSourceAccount(user, input.bankAccountId);
   const scheduledDate = validateScheduledTransferInput(input);
 
+  let recipientName = input.recipientName.trim();
+  let recipientAccountNumber = input.recipientAccountNumber?.trim() || null;
+
+  if (input.transferScope === "intrabank") {
+    const destination = await assertOwnAccountDestination(
+      user,
+      input.bankAccountId,
+      recipientAccountNumber!,
+    );
+    recipientName = destination.accountName;
+    recipientAccountNumber = destination.accountNumber;
+  }
+
   const row = await prisma.scheduledPayment.create({
     data: {
       companyId: null,
       bankAccountId: input.bankAccountId,
       createdByUserId: user.id,
       transferScope: toDbTransferScope(input.transferScope),
+      paymentChannel: "TRANSFER",
       paymentType: toDbPaymentType(input.paymentType),
-      label: input.recipientName.trim(),
-      recipientName: input.recipientName.trim(),
+      label: recipientName,
+      recipientName,
       recipientAccountNumber:
-        input.transferScope === "intrabank" ? input.recipientAccountNumber?.trim() || null : null,
+        input.transferScope === "intrabank" ? recipientAccountNumber : null,
       recipientInstitution:
         input.transferScope === "interbank" ? input.recipientInstitution?.trim() || null : null,
       routingNumber: input.transferScope === "interbank" ? input.routingNumber?.trim() || null : null,

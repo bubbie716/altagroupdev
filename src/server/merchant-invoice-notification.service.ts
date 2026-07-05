@@ -152,6 +152,7 @@ export async function notifyMerchantInvoiceReminder(invoiceId: string): Promise<
 export async function notifyMerchantInvoicePaid(
   invoiceId: string,
   paymentId: string,
+  options?: { autopay?: boolean },
 ): Promise<void> {
   const invoice = await prisma.merchantInvoice.findUnique({
     where: { id: invoiceId },
@@ -169,15 +170,17 @@ export async function notifyMerchantInvoicePaid(
   const paymentRef = invoice.payment?.referenceCode ?? paymentId;
   const notifyUserIds = await listRecipientNotifyUserIds(invoice);
 
-  for (const userId of notifyUserIds) {
-    await createUserNotification({
-      userId,
-      type: "MERCHANT_INVOICE_PAID",
-      title: "Invoice paid",
-      body: `You paid ${formatFlorin(amount)} to ${invoice.merchantCompany.name}. Reference \`${paymentRef}\`.`,
-      linkUrl: invoiceUrl(invoiceId),
-      metadata: { invoiceId, amount, paymentReferenceCode: paymentRef },
-    });
+  if (!options?.autopay) {
+    for (const userId of notifyUserIds) {
+      await createUserNotification({
+        userId,
+        type: "MERCHANT_INVOICE_PAID",
+        title: "Invoice paid",
+        body: `You paid ${formatFlorin(amount)} to ${invoice.merchantCompany.name}. Reference \`${paymentRef}\`.`,
+        linkUrl: invoiceUrl(invoiceId),
+        metadata: { invoiceId, amount, paymentReferenceCode: paymentRef },
+      });
+    }
   }
 
   const memberships = await prisma.companyMembership.findMany({
@@ -192,14 +195,17 @@ export async function notifyMerchantInvoicePaid(
     await createUserNotification({
       userId: member.userId,
       type: "MERCHANT_INVOICE_PAID",
-      title: "Invoice paid",
-      body: `${payerName} paid invoice \`${invoice.referenceCode}\` for ${formatFlorin(amount)}.`,
+      title: options?.autopay ? "Invoice paid via AutoPay" : "Invoice paid",
+      body: options?.autopay
+        ? `${payerName} paid invoice \`${invoice.referenceCode}\` for ${formatFlorin(amount)} via AutoPay.`
+        : `${payerName} paid invoice \`${invoice.referenceCode}\` for ${formatFlorin(amount)}.`,
       linkUrl: `/bank/commercial/invoices/${invoiceId}?companyId=${invoice.merchantCompanyId}`,
       metadata: {
         invoiceId,
         amount,
         payerName,
         referenceCode: invoice.referenceCode,
+        autopay: options?.autopay ?? false,
       },
     });
   }

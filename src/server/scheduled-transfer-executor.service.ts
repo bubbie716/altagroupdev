@@ -63,6 +63,7 @@ function dueWhere(now: Date, paymentIds?: string[]) {
 
   return {
     transferScope: "INTRABANK" as const,
+    paymentChannel: "TRANSFER" as const,
     status: "APPROVED" as const,
     ...idFilter,
     OR: [
@@ -162,6 +163,17 @@ async function executeSinglePayment(
 
   const amount = Number(payment.amount.toString());
   const creatorHasDestination = await isAccountAccessibleByUser(destinationAccount.id, payment.createdByUserId);
+
+  if (!payment.companyId && !creatorHasDestination) {
+    await recordFailure(
+      payment,
+      executionId,
+      scheduledRunAt,
+      now,
+      "Scheduled intrabank transfers to other people are no longer supported. Use Alta Pay.",
+    );
+    return "failed";
+  }
 
   try {
     const { referenceCode } = await submitInternalTransfer(

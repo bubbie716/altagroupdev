@@ -546,6 +546,13 @@ export async function sendMerchantInvoice(
     console.error("[merchant-invoice] staff alert failed", error);
   }
 
+  try {
+    const { tryAutopayAfterInvoiceSent } = await import("@/server/merchant-autopay.service");
+    await tryAutopayAfterInvoiceSent(updated.id);
+  } catch (error) {
+    console.error("[merchant-invoice] autopay attempt failed", error);
+  }
+
   return mapDetail(updated);
 }
 

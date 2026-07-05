@@ -6,6 +6,10 @@ import type {
   UserBankSettingsView,
 } from "@/lib/bank/bank-settings-types";
 import { BANK_DISCORD_NOTIFICATION_OPTIONS } from "@/lib/bank/bank-settings-types";
+import {
+  DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS,
+  type PaymentEngineNotificationPrefs,
+} from "@/lib/bank/payments-engine-types";
 import { prisma } from "@/server/db";
 import { findAccessibleBankAccount } from "@/server/bank-account-access.service";
 
@@ -21,6 +25,16 @@ function parseDiscordPrefs(value: unknown): DiscordNotificationPrefs {
     if (typeof raw === "boolean") prefs[option.type] = raw;
   }
   return prefs;
+}
+
+function parsePaymentEnginePrefs(value: unknown): PaymentEngineNotificationPrefs {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ...DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS };
+  }
+  return {
+    ...DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS,
+    ...(value as PaymentEngineNotificationPrefs),
+  };
 }
 
 async function listReceiveAccountOptions(userId: string) {
@@ -129,6 +143,7 @@ export async function getUserBankSettings(user: AltaUser): Promise<UserBankSetti
     ),
     defaultAltaPayFundingAccountId: settings?.defaultAltaPayFundingAccountId ?? null,
     discordNotificationPrefs: parseDiscordPrefs(settings?.discordNotificationPrefs),
+    paymentEngineNotificationPrefs: parsePaymentEnginePrefs(settings?.paymentEngineNotificationPrefs),
     receiveAccountOptions,
     fundingAccountOptions,
   };
@@ -178,6 +193,13 @@ export async function updateUserBankSettings(
           ...input.discordNotificationPrefs,
         }
       : undefined;
+  const nextEnginePrefs =
+    input.paymentEngineNotificationPrefs !== undefined
+      ? {
+          ...parsePaymentEnginePrefs(existing?.paymentEngineNotificationPrefs),
+          ...input.paymentEngineNotificationPrefs,
+        }
+      : undefined;
 
   await prisma.userBankSettings.upsert({
     where: { userId: user.id },
@@ -186,11 +208,13 @@ export async function updateUserBankSettings(
       defaultAltaPayReceiveAccountId: receiveAccountId ?? null,
       defaultAltaPayFundingAccountId: fundingAccountId ?? null,
       discordNotificationPrefs: nextPrefs ?? {},
+      paymentEngineNotificationPrefs: nextEnginePrefs ?? { ...DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS },
     },
     update: {
       ...(receiveAccountId !== undefined ? { defaultAltaPayReceiveAccountId: receiveAccountId } : {}),
       ...(fundingAccountId !== undefined ? { defaultAltaPayFundingAccountId: fundingAccountId } : {}),
       ...(nextPrefs !== undefined ? { discordNotificationPrefs: nextPrefs } : {}),
+      ...(nextEnginePrefs !== undefined ? { paymentEngineNotificationPrefs: nextEnginePrefs } : {}),
     },
   });
 

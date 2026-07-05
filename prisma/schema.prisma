@@ -183,6 +183,10 @@ model User {
   merchantInvoicePaymentsInitiated MerchantInvoicePayment[]     @relation("MerchantInvoicePaymentInitiator")
   paymentLinksCreated              PaymentLink[]                  @relation("PaymentLinkCreator")
   paymentLinkPaymentsInitiated   PaymentLinkPayment[]           @relation("PaymentLinkPaymentInitiator")
+  merchantAutopayApprovals       MerchantAutopayApproval[]
+  altaPaySchedulesAsRecipient    ScheduledPayment[]             @relation("ScheduledPaymentRecipientUser")
+  recurringInvoiceSchedulesCreated MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceScheduleCreator")
+  recurringInvoicesReceived      MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceRecipientUser")
 }
 
 model BotDailyTransferUsage {
@@ -250,6 +254,10 @@ model Company {
   merchantInvoices             MerchantInvoice[]
   merchantInvoicesReceived     MerchantInvoice[] @relation("MerchantInvoiceRecipientCompany")
   paymentLinks                 PaymentLink[]
+  merchantAutopayApprovals     MerchantAutopayApproval[]
+  recurringInvoiceSchedules    MerchantRecurringInvoiceSchedule[]
+  altaPaySchedulesAsPayee      ScheduledPayment[] @relation("ScheduledPaymentRecipientCompany")
+  recurringInvoicesToCompany   MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceRecipientCompany")
   commercialPlan                 CommercialPlan               @default(CORE)
   planStatus                     CommercialPlanStatus         @default(ACTIVE)
   billingStatus                  CommercialBillingStatus      @default(NOT_BILLED)
@@ -455,6 +463,7 @@ model BankAccount {
   paymentsAsDestination           Payment[]             @relation("PaymentDestinationAccount")
   merchantInvoicesDestination     MerchantInvoice[]     @relation("MerchantInvoiceDestination")
   paymentLinksDestination         PaymentLink[]         @relation("PaymentLinkDestination")
+  merchantAutopayFundingApprovals MerchantAutopayApproval[]
 
   @@index([userId])
   @@index([companyId])
@@ -468,6 +477,7 @@ model UserBankSettings {
   defaultAltaPayReceiveAccountId String?
   defaultAltaPayFundingAccountId String?
   discordNotificationPrefs       Json     @default("{}")
+  paymentEngineNotificationPrefs Json     @default("{}")
   createdAt                      DateTime @default(now())
   updatedAt                      DateTime @updatedAt
 
@@ -495,6 +505,24 @@ enum PaymentFrequency {
   BIWEEKLY
   MONTHLY
   QUARTERLY
+  YEARLY
+}
+
+enum ScheduledPaymentChannel {
+  TRANSFER
+  ALTA_PAY
+}
+
+enum MerchantAutopayApprovalStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum RecurringInvoiceScheduleStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
 }
 
 enum ScheduledPaymentStatus {
@@ -531,13 +559,17 @@ enum PayrollRunStatus {
 model ScheduledPayment {
   id                     String                 @id @default(cuid())
   companyId              String?
-  bankAccountId          String
+  bankAccountId          String?
+  fundingSource          Json?
   createdByUserId        String
   transferScope          ScheduledTransferScope @default(INTRABANK)
+  paymentChannel         ScheduledPaymentChannel @default(TRANSFER)
   paymentType            ScheduledPaymentType
   label                  String
   recipientName          String
   recipientAccountNumber String?
+  recipientCompanyId     String?
+  recipientUserId          String?
   recipientInstitution   String?
   routingNumber          String?
   wireAccountNumber      String?
@@ -555,19 +587,24 @@ model ScheduledPayment {
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
-  company     Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  createdBy   User        @relation("ScheduledPaymentCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  executions  ScheduledTransferExecution[]
+  company           Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy         User        @relation("ScheduledPaymentCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipientCompany  Company?    @relation("ScheduledPaymentRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
+  recipientUser     User?       @relation("ScheduledPaymentRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  executions        ScheduledTransferExecution[]
 
   @@index([companyId])
   @@index([createdByUserId])
   @@index([transferScope])
+  @@index([paymentChannel])
   @@index([bankAccountId])
   @@index([status])
   @@index([paymentType])
   @@index([nextRunDate])
   @@index([scheduledDate])
+  @@index([recipientCompanyId])
+  @@index([recipientUserId])
 }
 
 model ScheduledTransferExecution {
@@ -576,17 +613,82 @@ model ScheduledTransferExecution {
   scheduledRunAt     DateTime
   status             ScheduledTransferExecutionStatus @default(PENDING)
   bankTransactionId  String?
+  paymentId          String?
+  retryCount         Int                              @default(0)
+  nextRetryAt        DateTime?
   failureReason      String?
   executedAt         DateTime?
   createdAt          DateTime                         @default(now())
 
   scheduledPayment ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
   bankTransaction  BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  payment          Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@unique([scheduledPaymentId, scheduledRunAt])
   @@index([scheduledPaymentId])
   @@index([status])
   @@index([scheduledRunAt])
+  @@index([nextRetryAt])
+}
+
+model MerchantAutopayApproval {
+  id                             String                        @id @default(cuid())
+  userId                         String
+  merchantCompanyId              String
+  fundingAccountId               String?
+  fundingSource                  Json
+  fundingSourceKey               String
+  maxInvoiceAmount               Decimal                       @db.Decimal(18, 2)
+  confirmationRequiredAboveAmount Decimal?                     @db.Decimal(18, 2)
+  allowedFrequency               PaymentFrequency
+  maxPaymentsPerMonth            Int                           @default(1)
+  expiresAt                      DateTime?
+  allowRecurringInvoices         Boolean                       @default(true)
+  status                         MerchantAutopayApprovalStatus @default(ACTIVE)
+  createdAt                      DateTime                      @default(now())
+  updatedAt                      DateTime                      @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchantCompany Company      @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  fundingAccount  BankAccount? @relation(fields: [fundingAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, merchantCompanyId, fundingSourceKey])
+  @@index([userId, status])
+  @@index([merchantCompanyId])
+}
+
+model MerchantRecurringInvoiceSchedule {
+  id                  String                         @id @default(cuid())
+  merchantCompanyId   String
+  createdByUserId     String
+  templateName        String
+  recipientUserId     String?
+  recipientCompanyId  String?
+  amount              Decimal                        @db.Decimal(18, 2)
+  description         String
+  frequency           PaymentFrequency
+  dayOfMonth          Int?
+  startDate           DateTime
+  endDate             DateTime?
+  autoSendEnabled     Boolean                        @default(true)
+  status              RecurringInvoiceScheduleStatus @default(ACTIVE)
+  nextRunDate         DateTime?
+  lastRunAt           DateTime?
+  consecutiveFailures Int                            @default(0)
+  lastFailureReason   String?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  merchantCompany   Company          @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  createdBy         User             @relation("RecurringInvoiceScheduleCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipientUser     User?            @relation("RecurringInvoiceRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  recipientCompany  Company?         @relation("RecurringInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
+  generatedInvoices MerchantInvoice[]
+
+  @@index([merchantCompanyId, status])
+  @@index([nextRunDate])
+  @@index([recipientUserId])
+  @@index([recipientCompanyId])
 }
 
 model PayrollEmployee {
@@ -1233,6 +1335,24 @@ enum UserNotificationType {
   COMMERCIAL_PRO_DOWNGRADED
   COMMERCIAL_BILLING_ACCOUNT_CHANGED
   COMMERCIAL_PRO_ADMIN_GRANTED
+  PAYMENT_SCHEDULED_CREATED
+  PAYMENT_SCHEDULED_EXECUTED
+  PAYMENT_SCHEDULED_FAILED
+  PAYMENT_RECURRING_CREATED
+  PAYMENT_RECURRING_PAUSED
+  PAYMENT_RECURRING_RESUMED
+  PAYMENT_RECURRING_CANCELLED
+  PAYMENT_RECURRING_EXECUTED
+  PAYMENT_RECURRING_FAILED
+  MERCHANT_AUTOPAY_APPROVAL_CREATED
+  MERCHANT_AUTOPAY_APPROVAL_UPDATED
+  MERCHANT_AUTOPAY_APPROVAL_PAUSED
+  MERCHANT_AUTOPAY_APPROVAL_CANCELLED
+  MERCHANT_INVOICE_AUTOPAID
+  MERCHANT_AUTOPAY_FAILED
+  MERCHANT_RECURRING_INVOICE_RECEIVED
+  PAYMENT_RETRY_FAILED
+  PAYMENT_RETRY_FINAL_FAILED
 }
 
 enum DealRoomParticipantRole {
@@ -1635,6 +1755,8 @@ enum AuditEntityType {
   ALTA_CARD
   MERCHANT_INVOICE
   PAYMENT_LINK
+  MERCHANT_AUTOPAY_APPROVAL
+  MERCHANT_RECURRING_INVOICE
 }
 
 enum InternalNoteTargetType {
@@ -2783,6 +2905,7 @@ model Payment {
   transferGroup      TransferGroup? @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
   merchantInvoice    MerchantInvoice?
   paymentLinkPayment PaymentLinkPayment?
+  scheduledExecutions ScheduledTransferExecution[]
 
   @@index([paymentType, status])
   @@index([payerUserId])
@@ -2964,6 +3087,8 @@ model MerchantInvoice {
   voidedAt              DateTime?
   lastReminderSentAt    DateTime?
   paymentId             String?               @unique
+  recurringScheduleId   String?
+  isRecurring           Boolean               @default(false)
   metadata              Json?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
@@ -2974,6 +3099,7 @@ model MerchantInvoice {
   recipientCompany   Company?                 @relation("MerchantInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: Restrict)
   createdBy          User                     @relation("MerchantInvoiceCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   payment            Payment?                 @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  recurringSchedule  MerchantRecurringInvoiceSchedule? @relation(fields: [recurringScheduleId], references: [id], onDelete: SetNull)
   lineItems          MerchantInvoiceLineItem[]
   payments           MerchantInvoicePayment[]
   events             MerchantInvoiceEvent[]
@@ -2983,6 +3109,7 @@ model MerchantInvoice {
   @@index([recipientCompanyId, status])
   @@index([dueDate, status])
   @@index([createdAt])
+  @@index([recurringScheduleId])
 }
 
 model MerchantInvoiceLineItem {
@@ -3011,6 +3138,8 @@ model MerchantInvoicePayment {
   transferGroupId   String?
   initiatedByUserId String
   fundingSource     Json
+  isAutopay         Boolean                      @default(false)
+  autopayApprovalId String?
   failureReason     String?
   source            String                       @default("website")
   createdAt         DateTime                     @default(now())

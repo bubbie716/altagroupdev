@@ -16,6 +16,7 @@ export interface UserBankSettingsView {
   defaultAltaPayReceiveAccountId: string | null;
   defaultAltaPayFundingAccountId: string | null;
   discordNotificationPrefs: DiscordNotificationPrefs;
+  paymentEngineNotificationPrefs: import("@/lib/bank/payments-engine-types").PaymentEngineNotificationPrefs;
   receiveAccountOptions: BankSettingsAccountOption[];
   fundingAccountOptions: BankSettingsAccountOption[];
 }
@@ -24,6 +25,7 @@ export interface UpdateUserBankSettingsInput {
   defaultAltaPayReceiveAccountId?: string | null;
   defaultAltaPayFundingAccountId?: string | null;
   discordNotificationPrefs?: DiscordNotificationPrefs;
+  paymentEngineNotificationPrefs?: import("@/lib/bank/payments-engine-types").PaymentEngineNotificationPrefs;
 }
 
 export const BANK_DISCORD_NOTIFICATION_OPTIONS = [

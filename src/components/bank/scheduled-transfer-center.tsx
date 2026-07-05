@@ -57,6 +57,7 @@ export function ScheduledTransferCenter({
   sourceAccounts,
   payments,
   contacts = [],
+  destinationAccounts,
   canManage,
   viewOnlyMessage = "You do not have permission to submit transfers.",
   onCreate,
@@ -70,6 +71,8 @@ export function ScheduledTransferCenter({
   sourceAccounts: ScheduledTransferSourceAccount[];
   payments: ScheduledPaymentRow[];
   contacts?: TransferContact[];
+  /** When set, intrabank scheduling is limited to these owned destination accounts. */
+  destinationAccounts?: ScheduledTransferSourceAccount[];
   canManage: boolean;
   viewOnlyMessage?: string;
   onCreate: (input: Omit<CreateUserScheduledTransferInput, "transferScope">) => Promise<void>;
@@ -147,6 +150,7 @@ export function ScheduledTransferCenter({
                 paymentType={tab}
                 sourceAccounts={sourceAccounts}
                 contacts={contacts}
+                destinationAccounts={destinationAccounts}
                 defaultSourceAccountId={defaultSourceAccountId}
                 onCreate={onCreate}
               />
@@ -180,6 +184,7 @@ function ScheduledTransferForm({
   paymentType,
   sourceAccounts,
   contacts,
+  destinationAccounts,
   defaultSourceAccountId,
   onCreate,
 }: {
@@ -187,15 +192,20 @@ function ScheduledTransferForm({
   paymentType: ScheduledPaymentTypeCode;
   sourceAccounts: ScheduledTransferSourceAccount[];
   contacts: TransferContact[];
+  destinationAccounts?: ScheduledTransferSourceAccount[];
   defaultSourceAccountId?: string;
   onCreate: (input: Omit<CreateUserScheduledTransferInput, "transferScope">) => Promise<void>;
 }) {
   const router = useRouter();
+  const ownAccountsOnly = transferScope === "intrabank" && destinationAccounts != null;
   const defaultAccountId =
     defaultSourceAccountId && sourceAccounts.some((account) => account.id === defaultSourceAccountId)
       ? defaultSourceAccountId
       : (sourceAccounts[0]?.id ?? "");
   const [bankAccountId, setBankAccountId] = useState(defaultAccountId);
+  const [destinationAccountId, setDestinationAccountId] = useState(
+    () => destinationAccounts?.find((account) => account.id !== defaultAccountId)?.id ?? "",
+  );
   const [recipientName, setRecipientName] = useState("");
   const [recipientAccountNumber, setRecipientAccountNumber] = useState("");
   const [recipientInstitution, setRecipientInstitution] = useState("");
@@ -209,7 +219,12 @@ function ScheduledTransferForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const availableDestinations = ownAccountsOnly
+    ? (destinationAccounts ?? []).filter((account) => account.id !== bankAccountId)
+    : [];
+
   function selectContact(contact: TransferContact) {
+    if (ownAccountsOnly) return;
     if (transferScope === "intrabank") {
       if (contact.accountNumber) setRecipientAccountNumber(contact.accountNumber);
       setRecipientName(contact.recipientName ?? contact.label ?? "");
@@ -226,11 +241,19 @@ function ScheduledTransferForm({
     setError(null);
     setPending(true);
     try {
+      const destination = ownAccountsOnly
+        ? availableDestinations.find((account) => account.id === destinationAccountId)
+        : null;
+
       await onCreate({
         bankAccountId,
         paymentType,
-        recipientName,
-        recipientAccountNumber: recipientAccountNumber || undefined,
+        recipientName: ownAccountsOnly
+          ? (destination?.accountName ?? "")
+          : recipientName,
+        recipientAccountNumber: ownAccountsOnly
+          ? (destination?.accountNumber ?? undefined)
+          : recipientAccountNumber || undefined,
         recipientInstitution: recipientInstitution || undefined,
         routingNumber: routingNumber || undefined,
         wireAccountNumber: wireAccountNumber || undefined,
@@ -243,6 +266,7 @@ function ScheduledTransferForm({
       await router.invalidate();
       setRecipientName("");
       setRecipientAccountNumber("");
+      setDestinationAccountId(availableDestinations[0]?.id ?? "");
       setRecipientInstitution("");
       setRoutingNumber("");
       setWireAccountNumber("");
@@ -265,7 +289,13 @@ function ScheduledTransferForm({
           <select
             className={fieldClass}
             value={bankAccountId}
-            onChange={(e) => setBankAccountId(e.target.value)}
+            onChange={(e) => {
+              setBankAccountId(e.target.value);
+              if (ownAccountsOnly && e.target.value === destinationAccountId) {
+                const next = availableDestinations.find((account) => account.id !== e.target.value);
+                setDestinationAccountId(next?.id ?? "");
+              }
+            }}
             required
           >
             {sourceAccounts.map((account) => (
@@ -278,9 +308,29 @@ function ScheduledTransferForm({
         </label>
       )}
 
-      <TransferContactPicker contacts={contacts} scope={transferScope} onSelect={selectContact} />
+      {!ownAccountsOnly ? (
+        <TransferContactPicker contacts={contacts} scope={transferScope} onSelect={selectContact} />
+      ) : null}
 
       {transferScope === "intrabank" ? (
+        ownAccountsOnly ? (
+          <label className="block text-sm">
+            Transfer to
+            <select
+              className={fieldClass}
+              value={destinationAccountId}
+              onChange={(e) => setDestinationAccountId(e.target.value)}
+              required
+            >
+              {availableDestinations.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.accountName}
+                  {account.ownerLabel ? ` · ${account.ownerLabel}` : ""} ({account.accountNumber})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
         <>
           <label className="block text-sm">
             Recipient Alta account
@@ -302,6 +352,7 @@ function ScheduledTransferForm({
             />
           </label>
         </>
+        )
       ) : (
         <>
           <label className="block text-sm">
@@ -436,7 +487,7 @@ function ScheduledTransferForm({
       {error && <p className="text-sm text-destructive">{error}</p>}
       <button
         type="submit"
-        disabled={pending || !bankAccountId}
+        disabled={pending || !bankAccountId || (ownAccountsOnly && !destinationAccountId)}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
         {pending

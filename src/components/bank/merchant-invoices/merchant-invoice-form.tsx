@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Check } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import { Textarea } from "@/components/ui/textarea";
 import {
   createMerchantInvoiceDraftRecord,
-  searchInvoiceRecipientsForMerchant,
   sendMerchantInvoiceRecord,
   updateMerchantInvoiceDraftRecord,
 } from "@/lib/bank/merchant-invoice.functions";
@@ -16,6 +15,7 @@ import type {
   MerchantInvoiceDetail,
   MerchantInvoiceRecipientOption,
 } from "@/lib/bank/merchant-invoice-types";
+import { MerchantInvoiceRecipientField } from "@/components/bank/merchant-invoices/merchant-invoice-recipient-field";
 import { florin } from "@/lib/bank/api";
 import {
   BANK_MERCHANT_INVOICE_DRAFT_SAVED_BODY,
@@ -39,37 +39,6 @@ const inputClass =
 
 const resultCardClass =
   "mx-auto w-full max-w-sm rounded-2xl border border-border/70 bg-surface-1 px-7 py-9 text-center shadow-[0_10px_40px_-16px_hsl(var(--foreground)/0.14)]";
-
-function recipientIcon(recipient: MerchantInvoiceRecipientOption) {
-  return recipient.kind === "company" ? ShieldCheck : UserRound;
-}
-
-function recipientSubtitle(recipient: MerchantInvoiceRecipientOption): string {
-  if (recipient.kind === "company") {
-    return recipient.subtitle || "Verified company";
-  }
-  return recipient.subtitle ? `@${recipient.subtitle}` : "";
-}
-
-function RecipientRowContent({ recipient }: { recipient: MerchantInvoiceRecipientOption }) {
-  const Icon = recipientIcon(recipient);
-  return (
-    <>
-      <Icon className="mt-0.5 size-4 shrink-0 text-gold" />
-      <span className="min-w-0 flex-1">
-        <span className="font-medium">{recipient.displayName}</span>
-        {recipientSubtitle(recipient) ? (
-          <span className="mt-0.5 block text-[12px] text-muted-foreground">
-            {recipientSubtitle(recipient)}
-          </span>
-        ) : null}
-        <span className="mt-0.5 block text-[11px] text-muted-foreground">
-          {recipient.destinationLabel}
-        </span>
-      </span>
-    </>
-  );
-}
 
 function recipientFromInvoice(invoice: MerchantInvoiceDetail): MerchantInvoiceRecipientOption {
   const id =
@@ -110,14 +79,11 @@ export function MerchantInvoiceForm({
   initialInvoice?: MerchantInvoiceDetail;
 }) {
   const router = useRouter();
-  const searchRecipients = useServerFn(searchInvoiceRecipientsForMerchant);
   const createDraft = useServerFn(createMerchantInvoiceDraftRecord);
   const updateDraft = useServerFn(updateMerchantInvoiceDraftRecord);
   const sendInvoice = useServerFn(sendMerchantInvoiceRecord);
 
   const [view, setView] = useState<FormView>("compose");
-  const [query, setQuery] = useState(initialInvoice?.recipientName ?? "");
-  const [recipients, setRecipients] = useState<MerchantInvoiceRecipientOption[]>([]);
   const [selectedRecipient, setSelectedRecipient] = useState<MerchantInvoiceRecipientOption | null>(
     () => (initialInvoice ? recipientFromInvoice(initialInvoice) : null),
   );
@@ -142,22 +108,6 @@ export function MerchantInvoiceForm({
     parsedAmount > 0 &&
     description.trim().length > 0;
 
-  useEffect(() => {
-    if (query.trim().length < 1) {
-      setRecipients([]);
-      return;
-    }
-    if (selectedRecipient && query.trim() === selectedRecipient.displayName) {
-      return;
-    }
-    const timer = setTimeout(() => {
-      void searchRecipients({ data: { query: query.trim(), companyId } })
-        .then(setRecipients)
-        .catch(() => setRecipients([]));
-    }, 280);
-    return () => clearTimeout(timer);
-  }, [query, searchRecipients, companyId, selectedRecipient]);
-
   function resetForm() {
     setView("compose");
     setComposeError(null);
@@ -170,8 +120,6 @@ export function MerchantInvoiceForm({
     setMemo("");
     setDueDate("");
     setSelectedRecipient(null);
-    setQuery("");
-    setRecipients([]);
   }
 
   function showSubmitError(message: string) {
@@ -450,66 +398,16 @@ export function MerchantInvoiceForm({
         </p>
 
         <fieldset disabled={submitting || savingDraft} className="space-y-6 border-0 p-0 m-0 min-w-0">
-          <div>
-            <span className={fieldLabel}>Recipient</span>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                className={`${inputClass} pl-9`}
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setSelectedRecipient(null);
-                  setComposeError(null);
-                }}
-                placeholder="Customer or company name"
-              />
-            </div>
-            {recipients.length > 0 ? (
-              <ul className="mt-2 overflow-hidden rounded-md border border-border">
-                {recipients.map((recipient) => {
-                  const isSelected =
-                    selectedRecipient?.kind === recipient.kind &&
-                    selectedRecipient.id === recipient.id;
-
-                  if (isSelected) {
-                    return (
-                      <li
-                        key={`${recipient.kind}:${recipient.id}`}
-                        className="flex w-full items-start gap-3 border-l-2 border-gold bg-gold/5 px-4 py-3 text-left text-sm"
-                      >
-                        <RecipientRowContent recipient={recipient} />
-                      </li>
-                    );
-                  }
-
-                  return (
-                    <li key={`${recipient.kind}:${recipient.id}`}>
-                      <button
-                        type="button"
-                        disabled={!recipient.canReceive}
-                        onClick={() => {
-                          if (!recipient.canReceive) return;
-                          setSelectedRecipient(recipient);
-                          setQuery(recipient.displayName);
-                          setComposeError(null);
-                        }}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <RecipientRowContent recipient={recipient} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : selectedRecipient ? (
-              <ul className="mt-2 overflow-hidden rounded-md border border-border">
-                <li className="flex w-full items-start gap-3 border-l-2 border-gold bg-gold/5 px-4 py-3 text-left text-sm">
-                  <RecipientRowContent recipient={selectedRecipient} />
-                </li>
-              </ul>
-            ) : null}
-          </div>
+          <MerchantInvoiceRecipientField
+            companyId={companyId}
+            selectedRecipient={selectedRecipient}
+            onSelectedRecipientChange={(recipient) => {
+              setSelectedRecipient(recipient);
+              setComposeError(null);
+            }}
+            disabled={submitting || savingDraft}
+            initialQuery={initialInvoice?.recipientName ?? ""}
+          />
 
           <label className="block">
             <span className={fieldLabel}>Amount (FLR)</span>

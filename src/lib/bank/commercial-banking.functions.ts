@@ -43,6 +43,33 @@ export const fetchBasicMerchantAnalytics = createServerFn({ method: "GET" })
     return getBasicMerchantAnalytics(user, companyId);
   });
 
+export const fetchCommercialReceivableCreationLimits = createServerFn({ method: "GET" })
+  .inputValidator((companyId: string) => companyId)
+  .handler(async ({ data: companyId }) => {
+    const {
+      getCommercialUsageSummary,
+      canCreateCommercialPaymentLink,
+      canCreateCommercialInvoice,
+      commercialLimitMessage,
+    } = await import("@/server/commercial-limits.service");
+    await actor();
+    const usage = await getCommercialUsageSummary(companyId);
+    return {
+      canCreatePaymentLink: canCreateCommercialPaymentLink(usage),
+      canCreateInvoice: canCreateCommercialInvoice(usage),
+      paymentLinkLimitMessage: commercialLimitMessage(
+        "payment links",
+        usage.limits.corePaymentLinkMonthlyLimit,
+        "payment links created per month",
+      ),
+      invoiceLimitMessage: commercialLimitMessage(
+        "invoices",
+        usage.limits.coreInvoiceMonthlyLimit,
+        "invoices per month",
+      ),
+    };
+  });
+
 export const fetchCommercialSettings = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {

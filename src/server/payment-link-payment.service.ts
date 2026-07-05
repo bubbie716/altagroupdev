@@ -9,7 +9,11 @@ import {
 } from "@/lib/bank/payment-link-types";
 import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
 import { prisma } from "@/server/db";
-import { settleToCompanyOperatingAccountInTx } from "@/server/alta-pay-settlement.service";
+import { listPayFundingSources, resolvePayFundingSourceOption, resolvePaySourceAccount } from "@/server/alta-pay.service";
+import {
+  settleCommercialPaymentFromAltaCardInTx,
+  settleToCompanyOperatingAccountInTx,
+} from "@/server/alta-pay-settlement.service";
 import {
   appendPaymentLinkEvent,
   recordPaymentLinkPaidAudit,
@@ -17,7 +21,6 @@ import {
 } from "@/server/payment-link-audit.service";
 import { quotePaymentLinkFees } from "@/server/payment-link-fee.service";
 import { loadPaymentLinkForPayment } from "@/server/payment-link.service";
-import { listPayFundingSources, resolvePaySourceAccount } from "@/server/alta-pay.service";
 
 function forbidden(): never {
   throw new Error("FORBIDDEN");
@@ -123,9 +126,6 @@ export async function payPaymentLink(
   auditContext?: BankingStaffAuditContext,
 ): Promise<PayPaymentLinkResult> {
   if (!input.idempotencyKey.trim()) badRequest("Idempotency key is required.");
-  if (input.fundingSource.kind !== "bank_account") {
-    badRequest("Alta Card payment link payments are not supported yet.");
-  }
 
   const existingAttempt = await prisma.paymentLinkPayment.findUnique({
     where: { idempotencyKey: input.idempotencyKey },
@@ -136,9 +136,7 @@ export async function payPaymentLink(
   });
   if (existingAttempt?.status === "COMPLETED" && existingAttempt.payment) {
     const sources = await listPayFundingSources(user);
-    const source = sources.find(
-      (s) => s.kind === "bank_account" && s.id === input.fundingSource.accountId,
-    );
+    const source = resolvePayFundingSourceOption(sources, input.fundingSource);
     return {
       slug: existingAttempt.paymentLink.slug,
       paymentReferenceCode: existingAttempt.payment.referenceCode,
@@ -154,11 +152,7 @@ export async function payPaymentLink(
   if (!link) notFound();
 
   const allowedFunding = await listPayFundingSources(user);
-  const allowed = allowedFunding.some(
-    (source) =>
-      source.kind === "bank_account" && source.id === input.fundingSource.accountId,
-  );
-  if (!allowed) badRequest("Select a valid funding source.");
+  const selectedFunding = resolvePayFundingSourceOption(allowedFunding, input.fundingSource);
 
   const grossAmount = resolvePayAmount(link, input.amount);
   const fees = await quotePaymentLinkFees(grossAmount, link.merchantCompanyId);
@@ -167,7 +161,7 @@ export async function payPaymentLink(
   const payerLabel = user.minecraftUsername?.trim() || user.discordUsername;
   const memo = `Payment link ${link.referenceCode}`;
 
-  let fundingSourceLabel = "Alta Bank account";
+  let fundingSourceLabel = selectedFunding.label;
   let paymentReferenceCode = referenceBase;
   let paymentId = "";
 
@@ -213,43 +207,78 @@ export async function payPaymentLink(
         });
       }
 
-      const { account: sourceAccount, payerLabel: resolvedPayerLabel } =
-        await resolvePaySourceAccount(user, input.fundingSource.accountId);
+      let settlement: Awaited<ReturnType<typeof settleToCompanyOperatingAccountInTx>>;
+      let resolvedPayerLabel = payerLabel;
 
-      if (sourceAccount.id === locked.destinationAccountId) {
-        badRequest("Cannot pay a merchant from their own operating account.");
+      if (input.fundingSource.kind === "bank_account") {
+        const { account: sourceAccount, payerLabel: accountPayerLabel } =
+          await resolvePaySourceAccount(user, input.fundingSource.accountId);
+        resolvedPayerLabel = accountPayerLabel;
+
+        if (sourceAccount.id === locked.destinationAccountId) {
+          badRequest("Cannot pay a merchant from their own operating account.");
+        }
+        if (
+          sourceAccount.companyId &&
+          sourceAccount.companyId === locked.merchantCompanyId
+        ) {
+          badRequest("Cannot pay this merchant from the merchant company's operating account.");
+        }
+
+        fundingSourceLabel = sourceAccount.accountName;
+
+        settlement = await settleToCompanyOperatingAccountInTx(tx, {
+          paymentType: "PAYMENT_LINK",
+          referenceBase,
+          payerUserId: user.id,
+          payerLabel: resolvedPayerLabel,
+          companyId: locked.merchantCompanyId,
+          companyName: locked.merchantCompany.name,
+          sourceAccountId: sourceAccount.id,
+          destinationAccountId: locked.destinationAccountId,
+          grossAmount: fees.totalDebited,
+          initiatedByUserId: user.id,
+          memo,
+          metadata: {
+            paymentLinkId: locked.id,
+            paymentLinkSlug: locked.slug,
+            paymentLinkReference: locked.referenceCode,
+            feeAmount: fees.feeAmount,
+            netAmount: fees.netAmount,
+          },
+          outDescription: `Payment link to ${locked.merchantCompany.name}`,
+          inDescription: `Payment link from ${resolvedPayerLabel}`,
+        });
+      } else {
+        if (selectedFunding.employerCompanyId === locked.merchantCompanyId) {
+          badRequest("You cannot use this Alta Card to pay the company it belongs to.");
+        }
+
+        const cardSettlement = await settleCommercialPaymentFromAltaCardInTx(tx, {
+          paymentType: "PAYMENT_LINK",
+          referenceBase,
+          user,
+          cardId: input.fundingSource.cardId,
+          payerLabel: user.discordUsername,
+          companyId: locked.merchantCompanyId,
+          companyName: locked.merchantCompany.name,
+          destinationAccountId: locked.destinationAccountId,
+          grossAmount: fees.totalDebited,
+          initiatedByUserId: user.id,
+          memo,
+          metadata: {
+            paymentLinkId: locked.id,
+            paymentLinkSlug: locked.slug,
+            paymentLinkReference: locked.referenceCode,
+            feeAmount: fees.feeAmount,
+            netAmount: fees.netAmount,
+          },
+          inDescription: `Payment link from ${user.discordUsername}`,
+        });
+        settlement = cardSettlement;
+        fundingSourceLabel = cardSettlement.fundingSourceLabel;
+        resolvedPayerLabel = user.discordUsername;
       }
-      if (
-        sourceAccount.companyId &&
-        sourceAccount.companyId === locked.merchantCompanyId
-      ) {
-        badRequest("Cannot pay this merchant from the merchant company's operating account.");
-      }
-
-      fundingSourceLabel = sourceAccount.accountName;
-
-      const settlement = await settleToCompanyOperatingAccountInTx(tx, {
-        paymentType: "PAYMENT_LINK",
-        referenceBase,
-        payerUserId: user.id,
-        payerLabel: resolvedPayerLabel,
-        companyId: locked.merchantCompanyId,
-        companyName: locked.merchantCompany.name,
-        sourceAccountId: sourceAccount.id,
-        destinationAccountId: locked.destinationAccountId,
-        grossAmount: fees.totalDebited,
-        initiatedByUserId: user.id,
-        memo,
-        metadata: {
-          paymentLinkId: locked.id,
-          paymentLinkSlug: locked.slug,
-          paymentLinkReference: locked.referenceCode,
-          feeAmount: fees.feeAmount,
-          netAmount: fees.netAmount,
-        },
-        outDescription: `Payment link to ${locked.merchantCompany.name}`,
-        inDescription: `Payment link from ${resolvedPayerLabel}`,
-      });
 
       paymentId = settlement.paymentId;
       paymentReferenceCode = settlement.referenceBase;

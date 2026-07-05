@@ -8,8 +8,7 @@ import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-ce
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { fetchActiveBankAccounts, fetchTransferContacts, fetchUserInternalTransfers } from "@/lib/bank/bank.functions";
-import { fetchPaySourceAccounts } from "@/lib/bank/alta-pay.functions";
+import { fetchActiveBankAccounts, fetchUserInternalTransfers } from "@/lib/bank/bank.functions";
 import {
   cancelUserScheduledTransferRecord,
   createUserScheduledTransferRecord,
@@ -34,14 +33,12 @@ export const Route = createFileRoute("/bank/transfers/intrabank")({
   }),
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const [accounts, transfers, contacts, sourceAccounts, scheduledTransfers] = await Promise.all([
+    const [accounts, transfers, scheduledTransfers] = await Promise.all([
       fetchActiveBankAccounts(),
       fetchUserInternalTransfers({ data: 20 }),
-      fetchTransferContacts({ data: "intrabank" }),
-      fetchPaySourceAccounts(),
       fetchUserScheduledTransfers({ data: "intrabank" }),
     ]);
-    return { accounts, transfers, contacts, sourceAccounts, scheduledTransfers };
+    return { accounts, transfers, scheduledTransfers };
   },
   head: () => ({
     meta: [{ title: "Intrabank Transfers — Alta Bank" }],
@@ -89,8 +86,12 @@ function BankIntrabankTransfers() {
             onSuccess={() => void router.invalidate()}
           />
 
-          {data.sourceAccounts.length > 0 && (
+          {data.accounts.length >= 2 && (
             <Section title="Scheduled & recurring transfers" className="mt-10">
+              <p className="mb-4 text-[13px] text-muted-foreground">
+                Schedule one-time or recurring transfers between your own Alta Bank accounts. To pay other people or
+                businesses, use Alta Pay.
+              </p>
               <IntrabankScheduledTransfers data={data} defaultSourceAccountId={accountId} />
             </Section>
           )}
@@ -114,18 +115,20 @@ function IntrabankScheduledTransfers({
   const createTransfer = useServerFn(createUserScheduledTransferRecord);
   const cancelTransfer = useServerFn(cancelUserScheduledTransferRecord);
 
+  const accountOptions = data.accounts.map((account) => ({
+    id: account.id,
+    accountName: account.accountName,
+    accountNumber: account.accountNumber,
+    ownerLabel: account.companyName ?? "Personal",
+  }));
+
   return (
     <ScheduledTransferCenter
       transferScope="intrabank"
       defaultSourceAccountId={defaultSourceAccountId}
-      sourceAccounts={data.sourceAccounts.map((account: any) => ({
-        id: account.id,
-        accountName: account.accountName,
-        accountNumber: account.accountNumber,
-        ownerLabel: account.isCompanyAccount ? account.companyName : null,
-      }))}
+      sourceAccounts={accountOptions}
+      destinationAccounts={accountOptions}
       payments={data.scheduledTransfers}
-      contacts={data.contacts}
       canManage
       onCreate={async (input) => {
         await createTransfer({ data: { ...input, transferScope: "intrabank" } });

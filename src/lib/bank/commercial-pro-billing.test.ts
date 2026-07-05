@@ -10,6 +10,8 @@ import {
   isPastGracePeriod,
 } from "@/server/commercial-billing.service";
 import {
+  canCreateCommercialInvoice,
+  canCreateCommercialPaymentLink,
   commercialLimitMessage,
   isCommercialProActive,
   startOfUtcMonth,
@@ -165,6 +167,46 @@ describe("commercial billing cycle helpers", () => {
   it("describes monthly payment link limits", () => {
     const message = commercialLimitMessage("payment links", 5, "payment links created per month");
     assert.match(message, /5 payment links created per month/);
+  });
+
+  it("allows Pro companies to create unlimited receivables", () => {
+    const proUsage = {
+      isPro: true,
+      paymentLinksThisMonth: 100,
+      invoicesThisMonth: 100,
+      teamMembers: 10,
+      limits: {
+        coreInvoiceMonthlyLimit: 10,
+        corePaymentLinkMonthlyLimit: 5,
+        coreTeamMemberLimit: 3,
+      },
+    };
+    assert.equal(canCreateCommercialPaymentLink(proUsage), true);
+    assert.equal(canCreateCommercialInvoice(proUsage), true);
+  });
+
+  it("blocks Core companies at monthly receivable limits", () => {
+    const coreAtLimit = {
+      isPro: false,
+      paymentLinksThisMonth: 5,
+      invoicesThisMonth: 10,
+      teamMembers: 2,
+      limits: {
+        coreInvoiceMonthlyLimit: 10,
+        corePaymentLinkMonthlyLimit: 5,
+        coreTeamMemberLimit: 3,
+      },
+    };
+    assert.equal(canCreateCommercialPaymentLink(coreAtLimit), false);
+    assert.equal(canCreateCommercialInvoice(coreAtLimit), false);
+
+    const coreBelowLimit = {
+      ...coreAtLimit,
+      paymentLinksThisMonth: 4,
+      invoicesThisMonth: 9,
+    };
+    assert.equal(canCreateCommercialPaymentLink(coreBelowLimit), true);
+    assert.equal(canCreateCommercialInvoice(coreBelowLimit), true);
   });
 });
 

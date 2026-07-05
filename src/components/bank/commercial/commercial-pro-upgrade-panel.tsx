@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Card } from "@/components/page-shell";
 import {
   Select,
   SelectContent,
@@ -39,7 +38,10 @@ const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
 
 const UPGRADE_DESCRIPTION =
-  "Upgrade to Alta Commercial Pro for unlimited invoices, payment links, and team members. Advanced analytics, payroll, custom branding, and priority support.";
+  "Upgrade to Alta Commercial Pro for unlimited invoices, payment links, and team members.";
+
+const upgradeDialogClass =
+  "max-w-md gap-3 border-border bg-background p-5 sm:max-h-[min(85dvh,calc(100dvh-5rem))]";
 
 type FormView = "compose" | "review" | "success" | "error";
 
@@ -182,6 +184,7 @@ export function CommercialProUpgradePanel({
         <BankRequestSuccessCard
           kind="commercial_pro_upgrade"
           result={submission}
+          variant="embedded"
           onSubmitAnother={() => handleOpenChange(false)}
         />
       );
@@ -191,6 +194,7 @@ export function CommercialProUpgradePanel({
       return (
         <BankRequestErrorCard
           reason={errorReason}
+          variant="embedded"
           onTryAgain={() => {
             setErrorReason(null);
             setView("review");
@@ -202,18 +206,17 @@ export function CommercialProUpgradePanel({
     if (view === "review" && preview && selectedAccount) {
       return (
         <form onSubmit={submitUpgrade} className="space-y-4">
-          <Card className="space-y-6 !p-6">
+          <div className="space-y-4">
             <div>
               <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
                 Review upgrade
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Confirm the details below before submitting. Your billing account will be charged
-                immediately and Pro features activate after a successful charge.
+                Confirm the details below. Your billing account will be charged immediately.
               </p>
             </div>
 
-            <div className="space-y-4 border-y border-border/60 py-6 text-sm">
+            <div className="space-y-3 border-y border-border/60 py-4 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">Current plan</span>
                 <span className="font-medium">{COMMERCIAL_PLAN_LABELS[preview.currentPlan]}</span>
@@ -267,7 +270,7 @@ export function CommercialProUpgradePanel({
                 showContainer={false}
               />
             </fieldset>
-          </Card>
+          </div>
         </form>
       );
     }
@@ -280,11 +283,7 @@ export function CommercialProUpgradePanel({
         }}
         className="space-y-4"
       >
-        <Card className="space-y-4 border-0 bg-transparent p-0 shadow-none">
-          <fieldset
-            disabled={submitting}
-            className="space-y-4 border-0 p-0 m-0 min-w-0"
-          >
+        <fieldset disabled={submitting} className="space-y-4 border-0 p-0 m-0 min-w-0">
             <label className="block">
               <span className={fieldLabel}>Billing account</span>
               <Select
@@ -313,7 +312,7 @@ export function CommercialProUpgradePanel({
 
           {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => handleOpenChange(false)}
@@ -329,19 +328,24 @@ export function CommercialProUpgradePanel({
               showContainer={false}
             />
           </div>
-        </Card>
-      </form>
-    );
+        </form>
+      );
   }
+
+  const showIntro = view === "compose" && !loading;
 
   return (
     <>
       {children({ open: () => void openPanel(), loading })}
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-lg border-border bg-background">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-[20px]">Upgrade to Pro</DialogTitle>
-            <DialogDescription>{UPGRADE_DESCRIPTION}</DialogDescription>
+        <DialogContent className={upgradeDialogClass}>
+          <DialogHeader className="space-y-1 pr-8">
+            <DialogTitle className="font-serif text-[18px] leading-snug">Upgrade to Pro</DialogTitle>
+            {showIntro ? (
+              <DialogDescription className="text-[13px] leading-relaxed">
+                {UPGRADE_DESCRIPTION}
+              </DialogDescription>
+            ) : null}
           </DialogHeader>
           {renderContent()}
         </DialogContent>

@@ -120,6 +120,72 @@ export async function recordAdjustmentReversalGroupInTx(
   return { transferGroupId: transferGroup.id };
 }
 
+export type RecordCardFundedPaymentInput = {
+  paymentType: PaymentType;
+  referenceCode: string;
+  payerUserId: string;
+  destinationBankAccountId: string;
+  amount: number;
+  currency?: string;
+  initiatedByUserId: string;
+  memo?: string | null;
+  metadata?: Record<string, unknown>;
+  creditTransactionId: string;
+  cardTransactionId: string;
+};
+
+/** Creates Payment + TransferGroup for merchant settlement funded by an Alta Card charge. */
+export async function recordCardFundedPaymentInTx(
+  tx: TransactionClient,
+  input: RecordCardFundedPaymentInput,
+): Promise<RecordPairedPaymentResult> {
+  const now = new Date();
+  const groupType = toTransferGroupType(input.paymentType);
+
+  const transferGroup = await tx.transferGroup.create({
+    data: {
+      groupType,
+      status: "COMPLETED",
+      referenceCode: input.referenceCode,
+      completedAt: now,
+      metadata: {
+        cardTransactionId: input.cardTransactionId,
+        fundingKind: "alta_card",
+        ...input.metadata,
+      } as Prisma.InputJsonValue,
+    },
+  });
+
+  await tx.bankTransaction.update({
+    where: { id: input.creditTransactionId },
+    data: { transferGroupId: transferGroup.id, ledgerRole: "CREDIT" },
+  });
+
+  const payment = await tx.payment.create({
+    data: {
+      paymentType: input.paymentType,
+      status: "COMPLETED",
+      payerUserId: input.payerUserId,
+      sourceBankAccountId: null,
+      destinationBankAccountId: input.destinationBankAccountId,
+      amount: input.amount,
+      currency: input.currency ?? "FLR",
+      referenceCode: input.referenceCode,
+      memo: input.memo ?? null,
+      initiatedByUserId: input.initiatedByUserId,
+      transferGroupId: transferGroup.id,
+      completedAt: now,
+      metadata: {
+        cardTransactionId: input.cardTransactionId,
+        fundingKind: "alta_card",
+        ...input.metadata,
+      } as Prisma.InputJsonValue,
+    },
+  });
+
+  return { paymentId: payment.id, transferGroupId: transferGroup.id };
+}
+
 export async function findPaymentByReferenceCode(referenceCode: string) {
   const { prisma } = await import("@/server/db");
   return prisma.payment.findUnique({

@@ -101,7 +101,11 @@ export function AltaPayReceivedPanel({ summary }: { summary: AltaPayReceivedSumm
 
 export function AltaPayHistoryTable({ payments }: { payments: AltaPayPaymentRow[] }) {
   if (payments.length === 0) {
-    return <p className="text-[13px] text-muted-foreground">No Alta Pay payments sent yet.</p>;
+    return (
+      <p className="text-[13px] text-muted-foreground">
+        No payments sent yet. Alta Pay, invoice, and payment link payments will appear here.
+      </p>
+    );
   }
 
   return (

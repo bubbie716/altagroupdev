@@ -59,6 +59,10 @@ export type CommercialPlanSettings = {
   enabledFeatures: CommercialFeatureKey[];
 };
 
+export function isCommercialProActive(plan: CommercialPlanSettings): boolean {
+  return plan.commercialPlan === "PRO" && plan.planStatus === "ACTIVE";
+}
+
 export type CommercialBankingContext = {
   companyId: string;
   companyName: string;

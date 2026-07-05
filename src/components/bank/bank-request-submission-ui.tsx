@@ -202,19 +202,28 @@ const COPY = {
 const resultCardClass =
   "mx-auto w-full max-w-sm rounded-2xl border border-border/70 bg-surface-1 px-7 py-9 text-center shadow-[0_10px_40px_-16px_hsl(var(--foreground)/0.14)]";
 
-function ResultIcon({ variant }: { variant: "success" | "error" }) {
+function ResultIcon({ variant, compact = false }: { variant: "success" | "error"; compact?: boolean }) {
   const isSuccess = variant === "success";
   return (
     <div
       className={cn(
-        "mx-auto flex size-[4.5rem] items-center justify-center rounded-full",
+        "mx-auto flex items-center justify-center rounded-full",
+        compact ? "size-12" : "size-[4.5rem]",
         isSuccess ? "bg-[var(--success)]/14" : "bg-destructive/12",
       )}
     >
       {isSuccess ? (
-        <Check className="size-9 text-[var(--success)]" strokeWidth={2.25} aria-hidden />
+        <Check
+          className={cn(compact ? "size-6" : "size-9", "text-[var(--success)]")}
+          strokeWidth={2.25}
+          aria-hidden
+        />
       ) : (
-        <X className="size-9 text-destructive" strokeWidth={2.25} aria-hidden />
+        <X
+          className={cn(compact ? "size-6" : "size-9", "text-destructive")}
+          strokeWidth={2.25}
+          aria-hidden
+        />
       )}
     </div>
   );
@@ -339,28 +348,48 @@ export function BankRequestSubmitButton({
 export function BankRequestSuccessCard({
   kind,
   onSubmitAnother,
+  variant = "standalone",
 }: {
   kind: BankRequestKind;
   result: BankRequestSubmissionResult;
   onSubmitAnother: () => void;
+  variant?: "standalone" | "embedded";
 }) {
   const labels = COPY[kind];
+  const embedded = variant === "embedded";
 
   return (
-    <div className={cn(resultCardClass, "animate-in fade-in zoom-in-95 duration-300")}>
-      <ResultIcon variant="success" />
+    <div
+      className={cn(
+        embedded ? "text-center" : resultCardClass,
+        "animate-in fade-in zoom-in-95 duration-300",
+      )}
+    >
+      <ResultIcon variant="success" compact={embedded} />
 
-      <h2 className="mt-5 text-[1.2rem] font-semibold tracking-tight">{labels.successTitle}</h2>
+      <h2
+        className={cn(
+          "font-semibold tracking-tight",
+          embedded ? "mt-4 text-lg" : "mt-5 text-[1.2rem]",
+        )}
+      >
+        {labels.successTitle}
+      </h2>
 
-      <p className="mt-2.5 text-[14px] leading-relaxed text-muted-foreground">
+      <p
+        className={cn(
+          "leading-relaxed text-muted-foreground",
+          embedded ? "mt-2 text-[13px]" : "mt-2.5 text-[14px]",
+        )}
+      >
         {labels.successBody}
       </p>
 
-      <div className="my-6 border-t border-border/70" />
+      <div className={cn("border-t border-border/70", embedded ? "my-4" : "my-6")} />
 
       <Callout variant="info">{labels.successHint}</Callout>
 
-      <div className="mt-5">
+      <div className={embedded ? "mt-4" : "mt-5"}>
         <SecondaryButton onClick={onSubmitAnother}>{labels.submitAnother}</SecondaryButton>
       </div>
     </div>
@@ -370,29 +399,48 @@ export function BankRequestSuccessCard({
 export function BankRequestErrorCard({
   reason,
   onTryAgain,
+  variant = "standalone",
 }: {
   reason?: string | null;
   onTryAgain: () => void;
+  variant?: "standalone" | "embedded";
 }) {
-  return (
-    <div className={cn(resultCardClass, "animate-in fade-in slide-in-from-bottom-2 duration-300")}>
-      <ResultIcon variant="error" />
+  const embedded = variant === "embedded";
 
-      <h2 className="mt-5 text-[1.2rem] font-semibold tracking-tight">
+  return (
+    <div
+      className={cn(
+        embedded ? "text-center" : resultCardClass,
+        "animate-in fade-in slide-in-from-bottom-2 duration-300",
+      )}
+    >
+      <ResultIcon variant="error" compact={embedded} />
+
+      <h2
+        className={cn(
+          "font-semibold tracking-tight",
+          embedded ? "mt-4 text-lg" : "mt-5 text-[1.2rem]",
+        )}
+      >
         We couldn&apos;t submit your request.
       </h2>
 
-      <p className="mt-2.5 text-[14px] leading-relaxed text-muted-foreground">
+      <p
+        className={cn(
+          "leading-relaxed text-muted-foreground",
+          embedded ? "mt-2 text-[13px]" : "mt-2.5 text-[14px]",
+        )}
+      >
         Your request wasn&apos;t submitted. Please try again.
       </p>
 
-      <div className="my-6 border-t border-border/70" />
+      <div className={cn("border-t border-border/70", embedded ? "my-4" : "my-6")} />
 
       <Callout variant="warning">
         {reason ?? BANK_SUBMISSION_ERROR_FALLBACK}
       </Callout>
 
-      <div className="mt-5">
+      <div className={embedded ? "mt-4" : "mt-5"}>
         <SecondaryButton onClick={onTryAgain}>Try Again</SecondaryButton>
       </div>
     </div>

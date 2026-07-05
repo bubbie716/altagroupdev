@@ -17,14 +17,15 @@ import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 import { ALTA_PAY_REFERENCE_PREFIX } from "@/lib/bank/alta-pay-types";
 import {
   CUSTOMER_RECEIVED_DEPOSIT_REFERENCE_FILTERS,
+  CUSTOMER_SENT_WITHDRAWAL_REFERENCE_FILTERS,
   extractReceivedCustomerPayerLabel,
+  extractSentCustomerPayeeLabel,
 } from "@/server/customer-payments-received";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
 import {
   altaPayFromDescription,
   altaPayToDescription,
   stripAltaPayFromPrefix,
-  stripAltaPayToPrefix,
 } from "@/lib/bank/customer-transaction-copy";
 import { UserTag } from "@prisma/client";
 import { prisma } from "@/server/db";
@@ -392,6 +393,7 @@ export async function listPayFundingSources(user: AltaUser): Promise<PayFundingS
       : account.accountName,
     detail: account.accountNumber,
     availableBalance: account.availableBalance ?? account.balance,
+    companyId: account.companyId,
     accountStatusInfo: account.accountStatusInfo,
   }));
 
@@ -408,6 +410,27 @@ export async function listPayFundingSources(user: AltaUser): Promise<PayFundingS
   }
 
   return options;
+}
+
+export function resolvePayFundingSourceOption(
+  allowedFunding: PayFundingSourceOption[],
+  fundingSource:
+    | { kind: "bank_account"; accountId: string }
+    | { kind: "alta_card"; cardId: string },
+): PayFundingSourceOption {
+  if (fundingSource.kind === "bank_account") {
+    const source = allowedFunding.find(
+      (option) => option.kind === "bank_account" && option.id === fundingSource.accountId,
+    );
+    if (!source) badRequest("Select a valid funding source.");
+    return source;
+  }
+
+  const source = allowedFunding.find(
+    (option) => option.kind === "alta_card" && option.id === fundingSource.cardId,
+  );
+  if (!source) badRequest("Select a valid Alta Card funding source.");
+  return source;
 }
 
 /** @deprecated Use listPayFundingSources */
@@ -535,19 +558,6 @@ export async function submitAltaPayPayment(
 ): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
 
-  const allowedFunding = await listPayFundingSources(user);
-  if (input.fundingSource.kind === "bank_account") {
-    const allowed = allowedFunding.some(
-      (source) => source.kind === "bank_account" && source.id === input.fundingSource.accountId,
-    );
-    if (!allowed) badRequest("Select a valid funding source.");
-  } else {
-    const allowed = allowedFunding.some(
-      (source) => source.kind === "alta_card" && source.id === input.fundingSource.cardId,
-    );
-    if (!allowed) badRequest("Select a valid Alta Card funding source.");
-  }
-
   const company = await prisma.company.findUnique({
     where: { id: input.companyId },
     include: {
@@ -568,6 +578,11 @@ export async function submitAltaPayPayment(
     badRequest("This payment couldn't be completed because deposits are currently restricted on the recipient account.");
   }
 
+  const { assertPaymentEngineFundingSource } = await import("@/server/payment-engine-funding.service");
+  await assertPaymentEngineFundingSource(user, input.fundingSource, {
+    merchantCompanyId: company.id,
+  });
+
   const referenceBase = generatePayReferenceBase();
   const inReference = `${referenceBase}-IN`;
   const memo = input.memo?.trim() || null;
@@ -580,9 +595,6 @@ export async function submitAltaPayPayment(
 
     if (destination.id === sourceAccount.id) {
       badRequest("Cannot pay your own account through Alta Pay.");
-    }
-    if (sourceAccount.companyId && sourceAccount.companyId === company.id) {
-      badRequest("Cannot pay your own company through Alta Pay from its operating account.");
     }
 
     const outReference = `${referenceBase}-OUT`;
@@ -784,7 +796,7 @@ export async function listUserAltaPaySent(user: AltaUser, limit = 25): Promise<A
             bankAccountId: { in: sourceAccountIds },
             type: "WITHDRAWAL",
             status: "APPROVED",
-            referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-OUT" },
+            OR: CUSTOMER_SENT_WITHDRAWAL_REFERENCE_FILTERS,
           },
           include: { bankAccount: { include: { company: true } } },
           orderBy: { createdAt: "desc" },
@@ -806,7 +818,7 @@ export async function listUserAltaPaySent(user: AltaUser, limit = 25): Promise<A
   });
 
   const bankRows = bankTxs.map((tx) => {
-    const payee = stripAltaPayToPrefix(tx.description);
+    const payee = extractSentCustomerPayeeLabel(tx.description);
     const payer =
       tx.bankAccount.companyId && tx.bankAccount.company
         ? tx.bankAccount.company.name

@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
+import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import {
-  AltaPayForm,
   altaCardPayFundingKey,
   bankAccountPayFundingKey,
   employeeCardPayFundingKey,
 } from "@/components/bank/alta-pay-form";
-import { AltaPayHistoryTable } from "@/components/bank/alta-pay-received-panel";
+import { AltaPayEnginePanel } from "@/components/bank/alta-pay-engine-panel";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { fetchUserBankSettings } from "@/lib/bank/bank-settings.functions";
+import { fetchPayFundingSources, fetchUserAltaPayHistory } from "@/lib/bank/alta-pay.functions";
 import {
-  fetchPayFundingSources,
-  fetchUserAltaPayHistory,
-} from "@/lib/bank/alta-pay.functions";
+  fetchAltaPaySchedules,
+  fetchMerchantAutopayApprovals,
+} from "@/lib/bank/payments-engine.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
 type AltaPaySearch = {
@@ -36,12 +36,12 @@ export const Route = createFileRoute("/bank/pay")({
     return result;
   },
   loader: async () => {
-    const [fundingSources, history, bankSettings] = await Promise.all([
-      fetchPayFundingSources(),
-      fetchUserAltaPayHistory({ data: 25 }),
-      fetchUserBankSettings(),
-    ]);
-    return { fundingSources, history, bankSettings };
+    const fundingSources = await fetchPayFundingSources();
+    const history = await fetchUserAltaPayHistory({ data: 25 });
+    const bankSettings = await fetchUserBankSettings();
+    const schedules = await fetchAltaPaySchedules();
+    const autopayApprovals = await fetchMerchantAutopayApprovals();
+    return { fundingSources, history, bankSettings, schedules, autopayApprovals };
   },
   head: () => ({
     meta: [{ title: "Alta Pay — Alta Bank" }],
@@ -50,7 +50,7 @@ export const Route = createFileRoute("/bank/pay")({
 });
 
 function AltaPayPage() {
-  const { fundingSources, history, bankSettings } = Route.useLoaderData();
+  const { fundingSources, history, bankSettings, schedules, autopayApprovals } = Route.useLoaderData();
   const { employeeCardId, cardId } = Route.useSearch();
   const defaultFundingKey = employeeCardId
     ? employeeCardPayFundingKey(employeeCardId)
@@ -63,25 +63,25 @@ function AltaPayPage() {
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Alta Pay"
-      title="Alta Pay"
-      description="Send money to another Alta customer or Alta company."
-     />
-{fundingSources.length === 0 ? (
+        eyebrow="Alta Bank · Alta Pay"
+        title="Alta Pay"
+        description="Send money now, schedule future payments, set up recurring payments, and manage merchant AutoPay."
+      />
+      {fundingSources.length === 0 ? (
         <EmptyBankState
           title="No eligible payment sources"
           description="Open a personal Alta Bank account or activate an Alta Card to send money through Alta Pay."
         />
       ) : (
-        <>
-          <AltaPayForm fundingSources={fundingSources} defaultFundingKey={defaultFundingKey} />
-
-          <Section title="Payment history" className="mt-12">
-            <Card className="!p-6">
-              <AltaPayHistoryTable payments={history} />
-            </Card>
-          </Section>
-        </>
+        <Section title="Payments">
+          <AltaPayEnginePanel
+            fundingSources={fundingSources}
+            defaultFundingKey={defaultFundingKey}
+            history={history}
+            schedules={schedules}
+            autopayApprovals={autopayApprovals}
+          />
+        </Section>
       )}
     </>
   );

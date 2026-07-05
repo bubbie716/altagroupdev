@@ -258,4 +258,15 @@ describe("customer payment payer label extraction", () => {
       "jane_doe",
     );
   });
+
+  it("parses alta pay, invoice, and payment link withdrawal descriptions", async () => {
+    const { extractSentCustomerPayeeLabel } = await import("@/server/customer-payments-received");
+
+    assert.equal(extractSentCustomerPayeeLabel("Alta Pay to District Construction LLC"), "District Construction LLC");
+    assert.equal(
+      extractSentCustomerPayeeLabel("Merchant invoice payment to Acme Corp"),
+      "Acme Corp",
+    );
+    assert.equal(extractSentCustomerPayeeLabel("Payment link to Acme Corp"), "Acme Corp");
+  });
 });

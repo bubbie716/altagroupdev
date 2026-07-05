@@ -115,7 +115,7 @@ export function resolveScheduledInputDateTime(
 }
 
 export function calculateNextRunDate(
-  frequency: "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY",
+  frequency: "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY",
   from: Date,
 ): Date {
   const wall = wallClockInBankTz(from);
@@ -134,6 +134,9 @@ export function calculateNextRunDate(
       break;
     case "QUARTERLY":
       month += 3;
+      break;
+    case "YEARLY":
+      year += 1;
       break;
   }
 

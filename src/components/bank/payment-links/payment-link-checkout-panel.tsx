@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -22,7 +22,8 @@ import {
   quotePaymentLinkCheckout,
 } from "@/lib/bank/payment-link.functions";
 import {
-  bankAccountPayFundingKey,
+  parsePayFundingKey,
+  payFundingLabel,
   resolvePayFundingKey,
 } from "@/components/bank/alta-pay-form";
 import { formatBankActionError } from "@/lib/bank/account-status-copy";
@@ -41,10 +42,6 @@ const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
 
-function fundingLabel(source: PayFundingSourceOption): string {
-  return `${source.label} · ${florin(source.availableBalance)} available`;
-}
-
 export function PaymentLinkCheckoutPanel({
   checkout,
   fundingSources,
@@ -56,27 +53,17 @@ export function PaymentLinkCheckoutPanel({
   const quoteFn = useServerFn(quotePaymentLinkCheckout);
   const payFn = useServerFn(payPaymentLinkCheckout);
 
-  const bankSources = useMemo(
-    () => fundingSources.filter((source) => source.kind === "bank_account"),
-    [fundingSources],
-  );
-
   const [view, setView] = useState<FormView>("detail");
   const [openAmount, setOpenAmount] = useState("");
-  const [fundingKey, setFundingKey] = useState(() =>
-    resolvePayFundingKey(
-      bankSources,
-      bankSources[0] ? bankAccountPayFundingKey(bankSources[0].id) : undefined,
-    ),
-  );
+  const [fundingKey, setFundingKey] = useState(() => resolvePayFundingKey(fundingSources));
   const [quote, setQuote] = useState<PaymentLinkPaymentQuote | null>(null);
   const [composeError, setComposeError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
 
-  const selectedSource = bankSources.find(
-    (source) => bankAccountPayFundingKey(source.id) === fundingKey,
+  const selectedSource = fundingSources.find(
+    (source) => `${source.kind}:${source.id}` === fundingKey,
   );
   const availableBalance = selectedSource?.availableBalance ?? 0;
   const parsedOpenAmount = Number(openAmount);
@@ -90,7 +77,9 @@ export function PaymentLinkCheckoutPanel({
     if (!selectedSource) return "Select a funding source.";
     if (amountDue <= 0) return "Enter a valid payment amount.";
     if (amountDue > availableBalance) {
-      return selectedSource.accountStatusInfo && selectedSource.accountStatusInfo.heldFunds > 0
+      return selectedSource.kind === "bank_account" &&
+        selectedSource.accountStatusInfo &&
+        selectedSource.accountStatusInfo.heldFunds > 0
         ? "This payment couldn't be completed because your available balance is reduced by held funds."
         : "This payment couldn't be completed because your available balance is insufficient.";
     }
@@ -151,7 +140,7 @@ export function PaymentLinkCheckoutPanel({
         data: {
           slug: checkout.slug,
           amount: checkout.amountType === "OPEN" ? parsedOpenAmount : undefined,
-          fundingSource: { kind: "bank_account", accountId: selectedSource.id },
+          fundingSource: parsePayFundingKey(fundingKey),
           idempotencyKey,
         },
       });
@@ -173,7 +162,9 @@ export function PaymentLinkCheckoutPanel({
               action: "pay",
               accountId: selectedSource.id,
             }).message
-          : formatCustomerActionError(err, "pay", { accountId: selectedSource.id }),
+          : formatCustomerActionError(err, "pay", {
+              accountId: selectedSource.kind === "bank_account" ? selectedSource.id : undefined,
+            }),
       );
     } finally {
       setSubmitting(false);
@@ -236,7 +227,7 @@ export function PaymentLinkCheckoutPanel({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">From</span>
-              <span>{selectedSource.label}</span>
+              <span>{payFundingLabel(selectedSource)}</span>
             </div>
           </div>
           <fieldset disabled={submitting} className="flex flex-wrap gap-2 border-0 p-0 m-0">
@@ -314,9 +305,9 @@ export function PaymentLinkCheckoutPanel({
           <p className="text-sm text-destructive">
             {checkout.statusMessage ?? "This payment link is not available."}
           </p>
-        ) : bankSources.length === 0 ? (
+        ) : fundingSources.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Open an Alta Bank account to pay with Alta Bank.
+            Open an Alta Bank account or Alta Card to pay with Alta Bank.
           </p>
         ) : (
           <>
@@ -324,15 +315,15 @@ export function PaymentLinkCheckoutPanel({
               <span className={fieldLabel}>Pay from</span>
               <Select value={fundingKey} onValueChange={setFundingKey}>
                 <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select account" />
+                  <SelectValue placeholder="Select funding source" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bankSources.map((source) => (
+                  {fundingSources.map((source) => (
                     <SelectItem
-                      key={source.id}
-                      value={bankAccountPayFundingKey(source.id)}
+                      key={`${source.kind}:${source.id}`}
+                      value={`${source.kind}:${source.id}`}
                     >
-                      {fundingLabel(source)}
+                      {payFundingLabel(source)}
                     </SelectItem>
                   ))}
                 </SelectContent>

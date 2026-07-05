@@ -50,6 +50,38 @@ export async function runScheduledTransfersJob(): Promise<{
     console.error("[scheduled-transfers-job] payroll execution failed", error);
   }
 
+  let altaPaySchedules: Awaited<ReturnType<typeof executeDueAltaPaySchedules>> = {
+    dueCount: 0,
+    executedCount: 0,
+    failedCount: 0,
+    skippedCount: 0,
+  };
+  let recurringInvoices: Awaited<ReturnType<typeof executeDueRecurringInvoiceSchedules>> = {
+    dueCount: 0,
+    generatedCount: 0,
+    failedCount: 0,
+  };
+
+  try {
+    const { executeDueAltaPaySchedules } = await import("@/server/alta-pay-schedule-executor.service");
+    altaPaySchedules = await executeDueAltaPaySchedules();
+  } catch (error) {
+    const message = errorMessage(error);
+    errors.push(`Alta Pay schedules: ${message}`);
+    console.error("[scheduled-transfers-job] alta pay schedule execution failed", error);
+  }
+
+  try {
+    const { executeDueRecurringInvoiceSchedules } = await import(
+      "@/server/merchant-recurring-invoice.service"
+    );
+    recurringInvoices = await executeDueRecurringInvoiceSchedules();
+  } catch (error) {
+    const message = errorMessage(error);
+    errors.push(`Recurring invoices: ${message}`);
+    console.error("[scheduled-transfers-job] recurring invoice execution failed", error);
+  }
+
   const completedAt = new Date();
   const durationMs = completedAt.getTime() - startedAt.getTime();
   const ok = errors.length === 0;
@@ -69,7 +101,7 @@ export async function runScheduledTransfersJob(): Promise<{
       successCount: scheduledTransfers.executedCount,
       failureCount: scheduledTransfers.failedCount,
       errorSummary: errors[0] ?? null,
-      details: { scheduledTransfers, payroll: { executed: payroll.executedCount }, errors },
+      details: { scheduledTransfers, payroll: { executed: payroll.executedCount }, altaPaySchedules, recurringInvoices, errors },
     },
   );
 

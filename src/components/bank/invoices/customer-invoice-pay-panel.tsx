@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -22,7 +22,8 @@ import {
   quoteCustomerInvoicePayment,
 } from "@/lib/bank/merchant-invoice.functions";
 import {
-  bankAccountPayFundingKey,
+  parsePayFundingKey,
+  payFundingLabel,
   resolvePayFundingKey,
 } from "@/components/bank/alta-pay-form";
 import { formatBankActionError } from "@/lib/bank/account-status-copy";
@@ -41,10 +42,6 @@ const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
 
-function fundingLabel(source: PayFundingSourceOption): string {
-  return `${source.label} · ${florin(source.availableBalance)} available`;
-}
-
 export function CustomerInvoicePayPanel({
   invoice,
   fundingSources,
@@ -58,18 +55,8 @@ export function CustomerInvoicePayPanel({
   const quoteFn = useServerFn(quoteCustomerInvoicePayment);
   const payFn = useServerFn(payCustomerInvoice);
 
-  const bankSources = useMemo(
-    () => fundingSources.filter((source) => source.kind === "bank_account"),
-    [fundingSources],
-  );
-
   const [view, setView] = useState<FormView>(startInPayMode ? "detail" : "detail");
-  const [fundingKey, setFundingKey] = useState(() =>
-    resolvePayFundingKey(
-      bankSources,
-      bankSources[0] ? bankAccountPayFundingKey(bankSources[0].id) : undefined,
-    ),
-  );
+  const [fundingKey, setFundingKey] = useState(() => resolvePayFundingKey(fundingSources));
   const [quote, setQuote] = useState<MerchantInvoicePaymentQuote | null>(null);
   const [composeError, setComposeError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
@@ -77,13 +64,13 @@ export function CustomerInvoicePayPanel({
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
 
   const payable = ["SENT", "VIEWED", "OVERDUE"].includes(invoice.status);
-  const selectedSource = bankSources.find(
-    (source) => bankAccountPayFundingKey(source.id) === fundingKey,
+  const selectedSource = fundingSources.find(
+    (source) => `${source.kind}:${source.id}` === fundingKey,
   );
   const availableBalance = selectedSource?.availableBalance ?? 0;
 
   useEffect(() => {
-    if (!startInPayMode || !payable || bankSources.length === 0) return;
+    if (!startInPayMode || !payable || fundingSources.length === 0) return;
     void goToReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on initial pay mode
   }, []);
@@ -97,7 +84,9 @@ export function CustomerInvoicePayPanel({
     if (!selectedSource) return "Select a funding source.";
     if (amountDue <= 0) return "This invoice has no balance due.";
     if (amountDue > availableBalance) {
-      return selectedSource.accountStatusInfo && selectedSource.accountStatusInfo.heldFunds > 0
+      return selectedSource.kind === "bank_account" &&
+        selectedSource.accountStatusInfo &&
+        selectedSource.accountStatusInfo.heldFunds > 0
         ? "This payment couldn't be completed because your available balance is reduced by held funds."
         : "This payment couldn't be completed because your available balance is insufficient.";
     }
@@ -142,7 +131,7 @@ export function CustomerInvoicePayPanel({
       const payment = await payFn({
         data: {
           invoiceId: invoice.id,
-          fundingSource: { kind: "bank_account", accountId: selectedSource.id },
+          fundingSource: parsePayFundingKey(fundingKey),
           idempotencyKey,
         },
       });
@@ -164,7 +153,9 @@ export function CustomerInvoicePayPanel({
               action: "pay",
               accountId: selectedSource.id,
             }).message
-          : formatCustomerActionError(err, "pay", { accountId: selectedSource.id }),
+          : formatCustomerActionError(err, "pay", {
+              accountId: selectedSource.kind === "bank_account" ? selectedSource.id : undefined,
+            }),
       );
     } finally {
       setSubmitting(false);
@@ -207,7 +198,7 @@ export function CustomerInvoicePayPanel({
               Confirm the details below before paying. Funds settle instantly to{" "}
               {invoice.merchantName}.
               {invoice.recipientKind === "company"
-                ? " This payment will debit your company operating account."
+                ? " This payment will debit your selected funding source."
                 : null}
             </p>
           </div>
@@ -237,7 +228,7 @@ export function CustomerInvoicePayPanel({
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Pay from</span>
-              <span className="text-right font-mono text-[12px]">{fundingLabel(selectedSource)}</span>
+              <span className="text-right font-mono text-[12px]">{payFundingLabel(selectedSource)}</span>
             </div>
           </div>
 
@@ -294,7 +285,7 @@ export function CustomerInvoicePayPanel({
         ) : null}
       </dl>
 
-      {payable && bankSources.length > 0 ? (
+      {payable && fundingSources.length > 0 ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -306,12 +297,12 @@ export function CustomerInvoicePayPanel({
             <span className={fieldLabel}>Pay from</span>
             <Select value={fundingKey} onValueChange={setFundingKey} disabled={submitting}>
               <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
-                <SelectValue placeholder="Select account" />
+                <SelectValue placeholder="Select funding source" />
               </SelectTrigger>
               <SelectContent>
-                {bankSources.map((source) => (
-                  <SelectItem key={source.id} value={bankAccountPayFundingKey(source.id)}>
-                    {fundingLabel(source)}
+                {fundingSources.map((source) => (
+                  <SelectItem key={`${source.kind}:${source.id}`} value={`${source.kind}:${source.id}`}>
+                    {payFundingLabel(source)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -334,11 +325,11 @@ export function CustomerInvoicePayPanel({
         </form>
       ) : null}
 
-      {payable && bankSources.length === 0 ? (
+      {payable && fundingSources.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {invoice.recipientKind === "company"
-            ? "You need treasury access to your company's operating account to pay this invoice."
-            : "You need an active Alta Bank account to pay this invoice."}
+            ? "You need treasury access to your company's operating account or an Alta Card to pay this invoice."
+            : "You need an active Alta Bank account or Alta Card to pay this invoice."}
         </p>
       ) : null}
 

@@ -49,13 +49,15 @@ const FREQUENCY_FROM_DB: Record<PaymentFrequency, PaymentFrequencyCode> = {
   BIWEEKLY: "biweekly",
   MONTHLY: "monthly",
   QUARTERLY: "quarterly",
+  YEARLY: "yearly",
 };
 
-const FREQUENCY_LABELS: Record<PaymentFrequencyCode, string> = {
+export const FREQUENCY_LABELS: Record<PaymentFrequencyCode, string> = {
   weekly: "Weekly",
   biweekly: "Biweekly",
   monthly: "Monthly",
   quarterly: "Quarterly",
+  yearly: "Yearly",
 };
 
 const PAYMENT_STATUS_FROM_DB: Record<ScheduledPaymentStatus, ScheduledPaymentStatusCode> = {
@@ -302,6 +304,7 @@ export function toDbPaymentFrequency(freq: PaymentFrequencyCode): PaymentFrequen
     biweekly: "BIWEEKLY",
     monthly: "MONTHLY",
     quarterly: "QUARTERLY",
+    yearly: "YEARLY",
   };
   return map[freq];
 }

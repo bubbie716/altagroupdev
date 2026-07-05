@@ -59,6 +59,8 @@ export interface PayFundingSourceOption {
   detail: string;
   availableBalance: number;
   cardLastFour?: string;
+  /** Company operating account owner — cannot Alta Pay that company. */
+  companyId?: string | null;
   /** Company tied to this Alta Card — cannot Alta Pay that company (business or employee cards). */
   employerCompanyId?: string;
   accountStatusInfo?: import("@/lib/bank/backend-types").CustomerAccountStatus;

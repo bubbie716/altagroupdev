@@ -1,7 +1,7 @@
 import type { CompanyRole } from "@/lib/auth/types";
 
 export type ScheduledPaymentTypeCode = "one_time" | "scheduled" | "recurring";
-export type PaymentFrequencyCode = "weekly" | "biweekly" | "monthly" | "quarterly";
+export type PaymentFrequencyCode = "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly";
 export type ScheduledPaymentStatusCode =
   | "pending_review"
   | "approved"

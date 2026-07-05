@@ -194,7 +194,8 @@ export const fetchPayFundingSourcesForInvoice = createServerFn({ method: "GET" }
     });
     if (!operating) return [];
 
-    return sources.filter(
-      (source) => source.kind === "bank_account" && source.id === operating.id,
-    );
+    return sources.filter((source) => {
+      if (source.kind === "bank_account") return source.id === operating.id;
+      return true;
+    });
   });

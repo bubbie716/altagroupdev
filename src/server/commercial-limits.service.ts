@@ -78,6 +78,18 @@ export async function assertCommercialTeamMemberLimit(companyId: string): Promis
   }
 }
 
+export type CommercialUsageSummary = Awaited<ReturnType<typeof getCommercialUsageSummary>>;
+
+export function canCreateCommercialPaymentLink(usage: CommercialUsageSummary): boolean {
+  if (usage.isPro) return true;
+  return usage.paymentLinksThisMonth < usage.limits.corePaymentLinkMonthlyLimit;
+}
+
+export function canCreateCommercialInvoice(usage: CommercialUsageSummary): boolean {
+  if (usage.isPro) return true;
+  return usage.invoicesThisMonth < usage.limits.coreInvoiceMonthlyLimit;
+}
+
 export async function getCommercialUsageSummary(companyId: string): Promise<{
   invoicesThisMonth: number;
   paymentLinksThisMonth: number;

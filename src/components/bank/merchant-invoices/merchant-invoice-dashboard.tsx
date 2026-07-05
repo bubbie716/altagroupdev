@@ -10,11 +10,13 @@ export function MerchantInvoiceDashboardPanel({
   companyId,
   accountId,
   canCreate = true,
+  createLimitMessage,
 }: {
   dashboard: MerchantInvoiceDashboard;
   companyId: string;
   accountId: string;
   canCreate?: boolean;
+  createLimitMessage?: string;
 }) {
   return (
     <div className="space-y-6">
@@ -45,14 +47,23 @@ export function MerchantInvoiceDashboardPanel({
               Payment links
             </Link>
             {canCreate ? (
-            <Link
-              to={accountCommercialRoutes.invoicesNew}
-              params={{ accountId }}
-              className="inline-flex items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-            >
-              New invoice
-            </Link>
-            ) : null}
+              <Link
+                to={accountCommercialRoutes.invoicesNew}
+                params={{ accountId }}
+                className="inline-flex items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+              >
+                New invoice
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                title={createLimitMessage}
+                className="inline-flex cursor-not-allowed items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background opacity-50"
+              >
+                New invoice
+              </button>
+            )}
           </div>
         </div>
         {dashboard.recent.length === 0 ? (
