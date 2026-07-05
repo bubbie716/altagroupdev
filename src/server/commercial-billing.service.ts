@@ -2,9 +2,12 @@ import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
 import { canManageBusinessTreasury, canManageCompany } from "@/lib/auth/permissions";
 import type {
+  AdminCommercialDowngradeResult,
   AdminCommercialProGrantResult,
   CommercialBillingAccountOption,
   CommercialBillingPreview,
+  CommercialDowngradePreview,
+  CommercialDowngradeResult,
   CommercialPurchaseResult,
 } from "@/lib/bank/commercial-billing-types";
 import { DEFAULT_COMMERCIAL_FEATURES } from "@/lib/bank/commercial-banking-types";
@@ -25,6 +28,17 @@ function forbidden(): never {
 
 function notFound(): never {
   throw new Error("NOT_FOUND");
+}
+
+async function runCommercialCustomerNotifications(
+  label: string,
+  fn: () => Promise<void>,
+): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    console.error(`[commercial-billing] ${label} notification failed`, error);
+  }
 }
 
 function generateCommercialBillingReference(): string {
@@ -50,6 +64,10 @@ export function isPastGracePeriod(
 }
 
 export function canPurchaseCommercialPro(user: AltaUser, companyId: string): boolean {
+  return canManageCompany(user, { companyId });
+}
+
+export function canDowngradeCommercialPro(user: AltaUser, companyId: string): boolean {
   return canManageCompany(user, { companyId });
 }
 
@@ -174,19 +192,48 @@ export async function adminGrantCommercialPro(
     ? `/bank/account/${accountId}/commercial/settings`
     : "/bank/business";
 
-  await notifyCommercialProAdminGranted({
-    companyId: company.id,
-    companyName: company.name,
-    months: input.months,
-    expiresAt: expiresAt.toISOString(),
-    linkUrl,
-  });
+  await runCommercialCustomerNotifications("admin grant", () =>
+    notifyCommercialProAdminGranted({
+      companyId: company.id,
+      companyName: company.name,
+      months: input.months,
+      expiresAt: expiresAt.toISOString(),
+      linkUrl,
+    }),
+  );
 
   return {
     companyId: company.id,
     companyName: company.name,
     monthsGranted: input.months,
     expiresAt: expiresAt.toISOString(),
+    memberCount: company.memberships.length,
+  };
+}
+
+export async function adminDowngradeCommercialProToCore(
+  actorUserId: string,
+  input: { companyId: string; reason: string },
+  source = "internal-admin",
+): Promise<AdminCommercialDowngradeResult> {
+  await requireAdmin();
+  const reason = input.reason.trim();
+  if (!reason) badRequest("Reason is required.");
+
+  const company = await prisma.company.findUnique({
+    where: { id: input.companyId },
+    include: { memberships: { select: { userId: true } } },
+  });
+  if (!company) notFound();
+  if (company.commercialPlan !== "PRO") {
+    badRequest("This company is not on Alta Commercial Pro.");
+  }
+
+  await downgradeCommercialProToCore(input.companyId, actorUserId, reason, source);
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
     memberCount: company.memberships.length,
   };
 }
@@ -378,12 +425,14 @@ export async function purchaseCommercialPro(
     source,
   });
 
-  await notifyCommercialProActivated({
-    companyId: input.companyId,
-    monthlyFee,
-    nextBillingAt: nextBillingAt.toISOString(),
-    billingAccountId: input.billingAccountId,
-  });
+  await runCommercialCustomerNotifications("pro activated", () =>
+    notifyCommercialProActivated({
+      companyId: input.companyId,
+      monthlyFee,
+      nextBillingAt: nextBillingAt.toISOString(),
+      billingAccountId: input.billingAccountId,
+    }),
+  );
 
   return {
     commercialPlan: "PRO",
@@ -432,12 +481,83 @@ export async function updateCommercialBillingAccount(
     source,
   });
 
-  await notifyCommercialBillingAccountChanged({
-    companyId: input.companyId,
-    billingAccountId: input.billingAccountId,
-  });
+  await runCommercialCustomerNotifications("billing account changed", () =>
+    notifyCommercialBillingAccountChanged({
+      companyId: input.companyId,
+      billingAccountId: input.billingAccountId,
+    }),
+  );
 
   return { billingAccountId: input.billingAccountId };
+}
+
+export async function getCommercialDowngradePreview(
+  user: AltaUser,
+  companyId: string,
+): Promise<CommercialDowngradePreview> {
+  if (!canDowngradeCommercialPro(user, companyId)) forbidden();
+
+  const company = await assertCompanyVerified(companyId);
+  const plan = await loadCommercialPlanSettings(companyId);
+  if (plan.commercialPlan !== "PRO") {
+    badRequest("This company is not on Alta Commercial Pro.");
+  }
+
+  const { previewCommercialCoreDowngradeCleanup } = await import(
+    "@/server/commercial-downgrade-cleanup.service"
+  );
+  const platformSettings = await getCommercialPlatformSettings();
+  const cleanup = await previewCommercialCoreDowngradeCleanup(companyId);
+
+  return {
+    companyId,
+    companyName: company.name,
+    currentPlan: "PRO",
+    targetPlan: "CORE",
+    grantSource: company.commercialProGrantSource,
+    monthlyFee: company.commercialMonthlyFee
+      ? Number(company.commercialMonthlyFee.toString())
+      : null,
+    canDowngrade: true,
+    cleanup,
+    coreLimits: {
+      coreInvoiceMonthlyLimit: platformSettings.coreInvoiceMonthlyLimit,
+      corePaymentLinkMonthlyLimit: platformSettings.corePaymentLinkMonthlyLimit,
+      coreTeamMemberLimit: platformSettings.coreTeamMemberLimit,
+    },
+  };
+}
+
+export async function downgradeCommercialProByCustomer(
+  user: AltaUser,
+  input: { companyId: string },
+  source = "website",
+): Promise<CommercialDowngradeResult> {
+  if (!canDowngradeCommercialPro(user, input.companyId)) forbidden();
+
+  const company = await assertCompanyVerified(input.companyId);
+  if (company.commercialPlan !== "PRO") {
+    badRequest("This company is not on Alta Commercial Pro.");
+  }
+
+  const { previewCommercialCoreDowngradeCleanup } = await import(
+    "@/server/commercial-downgrade-cleanup.service"
+  );
+  const cleanupPreview = await previewCommercialCoreDowngradeCleanup(input.companyId);
+
+  await downgradeCommercialProToCore(
+    input.companyId,
+    user.id,
+    "Downgraded from Commercial settings.",
+    source,
+  );
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
+    commercialPlan: "CORE",
+    cleanup: cleanupPreview,
+  };
 }
 
 export async function downgradeCommercialProToCore(
@@ -449,6 +569,11 @@ export async function downgradeCommercialProToCore(
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company || company.commercialPlan !== "PRO") return;
 
+  const { applyCommercialCoreDowngradeCleanup } = await import(
+    "@/server/commercial-downgrade-cleanup.service"
+  );
+  const cleanup = await applyCommercialCoreDowngradeCleanup(companyId, actorUserId, source);
+
   await prisma.company.update({
     where: { id: companyId },
     data: {
@@ -457,6 +582,7 @@ export async function downgradeCommercialProToCore(
       billingStatus: "NOT_BILLED",
       commercialMonthlyFee: null,
       commercialEnabledFeatures: DEFAULT_COMMERCIAL_FEATURES.CORE,
+      commercialBillingAccountId: null,
       commercialNextBillingAt: null,
       commercialPastDueAt: null,
       commercialProGrantSource: null,
@@ -472,7 +598,10 @@ export async function downgradeCommercialProToCore(
     companyId,
     reason,
     source,
+    cleanup,
   });
 
-  await notifyCommercialProDowngraded({ companyId, reason });
+  await runCommercialCustomerNotifications("pro downgraded", () =>
+    notifyCommercialProDowngraded({ companyId, reason }),
+  );
 }

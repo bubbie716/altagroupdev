@@ -23,6 +23,8 @@ function activityLabel(kind: CommercialDashboard["recentActivity"][number]["kind
       return "Invoice payment";
     case "link_payment":
       return "Link payment";
+    case "alta_pay_payment":
+      return "Alta Pay";
   }
 }
 
@@ -39,7 +41,7 @@ export function CommercialDashboardPanel({
 }) {
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <BankStatCard
           label="Treasury balance"
           value={florin(dashboard.cashBalance)}
@@ -53,13 +55,18 @@ export function CommercialDashboardPanel({
         />
         <BankStatCard
           label="Net receipts this month"
-          value={florin(dashboard.paidThisMonth)}
-          sub="Invoice collections"
+          value={florin(dashboard.netReceiptsThisMonth)}
+          sub="Invoices, payment links & Alta Pay"
         />
         <BankStatCard
           label="Payment link volume"
           value={florin(dashboard.paymentLinkVolume)}
           sub={`${dashboard.paymentLinkDashboard.paymentCount} payments`}
+        />
+        <BankStatCard
+          label="Alta Pay volume"
+          value={florin(dashboard.altaPayVolumeThisMonth)}
+          sub={`${dashboard.altaPayPaymentCountThisMonth} payment${dashboard.altaPayPaymentCountThisMonth === 1 ? "" : "s"}`}
         />
       </div>
 
@@ -111,7 +118,8 @@ export function CommercialDashboardPanel({
         </div>
         {dashboard.recentActivity.length === 0 ? (
           <p className="px-5 py-6 text-[13px] text-muted-foreground sm:px-6">
-            No merchant activity yet. Create an invoice or payment link to start collecting.
+            No merchant activity yet. Create an invoice or payment link, or receive Alta Pay
+            payments to get started.
           </p>
         ) : (
           <>

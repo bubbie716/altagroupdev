@@ -28,11 +28,11 @@ export async function countInvoicesThisMonth(companyId: string): Promise<number>
   });
 }
 
-export async function countActivePaymentLinks(companyId: string): Promise<number> {
+export async function countPaymentLinksThisMonth(companyId: string): Promise<number> {
   return prisma.paymentLink.count({
     where: {
       merchantCompanyId: companyId,
-      status: "ACTIVE",
+      createdAt: { gte: startOfUtcMonth() },
     },
   });
 }
@@ -57,12 +57,12 @@ export async function assertCommercialPaymentLinkLimit(companyId: string): Promi
   if (isCommercialProActive(plan)) return;
 
   const limits = await getCommercialPlatformSettings();
-  const count = await countActivePaymentLinks(companyId);
-  if (count >= limits.coreActivePaymentLinkLimit) {
+  const count = await countPaymentLinksThisMonth(companyId);
+  if (count >= limits.corePaymentLinkMonthlyLimit) {
     commercialLimitError(
-      "active payment links",
-      limits.coreActivePaymentLinkLimit,
-      "active payment links",
+      "payment links",
+      limits.corePaymentLinkMonthlyLimit,
+      "payment links created per month",
     );
   }
 }
@@ -80,22 +80,22 @@ export async function assertCommercialTeamMemberLimit(companyId: string): Promis
 
 export async function getCommercialUsageSummary(companyId: string): Promise<{
   invoicesThisMonth: number;
-  activePaymentLinks: number;
+  paymentLinksThisMonth: number;
   teamMembers: number;
   limits: Awaited<ReturnType<typeof getCommercialPlatformSettings>>;
   isPro: boolean;
 }> {
-  const [plan, limits, invoicesThisMonth, activePaymentLinks, teamMembers] = await Promise.all([
+  const [plan, limits, invoicesThisMonth, paymentLinksThisMonth, teamMembers] = await Promise.all([
     loadCommercialPlanSettings(companyId),
     getCommercialPlatformSettings(),
     countInvoicesThisMonth(companyId),
-    countActivePaymentLinks(companyId),
+    countPaymentLinksThisMonth(companyId),
     countCompanyTeamMembers(companyId),
   ]);
 
   return {
     invoicesThisMonth,
-    activePaymentLinks,
+    paymentLinksThisMonth,
     teamMembers,
     limits,
     isPro: isCommercialProActive(plan),

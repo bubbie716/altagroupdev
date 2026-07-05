@@ -16,8 +16,12 @@ export function extractReceivedCustomerPayerLabel(description: string): string {
   return description;
 }
 
+export const ALTA_PAY_RECEIVED_DEPOSIT_FILTER = {
+  referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-IN" as const },
+};
+
 export const CUSTOMER_RECEIVED_DEPOSIT_REFERENCE_FILTERS = [
-  { referenceCode: { startsWith: ALTA_PAY_REFERENCE_PREFIX, endsWith: "-IN" as const } },
+  ALTA_PAY_RECEIVED_DEPOSIT_FILTER,
   {
     referenceCode: { startsWith: MERCHANT_INVOICE_PAY_REFERENCE_PREFIX, endsWith: "-IN" as const },
   },

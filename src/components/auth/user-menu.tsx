@@ -42,7 +42,7 @@ export function AuthUserMenu() {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-md border border-border bg-surface-2/60 py-1 pl-3 pr-1 text-[12px] font-medium tracking-wide text-foreground outline-none transition-colors hover:border-border-strong hover:bg-surface-2 focus-visible:shadow-none focus-visible:ring-0 data-[state=open]:border-border-strong data-[state=open]:bg-surface-2"
       >

@@ -35,14 +35,21 @@ export const fetchAccountPageBundle = createServerFn({ method: "GET" })
     ]);
     const isBusinessOperating = account.accountType === "business_operating";
     let businessContext = null;
+    let commercialPayrollEnabled = false;
     if (isBusinessOperating) {
       try {
         businessContext = await resolveBusinessAccountContext(user, accountId);
+        const { loadCommercialPlanSettings, canAccessCommercialPayroll } = await import(
+          "@/server/commercial-plan.service"
+        );
+        const plan = await loadCommercialPlanSettings(businessContext.companyId);
+        commercialPayrollEnabled = canAccessCommercialPayroll(plan);
       } catch {
         businessContext = null;
+        commercialPayrollEnabled = false;
       }
     }
-    return { account, accounts, businessContext, isBusinessOperating };
+    return { account, accounts, businessContext, isBusinessOperating, commercialPayrollEnabled };
   });
 
 export const fetchUserBankAccounts = createServerFn({ method: "GET" }).handler(async () => {

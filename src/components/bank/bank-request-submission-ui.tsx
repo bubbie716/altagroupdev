@@ -5,6 +5,8 @@ import {
   BANK_ALTA_PAY_SUCCESS_BODY,
   BANK_CARD_PAYMENT_SUCCESS_BODY,
   BANK_CASH_ADVANCE_SUCCESS_BODY,
+  BANK_COMMERCIAL_PRO_UPGRADE_SUCCESS_BODY,
+  BANK_COMMERCIAL_PRO_DOWNGRADE_SUCCESS_BODY,
   BANK_LOAN_PAYMENT_SUCCESS_BODY,
   BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY,
   BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY,
@@ -33,6 +35,8 @@ export type BankRequestKind =
   | "merchant_invoice_payment"
   | "payment_link_checkout"
   | "cash_advance"
+  | "commercial_pro_upgrade"
+  | "commercial_pro_downgrade"
   | "card_payment"
   | "loan_payment";
 
@@ -138,6 +142,32 @@ const COPY = {
       <>
         You can review this cash advance in your{" "}
         <strong className="font-medium text-foreground">Alta Card transaction history</strong>.
+      </>
+    ),
+  },
+  commercial_pro_upgrade: {
+    submit: "Confirm Upgrade",
+    submitting: "Processing Upgrade…",
+    successTitle: "Alta Commercial Pro Activated",
+    submitAnother: "Close",
+    successBody: BANK_COMMERCIAL_PRO_UPGRADE_SUCCESS_BODY,
+    successHint: (
+      <>
+        Manage your plan and billing from{" "}
+        <strong className="font-medium text-foreground">Commercial settings</strong>.
+      </>
+    ),
+  },
+  commercial_pro_downgrade: {
+    submit: "Confirm Downgrade",
+    submitting: "Processing Downgrade…",
+    successTitle: "Downgraded to Alta Commercial Core",
+    submitAnother: "Close",
+    successBody: BANK_COMMERCIAL_PRO_DOWNGRADE_SUCCESS_BODY,
+    successHint: (
+      <>
+        Review your updated plan and limits from{" "}
+        <strong className="font-medium text-foreground">Commercial settings</strong>.
       </>
     ),
   },

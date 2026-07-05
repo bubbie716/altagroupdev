@@ -626,16 +626,13 @@ async function notifyCommercialBillingUsers(
   const { listCommercialBillingNotifyUserIds } = await import("@/server/commercial-audit.service");
   const userIds = await listCommercialBillingNotifyUserIds(companyId);
   if (userIds.length === 0) return;
-  await createUserNotifications(
-    userIds.map((userId) => ({
-      userId,
-      type: input.type,
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      metadata: input.metadata,
-    })),
-  );
+  await createUserNotifications(userIds, {
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    linkUrl: input.linkUrl,
+    metadata: input.metadata,
+  });
 }
 
 export async function notifyCommercialProActivated(input: {
@@ -747,21 +744,18 @@ export async function notifyCommercialProAdminGranted(input: {
   });
   const monthLabel = input.months === 1 ? "1 month" : `${input.months} months`;
 
-  await createUserNotifications(
-    userIds.map((userId) => ({
-      userId,
-      type: "COMMERCIAL_PRO_ADMIN_GRANTED" as const,
-      title: "Alta Commercial Pro granted",
-      body: `${input.companyName} received Alta Commercial Pro for ${monthLabel}, active through ${expiryLabel}.`,
-      linkUrl: input.linkUrl,
-      metadata: {
-        companyId: input.companyId,
-        companyName: input.companyName,
-        months: input.months,
-        expiresAt: input.expiresAt,
-      },
-    })),
-  );
+  await createUserNotifications(userIds, {
+    type: "COMMERCIAL_PRO_ADMIN_GRANTED",
+    title: "Alta Commercial Pro granted",
+    body: `${input.companyName} received Alta Commercial Pro for ${monthLabel}, active through ${expiryLabel}.`,
+    linkUrl: input.linkUrl,
+    metadata: {
+      companyId: input.companyId,
+      companyName: input.companyName,
+      months: input.months,
+      expiresAt: input.expiresAt,
+    },
+  });
 }
 
 export { friendlyFailureReason };

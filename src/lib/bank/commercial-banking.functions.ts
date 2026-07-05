@@ -52,7 +52,9 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
       canPurchaseCommercialPro,
       resolveCommercialBankingContext,
     } = await import("@/server/commercial-plan.service");
-    const { canManageCommercialBillingAccount } = await import("@/server/commercial-billing.service");
+    const { canManageCommercialBillingAccount, canDowngradeCommercialPro } = await import(
+      "@/server/commercial-billing.service"
+    );
     const { getCommercialUsageSummary } = await import("@/server/commercial-limits.service");
     const { DEFAULT_COMMERCIAL_FEATURES } = await import("@/lib/bank/commercial-banking-types");
     const { prisma } = await import("@/server/db");
@@ -77,6 +79,7 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
       companyName: ctx.companyName,
       canManagePlan: canManageCommercialPlan(user, companyId),
       canPurchasePro: canPurchaseCommercialPro(user, companyId),
+      canDowngradePro: canDowngradeCommercialPro(user, companyId),
       canManageBillingAccount: canManageCommercialBillingAccount(user, companyId),
       planFeatures: DEFAULT_COMMERCIAL_FEATURES[plan.commercialPlan],
       billingAccountId: company?.commercialBillingAccountId ?? null,
@@ -87,11 +90,11 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
       expiresAt: company?.commercialProExpiresAt?.toISOString() ?? null,
       usage: {
         invoicesThisMonth: usage.invoicesThisMonth,
-        activePaymentLinks: usage.activePaymentLinks,
+        paymentLinksThisMonth: usage.paymentLinksThisMonth,
         teamMembers: usage.teamMembers,
         limits: {
           coreInvoiceMonthlyLimit: usage.limits.coreInvoiceMonthlyLimit,
-          coreActivePaymentLinkLimit: usage.limits.coreActivePaymentLinkLimit,
+          corePaymentLinkMonthlyLimit: usage.limits.corePaymentLinkMonthlyLimit,
           coreTeamMemberLimit: usage.limits.coreTeamMemberLimit,
         },
         isPro: usage.isPro,
@@ -122,6 +125,22 @@ export const purchaseCommercialProPlan = createServerFn({ method: "POST" })
     const { purchaseCommercialPro } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return purchaseCommercialPro(user, data);
+  });
+
+export const fetchCommercialDowngradePreview = createServerFn({ method: "GET" })
+  .inputValidator((companyId: string) => companyId)
+  .handler(async ({ data: companyId }) => {
+    const { getCommercialDowngradePreview } = await import("@/server/commercial-billing.service");
+    const user = await actor();
+    return getCommercialDowngradePreview(user, companyId);
+  });
+
+export const downgradeCommercialProPlan = createServerFn({ method: "POST" })
+  .inputValidator((input: { companyId: string }) => input)
+  .handler(async ({ data }) => {
+    const { downgradeCommercialProByCustomer } = await import("@/server/commercial-billing.service");
+    const user = await actor();
+    return downgradeCommercialProByCustomer(user, data);
   });
 
 export const updateCommercialBillingAccountFn = createServerFn({ method: "POST" })

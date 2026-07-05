@@ -6,6 +6,7 @@ import {
 } from "@/lib/platform/commercial-plan-settings-types";
 import {
   addBillingMonths,
+  canDowngradeCommercialPro,
   isPastGracePeriod,
 } from "@/server/commercial-billing.service";
 import {
@@ -55,7 +56,7 @@ describe("commercial platform settings defaults", () => {
   it("uses sensible defaults", () => {
     assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.proMonthlyFee, 10_000);
     assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.coreInvoiceMonthlyLimit, 10);
-    assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.coreActivePaymentLinkLimit, 5);
+    assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.corePaymentLinkMonthlyLimit, 5);
     assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.coreTeamMemberLimit, 3);
     assert.equal(DEFAULT_COMMERCIAL_PLATFORM_SETTINGS.proBillingGracePeriodDays, 7);
   });
@@ -79,6 +80,19 @@ describe("commercial pro purchase permissions", () => {
 
   it("blocks finance managers from purchasing Pro", () => {
     assert.equal(canPurchaseCommercialPro(financeUser, "co-1"), false);
+  });
+
+  it("allows owners and executives to downgrade Pro", () => {
+    assert.equal(canDowngradeCommercialPro(ownerUser, "co-1"), true);
+    const executive: AltaUser = {
+      ...ownerUser,
+      companyMemberships: [{ ...ownerUser.companyMemberships[0]!, role: "executive" }],
+    };
+    assert.equal(canDowngradeCommercialPro(executive, "co-1"), true);
+  });
+
+  it("blocks finance managers from downgrading Pro", () => {
+    assert.equal(canDowngradeCommercialPro(financeUser, "co-1"), false);
   });
 });
 
@@ -146,6 +160,58 @@ describe("commercial billing cycle helpers", () => {
   it("uses UTC month boundaries for invoice limits", () => {
     const monthStart = startOfUtcMonth(new Date("2026-03-18T10:00:00.000Z"));
     assert.equal(monthStart.toISOString(), "2026-03-01T00:00:00.000Z");
+  });
+
+  it("describes monthly payment link limits", () => {
+    const message = commercialLimitMessage("payment links", 5, "payment links created per month");
+    assert.match(message, /5 payment links created per month/);
+  });
+});
+
+describe("commercial notification batching", () => {
+  it("rejects object payloads passed as user ids", async () => {
+    const { createUserNotifications } = await import("@/server/notification.service");
+    await assert.rejects(
+      () =>
+        createUserNotifications(
+          [
+            {
+              userId: "user-1",
+              type: "COMMERCIAL_PRO_ACTIVATED",
+              title: "Test",
+              body: "Test",
+            } as unknown as string,
+          ],
+          {
+            type: "COMMERCIAL_PRO_ACTIVATED",
+            title: "Test",
+            body: "Test",
+          },
+        ),
+      /expected string user ids/,
+    );
+  });
+});
+
+describe("commercial downgrade cleanup", () => {
+  it("selects newest rows beyond the Core limit", async () => {
+    const { selectExcessRowIds } = await import("@/server/commercial-downgrade-cleanup.service");
+    const rows = [
+      { id: "a" },
+      { id: "b" },
+      { id: "c" },
+      { id: "d" },
+      { id: "e" },
+      { id: "f" },
+    ];
+    assert.deepEqual(selectExcessRowIds(rows, 5), ["f"]);
+    assert.deepEqual(selectExcessRowIds(rows, 10), []);
+  });
+
+  it("exports downgrade cleanup runner", async () => {
+    const cleanup = await import("@/server/commercial-downgrade-cleanup.service");
+    assert.equal(typeof cleanup.applyCommercialCoreDowngradeCleanup, "function");
+    assert.equal(typeof cleanup.previewCommercialCoreDowngradeCleanup, "function");
   });
 });
 

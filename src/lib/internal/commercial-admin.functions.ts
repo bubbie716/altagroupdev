@@ -8,3 +8,12 @@ export const adminGrantCommercialProOps = createServerFn({ method: "POST" })
     const user = await requireAuth();
     return adminGrantCommercialPro(user.id, data);
   });
+
+export const adminDowngradeCommercialProOps = createServerFn({ method: "POST" })
+  .inputValidator((input: { companyId: string; reason: string }) => input)
+  .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const { adminDowngradeCommercialProToCore } = await import("@/server/commercial-billing.service");
+    const user = await requireAuth();
+    return adminDowngradeCommercialProToCore(user.id, data);
+  });

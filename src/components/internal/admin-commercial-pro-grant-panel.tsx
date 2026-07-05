@@ -7,7 +7,7 @@ import { Card } from "@/components/page-shell";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { adminGrantCommercialProOps } from "@/lib/internal/commercial-admin.functions";
+import { adminDowngradeCommercialProOps, adminGrantCommercialProOps } from "@/lib/internal/commercial-admin.functions";
 
 export type AdminCommercialPlanSummary = {
   commercialPlan: string;
@@ -27,8 +27,10 @@ export function AdminCommercialProGrantPanel({
 }) {
   const router = useRouter();
   const grantFn = useServerFn(adminGrantCommercialProOps);
+  const downgradeFn = useServerFn(adminDowngradeCommercialProOps);
   const [months, setMonths] = useState("3");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [downgradeConfirmOpen, setDowngradeConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -52,6 +54,27 @@ export function AdminCommercialProGrantPanel({
     }
   }
 
+  async function submitDowngrade(reason: string) {
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await downgradeFn({
+        data: {
+          companyId,
+          reason,
+        },
+      });
+      setMessage(
+        `${result.companyName} was downgraded to Alta Commercial Core. ${result.memberCount} billing contact(s) notified.`,
+      );
+      await router.invalidate();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Downgrade failed.",
+      );
+    }
+  }
+
   const isAdminGrant = commercialPlan.grantSource === "ADMIN_GRANT";
   const isPro = commercialPlan.commercialPlan === "PRO";
 
@@ -61,8 +84,8 @@ export function AdminCommercialProGrantPanel({
         Alta Commercial Pro
       </div>
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-        Grant complimentary Commercial Pro to {companyName}. All company members receive a Discord
-        DM when Pro is granted. Billing is not charged during admin grants.
+        Grant complimentary Commercial Pro or downgrade an active Pro company back to Core.
+        Granting sends a Discord DM to every company member. Downgrades notify billing contacts.
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -103,6 +126,15 @@ export function AdminCommercialProGrantPanel({
         >
           Grant Commercial Pro
         </button>
+        {isPro ? (
+          <button
+            type="button"
+            className="rounded border border-destructive/30 bg-destructive/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
+            onClick={() => setDowngradeConfirmOpen(true)}
+          >
+            Downgrade to Core
+          </button>
+        ) : null}
       </div>
 
       {message ? <p className="mt-4 text-[13px] text-muted-foreground">{message}</p> : null}
@@ -117,6 +149,18 @@ export function AdminCommercialProGrantPanel({
         onConfirm={async (reason) => {
           await submitGrant(reason);
           setConfirmOpen(false);
+        }}
+      />
+
+      <OpsConfirmDialog
+        open={downgradeConfirmOpen}
+        title="Downgrade to Alta Commercial Core"
+        description={`Downgrade ${companyName} from Commercial Pro to Core immediately. Pro features, billing, and admin grants will end.`}
+        confirmLabel="Downgrade to Core"
+        onClose={() => setDowngradeConfirmOpen(false)}
+        onConfirm={async (reason) => {
+          await submitDowngrade(reason);
+          setDowngradeConfirmOpen(false);
         }}
       />
     </Card>

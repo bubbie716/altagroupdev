@@ -5,6 +5,7 @@ import {
   MERCHANT_ANALYTICS_RANGES,
 } from "@/lib/bank/commercial-banking-types";
 import {
+  canAccessCommercialPayroll,
   canAccessMerchantAnalytics,
   canManageCommercialPlan,
   canViewCommercialAnalytics,
@@ -93,8 +94,11 @@ describe("commercial plan feature gating", () => {
     });
     assert.equal(canAccessMerchantAnalytics(core), false);
     assert.equal(canAccessMerchantAnalytics(pro), true);
+    assert.equal(canAccessCommercialPayroll(core), false);
+    assert.equal(canAccessCommercialPayroll(pro), true);
     assert.equal(companyHasCommercialFeature(core, "invoices"), true);
     assert.equal(companyHasCommercialFeature(core, "merchant_analytics"), false);
+    assert.equal(companyHasCommercialFeature(core, "payroll"), false);
   });
 
   it("blocks features when plan is suspended", () => {
@@ -117,15 +121,17 @@ describe("merchant analytics calculations", () => {
         { amount: 50, feeAmount: 1 },
       ],
       linkPayments: [{ amount: 25, feeAmount: 0.5 }],
+      altaPayPayments: [{ amount: 40 }],
       failedAttempts: 1,
     });
-    assert.equal(summary.grossVolume, 175);
-    assert.equal(summary.netVolume, 171.5);
+    assert.equal(summary.grossVolume, 215);
+    assert.equal(summary.netVolume, 211.5);
     assert.equal(summary.invoiceRevenue, 150);
     assert.equal(summary.paymentLinkRevenue, 25);
-    assert.equal(summary.averagePaymentSize, 58.33);
-    assert.equal(summary.paymentSuccessRate, 75);
-    assert.equal(summary.paymentFailureRate, 25);
+    assert.equal(summary.altaPayRevenue, 40);
+    assert.equal(summary.averagePaymentSize, 53.75);
+    assert.equal(summary.paymentSuccessRate, 80);
+    assert.equal(summary.paymentFailureRate, 20);
   });
 
   it("supports analytics time ranges", () => {

@@ -22,7 +22,8 @@ export const Route = createFileRoute("/bank/account/$accountId")({
 });
 
 function AccountLayoutRoute() {
-  const { account, accounts, businessContext, isBusinessOperating } = Route.useLoaderData();
+  const { account, accounts, businessContext, isBusinessOperating, commercialPayrollEnabled } =
+    Route.useLoaderData();
 
   if (isBusinessOperating && businessContext) {
     return (
@@ -30,6 +31,7 @@ function AccountLayoutRoute() {
         account={account}
         accounts={accounts}
         businessContext={businessContext}
+        commercialPayrollEnabled={commercialPayrollEnabled}
       />
     );
   }

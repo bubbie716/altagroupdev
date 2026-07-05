@@ -1,7 +1,18 @@
-import type { BasicMerchantAnalytics } from "@/lib/bank/commercial-banking-types";
+import type { BasicMerchantAnalytics, MerchantAnalyticsRecentPayment } from "@/lib/bank/commercial-banking-types";
 import { florin } from "@/lib/bank/api";
 import { Card } from "@/components/page-shell";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+
+function paymentSourceLabel(source: MerchantAnalyticsRecentPayment["source"]): string {
+  switch (source) {
+    case "invoice":
+      return "Invoice";
+    case "payment_link":
+      return "Payment link";
+    case "alta_pay":
+      return "Alta Pay";
+  }
+}
 
 export function BasicMerchantAnalyticsPanel({
   analytics,
@@ -38,7 +49,7 @@ export function BasicMerchantAnalyticsPanel({
                 <div>
                   <p className="font-medium">{payment.customerLabel}</p>
                   <p className="text-xs text-muted-foreground">
-                    {payment.referenceCode} · {payment.source.replace("_", " ")}
+                    {payment.referenceCode} · {paymentSourceLabel(payment.source)}
                   </p>
                 </div>
                 <div className="text-right">

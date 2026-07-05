@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { MerchantInvoiceDetailPanel } from "@/components/bank/merchant-invoices/merchant-invoice-detail-panel";
-import { loadAccountCommercialContext } from "@/lib/bank/account-commercial-loader";
+import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchMerchantInvoiceDetail } from "@/lib/bank/merchant-invoice.functions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/invoices/$invoiceId")({
   loader: async ({ params }) => {
-    const { context } = await loadAccountCommercialContext(params.accountId);
+    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
     const invoice = await fetchMerchantInvoiceDetail({
       data: { companyId: context.companyId, invoiceId: params.invoiceId },
     });

@@ -45,6 +45,16 @@ function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
 }
 
+async function requireCommercialPayroll(companyId: string): Promise<void> {
+  const { loadCommercialPlanSettings, canAccessCommercialPayroll } = await import(
+    "@/server/commercial-plan.service"
+  );
+  const plan = await loadCommercialPlanSettings(companyId);
+  if (!canAccessCommercialPayroll(plan)) {
+    badRequest("Payroll requires Alta Commercial Pro.");
+  }
+}
+
 async function requireTreasuryView(user: AltaUser, companyId: string) {
   if (!canViewBusinessTreasury(user, { companyId })) forbidden();
   const membership = findCompanyMembership(user, { companyId });
@@ -227,6 +237,7 @@ export async function listPayrollEmployees(
   companyId: string,
 ): Promise<PayrollEmployeeRow[]> {
   await requireTreasuryView(user, companyId);
+  await requireCommercialPayroll(companyId);
   const rows = await prisma.payrollEmployee.findMany({
     where: { companyId },
     orderBy: { displayName: "asc" },
@@ -239,13 +250,7 @@ export async function createPayrollEmployee(
   input: CreatePayrollEmployeeInput,
 ): Promise<PayrollEmployeeRow> {
   await requireTreasuryManage(user, input.companyId);
-  const { loadCommercialPlanSettings, companyHasCommercialFeature } = await import(
-    "@/server/commercial-plan.service"
-  );
-  const plan = await loadCommercialPlanSettings(input.companyId);
-  if (!companyHasCommercialFeature(plan, "payroll")) {
-    badRequest("Payroll requires Alta Commercial Pro.");
-  }
+  await requireCommercialPayroll(input.companyId);
   if (!input.displayName.trim()) badRequest("Employee name is required.");
   if (input.payAmount <= 0) badRequest("Pay amount must be greater than zero.");
   const accountNumber = input.accountNumber?.trim();
@@ -281,6 +286,7 @@ export async function updatePayrollEmployee(
   input: UpdatePayrollEmployeeInput,
 ): Promise<PayrollEmployeeRow> {
   await requireTreasuryManage(user, input.companyId);
+  await requireCommercialPayroll(input.companyId);
 
   const existing = await prisma.payrollEmployee.findFirst({
     where: { id: input.employeeId, companyId: input.companyId },
@@ -343,6 +349,7 @@ export async function deactivatePayrollEmployee(
   employeeId: string,
 ): Promise<PayrollEmployeeRow> {
   await requireTreasuryManage(user, companyId);
+  await requireCommercialPayroll(companyId);
   const existing = await prisma.payrollEmployee.findFirst({
     where: { id: employeeId, companyId },
   });
@@ -360,6 +367,7 @@ export async function listPayrollRuns(
   companyId: string,
 ): Promise<PayrollRunRow[]> {
   await requireTreasuryView(user, companyId);
+  await requireCommercialPayroll(companyId);
   const rows = await prisma.payrollRun.findMany({
     where: { companyId },
     orderBy: { createdAt: "desc" },
@@ -372,13 +380,7 @@ export async function createPayrollRun(
   input: CreatePayrollRunInput,
 ): Promise<PayrollRunRow> {
   await requireTreasuryManage(user, input.companyId);
-  const { loadCommercialPlanSettings, companyHasCommercialFeature } = await import(
-    "@/server/commercial-plan.service"
-  );
-  const plan = await loadCommercialPlanSettings(input.companyId);
-  if (!companyHasCommercialFeature(plan, "payroll")) {
-    badRequest("Payroll requires Alta Commercial Pro.");
-  }
+  await requireCommercialPayroll(input.companyId);
   await assertOperatingAccount(input.companyId, input.bankAccountId);
 
   if (!input.label.trim()) badRequest("Batch label is required.");

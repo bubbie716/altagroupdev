@@ -14,10 +14,12 @@ export function BusinessAccountLayout({
   account,
   accounts,
   businessContext,
+  commercialPayrollEnabled = false,
 }: {
   account: UserBankAccountDetail;
   accounts: UserBankAccount[];
   businessContext: BusinessAccountContext;
+  commercialPayrollEnabled?: boolean;
 }) {
   return (
     <>
@@ -31,6 +33,7 @@ export function BusinessAccountLayout({
         accountId={account.id}
         companyId={businessContext.companyId}
         role={businessContext.role}
+        commercialPayrollEnabled={commercialPayrollEnabled}
       />
       <Outlet />
     </>

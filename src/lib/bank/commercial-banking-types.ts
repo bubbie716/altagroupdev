@@ -72,7 +72,7 @@ export type CommercialBankingContext = {
 
 export type CommercialMerchantActivityRow = {
   id: string;
-  kind: "invoice" | "payment_link" | "invoice_payment" | "link_payment";
+  kind: "invoice" | "payment_link" | "invoice_payment" | "link_payment" | "alta_pay_payment";
   label: string;
   amount: number | null;
   status: string;
@@ -84,7 +84,10 @@ export type CommercialDashboard = {
   cashBalance: number;
   outstandingInvoices: number;
   paidThisMonth: number;
+  netReceiptsThisMonth: number;
   paymentLinkVolume: number;
+  altaPayVolumeThisMonth: number;
+  altaPayPaymentCountThisMonth: number;
   overdueInvoiceTotal: number;
   recentActivity: CommercialMerchantActivityRow[];
   invoiceDashboard: {
@@ -107,7 +110,7 @@ export type MerchantAnalyticsTopCustomer = {
 
 export type MerchantAnalyticsRecentPayment = {
   id: string;
-  source: "invoice" | "payment_link";
+  source: "invoice" | "payment_link" | "alta_pay";
   customerLabel: string;
   grossAmount: number;
   netAmount: number;
@@ -122,6 +125,7 @@ export type MerchantAnalyticsTrendPoint = {
   netVolume: number;
   invoiceRevenue: number;
   paymentLinkRevenue: number;
+  altaPayRevenue: number;
 };
 
 export type MerchantAnalytics = {
@@ -131,6 +135,7 @@ export type MerchantAnalytics = {
   totalFees: number;
   invoiceRevenue: number;
   paymentLinkRevenue: number;
+  altaPayRevenue: number;
   outstandingInvoiceTotal: number;
   overdueInvoiceTotal: number;
   paidInvoicesCount: number;
@@ -149,6 +154,7 @@ export type CommercialSettingsView = CommercialPlanSettings & {
   companyName: string;
   canManagePlan: boolean;
   canPurchasePro: boolean;
+  canDowngradePro: boolean;
   canManageBillingAccount: boolean;
   planFeatures: CommercialFeatureKey[];
   billingAccountId: string | null;
@@ -159,11 +165,11 @@ export type CommercialSettingsView = CommercialPlanSettings & {
   expiresAt: string | null;
   usage: {
     invoicesThisMonth: number;
-    activePaymentLinks: number;
+    paymentLinksThisMonth: number;
     teamMembers: number;
     limits: {
       coreInvoiceMonthlyLimit: number;
-      coreActivePaymentLinkLimit: number;
+      corePaymentLinkMonthlyLimit: number;
       coreTeamMemberLimit: number;
     };
     isPro: boolean;

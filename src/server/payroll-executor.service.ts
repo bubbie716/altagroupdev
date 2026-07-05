@@ -25,6 +25,18 @@ function isUniqueConstraintError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
+async function companyHasPayrollAccess(companyId: string): Promise<boolean> {
+  const { loadCommercialPlanSettings, canAccessCommercialPayroll } = await import(
+    "@/server/commercial-plan.service"
+  );
+  try {
+    const plan = await loadCommercialPlanSettings(companyId);
+    return canAccessCommercialPayroll(plan);
+  } catch {
+    return false;
+  }
+}
+
 async function findOutTransactionId(referenceCode: string): Promise<string | null> {
   const tx = await prisma.bankTransaction.findUnique({
     where: { referenceCode: `${referenceCode}-OUT` },
@@ -162,6 +174,10 @@ async function executeSinglePayrollRun(
   scheduledRunAt: Date,
   now: Date,
 ): Promise<"executed" | "failed" | "skipped"> {
+  if (!(await companyHasPayrollAccess(run.companyId))) {
+    return "skipped";
+  }
+
   const lineItems = parsePayrollLineItems(run.lineItems);
   if (lineItems.length === 0) {
     return "skipped";
@@ -400,6 +416,9 @@ async function createAutoPayrollRunsForDueEmployees(now: Date): Promise<void> {
   });
 
   for (const employee of dueEmployees) {
+    if (!(await companyHasPayrollAccess(employee.companyId))) {
+      continue;
+    }
     if (!employee.accountNumber || employee.accountNumber === "AB-0000-000000") {
       continue;
     }

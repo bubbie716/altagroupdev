@@ -35,7 +35,7 @@ export const SiteNav = memo(function SiteNav() {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-[60] border-b border-border/60 bg-background/95 backdrop-blur-md">
       <div className="mx-auto flex h-14 sm:h-16 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
         <Link to="/" className="flex shrink-0 items-center">
           <AltaWordmark />

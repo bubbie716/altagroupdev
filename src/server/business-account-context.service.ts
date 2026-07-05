@@ -106,8 +106,15 @@ export async function assertBusinessAccountAccess(
   accountId: string,
   module: BusinessAccountModule,
 ): Promise<BusinessAccountContext> {
-  const ctx = await resolveBusinessAccountContext(user, accountId);
+  const ctx = await resolveBusinessAccountContext(user, accountId, module);
   if (!canAccessBusinessModule(ctx.role, module)) forbidden();
+  if (module === "payroll") {
+    const { loadCommercialPlanSettings, canAccessCommercialPayroll } = await import(
+      "@/server/commercial-plan.service"
+    );
+    const plan = await loadCommercialPlanSettings(ctx.companyId);
+    if (!canAccessCommercialPayroll(plan)) forbidden();
+  }
   return ctx;
 }
 

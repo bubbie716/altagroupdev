@@ -69,6 +69,11 @@ export async function createUserNotifications(
   if (unique.length === 0) return;
 
   for (const userId of unique) {
+    if (typeof userId !== "string") {
+      throw new Error(
+        "createUserNotifications expected string user ids; pass notification fields as the second argument.",
+      );
+    }
     await createUserNotification({ userId, ...input });
   }
 }

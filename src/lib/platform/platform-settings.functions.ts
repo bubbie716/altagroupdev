@@ -61,7 +61,7 @@ export const setCommercialPlanPlatformSettingsOps = createServerFn({ method: "PO
     (input: {
       proMonthlyFee: number;
       coreInvoiceMonthlyLimit: number;
-      coreActivePaymentLinkLimit: number;
+      corePaymentLinkMonthlyLimit: number;
       coreTeamMemberLimit: number;
       proBillingGracePeriodDays: number;
       reason: string;

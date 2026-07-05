@@ -8,6 +8,8 @@ export type CustomerSubmissionAction =
   | "card_apply"
   | "card_payment"
   | "cash_advance"
+  | "commercial_pro_upgrade"
+  | "commercial_pro_downgrade"
   | "card_review"
   | "statement_generate"
   | "scheduled_transfer"
@@ -39,6 +41,10 @@ const ACTION_FALLBACK: Record<CustomerSubmissionAction, string> = {
   card_apply: "Your Alta Card application could not be submitted. Please review the form and try again.",
   card_payment: "This Alta Card payment could not be processed. Please verify your details and try again.",
   cash_advance: "This cash advance could not be processed. Please verify your amount and destination account, then try again.",
+  commercial_pro_upgrade:
+    "This upgrade could not be completed. Please verify your billing account and try again.",
+  commercial_pro_downgrade:
+    "This downgrade could not be completed. Please try again or contact Alta support.",
   card_review: "Your review request could not be submitted. Please review the form and try again.",
   statement_generate: "Your statement could not be generated. Please verify the account and period, then try again.",
   scheduled_transfer: "This transfer schedule could not be saved. Please review your details and try again.",
@@ -56,6 +62,7 @@ function bankActionFor(action: CustomerSubmissionAction): BankMoneyAction | unde
     return action;
   }
   if (action === "loan_payment" || action === "card_payment" || action === "cash_advance") return "pay";
+  if (action === "commercial_pro_upgrade") return "pay";
   return undefined;
 }
 

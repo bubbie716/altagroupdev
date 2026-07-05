@@ -75,6 +75,10 @@ export function canAccessAdvancedMerchantAnalytics(plan: CommercialPlanSettings)
   return isCommercialProActive(plan) && companyHasCommercialFeature(plan, "merchant_analytics");
 }
 
+export function canAccessCommercialPayroll(plan: CommercialPlanSettings): boolean {
+  return isCommercialProActive(plan) && companyHasCommercialFeature(plan, "payroll");
+}
+
 export function canAccessBasicMerchantAnalytics(plan: CommercialPlanSettings): boolean {
   return plan.planStatus === "ACTIVE";
 }
@@ -193,6 +197,19 @@ export async function assertAdvancedMerchantAnalyticsAccess(
   const plan = await loadCommercialPlanSettings(companyId);
   if (!canAccessAdvancedMerchantAnalytics(plan)) {
     throw new Error("BAD_REQUEST:Advanced merchant analytics requires Alta Commercial Pro.");
+  }
+  return plan;
+}
+
+export async function assertCommercialPayrollAccess(
+  user: AltaUser,
+  companyId: string,
+): Promise<CommercialPlanSettings> {
+  const { canViewBusinessTreasury } = await import("@/lib/auth/permissions");
+  if (!canViewBusinessTreasury(user, { companyId })) throw new Error("FORBIDDEN");
+  const plan = await loadCommercialPlanSettings(companyId);
+  if (!canAccessCommercialPayroll(plan)) {
+    throw new Error("BAD_REQUEST:Payroll requires Alta Commercial Pro.");
   }
   return plan;
 }

@@ -3,7 +3,7 @@ import { Card } from "@/components/page-shell";
 import { BankStatCard } from "@/components/bank/bank-stat-card";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import type { MerchantAnalytics, MerchantAnalyticsRange } from "@/lib/bank/commercial-banking-types";
+import type { MerchantAnalytics, MerchantAnalyticsRange, MerchantAnalyticsRecentPayment } from "@/lib/bank/commercial-banking-types";
 import { MERCHANT_ANALYTICS_RANGES, MERCHANT_ANALYTICS_RANGE_LABELS } from "@/lib/bank/commercial-banking-types";
 import {
   BankMobileStack,
@@ -12,6 +12,17 @@ import {
   BankTableScroll,
 } from "@/components/bank/bank-scroll-contain";
 import { cn } from "@/lib/utils";
+
+function paymentSourceLabel(source: MerchantAnalyticsRecentPayment["source"]): string {
+  switch (source) {
+    case "invoice":
+      return "Invoice";
+    case "payment_link":
+      return "Payment link";
+    case "alta_pay":
+      return "Alta Pay";
+  }
+}
 
 export function MerchantAnalyticsPanel({
   analytics,
@@ -45,7 +56,7 @@ export function MerchantAnalyticsPanel({
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <BankStatCard
           label="Payment volume"
           value={florin(analytics.grossVolume)}
@@ -66,6 +77,11 @@ export function MerchantAnalyticsPanel({
           label="Payment link revenue"
           value={florin(analytics.paymentLinkRevenue)}
           sub={`${analytics.paymentFailureRate}% failed`}
+        />
+        <BankStatCard
+          label="Alta Pay revenue"
+          value={florin(analytics.altaPayRevenue)}
+          sub="Instant intrabank"
         />
       </div>
 
@@ -164,7 +180,7 @@ export function MerchantAnalyticsPanel({
                     <div>
                       <p className="font-medium">{payment.customerLabel}</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {payment.source === "invoice" ? "Invoice" : "Payment link"}
+                        {paymentSourceLabel(payment.source)}
                       </p>
                     </div>
                     <span className="type-finance-nums">{florin(payment.grossAmount)}</span>
@@ -194,7 +210,7 @@ export function MerchantAnalyticsPanel({
                     <tr key={`${payment.id}-table`}>
                       <td>{payment.customerLabel}</td>
                       <td className="text-muted-foreground">
-                        {payment.source === "invoice" ? "Invoice" : "Payment link"}
+                        {paymentSourceLabel(payment.source)}
                       </td>
                       <td className="type-finance-nums">{florin(payment.grossAmount)}</td>
                       <td className="type-finance-nums">{florin(payment.netAmount)}</td>

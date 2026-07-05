@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CommercialProUpgradePanel } from "@/components/bank/commercial/commercial-pro-upgrade-panel";
+import { CommercialProDowngradePanel } from "@/components/bank/commercial/commercial-pro-downgrade-panel";
 import type { CommercialBillingAccountOption } from "@/lib/bank/commercial-billing-types";
 import type { CommercialSettingsView } from "@/lib/bank/commercial-banking-types";
 import {
@@ -14,8 +23,6 @@ import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import {
   fetchCommercialBillingAccounts,
-  fetchCommercialBillingPreview,
-  purchaseCommercialProPlan,
   updateCommercialBillingAccountFn,
 } from "@/lib/bank/commercial-banking.functions";
 
@@ -28,19 +35,13 @@ export function CommercialSettingsPanel({
   accountId: string;
   onUpdated: () => void;
 }) {
-  const fetchPreview = useServerFn(fetchCommercialBillingPreview);
   const fetchAccounts = useServerFn(fetchCommercialBillingAccounts);
-  const purchasePro = useServerFn(purchaseCommercialProPlan);
   const updateBillingAccount = useServerFn(updateCommercialBillingAccountFn);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [billingAccountId, setBillingAccountId] = useState(
     settings.billingAccountId ?? "",
   );
   const [billingAccounts, setBillingAccounts] = useState<CommercialBillingAccountOption[]>([]);
-  const [preview, setPreview] = useState<Awaited<
-    ReturnType<typeof fetchCommercialBillingPreview>
-  > | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,58 +54,24 @@ export function CommercialSettingsPanel({
     void fetchAccounts({ data: settings.companyId })
       .then((rows) => {
         setBillingAccounts(rows);
-        if (!billingAccountId && rows[0]) setBillingAccountId(rows[0].id);
+        setBillingAccountId((current) => {
+          if (current && rows.some((row) => row.id === current)) return current;
+          if (
+            settings.billingAccountId &&
+            rows.some((row) => row.id === settings.billingAccountId)
+          ) {
+            return settings.billingAccountId;
+          }
+          return rows[0]?.id ?? "";
+        });
       })
       .catch(() => undefined);
-  }, [settings.canManageBillingAccount, settings.companyId, fetchAccounts, billingAccountId]);
-
-  async function openUpgradeConfirm() {
-    setError(null);
-    setMessage(null);
-    setSaving(true);
-    try {
-      const nextPreview = await fetchPreview({
-        data: {
-          companyId: settings.companyId,
-          billingAccountId: billingAccountId || undefined,
-        },
-      });
-      setPreview(nextPreview);
-      setBillingAccountId(nextPreview.billingAccount?.id ?? billingAccountId);
-      setConfirmOpen(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load billing preview.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function confirmPurchase() {
-    if (!preview?.billingAccount?.id) {
-      setError("Select a billing account.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const result = await purchasePro({
-        data: {
-          companyId: settings.companyId,
-          billingAccountId: preview.billingAccount.id,
-        },
-      });
-      setConfirmOpen(false);
-      setMessage(
-        `Alta Commercial Pro activated. First charge ${florin(result.monthlyFee)} · ${result.referenceCode}`,
-      );
-      onUpdated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Purchase failed.");
-    } finally {
-      setSaving(false);
-    }
-  }
+  }, [
+    settings.canManageBillingAccount,
+    settings.companyId,
+    settings.billingAccountId,
+    fetchAccounts,
+  ]);
 
   async function saveBillingAccount() {
     if (!billingAccountId) return;
@@ -161,14 +128,38 @@ export function CommercialSettingsPanel({
                 Unlimited invoices, payment links, and team members. Advanced analytics, payroll,
                 custom branding, and priority support.
               </p>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void openUpgradeConfirm()}
-                className="mt-4 inline-flex rounded-md border border-foreground bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-60"
-              >
-                Upgrade to Pro
-              </button>
+              <CommercialProUpgradePanel companyId={settings.companyId} onCompleted={onUpdated}>
+                {({ open, loading }) => (
+                  <button
+                    type="button"
+                    disabled={loading || saving}
+                    onClick={() => void open()}
+                    className="mt-4 inline-flex rounded-md border border-foreground bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-60"
+                  >
+                    Upgrade to Pro
+                  </button>
+                )}
+              </CommercialProUpgradePanel>
+            </div>
+          ) : isPro && settings.canDowngradePro ? (
+            <div className="rounded-lg border border-border p-5">
+              <p className="font-medium">Downgrade to Core</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                Stop Pro billing and return to Core limits. Pending payroll and excess receivables
+                created this month may be cancelled.
+              </p>
+              <CommercialProDowngradePanel companyId={settings.companyId} onCompleted={onUpdated}>
+                {({ open, loading }) => (
+                  <button
+                    type="button"
+                    disabled={loading || saving}
+                    onClick={() => void open()}
+                    className="mt-4 inline-flex rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5 disabled:opacity-60"
+                  >
+                    Downgrade to Core
+                  </button>
+                )}
+              </CommercialProDowngradePanel>
             </div>
           ) : null}
         </div>
@@ -185,9 +176,9 @@ export function CommercialSettingsPanel({
             limit={usage.isPro ? null : usage.limits.coreInvoiceMonthlyLimit}
           />
           <UsageRow
-            label="Active payment links"
-            value={usage.activePaymentLinks}
-            limit={usage.isPro ? null : usage.limits.coreActivePaymentLinkLimit}
+            label="Payment links this month"
+            value={usage.paymentLinksThisMonth}
+            limit={usage.isPro ? null : usage.limits.corePaymentLinkMonthlyLimit}
           />
           <UsageRow
             label="Team members"
@@ -230,20 +221,14 @@ export function CommercialSettingsPanel({
           </dl>
           {settings.canManageBillingAccount && billingAccounts.length > 0 ? (
             <div className="mt-6 flex flex-wrap items-end gap-3">
-              <label className="block">
+              <label className="block min-w-[16rem] flex-1">
                 <span className="text-xs text-muted-foreground">Billing account</span>
-                <select
+                <BillingAccountSelect
+                  accounts={billingAccounts}
                   value={billingAccountId}
-                  onChange={(event) => setBillingAccountId(event.target.value)}
-                  className="mt-1 block min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm"
-                >
-                  {billingAccounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.accountName} · {account.accountNumber} ·{" "}
-                      {florin(account.availableBalance)} available
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={setBillingAccountId}
+                  className="mt-1"
+                />
               </label>
               <button
                 type="button"
@@ -272,69 +257,6 @@ export function CommercialSettingsPanel({
         </ul>
       </Card>
 
-      {confirmOpen && preview ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-lg !p-6">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-              Confirm upgrade
-            </p>
-            <h3 className="mt-2 text-lg font-medium">Upgrade to Alta Commercial Pro</h3>
-            <dl className="mt-4 space-y-3 text-sm">
-              <Row label="Current plan" value={COMMERCIAL_PLAN_LABELS[preview.currentPlan]} />
-              <Row label="New plan" value={COMMERCIAL_PLAN_LABELS[preview.targetPlan]} />
-              <Row label="Monthly fee" value={florin(preview.monthlyFee)} />
-              <Row
-                label="Next billing date"
-                value={formatActivityDateTime(preview.nextBillingDate)}
-              />
-            </dl>
-            <label className="mt-6 block text-sm">
-              <span className="text-muted-foreground">Billing account</span>
-              <select
-                value={preview.billingAccount?.id ?? ""}
-                onChange={(event) => {
-                  const id = event.target.value;
-                  setBillingAccountId(id);
-                  void fetchPreview({
-                    data: { companyId: settings.companyId, billingAccountId: id },
-                  }).then(setPreview);
-                }}
-                className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              >
-                {preview.billingAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.accountName} · {account.accountNumber} ·{" "}
-                    {florin(account.availableBalance)} available
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="mt-4 text-[13px] text-muted-foreground">
-              Your billing account will be charged {florin(preview.monthlyFee)} immediately. Pro
-              features activate after a successful charge.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void confirmPurchase()}
-                className="rounded-md border border-foreground bg-foreground px-4 py-2 text-sm font-medium text-background"
-              >
-                Confirm purchase
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setConfirmOpen(false)}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
-
       {message ? <p className="text-[13px] text-muted-foreground">{message}</p> : null}
       {error ? (
         <p className="text-[13px] text-destructive">
@@ -354,6 +276,44 @@ export function CommercialSettingsPanel({
   );
 }
 
+function formatBillingAccountLabel(account: CommercialBillingAccountOption): string {
+  return `${account.accountName} · ${account.accountNumber} · ${florin(account.availableBalance)} available`;
+}
+
+function BillingAccountSelect({
+  accounts,
+  value,
+  onValueChange,
+  className,
+}: {
+  accounts: CommercialBillingAccountOption[];
+  value: string;
+  onValueChange: (id: string) => void;
+  className?: string;
+}) {
+  const selectedValue =
+    value && accounts.some((account) => account.id === value)
+      ? value
+      : (accounts[0]?.id ?? "");
+
+  if (!selectedValue) return null;
+
+  return (
+    <Select value={selectedValue} onValueChange={onValueChange}>
+      <SelectTrigger className={className}>
+        <SelectValue placeholder="Select billing account" />
+      </SelectTrigger>
+      <SelectContent>
+        {accounts.map((account) => (
+          <SelectItem key={account.id} value={account.id}>
+            {formatBillingAccountLabel(account)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function UsageRow({
   label,
   value,
@@ -370,15 +330,6 @@ function UsageRow({
         {value}
         {limit != null ? ` / ${limit}` : " · Unlimited"}
       </dd>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
     </div>
   );
 }

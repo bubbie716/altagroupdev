@@ -1,15 +1,20 @@
 export const COMMERCIAL_PLATFORM_SETTING_KEYS = {
   proMonthlyFee: "commercial.proMonthlyFee",
   coreInvoiceMonthlyLimit: "commercial.coreInvoiceMonthlyLimit",
-  coreActivePaymentLinkLimit: "commercial.coreActivePaymentLinkLimit",
+  corePaymentLinkMonthlyLimit: "commercial.corePaymentLinkMonthlyLimit",
   coreTeamMemberLimit: "commercial.coreTeamMemberLimit",
   proBillingGracePeriodDays: "commercial.proBillingGracePeriodDays",
+} as const;
+
+/** @deprecated Legacy DB key — read as fallback when migrating settings. */
+export const LEGACY_COMMERCIAL_PLATFORM_SETTING_KEYS = {
+  coreActivePaymentLinkLimit: "commercial.coreActivePaymentLinkLimit",
 } as const;
 
 export type CommercialPlatformSettings = {
   proMonthlyFee: number;
   coreInvoiceMonthlyLimit: number;
-  coreActivePaymentLinkLimit: number;
+  corePaymentLinkMonthlyLimit: number;
   coreTeamMemberLimit: number;
   proBillingGracePeriodDays: number;
 };
@@ -17,7 +22,7 @@ export type CommercialPlatformSettings = {
 export const DEFAULT_COMMERCIAL_PLATFORM_SETTINGS: CommercialPlatformSettings = {
   proMonthlyFee: 10_000,
   coreInvoiceMonthlyLimit: 10,
-  coreActivePaymentLinkLimit: 5,
+  corePaymentLinkMonthlyLimit: 5,
   coreTeamMemberLimit: 3,
   proBillingGracePeriodDays: 7,
 };
@@ -40,8 +45,8 @@ export function parseCommercialPlatformSettings(
   return {
     proMonthlyFee: input.proMonthlyFee ?? defaults.proMonthlyFee,
     coreInvoiceMonthlyLimit: input.coreInvoiceMonthlyLimit ?? defaults.coreInvoiceMonthlyLimit,
-    coreActivePaymentLinkLimit:
-      input.coreActivePaymentLinkLimit ?? defaults.coreActivePaymentLinkLimit,
+    corePaymentLinkMonthlyLimit:
+      input.corePaymentLinkMonthlyLimit ?? defaults.corePaymentLinkMonthlyLimit,
     coreTeamMemberLimit: input.coreTeamMemberLimit ?? defaults.coreTeamMemberLimit,
     proBillingGracePeriodDays:
       input.proBillingGracePeriodDays ?? defaults.proBillingGracePeriodDays,

@@ -2,6 +2,7 @@ import { isAdmin } from "@/lib/auth/permissions";
 import {
   COMMERCIAL_PLATFORM_SETTING_KEYS,
   DEFAULT_COMMERCIAL_PLATFORM_SETTINGS,
+  LEGACY_COMMERCIAL_PLATFORM_SETTING_KEYS,
   parseCommercialPlatformSettings,
   type CommercialPlatformSettings,
   type CommercialPlatformSettingsView,
@@ -10,7 +11,10 @@ import {
 import { prisma } from "@/server/db";
 import { requireAdmin } from "@/server/permissions.service";
 
-const SETTING_KEYS = Object.values(COMMERCIAL_PLATFORM_SETTING_KEYS);
+const SETTING_KEYS = [
+  ...Object.values(COMMERCIAL_PLATFORM_SETTING_KEYS),
+  ...Object.values(LEGACY_COMMERCIAL_PLATFORM_SETTING_KEYS),
+];
 const CACHE_TTL_MS = 10_000;
 
 let settingsCache: { value: CommercialPlatformSettings; expiresAt: number } | null = null;
@@ -47,9 +51,10 @@ function normalizeSettings(raw: Map<string, { value: unknown; updatedAt: Date }>
       raw.get(COMMERCIAL_PLATFORM_SETTING_KEYS.coreInvoiceMonthlyLimit)?.value,
       defaults.coreInvoiceMonthlyLimit,
     ),
-    coreActivePaymentLinkLimit: parseNumber(
-      raw.get(COMMERCIAL_PLATFORM_SETTING_KEYS.coreActivePaymentLinkLimit)?.value,
-      defaults.coreActivePaymentLinkLimit,
+    corePaymentLinkMonthlyLimit: parseNumber(
+      raw.get(COMMERCIAL_PLATFORM_SETTING_KEYS.corePaymentLinkMonthlyLimit)?.value ??
+        raw.get(LEGACY_COMMERCIAL_PLATFORM_SETTING_KEYS.coreActivePaymentLinkLimit)?.value,
+      defaults.corePaymentLinkMonthlyLimit,
     ),
     coreTeamMemberLimit: parseNumber(
       raw.get(COMMERCIAL_PLATFORM_SETTING_KEYS.coreTeamMemberLimit)?.value,
@@ -145,14 +150,16 @@ export async function setCommercialPlatformSettings(
   const next: CommercialPlatformSettings = {
     proMonthlyFee: input.proMonthlyFee,
     coreInvoiceMonthlyLimit: input.coreInvoiceMonthlyLimit,
-    coreActivePaymentLinkLimit: input.coreActivePaymentLinkLimit,
+    corePaymentLinkMonthlyLimit: input.corePaymentLinkMonthlyLimit,
     coreTeamMemberLimit: input.coreTeamMemberLimit,
     proBillingGracePeriodDays: input.proBillingGracePeriodDays,
   };
 
   if (next.proMonthlyFee < 0) badRequest("Pro monthly fee must be zero or greater.");
   if (next.coreInvoiceMonthlyLimit < 1) badRequest("Core invoice limit must be at least 1.");
-  if (next.coreActivePaymentLinkLimit < 1) badRequest("Core payment link limit must be at least 1.");
+  if (next.corePaymentLinkMonthlyLimit < 1) {
+    badRequest("Core payment link monthly limit must be at least 1.");
+  }
   if (next.coreTeamMemberLimit < 1) badRequest("Core team member limit must be at least 1.");
   if (next.proBillingGracePeriodDays < 0) badRequest("Grace period days must be zero or greater.");
 

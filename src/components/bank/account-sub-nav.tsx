@@ -39,17 +39,19 @@ export function BusinessAccountSubNav({
   accountId,
   companyId,
   role,
+  commercialPayrollEnabled = false,
 }: {
   accountId: string;
   companyId: string;
   role: CompanyRole;
+  commercialPayrollEnabled?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const user = useCurrentUser();
   const base = `/bank/account/${accountId}`;
   const showMerchant =
     user !== null && canViewMerchantInvoices(user, { companyId });
-  const showPayroll = canAccessBusinessModule(role, "payroll");
+  const showPayroll = canAccessBusinessModule(role, "payroll") && commercialPayrollEnabled;
   const showCommercial = showMerchant || showPayroll;
   const commercialActive = isAccountCommercialPath(pathname, accountId);
 

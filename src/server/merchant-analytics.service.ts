@@ -15,6 +15,10 @@ import {
   assertAdvancedMerchantAnalyticsAccess,
   assertBasicMerchantAnalyticsAccess,
 } from "@/server/commercial-plan.service";
+import {
+  ALTA_PAY_RECEIVED_DEPOSIT_FILTER,
+  extractReceivedCustomerPayerLabel,
+} from "@/server/customer-payments-received";
 import { getMerchantInvoiceDashboard } from "@/server/merchant-invoice.service";
 import { getPaymentLinkDashboard } from "@/server/payment-link.service";
 
@@ -49,6 +53,79 @@ function completedAtFilter(start: Date | null) {
   return start ? { gte: start } : undefined;
 }
 
+function createdAtFilter(start: Date | null) {
+  return start ? { gte: start } : undefined;
+}
+
+function altaPayReferenceCode(referenceCode: string): string {
+  return referenceCode.replace(/-IN$/, "");
+}
+
+async function getCompanyOperatingAccountId(companyId: string): Promise<string | null> {
+  const operating = await prisma.bankAccount.findFirst({
+    where: { companyId, accountType: "BUSINESS_OPERATING", status: "ACTIVE" },
+    select: { id: true },
+  });
+  return operating?.id ?? null;
+}
+
+async function listAltaPayReceivedDeposits(
+  companyId: string,
+  start: Date | null,
+  take?: number,
+): Promise<
+  Array<{
+    id: string;
+    referenceCode: string;
+    amount: { toString(): string };
+    description: string;
+    createdAt: Date;
+  }>
+> {
+  const accountId = await getCompanyOperatingAccountId(companyId);
+  if (!accountId) return [];
+
+  const createdAt = createdAtFilter(start);
+  return prisma.bankTransaction.findMany({
+    where: {
+      bankAccountId: accountId,
+      type: "DEPOSIT",
+      status: "APPROVED",
+      ...ALTA_PAY_RECEIVED_DEPOSIT_FILTER,
+      ...(createdAt ? { createdAt } : {}),
+    },
+    select: {
+      id: true,
+      referenceCode: true,
+      amount: true,
+      description: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    ...(take != null ? { take } : {}),
+  });
+}
+
+function mapAltaPayDepositToRecentPayment(tx: {
+  id: string;
+  referenceCode: string;
+  amount: { toString(): string };
+  description: string;
+  createdAt: Date;
+}): MerchantAnalyticsRecentPayment {
+  const gross = decimalToNumber(tx.amount);
+  return {
+    id: tx.id,
+    source: "alta_pay",
+    customerLabel: extractReceivedCustomerPayerLabel(tx.description),
+    grossAmount: gross,
+    netAmount: gross,
+    feeAmount: 0,
+    referenceCode: altaPayReferenceCode(tx.referenceCode),
+    createdAt: tx.createdAt.toISOString(),
+  };
+}
+
 function monthKey(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
@@ -63,7 +140,9 @@ export async function getCommercialDashboard(
     throw new Error("BAD_REQUEST:Company verification required for Alta Commercial.");
   }
 
-  const [operating, invoiceDashboard, paymentLinkDashboard, recentInvoices, recentLinks, recentInvoicePayments, recentLinkPayments] =
+  const monthStart = startOfUtcMonth();
+
+  const [operating, invoiceDashboard, paymentLinkDashboard, recentInvoices, recentLinks, recentInvoicePayments, recentLinkPayments, altaPayThisMonth, recentAltaPayPayments] =
     await Promise.all([
       prisma.bankAccount.findUnique({ where: { id: ctx.accountId } }),
       getMerchantInvoiceDashboard(user, companyId),
@@ -117,9 +196,10 @@ export async function getCommercialDashboard(
           paymentLink: { select: { referenceCode: true } },
         },
       }),
+      listAltaPayReceivedDeposits(companyId, monthStart),
+      listAltaPayReceivedDeposits(companyId, null, 6),
     ]);
 
-  const monthStart = startOfUtcMonth();
   const paymentLinkVolumeAgg = await prisma.paymentLinkPayment.aggregate({
     where: {
       status: "COMPLETED",
@@ -174,15 +254,37 @@ export async function getCommercialDashboard(
       referenceCode: row.paymentLink.referenceCode,
       createdAt: (row.completedAt ?? row.createdAt).toISOString(),
     })),
+    ...recentAltaPayPayments.map((row) => ({
+      id: row.id,
+      kind: "alta_pay_payment" as const,
+      label: extractReceivedCustomerPayerLabel(row.description),
+      amount: decimalToNumber(row.amount),
+      status: "COMPLETED",
+      referenceCode: altaPayReferenceCode(row.referenceCode),
+      createdAt: row.createdAt.toISOString(),
+    })),
   ]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 12);
+
+  const paymentLinkVolume = decimalToNumber(paymentLinkVolumeAgg._sum.amount);
+  const altaPayVolumeThisMonth = altaPayThisMonth.reduce(
+    (sum, row) => sum + decimalToNumber(row.amount),
+    0,
+  );
+  const netReceiptsThisMonth =
+    Math.round(
+      (invoiceDashboard.paidThisMonth + paymentLinkVolume + altaPayVolumeThisMonth) * 100,
+    ) / 100;
 
   return {
     cashBalance: decimalToNumber(operating?.balance),
     outstandingInvoices: invoiceDashboard.outstandingTotal,
     paidThisMonth: invoiceDashboard.paidThisMonth,
-    paymentLinkVolume: decimalToNumber(paymentLinkVolumeAgg._sum.amount),
+    netReceiptsThisMonth,
+    paymentLinkVolume,
+    altaPayVolumeThisMonth: Math.round(altaPayVolumeThisMonth * 100) / 100,
+    altaPayPaymentCountThisMonth: altaPayThisMonth.length,
     overdueInvoiceTotal: decimalToNumber(overdueAgg._sum.amount),
     recentActivity: activity,
     invoiceDashboard: {
@@ -205,7 +307,7 @@ export async function getBasicMerchantAnalytics(
   await assertBasicMerchantAnalyticsAccess(user, companyId);
   const monthStart = startOfUtcMonth();
 
-  const [invoicePayments, linkPayments, outstandingAgg] = await Promise.all([
+  const [invoicePayments, linkPayments, altaPayDeposits, outstandingAgg] = await Promise.all([
     prisma.merchantInvoicePayment.findMany({
       where: {
         status: "COMPLETED",
@@ -231,6 +333,7 @@ export async function getBasicMerchantAnalytics(
       orderBy: { completedAt: "desc" },
       take: 8,
     }),
+    listAltaPayReceivedDeposits(companyId, monthStart),
     prisma.merchantInvoice.aggregate({
       where: {
         merchantCompanyId: companyId,
@@ -245,6 +348,10 @@ export async function getBasicMerchantAnalytics(
     0,
   );
   const linkRevenue = linkPayments.reduce((sum, row) => sum + decimalToNumber(row.amount), 0);
+  const altaPayRevenue = altaPayDeposits.reduce(
+    (sum, row) => sum + decimalToNumber(row.amount),
+    0,
+  );
 
   const recentPayments: MerchantAnalyticsRecentPayment[] = [
     ...invoicePayments.map((row) => ({
@@ -270,12 +377,13 @@ export async function getBasicMerchantAnalytics(
       referenceCode: row.paymentLink.referenceCode,
       createdAt: row.completedAt?.toISOString() ?? row.createdAt.toISOString(),
     })),
+    ...altaPayDeposits.map(mapAltaPayDepositToRecentPayment),
   ]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 8);
 
   return {
-    revenueThisMonth: Math.round((invoiceRevenue + linkRevenue) * 100) / 100,
+    revenueThisMonth: Math.round((invoiceRevenue + linkRevenue + altaPayRevenue) * 100) / 100,
     outstandingInvoiceTotal: decimalToNumber(outstandingAgg._sum.amount),
     recentPayments,
   };
@@ -293,6 +401,7 @@ export async function getMerchantAnalytics(
   const [
     invoicePayments,
     linkPayments,
+    altaPayDeposits,
     invoiceFailures,
     linkFailures,
     outstandingAgg,
@@ -320,6 +429,7 @@ export async function getMerchantAnalytics(
         paymentLink: { select: { referenceCode: true } },
       },
     }),
+    listAltaPayReceivedDeposits(companyId, start),
     prisma.merchantInvoicePayment.count({
       where: {
         status: "FAILED",
@@ -358,11 +468,12 @@ export async function getMerchantAnalytics(
   const invoiceFees = invoicePayments.reduce((sum, row) => sum + decimalToNumber(row.feeAmount), 0);
   const linkGross = linkPayments.reduce((sum, row) => sum + decimalToNumber(row.amount), 0);
   const linkFees = linkPayments.reduce((sum, row) => sum + decimalToNumber(row.feeAmount), 0);
+  const altaPayGross = altaPayDeposits.reduce((sum, row) => sum + decimalToNumber(row.amount), 0);
 
-  const grossVolume = invoiceGross + linkGross;
+  const grossVolume = invoiceGross + linkGross + altaPayGross;
   const totalFees = invoiceFees + linkFees;
   const netVolume = Math.round((grossVolume - totalFees) * 100) / 100;
-  const successfulPayments = invoicePayments.length + linkPayments.length;
+  const successfulPayments = invoicePayments.length + linkPayments.length + altaPayDeposits.length;
   const failedPayments = invoiceFailures + linkFailures;
   const totalAttempts = successfulPayments + failedPayments;
 
@@ -383,6 +494,17 @@ export async function getMerchantAnalytics(
   }
   for (const row of linkPayments) {
     const label = row.payerLabel ?? "Customer";
+    const existing = customerTotals.get(label) ?? {
+      customerLabel: label,
+      paymentCount: 0,
+      grossVolume: 0,
+    };
+    existing.paymentCount += 1;
+    existing.grossVolume += decimalToNumber(row.amount);
+    customerTotals.set(label, existing);
+  }
+  for (const row of altaPayDeposits) {
+    const label = extractReceivedCustomerPayerLabel(row.description);
     const existing = customerTotals.get(label) ?? {
       customerLabel: label,
       paymentCount: 0,
@@ -423,6 +545,7 @@ export async function getMerchantAnalytics(
       referenceCode: row.paymentLink.referenceCode,
       createdAt: (row.completedAt ?? row.createdAt).toISOString(),
     })),
+    ...altaPayDeposits.map(mapAltaPayDepositToRecentPayment),
   ]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 12);
@@ -434,6 +557,7 @@ export async function getMerchantAnalytics(
     net: number,
     invoice: number,
     link: number,
+    altaPay: number,
   ) => {
     const key = monthKey(date);
     const existing = trendMap.get(key) ?? {
@@ -442,23 +566,29 @@ export async function getMerchantAnalytics(
       netVolume: 0,
       invoiceRevenue: 0,
       paymentLinkRevenue: 0,
+      altaPayRevenue: 0,
     };
     existing.grossVolume += gross;
     existing.netVolume += net;
     existing.invoiceRevenue += invoice;
     existing.paymentLinkRevenue += link;
+    existing.altaPayRevenue += altaPay;
     trendMap.set(key, existing);
   };
 
   for (const row of invoicePayments) {
     const gross = decimalToNumber(row.amount);
     const fee = decimalToNumber(row.feeAmount);
-    addTrend(row.completedAt ?? row.createdAt, gross, gross - fee, gross, 0);
+    addTrend(row.completedAt ?? row.createdAt, gross, gross - fee, gross, 0, 0);
   }
   for (const row of linkPayments) {
     const gross = decimalToNumber(row.amount);
     const fee = decimalToNumber(row.feeAmount);
-    addTrend(row.completedAt ?? row.createdAt, gross, gross - fee, 0, gross);
+    addTrend(row.completedAt ?? row.createdAt, gross, gross - fee, 0, gross, 0);
+  }
+  for (const row of altaPayDeposits) {
+    const gross = decimalToNumber(row.amount);
+    addTrend(row.createdAt, gross, gross, 0, 0, gross);
   }
 
   const monthlyTrend = [...trendMap.values()]
@@ -470,6 +600,7 @@ export async function getMerchantAnalytics(
       netVolume: Math.round(point.netVolume * 100) / 100,
       invoiceRevenue: Math.round(point.invoiceRevenue * 100) / 100,
       paymentLinkRevenue: Math.round(point.paymentLinkRevenue * 100) / 100,
+      altaPayRevenue: Math.round(point.altaPayRevenue * 100) / 100,
     }));
 
   return {
@@ -479,6 +610,7 @@ export async function getMerchantAnalytics(
     totalFees: Math.round(totalFees * 100) / 100,
     invoiceRevenue: Math.round(invoiceGross * 100) / 100,
     paymentLinkRevenue: Math.round(linkGross * 100) / 100,
+    altaPayRevenue: Math.round(altaPayGross * 100) / 100,
     outstandingInvoiceTotal: decimalToNumber(outstandingAgg._sum.amount),
     overdueInvoiceTotal: decimalToNumber(overdueAgg._sum.amount),
     paidInvoicesCount,
@@ -502,6 +634,7 @@ export async function getMerchantAnalytics(
 export function computeMerchantAnalyticsSummary(input: {
   invoicePayments: Array<{ amount: number; feeAmount: number }>;
   linkPayments: Array<{ amount: number; feeAmount: number }>;
+  altaPayPayments?: Array<{ amount: number }>;
   failedAttempts: number;
 }): Pick<
   MerchantAnalytics,
@@ -510,6 +643,7 @@ export function computeMerchantAnalyticsSummary(input: {
   | "totalFees"
   | "invoiceRevenue"
   | "paymentLinkRevenue"
+  | "altaPayRevenue"
   | "averagePaymentSize"
   | "paymentSuccessRate"
   | "paymentFailureRate"
@@ -518,9 +652,11 @@ export function computeMerchantAnalyticsSummary(input: {
   const invoiceFees = input.invoicePayments.reduce((sum, row) => sum + row.feeAmount, 0);
   const linkGross = input.linkPayments.reduce((sum, row) => sum + row.amount, 0);
   const linkFees = input.linkPayments.reduce((sum, row) => sum + row.feeAmount, 0);
-  const grossVolume = invoiceGross + linkGross;
+  const altaPayGross = (input.altaPayPayments ?? []).reduce((sum, row) => sum + row.amount, 0);
+  const grossVolume = invoiceGross + linkGross + altaPayGross;
   const totalFees = invoiceFees + linkFees;
-  const successfulPayments = input.invoicePayments.length + input.linkPayments.length;
+  const successfulPayments =
+    input.invoicePayments.length + input.linkPayments.length + (input.altaPayPayments?.length ?? 0);
   const totalAttempts = successfulPayments + input.failedAttempts;
 
   return {
@@ -529,6 +665,7 @@ export function computeMerchantAnalyticsSummary(input: {
     totalFees: Math.round(totalFees * 100) / 100,
     invoiceRevenue: Math.round(invoiceGross * 100) / 100,
     paymentLinkRevenue: Math.round(linkGross * 100) / 100,
+    altaPayRevenue: Math.round(altaPayGross * 100) / 100,
     averagePaymentSize:
       successfulPayments > 0
         ? Math.round((grossVolume / successfulPayments) * 100) / 100

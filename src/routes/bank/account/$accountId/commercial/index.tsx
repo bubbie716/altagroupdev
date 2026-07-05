@@ -2,27 +2,20 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { CommercialDashboardPanel } from "@/components/bank/commercial/commercial-dashboard-panel";
-import { AltaPayReceivedPanel } from "@/components/bank/alta-pay-received-panel";
-import { loadAccountCommercialContext } from "@/lib/bank/account-commercial-loader";
+import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
 import { fetchCommercialDashboard } from "@/lib/bank/commercial-banking.functions";
-import { fetchCompanyAltaPayReceived } from "@/lib/bank/alta-pay.functions";
-import { canViewAltaPayReceived } from "@/lib/auth/permissions";
-import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/")({
   loader: async ({ params }) => {
     try {
-      const { context } = await loadAccountCommercialContext(params.accountId);
-      const [dashboard, altaPayReceived] = await Promise.all([
-        context.isVerified
-          ? fetchCommercialDashboard({ data: context.companyId })
-          : Promise.resolve(null),
-        fetchCompanyAltaPayReceived({ data: context.companyId }).catch(() => null),
-      ]);
-      return { context, dashboard, altaPayReceived };
+      const { context } = await fetchAccountCommercialContext({ data: params.accountId });
+      const dashboard = context.isVerified
+        ? await fetchCommercialDashboard({ data: context.companyId })
+        : null;
+      return { context, dashboard };
     } catch {
       throw redirect({
-        to: "/bank/account/$accountId/commercial/payroll",
+        to: "/bank/account/$accountId/commercial/settings",
         params: { accountId: params.accountId },
       });
     }
@@ -33,13 +26,7 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/")({
 
 function AccountCommercialDashboardPage() {
   const { accountId } = Route.useParams();
-  const { context, dashboard, altaPayReceived } = Route.useLoaderData();
-  const user = useCurrentUser();
-
-  const showAltaPayReceived =
-    altaPayReceived !== null &&
-    user !== null &&
-    canViewAltaPayReceived(user, { companyId: context.companyId });
+  const { context, dashboard } = Route.useLoaderData();
 
   return (
     <AccountCommercialShell context={context}>
@@ -52,11 +39,6 @@ function AccountCommercialDashboardPage() {
               accountId={accountId}
               canManage={context.canManage}
             />
-          </Section>
-        ) : null}
-        {showAltaPayReceived ? (
-          <Section title="Customer payments received">
-            <AltaPayReceivedPanel summary={altaPayReceived} />
           </Section>
         ) : null}
       </div>

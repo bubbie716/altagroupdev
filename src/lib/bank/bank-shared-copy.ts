@@ -54,6 +54,12 @@ export const BANK_CARD_PAYMENT_SUCCESS_BODY =
 export const BANK_LOAN_PAYMENT_SUCCESS_BODY =
   "Your loan payment settled instantly. Your payoff amount and payment schedule have been updated.";
 
+export const BANK_COMMERCIAL_PRO_UPGRADE_SUCCESS_BODY =
+  "Alta Commercial Pro is now active. Your billing account was charged and Pro features are available immediately.";
+
+export const BANK_COMMERCIAL_PRO_DOWNGRADE_SUCCESS_BODY =
+  "Your company is now on Alta Commercial Core. Pro billing has stopped and Core limits apply immediately.";
+
 export const BANK_SUBMISSION_ERROR_FALLBACK =
   "This request could not be submitted. Please review your details and try again.";
 

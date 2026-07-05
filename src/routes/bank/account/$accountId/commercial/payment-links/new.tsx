@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { PaymentLinkForm } from "@/components/bank/payment-links/payment-link-form";
-import { loadAccountCommercialContext } from "@/lib/bank/account-commercial-loader";
+import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/new")({
   loader: async ({ params }) => {
-    const { context } = await loadAccountCommercialContext(params.accountId);
+    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
     return { companyId: context.companyId };
   },
   head: () => ({ meta: [{ title: "New Payment Link — Business Account" }] }),

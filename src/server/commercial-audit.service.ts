@@ -188,6 +188,11 @@ export async function recordCommercialProDowngradedAudit(input: {
   companyId: string;
   reason: string;
   source: string;
+  cleanup?: {
+    payrollRunsCancelled: number;
+    paymentLinksCancelled: number;
+    invoicesCancelled: number;
+  };
 }): Promise<void> {
   await writeCommercialAudit({
     actorUserId: input.actorUserId,
@@ -298,16 +303,13 @@ export async function notifyMerchantPaymentFailed(input: {
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   const { createUserNotifications } = await import("@/server/notification.service");
-  await createUserNotifications(
-    input.merchantUserIds.map((userId) => ({
-      userId,
-      type: "MERCHANT_PAYMENT_FAILED",
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      metadata: input.metadata,
-    })),
-  );
+  await createUserNotifications(input.merchantUserIds, {
+    type: "MERCHANT_PAYMENT_FAILED",
+    title: input.title,
+    body: input.body,
+    linkUrl: input.linkUrl,
+    metadata: input.metadata,
+  });
 }
 
 export async function notifyMerchantPaymentReceived(input: {
@@ -319,16 +321,13 @@ export async function notifyMerchantPaymentReceived(input: {
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   const { createUserNotifications } = await import("@/server/notification.service");
-  await createUserNotifications(
-    input.merchantUserIds.map((userId) => ({
-      userId,
-      type: "MERCHANT_INVOICE_PAID" as const,
-      title: input.title,
-      body: input.body,
-      linkUrl: input.linkUrl,
-      metadata: input.metadata,
-    })),
-  );
+  await createUserNotifications(input.merchantUserIds, {
+    type: "MERCHANT_INVOICE_PAID",
+    title: input.title,
+    body: input.body,
+    linkUrl: input.linkUrl,
+    metadata: input.metadata,
+  });
 }
 
 export async function listMerchantFinanceUserIds(companyId: string): Promise<string[]> {

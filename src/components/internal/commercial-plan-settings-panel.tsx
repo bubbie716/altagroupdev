@@ -19,7 +19,7 @@ export function CommercialPlanSettingsPanel({
   const [values, setValues] = useState({
     proMonthlyFee: String(initial.proMonthlyFee),
     coreInvoiceMonthlyLimit: String(initial.coreInvoiceMonthlyLimit),
-    coreActivePaymentLinkLimit: String(initial.coreActivePaymentLinkLimit),
+    corePaymentLinkMonthlyLimit: String(initial.corePaymentLinkMonthlyLimit),
     coreTeamMemberLimit: String(initial.coreTeamMemberLimit),
     proBillingGracePeriodDays: String(initial.proBillingGracePeriodDays),
   });
@@ -30,7 +30,7 @@ export function CommercialPlanSettingsPanel({
     setValues({
       proMonthlyFee: String(initial.proMonthlyFee),
       coreInvoiceMonthlyLimit: String(initial.coreInvoiceMonthlyLimit),
-      coreActivePaymentLinkLimit: String(initial.coreActivePaymentLinkLimit),
+      corePaymentLinkMonthlyLimit: String(initial.corePaymentLinkMonthlyLimit),
       coreTeamMemberLimit: String(initial.coreTeamMemberLimit),
       proBillingGracePeriodDays: String(initial.proBillingGracePeriodDays),
     });
@@ -43,7 +43,7 @@ export function CommercialPlanSettingsPanel({
         data: {
           proMonthlyFee: Number(values.proMonthlyFee),
           coreInvoiceMonthlyLimit: Number(values.coreInvoiceMonthlyLimit),
-          coreActivePaymentLinkLimit: Number(values.coreActivePaymentLinkLimit),
+          corePaymentLinkMonthlyLimit: Number(values.corePaymentLinkMonthlyLimit),
           coreTeamMemberLimit: Number(values.coreTeamMemberLimit),
           proBillingGracePeriodDays: Number(values.proBillingGracePeriodDays),
           reason,
@@ -79,10 +79,10 @@ export function CommercialPlanSettingsPanel({
           disabled={!initial.canEdit}
         />
         <Field
-          label="Core active payment link limit"
-          value={values.coreActivePaymentLinkLimit}
+          label="Core payment link monthly limit"
+          value={values.corePaymentLinkMonthlyLimit}
           onChange={(value) =>
-            setValues((prev) => ({ ...prev, coreActivePaymentLinkLimit: value }))
+            setValues((prev) => ({ ...prev, corePaymentLinkMonthlyLimit: value }))
           }
           disabled={!initial.canEdit}
         />

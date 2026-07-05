@@ -4,7 +4,7 @@ import { Card, Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { BasicMerchantAnalyticsPanel } from "@/components/bank/commercial/basic-merchant-analytics-panel";
 import { MerchantAnalyticsPanel } from "@/components/bank/commercial/merchant-analytics-panel";
-import { loadAccountCommercialContext } from "@/lib/bank/account-commercial-loader";
+import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
 import {
   fetchBasicMerchantAnalytics,
   fetchMerchantAnalytics,
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/analyt
         : ("30D" as MerchantAnalyticsRange),
   }),
   loader: async ({ params, deps }) => {
-    const { context } = await loadAccountCommercialContext(params.accountId);
+    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
     const range = deps.range;
     const isAdvanced =
       context.plan.commercialPlan === "PRO" &&
@@ -82,6 +82,7 @@ function AccountCommercialAnalyticsPage() {
                 to: accountCommercialRoutes.analytics,
                 params: { accountId },
                 search: { range: nextRange },
+                resetScroll: false,
               });
             }}
           />

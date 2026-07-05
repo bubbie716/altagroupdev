@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { SilentNotificationToggle } from "@/components/internal/silent-notification-toggle";
 import type { OpsConfirmOptions } from "@/lib/internal/operator-notification-options";
 
@@ -32,9 +33,14 @@ export function OpsConfirmDialog({
   const [silentNotification, setSilentNotification] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descId = useId();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +52,15 @@ export function OpsConfirmDialog({
   }, [open, pending, onCancel]);
 
   useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
     if (open) {
       setReason("");
       setSilentNotification(false);
@@ -54,7 +69,7 @@ export function OpsConfirmDialog({
     }
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
   async function handleConfirm() {
     if (requireReason && !reason.trim()) {
@@ -81,23 +96,25 @@ export function OpsConfirmDialog({
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 p-4"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !pending) onCancel();
       }}
     >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={description ? descId : undefined}
-        tabIndex={-1}
-        className="w-full max-w-md rounded-lg border border-border bg-background p-5 shadow-elevated outline-none"
-      >
+      <div className="flex min-h-full items-center justify-center">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description ? descId : undefined}
+          tabIndex={-1}
+          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-border bg-background p-5 shadow-elevated outline-none"
+          onClick={(e) => e.stopPropagation()}
+        >
         <h3 id={titleId} className="text-[15px] font-medium tracking-tight">
           {title}
         </h3>
@@ -160,7 +177,9 @@ export function OpsConfirmDialog({
             {pending ? "Processing…" : confirmLabel}
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
