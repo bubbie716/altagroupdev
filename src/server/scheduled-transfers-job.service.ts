@@ -8,55 +8,88 @@ export const PAYROLL_JOB_KEY = "payroll";
 const TRANSFERS_LABEL = "Scheduled transfers";
 const PAYROLL_LABEL = "Payroll batches";
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function runScheduledTransfersJob(): Promise<{
+  ok: boolean;
   scheduledTransfers: Awaited<ReturnType<typeof executeDueScheduledTransfers>>;
   payroll: Awaited<ReturnType<typeof executeDuePayrollRuns>>;
+  errors: string[];
 }> {
   const startedAt = new Date();
+  const errors: string[] = [];
+
+  let scheduledTransfers: Awaited<ReturnType<typeof executeDueScheduledTransfers>> = {
+    dueCount: 0,
+    executedCount: 0,
+    failedCount: 0,
+    skippedCount: 0,
+  };
+  let payroll: Awaited<ReturnType<typeof executeDuePayrollRuns>> = {
+    dueCount: 0,
+    executedCount: 0,
+    failedCount: 0,
+    skippedCount: 0,
+  };
 
   try {
-    const [scheduledTransfers, payroll] = await Promise.all([
-      executeDueScheduledTransfers(),
-      executeDuePayrollRuns(),
-    ]);
-    const completedAt = new Date();
-    const durationMs = completedAt.getTime() - startedAt.getTime();
+    scheduledTransfers = await executeDueScheduledTransfers();
+  } catch (error) {
+    const message = errorMessage(error);
+    errors.push(`Scheduled transfers: ${message}`);
+    console.error("[scheduled-transfers-job] transfer execution failed", error);
+  }
 
-    await recordOpsJobRunDetail(SCHEDULED_TRANSFERS_JOB_KEY, TRANSFERS_LABEL, "SUCCESS", {
+  try {
+    payroll = await executeDuePayrollRuns();
+  } catch (error) {
+    const message = errorMessage(error);
+    errors.push(`Payroll: ${message}`);
+    console.error("[scheduled-transfers-job] payroll execution failed", error);
+  }
+
+  const completedAt = new Date();
+  const durationMs = completedAt.getTime() - startedAt.getTime();
+  const ok = errors.length === 0;
+
+  await recordOpsJobRunDetail(
+    SCHEDULED_TRANSFERS_JOB_KEY,
+    TRANSFERS_LABEL,
+    ok ? "SUCCESS" : "FAILED",
+    {
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       durationMs,
-      processedCount: scheduledTransfers.executedCount + scheduledTransfers.failedCount + scheduledTransfers.skippedCount,
+      processedCount:
+        scheduledTransfers.executedCount +
+        scheduledTransfers.failedCount +
+        scheduledTransfers.skippedCount,
       successCount: scheduledTransfers.executedCount,
       failureCount: scheduledTransfers.failedCount,
-      details: { scheduledTransfers, payroll: { executed: payroll.executedCount } },
-    });
+      errorSummary: errors[0] ?? null,
+      details: { scheduledTransfers, payroll: { executed: payroll.executedCount }, errors },
+    },
+  );
 
-    await recordOpsJobRunDetail(PAYROLL_JOB_KEY, PAYROLL_LABEL, payroll.failedCount > 0 ? "FAILED" : "SUCCESS", {
+  await recordOpsJobRunDetail(
+    PAYROLL_JOB_KEY,
+    PAYROLL_LABEL,
+    errors.some((entry) => entry.startsWith("Payroll:")) || payroll.failedCount > 0
+      ? "FAILED"
+      : "SUCCESS",
+    {
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       durationMs,
       processedCount: payroll.executedCount + payroll.failedCount + payroll.skippedCount,
       successCount: payroll.executedCount,
       failureCount: payroll.failedCount,
+      errorSummary: errors.find((entry) => entry.startsWith("Payroll:")) ?? null,
       details: payroll,
-    });
+    },
+  );
 
-    return { scheduledTransfers, payroll };
-  } catch (error) {
-    const completedAt = new Date();
-    const message = error instanceof Error ? error.message : String(error);
-    const summary = {
-      startedAt: startedAt.toISOString(),
-      completedAt: completedAt.toISOString(),
-      durationMs: completedAt.getTime() - startedAt.getTime(),
-      processedCount: 0,
-      successCount: 0,
-      failureCount: 1,
-      errorSummary: message,
-    };
-    await recordOpsJobRunDetail(SCHEDULED_TRANSFERS_JOB_KEY, TRANSFERS_LABEL, "FAILED", summary);
-    await recordOpsJobRunDetail(PAYROLL_JOB_KEY, PAYROLL_LABEL, "FAILED", summary);
-    throw error;
-  }
+  return { ok, scheduledTransfers, payroll, errors };
 }

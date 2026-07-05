@@ -213,20 +213,24 @@ async function executeSinglePayment(
 
     const { writeAuditLog } = await import("@/server/audit.service");
     const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
-    await writeAuditLog({
-      actorUserId: payment.createdByUserId,
-      action: "BANK_SCHEDULED_TRANSFER_EXECUTED",
-      entityType: "SCHEDULED_PAYMENT",
-      entityId: payment.id,
-      targetAccountId: payment.bankAccountId,
-      targetTransactionId: bankTransactionId ?? undefined,
-      description: `Executed scheduled transfer "${payment.label}"`,
-      metadata: auditSourceMetadata("cron", {
-        amount,
-        referenceCode,
-        scheduledRunAt: scheduledRunAt.toISOString(),
-      }),
-    });
+    try {
+      await writeAuditLog({
+        actorUserId: payment.createdByUserId,
+        action: "BANK_SCHEDULED_TRANSFER_EXECUTED",
+        entityType: "SCHEDULED_PAYMENT",
+        entityId: payment.id,
+        targetAccountId: payment.bankAccountId,
+        targetTransactionId: bankTransactionId ?? undefined,
+        description: `Executed scheduled transfer "${payment.label}"`,
+        metadata: auditSourceMetadata("cron", {
+          amount,
+          referenceCode,
+          scheduledRunAt: scheduledRunAt.toISOString(),
+        }),
+      });
+    } catch (error) {
+      console.error("[scheduled-transfer] executed audit write error", error);
+    }
 
     try {
       const { notifyScheduledTransferExecuted } = await import("@/server/banking-notification.service");
@@ -295,21 +299,25 @@ async function recordFailure(
 
   const { writeAuditLog } = await import("@/server/audit.service");
   const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
-  await writeAuditLog({
-    actorUserId: payment.createdByUserId,
-    action: "BANK_SCHEDULED_TRANSFER_FAILED",
-    entityType: "SCHEDULED_PAYMENT",
-    entityId: payment.id,
-    targetAccountId: payment.bankAccountId,
-    description: `Scheduled transfer "${payment.label}" failed`,
-    metadata: auditSourceMetadata("cron", {
-      amount: Number(payment.amount.toString()),
-      reason,
-      consecutiveFailures,
-      severity: "warning",
-      requiresAction: shouldPause,
-    }),
-  });
+  try {
+    await writeAuditLog({
+      actorUserId: payment.createdByUserId,
+      action: "BANK_SCHEDULED_TRANSFER_FAILED",
+      entityType: "SCHEDULED_PAYMENT",
+      entityId: payment.id,
+      targetAccountId: payment.bankAccountId,
+      description: `Scheduled transfer "${payment.label}" failed`,
+      metadata: auditSourceMetadata("cron", {
+        amount: Number(payment.amount.toString()),
+        reason,
+        consecutiveFailures,
+        severity: "warning",
+        requiresAction: shouldPause,
+      }),
+    });
+  } catch (error) {
+    console.error("[scheduled-transfer] failed audit write error", error);
+  }
 
   try {
     const { notifyScheduledTransferFailed } = await import("@/server/banking-notification.service");
@@ -352,7 +360,14 @@ export async function executeDueScheduledTransfers(
       continue;
     }
 
-    const outcome = await executeSinglePayment(payment, scheduledRunAt, now);
+    const outcome = await executeSinglePayment(payment, scheduledRunAt, now).catch((error) => {
+      console.error("[scheduled-transfer] unexpected execution error", {
+        paymentId: payment.id,
+        error,
+      });
+      failedCount += 1;
+      return "failed" as const;
+    });
     if (outcome === "executed") executedCount += 1;
     else if (outcome === "failed") failedCount += 1;
     else skippedCount += 1;

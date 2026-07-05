@@ -3,7 +3,13 @@ import { handleCronRoute } from "@/lib/cron/cron-http";
 import { runScheduledTransfersJob } from "@/server/scheduled-transfers-job.service";
 
 async function runExecutor() {
-  return runScheduledTransfersJob();
+  const result = await runScheduledTransfersJob();
+  return {
+    ok: result.ok,
+    scheduledTransfers: result.scheduledTransfers,
+    payroll: result.payroll,
+    errors: result.errors,
+  };
 }
 
 export const Route = createFileRoute("/api/cron/scheduled-transfers")({

@@ -16,7 +16,6 @@ import {
   silentNotificationForbiddenMessage,
 } from "@/lib/internal/silent-notification-restrictions";
 import type { SilentForbiddenAction } from "@/lib/internal/silent-notification-restrictions";
-import type { OperatorCustomerNotificationKind } from "@/lib/bank/customer-operator-notification-copy";
 import { prisma } from "@/server/db";
 
 const COMPANY_INCOMING_NOTIFY_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;

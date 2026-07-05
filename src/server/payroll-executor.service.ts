@@ -120,22 +120,26 @@ async function recordPayrollFailure(
 
   const { writeAuditLog } = await import("@/server/audit.service");
   const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
-  await writeAuditLog({
-    actorUserId: run.createdByUserId,
-    action: "BANK_PAYROLL_RUN_FAILED",
-    entityType: "PAYROLL_RUN",
-    entityId: run.id,
-    targetAccountId: run.bankAccountId,
-    targetCompanyId: run.companyId,
-    description: `Payroll batch "${run.label}" failed`,
-    metadata: auditSourceMetadata("cron", {
-      amount: Number(run.totalAmount.toString()),
-      reason,
-      consecutiveFailures,
-      severity: "warning",
-      requiresAction: shouldFail,
-    }),
-  });
+  try {
+    await writeAuditLog({
+      actorUserId: run.createdByUserId,
+      action: "BANK_PAYROLL_RUN_FAILED",
+      entityType: "PAYROLL_RUN",
+      entityId: run.id,
+      targetAccountId: run.bankAccountId,
+      targetCompanyId: run.companyId,
+      description: `Payroll batch "${run.label}" failed`,
+      metadata: auditSourceMetadata("cron", {
+        amount: Number(run.totalAmount.toString()),
+        reason,
+        consecutiveFailures,
+        severity: "warning",
+        requiresAction: shouldFail,
+      }),
+    });
+  } catch (error) {
+    console.error("[payroll] failed audit write error", error);
+  }
 
   try {
     const { notifyPayrollRunFailed } = await import("@/server/banking-notification.service");
@@ -295,20 +299,24 @@ async function executeSinglePayrollRun(
   const totalAmount = Number(run.totalAmount.toString());
   const { writeAuditLog } = await import("@/server/audit.service");
   const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
-  await writeAuditLog({
-    actorUserId: run.createdByUserId,
-    action: "BANK_PAYROLL_RUN_EXECUTED",
-    entityType: "PAYROLL_RUN",
-    entityId: run.id,
-    targetAccountId: run.bankAccountId,
-    targetCompanyId: run.companyId,
-    description: `Executed payroll batch "${run.label}"`,
-    metadata: auditSourceMetadata("cron", {
-      amount: totalAmount,
-      employeeCount: lineItems.length,
-      scheduledRunAt: scheduledRunAt.toISOString(),
-    }),
-  });
+  try {
+    await writeAuditLog({
+      actorUserId: run.createdByUserId,
+      action: "BANK_PAYROLL_RUN_EXECUTED",
+      entityType: "PAYROLL_RUN",
+      entityId: run.id,
+      targetAccountId: run.bankAccountId,
+      targetCompanyId: run.companyId,
+      description: `Executed payroll batch "${run.label}"`,
+      metadata: auditSourceMetadata("cron", {
+        amount: totalAmount,
+        employeeCount: lineItems.length,
+        scheduledRunAt: scheduledRunAt.toISOString(),
+      }),
+    });
+  } catch (error) {
+    console.error("[payroll] executed audit write error", error);
+  }
 
   try {
     const { notifyPayrollRunExecuted } = await import("@/server/banking-notification.service");
