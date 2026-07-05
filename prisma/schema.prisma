@@ -1020,6 +1020,7 @@ model SecureDealRoomDiscordSession {
   discordChannelId     String?
   discordChannelName   String?
   lastDiscordMessageId String?
+  lastStaffMessageDmAt DateTime?
   status               SecureDealRoomDiscordSessionStatus @default(ACTIVE)
   contextJson          Json?
   lastInteractionAt    DateTime                           @default(now())

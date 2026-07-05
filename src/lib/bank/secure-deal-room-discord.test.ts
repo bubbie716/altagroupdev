@@ -7,6 +7,7 @@ import {
   buildWebsiteToDiscordChannelEmbed,
   buildWebsiteToDiscordChannelMessage,
   resolveDiscordChannelSenderRole,
+  resolveWebsiteToDiscordSenderDisplayName,
   sanitizeDiscordReplyContent,
 } from "@/lib/bank/secure-deal-room-discord-copy";
 import { buildDealRoomOpenedDmPayload } from "@/lib/discord/notification-dm";
@@ -54,6 +55,32 @@ describe("secure deal room discord channel copy", () => {
       messageBody: "Can you provide proof of income?",
     });
     assert.match(legacy, /FTLCEO via Alta Bank:/);
+  });
+
+  it("shows admin panel staff messages as Alta Credit Desk in Discord", () => {
+    assert.equal(
+      resolveWebsiteToDiscordSenderDisplayName({
+        senderRole: "ALTA_STAFF",
+        senderDisplayName: "FTLCEO",
+      }),
+      "Alta Credit Desk",
+    );
+    assert.equal(
+      resolveWebsiteToDiscordSenderDisplayName({
+        senderRole: "APPLICANT",
+        senderDisplayName: "FTLCEO",
+      }),
+      "FTLCEO",
+    );
+
+    const embed = buildWebsiteToDiscordChannelEmbed({
+      senderDisplayName: resolveWebsiteToDiscordSenderDisplayName({
+        senderRole: "ALTA_STAFF",
+        senderDisplayName: "FTLCEO",
+      }),
+      messageBody: "Please upload your latest statement.",
+    });
+    assert.equal(embed.title, "Alta Credit Desk");
   });
 
   it("builds clickable discord channel links for opened deal room DMs", () => {

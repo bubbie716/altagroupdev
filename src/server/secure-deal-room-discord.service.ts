@@ -16,6 +16,7 @@ import {
   buildDealRoomChannelWelcomeContent,
   buildDiscordGuildChannelUrl,
   buildWebsiteToDiscordChannelEmbed,
+  resolveWebsiteToDiscordSenderDisplayName,
   DEAL_ROOM_CHANNEL_FAILURE_COPY,
   resolveDiscordChannelSenderRole,
   sanitizeDiscordReplyContent,
@@ -28,6 +29,10 @@ import {
   type StaffDealRoomMessageNotifyInput,
   type WebsiteMessageSyncInput,
 } from "@/lib/bank/secure-deal-room-discord-types";
+import {
+  recordStaffDealRoomMessageDmSent,
+  shouldSendStaffDealRoomMessageDm,
+} from "@/lib/bank/deal-room-staff-message-dm-cooldown";
 import { buildDealRoomOpenedDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
 import {
@@ -455,9 +460,15 @@ export async function notifyStaffDealRoomMessageBestEffort(
 ): Promise<void> {
   try {
     const linkUrl = resolveCustomerDealRoomUrl(input.dealRoomType, input.dealRoomId, input.context);
-    await createUserNotification({
+    const shouldSendDm = await shouldSendStaffDealRoomMessageDm({
+      dealRoomType: input.dealRoomType,
+      dealRoomId: input.dealRoomId,
+      applicantUserId: input.applicantUserId,
+    });
+
+    const notificationInput = {
       userId: input.applicantUserId,
-      type: "DEAL_ROOM_MESSAGE_RECEIVED",
+      type: "DEAL_ROOM_MESSAGE_RECEIVED" as const,
       title: "New message in your Secure Deal Room",
       body: previewInAppBody(input.messageBody),
       linkUrl,
@@ -468,7 +479,37 @@ export async function notifyStaffDealRoomMessageBestEffort(
         messageId: input.messageId,
         staffUserId: input.staffUserId,
       },
+    };
+
+    if (!shouldSendDm) {
+      await createUserNotification({ ...notificationInput, skipDiscord: true });
+      logDealRoomDiscord("staff message DM skipped (cooldown)", {
+        dealRoomId: input.dealRoomId,
+        dealRoomType: input.dealRoomType,
+      });
+      return;
+    }
+
+    const notificationId = await createUserNotification({ ...notificationInput, skipDiscord: true });
+    const { deliverCustomerNotificationDm } = await import(
+      "@/server/customer-notification-delivery.service"
+    );
+    const delivery = await deliverCustomerNotificationDm({
+      notificationId,
+      userId: input.applicantUserId,
+      type: notificationInput.type,
+      title: notificationInput.title,
+      body: notificationInput.body,
+      linkUrl,
+      metadata: notificationInput.metadata,
     });
+
+    if (delivery.sent) {
+      await recordStaffDealRoomMessageDmSent({
+        dealRoomType: input.dealRoomType,
+        dealRoomId: input.dealRoomId,
+      });
+    }
   } catch (error) {
     logDealRoomDiscord("staff in-app notify failed", {
       dealRoomId: input.dealRoomId,
@@ -505,7 +546,10 @@ async function syncWebsiteMessageToDiscord(input: WebsiteMessageSyncInput): Prom
   }
 
   const embed = buildWebsiteToDiscordChannelEmbed({
-    senderDisplayName: input.senderDisplayName,
+    senderDisplayName: resolveWebsiteToDiscordSenderDisplayName({
+      senderRole: input.senderRole,
+      senderDisplayName: input.senderDisplayName,
+    }),
     messageBody: input.messageBody,
   });
 

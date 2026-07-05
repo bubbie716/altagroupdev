@@ -4,6 +4,18 @@ import { DEAL_ROOM_TYPE_LABELS } from "@/lib/bank/secure-deal-room-discord-types
 const MAX_PREVIEW_CHARS = 500;
 const MAX_REPLY_CHARS = 4000;
 
+export const ALTA_CREDIT_DESK_DISPLAY_NAME = "Alta Credit Desk";
+
+export function resolveWebsiteToDiscordSenderDisplayName(input: {
+  senderRole: "APPLICANT" | "ALTA_STAFF";
+  senderDisplayName: string;
+}): string {
+  if (input.senderRole === "ALTA_STAFF") {
+    return ALTA_CREDIT_DESK_DISPLAY_NAME;
+  }
+  return input.senderDisplayName.trim().slice(0, 256) || "Applicant";
+}
+
 export function previewDealRoomMessage(body: string | null): string {
   const trimmed = body?.trim() ?? "";
   if (!trimmed) return "_No message text_";
