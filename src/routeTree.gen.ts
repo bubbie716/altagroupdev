@@ -13,6 +13,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DiscordRouteImport } from './routes/discord'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AccessRestrictedRouteImport } from './routes/access-restricted'
 import { Route as TerminalRouteRouteImport } from './routes/terminal/route'
@@ -23,9 +24,15 @@ import { Route as CompaniesRouteRouteImport } from './routes/companies/route'
 import { Route as BankRouteRouteImport } from './routes/bank/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
+import { Route as SupportIndexRouteImport } from './routes/support/index'
+import { Route as StatusIndexRouteImport } from './routes/status/index'
+import { Route as LegalIndexRouteImport } from './routes/legal/index'
 import { Route as InternalIndexRouteImport } from './routes/internal/index'
 import { Route as GovernanceIndexRouteImport } from './routes/governance/index'
 import { Route as ExchangeIndexRouteImport } from './routes/exchange/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as ContactIndexRouteImport } from './routes/contact/index'
+import { Route as CompanyIndexRouteImport } from './routes/company/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as BankIndexRouteImport } from './routes/bank/index'
 import { Route as TerminalWatchlistRouteImport } from './routes/terminal/watchlist'
@@ -36,6 +43,7 @@ import { Route as TerminalNewsRouteImport } from './routes/terminal/news'
 import { Route as TerminalLeaderboardRouteImport } from './routes/terminal/leaderboard'
 import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
 import { Route as PaySlugRouteImport } from './routes/pay/$slug'
+import { Route as LegalSplatRouteImport } from './routes/legal/$'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
 import { Route as InternalReportsRouteImport } from './routes/internal/reports'
@@ -57,6 +65,11 @@ import { Route as ExchangeIndicesRouteImport } from './routes/exchange/indices'
 import { Route as ExchangeApplyRouteImport } from './routes/exchange/apply'
 import { Route as ExchangeApiRouteImport } from './routes/exchange/api'
 import { Route as ExchangeActionsRouteImport } from './routes/exchange/actions'
+import { Route as DiscordNccRouteImport } from './routes/discord/ncc'
+import { Route as DiscordMarketsRouteImport } from './routes/discord/markets'
+import { Route as DiscordBankRouteImport } from './routes/discord/bank'
+import { Route as CompanyNccRouteImport } from './routes/company/ncc'
+import { Route as CompanyLeadershipRouteImport } from './routes/company/leadership'
 import { Route as CompaniesCreateRouteImport } from './routes/companies/create'
 import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
 import { Route as BankSettingsRouteImport } from './routes/bank/settings'
@@ -273,6 +286,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscordRoute = DiscordRouteImport.update({
+  id: '/discord',
+  path: '/discord',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -323,6 +341,21 @@ const TerminalIndexRoute = TerminalIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TerminalRouteRoute,
 } as any)
+const SupportIndexRoute = SupportIndexRouteImport.update({
+  id: '/support/',
+  path: '/support/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusIndexRoute = StatusIndexRouteImport.update({
+  id: '/status/',
+  path: '/status/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalIndexRoute = LegalIndexRouteImport.update({
+  id: '/legal/',
+  path: '/legal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InternalIndexRoute = InternalIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -337,6 +370,21 @@ const ExchangeIndexRoute = ExchangeIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ExchangeRouteRoute,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactIndexRoute = ContactIndexRouteImport.update({
+  id: '/contact/',
+  path: '/contact/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyIndexRoute = CompanyIndexRouteImport.update({
+  id: '/company/',
+  path: '/company/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesIndexRoute = CompaniesIndexRouteImport.update({
   id: '/',
@@ -386,6 +434,11 @@ const TerminalIpoRoute = TerminalIpoRouteImport.update({
 const PaySlugRoute = PaySlugRouteImport.update({
   id: '/pay/$slug',
   path: '/pay/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSplatRoute = LegalSplatRouteImport.update({
+  id: '/legal/$',
+  path: '/legal/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InternalTerminalRoute = InternalTerminalRouteImport.update({
@@ -492,6 +545,31 @@ const ExchangeActionsRoute = ExchangeActionsRouteImport.update({
   id: '/actions',
   path: '/actions',
   getParentRoute: () => ExchangeRouteRoute,
+} as any)
+const DiscordNccRoute = DiscordNccRouteImport.update({
+  id: '/ncc',
+  path: '/ncc',
+  getParentRoute: () => DiscordRoute,
+} as any)
+const DiscordMarketsRoute = DiscordMarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => DiscordRoute,
+} as any)
+const DiscordBankRoute = DiscordBankRouteImport.update({
+  id: '/bank',
+  path: '/bank',
+  getParentRoute: () => DiscordRoute,
+} as any)
+const CompanyNccRoute = CompanyNccRouteImport.update({
+  id: '/company/ncc',
+  path: '/company/ncc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyLeadershipRoute = CompanyLeadershipRouteImport.update({
+  id: '/company/leadership',
+  path: '/company/leadership',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesCreateRoute = CompaniesCreateRouteImport.update({
   id: '/create',
@@ -1608,6 +1686,7 @@ export interface FileRoutesByFullPath {
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
+  '/discord': typeof DiscordRouteWithChildren
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -1630,6 +1709,11 @@ export interface FileRoutesByFullPath {
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
+  '/company/leadership': typeof CompanyLeadershipRoute
+  '/company/ncc': typeof CompanyNccRoute
+  '/discord/bank': typeof DiscordBankRoute
+  '/discord/markets': typeof DiscordMarketsRoute
+  '/discord/ncc': typeof DiscordNccRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
   '/exchange/apply': typeof ExchangeApplyRoute
@@ -1651,6 +1735,7 @@ export interface FileRoutesByFullPath {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/legal/$': typeof LegalSplatRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -1661,9 +1746,15 @@ export interface FileRoutesByFullPath {
   '/terminal/watchlist': typeof TerminalWatchlistRoute
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
+  '/company/': typeof CompanyIndexRoute
+  '/contact/': typeof ContactIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
+  '/legal/': typeof LegalIndexRoute
+  '/status/': typeof StatusIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
@@ -1847,6 +1938,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
+  '/discord': typeof DiscordRouteWithChildren
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -1863,6 +1955,11 @@ export interface FileRoutesByTo {
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
+  '/company/leadership': typeof CompanyLeadershipRoute
+  '/company/ncc': typeof CompanyNccRoute
+  '/discord/bank': typeof DiscordBankRoute
+  '/discord/markets': typeof DiscordMarketsRoute
+  '/discord/ncc': typeof DiscordNccRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
   '/exchange/apply': typeof ExchangeApplyRoute
@@ -1884,6 +1981,7 @@ export interface FileRoutesByTo {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/legal/$': typeof LegalSplatRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -1894,9 +1992,15 @@ export interface FileRoutesByTo {
   '/terminal/watchlist': typeof TerminalWatchlistRoute
   '/bank': typeof BankIndexRoute
   '/companies': typeof CompaniesIndexRoute
+  '/company': typeof CompanyIndexRoute
+  '/contact': typeof ContactIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/exchange': typeof ExchangeIndexRoute
   '/governance': typeof GovernanceIndexRoute
   '/internal': typeof InternalIndexRoute
+  '/legal': typeof LegalIndexRoute
+  '/status': typeof StatusIndexRoute
+  '/support': typeof SupportIndexRoute
   '/terminal': typeof TerminalIndexRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
   '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
@@ -2074,6 +2178,7 @@ export interface FileRoutesById {
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
+  '/discord': typeof DiscordRouteWithChildren
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -2096,6 +2201,11 @@ export interface FileRoutesById {
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
   '/companies/create': typeof CompaniesCreateRoute
+  '/company/leadership': typeof CompanyLeadershipRoute
+  '/company/ncc': typeof CompanyNccRoute
+  '/discord/bank': typeof DiscordBankRoute
+  '/discord/markets': typeof DiscordMarketsRoute
+  '/discord/ncc': typeof DiscordNccRoute
   '/exchange/actions': typeof ExchangeActionsRoute
   '/exchange/api': typeof ExchangeApiRoute
   '/exchange/apply': typeof ExchangeApplyRoute
@@ -2117,6 +2227,7 @@ export interface FileRoutesById {
   '/internal/reports': typeof InternalReportsRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
+  '/legal/$': typeof LegalSplatRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -2127,9 +2238,15 @@ export interface FileRoutesById {
   '/terminal/watchlist': typeof TerminalWatchlistRoute
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
+  '/company/': typeof CompanyIndexRoute
+  '/contact/': typeof ContactIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
+  '/legal/': typeof LegalIndexRoute
+  '/status/': typeof StatusIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdRouteRouteWithChildren
@@ -2321,6 +2438,7 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/access-restricted'
     | '/dashboard'
+    | '/discord'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -2343,6 +2461,11 @@ export interface FileRouteTypes {
     | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
+    | '/company/leadership'
+    | '/company/ncc'
+    | '/discord/bank'
+    | '/discord/markets'
+    | '/discord/ncc'
     | '/exchange/actions'
     | '/exchange/api'
     | '/exchange/apply'
@@ -2364,6 +2487,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/legal/$'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -2374,9 +2498,15 @@ export interface FileRouteTypes {
     | '/terminal/watchlist'
     | '/bank/'
     | '/companies/'
+    | '/company/'
+    | '/contact/'
+    | '/docs/'
     | '/exchange/'
     | '/governance/'
     | '/internal/'
+    | '/legal/'
+    | '/status/'
+    | '/support/'
     | '/terminal/'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
@@ -2560,6 +2690,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access-restricted'
     | '/dashboard'
+    | '/discord'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -2576,6 +2707,11 @@ export interface FileRouteTypes {
     | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
+    | '/company/leadership'
+    | '/company/ncc'
+    | '/discord/bank'
+    | '/discord/markets'
+    | '/discord/ncc'
     | '/exchange/actions'
     | '/exchange/api'
     | '/exchange/apply'
@@ -2597,6 +2733,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/legal/$'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -2607,9 +2744,15 @@ export interface FileRouteTypes {
     | '/terminal/watchlist'
     | '/bank'
     | '/companies'
+    | '/company'
+    | '/contact'
+    | '/docs'
     | '/exchange'
     | '/governance'
     | '/internal'
+    | '/legal'
+    | '/status'
+    | '/support'
     | '/terminal'
     | '/api/auth/discord'
     | '/api/bank/deposit-request'
@@ -2786,6 +2929,7 @@ export interface FileRouteTypes {
     | '/terminal'
     | '/access-restricted'
     | '/dashboard'
+    | '/discord'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -2808,6 +2952,11 @@ export interface FileRouteTypes {
     | '/bank/settings'
     | '/bank/withdraw'
     | '/companies/create'
+    | '/company/leadership'
+    | '/company/ncc'
+    | '/discord/bank'
+    | '/discord/markets'
+    | '/discord/ncc'
     | '/exchange/actions'
     | '/exchange/api'
     | '/exchange/apply'
@@ -2829,6 +2978,7 @@ export interface FileRouteTypes {
     | '/internal/reports'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/legal/$'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -2839,9 +2989,15 @@ export interface FileRouteTypes {
     | '/terminal/watchlist'
     | '/bank/'
     | '/companies/'
+    | '/company/'
+    | '/contact/'
+    | '/docs/'
     | '/exchange/'
     | '/governance/'
     | '/internal/'
+    | '/legal/'
+    | '/status/'
+    | '/support/'
     | '/terminal/'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
@@ -3032,11 +3188,21 @@ export interface RootRouteChildren {
   TerminalRouteRoute: typeof TerminalRouteRouteWithChildren
   AccessRestrictedRoute: typeof AccessRestrictedRoute
   DashboardRoute: typeof DashboardRoute
+  DiscordRoute: typeof DiscordRouteWithChildren
   LoginRoute: typeof LoginRoute
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
   ProfileRoute: typeof ProfileRoute
+  CompanyLeadershipRoute: typeof CompanyLeadershipRoute
+  CompanyNccRoute: typeof CompanyNccRoute
+  LegalSplatRoute: typeof LegalSplatRoute
   PaySlugRoute: typeof PaySlugRoute
+  CompanyIndexRoute: typeof CompanyIndexRoute
+  ContactIndexRoute: typeof ContactIndexRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+  LegalIndexRoute: typeof LegalIndexRoute
+  StatusIndexRoute: typeof StatusIndexRoute
+  SupportIndexRoute: typeof SupportIndexRoute
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
   ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
   ApiBankWithdrawalRequestRoute: typeof ApiBankWithdrawalRequestRoute
@@ -3087,6 +3253,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discord': {
+      id: '/discord'
+      path: '/discord'
+      fullPath: '/discord'
+      preLoaderRoute: typeof DiscordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -3159,6 +3332,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TerminalIndexRouteImport
       parentRoute: typeof TerminalRouteRoute
     }
+    '/support/': {
+      id: '/support/'
+      path: '/support'
+      fullPath: '/support/'
+      preLoaderRoute: typeof SupportIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status/': {
+      id: '/status/'
+      path: '/status'
+      fullPath: '/status/'
+      preLoaderRoute: typeof StatusIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/': {
+      id: '/legal/'
+      path: '/legal'
+      fullPath: '/legal/'
+      preLoaderRoute: typeof LegalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/internal/': {
       id: '/internal/'
       path: '/'
@@ -3179,6 +3373,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/exchange/'
       preLoaderRoute: typeof ExchangeIndexRouteImport
       parentRoute: typeof ExchangeRouteRoute
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact/': {
+      id: '/contact/'
+      path: '/contact'
+      fullPath: '/contact/'
+      preLoaderRoute: typeof ContactIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/': {
+      id: '/company/'
+      path: '/company'
+      fullPath: '/company/'
+      preLoaderRoute: typeof CompanyIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/companies/': {
       id: '/companies/'
@@ -3248,6 +3463,13 @@ declare module '@tanstack/react-router' {
       path: '/pay/$slug'
       fullPath: '/pay/$slug'
       preLoaderRoute: typeof PaySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$': {
+      id: '/legal/$'
+      path: '/legal/$'
+      fullPath: '/legal/$'
+      preLoaderRoute: typeof LegalSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/internal/terminal': {
@@ -3396,6 +3618,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/exchange/actions'
       preLoaderRoute: typeof ExchangeActionsRouteImport
       parentRoute: typeof ExchangeRouteRoute
+    }
+    '/discord/ncc': {
+      id: '/discord/ncc'
+      path: '/ncc'
+      fullPath: '/discord/ncc'
+      preLoaderRoute: typeof DiscordNccRouteImport
+      parentRoute: typeof DiscordRoute
+    }
+    '/discord/markets': {
+      id: '/discord/markets'
+      path: '/markets'
+      fullPath: '/discord/markets'
+      preLoaderRoute: typeof DiscordMarketsRouteImport
+      parentRoute: typeof DiscordRoute
+    }
+    '/discord/bank': {
+      id: '/discord/bank'
+      path: '/bank'
+      fullPath: '/discord/bank'
+      preLoaderRoute: typeof DiscordBankRouteImport
+      parentRoute: typeof DiscordRoute
+    }
+    '/company/ncc': {
+      id: '/company/ncc'
+      path: '/company/ncc'
+      fullPath: '/company/ncc'
+      preLoaderRoute: typeof CompanyNccRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/leadership': {
+      id: '/company/leadership'
+      path: '/company/leadership'
+      fullPath: '/company/leadership'
+      preLoaderRoute: typeof CompanyLeadershipRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/companies/create': {
       id: '/companies/create'
@@ -5556,6 +5813,21 @@ const TerminalRouteRouteWithChildren = TerminalRouteRoute._addFileChildren(
   TerminalRouteRouteChildren,
 )
 
+interface DiscordRouteChildren {
+  DiscordBankRoute: typeof DiscordBankRoute
+  DiscordMarketsRoute: typeof DiscordMarketsRoute
+  DiscordNccRoute: typeof DiscordNccRoute
+}
+
+const DiscordRouteChildren: DiscordRouteChildren = {
+  DiscordBankRoute: DiscordBankRoute,
+  DiscordMarketsRoute: DiscordMarketsRoute,
+  DiscordNccRoute: DiscordNccRoute,
+}
+
+const DiscordRouteWithChildren =
+  DiscordRoute._addFileChildren(DiscordRouteChildren)
+
 interface ApiAuthDiscordRouteChildren {
   ApiAuthDiscordCallbackRoute: typeof ApiAuthDiscordCallbackRoute
 }
@@ -5623,11 +5895,21 @@ const rootRouteChildren: RootRouteChildren = {
   TerminalRouteRoute: TerminalRouteRouteWithChildren,
   AccessRestrictedRoute: AccessRestrictedRoute,
   DashboardRoute: DashboardRoute,
+  DiscordRoute: DiscordRouteWithChildren,
   LoginRoute: LoginRoute,
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
   ProfileRoute: ProfileRoute,
+  CompanyLeadershipRoute: CompanyLeadershipRoute,
+  CompanyNccRoute: CompanyNccRoute,
+  LegalSplatRoute: LegalSplatRoute,
   PaySlugRoute: PaySlugRoute,
+  CompanyIndexRoute: CompanyIndexRoute,
+  ContactIndexRoute: ContactIndexRoute,
+  DocsIndexRoute: DocsIndexRoute,
+  LegalIndexRoute: LegalIndexRoute,
+  StatusIndexRoute: StatusIndexRoute,
+  SupportIndexRoute: SupportIndexRoute,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
   ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,
   ApiBankWithdrawalRequestRoute: ApiBankWithdrawalRequestRoute,

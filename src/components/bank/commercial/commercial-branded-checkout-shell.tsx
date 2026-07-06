@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AltaLogo } from "@/components/alta-logo";
+import { PaymentLegalFooter } from "@/components/footers";
 import type { CustomerFacingBranding } from "@/lib/bank/company-branding-types";
 import { DEFAULT_ACCENT_COLOR, DEFAULT_BRAND_COLOR } from "@/lib/bank/company-branding-types";
 import { cn } from "@/lib/utils";
@@ -146,10 +147,7 @@ export function CommercialBrandedCheckoutFooter({
           {branding.supportDiscord ? `@${branding.supportDiscord} on Discord` : null}
         </p>
       )}
-      <p className="flex items-center justify-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em]">
-        <AltaLogo className="h-3 w-3 text-gold" />
-        Powered by Alta Bank
-      </p>
+      <PaymentLegalFooter />
     </footer>
   );
 }

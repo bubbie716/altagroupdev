@@ -18,7 +18,7 @@ function PageFooter({
   variant: FooterVariant;
   pathname: string;
 }) {
-  if (variant === "none" || variant === "legal") return null;
+  if (variant === "none" || variant === "minimal-auth") return null;
   if (variant === "platform") {
     return <PlatformFooter context={resolvePlatformFooterContext(pathname)} />;
   }

@@ -36,6 +36,7 @@ function PaymentLinkCheckoutPage() {
       eyebrow="Alta Bank"
       title="Checkout"
       description={`Pay ${checkout.merchantName} securely with your Alta Bank account.`}
+      hideFooter
     >
       <PaymentLinkCheckoutPanel checkout={checkout} fundingSources={fundingSources} />
     </PageShell>

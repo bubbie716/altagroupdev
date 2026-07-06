@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { LegalDocMarkdown } from "@/components/governance/legal-doc-markdown";
 import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
+import { LEGAL_CENTER_PATH } from "@/lib/site/site-links";
 
 export const Route = createFileRoute("/governance/legaldocs/$docId")({
   loader: ({ params }) => {
@@ -34,11 +35,11 @@ function LegalDocDetailPage() {
         className="border-b border-border/60 pb-12"
       >
         <Link
-          to="/governance/legaldocs"
+          to={LEGAL_CENTER_PATH}
           className="inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronLeft className="size-3.5" />
-          All legal documents
+          Legal Center
         </Link>
         <div className="type-meta mt-8">{meta.id}</div>
         <h1 className="mt-4 text-[clamp(2rem,4vw,3.25rem)] font-semibold leading-[0.98] tracking-[-0.02em]">

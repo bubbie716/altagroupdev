@@ -1,4 +1,4 @@
-export type FooterVariant = "public" | "platform" | "legal" | "none";
+export type FooterVariant = "public" | "platform" | "minimal-auth" | "none";
 
 export type PlatformFooterContext = "bank" | "exchange" | "general";
 
@@ -11,9 +11,22 @@ export function resolveFooterVariant(pathname: string): FooterVariant {
     pathname === "/maintenance" ||
     pathname === "/access-restricted"
   ) {
-    return "legal";
+    return "minimal-auth";
   }
-  if (pathname === "/" || pathname.startsWith("/governance")) return "public";
+  if (pathname.startsWith("/pay/")) return "none";
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/governance") ||
+    pathname.startsWith("/company") ||
+    pathname.startsWith("/support") ||
+    pathname.startsWith("/docs") ||
+    pathname.startsWith("/status") ||
+    pathname.startsWith("/contact") ||
+    pathname === "/discord" ||
+    pathname.startsWith("/discord/")
+  ) {
+    return "public";
+  }
   if (
     pathname.startsWith("/bank") ||
     pathname.startsWith("/exchange") ||
