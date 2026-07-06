@@ -19,6 +19,7 @@ const STATIC_BANK_PRIMARY_LINKS: SiteNavLink[] = [
   { label: "Transfers", to: "/bank/transfers", match: "/bank/transfers" },
   { label: "Alta Pay", to: "/bank/pay", match: "/bank/pay" },
   { label: "Alta Card", to: "/bank/alta-card", match: "/bank/alta-card" },
+  { label: "Lending", to: "/bank/lending", match: "/bank/lending" },
   {
     label: "Products",
     to: "/bank/products",
@@ -27,7 +28,6 @@ const STATIC_BANK_PRIMARY_LINKS: SiteNavLink[] = [
   },
   { label: "Statements", to: "/bank/statements", match: "/bank/statements" },
   { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
-  { label: "Lending", to: "/bank/lending", match: "/bank/lending" },
   { label: "Alta Private", to: "/bank/private", match: "/bank/private" },
 ];
 
