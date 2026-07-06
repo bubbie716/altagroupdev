@@ -189,7 +189,8 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     roles: [
       {
         title: "President, Alta Bank N.V.",
-        status: "Vacant",
+        name: "Culls",
+        status: "Appointed",
         responsibility: "Banking operations, client coverage, and treasury services.",
       },
       {
@@ -210,7 +211,9 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     roles: [
       {
         title: "President, Alta Exchange N.V.",
-        status: "Vacant",
+        name: "FTLCEO",
+        minecraftUsername: "12700k",
+        status: "Appointed",
         responsibility: "Market venue operations, listings policy, and exchange governance.",
       },
       {
@@ -241,7 +244,8 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     roles: [
       {
         title: "President, NCC",
-        status: "Vacant",
+        name: "Musclebound",
+        status: "Appointed",
         responsibility: "Clearing network planning and settlement infrastructure.",
       },
       {

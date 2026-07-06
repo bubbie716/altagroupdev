@@ -1,0 +1,153 @@
+export type LegalDocCategory =
+  | "Alta Group — Corporate"
+  | "Alta Group — Legal"
+  | "Alta Bank — Corporate"
+  | "Alta Bank — Legal"
+  | "Alta Exchange — Corporate"
+  | "Alta Exchange — Legal"
+  | "NCC — Corporate"
+  | "NCC — Legal";
+
+export type LegalDocKind = "corporate" | "legal" | "template";
+
+export type LegalDocMeta = {
+  id: string;
+  title: string;
+  category: LegalDocCategory;
+  entity: string;
+  kind: LegalDocKind;
+  filename: string;
+  description: string;
+};
+
+const DOC_ID_PATTERN = /^([A-Z]+-(?:COR|LEGAL)-\d+)/;
+
+function parseDocId(filename: string): string | null {
+  const match = filename.match(DOC_ID_PATTERN);
+  return match?.[1] ?? null;
+}
+
+function titleFromFilename(filename: string): string {
+  const withoutExt = filename.replace(/\.md$/, "");
+  const parts = withoutExt.split("-");
+  const titleParts = parts.slice(3);
+  return titleParts
+    .join(" ")
+    .replace(/\bv(\d+(?:\.\d+)?)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categoryForId(id: string): LegalDocCategory {
+  if (id.startsWith("AG-COR-")) return "Alta Group — Corporate";
+  if (id.startsWith("AG-LEGAL-")) return "Alta Group — Legal";
+  if (id.startsWith("AB-COR-")) return "Alta Bank — Corporate";
+  if (id.startsWith("AB-LEGAL-")) return "Alta Bank — Legal";
+  if (id.startsWith("AE-COR-")) return "Alta Exchange — Corporate";
+  if (id.startsWith("AE-LEGAL-")) return "Alta Exchange — Legal";
+  if (id.startsWith("NCC-COR-")) return "NCC — Corporate";
+  return "NCC — Legal";
+}
+
+function entityForId(id: string): string {
+  if (id.startsWith("AG-")) return "Alta Group N.V.";
+  if (id.startsWith("AB-")) return "Alta Bank";
+  if (id.startsWith("AE-")) return "Alta Exchange";
+  return "Newport Clearing Corporation";
+}
+
+function kindForId(id: string, title: string): LegalDocKind {
+  if (title.toLowerCase().includes("template")) return "template";
+  return id.includes("-COR-") ? "corporate" : "legal";
+}
+
+function descriptionFor(meta: Pick<LegalDocMeta, "id" | "title" | "kind">): string {
+  if (meta.kind === "template") {
+    return "Per-customer agreement template with customizable fields.";
+  }
+  if (meta.id.includes("-COR-")) {
+    return "Corporate governance charter, ownership, and operating authority.";
+  }
+  if (meta.title.toLowerCase().includes("fee schedule")) {
+    return "Published fee schedule for Alta services.";
+  }
+  if (meta.title.toLowerCase().includes("rules")) {
+    return "Operating and conduct rules for platform participants.";
+  }
+  if (meta.title.toLowerCase().includes("privacy")) {
+    return "Platform-wide privacy and data handling policy.";
+  }
+  if (meta.title.toLowerCase().includes("terms")) {
+    return "Platform-wide terms governing use of Alta services.";
+  }
+  return "Legal agreement, policy, or disclosure for Alta services.";
+}
+
+const rawModules = import.meta.glob<string>("../../content/legal-docs/*.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+export const legalDocBodies: Record<string, string> = {};
+
+for (const [path, body] of Object.entries(rawModules)) {
+  const filename = path.split("/").pop() ?? "";
+  const id = parseDocId(filename);
+  if (id) legalDocBodies[id] = body;
+}
+
+export const legalDocsCatalog: LegalDocMeta[] = Object.keys(legalDocBodies)
+  .map((id) => {
+    const path = Object.keys(rawModules).find((entry) => entry.includes(id)) ?? "";
+    const filename = path.split("/").pop() ?? `${id}.md`;
+    const title = titleFromFilename(filename);
+    const kind = kindForId(id, title);
+    return {
+      id,
+      title,
+      category: categoryForId(id),
+      entity: entityForId(id),
+      kind,
+      filename,
+      description: descriptionFor({ id, title, kind }),
+    };
+  })
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+export const legalDocsByCategory = legalDocsCatalog.reduce<
+  Record<LegalDocCategory, LegalDocMeta[]>
+>(
+  (acc, doc) => {
+    acc[doc.category].push(doc);
+    return acc;
+  },
+  {
+    "Alta Group — Corporate": [],
+    "Alta Group — Legal": [],
+    "Alta Bank — Corporate": [],
+    "Alta Bank — Legal": [],
+    "Alta Exchange — Corporate": [],
+    "Alta Exchange — Legal": [],
+    "NCC — Corporate": [],
+    "NCC — Legal": [],
+  },
+);
+
+export const legalDocCategoryOrder: LegalDocCategory[] = [
+  "Alta Group — Corporate",
+  "Alta Group — Legal",
+  "Alta Bank — Corporate",
+  "Alta Bank — Legal",
+  "Alta Exchange — Corporate",
+  "Alta Exchange — Legal",
+  "NCC — Corporate",
+  "NCC — Legal",
+];
+
+export function getLegalDoc(id: string): { meta: LegalDocMeta; body: string } | null {
+  const meta = legalDocsCatalog.find((doc) => doc.id === id);
+  const body = legalDocBodies[id];
+  if (!meta || !body) return null;
+  return { meta, body };
+}

@@ -81,6 +81,7 @@ import { Route as InternalLendingIndexRouteImport } from './routes/internal/lend
 import { Route as InternalCompaniesIndexRouteImport } from './routes/internal/companies/index'
 import { Route as InternalBankIndexRouteImport } from './routes/internal/bank/index'
 import { Route as InternalAltaCardIndexRouteImport } from './routes/internal/alta-card/index'
+import { Route as GovernanceLegaldocsIndexRouteImport } from './routes/governance/legaldocs/index'
 import { Route as ExchangeTerminalIndexRouteImport } from './routes/exchange/terminal/index'
 import { Route as CompaniesCompanyIdIndexRouteImport } from './routes/companies/$companyId/index'
 import { Route as BankTransfersIndexRouteImport } from './routes/bank/transfers/index'
@@ -110,6 +111,7 @@ import { Route as InternalBankScheduledRouteImport } from './routes/internal/ban
 import { Route as InternalBankInterestRouteImport } from './routes/internal/bank/interest'
 import { Route as InternalBankDepositsRouteImport } from './routes/internal/bank/deposits'
 import { Route as InternalAltaCardCardIdRouteImport } from './routes/internal/alta-card/$cardId'
+import { Route as GovernanceLegaldocsDocIdRouteImport } from './routes/governance/legaldocs/$docId'
 import { Route as ExchangeTerminalSplatRouteImport } from './routes/exchange/terminal/$'
 import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/companies/$companyId/settings'
 import { Route as CompaniesCompanyIdMembersRouteImport } from './routes/companies/$companyId/members'
@@ -612,6 +614,12 @@ const InternalAltaCardIndexRoute = InternalAltaCardIndexRouteImport.update({
   path: '/alta-card/',
   getParentRoute: () => InternalRouteRoute,
 } as any)
+const GovernanceLegaldocsIndexRoute =
+  GovernanceLegaldocsIndexRouteImport.update({
+    id: '/legaldocs/',
+    path: '/legaldocs/',
+    getParentRoute: () => GovernanceRouteRoute,
+  } as any)
 const ExchangeTerminalIndexRoute = ExchangeTerminalIndexRouteImport.update({
   id: '/terminal/',
   path: '/terminal/',
@@ -767,6 +775,12 @@ const InternalAltaCardCardIdRoute = InternalAltaCardCardIdRouteImport.update({
   path: '/alta-card/$cardId',
   getParentRoute: () => InternalRouteRoute,
 } as any)
+const GovernanceLegaldocsDocIdRoute =
+  GovernanceLegaldocsDocIdRouteImport.update({
+    id: '/legaldocs/$docId',
+    path: '/legaldocs/$docId',
+    getParentRoute: () => GovernanceRouteRoute,
+  } as any)
 const ExchangeTerminalSplatRoute = ExchangeTerminalSplatRouteImport.update({
   id: '/terminal/$',
   path: '/terminal/$',
@@ -1691,6 +1705,7 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/governance/legaldocs/$docId': typeof GovernanceLegaldocsDocIdRoute
   '/internal/alta-card/$cardId': typeof InternalAltaCardCardIdRoute
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
@@ -1720,6 +1735,7 @@ export interface FileRoutesByFullPath {
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
+  '/governance/legaldocs/': typeof GovernanceLegaldocsIndexRoute
   '/internal/alta-card/': typeof InternalAltaCardIndexRoute
   '/internal/bank/': typeof InternalBankIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
@@ -1914,6 +1930,7 @@ export interface FileRoutesByTo {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/governance/legaldocs/$docId': typeof GovernanceLegaldocsDocIdRoute
   '/internal/alta-card/$cardId': typeof InternalAltaCardCardIdRoute
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
@@ -1943,6 +1960,7 @@ export interface FileRoutesByTo {
   '/bank/transfers': typeof BankTransfersIndexRoute
   '/companies/$companyId': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal': typeof ExchangeTerminalIndexRoute
+  '/governance/legaldocs': typeof GovernanceLegaldocsIndexRoute
   '/internal/alta-card': typeof InternalAltaCardIndexRoute
   '/internal/bank': typeof InternalBankIndexRoute
   '/internal/companies': typeof InternalCompaniesIndexRoute
@@ -2153,6 +2171,7 @@ export interface FileRoutesById {
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
   '/companies/$companyId/settings': typeof CompaniesCompanyIdSettingsRoute
   '/exchange/terminal/$': typeof ExchangeTerminalSplatRoute
+  '/governance/legaldocs/$docId': typeof GovernanceLegaldocsDocIdRoute
   '/internal/alta-card/$cardId': typeof InternalAltaCardCardIdRoute
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
@@ -2182,6 +2201,7 @@ export interface FileRoutesById {
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
   '/exchange/terminal/': typeof ExchangeTerminalIndexRoute
+  '/governance/legaldocs/': typeof GovernanceLegaldocsIndexRoute
   '/internal/alta-card/': typeof InternalAltaCardIndexRoute
   '/internal/bank/': typeof InternalBankIndexRoute
   '/internal/companies/': typeof InternalCompaniesIndexRoute
@@ -2398,6 +2418,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/governance/legaldocs/$docId'
     | '/internal/alta-card/$cardId'
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
@@ -2427,6 +2448,7 @@ export interface FileRouteTypes {
     | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/exchange/terminal/'
+    | '/governance/legaldocs/'
     | '/internal/alta-card/'
     | '/internal/bank/'
     | '/internal/companies/'
@@ -2621,6 +2643,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/governance/legaldocs/$docId'
     | '/internal/alta-card/$cardId'
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
@@ -2650,6 +2673,7 @@ export interface FileRouteTypes {
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/exchange/terminal'
+    | '/governance/legaldocs'
     | '/internal/alta-card'
     | '/internal/bank'
     | '/internal/companies'
@@ -2859,6 +2883,7 @@ export interface FileRouteTypes {
     | '/companies/$companyId/members'
     | '/companies/$companyId/settings'
     | '/exchange/terminal/$'
+    | '/governance/legaldocs/$docId'
     | '/internal/alta-card/$cardId'
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
@@ -2888,6 +2913,7 @@ export interface FileRouteTypes {
     | '/bank/transfers/'
     | '/companies/$companyId/'
     | '/exchange/terminal/'
+    | '/governance/legaldocs/'
     | '/internal/alta-card/'
     | '/internal/bank/'
     | '/internal/companies/'
@@ -3539,6 +3565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalAltaCardIndexRouteImport
       parentRoute: typeof InternalRouteRoute
     }
+    '/governance/legaldocs/': {
+      id: '/governance/legaldocs/'
+      path: '/legaldocs'
+      fullPath: '/governance/legaldocs/'
+      preLoaderRoute: typeof GovernanceLegaldocsIndexRouteImport
+      parentRoute: typeof GovernanceRouteRoute
+    }
     '/exchange/terminal/': {
       id: '/exchange/terminal/'
       path: '/terminal'
@@ -3741,6 +3774,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/internal/alta-card/$cardId'
       preLoaderRoute: typeof InternalAltaCardCardIdRouteImport
       parentRoute: typeof InternalRouteRoute
+    }
+    '/governance/legaldocs/$docId': {
+      id: '/governance/legaldocs/$docId'
+      path: '/legaldocs/$docId'
+      fullPath: '/governance/legaldocs/$docId'
+      preLoaderRoute: typeof GovernanceLegaldocsDocIdRouteImport
+      parentRoute: typeof GovernanceRouteRoute
     }
     '/exchange/terminal/$': {
       id: '/exchange/terminal/$'
@@ -5274,11 +5314,15 @@ const ExchangeRouteRouteWithChildren = ExchangeRouteRoute._addFileChildren(
 interface GovernanceRouteRouteChildren {
   GovernanceLeadershipRoute: typeof GovernanceLeadershipRoute
   GovernanceIndexRoute: typeof GovernanceIndexRoute
+  GovernanceLegaldocsDocIdRoute: typeof GovernanceLegaldocsDocIdRoute
+  GovernanceLegaldocsIndexRoute: typeof GovernanceLegaldocsIndexRoute
 }
 
 const GovernanceRouteRouteChildren: GovernanceRouteRouteChildren = {
   GovernanceLeadershipRoute: GovernanceLeadershipRoute,
   GovernanceIndexRoute: GovernanceIndexRoute,
+  GovernanceLegaldocsDocIdRoute: GovernanceLegaldocsDocIdRoute,
+  GovernanceLegaldocsIndexRoute: GovernanceLegaldocsIndexRoute,
 }
 
 const GovernanceRouteRouteWithChildren = GovernanceRouteRoute._addFileChildren(

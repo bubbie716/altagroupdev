@@ -12,12 +12,12 @@ export function LeadershipRoleCard({ role }: { role: LeadershipCard }) {
       </div>
       <div className="mt-4 text-xl font-semibold tracking-tight">
         {role.name ?? "Vacant"}
+        {role.minecraftUsername ? (
+          <span className="ml-1.5 font-mono text-base font-normal text-muted-foreground">
+            ({role.minecraftUsername})
+          </span>
+        ) : null}
       </div>
-      {role.minecraftUsername ? (
-        <div className="mt-2 font-mono text-[11px] text-muted-foreground">
-          Minecraft · {role.minecraftUsername}
-        </div>
-      ) : null}
       <div
         className={cn(
           "mt-3 font-mono text-[10px] uppercase tracking-[0.2em]",

@@ -1,9 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-const links: Array<{ to: "/governance" | "/governance/leadership"; label: string; exact?: boolean }> = [
+const links: Array<{
+  to: "/governance" | "/governance/leadership" | "/governance/legaldocs";
+  label: string;
+  exact?: boolean;
+}> = [
   { to: "/governance", label: "Structure", exact: true },
   { to: "/governance/leadership", label: "Leadership" },
+  { to: "/governance/legaldocs", label: "Legal Docs" },
 ];
 
 export function GovernanceSubNav() {
@@ -14,7 +19,9 @@ export function GovernanceSubNav() {
       {links.map((l) => {
         const active = l.exact
           ? pathname === l.to || pathname === `${l.to}/`
-          : pathname === l.to || pathname.startsWith(`${l.to}/`);
+          : pathname === l.to ||
+            pathname === `${l.to}/` ||
+            pathname.startsWith(`${l.to}/`);
         return (
           <Link
             key={l.to}
