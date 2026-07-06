@@ -3,8 +3,9 @@ import { SquareArrowOutUpRight } from "lucide-react";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import { cn } from "@/lib/utils";
-import { type } from "@/lib/typography";
-import { RouteButton } from "@/components/bank/route-button";
+import { useSiteContext } from "@/hooks/use-site-context";
+import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
+import { SiteInternalLink } from "@/components/site/site-internal-link";
 
 const links = [
   { to: "/exchange", label: "Overview", exact: true },
@@ -12,7 +13,7 @@ const links = [
   { to: "/exchange/ipo", label: "IPO Center" },
   { to: "/exchange/research", label: "Research" },
   { to: "/exchange/api", label: "API" },
-  { to: "/terminal", label: "Terminal", separate: true },
+  { to: "/terminal", label: "Terminal", separate: true, externalSite: "terminal" as const },
 ] as const;
 
 function isActive(pathname: string, link: (typeof links)[number]): boolean {
@@ -25,6 +26,7 @@ function isActive(pathname: string, link: (typeof links)[number]): boolean {
 
 export function ExchangeSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const site = useSiteContext();
 
   return (
     <div className="mb-10">
@@ -32,22 +34,30 @@ export function ExchangeSubNav() {
       <nav className="flex flex-wrap gap-1 border-b border-border/60 pb-4">
         {links.map((l) => {
           const active = isActive(pathname, l);
-          return (
-            <RouteButton
-              key={l.to}
-              to={l.to}
-              className={cn(
-                "type-subnav inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
-                active
-                  ? "bg-surface-2 text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {l.label}
-              {"separate" in l && l.separate ? (
+          const className = cn(
+            "type-subnav inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
+            active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
+          );
+
+          if ("externalSite" in l && l.externalSite) {
+            return (
+              <a
+                key={l.to}
+                href={resolveEntitySiteUrl(l.externalSite, l.to)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                {l.label}
                 <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
-              ) : null}
-            </RouteButton>
+              </a>
+            );
+          }
+
+          return (
+            <SiteInternalLink key={l.to} siteKey={site.key} to={l.to} className={className}>
+              {l.label}
+            </SiteInternalLink>
           );
         })}
       </nav>

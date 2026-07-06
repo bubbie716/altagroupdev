@@ -18,6 +18,7 @@ import {
 } from "@/server/discord";
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
+import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
 
 export const Route = createFileRoute("/api/auth/discord/callback")({
   server: {
@@ -72,10 +73,14 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           return loginErrorRedirect(request, "session_failed");
         }
 
+        const site = resolveSiteContextFromRequest(
+          Object.fromEntries(url.searchParams),
+          url.pathname,
+        );
         const safeReturn =
           parsed.returnTo.startsWith("/") && !parsed.returnTo.startsWith("//")
             ? parsed.returnTo
-            : "/profile";
+            : site.defaultAuthenticatedRoute;
 
         return redirectWithSetCookies(new URL(safeReturn, request.url).toString(), [
           buildSetCookie(getSessionCookieName(), auth.sessionToken, sessionMaxAgeSec()),

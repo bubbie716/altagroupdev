@@ -12,7 +12,7 @@ export function RoutePendingFallback({
 }) {
   return (
     <div
-      className={cn("flex min-h-[12rem] items-center justify-center py-12", className)}
+      className={cn("flex min-h-0 flex-1 items-center justify-center py-12", className)}
       aria-busy="true"
       aria-live="polite"
     >

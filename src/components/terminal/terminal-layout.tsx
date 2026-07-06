@@ -75,9 +75,11 @@ function TerminalChromeLayoutInner() {
         action={meta.action}
         animateHero={false}
       >
-        <TerminalLayoutNav />
-        <div className="route-page-content">
-          <Outlet />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <TerminalLayoutNav />
+          <div className="route-page-content">
+            <Outlet />
+          </div>
         </div>
       </PageShell>
     </TerminalPageLayoutContext.Provider>

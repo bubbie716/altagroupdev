@@ -57,7 +57,8 @@ export const Route = createFileRoute("/bank/pay/")({
 
 function AltaPayPage() {
   const { fundingSources, history, bankSettings, schedules, autopayApprovals } = Route.useLoaderData();
-  const { employeeCardId, cardId, tab = "now" } = Route.useSearch();
+  const { employeeCardId, cardId, tab } = Route.useSearch();
+  const activeTab = tab ?? "now";
   const defaultFundingKey = employeeCardId
     ? employeeCardPayFundingKey(employeeCardId)
     : cardId
@@ -73,7 +74,7 @@ function AltaPayPage() {
         title="Alta Pay"
         description="Send money now, schedule future payments, set up recurring payments, and manage merchant AutoPay."
       />
-      {fundingSources.length === 0 ? (
+      {fundingSources.length === 0 && activeTab === "now" ? (
         <EmptyBankState
           title="No eligible payment sources"
           description="Open a personal Alta Bank account or activate an Alta Card to send money through Alta Pay."
@@ -81,7 +82,8 @@ function AltaPayPage() {
       ) : (
         <Section title="Payments">
           <AltaPayEnginePanel
-            tab={tab}
+            key={activeTab}
+            tab={activeTab}
             fundingSources={fundingSources}
             defaultFundingKey={defaultFundingKey}
             history={history}

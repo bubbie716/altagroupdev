@@ -1,29 +1,23 @@
 "use client";
 
-import { memo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useRouterState } from "@tanstack/react-router";
+import { memo, useEffect, useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { cn } from "@/lib/utils";
-import { RouteButton } from "@/components/bank/route-button";
 import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
-import type { AltaPrivateClientContext } from "@/lib/bank/alta-private-client.types";
-import { isPrivateClient } from "@/lib/auth/permissions";
+import { commercialCompanySearch } from "@/components/bank/commercial-account-back-link";
+import { fetchUnreadReceivedInvoiceCount } from "@/lib/bank/merchant-invoice.functions";
+import type { AltaPaySubNavTab } from "@/components/bank/alta-pay-sub-nav";
 
-const links = [
-  { to: "/bank", label: "Dashboard", exact: true, activePaths: ["/bank/account"] },
-  { to: "/bank/deposit", label: "Deposit" },
-  { to: "/bank/withdraw", label: "Withdraw" },
-  { to: "/bank/transfers", label: "Transfers", activePaths: ["/bank/transfers"] },
-  { to: "/bank/pay", label: "Alta Pay", activePaths: ["/bank/pay"] },
-  { to: "/bank/settings", label: "Settings" },
-  { to: "/bank/statements", label: "Statements", activePaths: ["/bank/statements"] },
-  { to: "/bank/products", label: "Products", activePaths: ["/bank/products", "/bank/deposits"] },
-  { to: "/bank/lending", label: "Lending" },
-  { to: "/bank/alta-card", label: "Alta Card", activePaths: ["/bank/alta-card"] },
-  { to: "/bank/private", label: "Alta Private", membersOnly: true },
-] as const;
+type SectionLink = {
+  to: string;
+  label: string;
+  exact?: boolean;
+  search?: Record<string, string>;
+  badge?: number;
+  clearSearch?: boolean;
+};
 
 const lendingSubLinks = [
   { to: "/bank/lending", label: "Overview", exact: true },
@@ -37,30 +31,31 @@ const altaCardSubLinks = [
   { to: "/bank/alta-card/business", label: "Business" },
 ] as const;
 
-const subNavEase = [0.22, 1, 0.36, 1] as const;
+const businessSubLinks = [
+  { to: "/bank/business", label: "Overview", exact: true },
+  { to: "/bank/business/payroll", label: "Payroll" },
+  { to: "/bank/business/representatives", label: "Representatives" },
+] as const;
+
+const commercialSubLinks = [
+  { to: "/bank/commercial", label: "Overview", exact: true },
+  { to: "/bank/commercial/invoices", label: "Invoices" },
+  { to: "/bank/commercial/payment-links", label: "Payment Links" },
+  { to: "/bank/commercial/analytics", label: "Analytics" },
+  { to: "/bank/commercial/settings", label: "Settings" },
+] as const;
+
+const altaPayEngineTabs: Array<{ id: Exclude<AltaPaySubNavTab, "now" | "invoices">; label: string }> = [
+  { id: "scheduled", label: "Scheduled" },
+  { id: "recurring", label: "Recurring" },
+  { id: "autopay", label: "AutoPay merchants" },
+];
 
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/$/, "") || "/";
 }
 
-function isNavLinkActive(
-  pathname: string,
-  link: (typeof links)[number],
-): boolean {
-  const path = normalizePath(pathname);
-  if ("activePaths" in link && link.activePaths) {
-    const accountActive = link.activePaths.some((target) => {
-      const normalized = normalizePath(target);
-      return path === normalized || path.startsWith(`${normalized}/`);
-    });
-    if (accountActive) return true;
-  }
-  const target = normalizePath(link.to);
-  if ("exact" in link && link.exact) return path === target;
-  return path === target || path.startsWith(`${target}/`);
-}
-
-function isLendingSubLinkActive(pathname: string, link: (typeof lendingSubLinks)[number]): boolean {
+function isExactSectionLinkActive(pathname: string, link: { to: string; exact?: boolean }): boolean {
   const path = normalizePath(pathname);
   const target = normalizePath(link.to);
   if ("exact" in link && link.exact) return path === target;
@@ -77,231 +72,195 @@ function isAltaCardSubLinkActive(pathname: string, link: (typeof altaCardSubLink
   return !path.startsWith("/bank/alta-card/business");
 }
 
-function NavLink({
-  to,
-  label,
-  active,
-  className,
+function resolveAltaPaySubNavTab(pathname: string, tab?: string): AltaPaySubNavTab {
+  if (pathname.startsWith("/bank/pay/invoices")) return "invoices";
+  if (tab === "scheduled" || tab === "recurring" || tab === "autopay") return tab;
+  return "now";
+}
+
+function resolveBankSectionLinks(
+  pathname: string,
+  searchStr: string,
+  showApply: boolean,
+  unreadInvoiceCount: number,
+): { links: SectionLink[]; altaPayTab?: AltaPaySubNavTab } | null {
+  const path = normalizePath(pathname);
+  const tabParam = new URLSearchParams(searchStr).get("tab") ?? undefined;
+  const companyId = new URLSearchParams(searchStr).get("companyId") ?? undefined;
+  const accountId = new URLSearchParams(searchStr).get("accountId") ?? undefined;
+  const commercialSearch = companyId ? commercialCompanySearch(companyId, accountId ?? undefined) : undefined;
+
+  if (path.startsWith("/bank/lending")) {
+    const links = showApply
+      ? lendingSubLinks
+      : lendingSubLinks.filter((link) => link.to !== "/bank/lending/apply");
+    return { links: links.map((link) => ({ ...link })) };
+  }
+
+  if (path.startsWith("/bank/alta-card")) {
+    return { links: altaCardSubLinks.map((link) => ({ ...link })) };
+  }
+
+  if (path.startsWith("/bank/pay")) {
+    const altaPayTab = resolveAltaPaySubNavTab(pathname, tabParam);
+    const links: SectionLink[] = [
+      { to: "/bank/pay", label: "Pay now", clearSearch: true },
+      {
+        to: "/bank/pay/invoices",
+        label: "Received invoices",
+        badge: unreadInvoiceCount,
+      },
+      ...altaPayEngineTabs.map((item) => ({
+        to: "/bank/pay",
+        label: item.label,
+        search: { tab: item.id },
+      })),
+    ];
+    return { links, altaPayTab };
+  }
+
+  if (path.startsWith("/bank/business")) {
+    return {
+      links: businessSubLinks.map((link) => ({
+        ...link,
+        search: companyId ? { companyId } : undefined,
+      })),
+    };
+  }
+
+  if (path.startsWith("/bank/commercial")) {
+    return {
+      links: commercialSubLinks.map((link) => ({
+        ...link,
+        search: commercialSearch,
+      })),
+    };
+  }
+
+  return null;
+}
+
+function isSectionLinkActive(
+  pathname: string,
+  searchStr: string,
+  link: SectionLink,
+  altaPayTab?: AltaPaySubNavTab,
+): boolean {
+  if (link.to === "/bank/alta-card" || link.to === "/bank/alta-card/business") {
+    const altaLink = altaCardSubLinks.find((item) => item.to === link.to);
+    if (altaLink) return isAltaCardSubLinkActive(pathname, altaLink);
+  }
+
+  if (altaPayTab !== undefined && link.to === "/bank/pay") {
+    if (link.search?.tab) return altaPayTab === link.search.tab;
+    return altaPayTab === "now";
+  }
+
+  if (altaPayTab !== undefined && link.to === "/bank/pay/invoices") {
+    return altaPayTab === "invoices";
+  }
+
+  return isExactSectionLinkActive(pathname, link);
+}
+
+function resolveSectionLinkSearch(
+  link: SectionLink,
+): Record<string, string> | ((prev: Record<string, unknown>) => Record<string, unknown>) | undefined {
+  if (link.clearSearch) {
+    return (prev) => {
+      const { tab: _tab, ...rest } = prev;
+      return rest;
+    };
+  }
+
+  if (link.search?.tab) {
+    const tab = link.search.tab;
+    return (prev) => ({ ...prev, tab });
+  }
+
+  return link.search;
+}
+
+function SectionNavLink({
+  link,
+  pathname,
+  searchStr,
+  altaPayTab,
 }: {
-  to: string;
-  label: string;
-  active: boolean;
-  className?: string;
+  link: SectionLink;
+  pathname: string;
+  searchStr: string;
+  altaPayTab?: AltaPaySubNavTab;
 }) {
+  const active = isSectionLinkActive(pathname, searchStr, link, altaPayTab);
+  const linkClass = cn(
+    "type-subnav rounded-md px-3 py-1.5 transition-colors",
+    active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
+    link.badge !== undefined && link.badge > 0 && "inline-flex items-center gap-2",
+  );
+
   return (
-    <RouteButton
-      to={to}
-      className={cn(
-        "type-subnav rounded-md px-3 py-1.5 transition-colors",
-        active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
-        className,
-      )}
+    <Link
+      to={link.to}
+      search={resolveSectionLinkSearch(link)}
+      className={linkClass}
     >
-      {label}
-    </RouteButton>
+      {link.label}
+      {link.badge !== undefined && link.badge > 0 ? (
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[11px] font-medium leading-none text-background tabular-nums">
+          {link.badge > 99 ? "99+" : link.badge}
+        </span>
+      ) : null}
+    </Link>
   );
 }
 
-function LendingNavGroup({
-  pathname,
-  active,
-  showApply = true,
-}: {
-  pathname: string;
-  active: boolean;
-  showApply?: boolean;
-}) {
-  const expanded = normalizePath(pathname).startsWith("/bank/lending");
-  const subLinks = showApply
-    ? lendingSubLinks
-    : lendingSubLinks.filter((link) => link.to !== "/bank/lending/apply");
-
-  return (
-    <div className="flex items-center gap-1">
-      <NavLink to="/bank/lending" label="Lending" active={active} />
-      <AnimatePresence initial={false}>
-        {expanded ? (
-          <motion.div
-            key="lending-sublinks"
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.28, ease: subNavEase }}
-            className="flex items-center gap-1 overflow-hidden"
-          >
-            <motion.span
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 1 }}
-              exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ duration: 0.16, ease: subNavEase }}
-              className="mx-0.5 h-4 w-px origin-center bg-border/80"
-              aria-hidden
-            />
-            {subLinks.map((subLink, index) => (
-              <motion.div
-                key={subLink.to}
-                initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{
-                  duration: 0.22,
-                  delay: index * 0.045,
-                  ease: subNavEase,
-                }}
-              >
-                <RouteButton
-                  to={subLink.to}
-                  className={cn(
-                    "type-subnav rounded-md px-3 py-1.5 transition-colors",
-                    isLendingSubLinkActive(pathname, subLink)
-                      ? "bg-surface-2 text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {subLink.label}
-                </RouteButton>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function AltaCardNavGroup({
-  pathname,
-  active,
-}: {
-  pathname: string;
-  active: boolean;
-}) {
-  const expanded = normalizePath(pathname).startsWith("/bank/alta-card");
-
-  return (
-    <div className="flex items-center gap-1">
-      <NavLink to="/bank/alta-card" label="Alta Card" active={active} />
-      <AnimatePresence initial={false}>
-        {expanded ? (
-          <motion.div
-            key="alta-card-sublinks"
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.28, ease: subNavEase }}
-            className="flex items-center gap-1 overflow-hidden"
-          >
-            <motion.span
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 1 }}
-              exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ duration: 0.16, ease: subNavEase }}
-              className="mx-0.5 h-4 w-px origin-center bg-border/80"
-              aria-hidden
-            />
-            {altaCardSubLinks.map((subLink, index) => (
-              <motion.div
-                key={subLink.to}
-                initial={{ opacity: 0, x: -14 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{
-                  duration: 0.22,
-                  delay: index * 0.045,
-                  ease: subNavEase,
-                }}
-              >
-                <RouteButton
-                  to={subLink.to}
-                  className={cn(
-                    "type-subnav rounded-md px-3 py-1.5 transition-colors",
-                    isAltaCardSubLinkActive(pathname, subLink)
-                      ? "bg-surface-2 text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {subLink.label}
-                </RouteButton>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-export const BankSubNav = memo(function BankSubNav({
-  className,
-  privateClientContext,
-}: {
-  className?: string;
-  privateClientContext?: AltaPrivateClientContext;
-}) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const user = useCurrentUser();
+export const BankSubNav = memo(function BankSubNav() {
+  const { pathname, searchStr } = useRouterState({
+    select: (s) => ({ pathname: s.location.pathname, searchStr: s.location.searchStr }),
+  });
   const creditDeskNav = useCreditDeskCustomerNav();
-  const isMember = privateClientContext?.isMember ?? (user !== null && isPrivateClient(user));
-  const visibleLinks = links.filter((l) => {
-    if ("membersOnly" in l && l.membersOnly) return isMember;
-    if ("privateOnly" in l && l.privateOnly) return isMember;
-    return true;
-  });
+  const fetchUnreadCount = useServerFn(fetchUnreadReceivedInvoiceCount);
+  const [unreadInvoiceCount, setUnreadInvoiceCount] = useState(0);
 
-  const navLinks = visibleLinks.filter((link) => {
-    if (link.to === "/bank/lending") {
-      if (creditDeskNav.showLendingNav) return true;
-      return false;
-    }
-    if (link.to === "/bank/alta-card") {
-      if (creditDeskNav.showAltaCardNav) return true;
-      return false;
-    }
-    return true;
-  });
+  useEffect(() => {
+    if (!normalizePath(pathname).startsWith("/bank/pay")) return;
+
+    let cancelled = false;
+    void fetchUnreadCount()
+      .then((count) => {
+        if (!cancelled) setUnreadInvoiceCount(count);
+      })
+      .catch(() => {
+        if (!cancelled) setUnreadInvoiceCount(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchUnreadCount, pathname]);
+
+  const section = resolveBankSectionLinks(
+    pathname,
+    searchStr,
+    creditDeskNav.showApplyEntryPoints,
+    unreadInvoiceCount,
+  );
+
+  if (!section?.links.length) return null;
 
   return (
-    <BankSubNavScroll className="sm:mb-10">
-      <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0", className)}>
-        {navLinks.map((link) => {
-          if (link.to === "/bank/lending") {
-            if (creditDeskNav.creditDeskClosed && creditDeskNav.showLendingNav) {
-              return (
-                <NavLink
-                  key="loans-servicing"
-                  to="/bank/lending/loans"
-                  label="Loans"
-                  active={normalizePath(pathname).startsWith("/bank/lending")}
-                />
-              );
-            }
-            return (
-              <LendingNavGroup
-                key={link.to}
-                pathname={pathname}
-                active={isNavLinkActive(pathname, link)}
-                showApply={creditDeskNav.showApplyEntryPoints}
-              />
-            );
-          }
-          if (link.to === "/bank/alta-card") {
-            return (
-              <AltaCardNavGroup
-                key={link.to}
-                pathname={pathname}
-                active={isNavLinkActive(pathname, link)}
-              />
-            );
-          }
-          return (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              label={link.label}
-              active={isNavLinkActive(pathname, link)}
-            />
-          );
-        })}
+    <BankSubNavScroll>
+      <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0")}>
+        {section.links.map((link) => (
+          <SectionNavLink
+            key={`${link.to}-${link.label}-${link.search?.tab ?? ""}`}
+            link={link}
+            pathname={pathname}
+            searchStr={searchStr}
+            altaPayTab={section.altaPayTab}
+          />
+        ))}
       </nav>
     </BankSubNavScroll>
   );

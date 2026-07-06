@@ -1,3 +1,6 @@
+import { resolveSiteKey } from "@/lib/site/site-context";
+import { isPlainLocalDevHost } from "@/lib/site/local-dev-site";
+
 const SESSION_COOKIE = "alta_session";
 const OAUTH_STATE_COOKIE = "alta_oauth_state";
 const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
@@ -7,9 +10,25 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
+function sessionCookieDomain(): string | null {
+  if (!isProduction()) return null;
+  const domain = process.env.ALTA_COOKIE_DOMAIN?.trim();
+  return domain || null;
+}
+
 function cookieFlags(maxAge: number): string {
   const parts = ["HttpOnly", "SameSite=Lax", "Path=/", `Max-Age=${maxAge}`];
   if (isProduction()) parts.push("Secure");
+  const domain = sessionCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
+  return parts.join("; ");
+}
+
+function clearCookieFlags(): string {
+  const parts = ["HttpOnly", "SameSite=Lax", "Path=/", "Max-Age=0"];
+  if (isProduction()) parts.push("Secure");
+  const domain = sessionCookieDomain();
+  if (domain) parts.push(`Domain=${domain}`);
   return parts.join("; ");
 }
 
@@ -33,9 +52,7 @@ export function buildSetCookie(name: string, value: string, maxAge: number): str
 }
 
 export function buildClearCookie(name: string): string {
-  const parts = ["HttpOnly", "SameSite=Lax", "Path=/", "Max-Age=0"];
-  if (isProduction()) parts.push("Secure");
-  return `${name}=; ${parts.join("; ")}`;
+  return `${name}=; ${clearCookieFlags()}`;
 }
 
 export function getSessionCookieName(): string {
@@ -56,8 +73,19 @@ export function oauthStateMaxAgeSec(): number {
 
 /** Node requires absolute URLs for Response.redirect(). */
 export function loginErrorRedirect(request: Request, error: string): Response {
-  const url = new URL("/login", request.url);
+  const reqUrl = new URL(request.url);
+  const siteKey = resolveSiteKey({
+    host: reqUrl.host,
+    search: Object.fromEntries(reqUrl.searchParams),
+    pathname: reqUrl.pathname,
+    allowDevOverride: true,
+  });
+  const path = "/";
+  const url = new URL(path, request.url);
   url.searchParams.set("error", error);
+  if (siteKey !== "corporate" && isPlainLocalDevHost(reqUrl.host)) {
+    url.searchParams.set("site", siteKey);
+  }
   return Response.redirect(url.toString(), 302);
 }
 

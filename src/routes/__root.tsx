@@ -20,6 +20,9 @@ import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
+import { resolveSiteContextFromRequest, readRequestHost } from "@/lib/site/site-context";
+import { resolveEntitySubdomainRedirect } from "@/lib/site/entity-path-guard";
+import { getDefaultSiteConfig } from "@/config/sites";
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
@@ -87,11 +90,27 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null }>()({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null; site: import("@/config/sites").SiteConfig }>()({
   beforeLoad: async ({ location }) => {
+    const entityRedirect = resolveEntitySubdomainRedirect(location.pathname, {
+      host: readRequestHost(),
+      searchStr:
+        typeof location.searchStr === "string"
+          ? location.searchStr
+          : undefined,
+    });
+    if (entityRedirect) {
+      throw redirect({ href: entityRedirect, replace: true });
+    }
+
+    const site = resolveSiteContextFromRequest(
+      location.search as Record<string, unknown>,
+      location.pathname,
+    );
+
     // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
     const labUser = getUiLabUserIfEnabled();
-    if (labUser) return { user: labUser };
+    if (labUser) return { user: labUser, site };
 
     let user: AltaUser | null = null;
     let maintenanceEnabled = false;
@@ -118,17 +137,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
       throw redirect({ to: "/" });
     }
 
-    return { user };
+    return { user, site };
   },
-  head: () => ({
+  head: ({ context }) => {
+    const site = context?.site ?? getDefaultSiteConfig();
+    return {
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Alta Group — Financial Infrastructure" },
-      { name: "description", content: "Alta Group: Live Like the 1%. Alta Bank, Alta Exchange, and Newport Clearing Corporation." },
-      { name: "author", content: "Alta Group" },
-      { property: "og:title", content: "Alta Group" },
-      { property: "og:description", content: "Banking. Markets. Capital. Built for Newport." },
+      { title: site.seo.title },
+      { name: "description", content: site.seo.description },
+      { name: "author", content: site.displayName },
+      { property: "og:title", content: site.seo.ogTitle ?? site.seo.title },
+      { property: "og:description", content: site.seo.ogDescription ?? site.seo.description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -145,7 +166,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
     ],
-  }),
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

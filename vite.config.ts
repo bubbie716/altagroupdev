@@ -20,6 +20,7 @@ export default defineConfig({
       port: 3000,
       strictPort: true,
       host: true,
+      allowedHosts: [".localhost", "localhost", "127.0.0.1"],
     },
   },
 });

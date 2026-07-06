@@ -5,12 +5,12 @@ export const Route = createFileRoute("/legal/$")({
   beforeLoad: ({ params }) => {
     const slug = (params._splat ?? "").replace(/^\/+|\/+$/g, "");
     if (!slug) {
-      throw redirect({ to: "/governance/legaldocs", replace: true });
+      throw redirect({ to: "/legal", replace: true });
     }
     const docId = resolveLegalDocIdFromSlug(slug);
     if (!docId) throw notFound();
     throw redirect({
-      to: "/governance/legaldocs/$docId",
+      to: "/legal/$docId",
       params: { docId },
       replace: true,
     });

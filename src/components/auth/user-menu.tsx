@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useSiteContext } from "@/hooks/use-site-context";
+import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
 import { canAccessInternal } from "@/lib/auth/tags";
 import { logoutUser } from "@/lib/auth/auth.functions";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
@@ -17,13 +19,15 @@ import { useServerFn } from "@tanstack/react-start";
 
 export function AuthUserMenu() {
   const user = useCurrentUser();
+  const site = useSiteContext();
   const router = useRouter();
   const logout = useServerFn(logoutUser);
 
   if (!user) {
     return (
       <Link
-        to="/login"
+        to={resolveSiteSignInPath()}
+        search={buildSignInSearch(site.key, site.defaultAuthenticatedRoute)}
         className="rounded-md border border-border-strong bg-surface-2 px-3.5 py-1.5 text-[12px] font-medium tracking-wide text-foreground transition-colors hover:bg-[color:var(--surface-2)]/70"
       >
         Sign in
@@ -38,7 +42,7 @@ export function AuthUserMenu() {
     await logout();
     invalidateRootSessionCache();
     await router.invalidate();
-    await router.navigate({ to: "/login" });
+    await router.navigate({ to: resolveSiteSignInPath() });
   }
 
   return (

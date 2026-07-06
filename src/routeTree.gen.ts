@@ -13,6 +13,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as DiscordRouteImport } from './routes/discord'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AccessRestrictedRouteImport } from './routes/access-restricted'
@@ -25,8 +26,10 @@ import { Route as BankRouteRouteImport } from './routes/bank/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
 import { Route as SupportIndexRouteImport } from './routes/support/index'
+import { Route as StructureIndexRouteImport } from './routes/structure/index'
 import { Route as StatusIndexRouteImport } from './routes/status/index'
 import { Route as LegalIndexRouteImport } from './routes/legal/index'
+import { Route as LeadershipIndexRouteImport } from './routes/leadership/index'
 import { Route as InternalIndexRouteImport } from './routes/internal/index'
 import { Route as GovernanceIndexRouteImport } from './routes/governance/index'
 import { Route as ExchangeIndexRouteImport } from './routes/exchange/index'
@@ -43,6 +46,7 @@ import { Route as TerminalNewsRouteImport } from './routes/terminal/news'
 import { Route as TerminalLeaderboardRouteImport } from './routes/terminal/leaderboard'
 import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
 import { Route as PaySlugRouteImport } from './routes/pay/$slug'
+import { Route as LegalDocIdRouteImport } from './routes/legal/$docId'
 import { Route as LegalSplatRouteImport } from './routes/legal/$'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
@@ -289,6 +293,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiscordRoute = DiscordRouteImport.update({
   id: '/discord',
   path: '/discord',
@@ -349,6 +358,11 @@ const SupportIndexRoute = SupportIndexRouteImport.update({
   path: '/support/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StructureIndexRoute = StructureIndexRouteImport.update({
+  id: '/structure/',
+  path: '/structure/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatusIndexRoute = StatusIndexRouteImport.update({
   id: '/status/',
   path: '/status/',
@@ -357,6 +371,11 @@ const StatusIndexRoute = StatusIndexRouteImport.update({
 const LegalIndexRoute = LegalIndexRouteImport.update({
   id: '/legal/',
   path: '/legal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadershipIndexRoute = LeadershipIndexRouteImport.update({
+  id: '/leadership/',
+  path: '/leadership/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InternalIndexRoute = InternalIndexRouteImport.update({
@@ -437,6 +456,11 @@ const TerminalIpoRoute = TerminalIpoRouteImport.update({
 const PaySlugRoute = PaySlugRouteImport.update({
   id: '/pay/$slug',
   path: '/pay/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalDocIdRoute = LegalDocIdRouteImport.update({
+  id: '/legal/$docId',
+  path: '/legal/$docId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalSplatRoute = LegalSplatRouteImport.update({
@@ -1706,6 +1730,7 @@ export interface FileRoutesByFullPath {
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
   '/discord': typeof DiscordRouteWithChildren
+  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -1755,6 +1780,7 @@ export interface FileRoutesByFullPath {
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
   '/legal/$': typeof LegalSplatRoute
+  '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -1771,8 +1797,10 @@ export interface FileRoutesByFullPath {
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
+  '/leadership/': typeof LeadershipIndexRoute
   '/legal/': typeof LegalIndexRoute
   '/status/': typeof StatusIndexRoute
+  '/structure/': typeof StructureIndexRoute
   '/support/': typeof SupportIndexRoute
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
@@ -1961,6 +1989,7 @@ export interface FileRoutesByTo {
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
   '/discord': typeof DiscordRouteWithChildren
+  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -2003,6 +2032,7 @@ export interface FileRoutesByTo {
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
   '/legal/$': typeof LegalSplatRoute
+  '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -2019,8 +2049,10 @@ export interface FileRoutesByTo {
   '/exchange': typeof ExchangeIndexRoute
   '/governance': typeof GovernanceIndexRoute
   '/internal': typeof InternalIndexRoute
+  '/leadership': typeof LeadershipIndexRoute
   '/legal': typeof LegalIndexRoute
   '/status': typeof StatusIndexRoute
+  '/structure': typeof StructureIndexRoute
   '/support': typeof SupportIndexRoute
   '/terminal': typeof TerminalIndexRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
@@ -2203,6 +2235,7 @@ export interface FileRoutesById {
   '/access-restricted': typeof AccessRestrictedRoute
   '/dashboard': typeof DashboardRoute
   '/discord': typeof DiscordRouteWithChildren
+  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
@@ -2252,6 +2285,7 @@ export interface FileRoutesById {
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRoute
   '/legal/$': typeof LegalSplatRoute
+  '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
@@ -2268,8 +2302,10 @@ export interface FileRoutesById {
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
   '/internal/': typeof InternalIndexRoute
+  '/leadership/': typeof LeadershipIndexRoute
   '/legal/': typeof LegalIndexRoute
   '/status/': typeof StatusIndexRoute
+  '/structure/': typeof StructureIndexRoute
   '/support/': typeof SupportIndexRoute
   '/terminal/': typeof TerminalIndexRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdRouteRouteWithChildren
@@ -2466,6 +2502,7 @@ export interface FileRouteTypes {
     | '/access-restricted'
     | '/dashboard'
     | '/discord'
+    | '/home'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -2515,6 +2552,7 @@ export interface FileRouteTypes {
     | '/internal/settings'
     | '/internal/terminal'
     | '/legal/$'
+    | '/legal/$docId'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -2531,8 +2569,10 @@ export interface FileRouteTypes {
     | '/exchange/'
     | '/governance/'
     | '/internal/'
+    | '/leadership/'
     | '/legal/'
     | '/status/'
+    | '/structure/'
     | '/support/'
     | '/terminal/'
     | '/bank/account/$accountId'
@@ -2721,6 +2761,7 @@ export interface FileRouteTypes {
     | '/access-restricted'
     | '/dashboard'
     | '/discord'
+    | '/home'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -2763,6 +2804,7 @@ export interface FileRouteTypes {
     | '/internal/settings'
     | '/internal/terminal'
     | '/legal/$'
+    | '/legal/$docId'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -2779,8 +2821,10 @@ export interface FileRouteTypes {
     | '/exchange'
     | '/governance'
     | '/internal'
+    | '/leadership'
     | '/legal'
     | '/status'
+    | '/structure'
     | '/support'
     | '/terminal'
     | '/api/auth/discord'
@@ -2962,6 +3006,7 @@ export interface FileRouteTypes {
     | '/access-restricted'
     | '/dashboard'
     | '/discord'
+    | '/home'
     | '/login'
     | '/maintenance'
     | '/markets'
@@ -3011,6 +3056,7 @@ export interface FileRouteTypes {
     | '/internal/settings'
     | '/internal/terminal'
     | '/legal/$'
+    | '/legal/$docId'
     | '/pay/$slug'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
@@ -3027,8 +3073,10 @@ export interface FileRouteTypes {
     | '/exchange/'
     | '/governance/'
     | '/internal/'
+    | '/leadership/'
     | '/legal/'
     | '/status/'
+    | '/structure/'
     | '/support/'
     | '/terminal/'
     | '/bank/account/$accountId'
@@ -3224,6 +3272,7 @@ export interface RootRouteChildren {
   AccessRestrictedRoute: typeof AccessRestrictedRoute
   DashboardRoute: typeof DashboardRoute
   DiscordRoute: typeof DiscordRouteWithChildren
+  HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
@@ -3231,12 +3280,15 @@ export interface RootRouteChildren {
   CompanyLeadershipRoute: typeof CompanyLeadershipRoute
   CompanyNccRoute: typeof CompanyNccRoute
   LegalSplatRoute: typeof LegalSplatRoute
+  LegalDocIdRoute: typeof LegalDocIdRoute
   PaySlugRoute: typeof PaySlugRoute
   CompanyIndexRoute: typeof CompanyIndexRoute
   ContactIndexRoute: typeof ContactIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
+  LeadershipIndexRoute: typeof LeadershipIndexRoute
   LegalIndexRoute: typeof LegalIndexRoute
   StatusIndexRoute: typeof StatusIndexRoute
+  StructureIndexRoute: typeof StructureIndexRoute
   SupportIndexRoute: typeof SupportIndexRoute
   ApiAuthDiscordRoute: typeof ApiAuthDiscordRouteWithChildren
   ApiBankDepositRequestRoute: typeof ApiBankDepositRequestRoute
@@ -3288,6 +3340,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discord': {
@@ -3374,6 +3433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/structure/': {
+      id: '/structure/'
+      path: '/structure'
+      fullPath: '/structure/'
+      preLoaderRoute: typeof StructureIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/status/': {
       id: '/status/'
       path: '/status'
@@ -3386,6 +3452,13 @@ declare module '@tanstack/react-router' {
       path: '/legal'
       fullPath: '/legal/'
       preLoaderRoute: typeof LegalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leadership/': {
+      id: '/leadership/'
+      path: '/leadership'
+      fullPath: '/leadership/'
+      preLoaderRoute: typeof LeadershipIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/internal/': {
@@ -3498,6 +3571,13 @@ declare module '@tanstack/react-router' {
       path: '/pay/$slug'
       fullPath: '/pay/$slug'
       preLoaderRoute: typeof PaySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$docId': {
+      id: '/legal/$docId'
+      path: '/legal/$docId'
+      fullPath: '/legal/$docId'
+      preLoaderRoute: typeof LegalDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal/$': {
@@ -5968,6 +6048,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessRestrictedRoute: AccessRestrictedRoute,
   DashboardRoute: DashboardRoute,
   DiscordRoute: DiscordRouteWithChildren,
+  HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
@@ -5975,12 +6056,15 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyLeadershipRoute: CompanyLeadershipRoute,
   CompanyNccRoute: CompanyNccRoute,
   LegalSplatRoute: LegalSplatRoute,
+  LegalDocIdRoute: LegalDocIdRoute,
   PaySlugRoute: PaySlugRoute,
   CompanyIndexRoute: CompanyIndexRoute,
   ContactIndexRoute: ContactIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
+  LeadershipIndexRoute: LeadershipIndexRoute,
   LegalIndexRoute: LegalIndexRoute,
   StatusIndexRoute: StatusIndexRoute,
+  StructureIndexRoute: StructureIndexRoute,
   SupportIndexRoute: SupportIndexRoute,
   ApiAuthDiscordRoute: ApiAuthDiscordRouteWithChildren,
   ApiBankDepositRequestRoute: ApiBankDepositRequestRoute,

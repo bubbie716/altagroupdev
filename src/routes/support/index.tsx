@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, ChevronLeft } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
 import {
   ALTA_DISCORD_COMMUNITIES,
@@ -33,15 +33,7 @@ function SupportCenterPage() {
           community discussion.
         </p>
 
-        <Link
-          to="/"
-          className="mt-8 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="size-3.5" />
-          Return home
-        </Link>
-
-        <ul className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
+        <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
           {ALTA_DISCORD_COMMUNITIES.map((community) => {
             const inviteUrl = ALTA_DISCORD_URLS[community.entity];
 

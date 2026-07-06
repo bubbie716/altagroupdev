@@ -1,5 +1,6 @@
 import { redirect } from "@tanstack/react-router";
 import type { AltaUser } from "@/lib/auth/types";
+import type { SiteConfig } from "@/config/sites";
 import { canAccessInternal } from "@/lib/auth/permissions";
 import {
   fetchCurrentUser,
@@ -8,30 +9,32 @@ import {
   verifyPrivateClientAccess,
 } from "@/lib/auth/auth.functions";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
+import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
 
 type GuardContext = {
-  context: { user: AltaUser | null };
+  context: { user: AltaUser | null; site: SiteConfig };
   location: { href: string; pathname: string };
 };
+
+function signInRedirect(site: SiteConfig, pathname: string) {
+  return redirect({
+    to: resolveSiteSignInPath(site.key),
+    search: buildSignInSearch(site.key, pathname),
+  });
+}
 
 export function authBeforeLoad({ context, location }: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   if (context.user) return;
-  throw redirect({
-    to: "/login",
-    search: { redirect: location.pathname },
-  });
+  throw signInRedirect(context.site, location.pathname);
 }
 
 async function requireSignedIn({ context, location }: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   if (!context.user) {
-    throw redirect({
-      to: "/login",
-      search: { redirect: location.pathname },
-    });
+    throw signInRedirect(context.site, location.pathname);
   }
 }
 
@@ -53,10 +56,7 @@ export async function internalBeforeLoad(context: GuardContext) {
   if (isUiLabMode()) return;
   const user = context.context.user ?? (await fetchCurrentUser());
   if (!user) {
-    throw redirect({
-      to: "/login",
-      search: { redirect: context.location.pathname },
-    });
+    throw signInRedirect(context.context.site, context.location.pathname);
   }
   if (!canAccessInternal(user)) {
     throw redirect({ to: "/access-restricted" });

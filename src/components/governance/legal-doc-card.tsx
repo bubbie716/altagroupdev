@@ -12,7 +12,7 @@ function kindLabel(kind: LegalDocMeta["kind"]): string {
 export function LegalDocCard({ doc }: { doc: LegalDocMeta }) {
   return (
     <Link
-      to="/governance/legaldocs/$docId"
+      to="/legal/$docId"
       params={{ docId: doc.id }}
       className="group block h-full"
     >

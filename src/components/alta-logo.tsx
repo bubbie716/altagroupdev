@@ -49,12 +49,19 @@ export function AltaLogo({ className, variant = "default" }: AltaLogoProps) {
   );
 }
 
-export function AltaWordmark({ className }: { className?: string }) {
+export function AltaWordmark({
+  className,
+  suffix,
+}: {
+  className?: string;
+  /** Inline entity label, e.g. GROUP, BANK, EXCHANGE */
+  suffix?: string;
+}) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <AltaLogo className="h-7 w-7" />
       <span className="text-[15px] font-semibold tracking-[0.18em] text-foreground">
-        ALTA
+        ALTA{suffix ? ` ${suffix}` : ""}
       </span>
     </div>
   );

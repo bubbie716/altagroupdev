@@ -21,11 +21,11 @@ function isStatementPrintPath(pathname: string): boolean {
 }
 
 function isLegalDocumentPath(pathname: string): boolean {
-  return /^\/governance\/legaldocs\/[^/]+$/.test(pathname);
+  return /^\/legal\/[^/]+$/.test(pathname) && pathname !== "/legal";
 }
 
 export function extractLegalDocIdFromPath(pathname: string): string | undefined {
-  const match = pathname.match(/^\/governance\/legaldocs\/([^/]+)$/);
+  const match = pathname.match(/^\/legal\/([^/]+)$/);
   return match?.[1];
 }
 
@@ -34,12 +34,15 @@ export function resolveFooterVariant(pathname: string): FooterVariant {
   if (pathname.startsWith("/pay/")) return "none";
   if (isStatementPrintPath(pathname)) return "none";
 
-  if (AUTH_PATHS.has(pathname)) return "auth";
+  if (AUTH_PATHS.has(pathname) || pathname === "/") return "auth";
   if (isLegalDocumentPath(pathname)) return "legal";
 
   if (
-    pathname === "/" ||
-    pathname.startsWith("/governance") ||
+    pathname === "/home" ||
+    pathname.startsWith("/structure") ||
+    pathname.startsWith("/leadership") ||
+    pathname === "/legal" ||
+    pathname.startsWith("/legal/") ||
     MARKETING_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   ) {
     return "marketing";

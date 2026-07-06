@@ -1,6 +1,7 @@
 import { LEGAL_CENTER_PATH } from "@/lib/site/site-links";
+import type { SiteKey } from "@/config/sites";
 
-export const LEGAL_DOC_ROUTE = "/governance/legaldocs/$docId" as const;
+export const LEGAL_DOC_ROUTE = "/legal/$docId" as const;
 
 export type LegalEntity = "group" | "bank" | "markets" | "ncc";
 
@@ -269,6 +270,42 @@ export function essentialGroupDocuments(): LegalDocumentDefinition[] {
   return sortFooterDocs(
     LEGAL_DOCUMENTS.filter((doc) => ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id)),
   );
+}
+
+/** Compact dashboard/auth footers — entity docs plus group essentials. */
+export function siteCompactFooterDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
+  const entity =
+    siteKey === "bank"
+      ? "bank"
+      : siteKey === "exchange" || siteKey === "terminal"
+        ? "markets"
+        : siteKey === "ncc"
+          ? "ncc"
+          : "group";
+
+  const entityDocs =
+    entity === "group" ? [] : footerDocuments({ entity, entityOnly: true, globalOnly: true }).slice(0, 4);
+
+  const essentials = sortFooterDocs(
+    LEGAL_DOCUMENTS.filter((doc) =>
+      ["AG-LEGAL-001", "AG-LEGAL-002", "AG-LEGAL-003"].includes(doc.id),
+    ),
+  );
+
+  const merged = [...entityDocs];
+  for (const doc of essentials) {
+    if (!merged.some((existing) => existing.id === doc.id)) merged.push(doc);
+  }
+  return sortFooterDocs(merged);
+}
+
+/** Entity-emphasized marketing footer documents. */
+export function siteMarketingPrimaryDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
+  if (siteKey === "corporate") return groupFooterDocuments();
+  if (siteKey === "bank") return entityFooterDocuments("bank");
+  if (siteKey === "exchange" || siteKey === "terminal") return entityFooterDocuments("markets");
+  if (siteKey === "ncc") return entityFooterDocuments("ncc");
+  return groupFooterDocuments();
 }
 
 /** Merchant-facing checkout footers. */

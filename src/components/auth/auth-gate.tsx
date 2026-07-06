@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { cn } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -36,7 +37,17 @@ export function DiscordSignInButton({
   );
 }
 
-function LoginBrandPanel({ brandEyebrow }: { brandEyebrow: string }) {
+function LoginBrandPanel({
+  brandEyebrow,
+  brandTitle,
+  brandDescription,
+  brandTags,
+}: {
+  brandEyebrow: string;
+  brandTitle: string;
+  brandDescription: string;
+  brandTags: string[];
+}) {
   return (
     <aside className="relative hidden w-[46%] shrink-0 flex-col justify-between overflow-hidden border-r border-border bg-surface-2/40 px-10 py-12 lg:flex xl:w-[50%] xl:px-16">
       <div
@@ -58,18 +69,17 @@ function LoginBrandPanel({ brandEyebrow }: { brandEyebrow: string }) {
 
       <div className="relative max-w-[34rem]">
         <h1 className="font-serif text-4xl leading-[1.04] tracking-tight sm:text-5xl xl:text-[3.5rem]">
-          The financial infrastructure of Newport, built for individuals, businesses, and institutions.
+          {brandTitle}
         </h1>
         <p className="mt-6 font-serif text-lg leading-relaxed tracking-tight text-muted-foreground">
-          Alta Bank, Alta Exchange, and Newport Clearing Corporation —
-          one integrated financial platform for the Republic.
+          {brandDescription}
         </p>
       </div>
 
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-        <span>Banking</span>
-        <span>Capital Markets</span>
-        <span>Financial Infrastructure</span>
+        {brandTags.map((tag) => (
+          <span key={tag}>{tag}</span>
+        ))}
       </div>
     </aside>
   );
@@ -78,15 +88,26 @@ function LoginBrandPanel({ brandEyebrow }: { brandEyebrow: string }) {
 function LoginEditorialLayout({
   children,
   brandEyebrow,
+  brandTitle,
+  brandDescription,
+  brandTags,
 }: {
   children: ReactNode;
   brandEyebrow: string;
+  brandTitle: string;
+  brandDescription: string;
+  brandTags: string[];
 }) {
   return (
     <div className="relative flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
       <main className="relative z-10 flex flex-1">
-        <LoginBrandPanel brandEyebrow={brandEyebrow} />
+        <LoginBrandPanel
+          brandEyebrow={brandEyebrow}
+          brandTitle={brandTitle}
+          brandDescription={brandDescription}
+          brandTags={brandTags}
+        />
         <section className="flex flex-1 items-center justify-center px-6 py-12 sm:px-10">
           {children}
         </section>
@@ -97,15 +118,23 @@ function LoginEditorialLayout({
 
 export function LoginPortalShell({
   children,
-  brandEyebrow = "Alta Group",
+  brandEyebrow,
 }: {
   children: ReactNode;
   /** @deprecated Footer is rendered once at the root via SiteFooterGate. */
   footer?: never;
   brandEyebrow?: string;
 }) {
+  const site = useSiteContext();
+  const loginHome = site.loginHome;
+
   return (
-    <LoginEditorialLayout brandEyebrow={brandEyebrow}>
+    <LoginEditorialLayout
+      brandEyebrow={brandEyebrow ?? site.loginEyebrow}
+      brandTitle={loginHome.panelTitle}
+      brandDescription={loginHome.panelDescription}
+      brandTags={loginHome.panelTags}
+    >
       {children}
     </LoginEditorialLayout>
   );
@@ -118,19 +147,21 @@ export function AuthGate({
   redirectTo?: string;
   errorMessage?: string;
 }) {
-  const target = redirectTo ?? "/";
+  const site = useSiteContext();
+  const loginHome = site.loginHome;
+  const target = redirectTo ?? site.defaultAuthenticatedRoute;
 
   return (
     <div className="flex w-full max-w-md flex-col">
       <header className="space-y-3">
         <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
-          Member sign-in
+          {loginHome.signInEyebrow}
         </p>
         <h2 className="font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
-          Sign in to Alta
+          {loginHome.signInTitle}
         </h2>
         <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-          Authentication is provided through your Discord account. Alta does not maintain a separate password.
+          {loginHome.signInDescription}
         </p>
       </header>
 
@@ -146,9 +177,9 @@ export function AuthGate({
             <ShieldCheck className="size-[16px] text-foreground" strokeWidth={1.5} />
           </div>
           <div>
-            <div className="font-serif text-base leading-tight">Alta Platform Access</div>
+            <div className="font-serif text-base leading-tight">{loginHome.accessTitle}</div>
             <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Single sign-on · Discord OAuth
+              {loginHome.accessSubtitle}
             </div>
           </div>
         </div>
@@ -158,7 +189,7 @@ export function AuthGate({
         </div>
 
         <div className="mt-6 border-t border-border/70 pt-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Individual accounts · Authorized company representatives
+          {loginHome.accessFooter}
         </div>
       </div>
     </div>

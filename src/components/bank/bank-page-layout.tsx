@@ -106,9 +106,11 @@ function BankChromeLayoutInner({ showBankSubNav }: { showBankSubNav: boolean }) 
   return (
     <BankPageLayoutContext.Provider value={layoutValue}>
       <PageShell {...shellMeta} animateHero={false}>
-        {showBankSubNav ? <BankSubNav privateClientContext={privateClient} /> : null}
-        <div className="route-page-content">
-          <Outlet />
+        <div className="flex min-h-0 flex-1 flex-col">
+          {showBankSubNav ? <BankSubNav /> : null}
+          <div className="route-page-content">
+            <Outlet />
+          </div>
         </div>
       </PageShell>
     </BankPageLayoutContext.Provider>

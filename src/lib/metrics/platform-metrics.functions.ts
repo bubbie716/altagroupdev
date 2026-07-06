@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { PlatformMetrics } from "@/lib/metrics/platform-metrics";
 
-const emptyMetrics: PlatformMetrics = {
+export const EMPTY_PLATFORM_METRICS: PlatformMetrics = {
   totalUsers: 0,
   totalCompanies: 0,
   verifiedCompanies: 0,
@@ -21,6 +21,8 @@ const emptyMetrics: PlatformMetrics = {
   frozenBankAccounts: 0,
   authorizedRepresentatives: 0,
 };
+
+const emptyMetrics = EMPTY_PLATFORM_METRICS;
 
 export const fetchPlatformMetrics = createServerFn({ method: "GET" }).handler(async () => {
   const { isDatabaseConfigured } = await import("@/server/db");

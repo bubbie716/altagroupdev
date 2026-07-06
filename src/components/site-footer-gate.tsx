@@ -9,6 +9,7 @@ import {
 } from "@/lib/platform/footer-variant";
 import { getLegalDocument } from "@/lib/legal/legal-document-registry";
 import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 function resolveLegalDocFooter(pathname: string) {
   const docId = extractLegalDocIdFromPath(pathname);
@@ -33,6 +34,8 @@ export function SiteFooterGate() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { suppressSiteFooter, variantOverride } = useFooterContext();
 
+  const site = useSiteContext();
+
   if (suppressSiteFooter) return null;
 
   const variant = variantOverride ?? resolveFooterVariant(pathname);
@@ -40,5 +43,5 @@ export function SiteFooterGate() {
 
   const legalDoc = variant === "legal" ? resolveLegalDocFooter(pathname) : undefined;
 
-  return <SiteFooter variant={variant} legalDoc={legalDoc} />;
+  return <SiteFooter variant={variant} legalDoc={legalDoc} siteKey={site.key} />;
 }

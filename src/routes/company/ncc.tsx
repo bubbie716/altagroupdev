@@ -20,7 +20,7 @@ function NccCompanyPage() {
     <ComingSoonPage
       eyebrow="Newport Clearing Corporation"
       title="NCC"
-      description="Clearing and settlement infrastructure for approved Alta institutions. Full product pages are in development."
+      description="Clearing and settlement infrastructure for approved Alta institutions. Institution dashboards and connectivity tools are rolling out to participants."
     />
   );
 }

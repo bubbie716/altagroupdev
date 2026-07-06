@@ -6,6 +6,7 @@ import {
 } from "@/server/session";
 import { randomToken, sealJson } from "@/server/crypto";
 import { buildDiscordAuthorizeUrl, getDiscordConfig, resolveDiscordRedirectUri } from "@/server/discord";
+import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
 
 export const Route = createFileRoute("/api/auth/discord")({
   server: {
@@ -17,7 +18,11 @@ export const Route = createFileRoute("/api/auth/discord")({
         }
 
         const url = new URL(request.url);
-        const returnTo = url.searchParams.get("redirect") ?? "/profile";
+        const site = resolveSiteContextFromRequest(
+          Object.fromEntries(url.searchParams),
+          url.pathname,
+        );
+        const returnTo = url.searchParams.get("redirect") ?? site.defaultAuthenticatedRoute;
         const state = randomToken(24);
         const statePayload = await sealJson({ state, returnTo });
         if (!statePayload) {

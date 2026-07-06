@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 export function ComingSoonPage({
   eyebrow,
@@ -11,8 +11,10 @@ export function ComingSoonPage({
   eyebrow: string;
   title: string;
   description: string;
-  children?: ReactNode;
+  children?: React.ReactNode;
 }) {
+  const site = useSiteContext();
+
   return (
     <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
@@ -25,10 +27,10 @@ export function ComingSoonPage({
         <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.2em] text-gold">Coming Soon</p>
         {children ? <div className="mt-8">{children}</div> : null}
         <Link
-          to="/"
+          to={site.homeRoute}
           className="mt-10 inline-flex w-fit text-sm text-muted-foreground transition-colors hover:text-gold"
         >
-          Return home
+          Return to {site.displayName}
         </Link>
       </main>
     </div>

@@ -68,9 +68,11 @@ function ExchangeChromeLayoutInner() {
   return (
     <ExchangePageLayoutContext.Provider value={layoutValue}>
       <PageShell {...meta} animateHero={false}>
-        <ExchangeSubNav />
-        <div className="route-page-content">
-          <Outlet />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <ExchangeSubNav />
+          <div className="route-page-content">
+            <Outlet />
+          </div>
         </div>
       </PageShell>
     </ExchangePageLayoutContext.Provider>

@@ -1,21 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { AuthGate, LoginPortalShell } from "@/components/auth/auth-gate";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 type LoginSearch = {
   redirect?: string;
   error?: string;
-};
-
-const ERROR_MESSAGES: Record<string, string> = {
-  oauth_denied: "Discord authorization was cancelled.",
-  invalid_state: "Login session expired. Please try again.",
-  token_exchange_failed: "Could not complete Discord sign-in.",
-  profile_fetch_failed: "Could not load your Discord profile.",
-  oauth_not_configured: "Discord OAuth is not configured on this environment.",
-  database_not_configured: "Database is not configured (DATABASE_URL).",
-  session_not_configured: "Session signing is not configured (SESSION_SECRET).",
-  session_failed: "Could not create a login session.",
 };
 
 export const Route = createFileRoute("/login")({
@@ -23,49 +10,13 @@ export const Route = createFileRoute("/login")({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
     error: typeof search.error === "string" ? search.error : undefined,
   }),
-  head: () => ({ meta: [{ title: "Sign In — Alta Group" }] }),
-  component: LoginPage,
+  beforeLoad: ({ search }) => {
+    throw redirect({
+      to: "/",
+      search: {
+        redirect: search.redirect,
+        error: search.error,
+      },
+    });
+  },
 });
-
-function LoginPage() {
-  const { redirect, error } = Route.useSearch();
-  const user = useCurrentUser();
-
-  if (user) {
-    return (
-      <LoginPortalShell brandEyebrow="Alta Group · Welcome Back">
-        <div className="w-full max-w-md">
-          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
-            Already signed in
-          </p>
-          <h2 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
-            Welcome back, {user.discordUsername}.
-          </h2>
-          <div className="mt-8 rounded-lg border border-border bg-surface-1 p-7">
-            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              Continue your session
-            </div>
-            <Link
-              to={redirect ?? "/profile"}
-              className="mt-3 inline-flex items-center gap-2 font-serif text-lg text-foreground hover:text-gold"
-            >
-              Continue to platform <span aria-hidden>→</span>
-            </Link>
-          </div>
-        </div>
-      </LoginPortalShell>
-    );
-  }
-
-  const redirectTo = redirect ?? "/profile";
-  const errorMessage = error ? ERROR_MESSAGES[error] : undefined;
-
-  return (
-    <LoginPortalShell brandEyebrow="Alta Group · Log-in">
-      <AuthGate
-        redirectTo={redirectTo}
-        errorMessage={errorMessage}
-      />
-    </LoginPortalShell>
-  );
-}
