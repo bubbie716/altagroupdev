@@ -74,11 +74,11 @@ const BANK_NAV: SiteNavLink[] = [
   { label: "Withdraw", to: "/bank/withdraw", match: "/bank/withdraw" },
   { label: "Transfers", to: "/bank/transfers", match: "/bank/transfers" },
   { label: "Alta Pay", to: "/bank/pay", match: "/bank/pay" },
-  { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
-  { label: "Statements", to: "/bank/statements", match: "/bank/statements" },
-  { label: "Products", to: "/bank/products", match: "/bank/products", activePaths: ["/bank/deposits"] },
-  { label: "Lending", to: "/bank/lending", match: "/bank/lending" },
   { label: "Alta Card", to: "/bank/alta-card", match: "/bank/alta-card" },
+  { label: "Products", to: "/bank/products", match: "/bank/products", activePaths: ["/bank/deposits"] },
+  { label: "Statements", to: "/bank/statements", match: "/bank/statements" },
+  { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
+  { label: "Lending", to: "/bank/lending", match: "/bank/lending" },
 ];
 
 const EXCHANGE_NAV: SiteNavLink[] = [
