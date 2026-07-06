@@ -153,9 +153,20 @@ export function PublicFooter() {
           <FooterColumn title="Support">
             {FOOTER_SUPPORT_LINKS.map((link) => (
               <li key={link.label}>
-                <Link to={link.to} className={footerLinkClass}>
-                  {link.label}
-                </Link>
+                {"href" in link ? (
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={footerLinkClass}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link to={link.to} className={footerLinkClass}>
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
           </FooterColumn>

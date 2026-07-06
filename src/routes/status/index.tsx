@@ -1,22 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ComingSoonPage } from "@/components/site/coming-soon-page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { ALTA_SYSTEM_STATUS_URL } from "@/lib/site/site-links";
 
 export const Route = createFileRoute("/status/")({
-  head: () => ({
-    meta: [
-      { title: "System Status — Alta Group" },
-      { name: "description", content: "Operational status for Alta Bank, Alta Exchange, and platform services." },
-    ],
-  }),
-  component: SystemStatusPage,
+  beforeLoad: () => {
+    throw redirect({ href: ALTA_SYSTEM_STATUS_URL, replace: true });
+  },
 });
-
-function SystemStatusPage() {
-  return (
-    <ComingSoonPage
-      eyebrow="Alta Operations"
-      title="System Status"
-      description="Real-time service health and incident updates for Alta platform divisions will be published here."
-    />
-  );
-}
