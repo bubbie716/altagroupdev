@@ -1,3 +1,5 @@
+import { createIsomorphicFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   getDefaultSiteConfig,
   getSiteConfig,
@@ -93,24 +95,9 @@ export function resolveSiteConfig(input: {
   return getSiteConfig(resolveSiteKey(input));
 }
 
-export function readRequestHost(): string {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getRequestHeader } = require("@tanstack/react-start/server") as {
-      getRequestHeader: (name: string) => string | undefined;
-    };
-    const headerHost = getRequestHeader("host");
-    if (headerHost) return headerHost;
-  } catch {
-    // Not in a server request context.
-  }
-
-  if (typeof window !== "undefined") {
-    return window.location.host;
-  }
-
-  return "localhost";
-}
+export const readRequestHost = createIsomorphicFn()
+  .server(() => getRequestHeader("host") ?? "localhost")
+  .client(() => window.location.host);
 
 export function resolveSiteContextFromRequest(
   search?: Record<string, unknown>,
