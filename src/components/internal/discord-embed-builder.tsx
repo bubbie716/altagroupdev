@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import {
@@ -474,7 +475,7 @@ export function DiscordEmbedBuilder({
             className="mt-4 w-full rounded-md bg-foreground px-4 py-2.5 text-[13px] font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting
-              ? "Processing…"
+              ? SUBMITTING_COPY.processing
               : sendingConfigured
                 ? "Send to Discord"
                 : "Validate & preview send"}

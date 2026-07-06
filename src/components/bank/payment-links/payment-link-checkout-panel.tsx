@@ -34,6 +34,7 @@ import {
   BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { PaymentLinkStatusBadge } from "@/components/bank/payment-links/payment-link-status-badge";
 import {
   CommercialBrandedCheckoutShell,
@@ -362,7 +363,7 @@ export function PaymentLinkCheckoutPanel({
                 kind="payment_link_checkout"
                 label="Review payment"
                 submitting={submitting}
-                submittingLabel="Loading quote…"
+                submittingLabel={LOADING_COPY.paymentQuote}
                 showContainer={false}
               />
             </form>

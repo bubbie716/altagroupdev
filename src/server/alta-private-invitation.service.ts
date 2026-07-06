@@ -200,7 +200,7 @@ export async function sendAltaPrivateInvitation(
     const { sendAltaPrivateInvitationDiscordNotification } = await import(
       "@/server/alta-private-discord.service"
     );
-    await sendAltaPrivateInvitationDiscordNotification(input.userId, invitation.id);
+    void sendAltaPrivateInvitationDiscordNotification(input.userId, invitation.id);
   } catch {
     // Discord must never break invitation flow.
   }

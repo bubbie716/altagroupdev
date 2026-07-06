@@ -1,6 +1,7 @@
 "use client";
 
 import type { PreApprovalReadiness } from "@/lib/bank/relationship-intelligence-types";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 const STATUS_LABELS = {
   ELIGIBLE: "Eligible for review",
@@ -60,7 +61,7 @@ export function PreApprovalReadinessPanel({
           onClick={onReview}
           className="mt-4 rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-surface-2 disabled:opacity-60"
         >
-          {reviewing ? "Logging…" : "Log readiness review"}
+          {reviewing ? SUBMITTING_COPY.logging : "Log readiness review"}
         </button>
       ) : null}
     </section>

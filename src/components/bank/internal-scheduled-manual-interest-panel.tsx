@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -95,7 +96,7 @@ export function InternalScheduledManualInterestPanel({
             cell: (row: ScheduledManualInterestRow) =>
               canCancel && row.status === "PENDING" ? (
                 <OpsAction
-                  label={pendingId === row.id ? "Cancelling…" : "Cancel"}
+                  label={pendingId === row.id ? SUBMITTING_COPY.cancelling : "Cancel"}
                   variant="danger"
                   title="Cancel scheduled interest"
                   description="Removes this pending scheduled interest application."

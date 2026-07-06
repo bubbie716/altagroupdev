@@ -9,6 +9,7 @@ import { createPaymentLinkRecord } from "@/lib/bank/payment-link.functions";
 import { PAYMENT_LINK_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { BankRequestErrorCard, BankRequestSubmitButton } from "@/components/bank/bank-request-submission-ui";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 const fieldLabel = "type-meta";
@@ -189,7 +190,7 @@ export function PaymentLinkForm({
           kind="merchant_invoice"
           label="Create payment link"
           submitting={submitting}
-          submittingLabel="Creating link…"
+          submittingLabel={SUBMITTING_COPY.creatingLink}
           disabled={!canSubmit}
         />
       </Card>

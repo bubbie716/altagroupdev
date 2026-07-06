@@ -18,6 +18,8 @@ import {
   BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import {
@@ -223,7 +225,7 @@ export function AltaCardCashAdvancePanel({
 
   function renderContent() {
     if (loading) {
-      return <p className="text-[13px] text-muted-foreground">Loading cash advance options…</p>;
+      return <LoadingMessage>{LOADING_COPY.cashAdvanceOptions}</LoadingMessage>;
     }
 
     if (view === "success" && submission) {

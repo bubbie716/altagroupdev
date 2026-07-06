@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Card } from "@/components/page-shell";
 import {
   createIntrabankContactRecord,
@@ -234,7 +235,7 @@ function AddIntrabankContactForm({
             }
             className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background disabled:opacity-50"
           >
-            {submitting ? "Saving…" : "Save contact"}
+            {submitting ? SUBMITTING_COPY.saving : "Save contact"}
           </button>
           <button
             type="button"
@@ -343,7 +344,7 @@ function AddInterbankContactForm({
             disabled={submitting}
             className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background disabled:opacity-50"
           >
-            {submitting ? "Saving…" : "Save contact"}
+            {submitting ? SUBMITTING_COPY.saving : "Save contact"}
           </button>
           <button
             type="button"

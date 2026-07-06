@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { SiteNav } from "@/components/site-nav";
-import { LegalMicroFooter } from "@/components/footers";
 import { cn } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
 
@@ -78,15 +77,13 @@ function LoginBrandPanel({ brandEyebrow }: { brandEyebrow: string }) {
 
 function LoginEditorialLayout({
   children,
-  footer,
   brandEyebrow,
 }: {
   children: ReactNode;
-  footer?: ReactNode;
   brandEyebrow: string;
 }) {
   return (
-    <div className="relative flex min-h-screen flex-col bg-background">
+    <div className="relative flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
       <main className="relative z-10 flex flex-1">
         <LoginBrandPanel brandEyebrow={brandEyebrow} />
@@ -94,22 +91,21 @@ function LoginEditorialLayout({
           {children}
         </section>
       </main>
-      {footer}
     </div>
   );
 }
 
 export function LoginPortalShell({
   children,
-  footer,
-  brandEyebrow = "Alta Group · Member Access",
+  brandEyebrow = "Alta Group",
 }: {
   children: ReactNode;
-  footer?: ReactNode;
+  /** @deprecated Footer is rendered once at the root via SiteFooterGate. */
+  footer?: never;
   brandEyebrow?: string;
 }) {
   return (
-    <LoginEditorialLayout footer={footer} brandEyebrow={brandEyebrow}>
+    <LoginEditorialLayout brandEyebrow={brandEyebrow}>
       {children}
     </LoginEditorialLayout>
   );
@@ -169,7 +165,3 @@ export function AuthGate({
   );
 }
 
-/** @deprecated Use LegalMicroFooter from @/components/footers */
-export function LoginPortalFooter() {
-  return <LegalMicroFooter context="login" />;
-}

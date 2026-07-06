@@ -7,6 +7,7 @@ import { generateAltaCardStatementForPeriod } from "@/lib/bank/alta-card-stateme
 import type { AltaCardRow, AltaCardStatementDetail } from "@/lib/bank/alta-card-types";
 import { altaCardStatementDetailLink } from "@/lib/bank/alta-card-navigation";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -89,7 +90,7 @@ export function AltaCardStatementGenerateForm({
         disabled={pending}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Generating…" : "Generate activity summary"}
+        {pending ? SUBMITTING_COPY.generating : "Generate activity summary"}
       </button>
     </form>
   );

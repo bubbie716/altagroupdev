@@ -109,7 +109,7 @@ export async function alertMerchantInvoicePaymentFailed(
     severity: "WARNING",
     actorName: invoice.merchantCompany.name,
     details: `${invoice.referenceCode}: ${failureReason}`,
-    internalUrl: `/bank/invoices/${invoiceId}`,
+    internalUrl: `/bank/pay/invoices/${invoiceId}`,
     dedupeKey: `merchant-invoice-pay-failed:${invoiceId}:${failureReason.slice(0, 40)}`,
   });
 }

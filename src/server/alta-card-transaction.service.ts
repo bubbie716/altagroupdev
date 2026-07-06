@@ -927,23 +927,31 @@ export async function submitCardPayment(
     card.companyId,
   );
 
-  const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
-  await refreshFromAltaCardContextBestEffort(
-    { ownerUserId: card.ownerUserId, companyId: card.companyId },
-    "alta-card-payment-made",
-  );
+  void (async () => {
+    const { refreshFromAltaCardContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+    try {
+      await refreshFromAltaCardContextBestEffort(
+        { ownerUserId: card.ownerUserId, companyId: card.companyId },
+        "alta-card-payment-made",
+      );
+    } catch (error) {
+      console.error("[alta-card] relationship refresh failed", error);
+    }
+  })();
 
-  try {
-    const { notifyAltaCardPaymentMade } = await import("@/server/banking-notification.service");
-    await notifyAltaCardPaymentMade(card.ownerUserId, {
-      cardId: card.id,
-      amount: paymentAmount,
-      referenceCode,
-      cardLastFour: card.cardLastFour,
-    });
-  } catch (error) {
-    console.error("[alta-card] payment notification failed", error);
-  }
+  void (async () => {
+    try {
+      const { notifyAltaCardPaymentMade } = await import("@/server/banking-notification.service");
+      await notifyAltaCardPaymentMade(card.ownerUserId, {
+        cardId: card.id,
+        amount: paymentAmount,
+        referenceCode,
+        cardLastFour: card.cardLastFour,
+      });
+    } catch (error) {
+      console.error("[alta-card] payment notification failed", error);
+    }
+  })();
 
   return {
     transaction: result.cardTx,

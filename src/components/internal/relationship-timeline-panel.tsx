@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import type { RelationshipTimelineEventRow } from "@/lib/bank/relationship-intelligence-types";
 import {
@@ -83,7 +84,7 @@ export function RelationshipTimelinePanel({
           onClick={() => void handleBackfill()}
           className="rounded-md border border-border bg-surface-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] hover:bg-surface-2/80 disabled:opacity-60"
         >
-          {backfilling ? "Backfilling…" : "Backfill timeline"}
+          {backfilling ? SUBMITTING_COPY.backfilling : "Backfill timeline"}
         </button>
       </div>
 
@@ -149,7 +150,7 @@ export function RelationshipTimelinePanel({
             disabled={submittingNote || !noteTitle.trim() || !noteBody.trim()}
             className="rounded border border-gold/40 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-gold hover:bg-gold/5 disabled:opacity-60"
           >
-            {submittingNote ? "Saving…" : "Add manual note"}
+            {submittingNote ? SUBMITTING_COPY.saving : "Add manual note"}
           </button>
         </div>
       </form>

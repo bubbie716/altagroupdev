@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import { CommercialProUpgradePanel } from "@/components/bank/commercial/commercial-pro-upgrade-panel";
@@ -240,7 +241,7 @@ export function CommercialBrandingPanel({
                 onClick={() => fileInputRef.current?.click()}
                 className="rounded-md border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {uploading ? "Uploading…" : logoUrl ? "Change logo" : "Choose file"}
+                {uploading ? SUBMITTING_COPY.uploading : logoUrl ? "Change logo" : "Choose file"}
               </button>
               <span className="text-[13px] text-muted-foreground">PNG, JPEG, or WebP</span>
             </div>
@@ -342,7 +343,7 @@ export function CommercialBrandingPanel({
             onClick={() => void saveBranding()}
             className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
           >
-            {saving ? "Saving…" : settings.canPublish ? "Save branding" : "Pro required to publish"}
+            {saving ? SUBMITTING_COPY.saving : settings.canPublish ? "Save branding" : "Pro required to publish"}
           </button>
         </div>
         {message ? <p className="mt-3 text-sm text-muted-foreground">{message}</p> : null}

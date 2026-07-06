@@ -9,6 +9,7 @@ import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { RecurringInvoiceScheduleRow } from "@/lib/bank/payments-engine-types";
 import { deactivateRecurringInvoiceScheduleFn } from "@/lib/bank/payments-engine.functions";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 const actionButtonClass =
   "text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
@@ -77,7 +78,7 @@ export function MerchantRecurringInvoiceScheduleList({
                   className={`${actionButtonClass} text-destructive hover:text-destructive/80`}
                   onClick={() => void handleDeactivate(row)}
                 >
-                  {busyId === row.id ? "Deactivating…" : "Deactivate"}
+                  {busyId === row.id ? SUBMITTING_COPY.deactivating : "Deactivate"}
                 </button>
               ) : null}
             </div>

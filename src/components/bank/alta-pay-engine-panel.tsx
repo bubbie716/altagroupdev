@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import { AltaPayForm } from "@/components/bank/alta-pay-form";
@@ -34,11 +34,7 @@ import type { PayableRecipient } from "@/lib/bank/alta-pay-types";
 
 type EngineTab = "now" | "scheduled" | "recurring" | "autopay";
 
-const tabs: { id: EngineTab; label: string }[] = [
-  { id: "scheduled", label: "Scheduled" },
-  { id: "recurring", label: "Recurring" },
-  { id: "autopay", label: "AutoPay merchants" },
-];
+export type AltaPayEngineTab = EngineTab;
 
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -319,7 +315,7 @@ function ScheduleForm({
       </label>
       {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
       <button type="submit" disabled={submitting || !selected} className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50">
-        {submitting ? "Saving…" : paymentType === "recurring" ? "Create recurring payment" : "Schedule payment"}
+        {submitting ? SUBMITTING_COPY.saving : paymentType === "recurring" ? "Create recurring payment" : "Schedule payment"}
       </button>
     </form>
   );
@@ -433,29 +429,28 @@ function AutopayForm({
       </div>
       {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
       <button type="submit" disabled={submitting || !merchantCompanyId} className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50">
-        {submitting ? "Saving…" : "Approve merchant"}
+        {submitting ? SUBMITTING_COPY.saving : "Approve merchant"}
       </button>
     </form>
   );
 }
 
 export function AltaPayEnginePanel({
+  tab = "now",
   fundingSources,
   defaultFundingKey,
   history,
   schedules,
   autopayApprovals,
-  unreadInvoiceCount = 0,
 }: {
+  tab?: EngineTab;
   fundingSources: PayFundingSourceOption[];
   defaultFundingKey?: string;
   history: AltaPayPaymentRow[];
   schedules: AltaPayScheduleRow[];
   autopayApprovals: MerchantAutopayApprovalRow[];
-  unreadInvoiceCount?: number;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<EngineTab>("now");
 
   const pauseSchedule = useServerFn(pauseAltaPayScheduleFn);
   const resumeSchedule = useServerFn(resumeAltaPayScheduleFn);
@@ -469,45 +464,6 @@ export function AltaPayEnginePanel({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-1">
-        <button
-          type="button"
-          onClick={() => setTab("now")}
-          className={`rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
-            tab === "now"
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Pay now
-        </button>
-        <Link
-          to="/bank/invoices"
-          className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Received invoices
-          {unreadInvoiceCount > 0 ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[11px] font-medium leading-none text-background tabular-nums">
-              {unreadInvoiceCount > 99 ? "99+" : unreadInvoiceCount}
-            </span>
-          ) : null}
-        </Link>
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            className={`rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
-              tab === item.id
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
       {tab === "now" ? (
         <AltaPayForm fundingSources={fundingSources} defaultFundingKey={defaultFundingKey} onSuccess={refresh} />
       ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -131,7 +132,7 @@ export function MerchantInvoiceDetailPanel({
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
             <BankRequestActionButton
               submitting={loading === "send"}
-              submittingLabel="Sending invoice…"
+              submittingLabel={SUBMITTING_COPY.sendingInvoice}
               onClick={() => void handleSend()}
             >
               Send invoice
@@ -149,7 +150,7 @@ export function MerchantInvoiceDetailPanel({
               disabled={loading === "cancel"}
               onClick={() => void handleCancel()}
             >
-              {loading === "cancel" ? "Deleting…" : "Delete draft"}
+              {loading === "cancel" ? SUBMITTING_COPY.deleting : "Delete draft"}
             </button>
           </div>
         ) : null}
@@ -157,7 +158,7 @@ export function MerchantInvoiceDetailPanel({
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
             <BankRequestActionButton
               submitting={loading === "remind"}
-              submittingLabel="Sending reminder…"
+              submittingLabel={SUBMITTING_COPY.sendingReminder}
               onClick={() => void handleRemind()}
             >
               Send reminder
@@ -168,7 +169,7 @@ export function MerchantInvoiceDetailPanel({
               disabled={loading === "cancel"}
               onClick={() => void handleCancel()}
             >
-              {loading === "cancel" ? "Cancelling…" : "Cancel invoice"}
+              {loading === "cancel" ? SUBMITTING_COPY.cancelling : "Cancel invoice"}
             </button>
           </div>
         ) : null}

@@ -13,15 +13,12 @@ import { Outlet } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
 import { ALTA_EXCHANGE_TAGLINE } from "@/lib/branding/alta-products";
-import type { FooterVariant } from "@/lib/platform/footer-variant";
 
 export type ExchangePageMetaProps = {
   eyebrow: string;
   title: string;
   description?: string;
   action?: ReactNode;
-  hideFooter?: boolean;
-  footerVariant?: FooterVariant;
 };
 
 const defaultMeta: ExchangePageMetaProps = {
@@ -36,9 +33,7 @@ function metaFieldsEqual(a: ExchangePageMetaProps, b: ExchangePageMetaProps): bo
     a.eyebrow === b.eyebrow &&
     a.title === b.title &&
     a.description === b.description &&
-    a.action === b.action &&
-    a.hideFooter === b.hideFooter &&
-    a.footerVariant === b.footerVariant
+    a.action === b.action
   );
 }
 
@@ -59,8 +54,6 @@ export function ExchangePageMeta(props: ExchangePageMetaProps) {
     props.title,
     props.description,
     props.action,
-    props.hideFooter,
-    props.footerVariant,
   ]);
   return null;
 }

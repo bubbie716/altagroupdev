@@ -40,6 +40,21 @@ async function dispatchDiscordForNotification(
   });
 }
 
+/** Discord API calls must not block banking UX — deliver after the in-app row exists. */
+function scheduleDiscordForNotification(
+  notificationId: string,
+  input: CreateNotificationInput,
+): void {
+  void dispatchDiscordForNotification(notificationId, input).catch((error) => {
+    console.error("[notification] background Discord DM failed", {
+      notificationId,
+      userId: input.userId,
+      type: input.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
+
 /** In-app notification with optional Discord DM delivery. Returns notification id. */
 export async function createUserNotification(input: CreateNotificationInput): Promise<string> {
   const notification = await prisma.userNotification.create({
@@ -55,10 +70,21 @@ export async function createUserNotification(input: CreateNotificationInput): Pr
   });
 
   if (!input.skipDiscord) {
-    await dispatchDiscordForNotification(notification.id, input);
+    scheduleDiscordForNotification(notification.id, input);
   }
 
   return notification.id;
+}
+
+/** Fire-and-forget in-app notification (Discord DM is scheduled inside createUserNotification). */
+export function scheduleCreateUserNotification(input: CreateNotificationInput): void {
+  void createUserNotification(input).catch((error) => {
+    console.error("[notification] background in-app notification failed", {
+      userId: input.userId,
+      type: input.type,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
 }
 
 export async function createUserNotifications(
@@ -78,12 +104,23 @@ export async function createUserNotifications(
   }
 }
 
+/** Fire-and-forget batch in-app notifications. */
+export function scheduleCreateUserNotifications(
+  userIds: string[],
+  input: Omit<CreateNotificationInput, "userId">,
+): void {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  for (const userId of unique) {
+    scheduleCreateUserNotification({ userId, ...input });
+  }
+}
+
 /** Delivers a DM for an existing in-app notification (e.g. deal room opened after channel setup). */
 export async function deliverNotificationDiscord(
   notificationId: string,
   input: Omit<CreateNotificationInput, "skipDiscord">,
 ): Promise<void> {
-  await dispatchDiscordForNotification(notificationId, input);
+  scheduleDiscordForNotification(notificationId, input);
 }
 
 export type NotificationRow = {

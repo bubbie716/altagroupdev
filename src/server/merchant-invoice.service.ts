@@ -528,14 +528,16 @@ export async function sendMerchantInvoice(
     sentAt: now,
   });
 
-  try {
-    const { notifyMerchantInvoiceReceived } = await import(
-      "@/server/merchant-invoice-notification.service"
-    );
-    await notifyMerchantInvoiceReceived(updated.id);
-  } catch (error) {
-    console.error("[merchant-invoice] received notification failed", error);
-  }
+  void (async () => {
+    try {
+      const { notifyMerchantInvoiceReceived } = await import(
+        "@/server/merchant-invoice-notification.service"
+      );
+      await notifyMerchantInvoiceReceived(updated.id);
+    } catch (error) {
+      console.error("[merchant-invoice] received notification failed", error);
+    }
+  })();
 
   try {
     const { maybeAlertHighValueInvoiceSent } = await import(
@@ -597,14 +599,16 @@ export async function cancelMerchantInvoice(
   });
 
   if (invoice.status !== "DRAFT") {
-    try {
-      const { notifyMerchantInvoiceCancelled } = await import(
-        "@/server/merchant-invoice-notification.service"
-      );
-      await notifyMerchantInvoiceCancelled(updated.id);
-    } catch (error) {
-      console.error("[merchant-invoice] cancelled notification failed", error);
-    }
+    void (async () => {
+      try {
+        const { notifyMerchantInvoiceCancelled } = await import(
+          "@/server/merchant-invoice-notification.service"
+        );
+        await notifyMerchantInvoiceCancelled(updated.id);
+      } catch (error) {
+        console.error("[merchant-invoice] cancelled notification failed", error);
+      }
+    })();
   }
 
   return mapDetail(updated);
@@ -649,14 +653,16 @@ export async function sendMerchantInvoiceReminder(
     source: "website",
   });
 
-  try {
-    const { notifyMerchantInvoiceReminder } = await import(
-      "@/server/merchant-invoice-notification.service"
-    );
-    await notifyMerchantInvoiceReminder(updated.id);
-  } catch (error) {
-    console.error("[merchant-invoice] reminder notification failed", error);
-  }
+  void (async () => {
+    try {
+      const { notifyMerchantInvoiceReminder } = await import(
+        "@/server/merchant-invoice-notification.service"
+      );
+      await notifyMerchantInvoiceReminder(updated.id);
+    } catch (error) {
+      console.error("[merchant-invoice] reminder notification failed", error);
+    }
+  })();
 
   return mapDetail(updated);
 }

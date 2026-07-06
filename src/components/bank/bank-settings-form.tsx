@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -143,7 +144,7 @@ function UnsavedChangesBanner({
           onClick={onSave}
           className="shrink-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[11px] font-medium transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? SUBMITTING_COPY.saving : "Save"}
         </button>
       </div>
     </div>
@@ -405,7 +406,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
         disabled={saving || !isDirty}
         className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium text-background disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Save settings"}
+        {saving ? SUBMITTING_COPY.saving : "Save settings"}
       </button>
     </form>
     </>

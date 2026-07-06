@@ -686,11 +686,17 @@ async function processLoanPayment(
     });
   }
 
-  const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
-  await refreshFromLoanContextBestEffort(
-    { borrowerUserId: loanRecord.borrowerUserId, companyId: loanRecord.companyId },
-    paidOff ? "loan-paid-off" : "loan-payment-made",
-  );
+  void (async () => {
+    const { refreshFromLoanContextBestEffort } = await import("@/server/relationship-refresh-hooks.service");
+    try {
+      await refreshFromLoanContextBestEffort(
+        { borrowerUserId: loanRecord.borrowerUserId, companyId: loanRecord.companyId },
+        paidOff ? "loan-paid-off" : "loan-payment-made",
+      );
+    } catch (error) {
+      console.error("[loan] relationship refresh failed", error);
+    }
+  })();
 
   const { writeAuditLog } = await import("@/server/audit.service");
   const { auditSourceMetadata } = await import("@/lib/internal/audit-metadata");
@@ -716,20 +722,26 @@ async function processLoanPayment(
       notifyLoanPaymentMade,
       notifyLoanPaidOff,
     } = await import("@/server/banking-notification.service");
-    if (paidOff) {
-      await notifyLoanPaidOff(loanRecord.borrowerUserId, {
-        loanId: loanRecord.id,
-        referenceCode,
-      });
-    } else {
-      await notifyLoanPaymentMade(loanRecord.borrowerUserId, {
-        loanId: loanRecord.id,
-        amount,
-        referenceCode,
-      });
-    }
+    void (async () => {
+      try {
+        if (paidOff) {
+          await notifyLoanPaidOff(loanRecord.borrowerUserId, {
+            loanId: loanRecord.id,
+            referenceCode,
+          });
+        } else {
+          await notifyLoanPaymentMade(loanRecord.borrowerUserId, {
+            loanId: loanRecord.id,
+            amount,
+            referenceCode,
+          });
+        }
+      } catch (error) {
+        console.error("[loan] payment notification failed", error);
+      }
+    })();
   } catch (error) {
-    console.error("[loan] payment notification failed", error);
+    console.error("[loan] payment notification import failed", error);
   }
 
   return { referenceCode, amount };

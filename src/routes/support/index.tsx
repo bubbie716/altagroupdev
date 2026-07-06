@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronLeft } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
-import { PublicFooter } from "@/components/footers";
 import {
   ALTA_DISCORD_COMMUNITIES,
   ALTA_DISCORD_URLS,
@@ -22,7 +21,7 @@ export const Route = createFileRoute("/support/")({
 
 function SupportCenterPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-6 py-24">
         <div className="type-eyebrow">Alta Support</div>
@@ -81,7 +80,6 @@ function SupportCenterPage() {
           })}
         </ul>
       </main>
-      <PublicFooter />
     </div>
   );
 }

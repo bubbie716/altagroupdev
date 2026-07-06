@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
 import { SiteNav } from "@/components/site-nav";
-import { PublicFooter } from "@/components/footers";
 import { AnimatedNumber } from "@/components/animated-number";
 import { compact, florin, indexSeries, movers, pct, stocks } from "@/lib/mock-data";
 import { getIndices } from "@/lib/exchange/api";
@@ -46,14 +45,13 @@ function Landing() {
   const { platformMetrics, snapshot } = Route.useLoaderData();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
       <Hero snapshot={snapshot} />
       <Marquee />
       <Divisions />
       <Capabilities metrics={platformMetrics} />
       <ClosingCTA />
-      <PublicFooter />
     </div>
   );
 }

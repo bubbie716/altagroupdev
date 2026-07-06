@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -129,7 +130,7 @@ export function LoanAutoPayForm({
         disabled={submitting}
         className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
       >
-        {submitting ? "Saving…" : "Save auto-pay"}
+        {submitting ? SUBMITTING_COPY.saving : "Save auto-pay"}
       </button>
     </form>
   );

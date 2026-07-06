@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import type { AltaEmployeeCardRow } from "@/lib/bank/alta-card-types";
 import {
   altaCardStatusLabel,
@@ -144,7 +145,7 @@ export function AltaCardEmployeeCardManageButton({
                 disabled={submitting}
                 className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
               >
-                {submitting ? "Saving…" : "Update limit"}
+                {submitting ? SUBMITTING_COPY.saving : "Update limit"}
               </button>
             </div>
           </form>

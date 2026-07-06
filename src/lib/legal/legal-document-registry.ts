@@ -13,6 +13,8 @@ export type LegalDocumentDefinition = {
   slug: string;
   entity: LegalEntity;
   version: string;
+  /** Human-readable last updated label for legal document footers. */
+  lastUpdated?: string;
   footerOrder: number;
   showInGlobalFooter: boolean;
   showInEntityFooter: boolean;
@@ -26,6 +28,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "terms",
     entity: "group",
     version: "1.0",
+    lastUpdated: "March 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -59,6 +62,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "bank/deposit-account-agreement",
     entity: "bank",
     version: "1.0",
+    lastUpdated: "March 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -125,6 +129,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "markets/customer-agreement",
     entity: "markets",
     version: "1.0",
+    lastUpdated: "March 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -180,6 +185,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "ncc/participation-agreement",
     entity: "ncc",
     version: "1.0",
+    lastUpdated: "March 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,

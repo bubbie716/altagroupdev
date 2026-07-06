@@ -1,7 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { LoginPortalShell } from "@/components/auth/auth-gate";
-import { LegalMicroFooter } from "@/components/footers";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { canBypassMaintenanceMode } from "@/lib/auth/permissions";
 import { fetchMaintenanceMode } from "@/lib/platform/platform-settings.functions";
@@ -25,10 +24,7 @@ function MaintenancePage() {
   const isBypassUser = user ? canBypassMaintenanceMode(user) : false;
 
   return (
-    <LoginPortalShell
-      footer={<LegalMicroFooter context="maintenance" />}
-      brandEyebrow="Alta Group · Be Back Shortly"
-    >
+    <LoginPortalShell brandEyebrow="Alta Group · Be Back Shortly">
       <div className="w-full max-w-lg">
         <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">Alta Group</p>
         <h1 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">

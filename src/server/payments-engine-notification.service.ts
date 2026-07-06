@@ -1,18 +1,19 @@
 import type { ScheduledPayment } from "@prisma/client";
 import { formatFlorin } from "@/lib/bank/format";
 import { toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
-import { createUserNotification } from "@/server/notification.service";
+import type { CreateNotificationInput } from "@/server/notification.service";
+import { scheduleCreateUserNotification } from "@/server/notification.service";
 
 async function notify(
   userId: string,
-  type: Parameters<typeof createUserNotification>[0]["type"],
+  type: CreateNotificationInput["type"],
   title: string,
   body: string,
   linkUrl = "/bank/pay",
-  options?: { customDmPayload?: Parameters<typeof createUserNotification>[0]["customDmPayload"] },
+  options?: { customDmPayload?: CreateNotificationInput["customDmPayload"] },
 ): Promise<void> {
   try {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type,
       title,
@@ -95,7 +96,7 @@ export async function notifyMerchantInvoiceAutopaidBestEffort(
     "MERCHANT_INVOICE_AUTOPAID",
     "Invoice paid automatically",
     `${merchantName} invoice \`${referenceCode}\` for ${formatFlorin(amount)} was paid via AutoPay${funding}.`,
-    invoiceId ? `/bank/invoices/${invoiceId}` : "/bank/pay",
+    invoiceId ? `/bank/pay/invoices/${invoiceId}` : "/bank/pay",
   );
 }
 
@@ -115,14 +116,14 @@ export async function notifyMerchantAutopayConfirmationRequiredBestEffort(input:
   merchantName: string;
   amount: number;
   referenceCode: string;
-  customDmPayload?: Parameters<typeof createUserNotification>[0]["customDmPayload"];
+  customDmPayload?: CreateNotificationInput["customDmPayload"];
 }): Promise<void> {
   await notify(
     input.userId,
     "MERCHANT_AUTOPAY_CONFIRMATION_REQUIRED",
     "AutoPay confirmation required",
     `${input.merchantName} invoice \`${input.referenceCode}\` for ${formatFlorin(input.amount)} requires your confirmation before AutoPay can run.`,
-    `/bank/invoices/${input.invoiceId}`,
+    `/bank/pay/invoices/${input.invoiceId}`,
     { customDmPayload: input.customDmPayload },
   );
 }

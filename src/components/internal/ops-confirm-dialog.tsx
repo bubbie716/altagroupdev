@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { SilentNotificationToggle } from "@/components/internal/silent-notification-toggle";
 import type { OpsConfirmOptions } from "@/lib/internal/operator-notification-options";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 export function OpsConfirmDialog({
   open,
@@ -174,7 +175,7 @@ export function OpsConfirmDialog({
                 : "h-8 rounded border border-gold/40 bg-gold/10 px-3 text-[12px] font-medium text-gold hover:bg-gold/15 disabled:opacity-50"
             }
           >
-            {pending ? "Processing…" : confirmLabel}
+            {pending ? SUBMITTING_COPY.processing : confirmLabel}
           </button>
         </div>
         </div>

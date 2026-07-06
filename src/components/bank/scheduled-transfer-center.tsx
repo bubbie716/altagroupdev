@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
@@ -491,7 +492,7 @@ function ScheduledTransferForm({
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
         {pending
-          ? "Submitting…"
+          ? SUBMITTING_COPY.default
           : transferScope === "intrabank"
             ? "Schedule transfer"
             : "Submit for review"}

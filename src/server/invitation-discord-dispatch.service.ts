@@ -96,3 +96,14 @@ export async function dispatchInvitationDm(
     return { sent: false, via: "none", reason: message };
   }
 }
+
+/** Invitation DMs must not block invite flows — deliver in the background. */
+export function scheduleDispatchInvitationDm(kind: InvitationKind, invitationId: string): void {
+  void dispatchInvitationDm(kind, invitationId).catch((error) => {
+    logDispatch("background invitation dispatch failed", {
+      kind,
+      invitationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}

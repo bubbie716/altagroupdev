@@ -177,7 +177,7 @@ export function CustomerInvoicePayPanel({
           kind="merchant_invoice_payment"
           result={submission}
           onSubmitAnother={() =>
-            void router.navigate({ to: "/bank/invoices" })
+            void router.navigate({ to: "/bank/pay/invoices" })
           }
         />
       </CommercialBrandedReceiptShell>

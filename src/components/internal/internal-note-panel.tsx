@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { InternalNoteTargetType } from "@prisma/client";
@@ -64,7 +65,7 @@ export function InternalNotePanel({
           disabled={submitting || !text.trim()}
           className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background disabled:opacity-50"
         >
-          {submitting ? "Saving…" : "Add note"}
+          {submitting ? SUBMITTING_COPY.saving : "Add note"}
         </button>
       </form>
       <ul className="mt-5 space-y-3 border-t border-border pt-4">

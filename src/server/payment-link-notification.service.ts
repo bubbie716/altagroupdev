@@ -1,5 +1,5 @@
 import { prisma } from "@/server/db";
-import { createUserNotification } from "@/server/notification.service";
+import { scheduleCreateUserNotification } from "@/server/notification.service";
 
 const MERCHANT_NOTIFY_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
 
@@ -43,7 +43,7 @@ export async function notifyPaymentLinkPaid(input: {
 
   const merchantUserIds = await listMerchantFinanceUserIds(link.merchantCompanyId);
   for (const userId of merchantUserIds) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "PAYMENT_LINK_PAID",
       title: "Payment link paid",
@@ -52,7 +52,7 @@ export async function notifyPaymentLinkPaid(input: {
     });
   }
 
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId: input.payerUserId,
     type: "PAYMENT_LINK_RECEIPT",
     title: "Payment receipt",

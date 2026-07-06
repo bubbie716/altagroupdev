@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import {
   BankRequestErrorCard,
   BankRequestSubmitButton,
@@ -176,7 +178,7 @@ export function CommercialProUpgradePanel({
 
   function renderContent() {
     if (loading) {
-      return <p className="text-[13px] text-muted-foreground">Loading upgrade options…</p>;
+      return <LoadingMessage>{LOADING_COPY.commercialUpgrade}</LoadingMessage>;
     }
 
     if (view === "success" && submission) {

@@ -135,7 +135,7 @@ export async function notifyCustomerOperatorUsersBestEffort(input: {
 
   let sent = 0;
   for (const userId of uniqueUserIds) {
-    const result = await sendCustomerOperatorDiscordNotification({
+    scheduleSendCustomerOperatorDiscordNotification({
       userId,
       title: copy.title,
       body: copy.body,
@@ -150,13 +150,13 @@ export async function notifyCustomerOperatorUsersBestEffort(input: {
         ...input.metadata,
       },
     });
-    if (result.sent) sent += 1;
+    sent += 1;
   }
   return { attempted: uniqueUserIds.length, sent };
 }
 
 /** Sends a customer-safe operator action DM. Never throws — failures are logged only. */
-export async function sendCustomerOperatorDiscordNotification(input: {
+async function deliverCustomerOperatorDiscordNotification(input: {
   userId: string;
   title: string;
   body: string;
@@ -245,6 +245,41 @@ export async function sendCustomerOperatorDiscordNotification(input: {
   }
 }
 
+/** Discord API calls must not block banking UX — deliver in the background. */
+export function scheduleSendCustomerOperatorDiscordNotification(input: {
+  userId: string;
+  title: string;
+  body: string;
+  linkUrl: string;
+  linkLabel?: string;
+  source?: string;
+  actorUserId?: string;
+  metadata?: Record<string, unknown>;
+}): void {
+  void deliverCustomerOperatorDiscordNotification(input).catch((error) => {
+    logDelivery("background operator DM failed", {
+      userId: input.userId,
+      title: input.title,
+      error: error instanceof Error ? error.message : String(error),
+      source: input.source,
+    });
+  });
+}
+
+/** @deprecated Prefer scheduleSendCustomerOperatorDiscordNotification for request paths. */
+export async function sendCustomerOperatorDiscordNotification(input: {
+  userId: string;
+  title: string;
+  body: string;
+  linkUrl: string;
+  linkLabel?: string;
+  source?: string;
+  actorUserId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ sent: boolean; reason?: string }> {
+  return deliverCustomerOperatorDiscordNotification(input);
+}
+
 /** Runs a customer notification unless silent; returns whether a notification was attempted and sent. */
 export async function deliverOperatorCustomerNotification(input: {
   actorUserId: string;
@@ -278,12 +313,10 @@ export async function deliverOperatorCustomerNotification(input: {
 
   let customerNotificationSent = false;
   if (shouldNotifyCustomer(input.notificationOptions)) {
-    try {
-      customerNotificationSent = await input.deliver();
-    } catch (error) {
+    customerNotificationSent = true;
+    void input.deliver().catch((error) => {
       console.error("[customer-operator-notification] delivery failed", error);
-      customerNotificationSent = false;
-    }
+    });
   }
   return {
     customerNotificationSent,

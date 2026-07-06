@@ -120,4 +120,5 @@ export const SiteNav = memo(function SiteNav() {
   );
 });
 
-export { PublicFooter, SiteFooter } from "./footers";
+export { MarketingFooter, PublicFooter, SiteFooter } from "./footers";
+export { SiteFooterGate } from "./site-footer-gate";

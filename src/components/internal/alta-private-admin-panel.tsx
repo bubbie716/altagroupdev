@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { AltaPrivateInternalSummary } from "@/lib/bank/alta-private-types";
@@ -138,7 +139,7 @@ export function AltaPrivateAdminPanel({
                 onClick={() => void handleSend()}
                 className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
               >
-                {submitting ? "Sending…" : "Confirm send invitation"}
+                {submitting ? SUBMITTING_COPY.sending : "Confirm send invitation"}
               </button>
               <button
                 type="button"
@@ -180,7 +181,7 @@ export function AltaPrivateAdminPanel({
                   onClick={() => void handleRevoke()}
                   className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive disabled:opacity-50"
                 >
-                  {submitting ? "Revoking…" : "Confirm revoke"}
+                  {submitting ? SUBMITTING_COPY.revoking : "Confirm revoke"}
                 </button>
                 <button type="button" onClick={() => setConfirmRevoke(false)} className="rounded-md border border-border px-4 py-2 text-[12px]">
                   Cancel

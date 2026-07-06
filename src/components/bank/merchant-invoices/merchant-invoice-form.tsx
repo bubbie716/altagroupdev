@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Check } from "lucide-react";
@@ -371,7 +372,7 @@ export function MerchantInvoiceForm({
               onClick={() => void handleSaveDraft()}
               className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {savingDraft ? "Saving draft…" : "Save as draft"}
+              {savingDraft ? SUBMITTING_COPY.savingDraft : "Save as draft"}
             </button>
             <BankRequestSubmitButton
               kind="merchant_invoice"

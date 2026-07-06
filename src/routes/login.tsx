@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AuthGate, LoginPortalShell } from "@/components/auth/auth-gate";
-import { LegalMicroFooter } from "@/components/footers";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 type LoginSearch = {
@@ -34,7 +33,7 @@ function LoginPage() {
 
   if (user) {
     return (
-      <LoginPortalShell footer={<LegalMicroFooter context="login" />} brandEyebrow="Alta Group · Welcome Back">
+      <LoginPortalShell brandEyebrow="Alta Group · Welcome Back">
         <div className="w-full max-w-md">
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-gold">
             Already signed in
@@ -62,7 +61,7 @@ function LoginPage() {
   const errorMessage = error ? ERROR_MESSAGES[error] : undefined;
 
   return (
-    <LoginPortalShell footer={<LegalMicroFooter context="login" />} brandEyebrow="Alta Group · Log-in">
+    <LoginPortalShell brandEyebrow="Alta Group · Log-in">
       <AuthGate
         redirectTo={redirectTo}
         errorMessage={errorMessage}

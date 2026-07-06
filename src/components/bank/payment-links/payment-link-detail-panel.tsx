@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, Copy } from "lucide-react";
@@ -146,7 +147,7 @@ export function PaymentLinkDetailPanel({
             {link.status === "ACTIVE" ? (
               <BankRequestActionButton
                 submitting={loading === "pause"}
-                submittingLabel="Pausing…"
+                submittingLabel={SUBMITTING_COPY.pausing}
                 onClick={() =>
                   void runAction("pause", () =>
                     pauseLink({ data: { companyId, linkId: link.id } }),
@@ -159,7 +160,7 @@ export function PaymentLinkDetailPanel({
             {link.status === "PAUSED" ? (
               <BankRequestActionButton
                 submitting={loading === "activate"}
-                submittingLabel="Activating…"
+                submittingLabel={SUBMITTING_COPY.activating}
                 onClick={() =>
                   void runAction("activate", () =>
                     activateLink({ data: { companyId, linkId: link.id } }),
@@ -180,7 +181,7 @@ export function PaymentLinkDetailPanel({
                   )
                 }
               >
-                {loading === "cancel" ? "Cancelling…" : "Cancel link"}
+                {loading === "cancel" ? SUBMITTING_COPY.cancelling : "Cancel link"}
               </button>
             ) : null}
           </div>

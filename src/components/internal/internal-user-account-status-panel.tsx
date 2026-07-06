@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -92,7 +93,7 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
           disabled={submitting || selected === user.accountStatus}
           className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
         >
-          {submitting ? "Updating…" : "Update status"}
+          {submitting ? SUBMITTING_COPY.updating : "Update status"}
         </button>
         {message && <p className="text-[13px] text-[var(--success)]">{message}</p>}
         {error && <p className="text-[13px] text-destructive">{error}</p>}
@@ -128,7 +129,7 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
               onClick={() => confirmStatus && void applyStatus(confirmStatus)}
               className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-50"
             >
-              {submitting ? "Applying…" : "Confirm"}
+              {submitting ? SUBMITTING_COPY.applying : "Confirm"}
             </button>
           </DialogFooter>
         </DialogContent>

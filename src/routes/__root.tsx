@@ -20,12 +20,13 @@ import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
-import { LegalMicroFooter } from "@/components/footers";
+import { FooterProvider } from "@/lib/platform/footer-context";
+import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="max-w-md text-center">
           <h1 className="text-7xl font-bold text-foreground">404</h1>
@@ -43,7 +44,6 @@ function NotFoundComponent() {
           </div>
         </div>
       </div>
-      <LegalMicroFooter context="login" />
     </div>
   );
 }
@@ -55,7 +55,7 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-full flex-1 flex-col bg-background">
       <div className="flex flex-1 items-center justify-center px-4">
         <div className="max-w-md text-center">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
@@ -83,7 +83,6 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
           </div>
         </div>
       </div>
-      <LegalMicroFooter context="login" />
     </div>
   );
 }
@@ -175,11 +174,18 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RouteTransitionProvider>
-          <NumberInputScrollGuard />
-          {isUiLabMode() && <UiLabBanner />}
-          <SiteReturnPathTracker />
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
+          <FooterProvider>
+            <NumberInputScrollGuard />
+            {isUiLabMode() && <UiLabBanner />}
+            <SiteReturnPathTracker />
+            <div className="flex min-h-screen flex-col">
+              <div className="flex min-h-0 flex-1 flex-col">
+                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+                <Outlet />
+              </div>
+              <SiteFooterGate />
+            </div>
+          </FooterProvider>
         </RouteTransitionProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -1,4 +1,6 @@
 /** Canonical operator-facing labels for the internal console. */
+import { LOADING_COPY } from "@/lib/ui/route-loading";
+
 const STATUS_LABELS: Record<string, string> = {
   active: "Active",
   operational: "Operational",
@@ -77,7 +79,7 @@ export const OPS_COPY = {
   administrator: "Administrator",
   adminRequired: "Admin permission required.",
   noResults: "No records match the current filters.",
-  loading: "Loading…",
+  loading: LOADING_COPY.default,
   actionFailed: "Action could not be completed. Try again or contact an administrator.",
   lendingBeginReviewDescription:
     "Marks the application Waiting on Alta and notifies the applicant in the Secure Deal Room.",

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CompanyEmployeeCardMemberOption } from "@/lib/bank/alta-card-types";
 import { formatCompanyRole } from "@/lib/auth/tags";
 import { createEmployeeCardRecord } from "@/lib/bank/alta-card.functions";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 export function AltaCardEmployeeCardCreateForm({
   companyId,
@@ -102,7 +103,7 @@ export function AltaCardEmployeeCardCreateForm({
           disabled={loading}
           className="rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
         >
-          {loading ? "Creating…" : "Create employee card"}
+          {loading ? SUBMITTING_COPY.creating : "Create employee card"}
         </button>
       </div>
     </form>

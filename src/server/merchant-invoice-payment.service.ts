@@ -357,38 +357,46 @@ export async function payMerchantInvoice(
       console.error("[merchant-invoice] commercial payment received audit failed", auditError);
     }
 
-    try {
-      const { notifyMerchantInvoicePaid } = await import(
-        "@/server/merchant-invoice-notification.service"
-      );
-      await notifyMerchantInvoicePaid(result.locked.id, paymentId, {
-        autopay: source === "autopay",
-      });
-    } catch (error) {
-      console.error("[merchant-invoice] paid notification failed", error);
-    }
+    void (async () => {
+      try {
+        const { notifyMerchantInvoicePaid } = await import(
+          "@/server/merchant-invoice-notification.service"
+        );
+        await notifyMerchantInvoicePaid(result.locked.id, paymentId, {
+          autopay: source === "autopay",
+        });
+      } catch (error) {
+        console.error("[merchant-invoice] paid notification failed", error);
+      }
 
-    try {
-      const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
-        "@/server/commercial-notification.service"
-      );
-      await notifyMerchantFirstPaymentReceivedBestEffort({
-        companyId: result.locked.merchantCompanyId,
-        merchantName: result.locked.merchantCompany.name,
-        amount: fees.totalDebited,
-        source: "invoice",
-      });
-    } catch (error) {
-      console.error("[merchant-invoice] first payment notification failed", error);
-    }
+      try {
+        const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
+          "@/server/commercial-notification.service"
+        );
+        await notifyMerchantFirstPaymentReceivedBestEffort({
+          companyId: result.locked.merchantCompanyId,
+          merchantName: result.locked.merchantCompany.name,
+          amount: fees.totalDebited,
+          source: "invoice",
+        });
+      } catch (error) {
+        console.error("[merchant-invoice] first payment notification failed", error);
+      }
+    })();
 
-    const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
-      await import("@/server/relationship-refresh-hooks.service");
-    await refreshUserRelationshipProfileBestEffort(user.id, "merchant-invoice-paid");
-    await refreshCompanyRelationshipStackBestEffort(
-      result.locked.merchantCompanyId,
-      "merchant-invoice-paid",
-    );
+    void (async () => {
+      const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
+        await import("@/server/relationship-refresh-hooks.service");
+      try {
+        await refreshUserRelationshipProfileBestEffort(user.id, "merchant-invoice-paid");
+        await refreshCompanyRelationshipStackBestEffort(
+          result.locked.merchantCompanyId,
+          "merchant-invoice-paid",
+        );
+      } catch (error) {
+        console.error("[merchant-invoice] relationship refresh failed", error);
+      }
+    })();
 
     return {
       invoiceId: result.locked.id,
@@ -487,7 +495,7 @@ export async function payMerchantInvoice(
         amount: decimalToNumber(invoice.amount),
         referenceCode: invoice.referenceCode,
         reason: failureReason,
-        tryAgainUrl: `/bank/invoices/${invoice.id}`,
+        tryAgainUrl: `/bank/pay/invoices/${invoice.id}`,
         source: "invoice",
       });
     } catch (notifyError) {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -333,7 +334,7 @@ export function LendingApplyForm({
             disabled={submitting || (productType === "business_credit_line" && companies.length === 0)}
             className="rounded-md border border-gold/40 bg-gold/10 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-50"
           >
-            {submitting ? "Submitting…" : "Submit application"}
+            {submitting ? SUBMITTING_COPY.default : "Submit application"}
           </button>
         </div>
       </form>

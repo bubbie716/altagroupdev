@@ -568,7 +568,7 @@ export async function activateAltaCard(actorUserId: string, cardId: string): Pro
 
   try {
     const { notifyAltaCardActivated } = await import("@/server/banking-notification.service");
-    await notifyAltaCardActivated(card.ownerUserId, cardId, card.cardLastFour);
+    void notifyAltaCardActivated(card.ownerUserId, cardId, card.cardLastFour);
   } catch (error) {
     console.error("[alta-card] activation notification failed", error);
   }
@@ -599,7 +599,7 @@ export async function freezeAltaCard(actorUserId: string, cardId: string): Promi
 
   try {
     const { notifyAltaCardFrozen } = await import("@/server/banking-notification.service");
-    await notifyAltaCardFrozen(card.ownerUserId, card.cardLastFour);
+    void notifyAltaCardFrozen(card.ownerUserId, card.cardLastFour);
   } catch (error) {
     console.error("[alta-card] freeze notification failed", error);
   }
@@ -630,7 +630,7 @@ export async function unfreezeAltaCard(actorUserId: string, cardId: string): Pro
 
   try {
     const { notifyAltaCardUnfrozen } = await import("@/server/banking-notification.service");
-    await notifyAltaCardUnfrozen(card.ownerUserId, card.cardLastFour);
+    void notifyAltaCardUnfrozen(card.ownerUserId, card.cardLastFour);
   } catch (error) {
     console.error("[alta-card] unfreeze notification failed", error);
   }

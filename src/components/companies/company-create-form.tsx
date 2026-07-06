@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { Textarea } from "@/components/ui/textarea";
@@ -198,7 +199,7 @@ export function CompanyCreateForm() {
         disabled={submitting}
         className="w-full rounded-md bg-foreground px-5 py-3 text-[13px] font-medium tracking-wide text-background disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? "Registering…" : "Register company"}
+        {submitting ? SUBMITTING_COPY.registering : "Register company"}
       </button>
     </form>
   );

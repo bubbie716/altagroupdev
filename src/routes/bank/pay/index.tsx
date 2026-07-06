@@ -6,7 +6,7 @@ import {
   bankAccountPayFundingKey,
   employeeCardPayFundingKey,
 } from "@/components/bank/alta-pay-form";
-import { AltaPayEnginePanel } from "@/components/bank/alta-pay-engine-panel";
+import { AltaPayEnginePanel, type AltaPayEngineTab } from "@/components/bank/alta-pay-engine-panel";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { fetchUserBankSettings } from "@/lib/bank/bank-settings.functions";
 import { fetchPayFundingSources, fetchUserAltaPayHistory } from "@/lib/bank/alta-pay.functions";
@@ -14,16 +14,19 @@ import {
   fetchAltaPaySchedules,
   fetchMerchantAutopayApprovals,
 } from "@/lib/bank/payments-engine.functions";
-import { fetchUnreadReceivedInvoiceCount } from "@/lib/bank/merchant-invoice.functions";
-import { authBeforeLoad } from "@/lib/auth/guards";
 
 type AltaPaySearch = {
   employeeCardId?: string;
   cardId?: string;
+  tab?: AltaPayEngineTab;
 };
 
-export const Route = createFileRoute("/bank/pay")({
-  beforeLoad: authBeforeLoad,
+function parseAltaPayTab(value: unknown): AltaPayEngineTab | undefined {
+  if (value === "scheduled" || value === "recurring" || value === "autopay") return value;
+  return undefined;
+}
+
+export const Route = createFileRoute("/bank/pay/")({
   validateSearch: (search: Record<string, unknown>): AltaPaySearch => {
     const result: AltaPaySearch = {};
     const employeeCardId = search.employeeCardId;
@@ -34,6 +37,8 @@ export const Route = createFileRoute("/bank/pay")({
     if (typeof cardId === "string" && cardId.trim()) {
       result.cardId = cardId.trim();
     }
+    const tab = parseAltaPayTab(search.tab);
+    if (tab) result.tab = tab;
     return result;
   },
   loader: async () => {
@@ -42,8 +47,7 @@ export const Route = createFileRoute("/bank/pay")({
     const bankSettings = await fetchUserBankSettings();
     const schedules = await fetchAltaPaySchedules();
     const autopayApprovals = await fetchMerchantAutopayApprovals();
-    const unreadInvoiceCount = await fetchUnreadReceivedInvoiceCount();
-    return { fundingSources, history, bankSettings, schedules, autopayApprovals, unreadInvoiceCount };
+    return { fundingSources, history, bankSettings, schedules, autopayApprovals };
   },
   head: () => ({
     meta: [{ title: "Alta Pay — Alta Bank" }],
@@ -52,9 +56,8 @@ export const Route = createFileRoute("/bank/pay")({
 });
 
 function AltaPayPage() {
-  const { fundingSources, history, bankSettings, schedules, autopayApprovals, unreadInvoiceCount } =
-    Route.useLoaderData();
-  const { employeeCardId, cardId } = Route.useSearch();
+  const { fundingSources, history, bankSettings, schedules, autopayApprovals } = Route.useLoaderData();
+  const { employeeCardId, cardId, tab = "now" } = Route.useSearch();
   const defaultFundingKey = employeeCardId
     ? employeeCardPayFundingKey(employeeCardId)
     : cardId
@@ -78,12 +81,12 @@ function AltaPayPage() {
       ) : (
         <Section title="Payments">
           <AltaPayEnginePanel
+            tab={tab}
             fundingSources={fundingSources}
             defaultFundingKey={defaultFundingKey}
             history={history}
             schedules={schedules}
             autopayApprovals={autopayApprovals}
-            unreadInvoiceCount={unreadInvoiceCount}
           />
         </Section>
       )}

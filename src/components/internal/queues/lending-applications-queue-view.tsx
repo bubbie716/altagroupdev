@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console";
@@ -197,7 +198,7 @@ function DealRoomLink({
         }
       }}
     >
-      {pending ? "Opening…" : "Open thread"}
+      {pending ? SUBMITTING_COPY.opening : "Open thread"}
     </button>
   );
 }

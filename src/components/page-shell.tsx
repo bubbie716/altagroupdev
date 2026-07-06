@@ -1,29 +1,8 @@
 import { memo, type ReactNode } from "react";
-import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { type } from "@/lib/typography";
 import { useRouteTransition } from "@/components/navigation/route-transition";
 import { SiteNav } from "./site-nav";
-import { PublicFooter, PlatformFooter } from "./footers";
-import {
-  type FooterVariant,
-  resolveFooterVariant,
-  resolvePlatformFooterContext,
-} from "@/lib/platform/footer-variant";
-
-function PageFooter({
-  variant,
-  pathname,
-}: {
-  variant: FooterVariant;
-  pathname: string;
-}) {
-  if (variant === "none" || variant === "minimal-auth") return null;
-  if (variant === "platform") {
-    return <PlatformFooter context={resolvePlatformFooterContext(pathname)} />;
-  }
-  return <PublicFooter />;
-}
 
 export function PageShell({
   eyebrow,
@@ -32,8 +11,6 @@ export function PageShell({
   subtitle,
   action,
   children,
-  hideFooter = false,
-  footerVariant,
   printDocument = false,
   animateHero = true,
 }: {
@@ -43,23 +20,20 @@ export function PageShell({
   subtitle?: string;
   action?: ReactNode;
   children: ReactNode;
+  /** @deprecated Site footer is rendered once at the root via SiteFooterGate. */
   hideFooter?: boolean;
-  /** Overrides route-based footer selection. Legal footers belong on auth shells, not PageShell. */
-  footerVariant?: FooterVariant;
+  /** @deprecated Site footer is resolved globally from the route path. */
+  footerVariant?: never;
   /** Hides site chrome and page hero when printing (e.g. bank statements). */
   printDocument?: boolean;
   /** When false, skips the hero entrance animation (used by persistent /bank layout). */
   animateHero?: boolean;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { suppressEntranceAnimations } = useRouteTransition();
   const shouldAnimateHero = animateHero && !suppressEntranceAnimations;
-  const resolvedVariant = hideFooter
-    ? "none"
-    : (footerVariant ?? resolveFooterVariant(pathname));
 
   return (
-    <div className={cn("min-h-screen overflow-x-clip bg-background", printDocument && "statement-print-page")}>
+    <div className={cn("flex min-h-full w-full flex-1 flex-col overflow-x-clip bg-background", printDocument && "statement-print-page")}>
       <SiteNav />
       <div
         className={cn(
@@ -94,7 +68,6 @@ export function PageShell({
         </div>
         <main className={cn("min-w-0 py-8 sm:py-12", printDocument && "print:py-0")}>{children}</main>
       </div>
-      <PageFooter variant={resolvedVariant} pathname={pathname} />
     </div>
   );
 }

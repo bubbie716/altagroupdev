@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Card } from "@/components/page-shell";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -149,7 +150,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               disabled={pending}
               className="rounded-md border border-border-strong bg-surface-2 px-5 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
             >
-              {pending ? "Signing in…" : "Sign in"}
+              {pending ? SUBMITTING_COPY.signingIn : "Sign in"}
             </button>
           </form>
         </Card>
@@ -228,7 +229,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               disabled={pending}
               className="rounded-md border border-border-strong bg-surface-2 px-5 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
             >
-              {pending ? "Submitting…" : "Submit application"}
+              {pending ? SUBMITTING_COPY.default : "Submit application"}
             </button>
           </form>
         </Card>

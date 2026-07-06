@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import type { CompanyRelationshipRecommendationRow } from "@/lib/bank/company-relationship-intelligence-types";
 import { COMPANY_RECOMMENDATION_TYPE_LABELS } from "@/lib/bank/company-relationship-recommendation-config";
@@ -75,7 +76,7 @@ export function CompanyRelationshipRecommendationsPanel({
           onClick={() => void regenerate()}
           className="rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] hover:bg-surface-2 disabled:opacity-60"
         >
-          {busy === "generate" ? "Generating…" : "Regenerate"}
+          {busy === "generate" ? SUBMITTING_COPY.generating : "Regenerate"}
         </button>
       </div>
 

@@ -19,7 +19,6 @@ import {
 } from "@/hooks/use-alta-private-client-context";
 import type { AltaPrivateClientContext } from "@/lib/bank/alta-private-client.types";
 import { EMPTY_ALTA_PRIVATE_CLIENT_CONTEXT } from "@/lib/bank/alta-private-client.types";
-import type { FooterVariant } from "@/lib/platform/footer-variant";
 
 export type BankPageMetaProps = {
   eyebrow: string;
@@ -28,8 +27,6 @@ export type BankPageMetaProps = {
   /** Subtle line beneath the title — used for Alta Private Client recognition. */
   subtitle?: string;
   action?: ReactNode;
-  hideFooter?: boolean;
-  footerVariant?: FooterVariant;
   printDocument?: boolean;
 };
 
@@ -45,8 +42,6 @@ function metaFieldsEqual(a: BankPageMetaProps, b: BankPageMetaProps): boolean {
     a.description === b.description &&
     a.subtitle === b.subtitle &&
     a.action === b.action &&
-    a.hideFooter === b.hideFooter &&
-    a.footerVariant === b.footerVariant &&
     a.printDocument === b.printDocument
   );
 }
@@ -72,8 +67,6 @@ export function BankPageMeta(props: BankPageMetaProps) {
     props.description,
     props.subtitle,
     props.action,
-    props.hideFooter,
-    props.footerVariant,
     props.printDocument,
   ]);
 

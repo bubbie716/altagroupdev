@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import type { AuditEntityType } from "@prisma/client";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
@@ -136,7 +137,7 @@ function InternalAuditPage() {
             onClick={() => void handleExport()}
             className="inline-flex h-8 items-center rounded border border-border px-3 text-[12px] text-muted-foreground disabled:opacity-50"
           >
-            {exporting ? "Exporting…" : "Export CSV"}
+            {exporting ? SUBMITTING_COPY.exporting : "Export CSV"}
           </button>
         </div>
         </OpsFilterBar>

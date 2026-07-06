@@ -1,7 +1,7 @@
 import { formatFlorin } from "@/lib/bank/format";
 import { buildNotificationDmPayload, resolvePublicLinkUrl } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
-import { createUserNotification } from "@/server/notification.service";
+import { scheduleCreateUserNotification, scheduleCreateUserNotifications } from "@/server/notification.service";
 
 function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
@@ -13,7 +13,7 @@ function formatDueDate(dueDate: Date | null): string {
 }
 
 function invoiceUrl(invoiceId: string): string {
-  return `/bank/invoices/${invoiceId}`;
+  return `/bank/pay/invoices/${invoiceId}`;
 }
 
 async function loadInvoiceNotificationContext(invoiceId: string) {
@@ -113,7 +113,7 @@ export async function notifyMerchantInvoiceReceived(invoiceId: string): Promise<
   const recurringHint = invoice.isRecurring ? " (recurring)" : "";
 
   for (const userId of notifyUserIds) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "MERCHANT_INVOICE_RECEIVED",
       title,
@@ -140,7 +140,7 @@ export async function notifyMerchantInvoiceReminder(invoiceId: string): Promise<
   const notifyUserIds = await listRecipientNotifyUserIds(invoice);
 
   for (const userId of notifyUserIds) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "MERCHANT_INVOICE_REMINDER",
       title: overdue ? "Invoice overdue" : "Invoice reminder",
@@ -176,7 +176,7 @@ export async function notifyMerchantInvoicePaid(
 
   if (!options?.autopay) {
     for (const userId of notifyUserIds) {
-      await createUserNotification({
+      scheduleCreateUserNotification({
         userId,
         type: "MERCHANT_INVOICE_PAID",
         title: "Invoice paid",
@@ -196,7 +196,7 @@ export async function notifyMerchantInvoicePaid(
   });
 
   for (const member of memberships) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId: member.userId,
       type: "MERCHANT_INVOICE_PAID",
       title: options?.autopay ? "Invoice paid via AutoPay" : "Invoice paid",
@@ -223,7 +223,7 @@ export async function notifyMerchantInvoiceCancelled(invoiceId: string): Promise
   const notifyUserIds = await listRecipientNotifyUserIds(invoice);
 
   for (const userId of notifyUserIds) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "MERCHANT_INVOICE_CANCELLED",
       title: "Invoice cancelled",
@@ -243,7 +243,7 @@ export async function notifyMerchantInvoiceOverdue(invoiceId: string): Promise<v
   const recipientName = recipientLabel(invoice);
 
   for (const userId of notifyUserIds) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "MERCHANT_INVOICE_REMINDER",
       title: "Invoice overdue",
@@ -262,7 +262,7 @@ export async function notifyMerchantInvoiceOverdue(invoiceId: string): Promise<v
   });
 
   for (const member of memberships) {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId: member.userId,
       type: "MERCHANT_INVOICE_OVERDUE",
       title: "Invoice overdue",

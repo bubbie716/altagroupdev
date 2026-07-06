@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -241,7 +242,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
               disabled={sending}
               className="rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background disabled:opacity-60"
             >
-              {sending ? "Sending…" : "Send invitation"}
+              {sending ? SUBMITTING_COPY.sending : "Send invitation"}
             </button>
           </form>
 

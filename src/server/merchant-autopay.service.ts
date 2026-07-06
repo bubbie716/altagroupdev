@@ -147,7 +147,7 @@ export async function createMerchantAutopayApproval(
     "@/server/payments-engine-notification.service"
   );
   await recordMerchantAutopayApprovalCreatedAudit(user.id, row.id, company.name);
-  await notifyMerchantAutopayApprovalCreatedBestEffort(user.id, company.name);
+  void notifyMerchantAutopayApprovalCreatedBestEffort(user.id, company.name);
 
   return mapApproval(row);
 }
@@ -184,7 +184,7 @@ export async function updateMerchantAutopayApproval(
     "@/server/payments-engine-notification.service"
   );
   await recordMerchantAutopayApprovalUpdatedAudit(user.id, row.id, row.merchantCompany.name);
-  await notifyMerchantAutopayApprovalUpdatedBestEffort(user.id, row.merchantCompany.name);
+  void notifyMerchantAutopayApprovalUpdatedBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 
@@ -201,7 +201,7 @@ export async function pauseMerchantAutopayApproval(user: AltaUser, approvalId: s
     "@/server/payments-engine-notification.service"
   );
   await recordMerchantAutopayApprovalPausedAudit(user.id, row.id, row.merchantCompany.name);
-  await notifyMerchantAutopayApprovalPausedBestEffort(user.id, row.merchantCompany.name);
+  void notifyMerchantAutopayApprovalPausedBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 
@@ -217,7 +217,7 @@ export async function cancelMerchantAutopayApproval(user: AltaUser, approvalId: 
     "@/server/payments-engine-notification.service"
   );
   await recordMerchantAutopayApprovalCancelledAudit(user.id, row.id, row.merchantCompany.name);
-  await notifyMerchantAutopayApprovalCancelledBestEffort(user.id, row.merchantCompany.name);
+  void notifyMerchantAutopayApprovalCancelledBestEffort(user.id, row.merchantCompany.name);
   return mapApproval(row);
 }
 

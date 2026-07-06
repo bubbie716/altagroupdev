@@ -183,7 +183,7 @@ export async function createAltaPaySchedule(
     "@/server/payments-engine-notification.service"
   );
   await recordPaymentScheduleCreatedAudit(user.id, row);
-  await notifyPaymentScheduleCreatedBestEffort(user.id, mapAltaPayScheduleRow(row));
+  void notifyPaymentScheduleCreatedBestEffort(user.id, mapAltaPayScheduleRow(row));
 
   return mapAltaPayScheduleRow(row);
 }

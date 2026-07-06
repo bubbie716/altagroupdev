@@ -91,3 +91,14 @@ export async function dispatchNotificationDm(
     return { sent: false, via: "none", reason: message };
   }
 }
+
+/** Discord API calls must not block banking UX — deliver in the background. */
+export function scheduleDispatchNotificationDm(input: UserNotificationDmInput): void {
+  void dispatchNotificationDm(input).catch((error) => {
+    logDispatch("background dispatch failed", {
+      userId: input.userId,
+      title: input.title,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}

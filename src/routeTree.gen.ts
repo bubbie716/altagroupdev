@@ -75,7 +75,6 @@ import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
 import { Route as BankSettingsRouteImport } from './routes/bank/settings'
 import { Route as BankProductsRouteImport } from './routes/bank/products'
 import { Route as BankPrivateRouteImport } from './routes/bank/private'
-import { Route as BankPayRouteImport } from './routes/bank/pay'
 import { Route as BankOpenRouteImport } from './routes/bank/open'
 import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
 import { Route as BankDepositRouteImport } from './routes/bank/deposit'
@@ -86,6 +85,7 @@ import { Route as InternalLendingRouteRouteImport } from './routes/internal/lend
 import { Route as InternalBankRouteRouteImport } from './routes/internal/bank/route'
 import { Route as CompaniesCompanyIdRouteRouteImport } from './routes/companies/$companyId/route'
 import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/route'
+import { Route as BankPayRouteRouteImport } from './routes/bank/pay/route'
 import { Route as BankCommercialRouteRouteImport } from './routes/bank/commercial/route'
 import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
 import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
@@ -99,6 +99,7 @@ import { Route as ExchangeTerminalIndexRouteImport } from './routes/exchange/ter
 import { Route as CompaniesCompanyIdIndexRouteImport } from './routes/companies/$companyId/index'
 import { Route as BankTransfersIndexRouteImport } from './routes/bank/transfers/index'
 import { Route as BankStatementsIndexRouteImport } from './routes/bank/statements/index'
+import { Route as BankPayIndexRouteImport } from './routes/bank/pay/index'
 import { Route as BankLendingIndexRouteImport } from './routes/bank/lending/index'
 import { Route as BankInvoicesIndexRouteImport } from './routes/bank/invoices/index'
 import { Route as BankCommercialIndexRouteImport } from './routes/bank/commercial/index'
@@ -173,6 +174,7 @@ import { Route as InternalAltaCardReviewsIndexRouteImport } from './routes/inter
 import { Route as InternalAltaCardCardsIndexRouteImport } from './routes/internal/alta-card/cards/index'
 import { Route as InternalAltaCardApplicationsIndexRouteImport } from './routes/internal/alta-card/applications/index'
 import { Route as ExchangeCompanyTickerIndexRouteImport } from './routes/exchange/company/$ticker/index'
+import { Route as BankPayInvoicesIndexRouteImport } from './routes/bank/pay/invoices/index'
 import { Route as BankLendingLoansIndexRouteImport } from './routes/bank/lending/loans/index'
 import { Route as BankLendingDealRoomsIndexRouteImport } from './routes/bank/lending/deal-rooms/index'
 import { Route as BankLendingApplicationsIndexRouteImport } from './routes/bank/lending/applications/index'
@@ -189,6 +191,7 @@ import { Route as InternalBankTransactionsTransactionIdRouteImport } from './rou
 import { Route as InternalBankAccountsAccountIdRouteImport } from './routes/internal/bank/accounts/$accountId'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
 import { Route as BankPrivateInvitationInvitationIdRouteImport } from './routes/bank/private/invitation/$invitationId'
+import { Route as BankPayInvoicesInvoiceIdRouteImport } from './routes/bank/pay/invoices/$invoiceId'
 import { Route as BankLendingLoansLoanIdRouteImport } from './routes/bank/lending/loans/$loanId'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
 import { Route as BankCommercialPaymentLinksNewRouteImport } from './routes/bank/commercial/payment-links/new'
@@ -596,11 +599,6 @@ const BankPrivateRoute = BankPrivateRouteImport.update({
   path: '/private',
   getParentRoute: () => BankRouteRoute,
 } as any)
-const BankPayRoute = BankPayRouteImport.update({
-  id: '/pay',
-  path: '/pay',
-  getParentRoute: () => BankRouteRoute,
-} as any)
 const BankOpenRoute = BankOpenRouteImport.update({
   id: '/open',
   path: '/open',
@@ -649,6 +647,11 @@ const CompaniesCompanyIdRouteRoute = CompaniesCompanyIdRouteRouteImport.update({
 const BankTransfersRouteRoute = BankTransfersRouteRouteImport.update({
   id: '/transfers',
   path: '/transfers',
+  getParentRoute: () => BankRouteRoute,
+} as any)
+const BankPayRouteRoute = BankPayRouteRouteImport.update({
+  id: '/pay',
+  path: '/pay',
   getParentRoute: () => BankRouteRoute,
 } as any)
 const BankCommercialRouteRoute = BankCommercialRouteRouteImport.update({
@@ -717,6 +720,11 @@ const BankStatementsIndexRoute = BankStatementsIndexRouteImport.update({
   id: '/statements/',
   path: '/statements/',
   getParentRoute: () => BankRouteRoute,
+} as any)
+const BankPayIndexRoute = BankPayIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BankPayRouteRoute,
 } as any)
 const BankLendingIndexRoute = BankLendingIndexRouteImport.update({
   id: '/lending/',
@@ -1122,6 +1130,11 @@ const ExchangeCompanyTickerIndexRoute =
     path: '/',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
   } as any)
+const BankPayInvoicesIndexRoute = BankPayInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => BankPayRouteRoute,
+} as any)
 const BankLendingLoansIndexRoute = BankLendingLoansIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -1215,6 +1228,12 @@ const BankPrivateInvitationInvitationIdRoute =
     id: '/invitation/$invitationId',
     path: '/invitation/$invitationId',
     getParentRoute: () => BankPrivateRoute,
+  } as any)
+const BankPayInvoicesInvoiceIdRoute =
+  BankPayInvoicesInvoiceIdRouteImport.update({
+    id: '/invoices/$invoiceId',
+    path: '/invoices/$invoiceId',
+    getParentRoute: () => BankPayRouteRoute,
   } as any)
 const BankLendingLoansLoanIdRoute = BankLendingLoansLoanIdRouteImport.update({
   id: '/$loanId',
@@ -1693,6 +1712,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
+  '/bank/pay': typeof BankPayRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
@@ -1703,7 +1723,6 @@ export interface FileRoutesByFullPath {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
@@ -1822,6 +1841,7 @@ export interface FileRoutesByFullPath {
   '/bank/commercial/': typeof BankCommercialIndexRoute
   '/bank/invoices/': typeof BankInvoicesIndexRoute
   '/bank/lending/': typeof BankLendingIndexRoute
+  '/bank/pay/': typeof BankPayIndexRoute
   '/bank/statements/': typeof BankStatementsIndexRoute
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
@@ -1866,6 +1886,7 @@ export interface FileRoutesByFullPath {
   '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
+  '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
@@ -1882,6 +1903,7 @@ export interface FileRoutesByFullPath {
   '/bank/lending/applications/': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
+  '/bank/pay/invoices/': typeof BankPayInvoicesIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
   '/internal/alta-card/cards/': typeof InternalAltaCardCardsIndexRoute
@@ -1949,7 +1971,6 @@ export interface FileRoutesByTo {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
@@ -2060,6 +2081,7 @@ export interface FileRoutesByTo {
   '/bank/commercial': typeof BankCommercialIndexRoute
   '/bank/invoices': typeof BankInvoicesIndexRoute
   '/bank/lending': typeof BankLendingIndexRoute
+  '/bank/pay': typeof BankPayIndexRoute
   '/bank/statements': typeof BankStatementsIndexRoute
   '/bank/transfers': typeof BankTransfersIndexRoute
   '/companies/$companyId': typeof CompaniesCompanyIdIndexRoute
@@ -2100,6 +2122,7 @@ export interface FileRoutesByTo {
   '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
+  '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
@@ -2116,6 +2139,7 @@ export interface FileRoutesByTo {
   '/bank/lending/applications': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans': typeof BankLendingLoansIndexRoute
+  '/bank/pay/invoices': typeof BankPayInvoicesIndexRoute
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications': typeof InternalAltaCardApplicationsIndexRoute
   '/internal/alta-card/cards': typeof InternalAltaCardCardsIndexRoute
@@ -2185,6 +2209,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
+  '/bank/pay': typeof BankPayRouteRouteWithChildren
   '/bank/transfers': typeof BankTransfersRouteRouteWithChildren
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
@@ -2195,7 +2220,6 @@ export interface FileRoutesById {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/pay': typeof BankPayRoute
   '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
@@ -2314,6 +2338,7 @@ export interface FileRoutesById {
   '/bank/commercial/': typeof BankCommercialIndexRoute
   '/bank/invoices/': typeof BankInvoicesIndexRoute
   '/bank/lending/': typeof BankLendingIndexRoute
+  '/bank/pay/': typeof BankPayIndexRoute
   '/bank/statements/': typeof BankStatementsIndexRoute
   '/bank/transfers/': typeof BankTransfersIndexRoute
   '/companies/$companyId/': typeof CompaniesCompanyIdIndexRoute
@@ -2358,6 +2383,7 @@ export interface FileRoutesById {
   '/bank/commercial/payment-links/new': typeof BankCommercialPaymentLinksNewRoute
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
+  '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
   '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
@@ -2374,6 +2400,7 @@ export interface FileRoutesById {
   '/bank/lending/applications/': typeof BankLendingApplicationsIndexRoute
   '/bank/lending/deal-rooms/': typeof BankLendingDealRoomsIndexRoute
   '/bank/lending/loans/': typeof BankLendingLoansIndexRoute
+  '/bank/pay/invoices/': typeof BankPayInvoicesIndexRoute
   '/exchange/company/$ticker/': typeof ExchangeCompanyTickerIndexRoute
   '/internal/alta-card/applications/': typeof InternalAltaCardApplicationsIndexRoute
   '/internal/alta-card/cards/': typeof InternalAltaCardCardsIndexRoute
@@ -2445,6 +2472,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
+    | '/bank/pay'
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/internal/bank'
@@ -2455,7 +2483,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
@@ -2574,6 +2601,7 @@ export interface FileRouteTypes {
     | '/bank/commercial/'
     | '/bank/invoices/'
     | '/bank/lending/'
+    | '/bank/pay/'
     | '/bank/statements/'
     | '/bank/transfers/'
     | '/companies/$companyId/'
@@ -2618,6 +2646,7 @@ export interface FileRouteTypes {
     | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
+    | '/bank/pay/invoices/$invoiceId'
     | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
@@ -2634,6 +2663,7 @@ export interface FileRouteTypes {
     | '/bank/lending/applications/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
+    | '/bank/pay/invoices/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
     | '/internal/alta-card/cards/'
@@ -2701,7 +2731,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
@@ -2812,6 +2841,7 @@ export interface FileRouteTypes {
     | '/bank/commercial'
     | '/bank/invoices'
     | '/bank/lending'
+    | '/bank/pay'
     | '/bank/statements'
     | '/bank/transfers'
     | '/companies/$companyId'
@@ -2852,6 +2882,7 @@ export interface FileRouteTypes {
     | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
+    | '/bank/pay/invoices/$invoiceId'
     | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
@@ -2868,6 +2899,7 @@ export interface FileRouteTypes {
     | '/bank/lending/applications'
     | '/bank/lending/deal-rooms'
     | '/bank/lending/loans'
+    | '/bank/pay/invoices'
     | '/exchange/company/$ticker'
     | '/internal/alta-card/applications'
     | '/internal/alta-card/cards'
@@ -2936,6 +2968,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
+    | '/bank/pay'
     | '/bank/transfers'
     | '/companies/$companyId'
     | '/internal/bank'
@@ -2946,7 +2979,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/pay'
     | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
@@ -3065,6 +3097,7 @@ export interface FileRouteTypes {
     | '/bank/commercial/'
     | '/bank/invoices/'
     | '/bank/lending/'
+    | '/bank/pay/'
     | '/bank/statements/'
     | '/bank/transfers/'
     | '/companies/$companyId/'
@@ -3109,6 +3142,7 @@ export interface FileRouteTypes {
     | '/bank/commercial/payment-links/new'
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
+    | '/bank/pay/invoices/$invoiceId'
     | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
@@ -3125,6 +3159,7 @@ export interface FileRouteTypes {
     | '/bank/lending/applications/'
     | '/bank/lending/deal-rooms/'
     | '/bank/lending/loans/'
+    | '/bank/pay/invoices/'
     | '/exchange/company/$ticker/'
     | '/internal/alta-card/applications/'
     | '/internal/alta-card/cards/'
@@ -3689,13 +3724,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankPrivateRouteImport
       parentRoute: typeof BankRouteRoute
     }
-    '/bank/pay': {
-      id: '/bank/pay'
-      path: '/pay'
-      fullPath: '/bank/pay'
-      preLoaderRoute: typeof BankPayRouteImport
-      parentRoute: typeof BankRouteRoute
-    }
     '/bank/open': {
       id: '/bank/open'
       path: '/open'
@@ -3764,6 +3792,13 @@ declare module '@tanstack/react-router' {
       path: '/transfers'
       fullPath: '/bank/transfers'
       preLoaderRoute: typeof BankTransfersRouteRouteImport
+      parentRoute: typeof BankRouteRoute
+    }
+    '/bank/pay': {
+      id: '/bank/pay'
+      path: '/pay'
+      fullPath: '/bank/pay'
+      preLoaderRoute: typeof BankPayRouteRouteImport
       parentRoute: typeof BankRouteRoute
     }
     '/bank/commercial': {
@@ -3856,6 +3891,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/statements/'
       preLoaderRoute: typeof BankStatementsIndexRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/bank/pay/': {
+      id: '/bank/pay/'
+      path: '/'
+      fullPath: '/bank/pay/'
+      preLoaderRoute: typeof BankPayIndexRouteImport
+      parentRoute: typeof BankPayRouteRoute
     }
     '/bank/lending/': {
       id: '/bank/lending/'
@@ -4375,6 +4417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExchangeCompanyTickerIndexRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
     }
+    '/bank/pay/invoices/': {
+      id: '/bank/pay/invoices/'
+      path: '/invoices'
+      fullPath: '/bank/pay/invoices/'
+      preLoaderRoute: typeof BankPayInvoicesIndexRouteImport
+      parentRoute: typeof BankPayRouteRoute
+    }
     '/bank/lending/loans/': {
       id: '/bank/lending/loans/'
       path: '/'
@@ -4486,6 +4535,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/private/invitation/$invitationId'
       preLoaderRoute: typeof BankPrivateInvitationInvitationIdRouteImport
       parentRoute: typeof BankPrivateRoute
+    }
+    '/bank/pay/invoices/$invoiceId': {
+      id: '/bank/pay/invoices/$invoiceId'
+      path: '/invoices/$invoiceId'
+      fullPath: '/bank/pay/invoices/$invoiceId'
+      preLoaderRoute: typeof BankPayInvoicesInvoiceIdRouteImport
+      parentRoute: typeof BankPayRouteRoute
     }
     '/bank/lending/loans/$loanId': {
       id: '/bank/lending/loans/$loanId'
@@ -5086,6 +5142,22 @@ const BankCommercialRouteRouteChildren: BankCommercialRouteRouteChildren = {
 const BankCommercialRouteRouteWithChildren =
   BankCommercialRouteRoute._addFileChildren(BankCommercialRouteRouteChildren)
 
+interface BankPayRouteRouteChildren {
+  BankPayIndexRoute: typeof BankPayIndexRoute
+  BankPayInvoicesInvoiceIdRoute: typeof BankPayInvoicesInvoiceIdRoute
+  BankPayInvoicesIndexRoute: typeof BankPayInvoicesIndexRoute
+}
+
+const BankPayRouteRouteChildren: BankPayRouteRouteChildren = {
+  BankPayIndexRoute: BankPayIndexRoute,
+  BankPayInvoicesInvoiceIdRoute: BankPayInvoicesInvoiceIdRoute,
+  BankPayInvoicesIndexRoute: BankPayInvoicesIndexRoute,
+}
+
+const BankPayRouteRouteWithChildren = BankPayRouteRoute._addFileChildren(
+  BankPayRouteRouteChildren,
+)
+
 interface BankTransfersRouteRouteChildren {
   BankTransfersContactsRoute: typeof BankTransfersContactsRoute
   BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
@@ -5398,6 +5470,7 @@ const BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren =
 interface BankRouteRouteChildren {
   BankBusinessRouteRoute: typeof BankBusinessRouteRouteWithChildren
   BankCommercialRouteRoute: typeof BankCommercialRouteRouteWithChildren
+  BankPayRouteRoute: typeof BankPayRouteRouteWithChildren
   BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
   BankAccountsRoute: typeof BankAccountsRouteWithChildren
   BankCreditDeskClosedRoute: typeof BankCreditDeskClosedRoute
@@ -5405,7 +5478,6 @@ interface BankRouteRouteChildren {
   BankDepositRoute: typeof BankDepositRoute
   BankDepositsRoute: typeof BankDepositsRoute
   BankOpenRoute: typeof BankOpenRoute
-  BankPayRoute: typeof BankPayRoute
   BankPrivateRoute: typeof BankPrivateRouteWithChildren
   BankProductsRoute: typeof BankProductsRoute
   BankSettingsRoute: typeof BankSettingsRoute
@@ -5438,6 +5510,7 @@ interface BankRouteRouteChildren {
 const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankBusinessRouteRoute: BankBusinessRouteRouteWithChildren,
   BankCommercialRouteRoute: BankCommercialRouteRouteWithChildren,
+  BankPayRouteRoute: BankPayRouteRouteWithChildren,
   BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
   BankAccountsRoute: BankAccountsRouteWithChildren,
   BankCreditDeskClosedRoute: BankCreditDeskClosedRoute,
@@ -5445,7 +5518,6 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankDepositRoute: BankDepositRoute,
   BankDepositsRoute: BankDepositsRoute,
   BankOpenRoute: BankOpenRoute,
-  BankPayRoute: BankPayRoute,
   BankPrivateRoute: BankPrivateRouteWithChildren,
   BankProductsRoute: BankProductsRoute,
   BankSettingsRoute: BankSettingsRoute,

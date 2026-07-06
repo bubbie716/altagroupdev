@@ -9,6 +9,7 @@ import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { MaintenanceModeSettings } from "@/lib/platform/maintenance-types";
 import { setMaintenanceModeOps } from "@/lib/platform/platform-settings.functions";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSettings }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
                 onClick={() => void saveMessageOnly()}
                 disabled={savingMessage}
               >
-                {savingMessage ? "Saving…" : "Save message"}
+                {savingMessage ? SUBMITTING_COPY.saving : "Save message"}
               </button>
               {!enabled ? (
                 <button

@@ -1,5 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { RoutePendingFallback } from "@/components/ui/loading-indicator";
+import { ROUTE_PENDING_MIN_MS, ROUTE_PENDING_MS } from "@/lib/ui/route-loading";
 import { routeTree } from "./routeTree.gen";
 import type { AltaRouterContext } from "@/lib/auth/router-context";
 
@@ -13,8 +15,9 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 30_000,
     defaultStaleTime: 30_000,
     defaultGcTime: 5 * 60_000,
-    defaultPendingMs: 300,
-    defaultPendingMinMs: 0,
+    defaultPendingMs: ROUTE_PENDING_MS,
+    defaultPendingMinMs: ROUTE_PENDING_MIN_MS,
+    defaultPendingComponent: RoutePendingFallback,
   });
 
   return router;

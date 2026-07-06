@@ -19,7 +19,7 @@ export function CustomerInvoicesInbox({ invoices }: { invoices: MerchantInvoiceS
         {invoices.map((invoice) => (
           <Link
             key={invoice.id}
-            to="/bank/invoices/$invoiceId"
+            to="/bank/pay/invoices/$invoiceId"
             params={{ invoiceId: invoice.id }}
             className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/40"
           >

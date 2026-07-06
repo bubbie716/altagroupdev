@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import {
   fetchInternalAltaCardAutopayContext,
@@ -113,7 +115,7 @@ export function InternalAltaCardAutopayPanel({
   }
 
   if (!context) {
-    return <p className="text-[13px] text-muted-foreground">Loading autopay context…</p>;
+    return <LoadingMessage>{LOADING_COPY.autopay}</LoadingMessage>;
   }
 
   return (

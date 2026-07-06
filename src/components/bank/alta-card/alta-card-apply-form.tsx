@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -325,7 +326,7 @@ export function AltaCardApplyForm({
           disabled={loading}
           className="rounded-md bg-foreground px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background disabled:opacity-50"
         >
-          {loading ? "Submitting…" : "Submit application"}
+          {loading ? SUBMITTING_COPY.default : "Submit application"}
         </button>
       </div>
     </form>

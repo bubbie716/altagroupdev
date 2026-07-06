@@ -2,7 +2,7 @@ import { formatFlorin } from "@/lib/bank/format";
 import { toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
 import { sanitizeCustomerFacingReason } from "@/lib/bank/customer-operator-notification-copy";
 import { prisma } from "@/server/db";
-import { createUserNotification, createUserNotifications } from "@/server/notification.service";
+import { scheduleCreateUserNotification, scheduleCreateUserNotifications } from "@/server/notification.service";
 
 const COMPANY_NOTIFY_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
 const MERCHANT_FINANCE_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
@@ -26,7 +26,7 @@ export async function notifyCompanyVerificationRejected(input: {
   const reason = sanitizeCustomerFacingReason(input.reason);
   const reasonLine = reason ? ` Reason: ${reason}` : "";
 
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "COMPANY_VERIFICATION_REJECTED",
     title: "Company verification declined",
     body: `Verification for ${input.companyName} was not approved.${reasonLine}`,
@@ -46,7 +46,7 @@ export async function notifyCompanyVerificationRevoked(input: {
   const reason = sanitizeCustomerFacingReason(input.reason);
   const reasonLine = reason ? ` Reason: ${reason}` : "";
 
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "COMPANY_VERIFICATION_REVOKED",
     title: "Company verification revoked",
     body: `Verified status for ${input.companyName} was revoked.${reasonLine}`,
@@ -72,7 +72,7 @@ export async function notifyCommercialProRenewalReminderBestEffort(input: {
       day: "numeric",
     });
 
-    await createUserNotifications(userIds, {
+    scheduleCreateUserNotifications(userIds, {
       type: "COMMERCIAL_PRO_RENEWAL_REMINDER",
       title: "Commercial Pro renews soon",
       body: `Alta Commercial Pro renews in 3 days. We'll charge ${formatFlorin(input.amount)} from ${input.billingAccountLabel} on ${dateLabel}.`,
@@ -97,7 +97,7 @@ export async function notifyCommercialBillingLowBalanceWarningBestEffort(input: 
     const userIds = await listCommercialBillingNotifyUserIds(input.companyId);
     if (userIds.length === 0) return;
 
-    await createUserNotifications(userIds, {
+    scheduleCreateUserNotifications(userIds, {
       type: "COMMERCIAL_BILLING_LOW_BALANCE_WARNING",
       title: "Billing account balance low",
       body: `${input.billingAccountLabel} may not have enough funds for upcoming ${input.context} (${formatFlorin(input.requiredAmount)} needed, ${formatFlorin(input.availableBalance)} available).`,
@@ -127,7 +127,7 @@ export async function notifyMerchantRecurringInvoiceFailedBestEffort(input: {
     const safeReason = toCustomerSafePaymentFailureReason(input.reason);
     const recipient = input.recipientLabel ? ` to ${input.recipientLabel}` : "";
 
-    await createUserNotifications(userIds, {
+    scheduleCreateUserNotifications(userIds, {
       type: "MERCHANT_RECURRING_INVOICE_FAILED",
       title: "Recurring invoice failed",
       body: `Recurring invoice "${input.templateName}"${recipient} could not be generated. ${safeReason}`,
@@ -164,7 +164,7 @@ export async function notifyMerchantFirstPaymentReceivedBestEffort(input: {
 
     if (invoicePayments + linkPayments !== 1) return;
 
-    await createUserNotifications(userIds, {
+    scheduleCreateUserNotifications(userIds, {
       type: "MERCHANT_FIRST_PAYMENT_RECEIVED",
       title: "First commercial payment received",
       body: `Your first Alta Commercial payment was received. ${input.merchantName} received ${formatFlorin(input.amount)}.`,
@@ -187,7 +187,7 @@ export async function notifyPayerPaymentFailedBestEffort(input: {
 }): Promise<void> {
   try {
     const safeReason = toCustomerSafePaymentFailureReason(input.reason);
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId: input.payerUserId,
       type: "CUSTOMER_PAYMENT_FAILED",
       title: "Payment could not be completed",
@@ -212,7 +212,7 @@ export async function notifyLargeMoneyMovementBestEffort(input: {
   if (unique.length === 0) return;
 
   try {
-    await createUserNotifications(unique, {
+    scheduleCreateUserNotifications(unique, {
       type: "LARGE_MONEY_MOVEMENT_ALERT",
       title: "Large money movement",
       body: `${input.description} ${formatFlorin(input.amount)}. Ref \`${input.referenceCode}\`.`,

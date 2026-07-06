@@ -25,11 +25,9 @@ export async function sendAltaPrivateInvitationDiscordNotification(
   }
 
   try {
-    const { dispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
-    const result = await dispatchInvitationDm("private", invitationId);
-    if (result.sent) return { status: "sent" };
-    logDiscord("invitation DM not sent", { userId, invitationId, reason: result.reason });
-    return { status: "failed", error: result.reason ?? "not_sent" };
+    const { scheduleDispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
+    scheduleDispatchInvitationDm("private", invitationId);
+    return { status: "sent" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Discord error";
     logDiscord("invitation failed", { userId, invitationId, error: message });
@@ -45,8 +43,8 @@ export async function sendAltaPrivateAcceptedDiscordNotification(
   }
 
   try {
-    const { createUserNotification } = await import("@/server/notification.service");
-    await createUserNotification({
+    const { scheduleCreateUserNotification } = await import("@/server/notification.service");
+    scheduleCreateUserNotification({
       userId,
       type: "ALTA_PRIVATE_MEMBERSHIP_ACTIVATED",
       title: "Welcome to Alta Private",

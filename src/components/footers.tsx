@@ -1,25 +1,26 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { ExternalLink } from "lucide-react";
 import { AltaLogo, AltaWordmark } from "./alta-logo";
-import type { LegalFooterContext, PlatformFooterContext } from "@/lib/platform/footer-variant";
 import {
   entityFooterDocuments,
   essentialGroupDocuments,
   FOOTER_DISCLAIMERS,
+  getLegalDocument,
   groupFooterDocuments,
   legalDocLinkParams,
   LEGAL_CENTER_PATH,
   paymentFooterDocuments,
   type LegalDocumentDefinition,
 } from "@/lib/legal/legal-document-registry";
-import { FOOTER_COMPANY_LINKS, FOOTER_SUPPORT_LINKS } from "@/lib/site/site-links";
+import { ALTA_SYSTEM_STATUS_URL, FOOTER_COMPANY_LINKS, FOOTER_SUPPORT_LINKS } from "@/lib/site/site-links";
+import type { FooterVariant } from "@/lib/platform/footer-variant";
 import { cn } from "@/lib/utils";
 
 const columnTitleClass =
   "font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground";
 
-const footerLinkClass =
-  "transition-colors hover:text-gold text-foreground/90";
+const footerLinkClass = "transition-colors hover:text-gold text-foreground/90";
 
 const footerInlineLinkClass =
   "font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-gold";
@@ -50,53 +51,89 @@ function FooterColumn({
   );
 }
 
-function FooterLegalLinkRow({
+function FooterInlineLegalLinks({
   docs,
-  includeLegalCenter = false,
   className,
+  includeStatus = false,
 }: {
   docs: LegalDocumentDefinition[];
-  includeLegalCenter?: boolean;
   className?: string;
+  includeStatus?: boolean;
 }) {
   return (
     <nav className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
       {docs.map((doc) => (
         <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
       ))}
-      {includeLegalCenter ? (
-        <Link to={LEGAL_CENTER_PATH} className={footerInlineLinkClass}>
-          Legal Center
-        </Link>
+      {includeStatus ? (
+        <a
+          href={ALTA_SYSTEM_STATUS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            footerInlineLinkClass,
+            "inline-flex items-center gap-1 text-muted-foreground hover:text-gold",
+          )}
+        >
+          Status
+          <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+        </a>
       ) : null}
     </nav>
   );
 }
 
-function FooterCopyrightBar({ className }: { className?: string }) {
+function FooterCopyrightLines({ className }: { className?: string }) {
   return (
-    <div className={cn("border-t border-border/60 bg-surface-1/30", className)}>
-      <div className="mx-auto max-w-[1400px] space-y-2 px-6 py-5">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          © 2026 Alta Group N.V. All rights reserved.
-        </p>
-        <p className="max-w-3xl text-[10px] leading-relaxed text-muted-foreground/80">
-          {FOOTER_DISCLAIMERS.global}
-        </p>
-      </div>
+    <div className={cn("space-y-2", className)}>
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+        © 2026 Alta Group N.V. All rights reserved.
+      </p>
+      <p className="max-w-3xl text-[10px] leading-relaxed text-muted-foreground/80">
+        {FOOTER_DISCLAIMERS.global}
+      </p>
     </div>
   );
 }
 
-export function PublicFooter() {
+/** Single compact bar — links, copyright, and disclaimer in one block (no stacked sections). */
+function CompactFooterBar({
+  docs,
+  includeStatus = false,
+  className,
+}: {
+  docs: LegalDocumentDefinition[];
+  includeStatus?: boolean;
+  className?: string;
+}) {
+  return (
+    <footer className={cn("mt-auto shrink-0 border-t border-border/60 bg-surface-1/30", className)}>
+      <div className="mx-auto max-w-[1400px] space-y-2 px-4 py-3 sm:px-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <FooterInlineLegalLinks docs={docs} includeStatus={includeStatus} />
+          <span className="hidden h-3 w-px bg-border/80 sm:block" aria-hidden />
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            © 2026 Alta Group N.V.
+          </p>
+        </div>
+        <p className="max-w-3xl text-[10px] leading-relaxed text-muted-foreground/80">
+          {FOOTER_DISCLAIMERS.global}
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+/** 1. Marketing — public pages with full site map columns. */
+export function MarketingFooter() {
   const legalDocs = groupFooterDocuments();
   const bankDocs = entityFooterDocuments("bank");
   const marketsDocs = entityFooterDocuments("markets");
   const nccDocs = entityFooterDocuments("ncc");
 
   return (
-    <footer className="mt-32 border-t border-border/60">
-      <div className="mx-auto max-w-[1400px] px-6 py-16">
+    <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
+      <div className="mx-auto max-w-[1400px] px-6 py-12">
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <div className="sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-1">
             <AltaWordmark />
@@ -153,110 +190,86 @@ export function PublicFooter() {
           <FooterColumn title="Support">
             {FOOTER_SUPPORT_LINKS.map((link) => (
               <li key={link.label}>
-                {"href" in link ? (
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={footerLinkClass}
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <Link to={link.to} className={footerLinkClass}>
-                    {link.label}
-                  </Link>
-                )}
+                <Link to={link.to} className={footerLinkClass}>
+                  {link.label}
+                </Link>
               </li>
             ))}
           </FooterColumn>
         </div>
+        <FooterCopyrightLines className="mt-10 border-t border-border/60 pt-4" />
       </div>
-      <FooterCopyrightBar />
     </footer>
   );
 }
 
-/** @deprecated Use PublicFooter */
-export const SiteFooter = PublicFooter;
-
-const platformDisclaimer: Record<PlatformFooterContext, string> = {
-  bank: FOOTER_DISCLAIMERS.bank,
-  exchange: FOOTER_DISCLAIMERS.markets,
-  general: FOOTER_DISCLAIMERS.global,
-};
-
-function platformDocuments(context: PlatformFooterContext): LegalDocumentDefinition[] {
-  const group = essentialGroupDocuments();
-  if (context === "bank") {
-    return [...group, ...entityFooterDocuments("bank")];
-  }
-  if (context === "exchange") {
-    return [...group, ...entityFooterDocuments("markets")];
-  }
-  return groupFooterDocuments();
+/** 2. Dashboard — authenticated app pages; one compact bottom bar. */
+export function DashboardFooter() {
+  return <CompactFooterBar docs={essentialGroupDocuments()} includeStatus />;
 }
 
-export function PlatformFooter({ context = "general" }: { context?: PlatformFooterContext }) {
-  const docs = platformDocuments(context);
+/** 3. Authentication — sign-in and access edge pages. */
+export function AuthenticationFooter() {
+  return <CompactFooterBar docs={essentialGroupDocuments()} className="relative z-10" />;
+}
 
+/** 4. Legal — individual legal document pages. */
+export function LegalDocumentFooter({
+  docId,
+  title,
+  version,
+  lastUpdated,
+}: {
+  docId: string;
+  title: string;
+  version: string;
+  lastUpdated: string;
+}) {
   return (
-    <footer className="mt-12 border-t border-border/60">
-      <div className="mx-auto max-w-[1400px] space-y-4 px-4 py-5 sm:px-6">
-        <FooterLegalLinkRow docs={docs} includeLegalCenter />
-        <p className="max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
-          {platformDisclaimer[context]}
+    <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
+      <div className="mx-auto max-w-[1400px] space-y-3 px-6 py-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Back to Alta
+        </Link>
+        <dl className="grid gap-3 text-[12px] sm:grid-cols-3">
+          <div>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              Document
+            </dt>
+            <dd className="mt-1 text-foreground/90">{title}</dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              Version
+            </dt>
+            <dd className="mt-1 text-foreground/90">{version}</dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              Last Updated
+            </dt>
+            <dd className="mt-1 text-foreground/90">{lastUpdated}</dd>
+          </div>
+        </dl>
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          {docId}
         </p>
+        <FooterCopyrightLines />
       </div>
-      <FooterCopyrightBar />
     </footer>
   );
 }
 
-const legalCopy: Record<
-  LegalFooterContext,
-  { primary: string; secondary: string }
-> = {
-  login: {
-    primary: "© 2026 Alta Group N.V. · Member Access",
-    secondary: "Sign in with Discord · Individual accounts and authorized company representatives",
-  },
-  maintenance: {
-    primary: "© 2026 Alta Group N.V. · Platform Maintenance",
-    secondary: "Scheduled work in progress. Access will resume when maintenance ends.",
-  },
-  "access-restricted": {
-    primary: "© 2026 Alta Group N.V. · Member Access",
-    secondary: "Sign in with Discord · Individual accounts and authorized company representatives",
-  },
-};
-
-export function LegalMicroFooter({ context = "login" }: { context?: LegalFooterContext }) {
-  const copy = legalCopy[context];
-  const docs = essentialGroupDocuments();
-
-  return (
-    <footer className="relative z-10 border-t border-border/60">
-      <div className="space-y-3 px-6 py-5 sm:px-10">
-        <FooterLegalLinkRow docs={docs} />
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            {copy.primary}
-          </span>
-          <span className="text-[11px] text-muted-foreground">{copy.secondary}</span>
-        </div>
-      </div>
-      <FooterCopyrightBar />
-    </footer>
-  );
-}
-
-export function PaymentLegalFooter({ className }: { className?: string }) {
+/** Merchant checkout inline legal links — not a site chrome footer. */
+export function CheckoutLegalLinks({ className }: { className?: string }) {
   const docs = paymentFooterDocuments();
 
   return (
-    <div className={cn("space-y-3 text-center", className)}>
-      <FooterLegalLinkRow docs={docs} className="justify-center" />
+    <div className={cn("space-y-2 text-center", className)}>
+      <FooterInlineLegalLinks docs={docs} className="justify-center" />
       <p className="mx-auto max-w-md text-[10px] leading-relaxed text-muted-foreground/80">
         {FOOTER_DISCLAIMERS.bank}
       </p>
@@ -268,9 +281,56 @@ export function PaymentLegalFooter({ className }: { className?: string }) {
   );
 }
 
-/** @deprecated Use LegalMicroFooter */
+export function SiteFooter({ variant, legalDoc }: SiteFooterProps) {
+  if (variant === "none") return null;
+  if (variant === "marketing") return <MarketingFooter />;
+  if (variant === "dashboard") return <DashboardFooter />;
+  if (variant === "auth") return <AuthenticationFooter />;
+  if (variant === "legal" && legalDoc) {
+    return (
+      <LegalDocumentFooter
+        docId={legalDoc.docId}
+        title={legalDoc.title}
+        version={legalDoc.version}
+        lastUpdated={legalDoc.lastUpdated}
+      />
+    );
+  }
+  return <MarketingFooter />;
+}
+
+export type SiteFooterProps = {
+  variant: FooterVariant;
+  legalDoc?: {
+    docId: string;
+    title: string;
+    version: string;
+    lastUpdated: string;
+  };
+};
+
+/** @deprecated Use MarketingFooter */
+export const PublicFooter = MarketingFooter;
+
+/** @deprecated Use MarketingFooter */
+export const SiteFooterLegacy = MarketingFooter;
+
+/** @deprecated Use DashboardFooter */
+export function PlatformFooter() {
+  return <DashboardFooter />;
+}
+
+/** @deprecated Use AuthenticationFooter */
+export function LegalMicroFooter() {
+  return <AuthenticationFooter />;
+}
+
+/** @deprecated Use CheckoutLegalLinks */
+export const PaymentLegalFooter = CheckoutLegalLinks;
+
+/** @deprecated Use AuthenticationFooter */
 export function LoginPortalFooter() {
-  return <LegalMicroFooter context="login" />;
+  return <AuthenticationFooter />;
 }
 
 export {

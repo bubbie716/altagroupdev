@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Search } from "lucide-react";
 import { globalOpsSearch } from "@/lib/internal/ops-platform.functions";
 import type { GlobalSearchResult } from "@/lib/internal/ops-types";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
 const typeLabels: Record<GlobalSearchResult["type"], string> = {
@@ -70,7 +71,7 @@ export function InternalGlobalSearch({ variant = "page" }: { variant?: "page" | 
     const requestId = ++searchRequestRef.current;
     const handle = window.setTimeout(() => {
       void runSearch(trimmed, requestId);
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
   }, [q, searchFn]);
 

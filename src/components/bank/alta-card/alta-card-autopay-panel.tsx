@@ -18,6 +18,8 @@ import {
 } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY, SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
@@ -111,7 +113,7 @@ export function AltaCardAutopayPanel({
   }
 
   if (loading && !context) {
-    return <p className="text-[13px] text-muted-foreground">Loading autopay settings…</p>;
+    return <LoadingMessage>{LOADING_COPY.autopay}</LoadingMessage>;
   }
 
   const settings = context?.settings;
@@ -263,7 +265,7 @@ export function AltaCardAutopayPanel({
             disabled={disabled || submitting}
             className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
           >
-            {submitting ? "Saving…" : confirmEnable ? "Confirm and save autopay" : "Save autopay"}
+            {submitting ? SUBMITTING_COPY.saving : confirmEnable ? "Confirm and save autopay" : "Save autopay"}
           </button>
         </form>
       )}

@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Search, ShieldCheck, UserRound } from "lucide-react";
 import { searchInvoiceRecipientsForMerchant } from "@/lib/bank/merchant-invoice.functions";
 import type { MerchantInvoiceRecipientOption } from "@/lib/bank/merchant-invoice-types";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/ui/route-loading";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -70,7 +71,7 @@ export function MerchantInvoiceRecipientField({
       void searchRecipients({ data: { query: query.trim(), companyId } })
         .then(setRecipients)
         .catch(() => setRecipients([]));
-    }, 280);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query, searchRecipients, companyId, selectedRecipient]);
 

@@ -15,6 +15,7 @@ import { MerchantInvoiceRecipientField } from "@/components/bank/merchant-invoic
 import { MerchantRecurringInvoiceScheduleList } from "@/components/bank/merchant-invoices/merchant-recurring-invoice-schedule-list";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { BankRequestErrorCard } from "@/components/bank/bank-request-submission-ui";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 type FormView = "compose" | "success" | "error";
 
@@ -288,7 +289,7 @@ export function MerchantRecurringInvoiceForm({
               disabled={submitting || !canSubmit}
               className="rounded-md bg-foreground px-4 py-2.5 text-[13px] font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Creating…" : "Create schedule"}
+              {submitting ? SUBMITTING_COPY.creating : "Create schedule"}
             </button>
           </div>
         </Card>

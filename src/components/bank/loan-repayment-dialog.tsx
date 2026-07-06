@@ -8,6 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LoanPaymentForm } from "@/components/bank/loan-payment-form";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { fetchLoanPaymentContext } from "@/lib/bank/lending.functions";
 import type { LoanPaymentContext, LoanRow } from "@/lib/bank/lending-types";
@@ -73,7 +75,7 @@ export function LoanRepaymentDialog({
         </DialogHeader>
 
         {loading && (
-          <p className="text-[13px] text-muted-foreground">Loading payment options…</p>
+          <LoadingMessage>{LOADING_COPY.loanPaymentOptions}</LoadingMessage>
         )}
 
         {error && (

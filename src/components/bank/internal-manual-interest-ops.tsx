@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { florin } from "@/lib/bank/api";
@@ -289,7 +290,7 @@ export function InternalManualInterestOps() {
             onClick={() => void handlePreview()}
             className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
           >
-            {pending ? "Previewing…" : "Preview affected accounts"}
+            {pending ? SUBMITTING_COPY.previewing : "Preview affected accounts"}
           </button>
         </section>
       )}
@@ -368,8 +369,8 @@ export function InternalManualInterestOps() {
                 >
                   {pending
                     ? isScheduling
-                      ? "Scheduling…"
-                      : "Applying…"
+                      ? SUBMITTING_COPY.scheduling
+                      : SUBMITTING_COPY.applying
                     : isScheduling
                       ? "Schedule interest credit"
                       : "Apply interest credit"}

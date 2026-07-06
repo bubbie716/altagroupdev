@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Download, Loader2, Printer } from "lucide-react";
 import type { AltaCardRow, AltaCardStatementDetail, AltaCardTransactionTypeCode } from "@/lib/bank/alta-card-types";
 import {
@@ -107,7 +108,7 @@ export function AltaCardStatementDocument({
               className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-2 px-4 py-2 text-[13px] font-medium transition-colors hover:bg-surface-2/80 disabled:cursor-wait disabled:opacity-70"
             >
               {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              {exporting ? "Generating PDF…" : "Download PDF"}
+              {exporting ? SUBMITTING_COPY.generatingPdf : "Download PDF"}
             </button>
             <button
               type="button"

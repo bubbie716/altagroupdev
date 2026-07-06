@@ -22,7 +22,7 @@ describe("resolvePublicLinkUrl", () => {
 
   it("respects ALTA_WEB_BASE_URL override for local development", () => {
     process.env.ALTA_WEB_BASE_URL = "http://localhost:3000/";
-    assert.equal(resolvePublicLinkUrl("/bank/invoices"), "http://localhost:3000/bank/invoices");
+    assert.equal(resolvePublicLinkUrl("/bank/pay/invoices"), "http://localhost:3000/bank/pay/invoices");
   });
 
   it("passes through absolute URLs unchanged", () => {

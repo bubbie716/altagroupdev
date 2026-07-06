@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { florin } from "@/lib/bank/api";
@@ -125,10 +126,10 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
           onClick={() => void handlePreview()}
           className="rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
-          {pending === "preview" ? "Previewing…" : "Preview interest"}
+          {pending === "preview" ? SUBMITTING_COPY.previewing : "Preview interest"}
         </button>
         <OpsAction
-          label={pending === "all" ? "Accruing…" : "Accrue all due interest"}
+          label={pending === "all" ? SUBMITTING_COPY.accruing : "Accrue all due interest"}
           variant="primary"
           title="Accrue all due interest"
           description="Credits monthly interest for every due account."

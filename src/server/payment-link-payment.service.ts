@@ -348,33 +348,35 @@ export async function payPaymentLink(
       console.error("[payment-link] commercial payment received audit failed", auditError);
     }
 
-    try {
-      const { notifyPaymentLinkPaid } = await import(
-        "@/server/payment-link-notification.service"
-      );
-      await notifyPaymentLinkPaid({
-        paymentLinkId: result.locked.id,
-        paymentId,
-        payerUserId: user.id,
-        amount: fees.totalDebited,
-      });
-    } catch (error) {
-      console.error("[payment-link] paid notification failed", error);
-    }
+    void (async () => {
+      try {
+        const { notifyPaymentLinkPaid } = await import(
+          "@/server/payment-link-notification.service"
+        );
+        await notifyPaymentLinkPaid({
+          paymentLinkId: result.locked.id,
+          paymentId,
+          payerUserId: user.id,
+          amount: fees.totalDebited,
+        });
+      } catch (error) {
+        console.error("[payment-link] paid notification failed", error);
+      }
 
-    try {
-      const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
-        "@/server/commercial-notification.service"
-      );
-      await notifyMerchantFirstPaymentReceivedBestEffort({
-        companyId: result.locked.merchantCompanyId,
-        merchantName: result.locked.merchantCompany.name,
-        amount: fees.totalDebited,
-        source: "payment_link",
-      });
-    } catch (error) {
-      console.error("[payment-link] first payment notification failed", error);
-    }
+      try {
+        const { notifyMerchantFirstPaymentReceivedBestEffort } = await import(
+          "@/server/commercial-notification.service"
+        );
+        await notifyMerchantFirstPaymentReceivedBestEffort({
+          companyId: result.locked.merchantCompanyId,
+          merchantName: result.locked.merchantCompany.name,
+          amount: fees.totalDebited,
+          source: "payment_link",
+        });
+      } catch (error) {
+        console.error("[payment-link] first payment notification failed", error);
+      }
+    })();
 
     try {
       const { maybeAlertHighValuePaymentLinkPaid } = await import(
@@ -391,13 +393,19 @@ export async function payPaymentLink(
       console.error("[payment-link] staff alert failed", error);
     }
 
-    const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
-      await import("@/server/relationship-refresh-hooks.service");
-    await refreshUserRelationshipProfileBestEffort(user.id, "payment-link-paid");
-    await refreshCompanyRelationshipStackBestEffort(
-      result.locked.merchantCompanyId,
-      "payment-link-paid",
-    );
+    void (async () => {
+      const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
+        await import("@/server/relationship-refresh-hooks.service");
+      try {
+        await refreshUserRelationshipProfileBestEffort(user.id, "payment-link-paid");
+        await refreshCompanyRelationshipStackBestEffort(
+          result.locked.merchantCompanyId,
+          "payment-link-paid",
+        );
+      } catch (error) {
+        console.error("[payment-link] relationship refresh failed", error);
+      }
+    })();
 
     return {
       slug: result.locked.slug,

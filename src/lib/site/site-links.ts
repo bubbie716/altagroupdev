@@ -3,7 +3,8 @@ export { ALTA_DISCORD_INVITE_URL, getAltaDiscordUrl, ALTA_DISCORD_URLS } from "@
 
 export const LEGAL_CENTER_PATH = "/governance/legaldocs" as const;
 
-export const ALTA_SYSTEM_STATUS_URL = "https://stats.uptimerobot.com/7lkm8JlfbE";
+/** Public system status page — external redirect. */
+export const ALTA_SYSTEM_STATUS_URL = "https://status.altagroup.dev" as const;
 
 export const FOOTER_COMPANY_LINKS = [
   { label: "Alta Group", to: "/company" as const },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import { formatAltaCardCurrency } from "@/lib/bank/alta-card-types";
 import { COMPANY_RECOMMENDATION_TYPE_LABELS } from "@/lib/bank/company-relationship-recommendation-config";
@@ -97,7 +98,7 @@ export function CompanyRelationshipRecommendationContextPanel({
                   onClick={() => void handleUse(rec.id)}
                   className="mt-3 rounded border border-gold/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:bg-gold/10 disabled:opacity-60"
                 >
-                  {busyId === rec.id ? "Applying…" : "Use recommendation"}
+                  {busyId === rec.id ? SUBMITTING_COPY.applying : "Use recommendation"}
                 </button>
               ) : null}
             </li>

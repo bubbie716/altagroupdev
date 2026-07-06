@@ -34,11 +34,9 @@ async function runCommercialCustomerNotifications(
   label: string,
   fn: () => Promise<void>,
 ): Promise<void> {
-  try {
-    await fn();
-  } catch (error) {
+  void fn().catch((error) => {
     console.error(`[commercial-billing] ${label} notification failed`, error);
-  }
+  });
 }
 
 function generateCommercialBillingReference(): string {

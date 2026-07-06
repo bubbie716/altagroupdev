@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
-import { PublicFooter } from "@/components/footers";
 import { GovernanceSubNav } from "@/components/governance/governance-sub-nav";
 
 export const Route = createFileRoute("/governance")({
@@ -9,13 +8,12 @@ export const Route = createFileRoute("/governance")({
 
 function GovernanceRouteLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
-      <div className="mx-auto max-w-[1400px] px-6 pt-14">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-6 pt-14">
         <GovernanceSubNav />
         <Outlet />
       </div>
-      <PublicFooter />
     </div>
   );
 }

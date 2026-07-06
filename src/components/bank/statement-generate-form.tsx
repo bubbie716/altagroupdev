@@ -5,6 +5,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { generateAccountStatement } from "@/lib/bank/statement.functions";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
@@ -82,7 +83,7 @@ export function StatementGenerateForm({
         disabled={pending}
         className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
       >
-        {pending ? "Generating…" : "Generate statement"}
+        {pending ? SUBMITTING_COPY.generating : "Generate statement"}
       </button>
     </form>
   );

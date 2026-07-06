@@ -1,5 +1,6 @@
 import { AlertCircle, Check, Info, Loader2, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 import {
   BANK_ALTA_PAY_SUCCESS_BODY,
@@ -43,7 +44,7 @@ export type BankRequestKind =
 const COPY = {
   deposit: {
     submit: "Submit Deposit",
-    submitting: "Submitting Deposit…",
+    submitting: SUBMITTING_COPY.submittingDeposit,
     successTitle: "Deposit Submitted",
     submitAnother: "Submit Another Deposit",
     successBody: BANK_REQUEST_SUCCESS_BODY,
@@ -56,7 +57,7 @@ const COPY = {
   },
   withdrawal: {
     submit: "Submit Withdrawal",
-    submitting: "Submitting Withdrawal…",
+    submitting: SUBMITTING_COPY.submittingWithdrawal,
     successTitle: "Withdrawal Submitted",
     submitAnother: "Submit Another Withdrawal",
     successBody: BANK_REQUEST_SUCCESS_BODY,
@@ -69,7 +70,7 @@ const COPY = {
   },
   transfer: {
     submit: "Transfer Funds",
-    submitting: "Transferring Funds…",
+    submitting: SUBMITTING_COPY.transferringFunds,
     successTitle: "Transfer Completed",
     submitAnother: "Make Another Transfer",
     successBody: BANK_TRANSFER_SUCCESS_BODY,
@@ -82,7 +83,7 @@ const COPY = {
   },
   alta_pay: {
     submit: "Confirm Payment",
-    submitting: "Processing Payment…",
+    submitting: SUBMITTING_COPY.processingPayment,
     successTitle: "Payment Sent",
     submitAnother: "Send Another Payment",
     successBody: BANK_ALTA_PAY_SUCCESS_BODY,
@@ -95,7 +96,7 @@ const COPY = {
   },
   merchant_invoice: {
     submit: "Send Invoice",
-    submitting: "Sending Invoice…",
+    submitting: SUBMITTING_COPY.sendingInvoice,
     successTitle: "Invoice Sent",
     submitAnother: "Send Another Invoice",
     successBody: BANK_MERCHANT_INVOICE_SENT_SUCCESS_BODY,
@@ -108,7 +109,7 @@ const COPY = {
   },
   merchant_invoice_payment: {
     submit: "Confirm Payment",
-    submitting: "Processing Payment…",
+    submitting: SUBMITTING_COPY.processingPayment,
     successTitle: "Invoice Paid",
     submitAnother: "View Invoices",
     successBody: BANK_MERCHANT_INVOICE_PAY_SUCCESS_BODY,
@@ -121,7 +122,7 @@ const COPY = {
   },
   payment_link_checkout: {
     submit: "Confirm Payment",
-    submitting: "Processing Payment…",
+    submitting: SUBMITTING_COPY.processingPayment,
     successTitle: "Payment Complete",
     submitAnother: "Back to Alta Bank",
     successBody: BANK_PAYMENT_LINK_CHECKOUT_SUCCESS_BODY,
@@ -134,7 +135,7 @@ const COPY = {
   },
   cash_advance: {
     submit: "Confirm Cash Advance",
-    submitting: "Processing Cash Advance…",
+    submitting: SUBMITTING_COPY.processingCashAdvance,
     successTitle: "Cash Advance Completed",
     submitAnother: "Request Another Cash Advance",
     successBody: BANK_CASH_ADVANCE_SUCCESS_BODY,
@@ -147,7 +148,7 @@ const COPY = {
   },
   commercial_pro_upgrade: {
     submit: "Confirm Upgrade",
-    submitting: "Processing Upgrade…",
+    submitting: SUBMITTING_COPY.processingUpgrade,
     successTitle: "Alta Commercial Pro Activated",
     submitAnother: "Close",
     successBody: BANK_COMMERCIAL_PRO_UPGRADE_SUCCESS_BODY,
@@ -160,7 +161,7 @@ const COPY = {
   },
   commercial_pro_downgrade: {
     submit: "Confirm Downgrade",
-    submitting: "Processing Downgrade…",
+    submitting: SUBMITTING_COPY.processingDowngrade,
     successTitle: "Downgraded to Alta Commercial Core",
     submitAnother: "Close",
     successBody: BANK_COMMERCIAL_PRO_DOWNGRADE_SUCCESS_BODY,
@@ -173,7 +174,7 @@ const COPY = {
   },
   card_payment: {
     submit: "Confirm Payment",
-    submitting: "Processing Payment…",
+    submitting: SUBMITTING_COPY.processingPayment,
     successTitle: "Payment Posted",
     submitAnother: "Make Another Payment",
     successBody: BANK_CARD_PAYMENT_SUCCESS_BODY,
@@ -186,7 +187,7 @@ const COPY = {
   },
   loan_payment: {
     submit: "Confirm Payment",
-    submitting: "Processing Payment…",
+    submitting: SUBMITTING_COPY.processingPayment,
     successTitle: "Payment Posted",
     submitAnother: "Make Another Payment",
     successBody: BANK_LOAN_PAYMENT_SUCCESS_BODY,
@@ -299,7 +300,7 @@ export function BankRequestActionButton({
       {submitting ? (
         <>
           <Loader2 className="size-4 animate-spin opacity-80" aria-hidden />
-          {submittingLabel ?? "Working…"}
+          {submittingLabel ?? SUBMITTING_COPY.working}
         </>
       ) : (
         children

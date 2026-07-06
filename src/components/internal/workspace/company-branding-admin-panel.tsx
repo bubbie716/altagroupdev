@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import {
@@ -89,7 +90,7 @@ export function CompanyBrandingAdminPanel({ companyId }: { companyId: string }) 
           onClick={() => void load()}
           className="rounded-md border border-border px-3 py-1.5 text-xs font-medium"
         >
-          {loading ? "Loading…" : view ? "Refresh" : "Load branding"}
+          {loading ? LOADING_COPY.default : view ? "Refresh" : "Load branding"}
         </button>
       </div>
 

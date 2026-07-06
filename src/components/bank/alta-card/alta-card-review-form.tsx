@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import {
@@ -484,7 +485,7 @@ export function AltaCardReviewForm({
         disabled={loading}
         className="w-full rounded-lg border border-border bg-surface-2 px-6 py-3.5 font-mono text-[12px] uppercase tracking-[0.18em] text-foreground transition-colors hover:bg-surface-1 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[240px]"
       >
-        {loading ? "Submitting…" : "Submit review request"}
+        {loading ? SUBMITTING_COPY.default : "Submit review request"}
       </button>
     </form>
       {context.reviewHistory.length > 0 ? (

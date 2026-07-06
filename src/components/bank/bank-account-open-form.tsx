@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { RouteButton } from "@/components/bank/route-button";
 import { Card } from "@/components/page-shell";
 import {
@@ -214,7 +215,7 @@ export function BankAccountOpenForm() {
           disabled={submitting || (ownership === "company" && !companyId) || !selectedAccountType}
           className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Submitting…" : instant ? "Open account" : "Submit opening request"}
+          {submitting ? SUBMITTING_COPY.default : instant ? "Open account" : "Submit opening request"}
         </button>
       </Card>
     </form>

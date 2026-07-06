@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
-import { PublicFooter } from "@/components/footers";
 
 export function ComingSoonPage({
   eyebrow,
@@ -15,7 +14,7 @@ export function ComingSoonPage({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
       <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col px-6 py-24">
         <div className="type-eyebrow">{eyebrow}</div>
@@ -32,7 +31,6 @@ export function ComingSoonPage({
           Return home
         </Link>
       </main>
-      <PublicFooter />
     </div>
   );
 }

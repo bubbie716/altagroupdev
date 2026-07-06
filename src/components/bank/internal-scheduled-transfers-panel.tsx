@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
@@ -47,7 +48,7 @@ function RunDueTransfersButton() {
           }
         }}
       >
-        {pending ? "Running…" : "Run Due Transfers & Payroll"}
+        {pending ? SUBMITTING_COPY.running : "Run Due Transfers & Payroll"}
       </button>
       {result ? (
         <p className="text-[12px] text-muted-foreground">

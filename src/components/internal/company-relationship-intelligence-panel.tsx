@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type {
@@ -46,7 +47,7 @@ export function CompanyRelationshipDetailPanel({
             onClick={onRefresh}
             className="rounded border border-gold/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:bg-gold/10 disabled:opacity-60"
           >
-            {refreshing ? "Refreshing…" : "Refresh profile"}
+            {refreshing ? SUBMITTING_COPY.refreshing : "Refresh profile"}
           </button>
         ) : null}
       </div>

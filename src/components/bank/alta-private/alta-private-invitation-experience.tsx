@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { AltaPrivateInvitationSummary } from "@/lib/bank/alta-private-types";
@@ -123,7 +124,7 @@ export function AltaPrivateInvitationExperience({
           onClick={() => void handleAccept()}
           className="rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] hover:bg-gold/[0.14] disabled:opacity-50"
         >
-          {submitting === "accept" ? "Accepting…" : "Accept Invitation"}
+          {submitting === "accept" ? SUBMITTING_COPY.accepting : "Accept Invitation"}
         </button>
         <button
           type="button"
@@ -131,7 +132,7 @@ export function AltaPrivateInvitationExperience({
           onClick={() => void handleDecline()}
           className="rounded-md border border-border px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] hover:border-gold/40 disabled:opacity-50"
         >
-          {submitting === "decline" ? "Declining…" : "Decline"}
+          {submitting === "decline" ? SUBMITTING_COPY.declining : "Decline"}
         </button>
       </div>
       {error ? <p className="mt-4 text-[13px] text-destructive">{error}</p> : null}

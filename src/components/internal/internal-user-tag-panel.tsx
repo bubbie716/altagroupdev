@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle } from "lucide-react";
@@ -222,7 +223,7 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
               onClick={() => pending && void runAction(pending)}
               className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-50"
             >
-              {submitting ? "Applying…" : "Confirm"}
+              {submitting ? SUBMITTING_COPY.applying : "Confirm"}
             </button>
           </DialogFooter>
         </DialogContent>

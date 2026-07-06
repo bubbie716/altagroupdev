@@ -421,14 +421,8 @@ export async function sendCompanyInvitation(
   });
 
   try {
-    const { dispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
-    const result = await dispatchInvitationDm("company", invitation.id);
-    if (!result.sent) {
-      console.warn("[invitations] company invitation DM not sent", {
-        invitationId: invitation.id,
-        reason: result.reason,
-      });
-    }
+    const { scheduleDispatchInvitationDm } = await import("@/server/invitation-discord-dispatch.service");
+    scheduleDispatchInvitationDm("company", invitation.id);
   } catch (error) {
     console.error("[invitations] company invitation dispatch failed", error);
   }

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";
 import { fetchUserNotifications, markNotificationReadRecord } from "@/lib/bank/deal-room.functions";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
 export function InternalNotificationsBell({ variant = "page" }: { variant?: "page" | "header" }) {
@@ -71,7 +73,11 @@ export function InternalNotificationsBell({ variant = "page" }: { variant?: "pag
             Notifications
           </div>
           <div className="max-h-72 overflow-y-auto">
-            {loading && <p className="px-3 py-5 text-center text-[12px] text-muted-foreground">Loading…</p>}
+            {loading && (
+              <div className="flex justify-center px-3 py-5">
+                <LoadingIndicator label={LOADING_COPY.default} />
+              </div>
+            )}
             {!loading && data && data.items.length === 0 && (
               <p className="px-3 py-5 text-center text-[12px] text-muted-foreground">No notifications yet.</p>
             )}

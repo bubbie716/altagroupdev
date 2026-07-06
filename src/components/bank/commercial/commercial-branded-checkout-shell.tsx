@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { AltaLogo } from "@/components/alta-logo";
-import { PaymentLegalFooter } from "@/components/footers";
+import { CheckoutLegalLinks } from "@/components/footers";
 import type { CustomerFacingBranding } from "@/lib/bank/company-branding-types";
 import { DEFAULT_ACCENT_COLOR, DEFAULT_BRAND_COLOR } from "@/lib/bank/company-branding-types";
 import { cn } from "@/lib/utils";
@@ -147,7 +147,7 @@ export function CommercialBrandedCheckoutFooter({
           {branding.supportDiscord ? `@${branding.supportDiscord} on Discord` : null}
         </p>
       )}
-      <PaymentLegalFooter />
+      <CheckoutLegalLinks />
     </footer>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
+import { SEARCH_DEBOUNCE_MS } from "@/lib/ui/route-loading";
 import {
   searchPayableRecipientsForPay,
   submitAltaPay,
@@ -197,7 +198,7 @@ export function AltaPayForm({
       void searchRecipients({ data: recipientQuery.trim() })
         .then(setRecipientResults)
         .catch(() => setRecipientResults([]));
-    }, 280);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [recipientQuery, searchRecipients]);
 

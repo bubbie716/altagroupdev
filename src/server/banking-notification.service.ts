@@ -1,6 +1,6 @@
 import { formatFlorin } from "@/lib/bank/format";
 import { friendlyFailureReason, toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
-import { createUserNotification, createUserNotifications } from "@/server/notification.service";
+import { scheduleCreateUserNotification, scheduleCreateUserNotifications } from "@/server/notification.service";
 import { prisma } from "@/server/db";
 
 const COMPANY_INCOMING_PAYMENT_ROLES = ["OWNER", "EXECUTIVE", "FINANCE_MANAGER"] as const;
@@ -23,7 +23,7 @@ export async function notifyDepositSubmitted(
   accountName: string,
   proofImageUrl?: string | null,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "DEPOSIT_SUBMITTED",
     title: "Deposit submitted",
@@ -39,7 +39,7 @@ export async function notifyDepositApproved(
   amount: number,
   referenceCode: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "DEPOSIT_APPROVED",
     title: "Deposit approved",
@@ -55,7 +55,7 @@ export async function notifyWithdrawalSubmitted(
   referenceCode: string,
   accountName: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "WITHDRAWAL_SUBMITTED",
     title: "Withdrawal submitted",
@@ -70,7 +70,7 @@ export async function notifyWithdrawalApproved(
   amount: number,
   referenceCode: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "WITHDRAWAL_APPROVED",
     title: "Withdrawal approved",
@@ -87,7 +87,7 @@ export async function notifyTransferCompleted(
   fromAccountName: string,
   toAccountName: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "TRANSFER_COMPLETED",
     title: "Transfer complete",
@@ -119,7 +119,7 @@ export async function notifyTransferReceived(
   senderName: string,
   toAccountName: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId: recipientUserId,
     type: "TRANSFER_RECEIVED",
     title: "Transfer received",
@@ -140,7 +140,7 @@ export async function notifyTransferReceivedToCompany(input: {
   const userIds = await listCompanyIncomingPaymentNotifyUserIds(input.companyId);
   if (userIds.length === 0) return;
 
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "TRANSFER_RECEIVED",
     title: "Transfer received",
     body: `${input.companyName} received ${formatFlorin(input.amount)} from ${input.senderName} into ${input.toAccountName}. Reference \`${input.referenceCode}\`.`,
@@ -163,7 +163,7 @@ export async function notifyAltaPaySent(
   payeeName: string,
   fundingSourceLabel: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_PAY_SENT",
     title: "Alta Pay sent",
@@ -195,7 +195,7 @@ export async function notifyAltaPayReceived(
   payerName: string,
   toAccountName: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId: recipientUserId,
     type: "ALTA_PAY_RECEIVED",
     title: "Alta Pay received",
@@ -216,7 +216,7 @@ export async function notifyAltaPayReceivedToCompany(input: {
   const userIds = await listCompanyIncomingPaymentNotifyUserIds(input.companyId);
   if (userIds.length === 0) return;
 
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "ALTA_PAY_RECEIVED",
     title: "Alta Pay received",
     body: `${input.companyName} received ${formatFlorin(input.amount)} from ${input.payerName} into ${input.toAccountName}. Reference \`${input.referenceCode}\`.`,
@@ -237,7 +237,7 @@ export async function notifyLoanApplicationApproved(
   applicationId: string,
   principalAmount: number,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "LOAN_APPLICATION_APPROVED",
     title: "Loan application approved",
@@ -251,7 +251,7 @@ export async function notifyLoanApplicationDenied(
   userId: string,
   applicationId: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "LOAN_APPLICATION_DENIED",
     title: "Loan application declined",
@@ -267,7 +267,7 @@ export async function notifyAltaCardApplicationApproved(
   tier: string,
   approvedLimit: number,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_APPLICATION_APPROVED",
     title: "Alta Card application approved",
@@ -281,7 +281,7 @@ export async function notifyAltaCardApplicationDenied(
   userId: string,
   applicationId: string,
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_APPLICATION_DENIED",
     title: "Alta Card application declined",
@@ -301,7 +301,7 @@ export async function notifyTransferFailedBestEffort(
 ): Promise<void> {
   try {
     const safeReason = sanitizeFailureReason(input.reason);
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "TRANSFER_FAILED",
       title: "Transfer could not be completed",
@@ -323,7 +323,7 @@ export async function notifyAltaPayFailedBestEffort(
     const payee = input.payeeLabel?.trim();
     const payeePart = payee ? ` to ${payee}` : "";
     const safeReason = sanitizeFailureReason(input.reason);
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "ALTA_PAY_FAILED",
       title: "Alta Pay could not be completed",
@@ -358,7 +358,7 @@ export async function notifyScheduledTransferExecuted(
     ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
     : "/bank/transfers/intrabank";
 
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "SCHEDULED_TRANSFER_EXECUTED",
     title: `${kind} completed`,
@@ -403,7 +403,7 @@ export async function notifyScheduledTransferFailed(
     ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
     : "/bank/transfers/intrabank";
 
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "SCHEDULED_TRANSFER_FAILED",
     title: `${kind} could not be completed`,
@@ -434,7 +434,7 @@ export async function notifyPayrollRunExecuted(
   },
 ): Promise<void> {
   const employeeLabel = input.employeeCount === 1 ? "employee" : "employees";
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "PAYROLL_RUN_EXECUTED",
     title: "Payroll completed",
@@ -466,7 +466,7 @@ export async function notifyPayrollRunFailed(
   const failedNote = input.failedPermanently
     ? " The payroll batch has been marked failed after repeated errors."
     : "";
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "PAYROLL_RUN_FAILED",
     title: "Payroll failed",
@@ -488,7 +488,7 @@ export async function notifyLoanPaymentMade(
   userId: string,
   input: { loanId: string; amount: number; referenceCode: string },
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "LOAN_PAYMENT_MADE",
     title: "Loan payment received",
@@ -502,7 +502,7 @@ export async function notifyLoanPaidOff(
   userId: string,
   input: { loanId: string; referenceCode: string },
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "LOAN_PAID_OFF",
     title: "Loan paid off",
@@ -517,7 +517,7 @@ export async function notifyLoanAutopayFailedBestEffort(
   input: { loanId: string; amount: number; reason: string },
 ): Promise<void> {
   try {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "LOAN_AUTOPAY_FAILED",
       title: "Loan autopay failed",
@@ -534,7 +534,7 @@ export async function notifyAltaCardPaymentMade(
   userId: string,
   input: { cardId: string; amount: number; referenceCode: string; cardLastFour: string },
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_PAYMENT_MADE",
     title: "Alta Card payment received",
@@ -554,7 +554,7 @@ export async function notifyAltaCardAutopaySucceededBestEffort(
   input: { cardId: string; amount: number; referenceCode?: string | null },
 ): Promise<void> {
   try {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "ALTA_CARD_AUTOPAY_SUCCEEDED",
       title: "Alta Card autopay completed",
@@ -574,7 +574,7 @@ export async function notifyAltaCardAutopayFailedBestEffort(
   input: { cardId: string; amount: number; reason: string },
 ): Promise<void> {
   try {
-    await createUserNotification({
+    scheduleCreateUserNotification({
       userId,
       type: "ALTA_CARD_AUTOPAY_FAILED",
       title: "Alta Card autopay failed",
@@ -592,7 +592,7 @@ export async function notifyAltaCardReviewDecided(
   input: { cardId: string; status: "APPROVED" | "PARTIALLY_APPROVED" | "DENIED"; reason?: string },
 ): Promise<void> {
   const approved = input.status === "APPROVED" || input.status === "PARTIALLY_APPROVED";
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_REVIEW_DECIDED",
     title: approved ? "Alta Card review approved" : "Alta Card review declined",
@@ -605,7 +605,7 @@ export async function notifyAltaCardReviewDecided(
 }
 
 export async function notifyAltaCardActivated(userId: string, cardId: string, cardLastFour: string): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_ACTIVATED",
     title: "Alta Card activated",
@@ -619,7 +619,7 @@ export async function notifyAltaCardFrozen(userId: string, cardLastFour: string,
   const { sanitizeCustomerFacingReason } = await import("@/lib/bank/customer-operator-notification-copy");
   const reasonText = sanitizeCustomerFacingReason(reason);
   const reasonLine = reasonText ? ` ${reasonText}` : "";
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_FROZEN",
     title: "Alta Card frozen",
@@ -630,7 +630,7 @@ export async function notifyAltaCardFrozen(userId: string, cardLastFour: string,
 }
 
 export async function notifyAltaCardUnfrozen(userId: string, cardLastFour: string): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "ALTA_CARD_UNFROZEN",
     title: "Alta Card unfrozen",
@@ -645,7 +645,7 @@ export async function notifyCompanyVerified(
   input: { companyId: string; companyName: string },
 ): Promise<void> {
   if (userIds.length === 0) return;
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "COMPANY_VERIFIED",
     title: "Company verified",
     body: `${input.companyName} is now verified on Alta Bank. Business banking features are fully available.`,
@@ -658,7 +658,7 @@ export async function notifyCompanyRoleChanged(
   userId: string,
   input: { companyId: string; companyName: string; newRole: string },
 ): Promise<void> {
-  await createUserNotification({
+  scheduleCreateUserNotification({
     userId,
     type: "COMPANY_ROLE_CHANGED",
     title: "Company role updated",
@@ -687,7 +687,7 @@ async function notifyCommercialBillingUsers(
   const { listCommercialBillingNotifyUserIds } = await import("@/server/commercial-audit.service");
   const userIds = await listCommercialBillingNotifyUserIds(companyId);
   if (userIds.length === 0) return;
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: input.type,
     title: input.title,
     body: input.body,
@@ -805,7 +805,7 @@ export async function notifyCommercialProAdminGranted(input: {
   });
   const monthLabel = input.months === 1 ? "1 month" : `${input.months} months`;
 
-  await createUserNotifications(userIds, {
+  scheduleCreateUserNotifications(userIds, {
     type: "COMMERCIAL_PRO_ADMIN_GRANTED",
     title: "Alta Commercial Pro granted",
     body: `${input.companyName} received Alta Commercial Pro for ${monthLabel}, active through ${expiryLabel}.`,

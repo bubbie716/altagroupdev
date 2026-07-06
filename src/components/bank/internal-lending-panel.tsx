@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { OpsAction } from "@/components/internal/ops-action";
@@ -52,7 +53,7 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
 
   return (
     <OpsAction
-      label={pending ? "Opening…" : "Open Secure Deal Room"}
+      label={pending ? SUBMITTING_COPY.opening : "Open Secure Deal Room"}
       title="Open Secure Deal Room"
       description="Creates the applicant thread and opens the Secure Deal Room workspace."
       disabled={pending}

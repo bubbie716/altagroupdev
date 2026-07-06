@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -287,7 +288,7 @@ function EmployeeForm({
           disabled={pending}
           className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
         >
-          {pending ? "Saving…" : isEditing ? "Save changes" : "Add employee"}
+          {pending ? SUBMITTING_COPY.saving : isEditing ? "Save changes" : "Add employee"}
         </button>
         {isEditing ? (
           <button

@@ -494,7 +494,7 @@ export async function notifyStaffDealRoomMessageBestEffort(
     const { deliverCustomerNotificationDm } = await import(
       "@/server/customer-notification-delivery.service"
     );
-    const delivery = await deliverCustomerNotificationDm({
+    void deliverCustomerNotificationDm({
       notificationId,
       userId: input.applicantUserId,
       type: notificationInput.type,
@@ -502,14 +502,21 @@ export async function notifyStaffDealRoomMessageBestEffort(
       body: notificationInput.body,
       linkUrl,
       metadata: notificationInput.metadata,
-    });
-
-    if (delivery.sent) {
-      await recordStaffDealRoomMessageDmSent({
-        dealRoomType: input.dealRoomType,
-        dealRoomId: input.dealRoomId,
+    })
+      .then((delivery) => {
+        if (delivery.sent) {
+          void recordStaffDealRoomMessageDmSent({
+            dealRoomType: input.dealRoomType,
+            dealRoomId: input.dealRoomId,
+          });
+        }
+      })
+      .catch((error) => {
+        logDealRoomDiscord("staff message DM delivery failed", {
+          dealRoomId: input.dealRoomId,
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
-    }
   } catch (error) {
     logDealRoomDiscord("staff in-app notify failed", {
       dealRoomId: input.dealRoomId,

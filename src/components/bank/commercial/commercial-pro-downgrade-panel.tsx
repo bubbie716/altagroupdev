@@ -9,6 +9,8 @@ import {
   BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
+import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import type { CommercialDowngradePreview } from "@/lib/bank/commercial-billing-types";
@@ -172,7 +174,7 @@ export function CommercialProDowngradePanel({
 
   function renderContent() {
     if (loading) {
-      return <p className="text-[13px] text-muted-foreground">Loading downgrade details…</p>;
+      return <LoadingMessage>{LOADING_COPY.commercialDowngrade}</LoadingMessage>;
     }
 
     if (view === "success" && submission) {

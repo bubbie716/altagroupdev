@@ -30,6 +30,10 @@ import {
 import { UserTag } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { isSystemActorUserId, SYSTEM_ACTOR_USER_ID } from "@/server/system-actor.service";
+import {
+  refreshCompanyRelationshipStackBestEffort,
+  refreshUserRelationshipProfileBestEffort,
+} from "@/server/relationship-refresh-hooks.service";
 
 function forbidden(): never {
   throw new Error("FORBIDDEN");
@@ -347,7 +351,7 @@ export async function submitAltaPayToPerson(
     fundingSource: funding.label,
   });
 
-  await notifyAltaPaySentBestEffort(
+  void notifyAltaPaySentBestEffort(
     user,
     input.amount,
     result.referenceCode,
@@ -355,18 +359,20 @@ export async function submitAltaPayToPerson(
     funding.label,
   );
 
-  try {
-    const { notifyAltaPayReceived } = await import("@/server/banking-notification.service");
-    await notifyAltaPayReceived(
-      input.recipientUserId,
-      input.amount,
-      result.referenceCode,
-      payerLabel,
-      receiveAccount.accountName,
-    );
-  } catch (error) {
-    console.error("[alta-pay] received notification failed", error);
-  }
+  void (async () => {
+    try {
+      const { notifyAltaPayReceived } = await import("@/server/banking-notification.service");
+      await notifyAltaPayReceived(
+        input.recipientUserId,
+        input.amount,
+        result.referenceCode,
+        payerLabel,
+        receiveAccount.accountName,
+      );
+    } catch (error) {
+      console.error("[alta-pay] received notification failed", error);
+    }
+  })();
 
   return {
     referenceCode: result.referenceCode,
@@ -659,10 +665,8 @@ export async function submitAltaPayPayment(
       });
     });
 
-    const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
-      await import("@/server/relationship-refresh-hooks.service");
-    await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
-    await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
+    void refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
+    void refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
     await recordAltaPaySentAudit({
       actorUserId: user.id,
@@ -674,7 +678,7 @@ export async function submitAltaPayPayment(
       fundingSource: sourceAccount.accountName,
     });
 
-    await notifyAltaPaySentBestEffort(
+    void notifyAltaPaySentBestEffort(
       user,
       input.amount,
       referenceBase,
@@ -682,7 +686,7 @@ export async function submitAltaPayPayment(
       sourceAccount.accountName,
     );
 
-    await notifyAltaPayCompanyReceivedBestEffort({
+    void notifyAltaPayCompanyReceivedBestEffort({
       payer: user,
       company,
       amount: input.amount,
@@ -755,12 +759,10 @@ export async function submitAltaPayPayment(
     }),
   });
 
-  const { refreshUserRelationshipProfileBestEffort, refreshCompanyRelationshipStackBestEffort } =
-    await import("@/server/relationship-refresh-hooks.service");
-  await refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
-  await refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
+  void refreshUserRelationshipProfileBestEffort(user.id, "alta-pay-completed");
+  void refreshCompanyRelationshipStackBestEffort(company.id, "alta-pay-completed");
 
-  await notifyAltaPaySentBestEffort(
+  void notifyAltaPaySentBestEffort(
     user,
     input.amount,
     referenceBase,
@@ -768,7 +770,7 @@ export async function submitAltaPayPayment(
     fundingSourceLabel,
   );
 
-  await notifyAltaPayCompanyReceivedBestEffort({
+  void notifyAltaPayCompanyReceivedBestEffort({
     payer: user,
     company,
     amount: input.amount,

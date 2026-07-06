@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MockActionButton } from "@/components/internal/mock-action-button";
 import { updateCompanySettingsRecord } from "@/lib/company/company.functions";
 import type { CompanyDetail } from "@/lib/company/types";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
 export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
   const router = useRouter();
@@ -112,7 +113,7 @@ export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
             disabled={saving}
             className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium text-background disabled:opacity-60"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? SUBMITTING_COPY.saving : "Save changes"}
           </button>
         </Card>
       </form>

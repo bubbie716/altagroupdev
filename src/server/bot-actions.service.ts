@@ -444,7 +444,7 @@ export async function submitBotTransfer(
       "@/server/bot-audit.service"
     );
     const reason = friendlyBotFailureReason(error);
-    await notifyTransferFailedBestEffort(userId, {
+    void notifyTransferFailedBestEffort(userId, {
       amount: input.amount,
       reason: friendlyFailureReason(error),
     });
@@ -521,7 +521,7 @@ export async function submitBotAltaPay(
     const payeeLabel =
       input.recipient.kind === "company" ? input.recipient.companyId : input.recipient.recipientUserId;
     const reason = friendlyBotFailureReason(error);
-    await notifyAltaPayFailedBestEffort(userId, {
+    void notifyAltaPayFailedBestEffort(userId, {
       amount: input.amount,
       reason: friendlyFailureReason(error),
       payeeLabel,

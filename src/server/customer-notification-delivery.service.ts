@@ -175,3 +175,17 @@ export async function deliverCustomerNotificationDm(
     return { sent: false, reason: message };
   }
 }
+
+/** Discord API calls must not block banking UX — deliver in the background. */
+export function scheduleDeliverCustomerNotificationDm(
+  input: DeliverCustomerNotificationDmInput,
+): void {
+  void deliverCustomerNotificationDm(input).catch((error) => {
+    logDelivery("background DM delivery failed", {
+      userId: input.userId,
+      type: input.type,
+      notificationId: input.notificationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}

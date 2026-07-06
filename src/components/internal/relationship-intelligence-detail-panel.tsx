@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
 import { florin } from "@/lib/bank/api";
 import {
@@ -95,7 +96,7 @@ export function RelationshipIntelligenceDetailPanel({
           onClick={() => void handleRefresh()}
           className="rounded-md border border-border bg-surface-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] hover:bg-surface-2/80 disabled:opacity-60"
         >
-          {refreshing ? "Refreshing…" : "Refresh relationship profile"}
+          {refreshing ? SUBMITTING_COPY.refreshing : "Refresh relationship profile"}
         </button>
       </div>
 
