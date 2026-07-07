@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 import { LegalDocMarkdown } from "@/components/governance/legal-doc-markdown";
 import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
+import { resolveLegalDocIdFromSlug } from "@/lib/legal/legal-document-registry";
 import { LEGAL_CENTER_PATH } from "@/lib/site/site-links";
 import { CorporatePageShell } from "@/components/site/corporate-page-shell";
 import { NccLayout } from "@/components/ncc/ncc-layout";
@@ -12,9 +13,16 @@ import { useSiteContext } from "@/hooks/use-site-context";
 
 export const Route = createFileRoute("/legal/$docId")({
   loader: ({ params }) => {
-    const doc = getLegalDoc(params.docId);
-    if (!doc) throw notFound();
-    return doc;
+    const direct = getLegalDoc(params.docId);
+    if (direct) return direct;
+
+    const resolvedId = resolveLegalDocIdFromSlug(params.docId);
+    if (resolvedId) {
+      const resolved = getLegalDoc(resolvedId);
+      if (resolved) return resolved;
+    }
+
+    throw notFound();
   },
   head: ({ loaderData }) => ({
     meta: [

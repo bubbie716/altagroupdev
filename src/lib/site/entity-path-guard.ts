@@ -1,11 +1,7 @@
 import type { SiteKey } from "@/config/sites";
-import {
-  isPlainLocalDevHost,
-  siteKeyForEntityPath,
-  usesLocalhostSiteParam,
-} from "@/lib/site/local-dev-site";
 import { resolveEntitySiteHostname, resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
-import { readRequestHost, resolveSiteKeyFromHost } from "@/lib/site/site-context";
+import { siteKeyForOwnedPath } from "@/lib/site/site-path-ownership";
+import { readRequestHost, resolveSiteKey } from "@/lib/site/site-context";
 
 function normalizeHostname(host: string): string {
   return host.split(":")[0].trim().toLowerCase();
@@ -15,6 +11,13 @@ function normalizeHostname(host: string): string {
 const LEGACY_ENTITY_HOSTS: Record<string, SiteKey> = {
   "ncc.altagroup.dev": "ncc",
 };
+
+function parseSearchRecord(searchStr?: string): Record<string, unknown> | undefined {
+  if (!searchStr || searchStr === "?") return undefined;
+  const normalized = searchStr.startsWith("?") ? searchStr.slice(1) : searchStr;
+  if (!normalized) return undefined;
+  return Object.fromEntries(new URLSearchParams(normalized));
+}
 
 function appendSearchString(href: string, searchStr?: string): string {
   if (!searchStr || searchStr === "?") return href;
@@ -44,31 +47,47 @@ export function resolveLegacyEntityHostRedirect(
   return appendSearchString(resolveEntitySiteUrl(siteKey, pathname, host), options?.searchStr);
 }
 
-/** Redirect entity app paths served on the wrong host to the entity subdomain (prod only). */
-export function resolveEntitySubdomainRedirect(
+/**
+ * Redirect when a path is visited on the wrong Alta site host
+ * (e.g. /structure on bank.altagroup.dev → altagroup.dev/structure).
+ */
+export function resolveCrossSitePathRedirect(
   pathname: string,
-  options?: { host?: string; searchStr?: string },
+  options?: {
+    host?: string;
+    searchStr?: string;
+    search?: Record<string, unknown>;
+  },
 ): string | null {
   const host = options?.host ?? readRequestHost();
+  const pathOwner = siteKeyForOwnedPath(pathname);
+  if (!pathOwner) return null;
 
-  // Local dev on plain localhost uses ?site= + path-based context — no subdomain redirect.
-  if (usesLocalhostSiteParam(host)) {
-    return null;
-  }
+  const search =
+    options?.search ??
+    parseSearchRecord(typeof options?.searchStr === "string" ? options.searchStr : undefined);
 
-  const hostSiteKey = resolveSiteKeyFromHost(host);
-  const pathSiteKey = siteKeyForEntityPath(pathname);
-  if (!pathSiteKey) return null;
+  const currentSiteKey = resolveSiteKey({
+    host,
+    search,
+    pathname,
+    allowDevOverride: true,
+  });
 
-  if (hostSiteKey === pathSiteKey) return null;
-
-  // Plain localhost in production shouldn't happen; subdomain redirect for altagroup.dev, etc.
-  if (isPlainLocalDevHost(host)) return null;
+  if (currentSiteKey === pathOwner) return null;
 
   return appendSearchString(
-    resolveEntitySiteUrl(pathSiteKey, pathname, host),
+    resolveEntitySiteUrl(pathOwner, pathname, host),
     options?.searchStr,
   );
 }
 
-export { siteKeyForEntityPath };
+/** @deprecated Use resolveCrossSitePathRedirect */
+export function resolveEntitySubdomainRedirect(
+  pathname: string,
+  options?: { host?: string; searchStr?: string },
+): string | null {
+  return resolveCrossSitePathRedirect(pathname, options);
+}
+
+export { siteKeyForEntityPath } from "@/lib/site/site-path-ownership";

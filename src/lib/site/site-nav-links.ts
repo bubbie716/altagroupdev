@@ -1,4 +1,6 @@
 import { getSiteConfig, type SiteConfig, type SiteKey, type SiteNavLink } from "@/config/sites";
+import { buildExchangePrimaryNavLinks } from "@/lib/exchange/exchange-primary-nav";
+import { buildTerminalPrimaryNavLinks } from "@/lib/terminal/terminal-primary-nav";
 import { resolveCorporateSiteUrl, resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
 function withExternalNavLink(link: SiteNavLink, href: string): SiteNavLink {
@@ -10,12 +12,21 @@ export function resolveSiteNavLinks(siteKey: SiteKey): SiteNavLink[] {
   const config = getSiteConfig(siteKey);
 
   if (siteKey === "exchange") {
-    return config.navLinks.map((link) => {
-      if (link.label === "Open Terminal") {
+    return buildExchangePrimaryNavLinks().map((link) => {
+      if (link.label === "Terminal") {
         return withExternalNavLink(link, resolveEntitySiteUrl("terminal"));
       }
       if (link.label === "Trading Rules") {
         return withExternalNavLink(link, resolveCorporateSiteUrl("/legal/AE-LEGAL-003"));
+      }
+      return link;
+    });
+  }
+
+  if (siteKey === "terminal") {
+    return buildTerminalPrimaryNavLinks().map((link) => {
+      if (link.label === "Exchange") {
+        return withExternalNavLink(link, resolveEntitySiteUrl("exchange"));
       }
       return link;
     });

@@ -1,4 +1,6 @@
 /** Newport Clearing Corporation — institutional infrastructure palette. */
+import { legalDocumentPath } from "@/lib/legal/legal-document-registry";
+
 export const NCC = {
   green: "#0c4d32",
   greenDark: "#083d28",
@@ -17,9 +19,9 @@ export const NCC = {
 } as const;
 
 export const NCC_LEGAL_DOCS = [
-  { id: "NCC-LEGAL-001", label: "Participation Agreement", path: "/legal/NCC-LEGAL-001" },
-  { id: "NCC-LEGAL-002", label: "Operating Rules", path: "/legal/NCC-LEGAL-002" },
-  { id: "NCC-LEGAL-003", label: "Fee Schedule", path: "/legal/NCC-LEGAL-003" },
+  { id: "NCC-LEGAL-001", label: "Participation Agreement", path: legalDocumentPath("NCC-LEGAL-001") },
+  { id: "NCC-LEGAL-002", label: "Operating Rules", path: legalDocumentPath("NCC-LEGAL-002") },
+  { id: "NCC-LEGAL-003", label: "Fee Schedule", path: legalDocumentPath("NCC-LEGAL-003") },
 ] as const;
 
 export const NCC_NETWORK_STATS = [

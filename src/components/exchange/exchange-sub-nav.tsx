@@ -1,66 +1,104 @@
-import { useRouterState } from "@tanstack/react-router";
-import { SquareArrowOutUpRight } from "lucide-react";
-import { MockDataNotice } from "@/components/data/mock-data-notice";
-import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
+"use client";
+
+import { memo } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { useSiteContext } from "@/hooks/use-site-context";
-import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
-import { SiteInternalLink } from "@/components/site/site-internal-link";
+import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
 
-const links = [
-  { to: "/exchange", label: "Overview", exact: true },
-  { to: "/exchange/listings", label: "Listings" },
-  { to: "/exchange/ipo", label: "IPO Center" },
-  { to: "/exchange/research", label: "Research" },
-  { to: "/exchange/api", label: "API" },
-  { to: "/terminal", label: "Terminal", separate: true, externalSite: "terminal" as const },
-] as const;
+type SectionLink = {
+  to: string;
+  label: string;
+  exact?: boolean;
+  params?: Record<string, string>;
+};
 
-function isActive(pathname: string, link: (typeof links)[number]): boolean {
-  if ("separate" in link && link.separate) return false;
-  if ("exact" in link && link.exact) {
-    return pathname === link.to || pathname === `${link.to}/`;
-  }
-  return pathname === link.to || pathname.startsWith(`${link.to}/`);
+function normalizePath(pathname: string): string {
+  return pathname.replace(/\/$/, "") || "/";
 }
 
-export function ExchangeSubNav() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const site = useSiteContext();
+function extractCompanyTicker(pathname: string): string | null {
+  const match = pathname.match(/^\/exchange\/company\/([^/]+)/);
+  return match?.[1] ?? null;
+}
+
+function isSectionLinkActive(pathname: string, link: SectionLink): boolean {
+  const path = normalizePath(pathname);
+  const target = normalizePath(
+    link.params ? link.to.replace("$ticker", link.params.ticker) : link.to,
+  );
+
+  if (link.exact) return path === target;
+  return path === target || path.startsWith(`${target}/`);
+}
+
+function resolveExchangeSectionLinks(pathname: string): { links: SectionLink[] } | null {
+  const path = normalizePath(pathname);
+  const ticker = extractCompanyTicker(path);
+
+  if (ticker) {
+    return {
+      links: [
+        {
+          to: "/exchange/company/$ticker",
+          params: { ticker },
+          label: "Company profile",
+          exact: true,
+        },
+        {
+          to: "/exchange/company/$ticker/owner",
+          params: { ticker },
+          label: "Issuer portal",
+        },
+      ],
+    };
+  }
+
+  if (path.startsWith("/exchange/api") || path.startsWith("/exchange/apply")) {
+    return {
+      links: [
+        { to: "/exchange/api", label: "API access", exact: true },
+        { to: "/exchange/apply", label: "Apply for access" },
+      ],
+    };
+  }
+
+  return null;
+}
+
+function SectionNavLink({ link, pathname }: { link: SectionLink; pathname: string }) {
+  const active = isSectionLinkActive(pathname, link);
 
   return (
-    <div className="mb-10">
-      {isPublicSimulatedMarketDataEnabled() && <MockDataNotice className="mb-4" />}
-      <nav className="flex flex-wrap gap-1 border-b border-border/60 pb-4">
-        {links.map((l) => {
-          const active = isActive(pathname, l);
-          const className = cn(
-            "type-subnav inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
-            active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
-          );
-
-          if ("externalSite" in l && l.externalSite) {
-            return (
-              <a
-                key={l.to}
-                href={resolveEntitySiteUrl(l.externalSite, l.to)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={className}
-              >
-                {l.label}
-                <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
-              </a>
-            );
-          }
-
-          return (
-            <SiteInternalLink key={l.to} siteKey={site.key} to={l.to} className={className}>
-              {l.label}
-            </SiteInternalLink>
-          );
-        })}
-      </nav>
-    </div>
+    <Link
+      to={link.to}
+      params={link.params}
+      className={cn(
+        "type-subnav rounded-md px-3 py-1.5 transition-colors",
+        active ? "bg-surface-2 text-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {link.label}
+    </Link>
   );
 }
+
+export const ExchangeSubNav = memo(function ExchangeSubNav() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const section = resolveExchangeSectionLinks(pathname);
+
+  if (!section?.links.length) return null;
+
+  return (
+    <BankSubNavScroll>
+      <nav className={cn(bankSubNavClass, "mb-0 sm:mb-0")}>
+        {section.links.map((link) => (
+          <SectionNavLink
+            key={`${link.to}-${link.label}-${link.params?.ticker ?? ""}`}
+            link={link}
+            pathname={pathname}
+          />
+        ))}
+      </nav>
+    </BankSubNavScroll>
+  );
+});

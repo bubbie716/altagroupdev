@@ -1,17 +1,7 @@
 import type { SiteKey } from "@/config/sites";
+import { siteKeyForEntityPath as ownedEntityPath } from "@/lib/site/site-path-ownership";
 
 export const DEV_SITE_SEARCH_KEY = "site" as const;
-
-const ENTITY_PATH_ROUTES: Array<{ prefix: string; siteKey: SiteKey }> = [
-  { prefix: "/bank", siteKey: "bank" },
-  { prefix: "/exchange", siteKey: "exchange" },
-  { prefix: "/terminal", siteKey: "terminal" },
-  { prefix: "/dashboard", siteKey: "ncc" },
-  { prefix: "/institutions", siteKey: "ncc" },
-  { prefix: "/network", siteKey: "ncc" },
-  { prefix: "/participation", siteKey: "ncc" },
-  { prefix: "/company/ncc", siteKey: "ncc" },
-];
 
 export function normalizeHostname(host: string): string {
   return host.split(":")[0].trim().toLowerCase();
@@ -30,12 +20,7 @@ export function usesLocalhostSiteParam(host: string): boolean {
 }
 
 export function siteKeyForEntityPath(pathname: string): SiteKey | null {
-  for (const route of ENTITY_PATH_ROUTES) {
-    if (pathname === route.prefix || pathname.startsWith(`${route.prefix}/`)) {
-      return route.siteKey;
-    }
-  }
-  return null;
+  return ownedEntityPath(pathname);
 }
 
 export function devSiteSearchParams(

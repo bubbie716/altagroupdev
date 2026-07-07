@@ -1,3 +1,5 @@
+import { resolveLegalDocIdFromSlug } from "@/lib/legal/legal-document-registry";
+
 export type FooterVariant = "marketing" | "dashboard" | "auth" | "legal" | "none";
 
 /** @deprecated Use FooterVariant */
@@ -21,12 +23,15 @@ function isStatementPrintPath(pathname: string): boolean {
 }
 
 function isLegalDocumentPath(pathname: string): boolean {
-  return /^\/legal\/[^/]+$/.test(pathname) && pathname !== "/legal";
+  return pathname.startsWith("/legal/") && pathname !== "/legal" && pathname !== "/legal/";
 }
 
 export function extractLegalDocIdFromPath(pathname: string): string | undefined {
-  const match = pathname.match(/^\/legal\/([^/]+)$/);
-  return match?.[1];
+  if (!pathname.startsWith("/legal/") || pathname === "/legal" || pathname === "/legal/") {
+    return undefined;
+  }
+  const slug = pathname.replace(/^\/legal\//, "").replace(/\/$/, "");
+  return resolveLegalDocIdFromSlug(slug) ?? slug;
 }
 
 export function resolveFooterVariant(pathname: string): FooterVariant {

@@ -57,16 +57,6 @@ function CompanyProfilePage() {
       />
       <CompanyProfileHeader company={company} />
 
-      <div className="mt-6 flex justify-end">
-        <Link
-          to="/exchange/company/$ticker/owner"
-          params={{ ticker: company.symbol.toLowerCase() }}
-          className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold hover:underline"
-        >
-          Issuer portal →
-        </Link>
-      </div>
-
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Section title="Price Chart">
           <Card>

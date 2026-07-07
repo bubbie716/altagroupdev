@@ -35,7 +35,7 @@ export function NccHomePage() {
         secondaryAction={
           <SiteInternalLink
             siteKey="ncc"
-            to="/legal/NCC-LEGAL-002"
+            to={NCC_LEGAL_DOCS[1].path}
             className="inline-flex items-center justify-center rounded-sm border border-[#e5e7eb] bg-white px-4 py-2.5 text-[13px] font-medium text-[#111827] hover:bg-[#f9fafb]"
           >
             Operating Rules

@@ -44,7 +44,7 @@ const TerminalPageLayoutContext = createContext<TerminalPageLayoutContextValue |
 export function TerminalLayoutNav() {
   return (
     <>
-      {isPublicSimulatedMarketDataEnabled() && <MockDataNotice className="mb-4" />}
+      {isPublicSimulatedMarketDataEnabled() ? <MockDataNotice className="mb-4" /> : null}
       <TerminalSubNav />
     </>
   );

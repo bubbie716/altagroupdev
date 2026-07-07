@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { Section } from "@/components/page-shell";
 import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { TradeTicket } from "@/components/terminal/trade-ticket";
@@ -7,8 +8,15 @@ import { getOrders } from "@/lib/terminal/api";
 import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 
+type TradeSearch = {
+  tab?: "orders";
+};
+
 export const Route = createFileRoute("/terminal/trade")({
   beforeLoad: authBeforeLoad,
+  validateSearch: (search: Record<string, unknown>): TradeSearch => ({
+    tab: search.tab === "orders" ? "orders" : undefined,
+  }),
   head: () => ({
     meta: [{ title: "Trade — Alta Terminal" }],
   }),
@@ -17,6 +25,13 @@ export const Route = createFileRoute("/terminal/trade")({
 
 function TerminalTrade() {
   const showMockData = isUserFinancialMockDataEnabled();
+  const { tab } = Route.useSearch();
+  const ordersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (tab !== "orders") return;
+    ordersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tab]);
 
   return (
     <TerminalPageShell
@@ -34,7 +49,11 @@ function TerminalTrade() {
         <TradeTicket disabled />
       </div>
 
-      {showMockData && <TerminalTradeMockOrders />}
+      {showMockData ? (
+        <div ref={ordersRef} className="scroll-mt-24">
+          <TerminalTradeMockOrders />
+        </div>
+      ) : null}
     </TerminalPageShell>
   );
 }

@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
+import { SITE_INIT_SCRIPT } from "@/lib/site/site-chrome-script";
+import { NccSiteChrome } from "@/components/ncc/ncc-site-chrome";
+import { cn } from "@/lib/utils";
 import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { loadRootSession } from "@/lib/auth/root-session-loader";
@@ -20,7 +23,7 @@ import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveSiteContextFromRequest, readRequestHost } from "@/lib/site/site-context";
-import { resolveEntitySubdomainRedirect, resolveLegacyEntityHostRedirect } from "@/lib/site/entity-path-guard";
+import { resolveCrossSitePathRedirect, resolveLegacyEntityHostRedirect } from "@/lib/site/entity-path-guard";
 import { getDefaultSiteConfig } from "@/config/sites";
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
@@ -102,15 +105,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
       throw redirect({ href: legacyHostRedirect, replace: true });
     }
 
-    const entityRedirect = resolveEntitySubdomainRedirect(location.pathname, {
+    const crossSiteRedirect = resolveCrossSitePathRedirect(location.pathname, {
       host: readRequestHost(),
+      search: location.search as Record<string, unknown>,
       searchStr:
         typeof location.searchStr === "string"
           ? location.searchStr
           : undefined,
     });
-    if (entityRedirect) {
-      throw redirect({ href: entityRedirect, replace: true });
+    if (crossSiteRedirect) {
+      throw redirect({ href: crossSiteRedirect, replace: true });
     }
 
     const site = resolveSiteContextFromRequest(
@@ -189,6 +193,7 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SITE_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
@@ -200,17 +205,23 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, site } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RouteTransitionProvider>
           <FooterProvider>
+            <NccSiteChrome siteKey={site.key} />
             <NumberInputScrollGuard />
             {isUiLabMode() && <UiLabBanner />}
             <SiteReturnPathTracker />
-            <div className="flex min-h-screen flex-col">
+            <div
+              className={cn(
+                "flex min-h-screen flex-col",
+                site.key === "ncc" ? "bg-white" : "bg-background",
+              )}
+            >
               <div className="flex min-h-0 flex-1 flex-col">
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <Outlet />

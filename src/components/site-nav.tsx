@@ -107,14 +107,14 @@ export const SiteNav = memo(function SiteNav() {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isBankNav = site.key === "bank";
-  const desktopNavClass = isBankNav ? "xl:flex" : "lg:flex";
-  const mobileMenuClass = isBankNav ? "xl:hidden" : "lg:hidden";
+  const isDenseNav = site.key === "bank" || site.key === "exchange" || site.key === "terminal";
+  const desktopNavClass = isDenseNav ? "xl:flex" : "lg:flex";
+  const mobileMenuClass = isDenseNav ? "xl:hidden" : "lg:hidden";
 
   const desktopLinkClass = (active: boolean) =>
     cn(
       "type-nav relative shrink-0 whitespace-nowrap rounded-md py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
-      isBankNav ? "px-2 text-[12px]" : "px-3",
+      isDenseNav ? "px-2 text-[12px]" : "px-3",
       active &&
         "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
     );

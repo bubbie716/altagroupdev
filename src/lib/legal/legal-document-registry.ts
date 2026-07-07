@@ -229,10 +229,10 @@ export function resolveLegalDocIdFromSlug(slug: string): string | undefined {
 
 export function legalDocLinkParams(id: string) {
   const doc = getLegalDocument(id);
-  if (!doc) {
-    return { to: LEGAL_DOC_ROUTE, params: { docId: id } } as const;
-  }
-  return { to: "/legal/$", params: { _splat: doc.slug } } as const;
+  return {
+    to: LEGAL_DOC_ROUTE,
+    params: { docId: doc?.id ?? id },
+  } as const;
 }
 
 export function getLegalDocument(id: string): LegalDocumentDefinition | undefined {

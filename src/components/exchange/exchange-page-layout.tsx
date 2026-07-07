@@ -12,6 +12,8 @@ import {
 import { Outlet } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 import { ExchangeSubNav } from "@/components/exchange/exchange-sub-nav";
+import { MockDataNotice } from "@/components/data/mock-data-notice";
+import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import { ALTA_EXCHANGE_TAGLINE } from "@/lib/branding/alta-products";
 
 export type ExchangePageMetaProps = {
@@ -69,6 +71,7 @@ function ExchangeChromeLayoutInner() {
     <ExchangePageLayoutContext.Provider value={layoutValue}>
       <PageShell {...meta} animateHero={false}>
         <div className="flex min-h-0 flex-1 flex-col">
+          {isPublicSimulatedMarketDataEnabled() ? <MockDataNotice className="mb-4" /> : null}
           <ExchangeSubNav />
           <div className="route-page-content">
             <Outlet />

@@ -1,3 +1,6 @@
+import { EXCHANGE_PRIMARY_NAV_LINKS } from "@/lib/exchange/exchange-primary-nav";
+import { TERMINAL_PRIMARY_NAV_LINKS } from "@/lib/terminal/terminal-primary-nav";
+
 export type SiteKey = "corporate" | "bank" | "exchange" | "terminal" | "ncc";
 
 export type SiteNavLink = {
@@ -81,25 +84,9 @@ const BANK_NAV: SiteNavLink[] = [
   { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
 ];
 
-const EXCHANGE_NAV: SiteNavLink[] = [
-  { label: "Home", to: "/", exact: true },
-  { label: "Listings", to: "/exchange/listings", match: "/exchange/listings" },
-  { label: "IPOs", to: "/exchange/ipo", match: "/exchange/ipo" },
-  { label: "Companies", to: "/exchange/listings", match: "/exchange/company" },
-  { label: "Trading Rules", to: "/legal/AE-LEGAL-003", match: "/legal" },
-  { label: "Market Data", to: "/exchange/api", match: "/exchange/api" },
-  { label: "Open Terminal", to: "/terminal", match: "/terminal" },
-];
+const EXCHANGE_NAV: SiteNavLink[] = EXCHANGE_PRIMARY_NAV_LINKS;
 
-const TERMINAL_NAV: SiteNavLink[] = [
-  { label: "Home", to: "/", exact: true },
-  { label: "Dashboard", to: "/terminal", match: "/terminal" },
-  { label: "Portfolio", to: "/terminal/portfolio", match: "/terminal/portfolio" },
-  { label: "Markets", to: "/terminal/trade", match: "/terminal/trade" },
-  { label: "Orders", to: "/terminal/trade", match: "/terminal/trade" },
-  { label: "Watchlists", to: "/terminal/watchlist", match: "/terminal/watchlist" },
-  { label: "Account", to: "/profile", match: "/profile" },
-];
+const TERMINAL_NAV: SiteNavLink[] = TERMINAL_PRIMARY_NAV_LINKS;
 
 const NCC_NAV: SiteNavLink[] = [
   { label: "Home", to: "/", exact: true },

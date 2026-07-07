@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useServerFn } from "@tanstack/react-start";
@@ -186,7 +187,7 @@ function ScheduleForm({
     setRecipients(results);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!selected || submitting) return;
     const parsedAmount = Number(amount);
@@ -228,7 +229,7 @@ function ScheduleForm({
       });
       onCreated();
     } catch (err) {
-      setError(formatCustomerActionError(err));
+      setError(formatCustomerActionError(err, "pay"));
     } finally {
       setSubmitting(false);
     }
@@ -353,7 +354,7 @@ function AutopayForm({
     setCompanies(results.map((c) => ({ id: c.id, name: c.name })));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!merchantCompanyId || submitting) return;
     setSubmitting(true);
@@ -372,7 +373,7 @@ function AutopayForm({
       });
       onCreated();
     } catch (err) {
-      setError(formatCustomerActionError(err));
+      setError(formatCustomerActionError(err, "pay"));
     } finally {
       setSubmitting(false);
     }
