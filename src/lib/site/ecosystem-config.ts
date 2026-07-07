@@ -40,13 +40,6 @@ export const ECOSYSTEM_ENTRIES: EcosystemEntry[] = [
     description: "Trading and portfolios",
     homePath: "/",
   },
-  {
-    key: "ncc",
-    name: "Newport Clearing Corporation",
-    shortName: "NCC",
-    description: "Clearing and settlement",
-    homePath: "/",
-  },
 ];
 
 export type EcosystemSwitcherLink = {

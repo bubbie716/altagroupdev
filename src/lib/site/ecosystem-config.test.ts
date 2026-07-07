@@ -7,23 +7,27 @@ import {
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
 describe("ecosystem config", () => {
-  it("lists all Alta properties in a stable order", () => {
+  it("lists Alta ecosystem properties in a stable order", () => {
     expect(ECOSYSTEM_ENTRIES.map((entry) => entry.key)).toEqual([
       "corporate",
       "bank",
       "exchange",
       "terminal",
-      "ncc",
     ]);
   });
 
-  it("marks exactly one current site per property", () => {
-    for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
+  it("marks exactly one current site per listed property", () => {
+    for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const links = getEcosystemSwitcherLinks(siteKey);
-      expect(links).toHaveLength(5);
+      expect(links).toHaveLength(4);
       expect(links.filter((link) => link.current)).toHaveLength(1);
       expect(links.find((link) => link.current)?.key).toBe(siteKey);
     }
+  });
+
+  it("does not include NCC in the ecosystem switcher", () => {
+    const links = getEcosystemSwitcherLinks("bank");
+    expect(links.some((link) => link.key === "ncc")).toBe(false);
   });
 
   it("resolves absolute hrefs for cross-site navigation", () => {
@@ -42,7 +46,6 @@ describe("ecosystem config", () => {
 
   it("exposes display metadata for the header trigger", () => {
     expect(getCurrentEcosystemEntry("bank").name).toBe("Alta Bank");
-    expect(getCurrentEcosystemEntry("ncc").shortName).toBe("NCC");
-    expect(getCurrentEcosystemEntry("ncc").name).toBe("Newport Clearing Corporation");
+    expect(getCurrentEcosystemEntry("exchange").name).toBe("Alta Exchange");
   });
 });

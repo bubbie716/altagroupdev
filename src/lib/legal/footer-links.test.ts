@@ -63,10 +63,11 @@ describe("footer links", () => {
   });
 
   it("lists ecosystem destinations with one current site", () => {
-    for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
+    for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const links = getFooterEcosystemLinks(siteKey);
-      expect(links).toHaveLength(5);
+      expect(links).toHaveLength(4);
       expect(links.filter((link) => link.current)).toHaveLength(1);
+      expect(links.some((link) => link.label === "Newport Clearing Corporation")).toBe(false);
 
       for (const link of links) {
         if ("external" in link && link.external) {
