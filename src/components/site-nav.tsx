@@ -105,9 +105,14 @@ export const SiteNav = memo(function SiteNav() {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const isBankNav = site.key === "bank";
+  const desktopNavClass = isBankNav ? "xl:flex" : "lg:flex";
+  const mobileMenuClass = isBankNav ? "xl:hidden" : "lg:hidden";
+
   const desktopLinkClass = (active: boolean) =>
     cn(
-      "type-nav relative rounded-md px-3 py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
+      "type-nav relative shrink-0 whitespace-nowrap rounded-md py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
+      isBankNav ? "px-2 text-[12px]" : "px-3",
       active &&
         "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
     );
@@ -127,7 +132,12 @@ export const SiteNav = memo(function SiteNav() {
           className={`mx-auto flex ${NAV_HEIGHT_CLASS} max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6`}
         >
           <SiteBrandLink site={site} />
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto px-2 lg:flex">
+          <nav
+            className={cn(
+              "hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-hidden px-1",
+              desktopNavClass,
+            )}
+          >
             {navLinks.map((link) => {
               const active = isNavLinkActive(pathname, link);
               return (
@@ -165,7 +175,10 @@ export const SiteNav = memo(function SiteNav() {
               <SheetTrigger asChild>
                 <button
                   aria-label="Open menu"
-                  className="rounded-md border border-border bg-surface-2/60 p-2 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong lg:hidden"
+                  className={cn(
+                    "rounded-md border border-border bg-surface-2/60 p-2 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong",
+                    mobileMenuClass,
+                  )}
                 >
                   <Menu className="size-4" />
                 </button>
