@@ -71,7 +71,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
   {
     id: "AB-LEGAL-002",
     title: "Alta Bank Business Banking Agreement",
-    label: "Business Banking",
+    label: "Business Banking Agreement",
     slug: "bank/business-banking-agreement",
     entity: "bank",
     version: "1.0",
@@ -82,7 +82,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
   {
     id: "AB-LEGAL-006",
     title: "Alta Card Agreement Template",
-    label: "Alta Card",
+    label: "Alta Card Agreement",
     slug: "bank/alta-card-agreement",
     entity: "bank",
     version: "1.0",
@@ -91,13 +91,24 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     showInEntityFooter: true,
   },
   {
+    id: "AB-LEGAL-007",
+    title: "Alta Bank Loan Agreement (Template)",
+    label: "Lending Agreement",
+    slug: "bank/lending-agreement",
+    entity: "bank",
+    version: "1.1",
+    footerOrder: 4,
+    showInGlobalFooter: false,
+    showInEntityFooter: true,
+  },
+  {
     id: "AB-LEGAL-003",
     title: "Alta Pay Terms",
-    label: "Alta Pay",
+    label: "Alta Pay Terms",
     slug: "bank/alta-pay-terms",
     entity: "bank",
     version: "1.0",
-    footerOrder: 4,
+    footerOrder: 5,
     showInGlobalFooter: true,
     showInEntityFooter: true,
   },
@@ -270,7 +281,7 @@ export function groupEssentialLegalDocuments(): LegalDocumentDefinition[] {
 
 const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
   corporate: [],
-  bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-003", "AB-LEGAL-005"],
+  bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-007", "AB-LEGAL-003", "AB-LEGAL-005"],
   exchange: ["AE-LEGAL-002", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
   terminal: ["AE-LEGAL-001", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
   ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],

@@ -103,9 +103,10 @@ describe("footer links", () => {
   it("maps entity footer sections to the spec documents", () => {
     expect(siteEntitySectionDocuments("bank").map((doc) => doc.label)).toEqual([
       "Deposit Agreement",
-      "Business Banking",
-      "Alta Card",
-      "Alta Pay",
+      "Business Banking Agreement",
+      "Alta Card Agreement",
+      "Lending Agreement",
+      "Alta Pay Terms",
       "Fee Schedule",
     ]);
     expect(siteEntitySectionDocuments("exchange").map((doc) => doc.label)).toEqual([
