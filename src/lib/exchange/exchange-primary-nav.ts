@@ -33,7 +33,6 @@ export const EXCHANGE_PRIMARY_NAV_LINKS: ExchangePrimaryNavLink[] = [
     activePaths: ["/exchange/apply"],
   },
   { label: "Terminal", to: "/terminal", match: "/terminal" },
-  { label: "Trading Rules", to: "/legal/AE-LEGAL-003", match: "/legal" },
 ];
 
 export function buildExchangePrimaryNavLinks(): ExchangePrimaryNavLink[] {

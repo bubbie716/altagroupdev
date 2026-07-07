@@ -16,9 +16,6 @@ export function resolveSiteNavLinks(siteKey: SiteKey): SiteNavLink[] {
       if (link.label === "Terminal") {
         return withExternalNavLink(link, resolveEntitySiteUrl("terminal"));
       }
-      if (link.label === "Trading Rules") {
-        return withExternalNavLink(link, resolveCorporateSiteUrl("/legal/AE-LEGAL-003"));
-      }
       return link;
     });
   }
