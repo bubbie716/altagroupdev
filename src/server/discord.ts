@@ -38,22 +38,27 @@ export function getDiscordConfig() {
   return { clientId, clientSecret, redirectUri: normalizeRedirectUri(redirectUri) };
 }
 
+/** Resolve OAuth callback URL for a site origin (canonical host in production). */
+export function resolveOAuthCallbackUri(origin: string): string | null {
+  const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
+  const callback = `${origin.replace(/\/$/, "")}/api/auth/discord/callback`;
+  if (allowed.includes(callback)) return callback;
+  if (process.env.NODE_ENV !== "production" && isDevOAuthOrigin(origin)) return callback;
+  return null;
+}
+
 /** Use request origin when its callback is registered in Discord (dev and production). */
 export function resolveDiscordRedirectUri(request?: Request): string | null {
   const config = getDiscordConfig();
   if (!config) return null;
 
-  const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
-  const fallback = allowed[0] ?? config.redirectUri;
-
-  if (!request) return fallback;
-
-  const callback = `${new URL(request.url).origin}/api/auth/discord/callback`;
-  if (allowed.includes(callback)) return callback;
-  if (process.env.NODE_ENV !== "production" && isDevOAuthOrigin(new URL(request.url).origin)) {
-    return callback;
+  if (!request) {
+    const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
+    return allowed[0] ?? config.redirectUri;
   }
-  return fallback;
+
+  const origin = new URL(request.url).origin;
+  return resolveOAuthCallbackUri(origin) ?? resolveOAuthCallbackUri(new URL(config.redirectUri).origin);
 }
 
 function isAllowedReturnOrigin(origin: string, allowedCallbacks: string[]): boolean {
@@ -86,6 +91,22 @@ export function resolveOAuthReturnUrl(
       : requestOrigin;
 
   return new URL(safePath, origin).toString();
+}
+
+export function oauthCallbackMatchesReturnOrigin(
+  request: Request,
+  returnOrigin?: string,
+): boolean {
+  if (!returnOrigin) return true;
+  try {
+    const callbackHost = new URL(request.url).hostname.toLowerCase();
+    const returnHost = new URL(returnOrigin).hostname.toLowerCase();
+    if (callbackHost === returnHost) return true;
+    const stripWww = (host: string) => (host.startsWith("www.") ? host.slice(4) : host);
+    return stripWww(callbackHost) === stripWww(returnHost);
+  } catch {
+    return false;
+  }
 }
 
 export function buildDiscordAuthorizeUrl(state: string, redirectUri: string, clientId: string): string {

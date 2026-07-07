@@ -1,6 +1,8 @@
 import { resolveSiteKey } from "@/lib/site/site-context";
 import { resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
+import { resolveEntitySiteHostname } from "@/lib/site/entity-site-url";
 import { isPlainLocalDevHost } from "@/lib/site/local-dev-site";
+import { SITE_CONFIGS, SITE_KEYS } from "@/config/sites";
 
 const SESSION_COOKIE = "alta_session";
 const OAUTH_STATE_COOKIE = "alta_oauth_state";
@@ -11,21 +13,46 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
+function hostnameFromHost(host: string): string {
+  return host.split(":")[0].trim().toLowerCase();
+}
+
+/** Share session cookies across www + apex on entity custom domains (e.g. NCC). */
+function registrableDomainForHost(hostname: string): string | null {
+  for (const key of SITE_KEYS) {
+    const config = SITE_CONFIGS[key];
+    const matches = config.productionHosts.some((host) => hostnameFromHost(host) === hostname);
+    if (!matches || key === "corporate") continue;
+
+    const canonical = resolveEntitySiteHostname(key);
+    if (!canonical.endsWith("altagroup.dev")) {
+      return `.${canonical}`;
+    }
+  }
+  return null;
+}
+
 function sessionCookieDomain(requestHost?: string): string | null {
   if (!isProduction()) return null;
+
+  if (requestHost) {
+    const hostname = hostnameFromHost(requestHost);
+    const entityDomain = registrableDomainForHost(hostname);
+    if (entityDomain) return entityDomain;
+  }
+
   const configured = process.env.ALTA_COOKIE_DOMAIN?.trim();
   if (!configured) return null;
   if (!requestHost) {
     return configured.startsWith(".") ? configured : `.${configured}`;
   }
 
-  const hostname = requestHost.split(":")[0].toLowerCase();
+  const hostname = hostnameFromHost(requestHost);
   const bare = configured.startsWith(".") ? configured.slice(1) : configured;
   if (hostname === bare || hostname.endsWith(`.${bare}`)) {
     return configured.startsWith(".") ? configured : `.${bare}`;
   }
 
-  // Custom domains (e.g. newportclearingcorporation.com) get host-only cookies.
   return null;
 }
 

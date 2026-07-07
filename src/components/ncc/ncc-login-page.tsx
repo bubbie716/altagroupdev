@@ -3,6 +3,18 @@ import { NccLogo } from "@/components/ncc/ncc-logo";
 import { DiscordSignInButton } from "@/components/auth/auth-gate";
 import { useSiteContext } from "@/hooks/use-site-context";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  oauth_denied: "Discord authorization was cancelled.",
+  invalid_state: "Login session expired. Please try again.",
+  token_exchange_failed: "Could not complete Discord sign-in. If this persists, wait a minute and try again.",
+  oauth_callback_mismatch:
+    "Sign-in landed on the wrong domain. Contact operations if this continues after retrying.",
+  profile_fetch_failed: "Could not load your Discord profile.",
+  oauth_not_configured: "Discord OAuth is not configured on this environment.",
+  database_not_configured: "Database is not configured.",
+  session_failed: "Could not create a login session.",
+};
+
 export function NccLoginPage({
   redirectTo,
   error,
@@ -30,7 +42,7 @@ export function NccLoginPage({
 
           {error ? (
             <p className="mt-4 rounded-sm border border-[#fecaca] bg-[#fef2f2] px-3 py-2 text-center text-[13px] text-[#b91c1c]">
-              Sign-in failed. Please try again.
+              {ERROR_MESSAGES[error] ?? "Sign-in failed. Please try again."}
             </p>
           ) : null}
 

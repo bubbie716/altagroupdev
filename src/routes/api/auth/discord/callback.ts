@@ -16,6 +16,7 @@ import {
   getDiscordConfig,
   resolveDiscordRedirectUri,
   resolveOAuthReturnUrl,
+  oauthCallbackMatchesReturnOrigin,
 } from "@/server/discord";
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
@@ -54,6 +55,10 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
         );
         if (!parsed || parsed.state !== state) {
           return loginErrorRedirect(request, "invalid_state");
+        }
+
+        if (!oauthCallbackMatchesReturnOrigin(request, parsed.returnOrigin)) {
+          return loginErrorRedirect(request, "oauth_callback_mismatch");
         }
 
         const redirectUri = resolveDiscordRedirectUri(request);

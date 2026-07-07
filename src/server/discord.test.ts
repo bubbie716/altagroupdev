@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { resolveDiscordRedirectUri, resolveOAuthReturnUrl } from "@/server/discord";
+import { resolveOAuthCallbackUri, resolveOAuthReturnUrl } from "@/server/discord";
 
 const ORIGINAL_ENV = { ...process.env };
 
-describe("resolveDiscordRedirectUri", () => {
+describe("resolveOAuthCallbackUri", () => {
   beforeEach(() => {
     process.env = {
       ...ORIGINAL_ENV,
@@ -20,20 +20,15 @@ describe("resolveDiscordRedirectUri", () => {
     process.env = ORIGINAL_ENV;
   });
 
-  it("uses the request origin callback when registered in production", () => {
-    const request = new Request("https://newportclearingcorporation.com/api/auth/discord");
+  it("returns the callback when origin is registered in production", () => {
     assert.equal(
-      resolveDiscordRedirectUri(request),
+      resolveOAuthCallbackUri("https://newportclearingcorporation.com"),
       "https://newportclearingcorporation.com/api/auth/discord/callback",
     );
   });
 
-  it("falls back to the first allowed callback when origin is unknown", () => {
-    const request = new Request("https://unknown.example.com/api/auth/discord");
-    assert.equal(
-      resolveDiscordRedirectUri(request),
-      "https://altagroup.dev/api/auth/discord/callback",
-    );
+  it("returns null when origin is not registered", () => {
+    assert.equal(resolveOAuthCallbackUri("https://unknown.example.com"), null);
   });
 });
 

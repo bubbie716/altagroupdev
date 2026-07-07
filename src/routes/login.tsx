@@ -21,6 +21,13 @@ export const Route = createFileRoute("/login")({
         },
       });
     }
+
+    if (context.user) {
+      throw redirect({
+        to: search.redirect ?? context.site.defaultAuthenticatedRoute,
+        replace: true,
+      });
+    }
   },
   head: () => ({
     meta: [{ title: "Institution Sign-In — Newport Clearing Corporation" }],
