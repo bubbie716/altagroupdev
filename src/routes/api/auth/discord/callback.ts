@@ -15,6 +15,7 @@ import {
   fetchDiscordProfile,
   getDiscordConfig,
   resolveDiscordRedirectUri,
+  resolveOAuthReturnUrl,
 } from "@/server/discord";
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
@@ -48,7 +49,9 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           return loginErrorRedirect(request, "invalid_state");
         }
 
-        const parsed = await unsealJson<{ state: string; returnTo: string }>(stored);
+        const parsed = await unsealJson<{ state: string; returnTo: string; returnOrigin?: string }>(
+          stored,
+        );
         if (!parsed || parsed.state !== state) {
           return loginErrorRedirect(request, "invalid_state");
         }
@@ -77,14 +80,16 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           Object.fromEntries(url.searchParams),
           url.pathname,
         );
-        const safeReturn =
-          parsed.returnTo.startsWith("/") && !parsed.returnTo.startsWith("//")
-            ? parsed.returnTo
-            : site.defaultAuthenticatedRoute;
+        const destination = resolveOAuthReturnUrl(request, parsed, site.defaultAuthenticatedRoute);
 
-        return redirectWithSetCookies(new URL(safeReturn, request.url).toString(), [
-          buildSetCookie(getSessionCookieName(), auth.sessionToken, sessionMaxAgeSec()),
-          buildClearCookie(getOAuthStateCookieName()),
+        return redirectWithSetCookies(destination, [
+          buildSetCookie(
+            getSessionCookieName(),
+            auth.sessionToken,
+            sessionMaxAgeSec(),
+            url.host,
+          ),
+          buildClearCookie(getOAuthStateCookieName(), url.host),
         ]);
       },
     },

@@ -1,4 +1,5 @@
 import { resolveSiteKey } from "@/lib/site/site-context";
+import { resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
 import { isPlainLocalDevHost } from "@/lib/site/local-dev-site";
 
 const SESSION_COOKIE = "alta_session";
@@ -10,24 +11,36 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-function sessionCookieDomain(): string | null {
+function sessionCookieDomain(requestHost?: string): string | null {
   if (!isProduction()) return null;
-  const domain = process.env.ALTA_COOKIE_DOMAIN?.trim();
-  return domain || null;
+  const configured = process.env.ALTA_COOKIE_DOMAIN?.trim();
+  if (!configured) return null;
+  if (!requestHost) {
+    return configured.startsWith(".") ? configured : `.${configured}`;
+  }
+
+  const hostname = requestHost.split(":")[0].toLowerCase();
+  const bare = configured.startsWith(".") ? configured.slice(1) : configured;
+  if (hostname === bare || hostname.endsWith(`.${bare}`)) {
+    return configured.startsWith(".") ? configured : `.${bare}`;
+  }
+
+  // Custom domains (e.g. newportclearingcorporation.com) get host-only cookies.
+  return null;
 }
 
-function cookieFlags(maxAge: number): string {
+function cookieFlags(maxAge: number, requestHost?: string): string {
   const parts = ["HttpOnly", "SameSite=Lax", "Path=/", `Max-Age=${maxAge}`];
   if (isProduction()) parts.push("Secure");
-  const domain = sessionCookieDomain();
+  const domain = sessionCookieDomain(requestHost);
   if (domain) parts.push(`Domain=${domain}`);
   return parts.join("; ");
 }
 
-function clearCookieFlags(): string {
+function clearCookieFlags(requestHost?: string): string {
   const parts = ["HttpOnly", "SameSite=Lax", "Path=/", "Max-Age=0"];
   if (isProduction()) parts.push("Secure");
-  const domain = sessionCookieDomain();
+  const domain = sessionCookieDomain(requestHost);
   if (domain) parts.push(`Domain=${domain}`);
   return parts.join("; ");
 }
@@ -47,12 +60,17 @@ export function readCookie(name: string, cookieHeader: string | null | undefined
   return parseCookies(cookieHeader)[name] ?? null;
 }
 
-export function buildSetCookie(name: string, value: string, maxAge: number): string {
-  return `${name}=${encodeURIComponent(value)}; ${cookieFlags(maxAge)}`;
+export function buildSetCookie(
+  name: string,
+  value: string,
+  maxAge: number,
+  requestHost?: string,
+): string {
+  return `${name}=${encodeURIComponent(value)}; ${cookieFlags(maxAge, requestHost)}`;
 }
 
-export function buildClearCookie(name: string): string {
-  return `${name}=; ${clearCookieFlags()}`;
+export function buildClearCookie(name: string, requestHost?: string): string {
+  return `${name}=; ${clearCookieFlags(requestHost)}`;
 }
 
 export function getSessionCookieName(): string {
@@ -80,7 +98,7 @@ export function loginErrorRedirect(request: Request, error: string): Response {
     pathname: reqUrl.pathname,
     allowDevOverride: true,
   });
-  const path = "/";
+  const path = resolveSiteSignInPath(siteKey);
   const url = new URL(path, request.url);
   url.searchParams.set("error", error);
   if (siteKey !== "corporate" && isPlainLocalDevHost(reqUrl.host)) {

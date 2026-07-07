@@ -38,7 +38,7 @@ export function getDiscordConfig() {
   return { clientId, clientSecret, redirectUri: normalizeRedirectUri(redirectUri) };
 }
 
-/** Use request origin in dev so localhost and LAN URLs both work when registered in Discord. */
+/** Use request origin when its callback is registered in Discord (dev and production). */
 export function resolveDiscordRedirectUri(request?: Request): string | null {
   const config = getDiscordConfig();
   if (!config) return null;
@@ -46,14 +46,46 @@ export function resolveDiscordRedirectUri(request?: Request): string | null {
   const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
   const fallback = allowed[0] ?? config.redirectUri;
 
-  if (process.env.NODE_ENV === "production" || !request) {
-    return fallback;
-  }
+  if (!request) return fallback;
 
   const callback = `${new URL(request.url).origin}/api/auth/discord/callback`;
   if (allowed.includes(callback)) return callback;
-  if (isDevOAuthOrigin(new URL(request.url).origin)) return callback;
+  if (process.env.NODE_ENV !== "production" && isDevOAuthOrigin(new URL(request.url).origin)) {
+    return callback;
+  }
   return fallback;
+}
+
+function isAllowedReturnOrigin(origin: string, allowedCallbacks: string[]): boolean {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const callback = `${url.origin}/api/auth/discord/callback`;
+    if (allowedCallbacks.includes(callback)) return true;
+    return process.env.NODE_ENV !== "production" && isDevOAuthOrigin(url.origin);
+  } catch {
+    return false;
+  }
+}
+
+export function resolveOAuthReturnUrl(
+  request: Request,
+  parsed: { returnTo: string; returnOrigin?: string },
+  fallbackRoute: string,
+): string {
+  const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
+  const safePath =
+    parsed.returnTo.startsWith("/") && !parsed.returnTo.startsWith("//")
+      ? parsed.returnTo
+      : fallbackRoute;
+
+  const requestOrigin = new URL(request.url).origin;
+  const origin =
+    parsed.returnOrigin && isAllowedReturnOrigin(parsed.returnOrigin, allowed)
+      ? parsed.returnOrigin
+      : requestOrigin;
+
+  return new URL(safePath, origin).toString();
 }
 
 export function buildDiscordAuthorizeUrl(state: string, redirectUri: string, clientId: string): string {

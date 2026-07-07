@@ -23,12 +23,18 @@ export const Route = createFileRoute("/api/auth/discord")({
           url.pathname,
         );
         const returnTo = url.searchParams.get("redirect") ?? site.defaultAuthenticatedRoute;
+        const returnOrigin = url.origin;
         const state = randomToken(24);
-        const statePayload = await sealJson({ state, returnTo });
+        const statePayload = await sealJson({ state, returnTo, returnOrigin });
         if (!statePayload) {
           return new Response("SESSION_SECRET is not configured.", { status: 503 });
         }
-        const oauthCookie = buildSetCookie(getOAuthStateCookieName(), statePayload, oauthStateMaxAgeSec());
+        const oauthCookie = buildSetCookie(
+          getOAuthStateCookieName(),
+          statePayload,
+          oauthStateMaxAgeSec(),
+          url.host,
+        );
         const redirectUri = resolveDiscordRedirectUri(request);
         if (!redirectUri) {
           return new Response("Discord OAuth is not configured.", { status: 503 });
