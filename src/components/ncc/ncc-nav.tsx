@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NccLogo } from "@/components/ncc/ncc-logo";
+import { NccWordmark } from "@/components/ncc/ncc-logo";
 import { NccUserMenu } from "@/components/ncc/ncc-user-menu";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
-import { EcosystemSwitcher, EcosystemSwitcherMobileSection } from "@/components/site/ecosystem-switcher";
 import {
   Sheet,
   SheetContent,
@@ -50,13 +49,10 @@ export function NccNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e5e7eb] bg-white">
-      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-8">
-        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
-          <SiteInternalLink siteKey="ncc" to="/" className="shrink-0 rounded-sm p-0.5" aria-label="NCC home">
-            <NccLogo size="md" />
-          </SiteInternalLink>
-          <EcosystemSwitcher siteKey="ncc" variant="ncc" />
-        </div>
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-6 px-4 sm:px-8">
+        <SiteInternalLink siteKey="ncc" to="/" className="shrink-0">
+          <NccWordmark />
+        </SiteInternalLink>
 
         <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
           {navLinks.map((link) => {
@@ -117,11 +113,6 @@ export function NccNav() {
                   Newport Clearing Corporation
                 </SheetTitle>
               </SheetHeader>
-              <EcosystemSwitcherMobileSection
-                siteKey="ncc"
-                variant="ncc"
-                onNavigate={() => setMobileOpen(false)}
-              />
               <nav className="flex flex-col gap-1 p-4">
                 {navLinks.map((link) => {
                   const active = isActive(pathname, link);

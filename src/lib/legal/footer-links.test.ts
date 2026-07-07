@@ -14,6 +14,7 @@ import {
   FOOTER_CORPORATE_SECTION_LINKS,
   FOOTER_SUPPORT_LINKS,
   getFooterCompanyLinks,
+  getFooterCopyrightLines,
   getFooterEcosystemLinks,
   getFooterSupportLinks,
   SITE_FOOTER_EMPHASIS,
@@ -82,19 +83,20 @@ describe("footer links", () => {
   it("lists support destinations for every site", () => {
     for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
       const links = getFooterSupportLinks(siteKey);
-      expect(links.map((link) => link.label)).toEqual([
-        "Support Center",
-        "Documentation",
-        "System Status",
-        "Discord",
-        "Contact",
-      ]);
+      expect(links.map((link) => link.label)).toEqual(["Support Center", "System Status"]);
 
       const status = links.find((link) => link.label === "System Status");
       expect(status && "href" in status && status.href.startsWith("https://status.")).toBe(true);
     }
 
     expect(FOOTER_SUPPORT_LINKS[0]?.to).toBe("/support");
+  });
+
+  it("builds entity-specific copyright lines", () => {
+    const bank = getFooterCopyrightLines("bank");
+    expect(bank.copyright).toContain("Alta Bank N.V.");
+    expect(bank.disclaimer).toContain("Alta Bank services are designed");
+    expect(bank.disclaimer).toContain("District Roleplay");
   });
 
   it("maps entity footer sections to the spec documents", () => {

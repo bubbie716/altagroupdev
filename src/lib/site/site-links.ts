@@ -62,26 +62,40 @@ export function getFooterEntitySectionTitle(siteKey: SiteKey): string {
   return titles[siteKey];
 }
 
-function footerDiscordRoute(siteKey: SiteKey): "/discord" | "/discord/bank" | "/discord/markets" | "/discord/ncc" {
-  if (siteKey === "bank") return "/discord/bank";
-  if (siteKey === "exchange" || siteKey === "terminal") return "/discord/markets";
-  if (siteKey === "ncc") return "/discord/ncc";
-  return "/discord";
-}
-
 export type FooterSupportLink =
   | { label: string; to: string; external?: false }
   | { label: string; href: string; external: true };
 
-export function getFooterSupportLinks(siteKey: SiteKey): FooterSupportLink[] {
+export function getFooterSupportLinks(_siteKey: SiteKey): FooterSupportLink[] {
   return [
     { label: "Support Center", to: "/support" },
-    { label: "Documentation", to: "/docs" },
     { label: "System Status", href: ALTA_SYSTEM_STATUS_URL, external: true },
-    { label: "Discord", to: footerDiscordRoute(siteKey) },
-    { label: "Contact", to: "/contact" },
   ];
 }
 
 /** @deprecated Use getFooterSupportLinks */
 export const FOOTER_SUPPORT_LINKS = [{ label: "Support Center", to: "/support" as const }] as const;
+
+export type FooterCopyrightEntity = {
+  /** Legal name in the copyright line (e.g. Alta Bank N.V.). */
+  legalName: string;
+  /** Short name used in the disclaimer paragraph. */
+  shortName: string;
+};
+
+export const FOOTER_COPYRIGHT_ENTITY: Record<SiteKey, FooterCopyrightEntity> = {
+  corporate: { legalName: "Alta Group N.V.", shortName: "Alta Group" },
+  bank: { legalName: "Alta Bank N.V.", shortName: "Alta Bank" },
+  exchange: { legalName: "Alta Exchange N.V.", shortName: "Alta Exchange" },
+  terminal: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
+  ncc: { legalName: "Newport Clearing Corporation", shortName: "Newport Clearing Corporation" },
+};
+
+export function getFooterCopyrightLines(siteKey: SiteKey): { copyright: string; disclaimer: string } {
+  const { legalName, shortName } = FOOTER_COPYRIGHT_ENTITY[siteKey];
+  return {
+    copyright: `© 2026 ${legalName} All rights reserved.`,
+    disclaimer: `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise. ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
+  };
+}
+
