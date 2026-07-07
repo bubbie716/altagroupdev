@@ -36,7 +36,6 @@ function AltaCardStatementDetailPage() {
       title={`Statement #${statement.statementNumber}`}
       description={cardSubtitle(card)}
       printDocument
-      hideFooter
      />
 <AltaCardStatementDocument statement={statement} card={card} />
     </>

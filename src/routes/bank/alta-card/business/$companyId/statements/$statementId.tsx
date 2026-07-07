@@ -41,7 +41,6 @@ function BusinessAltaCardStatementDetailPage() {
       title={`Statement #${statement.statementNumber}`}
       description={card.companyName ?? "Business Alta Card"}
       printDocument
-      hideFooter
      />
 <AltaCardPageNav className="print:hidden">
         <AltaCardBackToCardButton card={card} />

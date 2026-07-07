@@ -49,7 +49,6 @@ function StatementDetailPage() {
       title={statement.statementNumber}
       description={`${statement.accountName} · ${statement.accountNumber}`}
       printDocument
-      hideFooter
      />
 <StatementDocument statement={statement} backTo={backTo} />
     </>

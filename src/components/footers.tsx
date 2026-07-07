@@ -6,7 +6,6 @@ import {
   groupEssentialLegalDocuments,
   legalDocLinkParams,
   paymentFooterDocuments,
-  siteCompactFooterDocuments,
   siteEntitySectionDocuments,
   type LegalDocumentDefinition,
 } from "@/lib/legal/legal-document-registry";
@@ -228,66 +227,17 @@ function StandardSiteFooter({
   );
 }
 
-function FooterInlineLegalLinks({
-  docs,
-  className,
+/** Copyright-only footer for authentication pages. */
+function CopyrightOnlyFooter({
   siteKey,
-  includeStatus = false,
-}: {
-  docs: LegalDocumentDefinition[];
-  className?: string;
-  siteKey: SiteKey;
-  includeStatus?: boolean;
-}) {
-  const supportLinks = getFooterSupportLinks(siteKey);
-
-  return (
-    <nav className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
-      {docs.map((doc) => (
-        <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
-      ))}
-      <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
-      {includeStatus
-        ? supportLinks
-            .filter((link): link is { label: string; href: string; external: true } =>
-              link.label === "System Status" && "href" in link,
-            )
-            .map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  footerInlineLinkClass,
-                  "inline-flex items-center gap-1 text-muted-foreground hover:text-gold",
-                )}
-              >
-                {link.label}
-                <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-              </a>
-            ))
-        : null}
-    </nav>
-  );
-}
-
-/** Compact bar for authentication pages. */
-function CompactFooterBar({
-  siteKey,
-  includeStatus = false,
   className,
 }: {
   siteKey: SiteKey;
-  includeStatus?: boolean;
   className?: string;
 }) {
-  const docs = siteCompactFooterDocuments(siteKey);
-
   return (
     <footer className={cn("mt-auto shrink-0 border-t border-border/60 bg-surface-1/30", className)}>
-      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-3 sm:px-6">
-        <FooterInlineLegalLinks docs={docs} siteKey={siteKey} includeStatus={includeStatus} />
+      <div className="mx-auto max-w-[1400px] px-4 py-3 sm:px-6">
         <FooterCopyrightLines siteKey={siteKey} />
       </div>
     </footer>
@@ -306,7 +256,7 @@ export function DashboardFooter({ siteKey = "corporate" }: { siteKey?: SiteKey }
 
 /** 3. Authentication — sign-in and access edge pages. */
 export function AuthenticationFooter({ siteKey = "corporate" }: { siteKey?: SiteKey }) {
-  return <CompactFooterBar siteKey={siteKey} className="relative z-10" />;
+  return <CopyrightOnlyFooter siteKey={siteKey} className="relative z-10" />;
 }
 
 /** 4. Legal — individual legal document pages. */
