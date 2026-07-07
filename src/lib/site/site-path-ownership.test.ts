@@ -23,4 +23,10 @@ describe("site-path-ownership", () => {
     expect(siteKeyForOwnedPath("/legal/terms")).toBeNull();
     expect(siteKeyForOwnedPath("/support")).toBeNull();
   });
+
+  it("treats profile, companies, and internal as shared", () => {
+    expect(siteKeyForOwnedPath("/profile")).toBeNull();
+    expect(siteKeyForOwnedPath("/companies")).toBeNull();
+    expect(siteKeyForOwnedPath("/internal/bank")).toBeNull();
+  });
 });

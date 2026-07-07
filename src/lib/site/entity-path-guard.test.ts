@@ -61,6 +61,12 @@ describe("resolveCrossSitePathRedirect", () => {
     expect(
       resolveCrossSitePathRedirect("/support", { host: "terminal.altagroup.dev" }),
     ).toBeNull();
+    expect(
+      resolveCrossSitePathRedirect("/profile", { host: "exchange.altagroup.dev" }),
+    ).toBeNull();
+    expect(
+      resolveCrossSitePathRedirect("/internal", { host: "bank.altagroup.dev" }),
+    ).toBeNull();
   });
 
   it("redirects NCC paths from corporate production host to NCC domain", () => {

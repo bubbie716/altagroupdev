@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { Building2, LogOut, User, Shield } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -16,6 +16,8 @@ import { canAccessInternal } from "@/lib/auth/tags";
 import { logoutUser } from "@/lib/auth/auth.functions";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import { useServerFn } from "@tanstack/react-start";
+import { getAccountMenuItems } from "@/lib/account/account-menu-config";
+import { SiteInternalLink } from "@/components/site/site-internal-link";
 
 export function AuthUserMenu() {
   const user = useCurrentUser();
@@ -37,6 +39,7 @@ export function AuthUserMenu() {
 
   const initials = user.discordUsername.slice(0, 2).toUpperCase();
   const showInternal = canAccessInternal(user);
+  const menuItems = getAccountMenuItems(site.key, { showInternal });
 
   async function handleLogout() {
     await logout();
@@ -65,26 +68,21 @@ export function AuthUserMenu() {
           <div className="truncate text-sm font-medium">{user.discordUsername}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
-            <User className="mr-2 size-3.5" />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/companies" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
-            <Building2 className="mr-2 size-3.5" />
-            Companies
-          </Link>
-        </DropdownMenuItem>
-        {showInternal && (
-          <DropdownMenuItem asChild>
-            <Link to="/internal" className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none">
-              <Shield className="mr-2 size-3.5" />
-              Internal
-            </Link>
-          </DropdownMenuItem>
-        )}
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <DropdownMenuItem key={item.to} asChild>
+              <SiteInternalLink
+                siteKey={site.key}
+                to={item.to}
+                className="flex w-full cursor-pointer items-center outline-none focus-visible:shadow-none"
+              >
+                <Icon className="mr-2 size-3.5" />
+                {item.label}
+              </SiteInternalLink>
+            </DropdownMenuItem>
+          );
+        })}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleLogout}

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { OpsSection } from "@/components/internal/console";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console/ops-table";
@@ -10,16 +10,42 @@ import { florin } from "@/lib/bank/api";
 import { Link } from "@tanstack/react-router";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { buildBreadcrumbs } from "@/components/internal/console";
+import { EntityInternalHome } from "@/components/internal/entity-internal-home";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 export const Route = createFileRoute("/internal/")({
-  loader: () => fetchEnhancedDashboard(),
-  head: () => ({ meta: [{ title: "Operations Center — Alta Internal" }] }),
+  beforeLoad: ({ context }) => {
+    const siteKey = context.site.key;
+    if (siteKey === "bank") {
+      throw redirect({ to: "/internal/bank" });
+    }
+  },
+  loader: ({ context }) => {
+    const siteKey = context.site.key;
+    if (siteKey === "exchange" || siteKey === "terminal") {
+      return null;
+    }
+    return fetchEnhancedDashboard();
+  },
+  head: ({ context }) => {
+    if (context.site.key === "exchange" || context.site.key === "terminal") {
+      return { meta: [{ title: `Internal — ${context.site.displayName}` }] };
+    }
+    return { meta: [{ title: "Operations Center — Alta Internal" }] };
+  },
   component: InternalOperationsCenter,
 });
 
 function InternalOperationsCenter() {
+  const site = useSiteContext();
+  const loaderData = Route.useLoaderData();
+
+  if (site.key === "exchange" || site.key === "terminal") {
+    return <EntityInternalHome siteKey={site.key} />;
+  }
+
   const { metrics: m, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging } =
-    Route.useLoaderData();
+    loaderData;
 
   const totalQueues =
     m.pendingDeposits +

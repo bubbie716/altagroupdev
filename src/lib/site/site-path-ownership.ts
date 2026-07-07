@@ -15,9 +15,6 @@ const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
   { prefix: "/bank", siteKey: "bank" },
   { prefix: "/exchange", siteKey: "exchange" },
   { prefix: "/terminal", siteKey: "terminal" },
-  { prefix: "/profile", siteKey: "bank" },
-  { prefix: "/companies", siteKey: "bank" },
-  { prefix: "/internal", siteKey: "corporate" },
   { prefix: "/governance", siteKey: "corporate" },
   { prefix: "/structure", siteKey: "corporate" },
   { prefix: "/leadership", siteKey: "corporate" },
@@ -36,6 +33,9 @@ const SHARED_PATH_PREFIXES = [
   "/pay",
   "/discord",
   "/status",
+  "/profile",
+  "/companies",
+  "/internal",
 ] as const;
 
 function normalizePathname(pathname: string): string {

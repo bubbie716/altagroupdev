@@ -1,3 +1,5 @@
+import type { SiteKey } from "@/config/sites";
+
 export type InternalNavLink = {
   label: string;
   to: string;
@@ -99,6 +101,38 @@ export const INTERNAL_NAV_GROUPS: InternalNavGroup[] = [
     ],
   },
 ];
+
+/** Bank-only internal nav — excludes group platform settings. */
+export const BANK_INTERNAL_NAV_GROUPS: InternalNavGroup[] = INTERNAL_NAV_GROUPS.map((group) => {
+  if (group.id === "dashboard") {
+    return {
+      ...group,
+      links: [{ to: "/internal/bank", label: "Dashboard", exact: true, match: "/internal/bank" }],
+    };
+  }
+  if (group.id === "system") {
+    return {
+      ...group,
+      links: group.links.filter(
+        (link) => link.to !== "/internal/settings" && link.to !== "/internal/compliance",
+      ),
+    };
+  }
+  return group;
+});
+
+export function getInternalNavGroupsForSite(siteKey: SiteKey): InternalNavGroup[] | null {
+  switch (siteKey) {
+    case "corporate":
+      return INTERNAL_NAV_GROUPS;
+    case "bank":
+      return BANK_INTERNAL_NAV_GROUPS;
+    case "exchange":
+    case "terminal":
+    case "ncc":
+      return null;
+  }
+}
 
 export function isInternalNavActive(pathname: string, link: InternalNavLink): boolean {
   const path = pathname.replace(/\/$/, "") || "/";
