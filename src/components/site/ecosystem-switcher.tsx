@@ -88,7 +88,7 @@ export function EcosystemSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "inline-flex max-w-[min(100%,14rem)] items-center gap-1 rounded-md px-1.5 py-1 text-left outline-none transition-colors",
+          "inline-flex max-w-[min(100%,14rem)] cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-left outline-none transition-colors",
           "focus-visible:ring-1 focus-visible:ring-gold/40",
           variant === "ncc"
             ? "text-[#111827] hover:bg-[#f9fafb]"
@@ -142,8 +142,8 @@ export function EcosystemSwitcher({
               />
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem key={link.key} asChild className="items-start rounded-md px-2 py-2">
-              <a href={link.href} className="no-underline">
+            <DropdownMenuItem key={link.key} asChild className="cursor-pointer items-start rounded-md px-2 py-2">
+              <a href={link.href} className="cursor-pointer no-underline">
                 <EcosystemLinkRow
                   name={link.name}
                   description={link.description}
@@ -212,7 +212,7 @@ export function EcosystemSwitcherMobileSection({
                 href={link.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-start gap-2 rounded-md px-3 py-2.5 transition-colors",
+                  "flex cursor-pointer items-start gap-2 rounded-md px-3 py-2.5 transition-colors",
                   variant === "ncc"
                     ? "text-[#111827] hover:bg-[#f9fafb]"
                     : "text-foreground hover:bg-surface-2/60",

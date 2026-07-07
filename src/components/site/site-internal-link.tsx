@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import type { SiteKey } from "@/config/sites";
 import {
@@ -67,15 +67,7 @@ export function resolveSiteInternalLink(
   };
 }
 
-export function SiteInternalLink({
-  siteKey,
-  to,
-  search,
-  className,
-  children,
-  onClick,
-  "aria-current": ariaCurrent,
-}: {
+export type SiteInternalLinkProps = {
   siteKey: SiteKey;
   to: string;
   search?: Record<string, unknown>;
@@ -83,26 +75,42 @@ export function SiteInternalLink({
   children: ReactNode;
   onClick?: () => void;
   "aria-current"?: "page" | undefined;
-}) {
-  const target = resolveSiteInternalLink(siteKey, to, { search });
+} & Omit<ComponentPropsWithoutRef<"a">, "href">;
 
-  if (target.kind === "url") {
+export const SiteInternalLink = forwardRef<HTMLAnchorElement, SiteInternalLinkProps>(
+  function SiteInternalLink(
+    { siteKey, to, search, className, children, onClick, "aria-current": ariaCurrent, ...props },
+    ref,
+  ) {
+    const target = resolveSiteInternalLink(siteKey, to, { search });
+
+    if (target.kind === "url") {
+      return (
+        <a
+          ref={ref}
+          href={target.href}
+          className={className}
+          onClick={onClick}
+          aria-current={ariaCurrent}
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
+
     return (
-      <a href={target.href} className={className} onClick={onClick} aria-current={ariaCurrent}>
+      <Link
+        ref={ref}
+        to={target.to}
+        search={target.search}
+        className={className}
+        onClick={onClick}
+        aria-current={ariaCurrent}
+        {...props}
+      >
         {children}
-      </a>
+      </Link>
     );
-  }
-
-  return (
-    <Link
-      to={target.to}
-      search={target.search}
-      className={className}
-      onClick={onClick}
-      aria-current={ariaCurrent}
-    >
-      {children}
-    </Link>
-  );
-}
+  },
+);

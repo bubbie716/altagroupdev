@@ -200,8 +200,6 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     },
     wordmarkSuffix: "EXCHANGE",
     navLinks: EXCHANGE_NAV,
-    ctaLabel: "Explore Markets",
-    ctaRoute: "/exchange/listings",
     seo: {
       title: "Alta Exchange",
       description: "Listings, IPOs, and market infrastructure for Newport.",
@@ -239,8 +237,6 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     },
     wordmarkSuffix: "TERMINAL",
     navLinks: TERMINAL_NAV,
-    ctaLabel: "Open Terminal",
-    ctaRoute: "/terminal",
     seo: {
       title: "Alta Terminal",
       description: "Trading, portfolio, and market access by Alta Exchange.",

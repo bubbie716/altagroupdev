@@ -71,7 +71,7 @@ export function AuthUserMenu() {
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (
-            <DropdownMenuItem key={item.to} asChild>
+            <DropdownMenuItem key={item.to} asChild className="cursor-pointer">
               <SiteInternalLink
                 siteKey={site.key}
                 to={item.to}
