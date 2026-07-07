@@ -3,12 +3,21 @@ import {
   entityFooterDocuments,
   footerDocuments,
   getLegalDocument,
+  groupEssentialLegalDocuments,
   groupFooterDocuments,
   legalDocLinkParams,
   resolveLegalDocIdFromSlug,
+  siteEntitySectionDocuments,
 } from "@/lib/legal/legal-document-registry";
 import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
-import { getFooterCompanyLinks, FOOTER_SUPPORT_LINKS } from "@/lib/site/site-links";
+import {
+  FOOTER_CORPORATE_SECTION_LINKS,
+  FOOTER_SUPPORT_LINKS,
+  getFooterCompanyLinks,
+  getFooterEcosystemLinks,
+  getFooterSupportLinks,
+  SITE_FOOTER_EMPHASIS,
+} from "@/lib/site/site-links";
 import { NCC_LEGAL_DOCS } from "@/lib/ncc/ncc-tokens";
 
 describe("footer links", () => {
@@ -52,17 +61,81 @@ describe("footer links", () => {
     }
   });
 
-  it("lists internal company and support footer destinations", () => {
-    for (const link of getFooterCompanyLinks()) {
-      if ("external" in link && link.external) {
-        expect(link.href.startsWith("http")).toBe(true);
-      } else {
-        expect(link.to.startsWith("/")).toBe(true);
+  it("lists ecosystem destinations with one current site", () => {
+    for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
+      const links = getFooterEcosystemLinks(siteKey);
+      expect(links).toHaveLength(5);
+      expect(links.filter((link) => link.current)).toHaveLength(1);
+
+      for (const link of links) {
+        if ("external" in link && link.external) {
+          expect(link.href.startsWith("http")).toBe(true);
+        } else {
+          expect(link.to.startsWith("/")).toBe(true);
+        }
       }
     }
 
-    for (const link of FOOTER_SUPPORT_LINKS) {
-      expect(link.to).toBe("/support");
+    expect(getFooterCompanyLinks()).toEqual(getFooterEcosystemLinks("corporate"));
+  });
+
+  it("lists support destinations for every site", () => {
+    for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
+      const links = getFooterSupportLinks(siteKey);
+      expect(links.map((link) => link.label)).toEqual([
+        "Support Center",
+        "Documentation",
+        "System Status",
+        "Discord",
+        "Contact",
+      ]);
+
+      const status = links.find((link) => link.label === "System Status");
+      expect(status && "href" in status && status.href.startsWith("https://status.")).toBe(true);
     }
+
+    expect(FOOTER_SUPPORT_LINKS[0]?.to).toBe("/support");
+  });
+
+  it("maps entity footer sections to the spec documents", () => {
+    expect(siteEntitySectionDocuments("bank").map((doc) => doc.label)).toEqual([
+      "Deposit Agreement",
+      "Business Banking",
+      "Alta Card",
+      "Alta Pay",
+      "Fee Schedule",
+    ]);
+    expect(siteEntitySectionDocuments("exchange").map((doc) => doc.label)).toEqual([
+      "Listing Agreement",
+      "Trading Rules",
+      "Market Data & API Terms",
+      "Fee Schedule",
+    ]);
+    expect(siteEntitySectionDocuments("terminal").map((doc) => doc.label)).toEqual([
+      "Customer Agreement",
+      "Trading Rules",
+      "Market Data & API Terms",
+      "Fee Schedule",
+    ]);
+    expect(siteEntitySectionDocuments("ncc").map((doc) => doc.label)).toEqual([
+      "Participation Agreement",
+      "Operating Rules",
+      "Fee Schedule",
+    ]);
+  });
+
+  it("keeps global legal column to terms and privacy", () => {
+    expect(groupEssentialLegalDocuments().map((doc) => doc.label)).toEqual(["Terms", "Privacy"]);
+  });
+
+  it("exposes corporate section links and site emphasis copy", () => {
+    expect(FOOTER_CORPORATE_SECTION_LINKS.map((link) => link.label)).toEqual([
+      "Leadership",
+      "About",
+      "Companies",
+      "Governance",
+    ]);
+    expect(SITE_FOOTER_EMPHASIS.bank).toBe("Retail + Commercial Banking");
+    expect(SITE_FOOTER_EMPHASIS.exchange).toBe("Capital Markets");
   });
 });

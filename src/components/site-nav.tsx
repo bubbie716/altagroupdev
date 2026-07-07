@@ -1,6 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
-import { AltaWordmark } from "./alta-logo";
+import { AltaLogo, AltaWordmark } from "./alta-logo";
 import { AuthUserMenu } from "@/components/auth/user-menu";
+import { EcosystemSwitcher, EcosystemSwitcherMobileSection } from "@/components/site/ecosystem-switcher";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme";
 import { Sun, Moon, Menu, ArrowUpRight } from "lucide-react";
@@ -41,16 +42,19 @@ function isNavLinkActive(pathname: string, link: SiteNavLink): boolean {
 
 const NAV_HEIGHT_CLASS = "h-14 sm:h-16";
 
-function SiteBrandLink({ site }: { site: SiteConfig }) {
+function SiteBrandCluster({ site }: { site: SiteConfig }) {
   return (
-    <SiteInternalLink
-      siteKey={site.key}
-      to="/"
-      className="flex shrink-0 items-center"
-      aria-label={`${site.displayName} home`}
-    >
-      <AltaWordmark suffix={site.wordmarkSuffix} />
-    </SiteInternalLink>
+    <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
+      <SiteInternalLink
+        siteKey={site.key}
+        to="/"
+        className="flex shrink-0 items-center rounded-md p-0.5"
+        aria-label={`${site.displayName} home`}
+      >
+        <AltaLogo className="h-7 w-7" />
+      </SiteInternalLink>
+      <EcosystemSwitcher siteKey={site.key} />
+    </div>
   );
 }
 
@@ -133,7 +137,7 @@ export const SiteNav = memo(function SiteNav() {
         <div
           className={`mx-auto flex ${NAV_HEIGHT_CLASS} max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6`}
         >
-          <SiteBrandLink site={site} />
+          <SiteBrandCluster site={site} />
           <nav
             className={cn(
               "hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-hidden px-1",
@@ -191,6 +195,10 @@ export const SiteNav = memo(function SiteNav() {
                     <AltaWordmark suffix={site.wordmarkSuffix} />
                   </SheetTitle>
                 </SheetHeader>
+                <EcosystemSwitcherMobileSection
+                  siteKey={site.key}
+                  onNavigate={() => setMobileOpen(false)}
+                />
                 <nav className="flex flex-col gap-1 p-4">
                   {navLinks.map((link) => {
                     const active = isNavLinkActive(pathname, link);

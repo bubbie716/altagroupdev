@@ -82,7 +82,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
   {
     id: "AB-LEGAL-006",
     title: "Alta Card Agreement Template",
-    label: "Alta Card Agreement",
+    label: "Alta Card",
     slug: "bank/alta-card-agreement",
     entity: "bank",
     version: "1.0",
@@ -93,7 +93,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
   {
     id: "AB-LEGAL-003",
     title: "Alta Pay Terms",
-    label: "Alta Pay Terms",
+    label: "Alta Pay",
     slug: "bank/alta-pay-terms",
     entity: "bank",
     version: "1.0",
@@ -261,6 +261,30 @@ export function groupFooterDocuments(): LegalDocumentDefinition[] {
   return footerDocuments({ entity: "group", globalOnly: true });
 }
 
+/** Global Legal column — Terms and Privacy only. */
+export function groupEssentialLegalDocuments(): LegalDocumentDefinition[] {
+  return sortFooterDocs(
+    LEGAL_DOCUMENTS.filter((doc) => ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id)),
+  );
+}
+
+const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
+  corporate: [],
+  bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-003", "AB-LEGAL-005"],
+  exchange: ["AE-LEGAL-002", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
+  terminal: ["AE-LEGAL-001", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
+  ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],
+};
+
+/** Entity-specific footer section documents for the current site. */
+export function siteEntitySectionDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
+  return sortFooterDocs(
+    SITE_ENTITY_SECTION_DOC_IDS[siteKey]
+      .map((id) => getLegalDocument(id))
+      .filter((doc): doc is LegalDocumentDefinition => doc !== undefined),
+  );
+}
+
 export function entityFooterDocuments(entity: LegalEntity): LegalDocumentDefinition[] {
   return footerDocuments({ entity, entityOnly: true, globalOnly: true });
 }
@@ -272,25 +296,11 @@ export function essentialGroupDocuments(): LegalDocumentDefinition[] {
   );
 }
 
-/** Compact dashboard/auth footers — entity docs plus group essentials. */
+/** Compact dashboard/auth footers — Terms, Privacy, and key entity docs. */
 export function siteCompactFooterDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
-  const entity =
-    siteKey === "bank"
-      ? "bank"
-      : siteKey === "exchange" || siteKey === "terminal"
-        ? "markets"
-        : siteKey === "ncc"
-          ? "ncc"
-          : "group";
-
+  const essentials = groupEssentialLegalDocuments();
   const entityDocs =
-    entity === "group" ? [] : footerDocuments({ entity, entityOnly: true, globalOnly: true }).slice(0, 4);
-
-  const essentials = sortFooterDocs(
-    LEGAL_DOCUMENTS.filter((doc) =>
-      ["AG-LEGAL-001", "AG-LEGAL-002", "AG-LEGAL-003"].includes(doc.id),
-    ),
-  );
+    siteKey === "corporate" ? [] : siteEntitySectionDocuments(siteKey).slice(0, 2);
 
   const merged = [...entityDocs];
   for (const doc of essentials) {
@@ -299,13 +309,10 @@ export function siteCompactFooterDocuments(siteKey: SiteKey): LegalDocumentDefin
   return sortFooterDocs(merged);
 }
 
-/** Entity-emphasized marketing footer documents. */
+/** @deprecated Use siteEntitySectionDocuments */
 export function siteMarketingPrimaryDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
-  if (siteKey === "corporate") return groupFooterDocuments();
-  if (siteKey === "bank") return entityFooterDocuments("bank");
-  if (siteKey === "exchange" || siteKey === "terminal") return entityFooterDocuments("markets");
-  if (siteKey === "ncc") return entityFooterDocuments("ncc");
-  return groupFooterDocuments();
+  if (siteKey === "corporate") return groupEssentialLegalDocuments();
+  return siteEntitySectionDocuments(siteKey);
 }
 
 /** Merchant-facing checkout footers. */

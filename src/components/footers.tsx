@@ -1,25 +1,28 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import { AltaLogo, AltaWordmark } from "./alta-logo";
 import {
-  entityFooterDocuments,
-  essentialGroupDocuments,
   FOOTER_DISCLAIMERS,
-  getLegalDocument,
-  groupFooterDocuments,
+  groupEssentialLegalDocuments,
   legalDocLinkParams,
   paymentFooterDocuments,
   siteCompactFooterDocuments,
-  siteMarketingPrimaryDocuments,
+  siteEntitySectionDocuments,
   type LegalDocumentDefinition,
 } from "@/lib/legal/legal-document-registry";
-import { ALTA_SYSTEM_STATUS_URL, FOOTER_SUPPORT_LINKS, getFooterCompanyLinks, LEGAL_CENTER_PATH } from "@/lib/site/site-links";
+import {
+  FOOTER_CORPORATE_SECTION_LINKS,
+  getFooterEcosystemLinks,
+  getFooterEntitySectionTitle,
+  getFooterSupportLinks,
+  LEGAL_CENTER_PATH,
+  SITE_FOOTER_EMPHASIS,
+} from "@/lib/site/site-links";
 import { resolveCorporateSiteUrl } from "@/lib/site/entity-site-url";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 import type { FooterVariant } from "@/lib/platform/footer-variant";
 import type { SiteKey } from "@/config/sites";
-import { getSiteConfig } from "@/config/sites";
 import { cn } from "@/lib/utils";
 
 const columnTitleClass =
@@ -56,34 +59,229 @@ function FooterColumn({
   );
 }
 
+function FooterLegalCenterLink({
+  siteKey,
+  className,
+}: {
+  siteKey: SiteKey;
+  className?: string;
+}) {
+  if (siteKey === "corporate") {
+    return (
+      <Link to={LEGAL_CENTER_PATH} className={cn(footerLinkClass, className)}>
+        Legal Center
+      </Link>
+    );
+  }
+
+  return (
+    <a
+      href={resolveCorporateSiteUrl(LEGAL_CENTER_PATH)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(footerLinkClass, className, "inline-flex items-center gap-1")}
+    >
+      Legal Center
+      <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+    </a>
+  );
+}
+
+function FooterEcosystemColumn({ siteKey }: { siteKey: SiteKey }) {
+  const links = getFooterEcosystemLinks(siteKey);
+
+  return (
+    <FooterColumn title="Alta Ecosystem">
+      {links.map((link) => (
+        <li key={link.label}>
+          {link.current ? (
+            <span
+              className="inline-flex items-center gap-1.5 font-medium text-foreground"
+              aria-current="page"
+            >
+              <Check className="size-3.5 shrink-0 text-gold" aria-hidden />
+              {link.label}
+            </span>
+          ) : link.external ? (
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(footerLinkClass, "inline-flex items-center gap-1")}
+            >
+              {link.label}
+              <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+            </a>
+          ) : (
+            <SiteInternalLink siteKey={siteKey} to={link.to} className={footerLinkClass}>
+              {link.label}
+            </SiteInternalLink>
+          )}
+        </li>
+      ))}
+    </FooterColumn>
+  );
+}
+
+function FooterLegalColumn({ siteKey }: { siteKey: SiteKey }) {
+  const legalDocs = groupEssentialLegalDocuments();
+
+  return (
+    <FooterColumn title="Legal">
+      {legalDocs.map((doc) => (
+        <li key={doc.id}>
+          <FooterDocLink doc={doc} />
+        </li>
+      ))}
+      <li>
+        <FooterLegalCenterLink siteKey={siteKey} />
+      </li>
+    </FooterColumn>
+  );
+}
+
+function FooterSupportColumn({ siteKey }: { siteKey: SiteKey }) {
+  const supportLinks = getFooterSupportLinks(siteKey);
+
+  return (
+    <FooterColumn title="Support">
+      {supportLinks.map((link) => (
+        <li key={link.label}>
+          {link.external ? (
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(footerLinkClass, "inline-flex items-center gap-1")}
+            >
+              {link.label}
+              <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+            </a>
+          ) : (
+            <SiteInternalLink siteKey={siteKey} to={link.to} className={footerLinkClass}>
+              {link.label}
+            </SiteInternalLink>
+          )}
+        </li>
+      ))}
+    </FooterColumn>
+  );
+}
+
+function FooterEntityColumn({ siteKey }: { siteKey: SiteKey }) {
+  const title = getFooterEntitySectionTitle(siteKey);
+
+  if (siteKey === "corporate") {
+    return (
+      <FooterColumn title={title}>
+        {FOOTER_CORPORATE_SECTION_LINKS.map((link) => (
+          <li key={link.label}>
+            <SiteInternalLink siteKey={siteKey} to={link.to} className={footerLinkClass}>
+              {link.label}
+            </SiteInternalLink>
+          </li>
+        ))}
+      </FooterColumn>
+    );
+  }
+
+  const entityDocs = siteEntitySectionDocuments(siteKey);
+  return (
+    <FooterColumn title={title}>
+      {entityDocs.map((doc) => (
+        <li key={doc.id}>
+          <FooterDocLink doc={doc} />
+        </li>
+      ))}
+    </FooterColumn>
+  );
+}
+
 function FooterInlineLegalLinks({
   docs,
   className,
+  siteKey,
   includeStatus = false,
 }: {
   docs: LegalDocumentDefinition[];
   className?: string;
+  siteKey: SiteKey;
   includeStatus?: boolean;
 }) {
+  const supportLinks = getFooterSupportLinks(siteKey);
+
   return (
     <nav className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
       {docs.map((doc) => (
         <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
       ))}
-      {includeStatus ? (
-        <a
-          href={ALTA_SYSTEM_STATUS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            footerInlineLinkClass,
-            "inline-flex items-center gap-1 text-muted-foreground hover:text-gold",
-          )}
-        >
-          Status
-          <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-        </a>
-      ) : null}
+      <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
+      {includeStatus
+        ? supportLinks
+            .filter((link): link is { label: string; href: string; external: true } =>
+              link.label === "System Status" && "href" in link,
+            )
+            .map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  footerInlineLinkClass,
+                  "inline-flex items-center gap-1 text-muted-foreground hover:text-gold",
+                )}
+              >
+                {link.label}
+                <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+              </a>
+            ))
+        : null}
+    </nav>
+  );
+}
+
+function FooterEcosystemInlineLinks({
+  siteKey,
+  className,
+}: {
+  siteKey: SiteKey;
+  className?: string;
+}) {
+  const links = getFooterEcosystemLinks(siteKey);
+
+  return (
+    <nav className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
+      {links.map((link) =>
+        link.current ? (
+          <span
+            key={link.label}
+            className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground"
+            aria-current="page"
+          >
+            {link.label}
+          </span>
+        ) : link.external ? (
+          <a
+            key={link.label}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={footerInlineLinkClass}
+          >
+            {link.label}
+          </a>
+        ) : (
+          <SiteInternalLink
+            key={link.label}
+            siteKey={siteKey}
+            to={link.to}
+            className={footerInlineLinkClass}
+          >
+            {link.label}
+          </SiteInternalLink>
+        ),
+      )}
     </nav>
   );
 }
@@ -101,29 +299,24 @@ function FooterCopyrightLines({ className }: { className?: string }) {
   );
 }
 
-/** Single compact bar — links, copyright, and disclaimer in one block (no stacked sections). */
+/** Single compact bar — legal links, ecosystem, and one copyright block. */
 function CompactFooterBar({
-  docs,
+  siteKey,
   includeStatus = false,
   className,
 }: {
-  docs: LegalDocumentDefinition[];
+  siteKey: SiteKey;
   includeStatus?: boolean;
   className?: string;
 }) {
+  const docs = siteCompactFooterDocuments(siteKey);
+
   return (
     <footer className={cn("mt-auto shrink-0 border-t border-border/60 bg-surface-1/30", className)}>
-      <div className="mx-auto max-w-[1400px] space-y-2 px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <FooterInlineLegalLinks docs={docs} includeStatus={includeStatus} />
-          <span className="hidden h-3 w-px bg-border/80 sm:block" aria-hidden />
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            © 2026 Alta Group N.V.
-          </p>
-        </div>
-        <p className="max-w-3xl text-[10px] leading-relaxed text-muted-foreground/80">
-          {FOOTER_DISCLAIMERS.global}
-        </p>
+      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-3 sm:px-6">
+        <FooterInlineLegalLinks docs={docs} siteKey={siteKey} includeStatus={includeStatus} />
+        <FooterEcosystemInlineLinks siteKey={siteKey} />
+        <FooterCopyrightLines />
       </div>
     </footer>
   );
@@ -131,169 +324,19 @@ function CompactFooterBar({
 
 /** 1. Marketing — public pages with full site map columns. */
 export function MarketingFooter({ siteKey = "corporate" }: { siteKey?: SiteKey }) {
-  if (siteKey !== "corporate") {
-    return <EntityMarketingFooter siteKey={siteKey} />;
-  }
-
-  const legalDocs = groupFooterDocuments();
-  const bankDocs = entityFooterDocuments("bank");
-  const marketsDocs = entityFooterDocuments("markets");
-  const nccDocs = entityFooterDocuments("ncc");
-
   return (
     <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
       <div className="mx-auto max-w-[1400px] px-6 py-12">
-        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-          <div className="sm:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-1">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="sm:col-span-2 lg:col-span-1">
             <AltaWordmark />
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">Live Like the 1%</p>
+            <p className="mt-4 max-w-xs text-sm text-muted-foreground">{SITE_FOOTER_EMPHASIS[siteKey]}</p>
           </div>
 
-          <FooterColumn title="Company">
-            {getFooterCompanyLinks().map((link) => (
-              <li key={link.label}>
-                {"external" in link && link.external ? (
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(footerLinkClass, "inline-flex items-center gap-1")}
-                  >
-                    {link.label}
-                    <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-                  </a>
-                ) : (
-                  <Link to={link.to} className={footerLinkClass}>
-                    {link.label}
-                  </Link>
-                )}
-              </li>
-            ))}
-          </FooterColumn>
-
-          <FooterColumn title="Legal">
-            {legalDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-            <li>
-              <Link to={LEGAL_CENTER_PATH} className={footerLinkClass}>
-                Legal Center
-              </Link>
-            </li>
-          </FooterColumn>
-
-          <FooterColumn title="Bank">
-            {bankDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-          </FooterColumn>
-
-          <FooterColumn title="Markets">
-            {marketsDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-          </FooterColumn>
-
-          <FooterColumn title="NCC">
-            {nccDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-          </FooterColumn>
-
-          <FooterColumn title="Support">
-            {FOOTER_SUPPORT_LINKS.map((link) => (
-              <li key={link.label}>
-                <SiteInternalLink siteKey={siteKey} to={link.to} className={footerLinkClass}>
-                  {link.label}
-                </SiteInternalLink>
-              </li>
-            ))}
-          </FooterColumn>
-        </div>
-        <FooterCopyrightLines className="mt-10 border-t border-border/60 pt-4" />
-      </div>
-    </footer>
-  );
-}
-
-function EntityMarketingFooter({ siteKey }: { siteKey: SiteKey }) {
-  const site = getSiteConfig(siteKey);
-  const primaryDocs = siteMarketingPrimaryDocuments(siteKey);
-  const groupDocs = groupFooterDocuments();
-
-  const entityLabel =
-    siteKey === "bank"
-      ? "Bank"
-      : siteKey === "exchange"
-        ? "Markets"
-        : siteKey === "terminal"
-          ? "Terminal"
-          : "NCC";
-
-  return (
-    <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
-      <div className="mx-auto max-w-[1400px] px-6 py-12">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <AltaWordmark />
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">{site.tagline}</p>
-          </div>
-
-          <FooterColumn title={entityLabel}>
-            {primaryDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-          </FooterColumn>
-
-          <FooterColumn title="Alta Group">
-            {groupDocs.map((doc) => (
-              <li key={doc.id}>
-                <FooterDocLink doc={doc} />
-              </li>
-            ))}
-            <li>
-              <a
-                href={resolveCorporateSiteUrl("/legal")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(footerLinkClass, "inline-flex items-center gap-1")}
-              >
-                Legal Center
-                <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-              </a>
-            </li>
-          </FooterColumn>
-
-          <FooterColumn title="Support">
-            {FOOTER_SUPPORT_LINKS.map((link) => (
-              <li key={link.label}>
-                <SiteInternalLink siteKey={siteKey} to={link.to} className={footerLinkClass}>
-                  {link.label}
-                </SiteInternalLink>
-              </li>
-            ))}
-            <li>
-              <a
-                href={ALTA_SYSTEM_STATUS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(footerLinkClass, "inline-flex items-center gap-1")}
-              >
-                Status
-                <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
-              </a>
-            </li>
-          </FooterColumn>
+          <FooterEcosystemColumn siteKey={siteKey} />
+          <FooterLegalColumn siteKey={siteKey} />
+          <FooterSupportColumn siteKey={siteKey} />
+          <FooterEntityColumn siteKey={siteKey} />
         </div>
         <FooterCopyrightLines className="mt-10 border-t border-border/60 pt-4" />
       </div>
@@ -303,12 +346,12 @@ function EntityMarketingFooter({ siteKey }: { siteKey: SiteKey }) {
 
 /** 2. Dashboard — authenticated app pages; one compact bottom bar. */
 export function DashboardFooter({ siteKey = "corporate" }: { siteKey?: SiteKey }) {
-  return <CompactFooterBar docs={siteCompactFooterDocuments(siteKey)} includeStatus />;
+  return <CompactFooterBar siteKey={siteKey} includeStatus />;
 }
 
 /** 3. Authentication — sign-in and access edge pages. */
 export function AuthenticationFooter({ siteKey = "corporate" }: { siteKey?: SiteKey }) {
-  return <CompactFooterBar docs={siteCompactFooterDocuments(siteKey)} className="relative z-10" />;
+  return <CompactFooterBar siteKey={siteKey} className="relative z-10" />;
 }
 
 /** 4. Legal — individual legal document pages. */
@@ -367,7 +410,11 @@ export function CheckoutLegalLinks({ className }: { className?: string }) {
 
   return (
     <div className={cn("space-y-2 text-center", className)}>
-      <FooterInlineLegalLinks docs={docs} className="justify-center" />
+      <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+        {docs.map((doc) => (
+          <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
+        ))}
+      </nav>
       <p className="mx-auto max-w-md text-[10px] leading-relaxed text-muted-foreground/80">
         {FOOTER_DISCLAIMERS.bank}
       </p>
@@ -394,7 +441,7 @@ export function SiteFooter({ variant, legalDoc, siteKey = "corporate" }: SiteFoo
       />
     );
   }
-  return <MarketingFooter />;
+  return <MarketingFooter siteKey={siteKey} />;
 }
 
 export type SiteFooterProps = {
