@@ -15,6 +15,11 @@ describe("site context", () => {
     expect(resolveSiteKeyFromHost("www.altagroup.dev")).toBe("corporate");
   });
 
+  it("resolves NCC custom production domain", () => {
+    expect(resolveSiteKeyFromHost("newportclearingcorporation.com")).toBe("ncc");
+    expect(resolveSiteKeyFromHost("www.newportclearingcorporation.com")).toBe("ncc");
+  });
+
   it("resolves entity subdomains in local dev", () => {
     expect(resolveSiteKeyFromHost("bank.localhost:5173")).toBe("bank");
     expect(resolveSiteKeyFromHost("terminal.localhost:3000")).toBe("terminal");

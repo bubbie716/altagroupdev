@@ -9,6 +9,7 @@ describe("entity site urls", () => {
   it("resolves production hostnames", () => {
     expect(resolveEntitySiteHostname("bank")).toBe("bank.altagroup.dev");
     expect(resolveEntitySiteHostname("corporate")).toBe("altagroup.dev");
+    expect(resolveEntitySiteHostname("ncc")).toBe("newportclearingcorporation.com");
   });
 
   it("resolves plain localhost entity home with ?site=", () => {
@@ -48,5 +49,8 @@ describe("entity site urls", () => {
 
     expect(resolveEntitySiteUrl("exchange")).toBe("https://exchange.altagroup.dev/");
     expect(resolveEntitySiteUrl("terminal", "/")).toBe("https://terminal.altagroup.dev/");
+    expect(resolveEntitySiteUrl("ncc", "/company/ncc")).toBe(
+      "https://newportclearingcorporation.com/company/ncc",
+    );
   });
 });

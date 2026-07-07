@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveEntitySubdomainRedirect } from "@/lib/site/entity-path-guard";
+import {
+  resolveEntitySubdomainRedirect,
+  resolveLegacyEntityHostRedirect,
+} from "@/lib/site/entity-path-guard";
 
 describe("resolveEntitySubdomainRedirect", () => {
   it("does not redirect on plain localhost in dev", () => {
@@ -29,5 +32,27 @@ describe("resolveEntitySubdomainRedirect", () => {
   it("does not redirect corporate paths", () => {
     expect(resolveEntitySubdomainRedirect("/structure", { host: "localhost:3000" })).toBeNull();
     expect(resolveEntitySubdomainRedirect("/legal", { host: "localhost:3000" })).toBeNull();
+  });
+
+  it("redirects NCC paths from corporate production host to NCC domain", () => {
+    expect(
+      resolveEntitySubdomainRedirect("/company/ncc", { host: "altagroup.dev" }),
+    ).toBe("http://newportclearingcorporation.com/company/ncc");
+  });
+});
+
+describe("resolveLegacyEntityHostRedirect", () => {
+  it("redirects legacy NCC subdomain to canonical domain", () => {
+    expect(
+      resolveLegacyEntityHostRedirect("/company/ncc", { host: "ncc.altagroup.dev" }),
+    ).toBe("http://newportclearingcorporation.com/company/ncc");
+  });
+
+  it("does not redirect the canonical NCC domain", () => {
+    expect(
+      resolveLegacyEntityHostRedirect("/company/ncc", {
+        host: "newportclearingcorporation.com",
+      }),
+    ).toBeNull();
   });
 });

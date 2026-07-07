@@ -4,6 +4,8 @@ import {
   getDefaultSiteConfig,
   getSiteConfig,
   isSiteKey,
+  SITE_CONFIGS,
+  SITE_KEYS,
   type SiteConfig,
   type SiteKey,
 } from "@/config/sites";
@@ -20,6 +22,22 @@ function normalizeHostname(host: string): string {
   return host.split(":")[0].trim().toLowerCase();
 }
 
+function buildProductionHostToSiteMap(): Map<string, SiteKey> {
+  const map = new Map<string, SiteKey>();
+  for (const key of SITE_KEYS) {
+    for (const host of SITE_CONFIGS[key].productionHosts) {
+      map.set(normalizeHostname(host), key);
+    }
+  }
+  return map;
+}
+
+const PRODUCTION_HOST_TO_SITE = buildProductionHostToSiteMap();
+
+function resolveSiteKeyFromProductionHost(hostname: string): SiteKey | null {
+  return PRODUCTION_HOST_TO_SITE.get(hostname) ?? null;
+}
+
 /** Resolve site key from request Host header (no query override). */
 export function resolveSiteKeyFromHost(host: string): SiteKey {
   const hostname = normalizeHostname(host);
@@ -34,9 +52,8 @@ export function resolveSiteKeyFromHost(host: string): SiteKey {
     return SUBDOMAIN_TO_SITE[sub] ?? "corporate";
   }
 
-  if (hostname === "altagroup.dev" || hostname === "www.altagroup.dev") {
-    return "corporate";
-  }
+  const productionSite = resolveSiteKeyFromProductionHost(hostname);
+  if (productionSite) return productionSite;
 
   if (hostname.endsWith(".altagroup.dev")) {
     const sub = hostname.slice(0, -".altagroup.dev".length);

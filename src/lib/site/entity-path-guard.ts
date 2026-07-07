@@ -4,8 +4,17 @@ import {
   siteKeyForEntityPath,
   usesLocalhostSiteParam,
 } from "@/lib/site/local-dev-site";
-import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
+import { resolveEntitySiteHostname, resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 import { readRequestHost, resolveSiteKeyFromHost } from "@/lib/site/site-context";
+
+function normalizeHostname(host: string): string {
+  return host.split(":")[0].trim().toLowerCase();
+}
+
+/** Legacy Alta subdomains that should 301 to the entity's canonical production host. */
+const LEGACY_ENTITY_HOSTS: Record<string, SiteKey> = {
+  "ncc.altagroup.dev": "ncc",
+};
 
 function appendSearchString(href: string, searchStr?: string): string {
   if (!searchStr || searchStr === "?") return href;
@@ -17,6 +26,22 @@ function appendSearchString(href: string, searchStr?: string): string {
     url.searchParams.set(key, value);
   });
   return url.toString();
+}
+
+/** Redirect deprecated entity subdomains to their canonical production domain. */
+export function resolveLegacyEntityHostRedirect(
+  pathname: string,
+  options?: { host?: string; searchStr?: string },
+): string | null {
+  const host = options?.host ?? readRequestHost();
+  const hostname = normalizeHostname(host);
+  const siteKey = LEGACY_ENTITY_HOSTS[hostname];
+  if (!siteKey) return null;
+
+  const canonicalHost = normalizeHostname(resolveEntitySiteHostname(siteKey));
+  if (hostname === canonicalHost) return null;
+
+  return appendSearchString(resolveEntitySiteUrl(siteKey, pathname, host), options?.searchStr);
 }
 
 /** Redirect entity app paths served on the wrong host to the entity subdomain (prod only). */

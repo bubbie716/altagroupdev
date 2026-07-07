@@ -12,10 +12,11 @@ function normalizePath(path: string): string {
 
 export function resolveEntitySiteHostname(siteKey: SiteKey): string {
   const config = getSiteConfig(siteKey);
-  if (siteKey === "corporate") {
-    return config.productionHosts.find((host) => !host.startsWith("www.")) ?? "altagroup.dev";
-  }
-  return config.productionHosts[0];
+  return (
+    config.productionHosts.find((host) => !host.startsWith("www.")) ??
+    config.productionHosts[0] ??
+    "altagroup.dev"
+  );
 }
 
 function resolveLocalDevUrl(

@@ -21,7 +21,7 @@ import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveSiteContextFromRequest, readRequestHost } from "@/lib/site/site-context";
-import { resolveEntitySubdomainRedirect } from "@/lib/site/entity-path-guard";
+import { resolveEntitySubdomainRedirect, resolveLegacyEntityHostRedirect } from "@/lib/site/entity-path-guard";
 import { getDefaultSiteConfig } from "@/config/sites";
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
@@ -92,6 +92,17 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null; site: import("@/config/sites").SiteConfig }>()({
   beforeLoad: async ({ location }) => {
+    const legacyHostRedirect = resolveLegacyEntityHostRedirect(location.pathname, {
+      host: readRequestHost(),
+      searchStr:
+        typeof location.searchStr === "string"
+          ? location.searchStr
+          : undefined,
+    });
+    if (legacyHostRedirect) {
+      throw redirect({ href: legacyHostRedirect, replace: true });
+    }
+
     const entityRedirect = resolveEntitySubdomainRedirect(location.pathname, {
       host: readRequestHost(),
       searchStr:

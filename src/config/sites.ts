@@ -299,7 +299,11 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
       ogTitle: "Newport Clearing Corporation",
       ogDescription: "Institution clearing, settlement, and participation infrastructure.",
     },
-    productionHosts: ["ncc.altagroup.dev"],
+    productionHosts: [
+      "newportclearingcorporation.com",
+      "www.newportclearingcorporation.com",
+      "ncc.altagroup.dev",
+    ],
     localSubdomain: "ncc",
   },
 };
