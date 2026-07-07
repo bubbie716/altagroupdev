@@ -23,13 +23,10 @@ function signInRedirect(site: SiteConfig, pathname: string) {
   });
 }
 
-export async function authBeforeLoad({ context, location }: GuardContext) {
+export function authBeforeLoad({ context, location }: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   if (context.user) return;
-
-  const user = await fetchCurrentUser();
-  if (user) return { user };
   throw signInRedirect(context.site, location.pathname);
 }
 
