@@ -1,25 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
-import {
-  ALTA_DISCORD_COMMUNITIES,
-  ALTA_DISCORD_URLS,
-} from "@/lib/site/discord-urls";
+import { useSiteContext } from "@/hooks/use-site-context";
+import { NccSupportPage } from "@/components/ncc/ncc-support-page";
+import { ALTA_DISCORD_URLS } from "@/lib/site/discord-urls";
+import { getDiscordCommunitiesForSite } from "@/lib/site/site-scoped-content";
 
 export const Route = createFileRoute("/support/")({
   head: () => ({
-    meta: [
-      { title: "Support Center — Alta Group" },
-      {
-        name: "description",
-        content: "Official Alta Discord communities for Alta Group, Alta Bank, Alta Markets, and NCC.",
-      },
-    ],
+    meta: [{ title: "Support Center — Alta Group" }],
   }),
   component: SupportCenterPage,
 });
 
 function SupportCenterPage() {
+  const site = useSiteContext();
+
+  if (site.key === "ncc") {
+    return <NccSupportPage />;
+  }
+
+  const communities = getDiscordCommunitiesForSite(site.key);
+
   return (
     <div className="flex min-h-full w-full flex-1 flex-col bg-background">
       <SiteNav />
@@ -29,12 +31,12 @@ function SupportCenterPage() {
           Support Center
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Join the official Alta Discord communities for platform support, division updates, and
-          community discussion.
+          Join the official Alta Discord communities for {site.displayName}
+          {site.key === "corporate" ? "" : " and Alta Group"} support, updates, and discussion.
         </p>
 
         <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-          {ALTA_DISCORD_COMMUNITIES.map((community) => {
+          {communities.map((community) => {
             const inviteUrl = ALTA_DISCORD_URLS[community.entity];
 
             return (

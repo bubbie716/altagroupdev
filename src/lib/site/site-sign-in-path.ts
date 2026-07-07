@@ -1,9 +1,9 @@
 import type { SiteKey } from "@/config/sites";
 import { devSiteSearchParams } from "@/lib/site/local-dev-site";
 
-/** Every site homepage is the login page at `/`. */
-export function resolveSiteSignInPath(): "/" {
-  return "/";
+/** Sign-in path per site. NCC uses a dedicated login route; others use `/`. */
+export function resolveSiteSignInPath(siteKey: SiteKey): "/" | "/login" {
+  return siteKey === "ncc" ? "/login" : "/";
 }
 
 /** Search params for sign-in links (preserves ?site= on plain localhost). */

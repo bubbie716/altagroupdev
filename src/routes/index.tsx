@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EntityLoginPage } from "@/components/site/entity-login-page";
+import { NccHomePage } from "@/components/ncc/ncc-home-page";
 import { getSiteConfig } from "@/config/sites";
 
 type HomeSearch = {
@@ -16,14 +17,18 @@ export const Route = createFileRoute("/")({
     siteKey: context.site.key,
   }),
   head: ({ loaderData }) => {
-    const seo = getSiteConfig(loaderData?.siteKey ?? "corporate").seo;
+    const site = getSiteConfig(loaderData?.siteKey ?? "corporate");
+    const isNcc = loaderData?.siteKey === "ncc";
 
     return {
       meta: [
-        { title: `Sign In — ${seo.title}` },
-        { name: "description", content: seo.description },
-        { property: "og:title", content: `Sign In — ${seo.ogTitle ?? seo.title}` },
-        { property: "og:description", content: seo.ogDescription ?? seo.description },
+        { title: isNcc ? site.seo.title : `Sign In — ${site.seo.title}` },
+        { name: "description", content: site.seo.description },
+        {
+          property: "og:title",
+          content: isNcc ? site.seo.ogTitle ?? site.seo.title : `Sign In — ${site.seo.ogTitle ?? site.seo.title}`,
+        },
+        { property: "og:description", content: site.seo.ogDescription ?? site.seo.description },
       ],
     };
   },
@@ -31,7 +36,12 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { siteKey } = Route.useLoaderData();
   const { redirect: redirectTo, error } = Route.useSearch();
 
+  if (siteKey === "ncc") {
+    return <NccHomePage />;
+  }
+
   return <EntityLoginPage redirect={redirectTo} error={error} />;
-}
+};

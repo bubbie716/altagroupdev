@@ -6,6 +6,10 @@ const ENTITY_PATH_ROUTES: Array<{ prefix: string; siteKey: SiteKey }> = [
   { prefix: "/bank", siteKey: "bank" },
   { prefix: "/exchange", siteKey: "exchange" },
   { prefix: "/terminal", siteKey: "terminal" },
+  { prefix: "/dashboard", siteKey: "ncc" },
+  { prefix: "/institutions", siteKey: "ncc" },
+  { prefix: "/network", siteKey: "ncc" },
+  { prefix: "/participation", siteKey: "ncc" },
   { prefix: "/company/ncc", siteKey: "ncc" },
 ];
 

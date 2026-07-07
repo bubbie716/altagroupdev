@@ -5,6 +5,10 @@ import { LegalDocMarkdown } from "@/components/governance/legal-doc-markdown";
 import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
 import { LEGAL_CENTER_PATH } from "@/lib/site/site-links";
 import { CorporatePageShell } from "@/components/site/corporate-page-shell";
+import { NccLayout } from "@/components/ncc/ncc-layout";
+import { NccPageContainer } from "@/components/ncc/ncc-ui";
+import { SiteInternalLink } from "@/components/site/site-internal-link";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 export const Route = createFileRoute("/legal/$docId")({
   loader: ({ params }) => {
@@ -26,6 +30,36 @@ export const Route = createFileRoute("/legal/$docId")({
 
 function LegalDocDetailPage() {
   const { meta, body } = Route.useLoaderData();
+  const site = useSiteContext();
+
+  if (site.key === "ncc") {
+    return (
+      <NccLayout>
+        <NccPageContainer>
+          <SiteInternalLink
+            siteKey="ncc"
+            to="/legal"
+            className="inline-flex items-center gap-1 text-[12px] text-[#6b7280] hover:text-[#111827]"
+          >
+            <ChevronLeft className="size-3.5" />
+            Legal
+          </SiteInternalLink>
+          <div className="mt-8 border-b border-[#e5e7eb] pb-8">
+            <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#9ca3af]">
+              {meta.id}
+            </div>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#111827]">{meta.title}</h1>
+            <p className="mt-4 max-w-2xl text-[14px] leading-relaxed text-[#6b7280]">
+              {meta.description}
+            </p>
+          </div>
+          <main className="prose prose-sm max-w-none py-10 prose-headings:font-semibold prose-p:text-[#374151]">
+            <LegalDocMarkdown content={body} />
+          </main>
+        </NccPageContainer>
+      </NccLayout>
+    );
+  }
 
   return (
     <CorporatePageShell>

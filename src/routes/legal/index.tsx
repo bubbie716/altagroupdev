@@ -1,49 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { Section } from "@/components/page-shell";
+import { useSiteContext } from "@/hooks/use-site-context";
 import { LegalDocCard } from "@/components/governance/legal-doc-card";
-import {
-  legalDocCategoryOrder,
-  legalDocsByCategory,
-} from "@/lib/governance/legal-docs-catalog";
 import { CorporatePageShell } from "@/components/site/corporate-page-shell";
+import { NccLegalPage } from "@/components/ncc/ncc-legal-page";
+import { Section } from "@/components/page-shell";
+import { getLegalDocCategoriesForSite, getLegalDocsByCategoryForSite } from "@/lib/site/site-scoped-content";
 
 export const Route = createFileRoute("/legal/")({
   head: () => ({
-    meta: [
-      { title: "Legal — Alta Group" },
-      {
-        name: "description",
-        content:
-          "Corporate governance charters, terms of service, privacy policy, banking agreements, exchange rules, and NCC operating documents for the Alta ecosystem.",
-      },
-    ],
+    meta: [{ title: "Legal — Alta Group" }],
   }),
   component: LegalIndexPage,
 });
 
 function LegalIndexPage() {
+  const site = useSiteContext();
+
+  if (site.key === "ncc") {
+    return <NccLegalPage />;
+  }
+
+  const categories = getLegalDocCategoriesForSite(site.key);
+  const docsByCategory = getLegalDocsByCategoryForSite(site.key);
+
   return (
     <CorporatePageShell>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="border-b border-border/60 pb-12"
-      >
+      <div className="border-b border-border/60 pb-12">
         <div className="type-eyebrow">Legal</div>
         <h1 className="mt-5 text-[clamp(3.25rem,6vw,5rem)] font-semibold leading-[0.96] tracking-[-0.02em]">
           Legal Documents
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
           Published corporate governance, platform policies, subsidiary agreements, fee schedules, and
-          product terms for Alta Group and its operating divisions.
+          product terms for {site.displayName}
+          {site.key === "corporate" ? "" : " and Alta Group"}.
         </p>
-      </motion.div>
+      </div>
 
       <main className="py-12">
-        {legalDocCategoryOrder.map((category, index) => {
-          const docs = legalDocsByCategory[category];
+        {categories.map((category, index) => {
+          const docs = docsByCategory[category] ?? [];
           if (docs.length === 0) return null;
 
           return (

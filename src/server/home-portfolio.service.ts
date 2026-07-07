@@ -6,6 +6,8 @@ import { fromDbBankTransactionType } from "@/server/bank-mapper";
 import { prisma } from "@/server/db";
 
 const CHART_HISTORY_DAYS = 365;
+/** Homepage hero only needs recent history — avoids loading a year of transactions on every visit. */
+export const HOMEPAGE_CHART_HISTORY_DAYS = 30;
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
 function chartDayAnchor(date: Date): Date {
@@ -114,7 +116,11 @@ function mergeDailyHistoryWithTodayIntraday(
 }
 
 /** Personal bank balances with zero terminal portfolio until exchange holdings are wired. */
-export async function getHomePortfolioSnapshot(userId: string): Promise<HomePortfolioSnapshot> {
+export async function getHomePortfolioSnapshot(
+  userId: string,
+  options?: { historyDays?: number },
+): Promise<HomePortfolioSnapshot> {
+  const historyDays = options?.historyDays ?? CHART_HISTORY_DAYS;
   const personalAccounts = await prisma.bankAccount.findMany({
     where: { userId, companyId: null, status: "ACTIVE" },
     select: { id: true, balance: true },
@@ -137,7 +143,7 @@ export async function getHomePortfolioSnapshot(userId: string): Promise<HomePort
   const accountIds = personalAccounts.map((account) => account.id);
   const florinBalance = personalAccounts.reduce((sum, account) => sum + Number(account.balance), 0);
   const endDay = chartDayAnchor(now);
-  const startDay = shiftChartDays(endDay, -CHART_HISTORY_DAYS);
+  const startDay = shiftChartDays(endDay, -historyDays);
   const dayStart = startOfLocalDay(now);
 
   const transactions = await prisma.bankTransaction.findMany({

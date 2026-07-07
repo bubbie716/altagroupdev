@@ -100,6 +100,8 @@ function NavLinkItem({
 export const SiteNav = memo(function SiteNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const site = useSiteContext();
+
+  if (site.key === "ncc") return null;
   const bankNavLinks = useBankPrimaryNavLinks();
   const navLinks = site.key === "bank" ? bankNavLinks : resolveSiteNavLinks(site.key);
   const { theme, toggle } = useTheme();

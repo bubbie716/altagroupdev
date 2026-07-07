@@ -1,6 +1,13 @@
 import { prisma } from "@/server/db";
 import { getBankMetrics } from "@/server/bank-metrics.service";
 
+const METRICS_CACHE_TTL_MS = 60_000;
+let metricsCache: { value: PlatformMetrics; expiresAt: number } | null = null;
+
+export function invalidatePlatformMetricsCache(): void {
+  metricsCache = null;
+}
+
 function decimalSum(value: { toNumber(): number } | null | undefined): number {
   return value ? value.toNumber() : 0;
 }
@@ -34,6 +41,11 @@ export type PlatformMetrics = {
 };
 
 export async function queryPlatformMetrics(): Promise<PlatformMetrics> {
+  const now = Date.now();
+  if (metricsCache && metricsCache.expiresAt > now) {
+    return metricsCache.value;
+  }
+
   const monthStart = startOfMonth();
   const bank = await getBankMetrics();
 
@@ -81,7 +93,7 @@ export async function queryPlatformMetrics(): Promise<PlatformMetrics> {
     bank.pendingWithdrawals +
     pendingUserReviews;
 
-  return {
+  const result = {
     totalUsers,
     totalCompanies,
     verifiedCompanies,
@@ -101,4 +113,7 @@ export async function queryPlatformMetrics(): Promise<PlatformMetrics> {
     frozenBankAccounts: bank.frozenAccounts,
     authorizedRepresentatives,
   };
+
+  metricsCache = { value: result, expiresAt: now + METRICS_CACHE_TTL_MS };
+  return result;
 }

@@ -103,10 +103,10 @@ const TERMINAL_NAV: SiteNavLink[] = [
 
 const NCC_NAV: SiteNavLink[] = [
   { label: "Home", to: "/", exact: true },
-  { label: "Network", to: "/company/ncc", match: "/company/ncc" },
-  { label: "Institutions", to: "/company/ncc", match: "/company/ncc" },
-  { label: "Participation", to: "/legal/NCC-LEGAL-001", match: "/legal" },
-  { label: "Operating Rules", to: "/legal/NCC-LEGAL-002", match: "/legal" },
+  { label: "Institutions", to: "/institutions", match: "/institutions" },
+  { label: "Participation", to: "/participation", match: "/participation" },
+  { label: "Network", to: "/network", match: "/network" },
+  { label: "Legal", to: "/legal", match: "/legal" },
   { label: "Support", to: "/support", match: "/support" },
 ];
 
@@ -273,8 +273,8 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     tagline: "Clearing infrastructure for Newport",
     primaryRoute: "/",
     homeRoute: "/",
-    dashboardRoute: "/company/ncc",
-    defaultAuthenticatedRoute: "/company/ncc",
+    dashboardRoute: "/dashboard",
+    defaultAuthenticatedRoute: "/dashboard",
     loginEyebrow: "NCC · Log-in",
     loginHome: {
       panelTitle: "Clearing, settlement, and routing for approved institutions.",
@@ -291,8 +291,8 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     },
     wordmarkSuffix: "NCC",
     navLinks: NCC_NAV,
-    ctaLabel: "Institution Access",
-    ctaRoute: "/company/ncc",
+    ctaLabel: "Apply for Participation",
+    ctaRoute: "/participation",
     seo: {
       title: "Newport Clearing Corporation",
       description: "Clearing, settlement, and routing infrastructure for approved institutions.",

@@ -10,9 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ParticipationRouteImport } from './routes/participation'
+import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InstitutionsRouteImport } from './routes/institutions'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as DiscordRouteImport } from './routes/discord'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -34,6 +37,7 @@ import { Route as InternalIndexRouteImport } from './routes/internal/index'
 import { Route as GovernanceIndexRouteImport } from './routes/governance/index'
 import { Route as ExchangeIndexRouteImport } from './routes/exchange/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as ContactIndexRouteImport } from './routes/contact/index'
 import { Route as CompanyIndexRouteImport } from './routes/company/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
@@ -278,6 +282,16 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ParticipationRoute = ParticipationRouteImport.update({
+  id: '/participation',
+  path: '/participation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NetworkRoute = NetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketsRoute = MarketsRouteImport.update({
   id: '/markets',
   path: '/markets',
@@ -291,6 +305,11 @@ const MaintenanceRoute = MaintenanceRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstitutionsRoute = InstitutionsRouteImport.update({
+  id: '/institutions',
+  path: '/institutions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -397,6 +416,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const ContactIndexRoute = ContactIndexRouteImport.update({
   id: '/contact/',
@@ -1728,12 +1752,15 @@ export interface FileRoutesByFullPath {
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
+  '/institutions': typeof InstitutionsRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
+  '/network': typeof NetworkRoute
+  '/participation': typeof ParticipationRoute
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
@@ -1793,6 +1820,7 @@ export interface FileRoutesByFullPath {
   '/companies/': typeof CompaniesIndexRoute
   '/company/': typeof CompanyIndexRoute
   '/contact/': typeof ContactIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
@@ -1987,12 +2015,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-restricted': typeof AccessRestrictedRoute
-  '/dashboard': typeof DashboardRoute
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
+  '/institutions': typeof InstitutionsRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
+  '/network': typeof NetworkRoute
+  '/participation': typeof ParticipationRoute
   '/profile': typeof ProfileRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -2045,6 +2075,7 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesIndexRoute
   '/company': typeof CompanyIndexRoute
   '/contact': typeof ContactIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/docs': typeof DocsIndexRoute
   '/exchange': typeof ExchangeIndexRoute
   '/governance': typeof GovernanceIndexRoute
@@ -2233,12 +2264,15 @@ export interface FileRoutesById {
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
+  '/institutions': typeof InstitutionsRoute
   '/login': typeof LoginRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
+  '/network': typeof NetworkRoute
+  '/participation': typeof ParticipationRoute
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
@@ -2298,6 +2332,7 @@ export interface FileRoutesById {
   '/companies/': typeof CompaniesIndexRoute
   '/company/': typeof CompanyIndexRoute
   '/contact/': typeof ContactIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/exchange/': typeof ExchangeIndexRoute
   '/governance/': typeof GovernanceIndexRoute
@@ -2503,9 +2538,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/discord'
     | '/home'
+    | '/institutions'
     | '/login'
     | '/maintenance'
     | '/markets'
+    | '/network'
+    | '/participation'
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
@@ -2565,6 +2603,7 @@ export interface FileRouteTypes {
     | '/companies/'
     | '/company/'
     | '/contact/'
+    | '/dashboard/'
     | '/docs/'
     | '/exchange/'
     | '/governance/'
@@ -2759,12 +2798,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/access-restricted'
-    | '/dashboard'
     | '/discord'
     | '/home'
+    | '/institutions'
     | '/login'
     | '/maintenance'
     | '/markets'
+    | '/network'
+    | '/participation'
     | '/profile'
     | '/bank/accounts'
     | '/bank/credit-desk-closed'
@@ -2817,6 +2858,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/company'
     | '/contact'
+    | '/dashboard'
     | '/docs'
     | '/exchange'
     | '/governance'
@@ -3007,9 +3049,12 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/discord'
     | '/home'
+    | '/institutions'
     | '/login'
     | '/maintenance'
     | '/markets'
+    | '/network'
+    | '/participation'
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
@@ -3069,6 +3114,7 @@ export interface FileRouteTypes {
     | '/companies/'
     | '/company/'
     | '/contact/'
+    | '/dashboard/'
     | '/docs/'
     | '/exchange/'
     | '/governance/'
@@ -3270,12 +3316,15 @@ export interface RootRouteChildren {
   InternalRouteRoute: typeof InternalRouteRouteWithChildren
   TerminalRouteRoute: typeof TerminalRouteRouteWithChildren
   AccessRestrictedRoute: typeof AccessRestrictedRoute
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   DiscordRoute: typeof DiscordRouteWithChildren
   HomeRoute: typeof HomeRoute
+  InstitutionsRoute: typeof InstitutionsRoute
   LoginRoute: typeof LoginRoute
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
+  NetworkRoute: typeof NetworkRoute
+  ParticipationRoute: typeof ParticipationRoute
   ProfileRoute: typeof ProfileRoute
   CompanyLeadershipRoute: typeof CompanyLeadershipRoute
   CompanyNccRoute: typeof CompanyNccRoute
@@ -3321,6 +3370,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/participation': {
+      id: '/participation'
+      path: '/participation'
+      fullPath: '/participation'
+      preLoaderRoute: typeof ParticipationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/network': {
+      id: '/network'
+      path: '/network'
+      fullPath: '/network'
+      preLoaderRoute: typeof NetworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/markets': {
       id: '/markets'
       path: '/markets'
@@ -3340,6 +3403,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/institutions': {
+      id: '/institutions'
+      path: '/institutions'
+      fullPath: '/institutions'
+      preLoaderRoute: typeof InstitutionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -3488,6 +3558,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/'
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/contact/': {
       id: '/contact/'
@@ -5965,6 +6042,18 @@ const TerminalRouteRouteWithChildren = TerminalRouteRoute._addFileChildren(
   TerminalRouteRouteChildren,
 )
 
+interface DashboardRouteChildren {
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 interface DiscordRouteChildren {
   DiscordBankRoute: typeof DiscordBankRoute
   DiscordMarketsRoute: typeof DiscordMarketsRoute
@@ -6046,12 +6135,15 @@ const rootRouteChildren: RootRouteChildren = {
   InternalRouteRoute: InternalRouteRouteWithChildren,
   TerminalRouteRoute: TerminalRouteRouteWithChildren,
   AccessRestrictedRoute: AccessRestrictedRoute,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   DiscordRoute: DiscordRouteWithChildren,
   HomeRoute: HomeRoute,
+  InstitutionsRoute: InstitutionsRoute,
   LoginRoute: LoginRoute,
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
+  NetworkRoute: NetworkRoute,
+  ParticipationRoute: ParticipationRoute,
   ProfileRoute: ProfileRoute,
   CompanyLeadershipRoute: CompanyLeadershipRoute,
   CompanyNccRoute: CompanyNccRoute,
