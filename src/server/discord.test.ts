@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { resolveOAuthCallbackUri, resolveOAuthReturnUrl } from "@/server/discord";
+import { isAllowedReturnOrigin, resolveOAuthCallbackUri, resolveOAuthReturnUrl } from "@/server/discord";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -57,5 +57,15 @@ describe("resolveOAuthReturnUrl", () => {
       "/home",
     );
     assert.equal(url, "https://newportclearingcorporation.com/dashboard");
+  });
+
+  it("allows return to a known site origin when only the shared callback is registered", () => {
+    process.env.DISCORD_REDIRECT_URI = "https://altagroup.dev/api/auth/discord/callback";
+    assert.equal(
+      isAllowedReturnOrigin("https://newportclearingcorporation.com", [
+        "https://altagroup.dev/api/auth/discord/callback",
+      ]),
+      true,
+    );
   });
 });

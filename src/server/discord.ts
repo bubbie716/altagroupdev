@@ -1,4 +1,29 @@
+import { SITE_CONFIGS, SITE_KEYS } from "@/config/sites";
+
 const DISCORD_API = "https://discord.com/api";
+
+function hostnameFromHost(host: string): string {
+  return host.split(":")[0].trim().toLowerCase();
+}
+
+function stripWwwHost(host: string): string {
+  const normalized = host.toLowerCase();
+  return normalized.startsWith("www.") ? normalized.slice(4) : normalized;
+}
+
+function isKnownSiteOrigin(origin: string): boolean {
+  try {
+    const hostname = stripWwwHost(new URL(origin).hostname);
+    for (const key of SITE_KEYS) {
+      for (const host of SITE_CONFIGS[key].productionHosts) {
+        if (stripWwwHost(hostnameFromHost(host)) === hostname) return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 function normalizeRedirectUri(value: string): string {
   const trimmed = value.trim();
@@ -12,6 +37,10 @@ function parseRedirectUriList(raw: string | undefined): string[] {
     .split(",")
     .map(normalizeRedirectUri)
     .filter(Boolean);
+}
+
+export function parseRedirectUriListForOAuth(): string[] {
+  return parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
 }
 
 function isDevOAuthOrigin(origin: string): boolean {
@@ -47,6 +76,16 @@ export function resolveOAuthCallbackUri(origin: string): string | null {
   return null;
 }
 
+/** Shared Alta callback used when an entity domain has no dedicated OAuth redirect registered. */
+export function resolveSharedOAuthCallbackUri(): string | null {
+  const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
+  return allowed[0] ?? null;
+}
+
+export function resolveOAuthCallbackUriForSite(returnOrigin: string): string | null {
+  return resolveOAuthCallbackUri(returnOrigin) ?? resolveSharedOAuthCallbackUri();
+}
+
 /** Use request origin when its callback is registered in Discord (dev and production). */
 export function resolveDiscordRedirectUri(request?: Request): string | null {
   const config = getDiscordConfig();
@@ -61,13 +100,17 @@ export function resolveDiscordRedirectUri(request?: Request): string | null {
   return resolveOAuthCallbackUri(origin) ?? resolveOAuthCallbackUri(new URL(config.redirectUri).origin);
 }
 
-function isAllowedReturnOrigin(origin: string, allowedCallbacks: string[]): boolean {
+export function isAllowedReturnOrigin(origin: string, allowedCallbacks: string[]): boolean {
   try {
     const url = new URL(origin);
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
     const callback = `${url.origin}/api/auth/discord/callback`;
     if (allowedCallbacks.includes(callback)) return true;
-    return process.env.NODE_ENV !== "production" && isDevOAuthOrigin(url.origin);
+    if (process.env.NODE_ENV !== "production" && isDevOAuthOrigin(url.origin)) return true;
+    if (process.env.NODE_ENV === "production" && allowedCallbacks.length > 0 && isKnownSiteOrigin(origin)) {
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }

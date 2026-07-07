@@ -5,7 +5,6 @@ import {
   getOAuthStateCookieName,
   getSessionCookieName,
   loginErrorRedirect,
-  readCookie,
   redirectWithSetCookies,
   sessionMaxAgeSec,
 } from "@/server/session";
@@ -14,13 +13,14 @@ import {
   exchangeDiscordCode,
   fetchDiscordProfile,
   getDiscordConfig,
+  isAllowedReturnOrigin,
+  parseRedirectUriListForOAuth,
   resolveDiscordRedirectUri,
-  resolveOAuthReturnUrl,
-  oauthCallbackMatchesReturnOrigin,
 } from "@/server/discord";
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
 import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
+import { createSessionHandoffToken, hostsMatch } from "@/server/session-handoff";
 
 export const Route = createFileRoute("/api/auth/discord/callback")({
   server: {
@@ -37,28 +37,20 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
 
         const url = new URL(request.url);
         const code = url.searchParams.get("code");
-        const state = url.searchParams.get("state");
+        const stateParam = url.searchParams.get("state");
         const error = url.searchParams.get("error");
 
-        if (error || !code || !state) {
+        if (error || !code || !stateParam) {
           return loginErrorRedirect(request, "oauth_denied");
         }
 
-        const cookieHeader = request.headers.get("cookie");
-        const stored = readCookie(getOAuthStateCookieName(), cookieHeader);
-        if (!stored) {
+        const parsed = await unsealJson<{
+          returnTo: string;
+          returnOrigin?: string;
+          nonce?: string;
+        }>(stateParam);
+        if (!parsed?.returnTo) {
           return loginErrorRedirect(request, "invalid_state");
-        }
-
-        const parsed = await unsealJson<{ state: string; returnTo: string; returnOrigin?: string }>(
-          stored,
-        );
-        if (!parsed || parsed.state !== state) {
-          return loginErrorRedirect(request, "invalid_state");
-        }
-
-        if (!oauthCallbackMatchesReturnOrigin(request, parsed.returnOrigin)) {
-          return loginErrorRedirect(request, "oauth_callback_mismatch");
         }
 
         const redirectUri = resolveDiscordRedirectUri(request);
@@ -85,15 +77,42 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           Object.fromEntries(url.searchParams),
           url.pathname,
         );
-        const destination = resolveOAuthReturnUrl(request, parsed, site.defaultAuthenticatedRoute);
+        const allowed = parseRedirectUriListForOAuth();
+        const returnOrigin =
+          parsed.returnOrigin && isAllowedReturnOrigin(parsed.returnOrigin, allowed)
+            ? parsed.returnOrigin
+            : url.origin;
+        const safePath =
+          parsed.returnTo.startsWith("/") && !parsed.returnTo.startsWith("//")
+            ? parsed.returnTo
+            : site.defaultAuthenticatedRoute;
 
-        return redirectWithSetCookies(destination, [
-          buildSetCookie(
-            getSessionCookieName(),
-            auth.sessionToken,
-            sessionMaxAgeSec(),
-            url.host,
-          ),
+        const callbackHost = new URL(url.origin).hostname;
+        const returnHost = new URL(returnOrigin).hostname;
+
+        if (hostsMatch(callbackHost, returnHost)) {
+          const destination = new URL(safePath, url.origin).toString();
+          return redirectWithSetCookies(destination, [
+            buildSetCookie(
+              getSessionCookieName(),
+              auth.sessionToken,
+              sessionMaxAgeSec(),
+              url.host,
+            ),
+            buildClearCookie(getOAuthStateCookieName(), url.host),
+          ]);
+        }
+
+        const handoffToken = await createSessionHandoffToken(auth.sessionToken);
+        if (!handoffToken) {
+          return loginErrorRedirect(request, "session_not_configured");
+        }
+
+        const handoffUrl = new URL("/api/auth/session/handoff", returnOrigin);
+        handoffUrl.searchParams.set("token", handoffToken);
+        handoffUrl.searchParams.set("redirect", safePath);
+
+        return redirectWithSetCookies(handoffUrl.toString(), [
           buildClearCookie(getOAuthStateCookieName(), url.host),
         ]);
       },

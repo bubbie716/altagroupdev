@@ -226,6 +226,7 @@ import { Route as ApiLoanThreadsApplicationIdAttachmentsRouteImport } from './ro
 import { Route as ApiInternalDiscordEmbedRouteImport } from './routes/api/internal/discord/embed'
 import { Route as ApiDealRoomsDealRoomIdDocumentsRouteImport } from './routes/api/deal-rooms/$dealRoomId/documents'
 import { Route as ApiCompanyBrandingCompanyIdLogoRouteImport } from './routes/api/company-branding/$companyId/logo'
+import { Route as ApiAuthSessionHandoffRouteImport } from './routes/api/auth/session/handoff'
 import { Route as ApiAuthDiscordCallbackRouteImport } from './routes/api/auth/discord/callback'
 import { Route as ApiAltaCardThreadsApplicationIdAttachmentsRouteImport } from './routes/api/alta-card-threads/$applicationId/attachments'
 import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsRouteImport } from './routes/api/alta-card-review-threads/$reviewId/attachments'
@@ -1437,6 +1438,11 @@ const ApiCompanyBrandingCompanyIdLogoRoute =
     path: '/api/company-branding/$companyId/logo',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAuthSessionHandoffRoute = ApiAuthSessionHandoffRouteImport.update({
+  id: '/api/auth/session/handoff',
+  path: '/api/auth/session/handoff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthDiscordCallbackRoute = ApiAuthDiscordCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -1916,6 +1922,7 @@ export interface FileRoutesByFullPath {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/auth/session/handoff': typeof ApiAuthSessionHandoffRoute
   '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
@@ -2159,6 +2166,7 @@ export interface FileRoutesByTo {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/auth/session/handoff': typeof ApiAuthSessionHandoffRoute
   '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
@@ -2428,6 +2436,7 @@ export interface FileRoutesById {
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
+  '/api/auth/session/handoff': typeof ApiAuthSessionHandoffRoute
   '/api/company-branding/$companyId/logo': typeof ApiCompanyBrandingCompanyIdLogoRoute
   '/api/deal-rooms/$dealRoomId/documents': typeof ApiDealRoomsDealRoomIdDocumentsRoute
   '/api/internal/discord/embed': typeof ApiInternalDiscordEmbedRoute
@@ -2699,6 +2708,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/auth/session/handoff'
     | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -2942,6 +2952,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/auth/session/handoff'
     | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -3210,6 +3221,7 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
+    | '/api/auth/session/handoff'
     | '/api/company-branding/$companyId/logo'
     | '/api/deal-rooms/$dealRoomId/documents'
     | '/api/internal/discord/embed'
@@ -3352,6 +3364,7 @@ export interface RootRouteChildren {
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   ApiAltaCardThreadsApplicationIdAttachmentsRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
+  ApiAuthSessionHandoffRoute: typeof ApiAuthSessionHandoffRoute
   ApiCompanyBrandingCompanyIdLogoRoute: typeof ApiCompanyBrandingCompanyIdLogoRoute
   ApiDealRoomsDealRoomIdDocumentsRoute: typeof ApiDealRoomsDealRoomIdDocumentsRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
@@ -4882,6 +4895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCompanyBrandingCompanyIdLogoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/session/handoff': {
+      id: '/api/auth/session/handoff'
+      path: '/api/auth/session/handoff'
+      fullPath: '/api/auth/session/handoff'
+      preLoaderRoute: typeof ApiAuthSessionHandoffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/discord/callback': {
       id: '/api/auth/discord/callback'
       path: '/callback'
@@ -6173,6 +6193,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren,
   ApiAltaCardThreadsApplicationIdAttachmentsRoute:
     ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren,
+  ApiAuthSessionHandoffRoute: ApiAuthSessionHandoffRoute,
   ApiCompanyBrandingCompanyIdLogoRoute: ApiCompanyBrandingCompanyIdLogoRoute,
   ApiDealRoomsDealRoomIdDocumentsRoute: ApiDealRoomsDealRoomIdDocumentsRoute,
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,

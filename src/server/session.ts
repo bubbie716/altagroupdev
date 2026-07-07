@@ -32,13 +32,15 @@ function registrableDomainForHost(hostname: string): string | null {
   return null;
 }
 
+/** Custom entity domains use host-only cookies (most reliable). Use apex redirects for www. */
 function sessionCookieDomain(requestHost?: string): string | null {
   if (!isProduction()) return null;
 
   if (requestHost) {
     const hostname = hostnameFromHost(requestHost);
-    const entityDomain = registrableDomainForHost(hostname);
-    if (entityDomain) return entityDomain;
+    if (registrableDomainForHost(hostname)) {
+      return null;
+    }
   }
 
   const configured = process.env.ALTA_COOKIE_DOMAIN?.trim();

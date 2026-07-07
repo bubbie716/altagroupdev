@@ -13,6 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   oauth_not_configured: "Discord OAuth is not configured on this environment.",
   database_not_configured: "Database is not configured.",
   session_failed: "Could not create a login session.",
+  session_not_configured: "Session signing is not configured (SESSION_SECRET).",
 };
 
 export function NccLoginPage({
