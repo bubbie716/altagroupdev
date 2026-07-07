@@ -11,7 +11,10 @@ import {
   type AltaDiscordEntity,
 } from "@/lib/site/discord-urls";
 
-/** Sub-entity legal scope for a site (null = Alta Group only). */
+const ALL_LEGAL_DOC_PREFIXES = ["AG-", "AB-", "AE-", "NCC-"] as const;
+const ALL_DISCORD_ENTITIES: AltaDiscordEntity[] = ["group", "bank", "markets", "ncc"];
+
+/** Sub-entity legal scope for a site (null = Alta Group hub — shows all entities). */
 export function siteLegalEntity(siteKey: SiteKey): LegalEntity | null {
   if (siteKey === "bank") return "bank";
   if (siteKey === "exchange" || siteKey === "terminal") return "markets";
@@ -26,6 +29,7 @@ function docPrefixForEntity(entity: LegalEntity): string {
 }
 
 function categoryPrefixesForSite(siteKey: SiteKey): string[] {
+  if (siteKey === "corporate") return [...ALL_LEGAL_DOC_PREFIXES];
   const prefixes = ["AG-"];
   const entity = siteLegalEntity(siteKey);
   if (entity) prefixes.push(docPrefixForEntity(entity));
@@ -33,6 +37,7 @@ function categoryPrefixesForSite(siteKey: SiteKey): string[] {
 }
 
 function categoryMatchesSite(category: LegalDocCategory, siteKey: SiteKey): boolean {
+  if (siteKey === "corporate") return true;
   const prefixes = categoryPrefixesForSite(siteKey);
   return prefixes.some((prefix) => {
     if (prefix === "AG-") return category.startsWith("Alta Group");
@@ -43,10 +48,12 @@ function categoryMatchesSite(category: LegalDocCategory, siteKey: SiteKey): bool
 }
 
 export function legalDocMatchesSite(doc: LegalDocMeta, siteKey: SiteKey): boolean {
+  if (siteKey === "corporate") return true;
   return categoryPrefixesForSite(siteKey).some((prefix) => doc.id.startsWith(prefix));
 }
 
 export function getLegalDocCategoriesForSite(siteKey: SiteKey): LegalDocCategory[] {
+  if (siteKey === "corporate") return [...legalDocCategoryOrder];
   return legalDocCategoryOrder.filter((category) => categoryMatchesSite(category, siteKey));
 }
 
@@ -65,8 +72,9 @@ export function getLegalDocsForSite(siteKey: SiteKey): LegalDocMeta[] {
   return getLegalDocCategoriesForSite(siteKey).flatMap((category) => legalDocsByCategory[category]);
 }
 
-/** Discord communities visible on a site's support page (Alta Group + that sub). */
+/** Discord communities visible on a site's support page (Alta Group hub shows all). */
 export function siteDiscordEntities(siteKey: SiteKey): AltaDiscordEntity[] {
+  if (siteKey === "corporate") return [...ALL_DISCORD_ENTITIES];
   const entities: AltaDiscordEntity[] = ["group"];
   const entity = siteLegalEntity(siteKey);
   if (entity === "bank") entities.push("bank");

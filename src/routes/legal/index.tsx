@@ -31,9 +31,9 @@ function LegalIndexPage() {
           Legal Documents
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Published corporate governance, platform policies, subsidiary agreements, fee schedules, and
-          product terms for {site.displayName}
-          {site.key === "corporate" ? "" : " and Alta Group"}.
+          {site.key === "corporate"
+            ? "Published corporate governance, platform policies, subsidiary agreements, fee schedules, and product terms across the Alta Group portfolio."
+            : `Published corporate governance, platform policies, subsidiary agreements, fee schedules, and product terms for ${site.displayName} and Alta Group.`}
         </p>
       </div>
 

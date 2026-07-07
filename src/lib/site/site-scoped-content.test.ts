@@ -6,10 +6,12 @@ import {
 } from "@/lib/site/site-scoped-content";
 
 describe("site-scoped-content", () => {
-  it("shows only Alta Group legal docs on corporate site", () => {
+  it("shows all legal docs on corporate site", () => {
     const docs = getLegalDocsForSite("corporate");
-    expect(docs.every((doc) => doc.id.startsWith("AG-"))).toBe(true);
-    expect(docs.some((doc) => doc.id.startsWith("AB-"))).toBe(false);
+    expect(docs.some((doc) => doc.id.startsWith("AG-"))).toBe(true);
+    expect(docs.some((doc) => doc.id.startsWith("AB-"))).toBe(true);
+    expect(docs.some((doc) => doc.id.startsWith("AE-"))).toBe(true);
+    expect(docs.some((doc) => doc.id.startsWith("NCC-"))).toBe(true);
   });
 
   it("shows Alta Group and bank docs on bank site", () => {
@@ -35,9 +37,9 @@ describe("site-scoped-content", () => {
     expect(categories.some((category) => category.startsWith("Alta Bank"))).toBe(false);
   });
 
-  it("shows Alta Group discord only on corporate support", () => {
+  it("shows all discord communities on corporate support", () => {
     const communities = getDiscordCommunitiesForSite("corporate");
-    expect(communities.map((c) => c.entity)).toEqual(["group"]);
+    expect(communities.map((c) => c.entity)).toEqual(["group", "bank", "markets", "ncc"]);
   });
 
   it("shows Alta Group and sub discord on entity sites", () => {

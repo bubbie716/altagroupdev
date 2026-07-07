@@ -19,6 +19,7 @@ import { Route as InstitutionsRouteImport } from './routes/institutions'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as DiscordRouteImport } from './routes/discord'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccessRestrictedRouteImport } from './routes/access-restricted'
 import { Route as TerminalRouteRouteImport } from './routes/terminal/route'
 import { Route as InternalRouteRouteImport } from './routes/internal/route'
@@ -326,6 +327,11 @@ const DiscordRoute = DiscordRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccessRestrictedRoute = AccessRestrictedRouteImport.update({
@@ -1758,6 +1764,7 @@ export interface FileRoutesByFullPath {
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
+  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
@@ -2022,6 +2029,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access-restricted': typeof AccessRestrictedRoute
+  '/admin': typeof AdminRoute
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
   '/institutions': typeof InstitutionsRoute
@@ -2272,6 +2280,7 @@ export interface FileRoutesById {
   '/internal': typeof InternalRouteRouteWithChildren
   '/terminal': typeof TerminalRouteRouteWithChildren
   '/access-restricted': typeof AccessRestrictedRoute
+  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/discord': typeof DiscordRouteWithChildren
   '/home': typeof HomeRoute
@@ -2544,6 +2553,7 @@ export interface FileRouteTypes {
     | '/internal'
     | '/terminal'
     | '/access-restricted'
+    | '/admin'
     | '/dashboard'
     | '/discord'
     | '/home'
@@ -2808,6 +2818,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/access-restricted'
+    | '/admin'
     | '/discord'
     | '/home'
     | '/institutions'
@@ -3057,6 +3068,7 @@ export interface FileRouteTypes {
     | '/internal'
     | '/terminal'
     | '/access-restricted'
+    | '/admin'
     | '/dashboard'
     | '/discord'
     | '/home'
@@ -3328,6 +3340,7 @@ export interface RootRouteChildren {
   InternalRouteRoute: typeof InternalRouteRouteWithChildren
   TerminalRouteRoute: typeof TerminalRouteRouteWithChildren
   AccessRestrictedRoute: typeof AccessRestrictedRoute
+  AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   DiscordRoute: typeof DiscordRouteWithChildren
   HomeRoute: typeof HomeRoute
@@ -3444,6 +3457,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/access-restricted': {
@@ -6155,6 +6175,7 @@ const rootRouteChildren: RootRouteChildren = {
   InternalRouteRoute: InternalRouteRouteWithChildren,
   TerminalRouteRoute: TerminalRouteRouteWithChildren,
   AccessRestrictedRoute: AccessRestrictedRoute,
+  AdminRoute: AdminRoute,
   DashboardRoute: DashboardRouteWithChildren,
   DiscordRoute: DiscordRouteWithChildren,
   HomeRoute: HomeRoute,

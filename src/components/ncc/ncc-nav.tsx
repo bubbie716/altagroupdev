@@ -1,9 +1,9 @@
 "use client";
 
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { NccWordmark } from "@/components/ncc/ncc-logo";
-import { AuthUserMenu } from "@/components/auth/user-menu";
+import { NccUserMenu } from "@/components/ncc/ncc-user-menu";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 
@@ -79,7 +79,7 @@ export function NccNav() {
             </SiteInternalLink>
           )}
           <div className="hidden sm:block">
-            <AuthUserMenu />
+            <NccUserMenu />
           </div>
         </div>
       </div>

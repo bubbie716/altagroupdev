@@ -31,8 +31,9 @@ function SupportCenterPage() {
           Support Center
         </h1>
         <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Join the official Alta Discord communities for {site.displayName}
-          {site.key === "corporate" ? "" : " and Alta Group"} support, updates, and discussion.
+          {site.key === "corporate"
+            ? "Join the official Alta Discord communities for support, updates, and discussion across the portfolio."
+            : `Join the official Alta Discord communities for ${site.displayName} and Alta Group support, updates, and discussion.`}
         </p>
 
         <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
