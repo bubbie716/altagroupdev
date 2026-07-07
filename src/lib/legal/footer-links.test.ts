@@ -9,7 +9,7 @@ import {
   resolveLegalDocIdFromSlug,
   siteEntitySectionDocuments,
 } from "@/lib/legal/legal-document-registry";
-import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
+import { hasLegalDocBody } from "@/lib/governance/legal-docs-catalog";
 import {
   FOOTER_CORPORATE_SECTION_LINKS,
   FOOTER_SUPPORT_LINKS,
@@ -22,43 +22,43 @@ import {
 import { NCC_LEGAL_DOCS } from "@/lib/ncc/ncc-tokens";
 
 describe("footer links", () => {
-  it("resolves every registered footer document to a catalog entry", () => {
+  it("resolves every registered footer document to a catalog entry", async () => {
     const docs = footerDocuments({ globalOnly: true });
     for (const doc of docs) {
-      expect(getLegalDoc(doc.id), `missing catalog body for ${doc.id}`).not.toBeNull();
+      expect(await hasLegalDocBody(doc.id), `missing catalog body for ${doc.id}`).toBe(true);
       expect(getLegalDocument(doc.id), `missing registry entry for ${doc.id}`).toBeDefined();
     }
   });
 
-  it("builds router params that load the document", () => {
+  it("builds router params that load the document", async () => {
     for (const doc of groupFooterDocuments()) {
       const link = legalDocLinkParams(doc.id);
       expect(link.to).toBe("/legal/$docId");
-      expect(getLegalDoc(link.params.docId)).not.toBeNull();
+      expect(await hasLegalDocBody(link.params.docId)).toBe(true);
     }
 
     for (const entity of ["bank", "markets", "ncc"] as const) {
       for (const doc of entityFooterDocuments(entity)) {
         const link = legalDocLinkParams(doc.id);
-        expect(getLegalDoc(link.params.docId)).not.toBeNull();
+        expect(await hasLegalDocBody(link.params.docId)).toBe(true);
       }
     }
   });
 
-  it("resolves pretty legal slugs used in paths", () => {
+  it("resolves pretty legal slugs used in paths", async () => {
     for (const doc of footerDocuments()) {
       const resolved = resolveLegalDocIdFromSlug(doc.slug);
       expect(resolved).toBe(doc.id);
-      expect(getLegalDoc(resolved!)).not.toBeNull();
+      expect(await hasLegalDocBody(resolved!)).toBe(true);
     }
   });
 
-  it("exposes valid NCC footer legal paths", () => {
+  it("exposes valid NCC footer legal paths", async () => {
     for (const doc of NCC_LEGAL_DOCS) {
       expect(doc.path.startsWith("/legal/")).toBe(true);
       const segment = doc.path.replace(/^\/legal\//, "");
       const id = resolveLegalDocIdFromSlug(segment) ?? segment;
-      expect(getLegalDoc(id)).not.toBeNull();
+      expect(await hasLegalDocBody(id)).toBe(true);
     }
   });
 

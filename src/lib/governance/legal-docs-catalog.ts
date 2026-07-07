@@ -83,36 +83,39 @@ function descriptionFor(meta: Pick<LegalDocMeta, "id" | "title" | "kind">): stri
   return "Legal agreement, policy, or disclosure for Alta services.";
 }
 
-const rawModules = import.meta.glob<string>("../../content/legal-docs/*.md", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-});
-
-export const legalDocBodies: Record<string, string> = {};
-
-for (const [path, body] of Object.entries(rawModules)) {
+function metaFromPath(path: string): LegalDocMeta | null {
   const filename = path.split("/").pop() ?? "";
   const id = parseDocId(filename);
-  if (id) legalDocBodies[id] = body;
+  if (!id) return null;
+
+  const title = titleFromFilename(filename);
+  const kind = kindForId(id, title);
+  return {
+    id,
+    title,
+    category: categoryForId(id),
+    entity: entityForId(id),
+    kind,
+    filename,
+    description: descriptionFor({ id, title, kind }),
+  };
 }
 
-export const legalDocsCatalog: LegalDocMeta[] = Object.keys(legalDocBodies)
-  .map((id) => {
-    const path = Object.keys(rawModules).find((entry) => entry.includes(id)) ?? "";
-    const filename = path.split("/").pop() ?? `${id}.md`;
-    const title = titleFromFilename(filename);
-    const kind = kindForId(id, title);
-    return {
-      id,
-      title,
-      category: categoryForId(id),
-      entity: entityForId(id),
-      kind,
-      filename,
-      description: descriptionFor({ id, title, kind }),
-    };
-  })
+/** Lazy loaders — bodies are fetched per document instead of bundled globally. */
+const docLoaders = import.meta.glob<string>("../../content/legal-docs/*.md", {
+  query: "?raw",
+  import: "default",
+});
+
+const docLoaderById = new Map<string, () => Promise<string>>();
+for (const [path, loader] of Object.entries(docLoaders)) {
+  const meta = metaFromPath(path);
+  if (meta) docLoaderById.set(meta.id, loader);
+}
+
+export const legalDocsCatalog: LegalDocMeta[] = Object.keys(docLoaders)
+  .map(metaFromPath)
+  .filter((meta): meta is LegalDocMeta => meta !== null)
   .sort((a, b) => a.id.localeCompare(b.id));
 
 export const legalDocsByCategory = legalDocsCatalog.reduce<
@@ -145,9 +148,23 @@ export const legalDocCategoryOrder: LegalDocCategory[] = [
   "NCC — Legal",
 ];
 
-export function getLegalDoc(id: string): { meta: LegalDocMeta; body: string } | null {
-  const meta = legalDocsCatalog.find((doc) => doc.id === id);
-  const body = legalDocBodies[id];
-  if (!meta || !body) return null;
+export function getLegalDocMeta(id: string): LegalDocMeta | undefined {
+  return legalDocsCatalog.find((doc) => doc.id === id);
+}
+
+export async function getLegalDoc(id: string): Promise<{ meta: LegalDocMeta; body: string } | null> {
+  const meta = getLegalDocMeta(id);
+  if (!meta) return null;
+
+  const loader = docLoaderById.get(id);
+  if (!loader) return null;
+
+  const body = await loader();
   return { meta, body };
+}
+
+/** Confirms a catalog entry has a loadable markdown body (used in CI/tests). */
+export async function hasLegalDocBody(id: string): Promise<boolean> {
+  const doc = await getLegalDoc(id);
+  return doc !== null && doc.body.length > 0;
 }

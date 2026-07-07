@@ -13,7 +13,6 @@ import {
 } from "@/lib/bank/alta-card-types";
 import { AltaWordmark } from "@/components/alta-logo";
 import { RouteButton } from "@/components/bank/route-button";
-import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
 import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
 import { formatActivityDateTime, formatStatementTransactionDateTime } from "@/lib/format-datetime";
 import { altaCardStatementsLink } from "@/lib/bank/alta-card-navigation";
@@ -88,6 +87,7 @@ export function AltaCardStatementDocument({
     setExportError(null);
 
     try {
+      const { downloadElementAsPdf } = await import("@/lib/bank/download-statement-pdf");
       await downloadElementAsPdf(element, `alta-card-statement-${statement.statementNumber}.pdf`);
     } catch {
       setExportError("Could not generate PDF. Try Print instead, or refresh and retry.");

@@ -3,7 +3,6 @@ import { Download, Loader2, Printer } from "lucide-react";
 import type { BankStatementDetail } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { AltaWordmark } from "@/components/alta-logo";
-import { downloadElementAsPdf } from "@/lib/bank/download-statement-pdf";
 import { formatActivityDateLong, formatStatementTransactionDateTime } from "@/lib/format-datetime";
 import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
 import { RouteButton } from "@/components/bank/route-button";
@@ -41,6 +40,7 @@ export function StatementDocument({
     setExportError(null);
 
     try {
+      const { downloadElementAsPdf } = await import("@/lib/bank/download-statement-pdf");
       await downloadElementAsPdf(element, `${statement.statementNumber}.pdf`);
     } catch {
       setExportError("Could not generate PDF. Try Print instead, or refresh and retry.");

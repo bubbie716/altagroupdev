@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { loadRootSession } from "@/lib/auth/root-session-loader";
-import { isMaintenanceBypassUser } from "@/lib/platform/maintenance-guard";
+import { isMaintenanceBypassUser, shouldEnforceMaintenance } from "@/lib/platform/maintenance-guard";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
@@ -137,7 +137,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
     }
 
     const pathname = location.pathname;
-    const { shouldEnforceMaintenance } = await import("@/lib/platform/maintenance-guard");
 
     if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
       throw redirect({ to: "/" });

@@ -8,7 +8,6 @@ import {
   resolveFooterVariant,
 } from "@/lib/platform/footer-variant";
 import { getLegalDocument } from "@/lib/legal/legal-document-registry";
-import { getLegalDoc } from "@/lib/governance/legal-docs-catalog";
 import { useSiteContext } from "@/hooks/use-site-context";
 
 function resolveLegalDocFooter(pathname: string) {
@@ -16,14 +15,13 @@ function resolveLegalDocFooter(pathname: string) {
   if (!docId) return undefined;
 
   const registry = getLegalDocument(docId);
-  const catalog = getLegalDoc(docId);
-  if (!registry && !catalog) return undefined;
+  if (!registry) return undefined;
 
   return {
     docId,
-    title: catalog?.meta.title ?? registry?.title ?? docId,
-    version: registry?.version ?? "1.0",
-    lastUpdated: registry?.lastUpdated ?? "March 2026",
+    title: registry.title,
+    version: registry.version ?? "1.0",
+    lastUpdated: registry.lastUpdated ?? "March 2026",
   };
 }
 

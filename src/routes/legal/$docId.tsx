@@ -12,13 +12,13 @@ import { SiteInternalLink } from "@/components/site/site-internal-link";
 import { useSiteContext } from "@/hooks/use-site-context";
 
 export const Route = createFileRoute("/legal/$docId")({
-  loader: ({ params }) => {
-    const direct = getLegalDoc(params.docId);
+  loader: async ({ params }) => {
+    const direct = await getLegalDoc(params.docId);
     if (direct) return direct;
 
     const resolvedId = resolveLegalDocIdFromSlug(params.docId);
     if (resolvedId) {
-      const resolved = getLegalDoc(resolvedId);
+      const resolved = await getLegalDoc(resolvedId);
       if (resolved) return resolved;
     }
 

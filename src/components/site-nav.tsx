@@ -237,5 +237,3 @@ export const SiteNav = memo(function SiteNav() {
   );
 });
 
-export { MarketingFooter, PublicFooter, SiteFooter } from "./footers";
-export { SiteFooterGate } from "./site-footer-gate";
