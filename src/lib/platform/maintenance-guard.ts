@@ -9,6 +9,7 @@ import { isUiLabMode } from "@/lib/auth/ui-lab";
 const MAINTENANCE_EXEMPT_PREFIXES = [
   "/maintenance",
   "/login",
+  "/admin",
   "/access-restricted",
   "/api/",
 ] as const;

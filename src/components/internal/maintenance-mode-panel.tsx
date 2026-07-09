@@ -10,7 +10,6 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import {
   MAINTENANCE_SCOPE_DESCRIPTIONS,
   MAINTENANCE_SCOPE_LABELS,
-  MAINTENANCE_SCOPES,
   type MaintenanceModeSettings,
   type MaintenanceScope,
 } from "@/lib/platform/maintenance-types";
@@ -18,7 +17,13 @@ import { setMaintenanceModeOps } from "@/lib/platform/platform-settings.function
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
-export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSettings }) {
+export function MaintenanceModePanel({
+  initial,
+  visibleScopes,
+}: {
+  initial: MaintenanceModeSettings;
+  visibleScopes: MaintenanceScope[];
+}) {
   const router = useRouter();
   const saveFn = useServerFn(setMaintenanceModeOps);
   const [message, setMessage] = useState(initial.message);
@@ -27,6 +32,11 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
   );
   const [savingMessage, setSavingMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const scopes = visibleScopes.filter((scope, index, all) => all.indexOf(scope) === index);
+  const visibleActiveScopes = scopes.filter((scope) => initial.scopes[scope]);
+  const panelActive = visibleActiveScopes.length > 0;
+  const primaryScope = scopes[0] ?? "sitewide";
 
   useEffect(() => {
     setMessage(initial.message);
@@ -41,11 +51,11 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
     setSavingMessage(true);
     setError(null);
     try {
-      const activeScope = initial.activeScopes[0] ?? "sitewide";
+      const scopeForMessage = visibleActiveScopes[0] ?? primaryScope;
       await saveFn({
         data: {
-          scope: activeScope,
-          enabled: initial.scopes[activeScope],
+          scope: scopeForMessage,
+          enabled: initial.scopes[scopeForMessage],
           message,
           reason: "Updated maintenance message from internal settings",
         },
@@ -58,21 +68,26 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
     }
   }
 
+  const scopeSummary =
+    scopes.length === 1
+      ? MAINTENANCE_SCOPE_DESCRIPTIONS[scopes[0]!]
+      : "Manage maintenance for this site's scope from this settings page.";
+
   return (
     <Card className="!p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Maintenance Mode</div>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-            Enable maintenance independently for Alta Group, Alta Bank, Alta Exchange and Terminal, or
-            place the entire Alta platform into sitewide maintenance.
-          </p>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">{scopeSummary}</p>
         </div>
-        <StatusBadge status={initial.enabled ? "Active" : "Inactive"} />
+        <StatusBadge status={panelActive ? "Active" : "Inactive"} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <MetaRow label="Active scopes" value={initial.enabled ? initial.activeScopes.length.toString() : "0"} />
+        <MetaRow
+          label="Active scopes"
+          value={panelActive ? visibleActiveScopes.map((scope) => MAINTENANCE_SCOPE_LABELS[scope]).join(", ") : "0"}
+        />
         <MetaRow label="Last updated by" value={initial.updatedByUsername ?? "—"} />
         <MetaRow
           label="Last updated"
@@ -113,7 +128,7 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
       </div>
 
       <div className="mt-8 grid gap-3">
-        {MAINTENANCE_SCOPES.map((scope) => {
+        {scopes.map((scope) => {
           const active = initial.scopes[scope];
           const startedAt = initial.scopeStartedAt[scope];
           return (

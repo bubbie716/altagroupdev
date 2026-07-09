@@ -30,11 +30,15 @@ const MAINTENANCE_KEYS = [
   PLATFORM_SETTING_KEYS.maintenanceModeEnabled,
   PLATFORM_SETTING_KEYS.maintenanceModeCorporateEnabled,
   PLATFORM_SETTING_KEYS.maintenanceModeBankEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeExchangeEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeTerminalEnabled,
   PLATFORM_SETTING_KEYS.maintenanceModeMarketsEnabled,
   PLATFORM_SETTING_KEYS.maintenanceModeMessage,
   PLATFORM_SETTING_KEYS.maintenanceModeStartedAt,
   PLATFORM_SETTING_KEYS.maintenanceModeCorporateStartedAt,
   PLATFORM_SETTING_KEYS.maintenanceModeBankStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeExchangeStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeTerminalStartedAt,
   PLATFORM_SETTING_KEYS.maintenanceModeMarketsStartedAt,
   PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById,
 ] as const;
@@ -43,14 +47,16 @@ const SCOPE_ENABLED_KEY: Record<MaintenanceScope, keyof typeof PLATFORM_SETTING_
   sitewide: "maintenanceModeEnabled",
   corporate: "maintenanceModeCorporateEnabled",
   bank: "maintenanceModeBankEnabled",
-  markets: "maintenanceModeMarketsEnabled",
+  exchange: "maintenanceModeExchangeEnabled",
+  terminal: "maintenanceModeTerminalEnabled",
 };
 
 const SCOPE_STARTED_AT_KEY: Record<MaintenanceScope, keyof typeof PLATFORM_SETTING_KEYS> = {
   sitewide: "maintenanceModeStartedAt",
   corporate: "maintenanceModeCorporateStartedAt",
   bank: "maintenanceModeBankStartedAt",
-  markets: "maintenanceModeMarketsStartedAt",
+  exchange: "maintenanceModeExchangeStartedAt",
+  terminal: "maintenanceModeTerminalStartedAt",
 };
 
 let maintenanceGateCache: { scopes: MaintenanceScopeFlags; expiresAt: number } | null = null;
@@ -79,22 +85,44 @@ const FULL_CACHE_TTL_MS = 10_000;
 function parseMaintenanceScopeFlags(
   settings: Map<(typeof MAINTENANCE_KEYS)[number], { value: unknown; updatedAt: Date }>,
 ): MaintenanceScopeFlags {
+  const marketsLegacy = parseBoolean(
+    settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsEnabled)?.value,
+  );
+  const hasExchangeKey = settings.has(PLATFORM_SETTING_KEYS.maintenanceModeExchangeEnabled);
+  const hasTerminalKey = settings.has(PLATFORM_SETTING_KEYS.maintenanceModeTerminalEnabled);
+
   return {
     sitewide: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeEnabled)?.value),
     corporate: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeCorporateEnabled)?.value),
     bank: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeBankEnabled)?.value),
-    markets: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsEnabled)?.value),
+    exchange: hasExchangeKey
+      ? parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeExchangeEnabled)?.value)
+      : marketsLegacy,
+    terminal: hasTerminalKey
+      ? parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeTerminalEnabled)?.value)
+      : marketsLegacy,
   };
 }
 
 function parseMaintenanceScopeStartedAt(
   settings: Map<(typeof MAINTENANCE_KEYS)[number], { value: unknown; updatedAt: Date }>,
 ): Record<MaintenanceScope, string | null> {
+  const marketsLegacyStartedAt = parseIsoDate(
+    settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsStartedAt)?.value,
+  );
+  const hasExchangeKey = settings.has(PLATFORM_SETTING_KEYS.maintenanceModeExchangeStartedAt);
+  const hasTerminalKey = settings.has(PLATFORM_SETTING_KEYS.maintenanceModeTerminalStartedAt);
+
   return {
     sitewide: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt)?.value),
     corporate: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeCorporateStartedAt)?.value),
     bank: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeBankStartedAt)?.value),
-    markets: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsStartedAt)?.value),
+    exchange: hasExchangeKey
+      ? parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeExchangeStartedAt)?.value)
+      : marketsLegacyStartedAt,
+    terminal: hasTerminalKey
+      ? parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeTerminalStartedAt)?.value)
+      : marketsLegacyStartedAt,
   };
 }
 

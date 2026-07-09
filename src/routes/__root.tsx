@@ -132,18 +132,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
       sitewide: false,
       corporate: false,
       bank: false,
-      markets: false,
+      exchange: false,
+      terminal: false,
     };
+    let nccMaintenanceEnabled = false;
     try {
       const session = await loadRootSession();
       user = session.user;
       maintenanceScopes = session.maintenanceScopes;
+      nccMaintenanceEnabled = session.nccMaintenanceEnabled;
     } catch (error) {
       console.error("[auth] Failed to load root session", error);
     }
 
     const pathname = location.pathname;
-    const maintenanceEnabled = isMaintenanceActiveForSite(site.key, maintenanceScopes);
+    const maintenanceEnabled =
+      site.key === "ncc"
+        ? nccMaintenanceEnabled
+        : isMaintenanceActiveForSite(site.key, maintenanceScopes);
 
     if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
       throw redirect({ to: "/" });

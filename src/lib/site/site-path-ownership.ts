@@ -6,9 +6,6 @@ import type { SiteKey } from "@/config/sites";
  */
 const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
   { prefix: "/company/ncc", siteKey: "ncc" },
-  { prefix: "/login", siteKey: "ncc" },
-  { prefix: "/admin", siteKey: "ncc" },
-  { prefix: "/dashboard", siteKey: "ncc" },
   { prefix: "/institutions", siteKey: "ncc" },
   { prefix: "/network", siteKey: "ncc" },
   { prefix: "/participation", siteKey: "ncc" },
@@ -36,6 +33,10 @@ const SHARED_PATH_PREFIXES = [
   "/profile",
   "/companies",
   "/internal",
+  "/dashboard",
+  "/login",
+  "/admin",
+  "/markets",
 ] as const;
 
 function normalizePathname(pathname: string): string {

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { MaintenanceScope } from "@/lib/platform/maintenance-types";
 
 export const fetchMaintenanceMode = createServerFn({ method: "GET" }).handler(async () => {
   const { getMaintenanceMode } = await import("@/server/platform-settings.service");
@@ -12,8 +13,7 @@ export const fetchMaintenanceModeSettings = createServerFn({ method: "GET" }).ha
 
 export const setMaintenanceModeOps = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { scope: "sitewide" | "corporate" | "bank" | "markets"; enabled: boolean; message?: string; reason: string }) =>
-      input,
+    (input: { scope: MaintenanceScope; enabled: boolean; message?: string; reason: string }) => input,
   )
   .handler(async ({ data }) => {
     const { requireAuth } = await import("@/server/auth.service");

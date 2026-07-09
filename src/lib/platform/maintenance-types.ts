@@ -1,17 +1,23 @@
 import type { SiteKey } from "@/config/sites";
 
-export const MAINTENANCE_SCOPES = ["sitewide", "corporate", "bank", "markets"] as const;
+export const MAINTENANCE_SCOPES = ["sitewide", "corporate", "bank", "exchange", "terminal"] as const;
 export type MaintenanceScope = (typeof MAINTENANCE_SCOPES)[number];
 
 export const PLATFORM_SETTING_KEYS = {
   maintenanceModeEnabled: "maintenanceModeEnabled",
   maintenanceModeCorporateEnabled: "maintenanceModeCorporateEnabled",
   maintenanceModeBankEnabled: "maintenanceModeBankEnabled",
+  maintenanceModeExchangeEnabled: "maintenanceModeExchangeEnabled",
+  maintenanceModeTerminalEnabled: "maintenanceModeTerminalEnabled",
+  /** @deprecated Legacy combined markets flag — migrated to exchange/terminal on read. */
   maintenanceModeMarketsEnabled: "maintenanceModeMarketsEnabled",
   maintenanceModeMessage: "maintenanceModeMessage",
   maintenanceModeStartedAt: "maintenanceModeStartedAt",
   maintenanceModeCorporateStartedAt: "maintenanceModeCorporateStartedAt",
   maintenanceModeBankStartedAt: "maintenanceModeBankStartedAt",
+  maintenanceModeExchangeStartedAt: "maintenanceModeExchangeStartedAt",
+  maintenanceModeTerminalStartedAt: "maintenanceModeTerminalStartedAt",
+  /** @deprecated Legacy combined markets timestamp — migrated on read. */
   maintenanceModeMarketsStartedAt: "maintenanceModeMarketsStartedAt",
   maintenanceModeUpdatedById: "maintenanceModeUpdatedById",
 } as const;
@@ -43,14 +49,16 @@ export const MAINTENANCE_SCOPE_LABELS: Record<MaintenanceScope, string> = {
   sitewide: "Sitewide Maintenance",
   corporate: "Corporate Maintenance",
   bank: "Bank Maintenance",
-  markets: "Markets Maintenance",
+  exchange: "Exchange Maintenance",
+  terminal: "Terminal Maintenance",
 };
 
 export const MAINTENANCE_SCOPE_DESCRIPTIONS: Record<MaintenanceScope, string> = {
-  sitewide: "All Alta sites, shared routes, and the Discord bank bot.",
+  sitewide: "All Alta sites (excluding NCC), shared routes, and the Discord bank bot.",
   corporate: "Alta Group corporate site only.",
   bank: "Alta Bank site and banking routes.",
-  markets: "Alta Exchange and Alta Terminal sites.",
+  exchange: "Alta Exchange site only.",
+  terminal: "Alta Terminal site only.",
 };
 
 export function emptyMaintenanceScopeFlags(): MaintenanceScopeFlags {
@@ -58,7 +66,8 @@ export function emptyMaintenanceScopeFlags(): MaintenanceScopeFlags {
     sitewide: false,
     corporate: false,
     bank: false,
-    markets: false,
+    exchange: false,
+    terminal: false,
   };
 }
 
@@ -67,12 +76,13 @@ export function emptyMaintenanceScopeStartedAt(): Record<MaintenanceScope, strin
     sitewide: null,
     corporate: null,
     bank: null,
-    markets: null,
+    exchange: null,
+    terminal: null,
   };
 }
 
 export function isAnyMaintenanceScopeActive(scopes: MaintenanceScopeFlags): boolean {
-  return scopes.sitewide || scopes.corporate || scopes.bank || scopes.markets;
+  return scopes.sitewide || scopes.corporate || scopes.bank || scopes.exchange || scopes.terminal;
 }
 
 export function getActiveMaintenanceScopes(scopes: MaintenanceScopeFlags): MaintenanceScope[] {
@@ -80,11 +90,12 @@ export function getActiveMaintenanceScopes(scopes: MaintenanceScopeFlags): Maint
 }
 
 export function isMaintenanceActiveForSite(siteKey: SiteKey, scopes: MaintenanceScopeFlags): boolean {
+  if (siteKey === "ncc") return false;
   if (scopes.sitewide) return true;
   if (siteKey === "corporate") return scopes.corporate;
   if (siteKey === "bank") return scopes.bank;
-  if (siteKey === "exchange" || siteKey === "terminal") return scopes.markets;
-  if (siteKey === "ncc") return scopes.sitewide;
+  if (siteKey === "exchange") return scopes.exchange;
+  if (siteKey === "terminal") return scopes.terminal;
   return false;
 }
 
@@ -95,9 +106,25 @@ export function getMaintenanceScopeForSite(
   if (scopes.sitewide) return "sitewide";
   if (siteKey === "corporate" && scopes.corporate) return "corporate";
   if (siteKey === "bank" && scopes.bank) return "bank";
-  if ((siteKey === "exchange" || siteKey === "terminal") && scopes.markets) return "markets";
-  if (siteKey === "ncc" && scopes.sitewide) return "sitewide";
+  if (siteKey === "exchange" && scopes.exchange) return "exchange";
+  if (siteKey === "terminal" && scopes.terminal) return "terminal";
   return null;
+}
+
+/** Maintenance scopes editable from each site's internal settings page. */
+export function maintenanceScopesForInternalSettings(siteKey: SiteKey): MaintenanceScope[] {
+  switch (siteKey) {
+    case "corporate":
+      return ["sitewide", "corporate"];
+    case "bank":
+      return ["bank"];
+    case "exchange":
+      return ["exchange"];
+    case "terminal":
+      return ["terminal"];
+    default:
+      return [];
+  }
 }
 
 export function maintenanceTitleForSite(siteKey: SiteKey, scope: MaintenanceScope | null): string {

@@ -14,11 +14,14 @@ export function assertEntityInternalRouteAccess(siteKey: SiteKey, pathname: stri
     return;
   }
 
-  if (siteKey === "exchange" || siteKey === "terminal") {
-    if (path !== "/internal") {
-      throw redirect({ to: "/internal" });
-    }
-    return;
+  if (siteKey === "exchange") {
+    if (path === "/internal" || path === "/internal/exchange/settings") return;
+    throw redirect({ to: "/internal" });
+  }
+
+  if (siteKey === "terminal") {
+    if (path === "/internal" || path === "/internal/terminal/settings") return;
+    throw redirect({ to: "/internal" });
   }
 
   if (siteKey === "ncc") {

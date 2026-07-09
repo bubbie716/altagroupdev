@@ -15,4 +15,9 @@ describe("entity-internal-scope", () => {
     expect(() => assertEntityInternalRouteAccess("corporate", "/internal/settings")).not.toThrow();
     expect(() => assertEntityInternalRouteAccess("bank", "/internal/bank/accounts")).not.toThrow();
   });
+
+  it("allows exchange and terminal settings routes only on their own sites", () => {
+    expect(() => assertEntityInternalRouteAccess("exchange", "/internal/exchange/settings")).not.toThrow();
+    expect(() => assertEntityInternalRouteAccess("terminal", "/internal/terminal/settings")).not.toThrow();
+  });
 });

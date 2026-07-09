@@ -9,9 +9,15 @@ describe("site-path-ownership", () => {
   });
 
   it("assigns NCC ops prefixes", () => {
-    expect(siteKeyForOwnedPath("/dashboard")).toBe("ncc");
-    expect(siteKeyForOwnedPath("/login")).toBe("ncc");
+    expect(siteKeyForOwnedPath("/institutions")).toBe("ncc");
     expect(siteKeyForOwnedPath("/company/ncc")).toBe("ncc");
+  });
+
+  it("treats dashboard, login, admin, and markets as shared shortcuts", () => {
+    expect(siteKeyForOwnedPath("/dashboard")).toBeNull();
+    expect(siteKeyForOwnedPath("/login")).toBeNull();
+    expect(siteKeyForOwnedPath("/admin")).toBeNull();
+    expect(siteKeyForOwnedPath("/markets")).toBeNull();
   });
 
   it("excludes corporate paths from entity path helper", () => {

@@ -67,6 +67,12 @@ describe("resolveCrossSitePathRedirect", () => {
     expect(
       resolveCrossSitePathRedirect("/internal", { host: "bank.altagroup.dev" }),
     ).toBeNull();
+    expect(
+      resolveCrossSitePathRedirect("/dashboard", { host: "bank.altagroup.dev" }),
+    ).toBeNull();
+    expect(
+      resolveCrossSitePathRedirect("/login", { host: "exchange.altagroup.dev" }),
+    ).toBeNull();
   });
 
   it("redirects NCC paths from corporate production host to NCC domain", () => {
@@ -74,8 +80,8 @@ describe("resolveCrossSitePathRedirect", () => {
       resolveCrossSitePathRedirect("/company/ncc", { host: "altagroup.dev" }),
     ).toBe("http://newportclearingcorporation.com/company/ncc");
     expect(
-      resolveCrossSitePathRedirect("/dashboard", { host: "bank.altagroup.dev" }),
-    ).toBe("http://newportclearingcorporation.com/dashboard");
+      resolveCrossSitePathRedirect("/institutions", { host: "bank.altagroup.dev" }),
+    ).toBe("http://newportclearingcorporation.com/institutions");
   });
 
   it("redirects corporate paths away from plain localhost with ?site= override", () => {

@@ -4,6 +4,7 @@ import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalPlatformSettingsSections } from "@/components/internal/internal-platform-settings-sections";
 import { fetchInternalDashboardMetrics } from "@/lib/internal/internal-dashboard.functions";
 import { loadInternalPlatformSettings } from "@/lib/internal/internal-platform-settings-loader";
+import { maintenanceScopesForInternalSettings } from "@/lib/platform/maintenance-types";
 
 export const Route = createFileRoute("/internal/settings")({
   loader: async () => {
@@ -24,6 +25,7 @@ function InternalSettingsPage() {
     <InternalPageShell title="Internal Settings" description="Platform maintenance, Credit Desk status, and live operations.">
       <InternalPlatformSettingsSections
         data={{ maintenance, creditDesk, commercialPlans }}
+        maintenanceScopes={maintenanceScopesForInternalSettings("corporate")}
       />
 
       <Section title="Operations status (live)" className="mt-10">
