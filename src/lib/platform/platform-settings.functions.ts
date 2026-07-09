@@ -12,13 +12,14 @@ export const fetchMaintenanceModeSettings = createServerFn({ method: "GET" }).ha
 
 export const setMaintenanceModeOps = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { enabled: boolean; message: string; reason: string }) => input,
+    (input: { scope: "sitewide" | "corporate" | "bank" | "markets"; enabled: boolean; message?: string; reason: string }) =>
+      input,
   )
   .handler(async ({ data }) => {
     const { requireAuth } = await import("@/server/auth.service");
-    const { setMaintenanceMode } = await import("@/server/platform-settings.service");
+    const { setMaintenanceScope } = await import("@/server/platform-settings.service");
     const user = await requireAuth();
-    return setMaintenanceMode(user.id, data);
+    return setMaintenanceScope(user.id, data);
   });
 
 export const fetchCreditDeskClosedGate = createServerFn({ method: "GET" }).handler(async () => {

@@ -2,37 +2,46 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { LoginPortalShell } from "@/components/auth/auth-gate";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useSiteContext } from "@/hooks/use-site-context";
 import { canBypassMaintenanceMode } from "@/lib/auth/permissions";
 import { fetchMaintenanceMode } from "@/lib/platform/platform-settings.functions";
+import {
+  getMaintenanceScopeForSite,
+  isMaintenanceActiveForSite,
+  maintenanceTitleForSite,
+} from "@/lib/platform/maintenance-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 
 export const Route = createFileRoute("/maintenance")({
   beforeLoad: async ({ context }) => {
     const maintenance = await fetchMaintenanceMode();
-    if (maintenance.enabled && canBypassMaintenanceMode(context.user)) {
+    const siteMaintenanceActive = isMaintenanceActiveForSite(context.site.key, maintenance.scopes);
+    if (!siteMaintenanceActive || canBypassMaintenanceMode(context.user)) {
       throw redirect({ to: "/" });
     }
   },
   loader: () => fetchMaintenanceMode(),
-  head: () => ({ meta: [{ title: "Platform Maintenance — Alta Group" }] }),
+  head: ({ context }) => ({
+    meta: [{ title: `${maintenanceTitleForSite(context.site.key, null)} — ${context.site.displayName}` }],
+  }),
   component: MaintenancePage,
 });
 
 function MaintenancePage() {
   const maintenance = Route.useLoaderData();
+  const site = useSiteContext();
   const user = useCurrentUser();
   const isBypassUser = user ? canBypassMaintenanceMode(user) : false;
+  const activeScope = getMaintenanceScopeForSite(site.key, maintenance.scopes);
+  const title = maintenanceTitleForSite(site.key, activeScope);
+  const startedAt = activeScope ? maintenance.scopeStartedAt[activeScope] : maintenance.startedAt;
 
   return (
-    <LoginPortalShell brandEyebrow="Alta Group · Be Back Shortly">
+    <LoginPortalShell brandEyebrow={`${site.displayName} · Be Back Shortly`}>
       <div className="w-full max-w-lg">
-        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">Alta Group</p>
-        <h1 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
-          Platform Maintenance
-        </h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-          {maintenance.message}
-        </p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-gold">{site.displayName}</p>
+        <h1 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">{title}</h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{maintenance.message}</p>
 
         <Card className="mt-8 border-border/80 bg-card/95 !p-6 shadow-sm backdrop-blur-sm">
           <div className="space-y-4">
@@ -45,13 +54,13 @@ function MaintenancePage() {
               </span>
             </div>
 
-            {maintenance.startedAt ? (
+            {startedAt ? (
               <div className="flex items-center justify-between gap-4">
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Started
                 </span>
                 <span className="font-mono text-[12px] text-foreground">
-                  {formatActivityDateTime(maintenance.startedAt)}
+                  {formatActivityDateTime(startedAt)}
                 </span>
               </div>
             ) : null}

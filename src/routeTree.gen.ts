@@ -130,6 +130,7 @@ import { Route as InternalCompaniesCompanyIdRouteImport } from './routes/interna
 import { Route as InternalBankWithdrawalsRouteImport } from './routes/internal/bank/withdrawals'
 import { Route as InternalBankTransfersRouteImport } from './routes/internal/bank/transfers'
 import { Route as InternalBankStatementsRouteImport } from './routes/internal/bank/statements'
+import { Route as InternalBankSettingsRouteImport } from './routes/internal/bank/settings'
 import { Route as InternalBankScheduledRouteImport } from './routes/internal/bank/scheduled'
 import { Route as InternalBankInterestRouteImport } from './routes/internal/bank/interest'
 import { Route as InternalBankDepositsRouteImport } from './routes/internal/bank/deposits'
@@ -894,6 +895,11 @@ const InternalBankTransfersRoute = InternalBankTransfersRouteImport.update({
 const InternalBankStatementsRoute = InternalBankStatementsRouteImport.update({
   id: '/statements',
   path: '/statements',
+  getParentRoute: () => InternalBankRouteRoute,
+} as any)
+const InternalBankSettingsRoute = InternalBankSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => InternalBankRouteRoute,
 } as any)
 const InternalBankScheduledRoute = InternalBankScheduledRouteImport.update({
@@ -1889,6 +1895,7 @@ export interface FileRoutesByFullPath {
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/settings': typeof InternalBankSettingsRoute
   '/internal/bank/statements': typeof InternalBankStatementsRoute
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
@@ -2138,6 +2145,7 @@ export interface FileRoutesByTo {
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/settings': typeof InternalBankSettingsRoute
   '/internal/bank/statements': typeof InternalBankStatementsRoute
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
@@ -2405,6 +2413,7 @@ export interface FileRoutesById {
   '/internal/bank/deposits': typeof InternalBankDepositsRoute
   '/internal/bank/interest': typeof InternalBankInterestRoute
   '/internal/bank/scheduled': typeof InternalBankScheduledRoute
+  '/internal/bank/settings': typeof InternalBankSettingsRoute
   '/internal/bank/statements': typeof InternalBankStatementsRoute
   '/internal/bank/transfers': typeof InternalBankTransfersRoute
   '/internal/bank/withdrawals': typeof InternalBankWithdrawalsRoute
@@ -2678,6 +2687,7 @@ export interface FileRouteTypes {
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/settings'
     | '/internal/bank/statements'
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
@@ -2927,6 +2937,7 @@ export interface FileRouteTypes {
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/settings'
     | '/internal/bank/statements'
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
@@ -3193,6 +3204,7 @@ export interface FileRouteTypes {
     | '/internal/bank/deposits'
     | '/internal/bank/interest'
     | '/internal/bank/scheduled'
+    | '/internal/bank/settings'
     | '/internal/bank/statements'
     | '/internal/bank/transfers'
     | '/internal/bank/withdrawals'
@@ -4234,6 +4246,13 @@ declare module '@tanstack/react-router' {
       path: '/statements'
       fullPath: '/internal/bank/statements'
       preLoaderRoute: typeof InternalBankStatementsRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
+    '/internal/bank/settings': {
+      id: '/internal/bank/settings'
+      path: '/settings'
+      fullPath: '/internal/bank/settings'
+      preLoaderRoute: typeof InternalBankSettingsRouteImport
       parentRoute: typeof InternalBankRouteRoute
     }
     '/internal/bank/scheduled': {
@@ -5859,6 +5878,7 @@ interface InternalBankRouteRouteChildren {
   InternalBankDepositsRoute: typeof InternalBankDepositsRoute
   InternalBankInterestRoute: typeof InternalBankInterestRoute
   InternalBankScheduledRoute: typeof InternalBankScheduledRoute
+  InternalBankSettingsRoute: typeof InternalBankSettingsRoute
   InternalBankStatementsRoute: typeof InternalBankStatementsRoute
   InternalBankTransfersRoute: typeof InternalBankTransfersRoute
   InternalBankWithdrawalsRoute: typeof InternalBankWithdrawalsRoute
@@ -5874,6 +5894,7 @@ const InternalBankRouteRouteChildren: InternalBankRouteRouteChildren = {
   InternalBankDepositsRoute: InternalBankDepositsRoute,
   InternalBankInterestRoute: InternalBankInterestRoute,
   InternalBankScheduledRoute: InternalBankScheduledRoute,
+  InternalBankSettingsRoute: InternalBankSettingsRoute,
   InternalBankStatementsRoute: InternalBankStatementsRoute,
   InternalBankTransfersRoute: InternalBankTransfersRoute,
   InternalBankWithdrawalsRoute: InternalBankWithdrawalsRoute,

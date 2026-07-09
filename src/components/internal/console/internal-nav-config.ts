@@ -113,9 +113,12 @@ export const BANK_INTERNAL_NAV_GROUPS: InternalNavGroup[] = INTERNAL_NAV_GROUPS.
   if (group.id === "system") {
     return {
       ...group,
-      links: group.links.filter(
-        (link) => link.to !== "/internal/settings" && link.to !== "/internal/compliance",
-      ),
+      links: [
+        ...group.links.filter(
+          (link) => link.to !== "/internal/settings" && link.to !== "/internal/compliance",
+        ),
+        { to: "/internal/bank/settings", label: "Settings", match: "/internal/bank/settings" },
+      ],
     };
   }
   return group;

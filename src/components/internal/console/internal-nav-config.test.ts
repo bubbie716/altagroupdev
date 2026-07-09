@@ -22,6 +22,7 @@ describe("internal-nav-config", () => {
     const paths = system?.links.map((link) => link.to) ?? [];
     expect(paths).not.toContain("/internal/settings");
     expect(paths).not.toContain("/internal/compliance");
+    expect(paths).toContain("/internal/bank/settings");
     expect(paths).toContain("/internal/jobs");
   });
 });

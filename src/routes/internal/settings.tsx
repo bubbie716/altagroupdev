@@ -1,22 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Section, Card } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
-import { MaintenanceModePanel } from "@/components/internal/maintenance-mode-panel";
-import { CreditDeskPanel } from "@/components/internal/credit-desk-panel";
-import { CommercialPlanSettingsPanel } from "@/components/internal/commercial-plan-settings-panel";
-import { AdminOnly } from "@/components/internal/admin-only";
+import { InternalPlatformSettingsSections } from "@/components/internal/internal-platform-settings-sections";
 import { fetchInternalDashboardMetrics } from "@/lib/internal/internal-dashboard.functions";
-import { fetchMaintenanceModeSettings, fetchCreditDeskSettings, fetchCommercialPlanPlatformSettings } from "@/lib/platform/platform-settings.functions";
+import { loadInternalPlatformSettings } from "@/lib/internal/internal-platform-settings-loader";
 
 export const Route = createFileRoute("/internal/settings")({
   loader: async () => {
-    const [live, maintenance, creditDesk, commercialPlans] = await Promise.all([
+    const [live, platformSettings] = await Promise.all([
       fetchInternalDashboardMetrics(),
-      fetchMaintenanceModeSettings(),
-      fetchCreditDeskSettings(),
-      fetchCommercialPlanPlatformSettings(),
+      loadInternalPlatformSettings(),
     ]);
-    return { live, maintenance, creditDesk, commercialPlans };
+    return { live, ...platformSettings };
   },
   head: () => ({ meta: [{ title: "Settings — Alta Internal" }] }),
   component: InternalSettingsPage,
@@ -27,19 +22,9 @@ function InternalSettingsPage() {
 
   return (
     <InternalPageShell title="Internal Settings" description="Platform maintenance, Credit Desk status, and live operations.">
-      <Section title="Credit Desk">
-        <CreditDeskPanel initial={creditDesk} />
-      </Section>
-
-      <AdminOnly>
-        <Section title="Alta Commercial plans" className="mt-10">
-          <CommercialPlanSettingsPanel initial={commercialPlans} />
-        </Section>
-
-        <Section title="Maintenance mode" className="mt-10">
-          <MaintenanceModePanel initial={maintenance} />
-        </Section>
-      </AdminOnly>
+      <InternalPlatformSettingsSections
+        data={{ maintenance, creditDesk, commercialPlans }}
+      />
 
       <Section title="Operations status (live)" className="mt-10">
         <Card className="grid gap-4 md:grid-cols-2 !p-5">

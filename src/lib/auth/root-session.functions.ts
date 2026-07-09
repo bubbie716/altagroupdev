@@ -1,15 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { AltaUser } from "@/lib/auth/types";
+import type { MaintenanceScopeFlags } from "@/lib/platform/maintenance-types";
 
 export type RootSession = {
   user: AltaUser | null;
-  maintenanceEnabled: boolean;
+  maintenanceScopes: MaintenanceScopeFlags;
 };
 
-/** Single round-trip for root route auth + maintenance gate. */
+/** Single round-trip for root route auth + maintenance scope flags. */
 export const fetchRootSession = createServerFn({ method: "GET" }).handler(async (): Promise<RootSession> => {
   const { readCurrentUser } = await import("@/server/auth.service");
-  const { getMaintenanceModeGate } = await import("@/server/platform-settings.service");
-  const [user, maintenanceEnabled] = await Promise.all([readCurrentUser(), getMaintenanceModeGate()]);
-  return { user, maintenanceEnabled };
+  const { getMaintenanceScopeFlags } = await import("@/server/platform-settings.service");
+  const [user, maintenanceScopes] = await Promise.all([readCurrentUser(), getMaintenanceScopeFlags()]);
+  return { user, maintenanceScopes };
 });

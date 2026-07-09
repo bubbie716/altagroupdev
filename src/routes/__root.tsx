@@ -19,6 +19,7 @@ import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { loadRootSession } from "@/lib/auth/root-session-loader";
 import { isMaintenanceBypassUser, shouldEnforceMaintenance } from "@/lib/platform/maintenance-guard";
+import { isMaintenanceActiveForSite } from "@/lib/platform/maintenance-types";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
@@ -127,16 +128,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
     if (labUser) return { user: labUser, site };
 
     let user: AltaUser | null = null;
-    let maintenanceEnabled = false;
+    let maintenanceScopes = {
+      sitewide: false,
+      corporate: false,
+      bank: false,
+      markets: false,
+    };
     try {
       const session = await loadRootSession();
       user = session.user;
-      maintenanceEnabled = session.maintenanceEnabled;
+      maintenanceScopes = session.maintenanceScopes;
     } catch (error) {
       console.error("[auth] Failed to load root session", error);
     }
 
     const pathname = location.pathname;
+    const maintenanceEnabled = isMaintenanceActiveForSite(site.key, maintenanceScopes);
 
     if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
       throw redirect({ to: "/" });
@@ -168,6 +175,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
     ],
     links: [
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "shortcut icon", href: "/favicon.svg", type: "image/svg+xml" },
       {
         rel: "stylesheet",
         href: appCss,

@@ -3,9 +3,17 @@ import { canBypassMaintenanceMode, isAdmin } from "@/lib/auth/permissions";
 import {
   DEFAULT_MAINTENANCE_MESSAGE,
   PLATFORM_SETTING_KEYS,
+  emptyMaintenanceScopeFlags,
+  emptyMaintenanceScopeStartedAt,
+  getActiveMaintenanceScopes,
+  isAnyMaintenanceScopeActive,
+  isMaintenanceActiveForSite,
   type MaintenanceModeSettings,
   type MaintenanceModeState,
+  type MaintenanceScope,
+  type MaintenanceScopeFlags,
 } from "@/lib/platform/maintenance-types";
+import type { SiteKey } from "@/config/sites";
 import {
   PLATFORM_SETTING_KEYS as CREDIT_DESK_KEYS,
   type CreditDeskSettings,
@@ -20,15 +28,32 @@ import { requireAdmin } from "@/server/permissions.service";
 const MAINTENANCE_ENTITY_ID = "platform-maintenance";
 const MAINTENANCE_KEYS = [
   PLATFORM_SETTING_KEYS.maintenanceModeEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeCorporateEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeBankEnabled,
+  PLATFORM_SETTING_KEYS.maintenanceModeMarketsEnabled,
   PLATFORM_SETTING_KEYS.maintenanceModeMessage,
   PLATFORM_SETTING_KEYS.maintenanceModeStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeCorporateStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeBankStartedAt,
+  PLATFORM_SETTING_KEYS.maintenanceModeMarketsStartedAt,
   PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById,
 ] as const;
 
-const GATE_CACHE_TTL_MS = 15_000;
-const FULL_CACHE_TTL_MS = 10_000;
+const SCOPE_ENABLED_KEY: Record<MaintenanceScope, keyof typeof PLATFORM_SETTING_KEYS> = {
+  sitewide: "maintenanceModeEnabled",
+  corporate: "maintenanceModeCorporateEnabled",
+  bank: "maintenanceModeBankEnabled",
+  markets: "maintenanceModeMarketsEnabled",
+};
 
-let maintenanceGateCache: { enabled: boolean; expiresAt: number } | null = null;
+const SCOPE_STARTED_AT_KEY: Record<MaintenanceScope, keyof typeof PLATFORM_SETTING_KEYS> = {
+  sitewide: "maintenanceModeStartedAt",
+  corporate: "maintenanceModeCorporateStartedAt",
+  bank: "maintenanceModeBankStartedAt",
+  markets: "maintenanceModeMarketsStartedAt",
+};
+
+let maintenanceGateCache: { scopes: MaintenanceScopeFlags; expiresAt: number } | null = null;
 let maintenanceFullCache: { value: MaintenanceModeState; expiresAt: number } | null = null;
 
 export function clearMaintenanceModeCache(): void {
@@ -48,20 +73,61 @@ async function readMaintenanceSettings(): Promise<
   );
 }
 
-/** Lightweight gate for root routing — cached, single DB read. */
-export async function getMaintenanceModeGate(): Promise<boolean> {
+const GATE_CACHE_TTL_MS = 15_000;
+const FULL_CACHE_TTL_MS = 10_000;
+
+function parseMaintenanceScopeFlags(
+  settings: Map<(typeof MAINTENANCE_KEYS)[number], { value: unknown; updatedAt: Date }>,
+): MaintenanceScopeFlags {
+  return {
+    sitewide: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeEnabled)?.value),
+    corporate: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeCorporateEnabled)?.value),
+    bank: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeBankEnabled)?.value),
+    markets: parseBoolean(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsEnabled)?.value),
+  };
+}
+
+function parseMaintenanceScopeStartedAt(
+  settings: Map<(typeof MAINTENANCE_KEYS)[number], { value: unknown; updatedAt: Date }>,
+): Record<MaintenanceScope, string | null> {
+  return {
+    sitewide: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt)?.value),
+    corporate: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeCorporateStartedAt)?.value),
+    bank: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeBankStartedAt)?.value),
+    markets: parseIsoDate(settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMarketsStartedAt)?.value),
+  };
+}
+
+async function readMaintenanceScopeFlags(): Promise<MaintenanceScopeFlags> {
+  const settings = await readMaintenanceSettings();
+  return parseMaintenanceScopeFlags(settings);
+}
+
+/** Lightweight gate for root routing — cached scope flags. */
+export async function getMaintenanceScopeFlags(): Promise<MaintenanceScopeFlags> {
   if (maintenanceGateCache && Date.now() < maintenanceGateCache.expiresAt) {
-    return maintenanceGateCache.enabled;
+    return maintenanceGateCache.scopes;
   }
   try {
-    const raw = await readSetting(PLATFORM_SETTING_KEYS.maintenanceModeEnabled);
-    const enabled = parseBoolean(raw);
-    maintenanceGateCache = { enabled, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
-    return enabled;
+    const scopes = await readMaintenanceScopeFlags();
+    maintenanceGateCache = { scopes, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
+    return scopes;
   } catch (error) {
-    console.error("[maintenance] Failed to read maintenance gate; defaulting to OFF", error);
-    return false;
+    console.error("[maintenance] Failed to read maintenance scopes; defaulting to OFF", error);
+    return emptyMaintenanceScopeFlags();
   }
+}
+
+/** Whether maintenance is active for a specific Alta site. */
+export async function getMaintenanceActiveForSite(siteKey: SiteKey): Promise<boolean> {
+  const scopes = await getMaintenanceScopeFlags();
+  return isMaintenanceActiveForSite(siteKey, scopes);
+}
+
+/** @deprecated Use getMaintenanceActiveForSite(siteKey) or getMaintenanceScopeFlags(). */
+export async function getMaintenanceModeGate(): Promise<boolean> {
+  const scopes = await getMaintenanceScopeFlags();
+  return isAnyMaintenanceScopeActive(scopes);
 }
 
 function badRequest(msg: string): never {
@@ -111,9 +177,9 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
 
   try {
     const settings = await readMaintenanceSettings();
-    const enabledRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeEnabled)?.value;
+    const scopes = parseMaintenanceScopeFlags(settings);
+    const scopeStartedAt = parseMaintenanceScopeStartedAt(settings);
     const messageRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeMessage)?.value;
-    const startedAtRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt)?.value;
     const updatedByIdRaw = settings.get(PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById)?.value;
 
     const updatedById = parseString(updatedByIdRaw) || null;
@@ -133,23 +199,30 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
     )[0];
     updatedAt = latestRow?.updatedAt.toISOString() ?? null;
 
+    const activeScopes = getActiveMaintenanceScopes(scopes);
     const value: MaintenanceModeState = {
-      enabled: parseBoolean(enabledRaw),
+      scopes,
+      enabled: activeScopes.length > 0,
+      activeScopes,
       message: parseString(messageRaw) || DEFAULT_MAINTENANCE_MESSAGE,
-      startedAt: parseIsoDate(startedAtRaw),
+      scopeStartedAt,
+      startedAt: activeScopes.map((scope) => scopeStartedAt[scope]).find(Boolean) ?? null,
       updatedAt,
       updatedById,
       updatedByUsername,
     };
 
     maintenanceFullCache = { value, expiresAt: Date.now() + FULL_CACHE_TTL_MS };
-    maintenanceGateCache = { enabled: value.enabled, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
+    maintenanceGateCache = { scopes, expiresAt: Date.now() + GATE_CACHE_TTL_MS };
     return value;
   } catch (error) {
     console.error("[maintenance] Failed to read maintenance mode; defaulting to OFF", error);
     return {
+      scopes: emptyMaintenanceScopeFlags(),
       enabled: false,
+      activeScopes: [],
       message: DEFAULT_MAINTENANCE_MESSAGE,
+      scopeStartedAt: emptyMaintenanceScopeStartedAt(),
       startedAt: null,
       updatedAt: null,
       updatedById: null,
@@ -170,51 +243,71 @@ export async function setMaintenanceMode(
   actorUserId: string,
   input: { enabled: boolean; message: string; reason: string },
 ): Promise<MaintenanceModeState> {
+  return setMaintenanceScope(actorUserId, {
+    scope: "sitewide",
+    enabled: input.enabled,
+    message: input.message,
+    reason: input.reason,
+  });
+}
+
+export async function setMaintenanceScope(
+  actorUserId: string,
+  input: { scope: MaintenanceScope; enabled: boolean; message?: string; reason: string },
+): Promise<MaintenanceModeState> {
   await requireAdmin();
   const trimmedReason = input.reason.trim();
   if (!trimmedReason) badRequest("Reason is required");
 
   const previous = await getMaintenanceMode();
-  const message = input.message.trim() || DEFAULT_MAINTENANCE_MESSAGE;
+  const message = (input.message ?? previous.message).trim() || DEFAULT_MAINTENANCE_MESSAGE;
   const nowIso = new Date().toISOString();
+  const scopeWasEnabled = previous.scopes[input.scope];
   const startedAt =
-    input.enabled ? (previous.enabled && previous.startedAt ? previous.startedAt : nowIso) : null;
+    input.enabled
+      ? scopeWasEnabled && previous.scopeStartedAt[input.scope]
+        ? previous.scopeStartedAt[input.scope]
+        : nowIso
+      : null;
 
-  await Promise.all([
-    writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeEnabled, input.enabled, actorUserId),
+  const writes: Promise<void>[] = [
+    writeSetting(PLATFORM_SETTING_KEYS[SCOPE_ENABLED_KEY[input.scope]], input.enabled, actorUserId),
+    writeSetting(PLATFORM_SETTING_KEYS[SCOPE_STARTED_AT_KEY[input.scope]], startedAt, actorUserId),
     writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeMessage, message, actorUserId),
-    writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeStartedAt, startedAt, actorUserId),
     writeSetting(PLATFORM_SETTING_KEYS.maintenanceModeUpdatedById, actorUserId, actorUserId),
-  ]);
+  ];
+
+  await Promise.all(writes);
 
   clearMaintenanceModeCache();
 
   const { writeAuditLog } = await import("@/server/audit.service");
   const metadata = {
     reason: trimmedReason,
-    previousEnabled: previous.enabled,
+    scope: input.scope,
+    previousEnabled: scopeWasEnabled,
     newEnabled: input.enabled,
     previousMessage: previous.message,
     newMessage: message,
     actorUserId,
   };
 
-  if (input.enabled && !previous.enabled) {
+  if (input.enabled && !scopeWasEnabled) {
     await writeAuditLog({
       actorUserId,
       action: "MAINTENANCE_MODE_ENABLED",
       entityType: "PLATFORM",
       entityId: MAINTENANCE_ENTITY_ID,
-      description: "Enabled platform maintenance mode",
+      description: `Enabled ${input.scope} maintenance mode`,
       metadata,
     });
-  } else if (!input.enabled && previous.enabled) {
+  } else if (!input.enabled && scopeWasEnabled) {
     await writeAuditLog({
       actorUserId,
       action: "MAINTENANCE_MODE_DISABLED",
       entityType: "PLATFORM",
       entityId: MAINTENANCE_ENTITY_ID,
-      description: "Disabled platform maintenance mode",
+      description: `Disabled ${input.scope} maintenance mode`,
       metadata,
     });
   } else if (message !== previous.message) {

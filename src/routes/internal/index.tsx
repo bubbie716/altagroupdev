@@ -71,7 +71,9 @@ function InternalOperationsCenter() {
                 Maintenance mode active
               </div>
               <p className="mt-1.5 text-[13px] text-foreground">
-                Public platform pages are offline for normal users.
+                {maintenance.activeScopes.length > 0
+                  ? `Active: ${maintenance.activeScopes.join(", ")}`
+                  : "Public platform pages are offline for normal users."}
               </p>
               <p className="mt-1 text-[12px] text-muted-foreground">
                 {maintenance.startedAt

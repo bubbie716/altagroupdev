@@ -7,23 +7,30 @@ import { Card } from "@/components/page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import type { MaintenanceModeSettings } from "@/lib/platform/maintenance-types";
+import {
+  MAINTENANCE_SCOPE_DESCRIPTIONS,
+  MAINTENANCE_SCOPE_LABELS,
+  MAINTENANCE_SCOPES,
+  type MaintenanceModeSettings,
+  type MaintenanceScope,
+} from "@/lib/platform/maintenance-types";
 import { setMaintenanceModeOps } from "@/lib/platform/platform-settings.functions";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { cn } from "@/lib/utils";
 
 export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSettings }) {
   const router = useRouter();
   const saveFn = useServerFn(setMaintenanceModeOps);
-  const [enabled, setEnabled] = useState(initial.enabled);
   const [message, setMessage] = useState(initial.message);
-  const [confirmAction, setConfirmAction] = useState<null | "enable" | "disable">(null);
+  const [confirmAction, setConfirmAction] = useState<null | { scope: MaintenanceScope; enabled: boolean }>(
+    null,
+  );
   const [savingMessage, setSavingMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setEnabled(initial.enabled);
     setMessage(initial.message);
-  }, [initial.enabled, initial.message]);
+  }, [initial.message]);
 
   async function refreshSettings() {
     await router.invalidate();
@@ -34,9 +41,11 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
     setSavingMessage(true);
     setError(null);
     try {
+      const activeScope = initial.activeScopes[0] ?? "sitewide";
       await saveFn({
         data: {
-          enabled,
+          scope: activeScope,
+          enabled: initial.scopes[activeScope],
           message,
           reason: "Updated maintenance message from internal settings",
         },
@@ -55,19 +64,15 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Maintenance Mode</div>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-            Place the public Alta platform into maintenance mode. Normal users will see the maintenance page
-            instead of bank, exchange, and profile routes.
+            Enable maintenance independently for Alta Group, Alta Bank, Alta Exchange and Terminal, or
+            place the entire Alta platform into sitewide maintenance.
           </p>
         </div>
-        <StatusBadge status={enabled ? "Active" : "Inactive"} />
+        <StatusBadge status={initial.enabled ? "Active" : "Inactive"} />
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <MetaRow label="Current status" value={enabled ? "Maintenance active" : "Platform online"} />
-        <MetaRow
-          label="Started"
-          value={initial.startedAt ? formatActivityDateTime(initial.startedAt) : "—"}
-        />
+        <MetaRow label="Active scopes" value={initial.enabled ? initial.activeScopes.length.toString() : "0"} />
         <MetaRow label="Last updated by" value={initial.updatedByUsername ?? "—"} />
         <MetaRow
           label="Last updated"
@@ -91,66 +96,111 @@ export function MaintenanceModePanel({ initial }: { initial: MaintenanceModeSett
 
         {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
 
-        <div className="flex flex-wrap gap-2">
-          {initial.canEdit ? (
-            <>
-              <button
-                type="button"
-                className="rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em]"
-                onClick={() => void saveMessageOnly()}
-                disabled={savingMessage}
-              >
-                {savingMessage ? SUBMITTING_COPY.saving : "Save message"}
-              </button>
-              {!enabled ? (
-                <button
-                  type="button"
-                  className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
-                  onClick={() => setConfirmAction("enable")}
-                >
-                  Enable maintenance
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="rounded border border-destructive/30 bg-destructive/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
-                  onClick={() => setConfirmAction("disable")}
-                >
-                  Disable maintenance
-                </button>
+        {initial.canEdit ? (
+          <button
+            type="button"
+            className="rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em]"
+            onClick={() => void saveMessageOnly()}
+            disabled={savingMessage}
+          >
+            {savingMessage ? SUBMITTING_COPY.saving : "Save message"}
+          </button>
+        ) : (
+          <p className="text-[13px] text-muted-foreground">
+            Only admins can change maintenance mode. Operators can view current status.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-8 grid gap-3">
+        {MAINTENANCE_SCOPES.map((scope) => {
+          const active = initial.scopes[scope];
+          const startedAt = initial.scopeStartedAt[scope];
+          return (
+            <div
+              key={scope}
+              className={cn(
+                "rounded-md border px-4 py-4",
+                active ? "border-amber-400/30 bg-amber-400/[0.05]" : "border-border/60 bg-surface-1/20",
               )}
-            </>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">
-              Only admins can change maintenance mode. Operators can view current status.
-            </p>
-          )}
-        </div>
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
+                    {MAINTENANCE_SCOPE_LABELS[scope]}
+                  </div>
+                  <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-muted-foreground">
+                    {MAINTENANCE_SCOPE_DESCRIPTIONS[scope]}
+                  </p>
+                  {startedAt ? (
+                    <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      Started {formatActivityDateTime(startedAt)}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={active ? "Active" : "Inactive"} />
+                  {initial.canEdit ? (
+                    active ? (
+                      <button
+                        type="button"
+                        className="rounded border border-destructive/30 bg-destructive/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
+                        onClick={() => setConfirmAction({ scope, enabled: false })}
+                      >
+                        Disable
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
+                        onClick={() => setConfirmAction({ scope, enabled: true })}
+                      >
+                        Enable
+                      </button>
+                    )
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <OpsConfirmDialog
-        open={confirmAction === "enable"}
-        title="Enable maintenance mode"
-        description="You are about to place the Alta platform into maintenance mode. Normal users will be unable to access platform pages."
+        open={confirmAction?.enabled === true}
+        title={
+          confirmAction ? `Enable ${MAINTENANCE_SCOPE_LABELS[confirmAction.scope].toLowerCase()}` : "Enable maintenance"
+        }
+        description={
+          confirmAction
+            ? `Normal users affected by ${MAINTENANCE_SCOPE_LABELS[confirmAction.scope].toLowerCase()} will be redirected to the maintenance page.`
+            : ""
+        }
         confirmLabel="Enable maintenance"
         variant="danger"
         onCancel={() => setConfirmAction(null)}
         onConfirm={async (reason) => {
-          await saveFn({ data: { enabled: true, message, reason } });
-          setEnabled(true);
+          if (!confirmAction) return;
+          await saveFn({
+            data: { scope: confirmAction.scope, enabled: true, message, reason },
+          });
           await refreshSettings();
         }}
       />
 
       <OpsConfirmDialog
-        open={confirmAction === "disable"}
-        title="Disable maintenance mode"
-        description="Public platform access will resume for all users once maintenance mode is turned off."
+        open={confirmAction?.enabled === false}
+        title={
+          confirmAction ? `Disable ${MAINTENANCE_SCOPE_LABELS[confirmAction.scope].toLowerCase()}` : "Disable maintenance"
+        }
+        description="Affected users will regain access once this maintenance scope is turned off."
         confirmLabel="Disable maintenance"
         onCancel={() => setConfirmAction(null)}
         onConfirm={async (reason) => {
-          await saveFn({ data: { enabled: false, message, reason } });
-          setEnabled(false);
+          if (!confirmAction) return;
+          await saveFn({
+            data: { scope: confirmAction.scope, enabled: false, message, reason },
+          });
           await refreshSettings();
         }}
       />

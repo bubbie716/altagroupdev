@@ -1,8 +1,9 @@
 import {
   getMaintenanceMode,
-  getMaintenanceModeGate,
+  getMaintenanceScopeFlags,
   isMaintenanceBypassUser,
 } from "@/server/platform-settings.service";
+import { isMaintenanceActiveForSite } from "@/lib/platform/maintenance-types";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { prisma } from "@/server/db";
 import { DEFAULT_MAINTENANCE_MESSAGE } from "@/lib/platform/maintenance-types";
@@ -35,8 +36,9 @@ export async function canBotDiscordUserBypassMaintenance(discordId: string): Pro
  * Unlinked users are blocked when maintenance is on (same as anonymous web visitors).
  */
 export async function getBotMaintenanceBlock(discordId: string): Promise<BotMaintenanceBlock> {
-  const enabled = await getMaintenanceModeGate();
-  if (!enabled) {
+  const scopes = await getMaintenanceScopeFlags();
+  const bankMaintenanceActive = isMaintenanceActiveForSite("bank", scopes);
+  if (!bankMaintenanceActive) {
     return { blocked: false, message: "" };
   }
 
