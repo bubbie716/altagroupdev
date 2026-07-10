@@ -3,6 +3,8 @@
  *
  * TanStack Router defaults (if unset): pendingMs 1000, pendingMinMs 500.
  * We use 0 / 0 so navigation never waits on artificial timers.
+ * Route pending UI uses structural skeletons (see RoutePendingFallback),
+ * not a centered spinner.
  */
 export const ROUTE_PENDING_MS = 0;
 export const ROUTE_PENDING_MIN_MS = 0;

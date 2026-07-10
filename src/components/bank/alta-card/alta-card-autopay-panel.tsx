@@ -18,7 +18,7 @@ import {
 } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY, SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
@@ -113,7 +113,7 @@ export function AltaCardAutopayPanel({
   }
 
   if (loading && !context) {
-    return <LoadingMessage>{LOADING_COPY.autopay}</LoadingMessage>;
+    return <SkeletonFormPanel fields={4} label={LOADING_COPY.autopay} />;
   }
 
   const settings = context?.settings;

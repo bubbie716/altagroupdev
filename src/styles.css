@@ -607,23 +607,51 @@
     font-size: clamp(0.875rem, calc(100cqw / 11), var(--metric-value-max));
   }
 
-  /* Skeleton — institutional shimmer. */
+  /* Skeleton — restrained institutional shimmer / pulse. */
   .skeleton {
     position: relative;
     overflow: hidden;
-    background-color: color-mix(in oklab, var(--surface-2) 70%, transparent);
+    background-color: color-mix(in oklab, var(--surface-2) 72%, transparent);
     border-radius: 6px;
+    pointer-events: none;
+    user-select: none;
   }
   .skeleton::after {
     content: "";
     position: absolute;
     inset: 0;
     transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--foreground) 4%, transparent), transparent);
-    animation: alta-shimmer 1.6s ease-in-out infinite;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--foreground) 3.5%, transparent),
+      transparent
+    );
+    animation: alta-shimmer 1.8s ease-in-out infinite;
   }
   @keyframes alta-shimmer {
     100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+      display: none;
+      animation: none;
+    }
+    .skeleton {
+      opacity: 0.72;
+    }
+  }
+  /* NCC light canvas — slightly stronger fill so skeletons read on white. */
+  html.ncc-site .skeleton {
+    background-color: color-mix(in oklab, #e5e7eb 85%, transparent);
+  }
+  html.ncc-site .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, #111827 4%, transparent),
+      transparent
+    );
   }
 
   /* Safari: native selects need explicit appearance reset when styled. */

@@ -18,7 +18,7 @@ import {
   BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
-import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
@@ -225,7 +225,7 @@ export function AltaCardCashAdvancePanel({
 
   function renderContent() {
     if (loading) {
-      return <LoadingMessage>{LOADING_COPY.cashAdvanceOptions}</LoadingMessage>;
+      return <SkeletonFormPanel fields={3} label={LOADING_COPY.cashAdvanceOptions} />;
     }
 
     if (view === "success" && submission) {

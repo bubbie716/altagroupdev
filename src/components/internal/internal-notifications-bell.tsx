@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";
 import { fetchUserNotifications, markNotificationReadRecord } from "@/lib/bank/deal-room.functions";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { LOADING_COPY } from "@/lib/ui/route-loading";
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function InternalNotificationsBell({ variant = "page" }: { variant?: "page" | "header" }) {
@@ -74,9 +73,16 @@ export function InternalNotificationsBell({ variant = "page" }: { variant?: "pag
           </div>
           <div className="max-h-72 overflow-y-auto">
             {loading && (
-              <div className="flex justify-center px-3 py-5">
-                <LoadingIndicator label={LOADING_COPY.default} />
-              </div>
+              <SkeletonRegion className="px-3 py-3" label="Loading notifications">
+                <div className="space-y-3">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="space-y-2 border-b border-border/40 pb-3 last:border-0">
+                      <Skeleton className="h-3 w-[70%] rounded" />
+                      <Skeleton className="h-2.5 w-[45%] rounded" />
+                    </div>
+                  ))}
+                </div>
+              </SkeletonRegion>
             )}
             {!loading && data && data.items.length === 0 && (
               <p className="px-3 py-5 text-center text-[12px] text-muted-foreground">No notifications yet.</p>

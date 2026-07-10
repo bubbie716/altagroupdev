@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LoanPaymentForm } from "@/components/bank/loan-payment-form";
-import { LoadingMessage } from "@/components/ui/loading-indicator";
+import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { fetchLoanPaymentContext } from "@/lib/bank/lending.functions";
@@ -75,7 +75,7 @@ export function LoanRepaymentDialog({
         </DialogHeader>
 
         {loading && (
-          <LoadingMessage>{LOADING_COPY.loanPaymentOptions}</LoadingMessage>
+          <SkeletonFormPanel fields={3} label={LOADING_COPY.loanPaymentOptions} />
         )}
 
         {error && (

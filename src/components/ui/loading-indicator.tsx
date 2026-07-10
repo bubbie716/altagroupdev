@@ -3,24 +3,9 @@ import { Loader2 } from "lucide-react";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
 
-export function RoutePendingFallback({
-  label = LOADING_COPY.route,
-  className,
-}: {
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn("flex min-h-0 flex-1 items-center justify-center py-12", className)}
-      aria-busy="true"
-      aria-live="polite"
-    >
-      <LoadingIndicator label={label} />
-    </div>
-  );
-}
+export { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
+/** Inline spinner for button actions and tiny refresh controls — not page loading. */
 export function LoadingIndicator({
   label = LOADING_COPY.default,
   className,
@@ -41,7 +26,7 @@ export function LoadingIndicator({
   );
 }
 
-/** Inline loading line for panels and dialogs. */
+/** Inline loading line for panels and dialogs (prefer skeletons for page-level loads). */
 export function LoadingMessage({
   children = LOADING_COPY.default,
   className,

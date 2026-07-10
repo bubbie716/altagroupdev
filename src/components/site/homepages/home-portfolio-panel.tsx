@@ -2,6 +2,13 @@ import { lazy, Suspense } from "react";
 import type { PortfolioDashboardStat } from "@/components/account/portfolio-dashboard";
 import type { HomePortfolioSnapshot } from "@/lib/account/home-portfolio.types";
 import type { AssetAllocationItem } from "@/lib/account/asset-allocation";
+import {
+  Skeleton,
+  SkeletonChart,
+  SkeletonHeading,
+  SkeletonRegion,
+  SkeletonStatCard,
+} from "@/components/ui/skeleton";
 
 const PortfolioDashboard = lazy(() =>
   import("@/components/account/portfolio-dashboard").then((mod) => ({
@@ -11,10 +18,21 @@ const PortfolioDashboard = lazy(() =>
 
 function PortfolioPanelSkeleton() {
   return (
-    <div
-      className="min-h-[320px] animate-pulse rounded-xl bg-surface-2/80"
-      aria-hidden
-    />
+    <SkeletonRegion className="space-y-4" label="Loading portfolio">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-2.5 w-24 rounded" />
+          <SkeletonHeading size="xl" />
+          <Skeleton className="h-2.5 w-40 rounded" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <SkeletonStatCard className="min-w-[7rem] !p-3" />
+          <SkeletonStatCard className="min-w-[7rem] !p-3" />
+          <SkeletonStatCard className="min-w-[7rem] !p-3" />
+        </div>
+      </div>
+      <SkeletonChart height={280} />
+    </SkeletonRegion>
   );
 }
 
