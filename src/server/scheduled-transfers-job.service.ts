@@ -1,6 +1,8 @@
 import { recordOpsJobRunDetail } from "@/server/ops-job-run.service";
 import { executeDueScheduledTransfers } from "@/server/scheduled-transfer-executor.service";
 import { executeDuePayrollRuns } from "@/server/payroll-executor.service";
+import type { executeDueAltaPaySchedules } from "@/server/alta-pay-schedule-executor.service";
+import type { executeDueRecurringInvoiceSchedules } from "@/server/merchant-recurring-invoice.service";
 
 export const SCHEDULED_TRANSFERS_JOB_KEY = "scheduled_transfers";
 export const PAYROLL_JOB_KEY = "payroll";
@@ -119,7 +121,7 @@ export async function runScheduledTransfersJob(): Promise<{
       successCount: payroll.executedCount,
       failureCount: payroll.failedCount,
       errorSummary: errors.find((entry) => entry.startsWith("Payroll:")) ?? null,
-      details: payroll,
+      details: payroll as Record<string, unknown>,
     },
   );
 

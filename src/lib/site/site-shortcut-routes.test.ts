@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   isSiteShortcutPath,
   resolveLegacyDashboardPath,
@@ -7,22 +8,22 @@ import {
 
 describe("site-shortcut-routes", () => {
   it("recognizes shortcut paths", () => {
-    expect(isSiteShortcutPath("/dashboard")).toBe(true);
-    expect(isSiteShortcutPath("/login")).toBe(true);
-    expect(isSiteShortcutPath("/bank")).toBe(false);
+    assert.equal(isSiteShortcutPath("/dashboard"), true);
+    assert.equal(isSiteShortcutPath("/login"), true);
+    assert.equal(isSiteShortcutPath("/bank"), false);
   });
 
   it("maps dashboard shortcuts per site", () => {
-    expect(resolveLegacyDashboardPath("corporate")).toBe("/home");
-    expect(resolveLegacyDashboardPath("bank")).toBe("/bank");
-    expect(resolveLegacyDashboardPath("exchange")).toBe("/exchange");
-    expect(resolveLegacyDashboardPath("terminal")).toBe("/terminal");
-    expect(resolveLegacyDashboardPath("ncc")).toBe("/dashboard");
+    assert.equal(resolveLegacyDashboardPath("corporate"), "/home");
+    assert.equal(resolveLegacyDashboardPath("bank"), "/bank");
+    assert.equal(resolveLegacyDashboardPath("exchange"), "/exchange");
+    assert.equal(resolveLegacyDashboardPath("terminal"), "/terminal");
+    assert.equal(resolveLegacyDashboardPath("ncc"), "/dashboard");
   });
 
   it("maps markets shortcuts per site", () => {
-    expect(resolveLegacyMarketsPath("terminal")).toBe("/terminal");
-    expect(resolveLegacyMarketsPath("exchange")).toBe("/exchange");
-    expect(resolveLegacyMarketsPath("bank")).toBe("/exchange");
+    assert.equal(resolveLegacyMarketsPath("terminal"), "/terminal");
+    assert.equal(resolveLegacyMarketsPath("exchange"), "/exchange");
+    assert.equal(resolveLegacyMarketsPath("bank"), "/exchange");
   });
 });

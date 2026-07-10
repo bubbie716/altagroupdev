@@ -193,7 +193,8 @@ export const updateCommercialSettings = createServerFn({ method: "POST" })
     );
     const user = await actor();
     if (!canManageCommercialPlan(user, data.companyId)) throw new Error("FORBIDDEN");
-    return updateCommercialPlanSettings(user.id, data.companyId, data);
+    const { planStatus, billingStatus, enabledFeatures, ...merchantSafe } = data;
+    return updateCommercialPlanSettings(user.id, data.companyId, merchantSafe);
   });
 
 export const resolveCommercialCompanyContext = createServerFn({ method: "GET" })

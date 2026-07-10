@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Search, ShieldCheck, UserRound } from "lucide-react";
@@ -150,6 +150,7 @@ export function AltaPayForm({
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const activeFundingSources =
     selectedRecipient?.kind === "person"
@@ -279,6 +280,11 @@ export function AltaPayForm({
 
     setSubmitting(true);
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+    const idempotencyKey = idempotencyKeyRef.current;
+
     try {
       let result: SubmitAltaPayResult;
 
@@ -289,6 +295,7 @@ export function AltaPayForm({
             companyId: selectedRecipient.id,
             amount: Number(amount),
             memo: memo.trim() || undefined,
+            idempotencyKey,
           },
         });
       } else {
@@ -301,9 +308,12 @@ export function AltaPayForm({
             recipientUserId: selectedRecipient.id,
             amount: Number(amount),
             memo: memo.trim() || undefined,
+            idempotencyKey,
           },
         });
       }
+
+      idempotencyKeyRef.current = null;
 
       const submitted: BankRequestSubmissionResult = {
         referenceCode: result.referenceCode,

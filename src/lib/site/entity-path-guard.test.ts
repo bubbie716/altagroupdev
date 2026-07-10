@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   resolveCrossSitePathRedirect,
   resolveEntitySubdomainRedirect,
@@ -8,104 +9,110 @@ import { siteKeyForOwnedPath } from "@/lib/site/site-path-ownership";
 
 describe("siteKeyForOwnedPath", () => {
   it("marks corporate marketing paths as corporate-owned", () => {
-    expect(siteKeyForOwnedPath("/structure")).toBe("corporate");
-    expect(siteKeyForOwnedPath("/home")).toBe("corporate");
+    assert.equal(siteKeyForOwnedPath("/structure"), "corporate");
+    assert.equal(siteKeyForOwnedPath("/home"), "corporate");
   });
 
   it("leaves shared paths unowned", () => {
-    expect(siteKeyForOwnedPath("/legal")).toBeNull();
-    expect(siteKeyForOwnedPath("/support")).toBeNull();
-    expect(siteKeyForOwnedPath("/")).toBeNull();
+    assert.equal(siteKeyForOwnedPath("/legal"), null);
+    assert.equal(siteKeyForOwnedPath("/support"), null);
+    assert.equal(siteKeyForOwnedPath("/"), null);
   });
 });
 
 describe("resolveCrossSitePathRedirect", () => {
   it("does not redirect owned paths on plain localhost without site override", () => {
-    expect(
-      resolveCrossSitePathRedirect("/bank/open", { host: "localhost:3000" }),
-    ).toBeNull();
-    expect(resolveCrossSitePathRedirect("/structure", { host: "localhost:3000" })).toBeNull();
+    assert.equal(resolveCrossSitePathRedirect("/bank/open", { host: "localhost:3000" }), null);
+    assert.equal(resolveCrossSitePathRedirect("/structure", { host: "localhost:3000" }), null);
   });
 
   it("redirects corporate paths away from entity production hosts", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/structure", { host: "bank.altagroup.dev" }),
-    ).toBe("http://altagroup.dev/structure");
-    expect(
+      "http://altagroup.dev/structure",
+    );
+    assert.equal(
       resolveCrossSitePathRedirect("/home", { host: "exchange.altagroup.dev" }),
-    ).toBe("http://altagroup.dev/home");
+      "http://altagroup.dev/home",
+    );
   });
 
   it("redirects bank paths from corporate production host", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/bank/open", { host: "altagroup.dev" }),
-    ).toBe("http://bank.altagroup.dev/bank/open");
+      "http://bank.altagroup.dev/bank/open",
+    );
   });
 
   it("does not redirect when already on the owning host", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/bank/open", { host: "bank.altagroup.dev" }),
-    ).toBeNull();
-    expect(
+      null,
+    );
+    assert.equal(
       resolveCrossSitePathRedirect("/terminal/trade", { host: "terminal.localhost:3000" }),
-    ).toBeNull();
-    expect(
-      resolveCrossSitePathRedirect("/structure", { host: "altagroup.dev" }),
-    ).toBeNull();
+      null,
+    );
+    assert.equal(resolveCrossSitePathRedirect("/structure", { host: "altagroup.dev" }), null);
   });
 
   it("does not redirect shared paths across sites", () => {
-    expect(
-      resolveCrossSitePathRedirect("/legal", { host: "bank.altagroup.dev" }),
-    ).toBeNull();
-    expect(
+    assert.equal(resolveCrossSitePathRedirect("/legal", { host: "bank.altagroup.dev" }), null);
+    assert.equal(
       resolveCrossSitePathRedirect("/support", { host: "terminal.altagroup.dev" }),
-    ).toBeNull();
-    expect(
+      null,
+    );
+    assert.equal(
       resolveCrossSitePathRedirect("/profile", { host: "exchange.altagroup.dev" }),
-    ).toBeNull();
-    expect(
-      resolveCrossSitePathRedirect("/internal", { host: "bank.altagroup.dev" }),
-    ).toBeNull();
-    expect(
+      null,
+    );
+    assert.equal(resolveCrossSitePathRedirect("/internal", { host: "bank.altagroup.dev" }), null);
+    assert.equal(
       resolveCrossSitePathRedirect("/dashboard", { host: "bank.altagroup.dev" }),
-    ).toBeNull();
-    expect(
+      null,
+    );
+    assert.equal(
       resolveCrossSitePathRedirect("/login", { host: "exchange.altagroup.dev" }),
-    ).toBeNull();
+      null,
+    );
   });
 
   it("redirects NCC paths from corporate production host to NCC domain", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/company/ncc", { host: "altagroup.dev" }),
-    ).toBe("http://newportclearingcorporation.com/company/ncc");
-    expect(
+      "http://newportclearingcorporation.com/company/ncc",
+    );
+    assert.equal(
       resolveCrossSitePathRedirect("/institutions", { host: "bank.altagroup.dev" }),
-    ).toBe("http://newportclearingcorporation.com/institutions");
+      "http://newportclearingcorporation.com/institutions",
+    );
   });
 
   it("redirects corporate paths away from plain localhost with ?site= override", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/structure", {
         host: "localhost:3000",
         search: { site: "bank" },
       }),
-    ).toBe("http://localhost:3000/structure");
+      "http://localhost:3000/structure",
+    );
   });
 
   it("redirects entity paths away from plain localhost with mismatched ?site=", () => {
-    expect(
+    assert.equal(
       resolveCrossSitePathRedirect("/bank/open", {
         host: "localhost:3000",
         search: { site: "exchange" },
       }),
-    ).toBe("http://localhost:3000/bank/open");
+      "http://localhost:3000/bank/open",
+    );
   });
 });
 
 describe("resolveEntitySubdomainRedirect", () => {
   it("remains an alias for cross-site redirects", () => {
-    expect(resolveEntitySubdomainRedirect("/bank/open", { host: "altagroup.dev" })).toBe(
+    assert.equal(
+      resolveEntitySubdomainRedirect("/bank/open", { host: "altagroup.dev" }),
       "http://bank.altagroup.dev/bank/open",
     );
   });
@@ -113,16 +120,18 @@ describe("resolveEntitySubdomainRedirect", () => {
 
 describe("resolveLegacyEntityHostRedirect", () => {
   it("redirects legacy NCC subdomain to canonical domain", () => {
-    expect(
+    assert.equal(
       resolveLegacyEntityHostRedirect("/company/ncc", { host: "ncc.altagroup.dev" }),
-    ).toBe("http://newportclearingcorporation.com/company/ncc");
+      "http://newportclearingcorporation.com/company/ncc",
+    );
   });
 
   it("does not redirect the canonical NCC domain", () => {
-    expect(
+    assert.equal(
       resolveLegacyEntityHostRedirect("/company/ncc", {
         host: "newportclearingcorporation.com",
       }),
-    ).toBeNull();
+      null,
+    );
   });
 });

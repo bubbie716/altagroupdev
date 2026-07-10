@@ -185,6 +185,7 @@ export interface SubmitInternalTransferInput {
   toAccountNumber?: string;
   amount: number;
   memo?: string;
+  idempotencyKey?: string;
 }
 
 export interface UserBankTransfer {

@@ -18,7 +18,7 @@ support, organized around four product surfaces plus legacy entry points:
   ├── routes/           # File-based pages (TanStack Router)
   ├── components/       # Domain UI (bank/, exchange/, terminal/) + shared shell
   ├── lib/              # Mock data + Exchange service layer
-  ├── hooks/            # Minimal (use-mobile)
+  ├── hooks/            # (removed unused hooks during cleanup audit)
   └── components/ui/    # shadcn/Radix primitives (mostly unused in product pages)
 
 Product domains

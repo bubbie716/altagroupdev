@@ -40,10 +40,11 @@ function getBlobToken(): string {
 
 export type BlobAccessMode = "public" | "private";
 
-/** Must match the Vercel Blob store type. Defaults to public for dev/public stores. */
+/** Must match the Vercel Blob store type. Defaults to private in production. */
 export function resolveBlobAccessMode(): BlobAccessMode {
   const configured = process.env.BLOB_ACCESS?.trim().toLowerCase();
   if (configured === "private" || configured === "public") return configured;
+  if (process.env.NODE_ENV === "production") return "private";
   return "public";
 }
 

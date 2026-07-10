@@ -116,6 +116,9 @@ async function executeSinglePayment(
       if (existing?.status === "EXECUTED") {
         return "skipped";
       }
+      if (existing?.transferReferenceCode) {
+        return "skipped";
+      }
       if (existing?.status === "PENDING") {
         const ageMs = now.getTime() - existing.createdAt.getTime();
         if (ageMs < 120_000) {
@@ -184,6 +187,7 @@ async function executeSinglePayment(
         toAccountNumber: creatorHasDestination ? undefined : destinationNumber,
         amount,
         memo: payment.memo ?? undefined,
+        idempotencyKey: `scheduled-transfer:${executionId}`,
       },
       { source: "cron" },
       { skipAuditLog: true },
@@ -198,6 +202,7 @@ async function executeSinglePayment(
         data: {
           status: "EXECUTED",
           bankTransactionId,
+          transferReferenceCode: referenceCode,
           executedAt,
           failureReason: null,
         },

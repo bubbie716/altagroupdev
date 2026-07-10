@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   jsonError,
+  authRequestErrorResponse,
   parseFormString,
   requireAuthFromRequest,
 } from "@/server/bank-request-auth";
+import { enforceRateLimit } from "@/server/rate-limit.service";
 
 export const Route = createFileRoute("/api/bank/withdrawal-request")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const limited = await enforceRateLimit(request, "withdrawal-request", 20, 60_000);
+        if (limited) return limited;
+
         try {
           const user = await requireAuthFromRequest(request);
           const formData = await request.formData();
@@ -39,10 +44,9 @@ export const Route = createFileRoute("/api/bank/withdrawal-request")({
             referenceCode: result.referenceCode,
           });
         } catch (error) {
+          const authError = authRequestErrorResponse(error);
+          if (authError) return authError;
           const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-          if (message === "UNAUTHORIZED") {
-            return jsonError("Authentication required.", 401);
-          }
           if (message === "FORBIDDEN") {
             return jsonError("You do not have access to this account.", 403);
           }

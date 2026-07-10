@@ -19,6 +19,8 @@ export const fetchPersonalPaySourceAccounts = fetchPaySourceAccounts;
 export const searchPayableCompaniesForPay = createServerFn({ method: "GET" })
   .inputValidator((query: string) => query)
   .handler(async ({ data: query }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    await requireAuth();
     const { searchPayableCompanies } = await import("@/server/alta-pay.service");
     return searchPayableCompanies(query);
   });
@@ -37,7 +39,9 @@ export const submitAltaPay = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitAltaPayPayment } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
+    const { assertUserRateLimit } = await import("@/server/rate-limit.service");
     const user = await requireAuth();
+    assertUserRateLimit(user.id, "alta-pay", 30, 60_000);
     try {
       return await submitAltaPayPayment(user, data);
     } catch (error) {
@@ -58,7 +62,9 @@ export const submitAltaPayToPersonPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitAltaPayToPerson } = await import("@/server/alta-pay.service");
     const { requireAuth } = await import("@/server/auth.service");
+    const { assertUserRateLimit } = await import("@/server/rate-limit.service");
     const user = await requireAuth();
+    assertUserRateLimit(user.id, "alta-pay", 30, 60_000);
     try {
       return await submitAltaPayToPerson(user, data);
     } catch (error) {

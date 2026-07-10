@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 import {
   ALLOWED_PROOF_MIME_TYPES,
   MAX_PROOF_BYTES,
   type AllowedProofMimeType,
 } from "@/lib/storage/proof-upload.constants";
+import { resolveBlobAccessMode } from "@/server/document-storage.service";
 
 export { ALLOWED_PROOF_MIME_TYPES, MAX_PROOF_BYTES } from "@/lib/storage/proof-upload.constants";
 export type { AllowedProofMimeType } from "@/lib/storage/proof-upload.constants";
@@ -136,15 +137,16 @@ export async function uploadBankProof(
   const body = Buffer.from(await file.arrayBuffer());
 
   try {
+    const access = resolveBlobAccessMode();
     const blob = await put(pathname, body, {
-      access: "public",
+      access,
       contentType: mimeType,
       token,
       addRandomSuffix: false,
     });
 
     return {
-      url: blob.url,
+      url: blob.pathname,
       pathname: blob.pathname,
       fileName,
       mimeType,
@@ -157,4 +159,25 @@ export async function uploadBankProof(
 }
 
 /** Resolve a stored proof URL/path for display. */
-export { getProofFileUrl, hasStoredProof } from "@/lib/storage/proof-upload.constants";
+export {
+  getProofFileUrl,
+  hasStoredProof,
+  resolveProofStorageKey,
+} from "@/lib/storage/proof-upload.constants";
+
+export async function downloadBankProof(storageKey: string): Promise<{
+  stream: ReadableStream<Uint8Array>;
+  contentType: string;
+  size: number;
+} | null> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (!token) return null;
+  const access = resolveBlobAccessMode();
+  const result = await get(storageKey, { access, token });
+  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  return {
+    stream: result.stream,
+    contentType: result.blob.contentType ?? "application/octet-stream",
+    size: result.blob.size ?? 0,
+  };
+}

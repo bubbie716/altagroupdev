@@ -1,51 +1,46 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolveSiteKey, resolveSiteKeyFromHost } from "@/lib/site/site-context";
 
 describe("site context", () => {
   it("resolves corporate on localhost", () => {
-    expect(resolveSiteKeyFromHost("localhost:3000")).toBe("corporate");
-    expect(resolveSiteKeyFromHost("127.0.0.1:5173")).toBe("corporate");
+    assert.equal(resolveSiteKeyFromHost("localhost:3000"), "corporate");
+    assert.equal(resolveSiteKeyFromHost("127.0.0.1:5173"), "corporate");
   });
 
   it("resolves entity subdomains in production", () => {
-    expect(resolveSiteKeyFromHost("bank.altagroup.dev")).toBe("bank");
-    expect(resolveSiteKeyFromHost("exchange.altagroup.dev")).toBe("exchange");
-    expect(resolveSiteKeyFromHost("terminal.altagroup.dev")).toBe("terminal");
-    expect(resolveSiteKeyFromHost("ncc.altagroup.dev")).toBe("ncc");
-    expect(resolveSiteKeyFromHost("www.altagroup.dev")).toBe("corporate");
+    assert.equal(resolveSiteKeyFromHost("bank.altagroup.dev"), "bank");
+    assert.equal(resolveSiteKeyFromHost("exchange.altagroup.dev"), "exchange");
+    assert.equal(resolveSiteKeyFromHost("terminal.altagroup.dev"), "terminal");
+    assert.equal(resolveSiteKeyFromHost("ncc.altagroup.dev"), "ncc");
+    assert.equal(resolveSiteKeyFromHost("www.altagroup.dev"), "corporate");
   });
 
   it("resolves NCC custom production domain", () => {
-    expect(resolveSiteKeyFromHost("newportclearingcorporation.com")).toBe("ncc");
-    expect(resolveSiteKeyFromHost("www.newportclearingcorporation.com")).toBe("ncc");
+    assert.equal(resolveSiteKeyFromHost("newportclearingcorporation.com"), "ncc");
+    assert.equal(resolveSiteKeyFromHost("www.newportclearingcorporation.com"), "ncc");
   });
 
   it("resolves entity subdomains in local dev", () => {
-    expect(resolveSiteKeyFromHost("bank.localhost:5173")).toBe("bank");
-    expect(resolveSiteKeyFromHost("terminal.localhost:3000")).toBe("terminal");
+    assert.equal(resolveSiteKeyFromHost("bank.localhost:5173"), "bank");
+    assert.equal(resolveSiteKeyFromHost("terminal.localhost:3000"), "terminal");
   });
 
   it("allows dev query override only outside production", () => {
     const original = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
-    expect(resolveSiteKey({ host: "localhost:3000", search: { site: "bank" } })).toBe("bank");
+    assert.equal(resolveSiteKey({ host: "localhost:3000", search: { site: "bank" } }), "bank");
     process.env.NODE_ENV = "production";
-    expect(resolveSiteKey({ host: "localhost:3000", search: { site: "bank" } })).toBe("corporate");
+    assert.equal(resolveSiteKey({ host: "localhost:3000", search: { site: "bank" } }), "corporate");
     process.env.NODE_ENV = original;
   });
 
   it("resolves entity site from path on plain localhost in dev", () => {
     const original = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
-    expect(
-      resolveSiteKey({ host: "localhost:3000", pathname: "/bank/open" }),
-    ).toBe("bank");
-    expect(
-      resolveSiteKey({ host: "localhost:3000", pathname: "/terminal/trade" }),
-    ).toBe("terminal");
-    expect(
-      resolveSiteKey({ host: "localhost:3000", pathname: "/company/ncc" }),
-    ).toBe("ncc");
+    assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/bank/open" }), "bank");
+    assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/terminal/trade" }), "terminal");
+    assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/company/ncc" }), "ncc");
     process.env.NODE_ENV = original;
   });
 });

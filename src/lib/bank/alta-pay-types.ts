@@ -35,6 +35,7 @@ export interface SubmitAltaPayInput {
   companyId: string;
   amount: number;
   memo?: string;
+  idempotencyKey?: string;
 }
 
 export interface SubmitAltaPayToPersonInput {
@@ -42,6 +43,7 @@ export interface SubmitAltaPayToPersonInput {
   recipientUserId: string;
   amount: number;
   memo?: string;
+  idempotencyKey?: string;
 }
 
 export interface SubmitAltaPayResult {

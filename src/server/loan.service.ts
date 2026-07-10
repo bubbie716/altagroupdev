@@ -555,11 +555,6 @@ async function processLoanPayment(
   const amount = input.amount;
   if (amount <= 0) badRequest("Payment amount must be greater than zero");
 
-  const principalOutstanding = decimalToNumber(loanRecord.principalOutstanding);
-  const accruedInterest = decimalToNumber(loanRecord.accruedInterest);
-  const payoff = calculateCurrentPayoff({ principalOutstanding, accruedInterest });
-  if (amount > payoff) badRequest("Payment cannot exceed current payoff amount");
-
   if (!options.isOperatorPayment) {
     await assertPaySourceAccount(actorUserId, input.sourceBankAccountId, loanRecord);
   } else {
@@ -567,17 +562,34 @@ async function processLoanPayment(
     if (!src || src.status !== "ACTIVE") badRequest("Source account must be active");
   }
 
-  const allocation = allocateLoanPayment(amount, principalOutstanding, accruedInterest);
-  const newPayoff = syncOutstandingBalance({
-    principalOutstanding: allocation.newPrincipalOutstanding,
-    accruedInterest: allocation.newAccruedInterest,
-  });
-  const paidOff = newPayoff <= 0;
   const paymentMemo = options.memo ?? (input.memo?.trim() || null);
   const now = new Date();
   const referenceCode = generateReferenceCode("LNP");
+  let paidOff = false;
 
   await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Loan" WHERE id = ${input.loanId} FOR UPDATE`;
+
+    const freshLoan = await tx.loan.findUnique({
+      where: { id: input.loanId },
+    });
+    if (!freshLoan) notFound();
+    if (!PAYABLE_LOAN_STATUSES.includes(freshLoan.status)) {
+      badRequest("Payments are not accepted for this loan status");
+    }
+
+    const principalOutstanding = decimalToNumber(freshLoan.principalOutstanding);
+    const accruedInterest = decimalToNumber(freshLoan.accruedInterest);
+    const payoff = calculateCurrentPayoff({ principalOutstanding, accruedInterest });
+    if (amount > payoff) badRequest("Payment cannot exceed current payoff amount");
+
+    const allocation = allocateLoanPayment(amount, principalOutstanding, accruedInterest);
+    const newPayoff = syncOutstandingBalance({
+      principalOutstanding: allocation.newPrincipalOutstanding,
+      accruedInterest: allocation.newAccruedInterest,
+    });
+    paidOff = newPayoff <= 0;
+
     const { assertAccountAvailableForDebitInTx } = await import("@/server/financial-integrity.service");
     await assertAccountAvailableForDebitInTx(tx, input.sourceBankAccountId, amount, {
       message: "Insufficient available balance in source account",
@@ -605,7 +617,7 @@ async function processLoanPayment(
 
     const loanPayment = await tx.loanPayment.create({
       data: {
-        loanId: loanRecord.id,
+        loanId: freshLoan.id,
         amount,
         appliedToInterest: allocation.appliedToInterest,
         appliedToPrincipal: allocation.appliedToPrincipal,
@@ -620,7 +632,7 @@ async function processLoanPayment(
 
     const appliedScheduleItemId = await applyInstallmentSchedulePaymentInTx(
       tx,
-      loanRecord.id,
+      freshLoan.id,
       amount,
       now,
     );
@@ -633,12 +645,12 @@ async function processLoanPayment(
     }
 
     await tx.loan.update({
-      where: { id: loanRecord.id },
+      where: { id: freshLoan.id },
       data: {
         principalOutstanding: allocation.newPrincipalOutstanding,
         accruedInterest: allocation.newAccruedInterest,
         outstandingBalance: newPayoff,
-        status: paidOff ? "PAID_OFF" : loanRecord.status,
+        status: paidOff ? "PAID_OFF" : freshLoan.status,
         ...(paidOff ? { autoPayEnabled: false, autoPaySourceBankAccountId: null } : {}),
       },
     });
@@ -646,14 +658,14 @@ async function processLoanPayment(
     if (allocation.appliedToInterest > 0) {
       await applyGuaranteedInterestPaymentInTx(
         tx,
-        loanRecord.id,
+        freshLoan.id,
         allocation.appliedToInterest,
         now,
       );
     }
 
     await createLedgerEntry(tx, {
-      loanId: loanRecord.id,
+      loanId: freshLoan.id,
       type: "PAYMENT",
       amount: -amount,
       balanceAfter: newPayoff,
@@ -663,16 +675,16 @@ async function processLoanPayment(
     });
 
     if (paidOff) {
-      await waivePendingInterestScheduleInTx(tx, loanRecord.id);
+      await waivePendingInterestScheduleInTx(tx, freshLoan.id);
       await createLedgerEntry(tx, {
-        loanId: loanRecord.id,
+        loanId: freshLoan.id,
         type: "STATUS_CHANGE",
         amount: 0,
         balanceAfter: 0,
         description: LOAN_PAYOFF_DESCRIPTION,
         createdById: actorUserId,
       });
-      await closeOpenPaymentScheduleOnPayoffInTx(tx, loanRecord.id, now);
+      await closeOpenPaymentScheduleOnPayoffInTx(tx, freshLoan.id, now);
     }
   });
 

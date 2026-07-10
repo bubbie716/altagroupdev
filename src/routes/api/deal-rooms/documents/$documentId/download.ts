@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { downloadDealRoomDocument, DealRoomDocumentStorageError } from "@/server/document-storage.service";
-import { jsonError, requireAuthFromRequest, attachmentContentDisposition } from "@/server/bank-request-auth";
+import { jsonError, requireAuthFromRequest, attachmentContentDisposition, authRequestErrorResponse } from "@/server/bank-request-auth";
 
 export const Route = createFileRoute("/api/deal-rooms/documents/$documentId/download")({
   server: {
@@ -27,12 +27,12 @@ export const Route = createFileRoute("/api/deal-rooms/documents/$documentId/down
 
           return new Response(payload.stream, { status: 200, headers });
         } catch (error) {
+          const authError = authRequestErrorResponse(error);
+          if (authError) return authError;
           const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
           if (error instanceof DealRoomDocumentStorageError) {
             return jsonError(error.message, 422);
           }
-          if (message === "UNAUTHORIZED") return jsonError("Authentication required.", 401);
-          if (message === "FORBIDDEN") return jsonError("You do not have access to this document.", 403);
           if (message === "NOT_FOUND") return jsonError("Document not found.", 404);
           return jsonError("Unable to download document.", 500);
         }

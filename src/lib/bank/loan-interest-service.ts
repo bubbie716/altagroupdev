@@ -357,19 +357,20 @@ export async function guaranteeDueInterestForLoan(
 
     for (const item of loan.interestSchedule) {
       if (loan.status !== "ACTIVE") {
-        await tx.loanInterestScheduleItem.update({
-          where: { id: item.id },
+        const waived = await tx.loanInterestScheduleItem.updateMany({
+          where: { id: item.id, status: "PENDING" },
           data: { status: "WAIVED" },
         });
-        waivedCount += 1;
+        if (waived.count === 1) waivedCount += 1;
         continue;
       }
 
       const interestAmount = decimalToNumber(item.interestAmount);
-      await tx.loanInterestScheduleItem.update({
-        where: { id: item.id },
+      const guaranteed = await tx.loanInterestScheduleItem.updateMany({
+        where: { id: item.id, status: "PENDING" },
         data: { status: "GUARANTEED" },
       });
+      if (guaranteed.count !== 1) continue;
 
       accruedInterest = roundCurrency(accruedInterest + interestAmount);
       totalInterestGuaranteed = roundCurrency(totalInterestGuaranteed + interestAmount);

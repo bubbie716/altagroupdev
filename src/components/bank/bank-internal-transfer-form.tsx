@@ -72,6 +72,7 @@ export function BankInternalTransferForm({
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
 
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   function resetForm() {
     setView("form");
@@ -79,6 +80,7 @@ export function BankInternalTransferForm({
     setSubmission(null);
     setAmount("");
     setMemo("");
+    idempotencyKeyRef.current = null;
     setFromAccountId(resolveInitialFromAccountId(accounts, defaultFromAccountId));
     queueMicrotask(() => amountInputRef.current?.focus());
   }
@@ -119,15 +121,21 @@ export function BankInternalTransferForm({
 
     setSubmitting(true);
 
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
     try {
       const input: SubmitInternalTransferInput = {
         fromAccountId,
         toAccountId,
         amount: transferAmount,
         memo,
+        idempotencyKey: idempotencyKeyRef.current,
       };
 
       const result = await submitBankInternalTransfer({ data: input });
+      idempotencyKeyRef.current = null;
 
       const submitted: BankRequestSubmissionResult = {
         referenceCode: result.referenceCode,

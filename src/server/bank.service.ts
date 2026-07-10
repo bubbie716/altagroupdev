@@ -610,7 +610,7 @@ export async function listUserBankRequestsInProgressForUser(
       denialMessage: status === "denied" ? formatBankRequestDenialMessage(tx.reviewNote) : null,
       submittedAt: tx.createdAt.toISOString(),
       lastUpdatedAt: (tx.reviewedAt ?? tx.updatedAt).toISOString(),
-      proofImageUrl: getProofFileUrl(tx.proofImageUrl),
+      proofImageUrl: getProofFileUrl(tx.proofImageUrl, { transactionId: tx.id }),
       hasProof: hasStoredProof(tx.proofImageUrl),
     };
   });
@@ -804,7 +804,7 @@ export async function submitDepositRequest(
         input.amount,
         transaction.referenceCode,
         account.accountName,
-        getProofFileUrl(proof.proofImageUrl),
+        getProofFileUrl(proof.proofImageUrl, { transactionId: transaction.id }),
       );
     } catch (error) {
       console.error("[bank] deposit submitted notification failed", error);
@@ -900,6 +900,30 @@ export async function submitWithdrawalRequest(
 }
 
 export async function submitInternalTransfer(
+  userId: string,
+  input: SubmitInternalTransferInput,
+  auditContext?: BankingStaffAuditContext,
+  transferOptions?: { skipAuditLog?: boolean; suppressRecipientNotification?: boolean },
+): Promise<{ referenceCode: string }> {
+  const { beginFinancialIdempotency } = await import("@/server/financial-idempotency.service");
+
+  return beginFinancialIdempotency({
+    userId,
+    scope: "internal_transfer",
+    idempotencyKey: input.idempotencyKey,
+    payload: {
+      fromAccountId: input.fromAccountId,
+      toAccountId: input.toAccountId ?? null,
+      toAccountNumber: input.toAccountNumber?.trim() ?? null,
+      amount: input.amount,
+      memo: input.memo?.trim() ?? null,
+    },
+    execute: () =>
+      executeInternalTransfer(userId, input, auditContext, transferOptions),
+  });
+}
+
+async function executeInternalTransfer(
   userId: string,
   input: SubmitInternalTransferInput,
   auditContext?: BankingStaffAuditContext,
@@ -1354,10 +1378,15 @@ export async function approveDeposit(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
+
   const { requireOperatorReason } = await import("@/server/operator-reason.service");
   const trimmedNote = requireOperatorReason(reviewNote, "Review note");
 
   const record = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "BankTransaction" WHERE id = ${transactionId} FOR UPDATE`;
+
     const row = await tx.bankTransaction.findUnique({
       where: { id: transactionId },
       include: { bankAccount: true },
@@ -1365,8 +1394,8 @@ export async function approveDeposit(
     if (!row) notFound();
     if (row.type !== "DEPOSIT" || row.status !== "PENDING") badRequest("Invalid deposit request");
 
-    await tx.bankTransaction.update({
-      where: { id: transactionId },
+    const updated = await tx.bankTransaction.updateMany({
+      where: { id: transactionId, status: "PENDING", type: "DEPOSIT" },
       data: {
         status: "APPROVED",
         description: DEPOSIT_APPROVED_DESCRIPTION,
@@ -1375,6 +1404,7 @@ export async function approveDeposit(
         reviewNote: trimmedNote,
       },
     });
+    if (updated.count !== 1) badRequest("Invalid deposit request");
 
     await tx.bankAccount.update({
       where: { id: row.bankAccountId },
@@ -1436,22 +1466,27 @@ export async function denyDeposit(
   const { requireOperatorReason } = await import("@/server/operator-reason.service");
   const trimmedNote = requireOperatorReason(reviewNote, "Review note");
 
-  const record = await prisma.bankTransaction.findUnique({
-    where: { id: transactionId },
-    include: { bankAccount: true },
-  });
-  if (!record) notFound();
-  if (record.type !== "DEPOSIT" || record.status !== "PENDING") badRequest("Invalid deposit request");
+  const record = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "BankTransaction" WHERE id = ${transactionId} FOR UPDATE`;
 
-  await prisma.bankTransaction.update({
-    where: { id: transactionId },
-    data: {
-      status: "DENIED",
-      description: DEPOSIT_DECLINED_DESCRIPTION,
-      reviewedById: adminId,
-      reviewedAt: new Date(),
-      reviewNote: trimmedNote,
-    },
+    const row = await tx.bankTransaction.findUnique({
+      where: { id: transactionId },
+      include: { bankAccount: true },
+    });
+    if (!row) notFound();
+    if (row.type !== "DEPOSIT" || row.status !== "PENDING") badRequest("Invalid deposit request");
+
+    await tx.bankTransaction.update({
+      where: { id: transactionId },
+      data: {
+        status: "DENIED",
+        description: DEPOSIT_DECLINED_DESCRIPTION,
+        reviewedById: adminId,
+        reviewedAt: new Date(),
+        reviewNote: trimmedNote,
+      },
+    });
+    return row;
   });
 
   const { deliverOperatorCustomerNotification } = await import(
@@ -1505,6 +1540,9 @@ export async function approveWithdrawal(
   reviewNote?: string,
   notificationOptions?: import("@/lib/internal/operator-notification-options").OperatorNotificationOptions,
 ) {
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
+
   const { requireOperatorReason } = await import("@/server/operator-reason.service");
   const trimmedNote = requireOperatorReason(reviewNote, "Review note");
 
@@ -1629,22 +1667,29 @@ export async function denyWithdrawal(
   const { requireOperatorReason } = await import("@/server/operator-reason.service");
   const trimmedNote = requireOperatorReason(reviewNote, "Review note");
 
-  const record = await prisma.bankTransaction.findUnique({
-    where: { id: transactionId },
-    include: { bankAccount: true },
-  });
-  if (!record) notFound();
-  if (record.type !== "WITHDRAWAL" || record.status !== "PENDING") badRequest("Invalid withdrawal request");
+  const record = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "BankTransaction" WHERE id = ${transactionId} FOR UPDATE`;
 
-  await prisma.bankTransaction.update({
-    where: { id: transactionId },
-    data: {
-      status: "DENIED",
-      description: WITHDRAWAL_DECLINED_DESCRIPTION,
-      reviewedById: adminId,
-      reviewedAt: new Date(),
-      reviewNote: trimmedNote,
-    },
+    const row = await tx.bankTransaction.findUnique({
+      where: { id: transactionId },
+      include: { bankAccount: true },
+    });
+    if (!row) notFound();
+    if (row.type !== "WITHDRAWAL" || row.status !== "PENDING") {
+      badRequest("Invalid withdrawal request");
+    }
+
+    await tx.bankTransaction.update({
+      where: { id: transactionId },
+      data: {
+        status: "DENIED",
+        description: WITHDRAWAL_DECLINED_DESCRIPTION,
+        reviewedById: adminId,
+        reviewedAt: new Date(),
+        reviewNote: trimmedNote,
+      },
+    });
+    return row;
   });
 
   const { deliverOperatorCustomerNotification } = await import(

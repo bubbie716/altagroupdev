@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  buildClearCookie,
   buildSetCookie,
-  getOAuthStateCookieName,
   getSessionCookieName,
   loginErrorRedirect,
   redirectWithSetCookies,
@@ -20,12 +18,17 @@ import {
 import { loginWithDiscordProfile } from "@/server/auth.service";
 import { isDatabaseConfigured } from "@/server/db";
 import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
-import { createSessionHandoffToken, hostsMatch } from "@/server/session-handoff";
+import { createSessionHandoff, hostsMatch } from "@/server/session-handoff";
+import { clearOAuthStateCookie, validateOAuthStateCookie } from "@/server/oauth-state";
+import { enforceRateLimit } from "@/server/rate-limit.service";
 
 export const Route = createFileRoute("/api/auth/discord/callback")({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        const limited = await enforceRateLimit(request, "oauth-callback", 30, 60_000);
+        if (limited) return limited;
+
         const config = getDiscordConfig();
         if (!config) {
           return loginErrorRedirect(request, "oauth_not_configured");
@@ -50,6 +53,10 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           nonce?: string;
         }>(stateParam);
         if (!parsed?.returnTo) {
+          return loginErrorRedirect(request, "invalid_state");
+        }
+
+        if (!validateOAuthStateCookie(request, parsed.nonce)) {
           return loginErrorRedirect(request, "invalid_state");
         }
 
@@ -90,6 +97,8 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
         const callbackHost = new URL(url.origin).hostname;
         const returnHost = new URL(returnOrigin).hostname;
 
+        const clearState = clearOAuthStateCookie(url.host);
+
         if (hostsMatch(callbackHost, returnHost)) {
           const destination = new URL(safePath, url.origin).toString();
           return redirectWithSetCookies(destination, [
@@ -99,22 +108,20 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
               sessionMaxAgeSec(),
               url.host,
             ),
-            buildClearCookie(getOAuthStateCookieName(), url.host),
+            clearState,
           ]);
         }
 
-        const handoffToken = await createSessionHandoffToken(auth.sessionToken);
-        if (!handoffToken) {
+        const handoffId = await createSessionHandoff(auth.sessionToken);
+        if (!handoffId) {
           return loginErrorRedirect(request, "session_not_configured");
         }
 
         const handoffUrl = new URL("/api/auth/session/handoff", returnOrigin);
-        handoffUrl.searchParams.set("token", handoffToken);
+        handoffUrl.searchParams.set("handoff", handoffId);
         handoffUrl.searchParams.set("redirect", safePath);
 
-        return redirectWithSetCookies(handoffUrl.toString(), [
-          buildClearCookie(getOAuthStateCookieName(), url.host),
-        ]);
+        return redirectWithSetCookies(handoffUrl.toString(), [clearState]);
       },
     },
   },

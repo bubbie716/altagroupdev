@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { requireAuthFromRequest, jsonError } from "@/server/bank-request-auth";
+import { requireAuthFromRequest, jsonError, authRequestErrorResponse } from "@/server/bank-request-auth";
 
 export const Route = createFileRoute("/api/company-branding/$companyId/logo")({
   server: {
@@ -16,10 +16,10 @@ export const Route = createFileRoute("/api/company-branding/$companyId/logo")({
           const settings = await uploadCompanyBrandingLogo(user.id, params.companyId, file);
           return Response.json({ logoUrl: settings.logoUrl });
         } catch (error) {
+          const authError = authRequestErrorResponse(error);
+          if (authError) return authError;
           const message = error instanceof Error ? error.message : "Upload failed.";
-          if (message === "FORBIDDEN") return jsonError("Forbidden.", 403);
           if (message === "NOT_FOUND") return jsonError("Not found.", 404);
-          if (message === "UNAUTHORIZED") return jsonError("Unauthorized.", 401);
           if (message.startsWith("BAD_REQUEST:")) {
             return jsonError(message.slice("BAD_REQUEST:".length), 400);
           }

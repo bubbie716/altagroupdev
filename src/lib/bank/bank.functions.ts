@@ -114,6 +114,8 @@ export const submitBankInternalTransfer = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitInternalTransfer } = await import("@/server/bank.service");
     const userId = await actorId();
+    const { assertUserRateLimit } = await import("@/server/rate-limit.service");
+    assertUserRateLimit(userId, "internal-transfer", 30, 60_000);
     try {
       return await submitInternalTransfer(userId, data);
     } catch (error) {

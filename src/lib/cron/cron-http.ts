@@ -1,12 +1,27 @@
+import crypto from "node:crypto";
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 export function validateCronSecret(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return false;
   const authHeader = request.headers.get("authorization")?.trim();
   const bearerMatch = authHeader?.match(/^Bearer\s+(.+)$/i);
-  if (bearerMatch && bearerMatch[1].trim() === secret) return true;
-  if (authHeader === secret) return true;
+  if (bearerMatch && secretsMatch(bearerMatch[1].trim(), secret)) return true;
+  if (authHeader && secretsMatch(authHeader, secret)) return true;
+  if (isProduction()) return false;
   const url = new URL(request.url);
-  return url.searchParams.get("secret")?.trim() === secret;
+  const querySecret = url.searchParams.get("secret")?.trim();
+  return querySecret ? secretsMatch(querySecret, secret) : false;
 }
 
 export function cronResponse(body: Record<string, unknown>, status = 200): Response {

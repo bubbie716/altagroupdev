@@ -363,12 +363,6 @@ export type SiteFooterProps = {
   };
 };
 
-/** @deprecated Use MarketingFooter */
-export const PublicFooter = MarketingFooter;
-
-/** @deprecated Use MarketingFooter */
-export const SiteFooterLegacy = MarketingFooter;
-
 /** @deprecated Use DashboardFooter */
 export function PlatformFooter() {
   return <DashboardFooter />;

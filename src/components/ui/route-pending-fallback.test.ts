@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolveRouteSkeleton } from "@/components/ui/route-pending-fallback";
 
 function skeletonName(pathname: string): string {
@@ -11,27 +12,27 @@ function skeletonName(pathname: string): string {
 
 describe("resolveRouteSkeleton", () => {
   it("maps bank routes to structural skeletons", () => {
-    expect(skeletonName("/bank")).toBe("SkeletonBankDashboard");
-    expect(skeletonName("/bank/")).toBe("SkeletonBankDashboard");
-    expect(skeletonName("/bank/account/abc")).toBe("SkeletonAccountPage");
-    expect(skeletonName("/bank/deposits")).toBe("SkeletonBankContentPage");
-    expect(skeletonName("/bank/transfers/new")).toBe("SkeletonBankContentPage");
-    expect(skeletonName("/bank/pay")).toBe("SkeletonBankContentPage");
+    assert.equal(skeletonName("/bank"), "SkeletonBankDashboard");
+    assert.equal(skeletonName("/bank/"), "SkeletonBankDashboard");
+    assert.equal(skeletonName("/bank/account/abc"), "SkeletonAccountPage");
+    assert.equal(skeletonName("/bank/deposits"), "SkeletonBankContentPage");
+    assert.equal(skeletonName("/bank/transfers/new"), "SkeletonBankContentPage");
+    assert.equal(skeletonName("/bank/pay"), "SkeletonBankContentPage");
   });
 
   it("maps internal, markets, legal, and ncc routes", () => {
-    expect(skeletonName("/internal")).toBe("SkeletonInternalDashboard");
-    expect(skeletonName("/internal/bank/transactions")).toBe("SkeletonInternalTablePage");
-    expect(skeletonName("/terminal")).toBe("SkeletonMarketsDashboard");
-    expect(skeletonName("/exchange/listings")).toBe("SkeletonMarketsDashboard");
-    expect(skeletonName("/legal/privacy")).toBe("SkeletonLegalPage");
-    expect(skeletonName("/admin")).toBe("SkeletonNccDashboard");
-    expect(skeletonName("/dashboard")).toBe("SkeletonNccDashboard");
+    assert.equal(skeletonName("/internal"), "SkeletonInternalDashboard");
+    assert.equal(skeletonName("/internal/bank/transactions"), "SkeletonInternalTablePage");
+    assert.equal(skeletonName("/terminal"), "SkeletonMarketsDashboard");
+    assert.equal(skeletonName("/exchange/listings"), "SkeletonMarketsDashboard");
+    assert.equal(skeletonName("/legal/privacy"), "SkeletonLegalPage");
+    assert.equal(skeletonName("/admin"), "SkeletonNccDashboard");
+    assert.equal(skeletonName("/dashboard"), "SkeletonNccDashboard");
   });
 
   it("maps account and corporate surfaces", () => {
-    expect(skeletonName("/profile")).toBe("SkeletonAccountSurface");
-    expect(skeletonName("/companies")).toBe("SkeletonAccountSurface");
-    expect(skeletonName("/support")).toBe("SkeletonCorporatePage");
+    assert.equal(skeletonName("/profile"), "SkeletonAccountSurface");
+    assert.equal(skeletonName("/companies"), "SkeletonAccountSurface");
+    assert.equal(skeletonName("/support"), "SkeletonCorporatePage");
   });
 });

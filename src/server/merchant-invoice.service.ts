@@ -248,16 +248,17 @@ const invoiceInclude = {
 
 export async function searchInvoiceRecipients(
   query: string,
-  merchantCompanyId?: string,
+  merchantCompanyId: string,
 ): Promise<MerchantInvoiceRecipientOption[]> {
   const q = query.trim();
   if (q.length < 1) return [];
+  if (!merchantCompanyId?.trim()) return [];
 
   const [companies, users] = await Promise.all([
     prisma.company.findMany({
       where: {
         verificationStatus: "VERIFIED",
-        ...(merchantCompanyId ? { id: { not: merchantCompanyId } } : {}),
+        id: { not: merchantCompanyId },
         bankAccounts: {
           some: { accountType: "BUSINESS_OPERATING", status: "ACTIVE" },
         },

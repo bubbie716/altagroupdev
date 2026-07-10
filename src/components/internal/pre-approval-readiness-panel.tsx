@@ -67,14 +67,3 @@ export function PreApprovalReadinessPanel({
     </section>
   );
 }
-
-export function PreApprovalReadinessInline({ readiness }: { readiness: PreApprovalReadiness }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-surface-2/30 px-4 py-3 text-[13px]">
-      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-        Pre-approval readiness:{" "}
-      </span>
-      <span className="font-medium">{STATUS_LABELS[readiness.readinessStatus]}</span>
-    </div>
-  );
-}

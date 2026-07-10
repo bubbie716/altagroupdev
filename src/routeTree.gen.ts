@@ -261,6 +261,7 @@ import { Route as BankAccountAccountIdCommercialAnalyticsRouteImport } from './r
 import { Route as ApiDealRoomsDocumentsDocumentIdDownloadRouteImport } from './routes/api/deal-rooms/documents/$documentId/download'
 import { Route as ApiDealRoomsAgreementDraftsDraftIdDownloadRouteImport } from './routes/api/deal-rooms/agreement-drafts/$draftId/download'
 import { Route as ApiDealRoomsDealRoomIdAgreementPreviewRouteImport } from './routes/api/deal-rooms/$dealRoomId/agreement/preview'
+import { Route as ApiBankTransactionsTransactionIdProofRouteImport } from './routes/api/bank/transactions/$transactionId/proof'
 import { Route as BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/route'
 import { Route as BankAltaCardBusinessApplicationsApplicationIdIndexRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/index'
 import { Route as BankAltaCardBusinessCompanyIdStatementsIndexRouteImport } from './routes/bank/alta-card/business/$companyId/statements/index'
@@ -1648,6 +1649,12 @@ const ApiDealRoomsDealRoomIdAgreementPreviewRoute =
     path: '/api/deal-rooms/$dealRoomId/agreement/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiBankTransactionsTransactionIdProofRoute =
+  ApiBankTransactionsTransactionIdProofRouteImport.update({
+    id: '/api/bank/transactions/$transactionId/proof',
+    path: '/api/bank/transactions/$transactionId/proof',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BankAltaCardBusinessApplicationsApplicationIdRouteRoute =
   BankAltaCardBusinessApplicationsApplicationIdRouteRouteImport.update({
     id: '/alta-card/business/applications/$applicationId',
@@ -2006,6 +2013,7 @@ export interface FileRoutesByFullPath {
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
   '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
+  '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
@@ -2253,6 +2261,7 @@ export interface FileRoutesByTo {
   '/internal/bank/alta-pay': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsIndexRoute
+  '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
@@ -2528,6 +2537,7 @@ export interface FileRoutesById {
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
   '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
+  '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
@@ -2804,6 +2814,7 @@ export interface FileRouteTypes {
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
     | '/bank/alta-card/business/applications/$applicationId'
+    | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
@@ -3051,6 +3062,7 @@ export interface FileRouteTypes {
     | '/internal/bank/alta-pay'
     | '/internal/bank/transactions'
     | '/internal/lending/deal-rooms'
+    | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
@@ -3325,6 +3337,7 @@ export interface FileRouteTypes {
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
     | '/bank/alta-card/business/applications/$applicationId'
+    | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
@@ -3420,6 +3433,7 @@ export interface RootRouteChildren {
   ApiDealRoomsDealRoomIdDocumentsRoute: typeof ApiDealRoomsDealRoomIdDocumentsRoute
   ApiInternalDiscordEmbedRoute: typeof ApiInternalDiscordEmbedRoute
   ApiLoanThreadsApplicationIdAttachmentsRoute: typeof ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren
+  ApiBankTransactionsTransactionIdProofRoute: typeof ApiBankTransactionsTransactionIdProofRoute
   ApiDealRoomsDealRoomIdAgreementPreviewRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute: typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   ApiDealRoomsDocumentsDocumentIdDownloadRoute: typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
@@ -5191,6 +5205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bank/transactions/$transactionId/proof': {
+      id: '/api/bank/transactions/$transactionId/proof'
+      path: '/api/bank/transactions/$transactionId/proof'
+      fullPath: '/api/bank/transactions/$transactionId/proof'
+      preLoaderRoute: typeof ApiBankTransactionsTransactionIdProofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/alta-card/business/applications/$applicationId': {
       id: '/bank/alta-card/business/applications/$applicationId'
       path: '/alta-card/business/applications/$applicationId'
@@ -6303,6 +6324,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiInternalDiscordEmbedRoute: ApiInternalDiscordEmbedRoute,
   ApiLoanThreadsApplicationIdAttachmentsRoute:
     ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren,
+  ApiBankTransactionsTransactionIdProofRoute:
+    ApiBankTransactionsTransactionIdProofRoute,
   ApiDealRoomsDealRoomIdAgreementPreviewRoute:
     ApiDealRoomsDealRoomIdAgreementPreviewRoute,
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute:

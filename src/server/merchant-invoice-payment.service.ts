@@ -177,6 +177,8 @@ export async function payMerchantInvoice(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "MerchantInvoice" WHERE id = ${invoice.id} FOR UPDATE`;
+
       const locked = await tx.merchantInvoice.findUnique({
         where: { id: invoice.id },
         include: {
@@ -434,7 +436,14 @@ export async function payMerchantInvoice(
         status: "FAILED",
         failureReason,
       },
-      update: {
+      update: {},
+    });
+    await prisma.merchantInvoicePayment.updateMany({
+      where: {
+        idempotencyKey: input.idempotencyKey,
+        status: { not: "COMPLETED" },
+      },
+      data: {
         status: "FAILED",
         failureReason,
       },

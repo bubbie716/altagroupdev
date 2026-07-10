@@ -127,10 +127,17 @@ export async function updateCommercialPlanSettings(
     enabledFeatures?: CommercialFeatureKey[];
   },
   source = "website",
-  options?: { allowPlanChange?: boolean },
+  options?: { allowPlanChange?: boolean; allowPrivilegedFields?: boolean },
 ): Promise<CommercialPlanSettings> {
   const existing = await prisma.company.findUnique({ where: { id: companyId } });
   if (!existing) throw new Error("NOT_FOUND");
+
+  if (
+    (input.planStatus || input.billingStatus || input.enabledFeatures) &&
+    !options?.allowPrivilegedFields
+  ) {
+    throw new Error("FORBIDDEN");
+  }
 
   if (input.commercialPlan && input.commercialPlan !== existing.commercialPlan) {
     if (!options?.allowPlanChange) {

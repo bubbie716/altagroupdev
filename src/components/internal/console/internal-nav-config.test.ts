@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   BANK_INTERNAL_NAV_GROUPS,
   getInternalNavGroupsForSite,
@@ -7,22 +8,22 @@ import {
 
 describe("internal-nav-config", () => {
   it("returns full nav for corporate and bank-scoped nav for bank", () => {
-    expect(getInternalNavGroupsForSite("corporate")).toBe(INTERNAL_NAV_GROUPS);
-    expect(getInternalNavGroupsForSite("bank")).toBe(BANK_INTERNAL_NAV_GROUPS);
-    expect(getInternalNavGroupsForSite("exchange")).toBeNull();
+    assert.equal(getInternalNavGroupsForSite("corporate"), INTERNAL_NAV_GROUPS);
+    assert.equal(getInternalNavGroupsForSite("bank"), BANK_INTERNAL_NAV_GROUPS);
+    assert.equal(getInternalNavGroupsForSite("exchange"), null);
   });
 
   it("points bank dashboard to bank ops home", () => {
     const dashboard = BANK_INTERNAL_NAV_GROUPS.find((group) => group.id === "dashboard");
-    expect(dashboard?.links[0]?.to).toBe("/internal/bank");
+    assert.equal(dashboard?.links[0]?.to, "/internal/bank");
   });
 
   it("excludes group-only system pages from bank nav", () => {
     const system = BANK_INTERNAL_NAV_GROUPS.find((group) => group.id === "system");
     const paths = system?.links.map((link) => link.to) ?? [];
-    expect(paths).not.toContain("/internal/settings");
-    expect(paths).not.toContain("/internal/compliance");
-    expect(paths).toContain("/internal/bank/settings");
-    expect(paths).toContain("/internal/jobs");
+    assert.equal(paths.includes("/internal/settings"), false);
+    assert.equal(paths.includes("/internal/compliance"), false);
+    assert.ok(paths.includes("/internal/bank/settings"));
+    assert.ok(paths.includes("/internal/jobs"));
   });
 });

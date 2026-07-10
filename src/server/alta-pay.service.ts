@@ -289,6 +289,26 @@ export async function submitAltaPayToPerson(
   input: SubmitAltaPayToPersonInput,
   auditContext?: BankingStaffAuditContext,
 ): Promise<SubmitAltaPayResult> {
+  const { beginFinancialIdempotency } = await import("@/server/financial-idempotency.service");
+  return beginFinancialIdempotency({
+    userId: user.id,
+    scope: "alta_pay_person",
+    idempotencyKey: input.idempotencyKey,
+    payload: {
+      recipientUserId: input.recipientUserId,
+      amount: input.amount,
+      memo: input.memo?.trim() ?? null,
+      fundingSource: input.fundingSource,
+    },
+    execute: () => executeAltaPayToPerson(user, input, auditContext),
+  });
+}
+
+async function executeAltaPayToPerson(
+  user: AltaUser,
+  input: SubmitAltaPayToPersonInput,
+  auditContext?: BankingStaffAuditContext,
+): Promise<SubmitAltaPayResult> {
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
   if (input.fundingSource.kind !== "bank_account") {
     badRequest("Payments to Alta customers require a bank account funding source.");
@@ -558,6 +578,26 @@ async function listPaySourceAccountIds(user: AltaUser): Promise<string[]> {
  * TODO: Discord payment notifications — webhook on PAY settlement
  */
 export async function submitAltaPayPayment(
+  user: AltaUser,
+  input: SubmitAltaPayInput,
+  auditContext?: BankingStaffAuditContext,
+): Promise<SubmitAltaPayResult> {
+  const { beginFinancialIdempotency } = await import("@/server/financial-idempotency.service");
+  return beginFinancialIdempotency({
+    userId: user.id,
+    scope: "alta_pay",
+    idempotencyKey: input.idempotencyKey,
+    payload: {
+      companyId: input.companyId,
+      amount: input.amount,
+      memo: input.memo?.trim() ?? null,
+      fundingSource: input.fundingSource,
+    },
+    execute: () => executeAltaPayPayment(user, input, auditContext),
+  });
+}
+
+async function executeAltaPayPayment(
   user: AltaUser,
   input: SubmitAltaPayInput,
   auditContext?: BankingStaffAuditContext,

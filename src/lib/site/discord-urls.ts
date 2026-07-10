@@ -8,7 +8,9 @@ const ENTITY_ENV_KEYS: Record<AltaDiscordEntity, string> = {
 };
 
 function readDiscordUrl(envKey: string): string {
-  return (import.meta.env[envKey] as string | undefined)?.trim() || "";
+  const env = import.meta.env;
+  if (!env) return "";
+  return (env[envKey] as string | undefined)?.trim() || "";
 }
 
 /** Public Discord invite URLs — set the matching VITE_* value in production. */

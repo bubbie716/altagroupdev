@@ -26,9 +26,13 @@ function rethrowServiceError(error: unknown): never {
 }
 
 export const searchInvoiceRecipientsForMerchant = createServerFn({ method: "GET" })
-  .inputValidator((input: { query: string; companyId?: string }) => input)
+  .inputValidator((input: { query: string; companyId: string }) => input)
   .handler(async ({ data }) => {
-    await actor();
+    const user = await actor();
+    const { canManageMerchantInvoices } = await import("@/lib/auth/permissions");
+    if (!canManageMerchantInvoices(user, data.companyId)) {
+      throw new Error("FORBIDDEN");
+    }
     const { searchInvoiceRecipients } = await import("@/server/merchant-invoice.service");
     return searchInvoiceRecipients(data.query, data.companyId);
   });

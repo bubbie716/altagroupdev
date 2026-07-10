@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   getMaintenanceScopeForSite,
   isMaintenanceActiveForSite,
@@ -16,42 +17,42 @@ const flags = {
 describe("maintenance scope routing", () => {
   it("applies sitewide maintenance to every Alta site except NCC", () => {
     const active = { ...flags, sitewide: true };
-    expect(isMaintenanceActiveForSite("corporate", active)).toBe(true);
-    expect(isMaintenanceActiveForSite("bank", active)).toBe(true);
-    expect(isMaintenanceActiveForSite("exchange", active)).toBe(true);
-    expect(isMaintenanceActiveForSite("terminal", active)).toBe(true);
-    expect(isMaintenanceActiveForSite("ncc", active)).toBe(false);
+    assert.equal(isMaintenanceActiveForSite("corporate", active), true);
+    assert.equal(isMaintenanceActiveForSite("bank", active), true);
+    assert.equal(isMaintenanceActiveForSite("exchange", active), true);
+    assert.equal(isMaintenanceActiveForSite("terminal", active), true);
+    assert.equal(isMaintenanceActiveForSite("ncc", active), false);
   });
 
   it("does not apply Alta scoped maintenance to NCC", () => {
-    expect(isMaintenanceActiveForSite("ncc", { ...flags, corporate: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("ncc", { ...flags, bank: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("ncc", { ...flags, exchange: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("ncc", { ...flags, terminal: true })).toBe(false);
+    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, corporate: true }), false);
+    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, bank: true }), false);
+    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, exchange: true }), false);
+    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, terminal: true }), false);
   });
 
   it("applies scoped maintenance only to matching sites", () => {
-    expect(isMaintenanceActiveForSite("bank", { ...flags, bank: true })).toBe(true);
-    expect(isMaintenanceActiveForSite("corporate", { ...flags, bank: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("exchange", { ...flags, exchange: true })).toBe(true);
-    expect(isMaintenanceActiveForSite("terminal", { ...flags, terminal: true })).toBe(true);
-    expect(isMaintenanceActiveForSite("exchange", { ...flags, terminal: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("bank", { ...flags, terminal: true })).toBe(false);
-    expect(isMaintenanceActiveForSite("corporate", { ...flags, corporate: true })).toBe(true);
+    assert.equal(isMaintenanceActiveForSite("bank", { ...flags, bank: true }), true);
+    assert.equal(isMaintenanceActiveForSite("corporate", { ...flags, bank: true }), false);
+    assert.equal(isMaintenanceActiveForSite("exchange", { ...flags, exchange: true }), true);
+    assert.equal(isMaintenanceActiveForSite("terminal", { ...flags, terminal: true }), true);
+    assert.equal(isMaintenanceActiveForSite("exchange", { ...flags, terminal: true }), false);
+    assert.equal(isMaintenanceActiveForSite("bank", { ...flags, terminal: true }), false);
+    assert.equal(isMaintenanceActiveForSite("corporate", { ...flags, corporate: true }), true);
   });
 
   it("labels the effective scope for a site", () => {
-    expect(getMaintenanceScopeForSite("bank", { ...flags, sitewide: true })).toBe("sitewide");
-    expect(getMaintenanceScopeForSite("bank", { ...flags, bank: true })).toBe("bank");
-    expect(getMaintenanceScopeForSite("exchange", { ...flags, exchange: true })).toBe("exchange");
-    expect(getMaintenanceScopeForSite("terminal", { ...flags, terminal: true })).toBe("terminal");
+    assert.equal(getMaintenanceScopeForSite("bank", { ...flags, sitewide: true }), "sitewide");
+    assert.equal(getMaintenanceScopeForSite("bank", { ...flags, bank: true }), "bank");
+    assert.equal(getMaintenanceScopeForSite("exchange", { ...flags, exchange: true }), "exchange");
+    assert.equal(getMaintenanceScopeForSite("terminal", { ...flags, terminal: true }), "terminal");
   });
 
   it("maps each internal settings page to its own maintenance scopes", () => {
-    expect(maintenanceScopesForInternalSettings("corporate")).toEqual(["sitewide", "corporate"]);
-    expect(maintenanceScopesForInternalSettings("bank")).toEqual(["bank"]);
-    expect(maintenanceScopesForInternalSettings("exchange")).toEqual(["exchange"]);
-    expect(maintenanceScopesForInternalSettings("terminal")).toEqual(["terminal"]);
-    expect(maintenanceScopesForInternalSettings("ncc")).toEqual([]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("corporate"), ["sitewide", "corporate"]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("bank"), ["bank"]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("exchange"), ["exchange"]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("terminal"), ["terminal"]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("ncc"), []);
   });
 });

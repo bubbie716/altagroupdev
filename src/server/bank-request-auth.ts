@@ -8,11 +8,25 @@ export async function requireAuthFromRequest(request: Request): Promise<AltaUser
 
   const user = await loadUserBySessionToken(token);
   if (!user) throw new Error("UNAUTHORIZED");
+  if (user.accountStatus === "frozen" || user.accountStatus === "restricted") {
+    throw new Error("ACCOUNT_RESTRICTED");
+  }
   return user;
 }
 
 export function jsonError(message: string, status: number): Response {
   return Response.json({ ok: false, message }, { status });
+}
+
+/** Map auth errors from `requireAuthFromRequest` to HTTP responses. */
+export function authRequestErrorResponse(error: unknown): Response | null {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "UNAUTHORIZED") return jsonError("Authentication required.", 401);
+  if (message === "FORBIDDEN") return jsonError("You do not have access.", 403);
+  if (message === "ACCOUNT_RESTRICTED") {
+    return jsonError("Your account is restricted.", 403);
+  }
+  return null;
 }
 
 /** Inline preview for images/PDFs in browser; attachment for explicit downloads. */

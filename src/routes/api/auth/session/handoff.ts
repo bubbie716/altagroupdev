@@ -6,22 +6,27 @@ import {
   redirectWithSetCookies,
   sessionMaxAgeSec,
 } from "@/server/session";
-import { readSessionHandoffToken } from "@/server/session-handoff";
+import { redeemSessionHandoff } from "@/server/session-handoff";
 import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
+import { enforceRateLimit } from "@/server/rate-limit.service";
 
 export const Route = createFileRoute("/api/auth/session/handoff")({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        const limited = await enforceRateLimit(request, "session-handoff", 20, 60_000);
+        if (limited) return limited;
+
         const url = new URL(request.url);
-        const token = url.searchParams.get("token");
+        const handoff =
+          url.searchParams.get("handoff")?.trim() || url.searchParams.get("token")?.trim();
         const redirectParam = url.searchParams.get("redirect");
 
-        if (!token) {
+        if (!handoff) {
           return loginErrorRedirect(request, "invalid_state");
         }
 
-        const payload = await readSessionHandoffToken(token);
+        const payload = await redeemSessionHandoff(handoff);
         if (!payload) {
           return loginErrorRedirect(request, "invalid_state");
         }

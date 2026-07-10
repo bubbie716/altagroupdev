@@ -37,6 +37,10 @@ function signedAmountForTransaction(row: {
       if (desc.includes("debit adjustment") || desc.includes("admin debit")) return -amount;
       return amount;
     }
+    case "LOAN_PAYMENT":
+      return -amount;
+    case "INTEREST_CREDIT":
+      return amount;
     default:
       return 0;
   }

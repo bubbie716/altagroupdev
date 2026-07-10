@@ -100,6 +100,7 @@ model User {
   tags               UserTagAssignment[]
   companyMemberships CompanyMembership[]
   sessions           Session[]
+  financialIdempotencyRecords FinancialIdempotencyRecord[]
   bankAccounts               BankAccount[]
   transferContacts           TransferContact[]
   reviewedBankTransactions   BankTransaction[]   @relation("BankTransactionReviewer")
@@ -187,6 +188,8 @@ model User {
   altaPaySchedulesAsRecipient    ScheduledPayment[]             @relation("ScheduledPaymentRecipientUser")
   recurringInvoiceSchedulesCreated MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceScheduleCreator")
   recurringInvoicesReceived      MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceRecipientUser")
+
+  @@index([accountStatus])
 }
 
 model BotDailyTransferUsage {
@@ -271,6 +274,8 @@ model Company {
   commercialProExpiresAt         DateTime?
   commercialBillingAccount       BankAccount?                 @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
   branding                       CompanyBranding?
+
+  @@index([verificationStatus])
 }
 
 model CompanyBranding {
@@ -350,6 +355,36 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Single-use opaque cross-domain session handoff (never put session token in URL).
+model SessionHandoff {
+  id           String    @id @default(cuid())
+  handoffToken String    @unique
+  sessionToken String
+  expiresAt    DateTime
+  redeemedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
+/// Client idempotency records for instant money movement (Alta Pay, transfers).
+model FinancialIdempotencyRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  scope          String
+  idempotencyKey String
+  requestHash    String
+  resultJson     String
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope, idempotencyKey])
   @@index([userId])
   @@index([expiresAt])
 }
@@ -636,6 +671,7 @@ model ScheduledTransferExecution {
   scheduledRunAt     DateTime
   status             ScheduledTransferExecutionStatus @default(PENDING)
   bankTransactionId  String?
+  transferReferenceCode String?
   paymentId          String?
   retryCount         Int                              @default(0)
   nextRetryAt        DateTime?
@@ -840,6 +876,7 @@ model BankTransaction {
   altaCardTransactions       AltaCardTransaction[] @relation("AltaCardRelatedBankTransaction")
 
   @@index([bankAccountId])
+  @@index([bankAccountId, createdAt])
   @@index([status])
   @@index([type])
   @@index([transferGroupId])
@@ -1860,6 +1897,8 @@ model AuditLog {
   @@index([targetUserId])
   @@index([targetAccountId])
   @@index([targetCompanyId])
+  @@index([targetTransactionId])
+  @@index([targetLoanId])
   @@index([action])
   @@index([entityType])
   @@index([createdAt])

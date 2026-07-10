@@ -167,8 +167,10 @@ export async function payPaymentLink(
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "PaymentLink" WHERE id = ${link.id} FOR UPDATE`;
+
       const locked = await tx.paymentLink.findUnique({
-        where: { slug: input.slug },
+        where: { id: link.id },
         include: {
           merchantCompany: true,
           destinationAccount: true,
@@ -443,11 +445,40 @@ export async function payPaymentLink(
         status: "FAILED",
         failureReason,
       },
-      update: {
+      update: {},
+    });
+    await prisma.paymentLinkPayment.updateMany({
+      where: {
+        idempotencyKey: input.idempotencyKey,
+        status: { not: "COMPLETED" },
+      },
+      data: {
         status: "FAILED",
         failureReason,
       },
     });
+    const completedRow = await prisma.paymentLinkPayment.findUnique({
+      where: { idempotencyKey: input.idempotencyKey },
+    });
+    if (completedRow?.status === "COMPLETED" && completedRow.paymentId) {
+      const sources = await listPayFundingSources(user);
+      const sourceLabel = resolvePayFundingSourceOption(sources, input.fundingSource);
+      const payment = await prisma.payment.findUnique({
+        where: { id: completedRow.paymentId },
+        select: { referenceCode: true },
+      });
+      if (payment) {
+        return {
+          slug: link.slug,
+          paymentReferenceCode: payment.referenceCode,
+          amount: decimalToNumber(completedRow.amount),
+          feeAmount: decimalToNumber(completedRow.feeAmount),
+          totalDebited: decimalToNumber(completedRow.amount),
+          merchantName: link.merchantCompany.name,
+          fundingSourceLabel: sourceLabel?.label ?? "Alta Bank account",
+        };
+      }
+    }
 
     await writePaymentLinkAudit({
       actorUserId: user.id,

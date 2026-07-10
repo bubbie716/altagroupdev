@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import {
   assertEntityInternalRouteAccess,
   internalHomePathForSite,
@@ -6,18 +7,22 @@ import {
 
 describe("entity-internal-scope", () => {
   it("maps internal home paths by site", () => {
-    expect(internalHomePathForSite("corporate")).toBe("/internal");
-    expect(internalHomePathForSite("bank")).toBe("/internal/bank");
-    expect(internalHomePathForSite("exchange")).toBe("/internal");
+    assert.equal(internalHomePathForSite("corporate"), "/internal");
+    assert.equal(internalHomePathForSite("bank"), "/internal/bank");
+    assert.equal(internalHomePathForSite("exchange"), "/internal");
   });
 
   it("allows corporate and bank routes without redirect", () => {
-    expect(() => assertEntityInternalRouteAccess("corporate", "/internal/settings")).not.toThrow();
-    expect(() => assertEntityInternalRouteAccess("bank", "/internal/bank/accounts")).not.toThrow();
+    assert.doesNotThrow(() => assertEntityInternalRouteAccess("corporate", "/internal/settings"));
+    assert.doesNotThrow(() => assertEntityInternalRouteAccess("bank", "/internal/bank/accounts"));
   });
 
   it("allows exchange and terminal settings routes only on their own sites", () => {
-    expect(() => assertEntityInternalRouteAccess("exchange", "/internal/exchange/settings")).not.toThrow();
-    expect(() => assertEntityInternalRouteAccess("terminal", "/internal/terminal/settings")).not.toThrow();
+    assert.doesNotThrow(() =>
+      assertEntityInternalRouteAccess("exchange", "/internal/exchange/settings"),
+    );
+    assert.doesNotThrow(() =>
+      assertEntityInternalRouteAccess("terminal", "/internal/terminal/settings"),
+    );
   });
 });

@@ -54,8 +54,8 @@ export async function readCurrentUser(): Promise<AltaUser | null> {
   return user;
 }
 
-export function clearUserSession(): void {
-  setResponseHeader("Set-Cookie", buildClearCookie(getSessionCookieName()));
+export function clearUserSession(requestHost?: string): void {
+  setResponseHeader("Set-Cookie", buildClearCookie(getSessionCookieName(), requestHost));
 }
 
 export async function issueUserSession(user: AltaUser): Promise<string | null> {
@@ -67,12 +67,13 @@ export async function issueUserSession(user: AltaUser): Promise<string | null> {
 
 export async function logoutCurrentUser(): Promise<void> {
   const cookieHeader = getRequestHeader("cookie");
+  const requestHost = getRequestHeader("host") ?? undefined;
   const token = readCookie(getSessionCookieName(), cookieHeader);
   if (token) {
     invalidateSessionUserCache(token);
     await deleteSessionByToken(token);
   }
-  clearUserSession();
+  clearUserSession(requestHost);
 }
 
 export async function loginWithDiscordProfile(

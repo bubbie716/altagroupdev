@@ -14,7 +14,14 @@ import type { AltaUser, EnrichedCompanyMembership } from "@/lib/auth/types";
 export function isUiLabMode(): boolean {
   // Works on both client and server (Vite inlines import.meta.env).
   try {
-    return import.meta.env?.VITE_UI_LAB_MODE === "true";
+    const enabled = import.meta.env?.VITE_UI_LAB_MODE === "true";
+    if (enabled && import.meta.env?.PROD) {
+      console.error(
+        "[ui-lab] VITE_UI_LAB_MODE is set in a production build — auth bypass disabled.",
+      );
+      return false;
+    }
+    return enabled;
   } catch {
     return false;
   }
