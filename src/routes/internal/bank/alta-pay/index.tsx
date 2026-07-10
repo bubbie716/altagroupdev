@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { INTERNAL_TRANSACTION_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { Section } from "@/components/page-shell";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
@@ -54,7 +55,7 @@ function AltaPayOpsPage() {
               header: "",
               cell: (r) => (
                 <div className="flex gap-1">
-                  <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: r.outTransactionId }} className="font-mono text-[10px] uppercase text-gold">
+                  <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: r.outTransactionId }} search={INTERNAL_TRANSACTION_WORKSPACE_SEARCH} className="font-mono text-[10px] uppercase text-gold">
                     View
                   </Link>
                   {r.status === "APPROVED" ? (

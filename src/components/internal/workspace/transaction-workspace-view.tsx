@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_ACCOUNT_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
 import { TransactionWorkspaceActions } from "@/components/internal/transaction-workspace-actions";
 import { OpsReviewFlagsBanner } from "@/components/internal/ops-review-flags-banner";
@@ -72,7 +73,7 @@ export function TransactionWorkspaceView({
               <span className="font-mono text-[11px]">{tx.referenceCode}</span>
             </WorkspaceField>
             <WorkspaceField label="Account">
-              <Link to="/internal/bank/accounts/$accountId" params={{ accountId: tx.accountId }} className="text-gold hover:underline">
+              <Link to="/internal/bank/accounts/$accountId" params={{ accountId: tx.accountId }} search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH} className="text-gold hover:underline">
                 {tx.accountNumber}
               </Link>
             </WorkspaceField>

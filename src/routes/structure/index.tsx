@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { FadeIn } from "@/components/ui/fade-in";
 import { Section, Card } from "@/components/page-shell";
 import { type } from "@/lib/typography";
 import { cn } from "@/lib/utils";
@@ -37,12 +37,7 @@ function StructurePage() {
 
   return (
     <CorporatePageShell>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="border-b border-border/60 pb-12"
-      >
+      <FadeIn className="border-b border-border/60 pb-12">
         <div className={type.eyebrow}>Structure</div>
         <h1 className={cn(type.displayGovernance, "mt-5")}>Alta Group</h1>
         <p className="mt-4 text-[clamp(1.125rem,1.4vw,1.5rem)] font-medium tracking-tight text-foreground">
@@ -55,7 +50,7 @@ function StructurePage() {
           A single parent holding company — Alta Group N.V. — operating banking, exchange, and clearing
           infrastructure for the Republic of Newport.
         </p>
-      </motion.div>
+      </FadeIn>
 
       <main className="py-12">
         <div className="mb-12 grid gap-6 lg:grid-cols-3">

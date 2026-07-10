@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { useState } from "react";
 import { LoanApplicationThreadView } from "@/components/bank/loan-thread/loan-application-thread-view";
 import { AltaCardReviewIntegrationWithHook } from "@/components/internal/relationship-integration-wrappers";
@@ -232,6 +233,7 @@ export function AltaCardReviewWorkspaceView({
           <Link
             to="/internal/alta-card/$cardId"
             params={{ cardId: review.altaCardId }}
+            search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH}
             className="mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-gold hover:underline"
           >
             Open card workspace →

@@ -311,11 +311,12 @@ async function resolvePrivateDashboardStatus(user: AltaUser): Promise<string> {
   return "Not enrolled";
 }
 
-export async function getUserBankDashboardFromAccounts(
-  user: AltaUser,
-  accounts: UserBankAccount[],
-): Promise<UserBankDashboard> {
-  const [pendingDeposits, pendingWithdrawals] = await Promise.all([
+async function fetchBankDashboardAncillary(user: AltaUser): Promise<{
+  pendingDeposits: number;
+  pendingWithdrawals: number;
+  privateStatus: string;
+}> {
+  const [pendingDeposits, pendingWithdrawals, privateStatus] = await Promise.all([
     prisma.bankTransaction.count({
       where: {
         type: "DEPOSIT",
@@ -330,13 +331,21 @@ export async function getUserBankDashboardFromAccounts(
         bankAccount: bankAccountAccessWhere(user, "view"),
       },
     }),
+    resolvePrivateDashboardStatus(user),
   ]);
+
+  return { pendingDeposits, pendingWithdrawals, privateStatus };
+}
+
+export async function getUserBankDashboardFromAccounts(
+  user: AltaUser,
+  accounts: UserBankAccount[],
+): Promise<UserBankDashboard> {
+  const ancillary = await fetchBankDashboardAncillary(user);
 
   return {
     ...buildUserBankDashboardMetrics(user, accounts),
-    privateStatus: await resolvePrivateDashboardStatus(user),
-    pendingDeposits,
-    pendingWithdrawals,
+    ...ancillary,
   };
 }
 
@@ -346,11 +355,15 @@ export async function getUserBankDashboardBundle(userId: string): Promise<{
   transactions: UserBankTransaction[];
 }> {
   const user = await loadAltaUserOrThrow(userId);
-  const [accounts, transactions] = await Promise.all([
+  const [accounts, transactions, ancillary] = await Promise.all([
     listUserBankAccountsForUser(user),
     listUserRecentTransactionsForUser(user, 10),
+    fetchBankDashboardAncillary(user),
   ]);
-  const dashboard = await getUserBankDashboardFromAccounts(user, accounts);
+  const dashboard: UserBankDashboard = {
+    ...buildUserBankDashboardMetrics(user, accounts),
+    ...ancillary,
+  };
   return { dashboard, accounts, transactions };
 }
 

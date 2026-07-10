@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { INTERNAL_COMPANY_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
@@ -64,6 +65,7 @@ function InternalCompanies() {
                 <Link
                   to="/internal/companies/$companyId"
                   params={{ companyId: c.id }}
+                  search={INTERNAL_COMPANY_WORKSPACE_SEARCH}
                   className="font-medium hover:text-gold"
                 >
                   {c.name}

@@ -118,8 +118,8 @@ export async function syncDiscordGuildRolesForJoin(
 
   let clientGranted = false;
   let privateGranted = false;
-  let clientSkipped = resolveDiscordClientRoleId() == null;
-  let privateSkipped = resolveDiscordPrivateRoleId() == null;
+  const clientSkipped = resolveDiscordClientRoleId() == null;
+  const privateSkipped = resolveDiscordPrivateRoleId() == null;
 
   const clientResult = await grantDiscordClientRole(discordUserId);
   if (clientResult.ok) {

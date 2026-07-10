@@ -352,7 +352,7 @@ export async function guaranteeDueInterestForLoan(
   let totalInterestGuaranteed = 0;
 
   await prisma.$transaction(async (tx) => {
-    let principalOutstanding = decimalToNumber(loan.principalOutstanding);
+    const principalOutstanding = decimalToNumber(loan.principalOutstanding);
     let accruedInterest = decimalToNumber(loan.accruedInterest);
 
     for (const item of loan.interestSchedule) {

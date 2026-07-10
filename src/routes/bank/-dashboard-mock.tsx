@@ -1,5 +1,5 @@
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 import { Section } from "@/components/page-shell";
+import { LazyBankDashboardTrendChart } from "@/components/bank/lazy-bank-dashboard-trend-chart";
 import { BankStatStrip } from "@/components/bank/bank-stat-strip";
 import { AccountCard, OpenAccountCard } from "@/components/bank/account-card";
 import { TransactionTable } from "@/components/bank/transaction-table";
@@ -36,31 +36,7 @@ export function BankDashboardMockContent() {
 
       <Section title="Balance Trend" className="mt-10">
         <div className="rounded-xl border border-border bg-surface-1/80 p-5">
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={d.balanceTrend}>
-                <defs>
-                  <linearGradient id="bankTrend" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                <XAxis hide dataKey="t" />
-                <YAxis hide domain={["dataMin", "dataMax"]} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border-strong)",
-                    borderRadius: 8,
-                    fontSize: 11,
-                  }}
-                  formatter={(v) => [florin(Number(v)), "Value"]}
-                />
-                <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#bankTrend)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <LazyBankDashboardTrendChart data={d.balanceTrend} />
         </div>
       </Section>
 

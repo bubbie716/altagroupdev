@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { INTERNAL_ACCOUNT_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
@@ -88,6 +89,7 @@ function InternalBankAccounts() {
                 <Link
                   to="/internal/bank/accounts/$accountId"
                   params={{ accountId: a.id }}
+                  search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH}
                   className="font-mono text-[12px] hover:text-gold"
                 >
                   {a.accountNumber}

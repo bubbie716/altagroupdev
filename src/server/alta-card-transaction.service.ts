@@ -1277,16 +1277,15 @@ export async function getCardPaymentContext(userId: string, cardId: string): Pro
 
   const accounts = await listCardLinkedBankAccounts(userId, card);
 
-  const { getAccountAvailableBalance } = await import("@/server/account-balance.service");
+  const { getAvailableBalancesByAccountIds } = await import("@/server/account-balance.service");
+  const availableByAccount = await getAvailableBalancesByAccountIds(accounts.map((a) => a.id));
 
-  const sourceAccounts = await Promise.all(
-    accounts.map(async (a) => ({
-      id: a.id,
-      accountName: a.accountName,
-      accountNumber: a.accountNumber,
-      availableBalance: await getAccountAvailableBalance(a.id),
-    })),
-  );
+  const sourceAccounts = accounts.map((a) => ({
+    id: a.id,
+    accountName: a.accountName,
+    accountNumber: a.accountNumber,
+    availableBalance: availableByAccount.get(a.id) ?? 0,
+  }));
 
   return {
     card: mapAltaCardRow(card),

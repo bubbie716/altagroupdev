@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
 import { OpsAction } from "@/components/internal/ops-action";
 import { florin } from "@/lib/bank/api";
 import {
@@ -43,6 +44,7 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
           <Link
             to="/internal/lending/loans/$loanId"
             params={{ loanId: loan.id }}
+            search={internalWorkspaceTabSearch("overview")}
             className="h-7 rounded border border-gold/30 bg-surface-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
           >
             Open workspace

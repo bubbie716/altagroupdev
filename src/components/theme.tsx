@@ -32,7 +32,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     else c.remove("dark");
     try {
       localStorage.setItem("alta-theme", t);
-    } catch {}
+    } catch {
+      /* localStorage unavailable (SSR / private mode) */
+    }
   };
 
   return (

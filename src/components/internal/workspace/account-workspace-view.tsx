@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_TRANSACTION_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { OpsAction } from "@/components/internal/ops-action";
 import { InternalAccountAdjustmentForm } from "@/components/internal/internal-account-adjustment-form";
@@ -243,7 +244,7 @@ function TxTable({ rows, empty }: { rows: InternalBankTransactionRow[]; empty: s
           key: "ref",
           header: "Reference",
           cell: (r) => (
-            <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: r.id }} className="font-mono text-[11px] text-gold hover:underline">
+            <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: r.id }} search={INTERNAL_TRANSACTION_WORKSPACE_SEARCH} className="font-mono text-[11px] text-gold hover:underline">
               {r.referenceCode}
             </Link>
           ),

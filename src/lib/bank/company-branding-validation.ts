@@ -55,7 +55,7 @@ export function normalizeHexColor(value: string | null | undefined, fallback: st
 
 export function sanitizeBrandingText(value: string | null | undefined, maxLength: number): string | null {
   if (value == null) return null;
-  const trimmed = value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
+  const trimmed = value.replace(/[\u0000-\u001F\u007F]/g, "").trim(); // eslint-disable-line no-control-regex -- strip control chars from branding input
   if (!trimmed) return null;
   assertSafeBrandingText(trimmed);
   const withoutTags = trimmed.replace(/<[^>]*>/g, "").trim();

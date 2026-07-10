@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { INTERNAL_TRANSACTION_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { OpsSection } from "@/components/internal/console";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console/ops-table";
@@ -39,6 +40,7 @@ function TransactionExplorerPage() {
         <Link
           to="/internal/bank/transactions/$transactionId"
           params={{ transactionId: r.id }}
+          search={INTERNAL_TRANSACTION_WORKSPACE_SEARCH}
           className="font-mono text-[11px] hover:text-gold"
         >
           {r.referenceCode}

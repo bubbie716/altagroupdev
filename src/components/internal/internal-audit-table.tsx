@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_ACCOUNT_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { Card } from "@/components/page-shell";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { AuditLogRow } from "@/lib/internal/audit.types";
@@ -27,7 +28,7 @@ export function AccountActivityLink({
   }
 
   return (
-    <Link to="/internal/bank/accounts/$accountId" params={{ accountId }} className="hover:text-gold">
+    <Link to="/internal/bank/accounts/$accountId" params={{ accountId }} search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH} className="hover:text-gold">
       {name ? <div className="text-[12px]">{name}</div> : null}
       {number ? <div className="font-mono text-[11px] text-muted-foreground">{number}</div> : null}
     </Link>

@@ -111,7 +111,7 @@ export async function storeDiscordDealRoomAttachments(input: {
       throw new Error("BAD_REQUEST:File type not supported.");
     }
 
-    const file = new File([attachment.buffer], attachment.fileName, { type: mimeType });
+    const file = new File([new Uint8Array(attachment.buffer)], attachment.fileName, { type: mimeType });
 
     try {
       const uploaded = await uploadAltaCardThreadPrivateFile(file, storageContext);

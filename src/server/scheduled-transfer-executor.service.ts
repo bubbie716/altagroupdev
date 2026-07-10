@@ -5,6 +5,7 @@ import type {
   ScheduledTransferExecutionStatus,
 } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import { undefinedIfNull } from "@/lib/types/nullable";
 import { prisma } from "@/server/db";
 import { isAccountAccessibleByUser, normalizeAccountNumber, submitInternalTransfer } from "@/server/bank.service";
 
@@ -344,7 +345,7 @@ async function recordFailure(
       reason,
       paused: shouldPause,
       paymentType: payment.paymentType,
-      bankAccountId: payment.bankAccountId,
+      bankAccountId: undefinedIfNull(payment.bankAccountId),
       companyId: payment.companyId,
     });
   } catch (error) {

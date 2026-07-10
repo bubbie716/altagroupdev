@@ -15,7 +15,7 @@ export const Route = createFileRoute("/internal/bank/scheduled")({
 
 function InternalScheduledTransfersPage() {
   const { transfers } = Route.useLoaderData();
-  const active = transfers.filter((t: any) =>
+  const active = transfers.filter((t) =>
     ["approved", "paused", "pending_review"].includes(t.status),
   );
 

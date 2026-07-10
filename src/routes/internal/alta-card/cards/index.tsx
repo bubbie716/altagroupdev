@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { OpsSection, OpsTable, type OpsTableColumn } from "@/components/internal/console";
 import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
@@ -49,6 +50,7 @@ function InternalAltaCardsListPage() {
         <Link
           to="/internal/alta-card/$cardId"
           params={{ cardId: c.id }}
+          search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH}
           className="font-mono text-[12px] hover:text-gold"
         >
           ····{c.cardLastFour}
@@ -174,7 +176,7 @@ function InternalAltaCardsListPage() {
           rows={cards}
           rowKey={(c) => c.id}
           onRowClick={(c) => {
-            void router.navigate({ to: "/internal/alta-card/$cardId", params: { cardId: c.id } });
+            void router.navigate({ to: "/internal/alta-card/$cardId", params: { cardId: c.id }, search: INTERNAL_ALTA_CARD_WORKSPACE_SEARCH });
           }}
           emptyState="No Alta Cards match the current filters."
         />

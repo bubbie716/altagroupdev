@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "exclude": [
+    "src/**/*.integration.test.ts",
+    "src/lib/staff-audit/audit-log-discord-bridge.test.ts",
+    "src/server/customer-operator-notification.test.ts"
+  ]
+}

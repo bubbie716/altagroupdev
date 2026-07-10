@@ -7,7 +7,7 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { HomePortfolioPanel } from "@/components/site/homepages/home-portfolio-panel";
 import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
+import type { PlatformMetrics } from "@/lib/metrics/platform-metrics";
 import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
 import { MetricValue } from "@/components/metrics/metric-value";
 import {
@@ -26,7 +26,7 @@ import type { SiteKey } from "@/config/sites";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 
 export type CorporateHomepageProps = {
-  platformMetrics: Awaited<ReturnType<typeof fetchPlatformMetrics>>;
+  platformMetrics: PlatformMetrics;
   snapshot?: HomePortfolioSnapshot | null;
 };
 
@@ -321,7 +321,7 @@ function Divisions() {
   );
 }
 
-function Capabilities({ metrics }: { metrics: Awaited<ReturnType<typeof fetchPlatformMetrics>> }) {
+function Capabilities({ metrics }: { metrics: PlatformMetrics }) {
   const items = buildHomepagePlatformMetrics(metrics);
 
   return (

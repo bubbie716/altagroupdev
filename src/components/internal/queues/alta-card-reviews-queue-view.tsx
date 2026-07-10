@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_REVIEW_SEARCH } from "@/lib/internal/internal-route-search";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console";
 import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
 import { OpsAction } from "@/components/internal/ops-action";
@@ -147,6 +148,7 @@ export function AltaCardReviewsQueueView({
           void router.navigate({
             to: "/internal/alta-card/reviews/$reviewId",
             params: { reviewId: row.id },
+            search: INTERNAL_ALTA_CARD_REVIEW_SEARCH,
           })
         }
         emptyState="No Alta Card account reviews in this queue."
@@ -195,6 +197,7 @@ function AltaCardReviewQueueActions({ row }: { row: AltaCardReviewQueueRow }) {
       <Link
         to="/internal/alta-card/reviews/$reviewId"
         params={{ reviewId: row.id }}
+        search={INTERNAL_ALTA_CARD_REVIEW_SEARCH}
         className="self-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-gold"
         onClick={(e) => e.stopPropagation()}
       >

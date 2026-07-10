@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { FadeIn } from "@/components/ui/fade-in";
 import { Check } from "lucide-react";
 import { Card } from "@/components/page-shell";
 import type { EntityOverviewItem, EntityProduct, EntityStatus } from "@/lib/governance/content";
@@ -104,10 +104,8 @@ function SideEntityCard({
   const muted = entity.status === "Planned" || entity.status === "In Development";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.05 + index * 0.08 }}
+    <FadeIn
+      delay={0.05 + index * 0.08}
       className={`${stretch ? "h-full" : ""} ${className ?? ""}`}
     >
       <Card
@@ -116,7 +114,7 @@ function SideEntityCard({
         <EntityCardHeader entity={entity} />
         <EntityServicesList services={entity.services} />
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 }
 
@@ -124,12 +122,7 @@ function ExchangeFullCard({ entity, index }: { entity: EntityOverviewItem; index
   const muted = entity.status === "Planned" || entity.status === "In Development";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.05 + index * 0.08 }}
-      className="lg:hidden"
-    >
+    <FadeIn delay={0.05 + index * 0.08} className="lg:hidden">
       <Card className={`flex flex-col !p-7 ${muted ? "opacity-90" : ""}`}>
         <EntityCardHeader entity={entity} />
         <EntityServicesList services={entity.services} />
@@ -139,7 +132,7 @@ function ExchangeFullCard({ entity, index }: { entity: EntityOverviewItem; index
           </div>
         )}
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 }
 
@@ -147,10 +140,8 @@ function ExchangeTopCard({ entity, index }: { entity: EntityOverviewItem; index:
   const muted = entity.status === "Planned" || entity.status === "In Development";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.05 + index * 0.08 }}
+    <FadeIn
+      delay={0.05 + index * 0.08}
       className="hidden h-full lg:col-start-2 lg:row-start-1 lg:block"
     >
       <Card
@@ -159,7 +150,7 @@ function ExchangeTopCard({ entity, index }: { entity: EntityOverviewItem; index:
         <EntityCardHeader entity={entity} />
         <EntityServicesList services={entity.services} />
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 }
 
@@ -175,10 +166,8 @@ function ExchangeProductsCard({
   const muted = entity.status === "Planned" || entity.status === "In Development";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 + index * 0.08 }}
+    <FadeIn
+      delay={0.1 + index * 0.08}
       className="hidden lg:col-start-2 lg:row-start-2 lg:block"
     >
       <Card
@@ -186,7 +175,7 @@ function ExchangeProductsCard({
       >
         <EntityProductsSection products={entity.products} />
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 }
 

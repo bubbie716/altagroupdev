@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
+import { INTERNAL_COMPANY_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console";
 import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
 import { OpsAction } from "@/components/internal/ops-action";
@@ -54,6 +55,7 @@ export function CompanyVerificationsQueueView({ companies }: { companies: Intern
         <Link
           to="/internal/companies/$companyId"
           params={{ companyId: c.id }}
+          search={INTERNAL_COMPANY_WORKSPACE_SEARCH}
           className="font-medium text-[12px] hover:text-gold"
           onClick={(e) => e.stopPropagation()}
         >
@@ -118,7 +120,7 @@ export function CompanyVerificationsQueueView({ companies }: { companies: Intern
         rows={filtered}
         rowKey={(c) => c.id}
         onRowClick={(c) =>
-          void router.navigate({ to: "/internal/companies/$companyId", params: { companyId: c.id } })
+          void router.navigate({ to: "/internal/companies/$companyId", params: { companyId: c.id }, search: INTERNAL_COMPANY_WORKSPACE_SEARCH })
         }
         emptyState="No companies in this verification queue."
         filterSlot={

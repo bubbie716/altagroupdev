@@ -290,7 +290,7 @@ function buildCalendarWeekBuckets(
   endAt: number,
 ): PortfolioChartBucket[] {
   const buckets: PortfolioChartBucket[] = [];
-  let cursor = startOfLocalWeek(new Date(startAt));
+  const cursor = startOfLocalWeek(new Date(startAt));
 
   while (cursor.getTime() <= endAt) {
     const weekStart = cursor.getTime();

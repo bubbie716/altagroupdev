@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
 import { florin } from "@/lib/bank/api";
 import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
 import type {
@@ -47,6 +48,7 @@ export function CompanyRelationshipIntelligencePanel({
         <Link
           to="/internal/companies/$companyId/relationship"
           params={{ companyId: panel.companyId }}
+          search={internalWorkspaceTabSearch("relationship")}
           className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
         >
           Full company profile →

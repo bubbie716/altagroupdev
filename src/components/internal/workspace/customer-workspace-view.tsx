@@ -1,6 +1,12 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import {
+  INTERNAL_ACCOUNT_WORKSPACE_SEARCH,
+  INTERNAL_ALTA_CARD_WORKSPACE_SEARCH,
+  INTERNAL_COMPANY_WORKSPACE_SEARCH,
+  internalWorkspaceTabSearch,
+} from "@/lib/internal/internal-route-search";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { InternalUserTagPanel } from "@/components/internal/internal-user-tag-panel";
 import { InternalUserAccountStatusPanel } from "@/components/internal/internal-user-account-status-panel";
@@ -261,7 +267,7 @@ function accountsTab(user: InternalUserDetail) {
       <WorkspaceCompactTable
         headers={["Account", "Type", "Status", "Balance"]}
         rows={user.bankAccounts.map((a) => [
-          <Link key={a.id} to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} className="hover:text-gold">
+          <Link key={a.id} to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH} className="hover:text-gold">
             <div>{a.accountName}</div>
             <div className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</div>
           </Link>,
@@ -283,6 +289,7 @@ function altaCardTab(altaCardId: string | null, user: InternalUserDetail) {
       <Link
         to="/internal/alta-card/$cardId"
         params={{ cardId: altaCardId }}
+        search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH}
         className="font-mono text-[11px] text-gold hover:underline"
       >
         Open card workspace →
@@ -299,7 +306,7 @@ function lendingTab(user: InternalUserDetail) {
         <WorkspaceCompactTable
           headers={["Loan", "Product", "Payoff", "Status"]}
           rows={user.activeLoans.map((l) => [
-            <Link key={l.id} to="/internal/lending/loans/$loanId" params={{ loanId: l.id }} className="font-mono text-[11px] text-gold hover:underline">
+            <Link key={l.id} to="/internal/lending/loans/$loanId" params={{ loanId: l.id }} search={internalWorkspaceTabSearch("overview")} className="font-mono text-[11px] text-gold hover:underline">
               {l.id.slice(0, 10)}
             </Link>,
             l.productLabel,
@@ -332,7 +339,7 @@ function companiesTab(user: InternalUserDetail) {
       <WorkspaceCompactTable
         headers={["Company", "Role"]}
         rows={user.companyMemberships.map((m) => [
-          <Link key={m.companyId} to="/internal/companies/$companyId" params={{ companyId: m.companyId }} className="hover:text-gold">
+          <Link key={m.companyId} to="/internal/companies/$companyId" params={{ companyId: m.companyId }} search={INTERNAL_COMPANY_WORKSPACE_SEARCH} className="hover:text-gold">
             {m.companyName}
           </Link>,
           m.roleLabel,

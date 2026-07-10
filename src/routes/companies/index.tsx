@@ -52,7 +52,7 @@ function CompaniesDashboard() {
       ) : hasCompanies ? (
         <Section title="Your companies">
           <div className="grid gap-4 md:grid-cols-2">
-            {companies.map((company: any) => (
+            {companies.map((company) => (
               <CompanyDashboardCard key={company.id} company={company} />
             ))}
           </div>

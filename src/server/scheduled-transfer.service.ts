@@ -13,6 +13,7 @@ import {
   toDbTransferScope,
 } from "@/server/business-banking-mapper";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
+import { undefinedIfNull } from "@/lib/types/nullable";
 import { prisma } from "@/server/db";
 
 function notFound(): never {
@@ -204,7 +205,7 @@ export async function cancelUserScheduledTransfer(
     action: "BANK_SCHEDULED_TRANSFER_CANCELLED",
     entityType: "SCHEDULED_PAYMENT",
     entityId: paymentId,
-    targetAccountId: existing.bankAccountId,
+    targetAccountId: undefinedIfNull(existing.bankAccountId),
     description: `Cancelled scheduled transfer "${existing.label}"`,
     metadata: auditSourceMetadata("website", {
       amount: Number(existing.amount.toString()),

@@ -1,6 +1,10 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import {
+  INTERNAL_USER_WORKSPACE_SEARCH,
+  internalWorkspaceTabSearch,
+} from "@/lib/internal/internal-route-search";
 import { InternalAltaCardDetailIntegration } from "@/components/bank/alta-card/internal-alta-card-detail-integration";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
 import { WorkspaceAuditLink } from "@/components/internal/workspace/workspace-audit-link";
@@ -122,7 +126,7 @@ export function AltaCardWorkspaceView(props: AltaCardWorkspaceProps) {
           <p className="text-[12px] text-muted-foreground">
             See full RI in{" "}
             {ownerUserId ? (
-              <Link to="/internal/users/$userId" params={{ userId: ownerUserId }} search={{ tab: "relationship" }} className="text-gold hover:underline">
+              <Link to="/internal/users/$userId" params={{ userId: ownerUserId }} search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, ...internalWorkspaceTabSearch("relationship") }} className="text-gold hover:underline">
                 customer workspace
               </Link>
             ) : (
@@ -177,7 +181,7 @@ export function AltaCardWorkspaceView(props: AltaCardWorkspaceProps) {
       ])}
       relatedLinks={
         ownerUserId ? (
-          <Link to="/internal/users/$userId" params={{ userId: ownerUserId }} className="text-[11px] text-gold hover:underline">
+          <Link to="/internal/users/$userId" params={{ userId: ownerUserId }} search={INTERNAL_USER_WORKSPACE_SEARCH} className="text-[11px] text-gold hover:underline">
             Customer →
           </Link>
         ) : null

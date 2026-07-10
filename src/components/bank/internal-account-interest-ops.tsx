@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { Link, useRouter } from "@tanstack/react-router";
+import { INTERNAL_ACCOUNT_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { useServerFn } from "@tanstack/react-start";
 import { florin } from "@/lib/bank/api";
 import type { AccountInterestOpsSummary } from "@/lib/bank/account-interest.functions";
@@ -157,6 +158,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
                 <Link
                   to="/internal/bank/accounts/$accountId"
                   params={{ accountId: a.accountId }}
+                  search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH}
                   className="font-mono text-[12px] hover:underline"
                 >
                   {a.accountNumber}

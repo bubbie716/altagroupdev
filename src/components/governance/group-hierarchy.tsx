@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { FadeIn } from "@/components/ui/fade-in";
 import { AltaLogo } from "@/components/alta-logo";
 import type { EntityStatus, HierarchyNode } from "@/lib/governance/content";
 
@@ -22,10 +22,8 @@ function HierarchyCard({
   const muted = node.status === "Planned" || node.status === "In Development";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay }}
+    <FadeIn
+      delay={delay}
       className={`flex h-full min-h-[7.5rem] flex-col rounded-xl border border-border bg-background/80 shadow-card transition-all duration-300 hover:border-border-strong hover:-translate-y-0.5 hover:shadow-elevated ${
         compact ? "p-4" : "p-5"
       } ${muted ? "opacity-90" : ""} ${className}`}
@@ -56,7 +54,7 @@ function HierarchyCard({
       >
         {node.description}
       </p>
-    </motion.div>
+    </FadeIn>
   );
 }
 
@@ -64,12 +62,7 @@ export function GroupHierarchy({ nodes }: { nodes: HierarchyNode[] }) {
   return (
     <div className="paper-grain relative rounded-2xl border border-border-strong bg-surface-1/70 p-8 shadow-elevated md:p-12">
       <div className="flex flex-col items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-5 rounded-xl border border-border-strong bg-surface-2 px-8 py-5 shadow-elevated"
-        >
+        <FadeIn className="flex items-center gap-5 rounded-xl border border-border-strong bg-surface-2 px-8 py-5 shadow-elevated">
           <AltaLogo className="h-10 w-10" />
           <div>
             <div className="text-xl font-semibold uppercase tracking-[0.06em] leading-none md:text-2xl">
@@ -79,7 +72,7 @@ export function GroupHierarchy({ nodes }: { nodes: HierarchyNode[] }) {
               Parent holding company
             </div>
           </div>
-        </motion.div>
+        </FadeIn>
 
         <div className="relative my-8 h-14 w-full max-w-3xl">
           <div className="absolute left-1/2 top-0 h-7 w-px -translate-x-1/2 bg-border-strong" />

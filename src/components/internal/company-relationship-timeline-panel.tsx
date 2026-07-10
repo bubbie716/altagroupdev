@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
 import type { CompanyRelationshipTimelineEventRow } from "@/lib/bank/company-relationship-intelligence-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 
@@ -83,6 +84,7 @@ export function CompanyRelationshipSummaryCard({
       <Link
         to="/internal/companies/$companyId/relationship"
         params={{ companyId }}
+        search={internalWorkspaceTabSearch("relationship")}
         className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Full company profile →

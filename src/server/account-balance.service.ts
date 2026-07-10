@@ -69,3 +69,28 @@ export function computeAvailableBalance(
 ): number {
   return ledgerBalance - pendingWithdrawals - activeHolds;
 }
+
+/** Batched available balance for many accounts (holds + pending withdrawals). */
+export async function getAvailableBalancesByAccountIds(
+  accountIds: string[],
+): Promise<Map<string, number>> {
+  if (accountIds.length === 0) return new Map();
+
+  const [accounts, holdsByAccount, pendingByAccount] = await Promise.all([
+    prisma.bankAccount.findMany({
+      where: { id: { in: accountIds } },
+      select: { id: true, balance: true },
+    }),
+    getActiveHoldsByAccountIds(accountIds),
+    getPendingWithdrawalsByAccountIds(accountIds),
+  ]);
+
+  return new Map(
+    accounts.map((account) => {
+      const balance = decimalToNumber(account.balance);
+      const holds = holdsByAccount.get(account.id) ?? 0;
+      const pending = pendingByAccount.get(account.id) ?? 0;
+      return [account.id, computeAvailableBalance(balance, pending, holds)] as const;
+    }),
+  );
+}

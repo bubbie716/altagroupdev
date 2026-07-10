@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion } from "framer-motion";
+import { FadeIn } from "@/components/ui/fade-in";
 import { Section } from "@/components/page-shell";
 import { LeadershipRoleCard } from "@/components/governance/leadership-card";
 import {
@@ -25,12 +25,7 @@ export const Route = createFileRoute("/leadership/")({
 function LeadershipPage() {
   return (
     <CorporatePageShell>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="border-b border-border/60 pb-12"
-      >
+      <FadeIn className="border-b border-border/60 pb-12">
         <div className="type-eyebrow">Leadership</div>
         <h1 className="mt-5 text-[clamp(3.25rem,6vw,5rem)] font-semibold leading-[0.96] tracking-[-0.02em]">
           Leadership
@@ -38,7 +33,7 @@ function LeadershipPage() {
         <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
           Governance, executive leadership, and divisional oversight for Alta Group N.V.
         </p>
-      </motion.div>
+      </FadeIn>
 
       <main className="py-12">
         <Section title="Board of Directors">

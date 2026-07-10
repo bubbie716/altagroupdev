@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -74,7 +73,7 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
             <button
               type="button"
               onClick={() => {
-                window.location.href = window.location.href;
+                window.location.reload();
               }}
               className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
@@ -93,7 +92,7 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: AltaUser | null; site: import("@/config/sites").SiteConfig }>()({
+export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: import("@/config/sites").SiteConfig }>()({
   beforeLoad: async ({ location }) => {
     const legacyHostRedirect = resolveLegacyEntityHostRedirect(location.pathname, {
       host: readRequestHost(),
@@ -218,11 +217,10 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient, site } = Route.useRouteContext();
+  const { site } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+    <ThemeProvider>
         <RouteTransitionProvider>
           <FooterProvider>
             <NccSiteChrome siteKey={site.key} />
@@ -244,7 +242,6 @@ function RootComponent() {
           </FooterProvider>
         </RouteTransitionProvider>
       </ThemeProvider>
-    </QueryClientProvider>
   );
 }
 

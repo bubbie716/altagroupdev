@@ -82,7 +82,7 @@ function BankInterbankTransfers() {
               contacts={data.contacts}
               defaultFromAccount={
                 accountId
-                  ? data.sourceAccounts.find((account: any) => account.id === accountId)
+                  ? data.sourceAccounts.find((account) => account.id === accountId)
                   : undefined
               }
             />
@@ -111,7 +111,7 @@ function InterbankScheduledTransfers({
     <ScheduledTransferCenter
       transferScope="interbank"
       defaultSourceAccountId={defaultSourceAccountId}
-      sourceAccounts={data.sourceAccounts.map((account: any) => ({
+      sourceAccounts={data.sourceAccounts.map((account) => ({
         id: account.id,
         accountName: account.accountName,
         accountNumber: account.accountNumber,

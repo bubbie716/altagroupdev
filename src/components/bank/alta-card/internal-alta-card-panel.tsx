@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import type {
   AltaCardApplicationRow,
   AltaCardFeeRow,
@@ -70,6 +71,7 @@ function cardColumns(): AdminTableColumn<AltaCardRow>[] {
         <Link
           to="/internal/alta-card/$cardId"
           params={{ cardId: row.id }}
+          search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH}
           className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold"
         >
           Manage →

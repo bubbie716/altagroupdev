@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
 import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
@@ -62,6 +63,7 @@ export function CompanyRelationshipQueueCell({
       <Link
         to="/internal/companies/$companyId/relationship"
         params={{ companyId }}
+        search={internalWorkspaceTabSearch("relationship")}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Company relationship →

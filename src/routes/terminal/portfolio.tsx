@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Section, Card } from "@/components/page-shell";
+import { LazyTerminalAllocationPieChart } from "@/components/terminal/lazy-terminal-allocation-pie-chart";
 import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { TerminalStatCard } from "@/components/terminal/terminal-stat-card";
 import { HoldingsTable } from "@/components/terminal/holdings-table";
@@ -73,17 +73,7 @@ function TerminalPortfolioMockContent() {
         <Section title="Allocation">
           <Card>
             <div className="grid grid-cols-[140px_1fr] gap-4">
-              <div className="h-[160px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={allocationData} dataKey="value" innerRadius={48} outerRadius={70} paddingAngle={2} stroke="var(--surface-1)">
-                      {allocationData.map((_, i) => (
-                        <Cell key={i} fill={allocColors[i % allocColors.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <LazyTerminalAllocationPieChart data={allocationData} colors={allocColors} />
               <div className="space-y-1.5 self-center">
                 {holdings.map((h, i) => (
                   <div key={h.symbol} className="flex items-center justify-between text-[12px]">

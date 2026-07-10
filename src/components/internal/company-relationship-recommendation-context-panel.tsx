@@ -34,7 +34,7 @@ export function CompanyRelationshipRecommendationContextPanel({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const useRecommendation = useCompanyRelationshipRecommendationRecord();
+  const recordRecommendation = useCompanyRelationshipRecommendationRecord();
 
   const active = recommendations.filter((r) => r.status === "ACTIVE");
 
@@ -42,7 +42,7 @@ export function CompanyRelationshipRecommendationContextPanel({
     setBusyId(recommendationId);
     setError(null);
     try {
-      const prefill = await useRecommendation({
+      const prefill = await recordRecommendation({
         data: { recommendationId, context },
       });
       onUseRecommendation?.(prefill);

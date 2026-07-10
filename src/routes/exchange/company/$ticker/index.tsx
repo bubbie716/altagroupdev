@@ -1,14 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Section, Card } from "@/components/page-shell";
+import { LazyExchangeCompanyPriceChart } from "@/components/exchange/lazy-exchange-company-price-chart";
 import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { CompanyProfileHeader } from "@/components/exchange/company-profile-header";
 import { KeyStatsGrid, CompanyMetaGrid } from "@/components/exchange/key-stats-grid";
@@ -60,31 +52,7 @@ function CompanyProfilePage() {
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Section title="Price Chart">
           <Card>
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={company.priceSeries}>
-                  <defs>
-                    <linearGradient id="coFill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.28} />
-                      <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
-                  <XAxis hide dataKey="t" />
-                  <YAxis hide domain={["dataMin", "dataMax"]} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface-2)",
-                      border: "1px solid var(--border-strong)",
-                      borderRadius: 8,
-                      fontSize: 11,
-                    }}
-                    formatter={(v) => [florin(Number(v)), "Price"]}
-                  />
-                  <Area type="monotone" dataKey="v" stroke="var(--gold)" strokeWidth={1.8} fill="url(#coFill)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <LazyExchangeCompanyPriceChart data={company.priceSeries} />
           </Card>
         </Section>
 

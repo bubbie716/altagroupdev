@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-07-10",
+  "scope": "tsconfig.typecheck.json",
+  "errorCount": 363,
+  "previousFullScopeCount": 408,
+  "excludedPatterns": [
+    "src/**/*.integration.test.ts",
+    "src/lib/staff-audit/audit-log-discord-bridge.test.ts",
+    "src/server/customer-operator-notification.test.ts"
+  ],
+  "topCategories": [
+    "nullable string vs optional (string | null vs string | undefined)",
+    "unknown types in server function handlers and form loaders",
+    "TanStack Router search param strictness (partially fixed)",
+    "Prisma JSON metadata typing",
+    "Commercial banking context type mismatches",
+    "Alta Card statement and workspace prop drift"
+  ],
+  "policy": "New PRs must not increase error count above this baseline. Run npm run typecheck before merge."
+}

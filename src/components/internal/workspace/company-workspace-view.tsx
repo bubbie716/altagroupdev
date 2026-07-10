@@ -1,6 +1,12 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import {
+  INTERNAL_ACCOUNT_WORKSPACE_SEARCH,
+  INTERNAL_TRANSACTION_WORKSPACE_SEARCH,
+  INTERNAL_USER_WORKSPACE_SEARCH,
+  internalWorkspaceTabSearch,
+} from "@/lib/internal/internal-route-search";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
 import { AdminCommercialProGrantPanel } from "@/components/internal/admin-commercial-pro-grant-panel";
@@ -144,7 +150,7 @@ export function CompanyWorkspaceView({
           <WorkspaceCompactTable
             headers={["User", "Role", "Since"]}
             rows={company.members.map((m) => [
-              <Link key={m.userId} to="/internal/users/$userId" params={{ userId: m.userId }} className="font-mono text-[11px] hover:text-gold">
+              <Link key={m.userId} to="/internal/users/$userId" params={{ userId: m.userId }} search={INTERNAL_USER_WORKSPACE_SEARCH} className="font-mono text-[11px] hover:text-gold">
                 {m.discordUsername}
               </Link>,
               formatCompanyRole(m.role),
@@ -164,7 +170,7 @@ export function CompanyWorkspaceView({
           <WorkspaceCompactTable
             headers={["Account", "Type", "Status", "Balance"]}
             rows={bankAccounts.map((a) => [
-              <Link key={a.id} to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} className="hover:text-gold">
+              <Link key={a.id} to="/internal/bank/accounts/$accountId" params={{ accountId: a.id }} search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH} className="hover:text-gold">
                 <div>{a.accountName}</div>
                 <div className="font-mono text-[10px] text-muted-foreground">{a.accountNumber}</div>
               </Link>,
@@ -197,7 +203,7 @@ export function CompanyWorkspaceView({
           <WorkspaceCompactTable
             headers={["Loan", "Status", "Principal", "Outstanding"]}
             rows={loans.map((l) => [
-              <Link key={l.id} to="/internal/lending/loans/$loanId" params={{ loanId: l.id }} className="font-mono text-[11px] text-gold hover:underline">
+              <Link key={l.id} to="/internal/lending/loans/$loanId" params={{ loanId: l.id }} search={internalWorkspaceTabSearch("overview")} className="font-mono text-[11px] text-gold hover:underline">
                 {l.id.slice(0, 10)}
               </Link>,
               <StatusBadge status={l.status} />,
@@ -243,7 +249,7 @@ export function CompanyWorkspaceView({
               headers={["Date", "Reference", "Account", "Amount"]}
               rows={altaPayActivity.map((tx) => [
                 <span key={tx.id} className="font-mono text-[10px]">{tx.createdAt.slice(0, 10)}</span>,
-                <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: tx.id }} className="font-mono text-[11px] text-gold hover:underline">
+                <Link to="/internal/bank/transactions/$transactionId" params={{ transactionId: tx.id }} search={INTERNAL_TRANSACTION_WORKSPACE_SEARCH} className="font-mono text-[11px] text-gold hover:underline">
                   {tx.referenceCode}
                 </Link>,
                 tx.accountNumber,

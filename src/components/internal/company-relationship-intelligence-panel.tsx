@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_COMPANY_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
@@ -92,6 +93,7 @@ export function CompanyRelationshipDetailPanel({
       <Link
         to="/internal/companies/$companyId"
         params={{ companyId }}
+        search={INTERNAL_COMPANY_WORKSPACE_SEARCH}
         className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Company 360 →

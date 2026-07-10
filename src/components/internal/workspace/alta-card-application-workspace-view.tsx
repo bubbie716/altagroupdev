@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
+import { INTERNAL_USER_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
 import { useState } from "react";
 import { LoanApplicationThreadView } from "@/components/bank/loan-thread/loan-application-thread-view";
 import { AltaCardApplicationIntegration } from "@/components/internal/relationship-integration-wrappers";
@@ -300,6 +301,7 @@ export function AltaCardApplicationWorkspaceView({
         <Link
           to="/internal/users/$userId"
           params={{ userId: app.applicantUserId }}
+          search={INTERNAL_USER_WORKSPACE_SEARCH}
           className="text-[11px] text-gold hover:underline"
         >
           Customer →

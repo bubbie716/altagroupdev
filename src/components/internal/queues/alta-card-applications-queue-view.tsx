@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_APPLICATION_SEARCH } from "@/lib/internal/internal-route-search";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console";
 import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
 import { OpsAction } from "@/components/internal/ops-action";
@@ -147,6 +148,7 @@ export function AltaCardApplicationsQueueView({
           void router.navigate({
             to: "/internal/alta-card/applications/$applicationId",
             params: { applicationId: row.id },
+            search: INTERNAL_ALTA_CARD_APPLICATION_SEARCH,
           })
         }
         emptyState="No Alta Card applications in this queue."
@@ -183,6 +185,7 @@ function AltaCardApplicationQueueActions({ row }: { row: AltaCardApplicationRow 
       <Link
         to="/internal/alta-card/applications/$applicationId"
         params={{ applicationId: row.id }}
+        search={INTERNAL_ALTA_CARD_APPLICATION_SEARCH}
         className="self-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-gold"
         onClick={(e) => e.stopPropagation()}
       >

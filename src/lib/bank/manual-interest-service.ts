@@ -322,7 +322,7 @@ export async function applyManualInterestApplication(
 
   const results: ManualInterestApplyAccountResult[] = [];
   let processedCount = 0;
-  let skippedCount = preview.skippedAccountCount;
+  const skippedCount = preview.skippedAccountCount;
   let failedCount = 0;
   let totalInterestCredited = 0;
 

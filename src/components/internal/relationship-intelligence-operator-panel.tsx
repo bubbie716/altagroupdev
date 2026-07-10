@@ -16,6 +16,11 @@ import { RelationshipProductHoldingsPanel } from "@/components/internal/relation
 import { PreApprovalReadinessPanel } from "@/components/internal/pre-approval-readiness-panel";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { Link } from "@tanstack/react-router";
+import {
+  INTERNAL_ALTA_CARD_WORKSPACE_SEARCH,
+  INTERNAL_USER_WORKSPACE_SEARCH,
+  internalWorkspaceTabSearch,
+} from "@/lib/internal/internal-route-search";
 import { AltaPrivateAdminPanel } from "@/components/internal/alta-private-admin-panel";
 import type { AltaPrivateInternalSummary } from "@/lib/bank/alta-private-types";
 
@@ -85,7 +90,7 @@ export function PrivateBankingIntelligencePanel({
         <Link
           to="/internal/users/$userId"
           params={{ userId: panel.userId }}
-          search={{ tab: "relationship" }}
+          search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, ...internalWorkspaceTabSearch("relationship") }}
           className="rounded border border-gold/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:bg-gold/10"
         >
           Alta Private membership panel
@@ -184,7 +189,7 @@ export function RelationshipIntelligenceOperatorPanel({
             Relationship profile
           </Link>
           {altaCardId ? (
-            <Link to="/internal/alta-card/$cardId" params={{ cardId: altaCardId }} className="text-gold hover:underline">
+            <Link to="/internal/alta-card/$cardId" params={{ cardId: altaCardId }} search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH} className="text-gold hover:underline">
               Alta Card
             </Link>
           ) : (
@@ -201,7 +206,7 @@ export function RelationshipIntelligenceOperatorPanel({
           <Link to="/internal/bank/alta-pay" className="text-gold hover:underline">
             Alta Pay
           </Link>
-          <Link to="/internal/users/$userId" params={{ userId }} search={{ privateReview: true }} className="text-gold hover:underline">
+          <Link to="/internal/users/$userId" params={{ userId }} search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, privateReview: true }} className="text-gold hover:underline">
             Alta Private review
           </Link>
         </div>
