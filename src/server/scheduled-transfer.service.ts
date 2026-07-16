@@ -14,6 +14,7 @@ import {
 } from "@/server/business-banking-mapper";
 import { resolveScheduledInputDateTime } from "@/lib/scheduled-datetime";
 import { undefinedIfNull } from "@/lib/types/nullable";
+import { INTERBANK_TRANSFERS_UNAVAILABLE_MESSAGE } from "@/server/financial-integrity.service";
 import { prisma } from "@/server/db";
 
 function notFound(): never {
@@ -61,9 +62,7 @@ function validateScheduledTransferInput(input: CreateUserScheduledTransferInput)
   }
 
   if (input.transferScope === "interbank") {
-    badRequest(
-      "Interbank wire transfers are not yet available. NCC settlement infrastructure is still being built.",
-    );
+    badRequest(INTERBANK_TRANSFERS_UNAVAILABLE_MESSAGE);
   }
 
   if (input.transferScope === "intrabank") {

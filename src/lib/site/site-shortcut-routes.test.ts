@@ -18,7 +18,7 @@ describe("site-shortcut-routes", () => {
     assert.equal(resolveLegacyDashboardPath("bank"), "/bank");
     assert.equal(resolveLegacyDashboardPath("exchange"), "/exchange");
     assert.equal(resolveLegacyDashboardPath("terminal"), "/terminal");
-    assert.equal(resolveLegacyDashboardPath("ncc"), "/dashboard");
+    assert.equal(resolveLegacyDashboardPath("ncc"), "/portal");
   });
 
   it("maps markets shortcuts per site", () => {

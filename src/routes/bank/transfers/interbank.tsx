@@ -1,14 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { TransferFormPreview } from "@/components/bank/transfer-form-preview";
+import {
+  BankTerminalFundingForm,
+  TerminalFundingHistory,
+} from "@/components/bank/bank-terminal-funding-form";
 import { BusinessFutureNotice } from "@/components/bank/business-future-notice";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { fetchTransferContacts } from "@/lib/bank/bank.functions";
 import { fetchPaySourceAccounts } from "@/lib/bank/alta-pay.functions";
+import {
+  fetchTerminalFundingHistory,
+  fetchTerminalFundingSources,
+} from "@/lib/bank/ncc-terminal-funding.functions";
 import {
   cancelUserScheduledTransferRecord,
   fetchUserScheduledTransfers,
@@ -25,12 +33,21 @@ export const Route = createFileRoute("/bank/transfers/interbank")({
   }),
   loader: async () => {
     if (isUserFinancialMockDataEnabled()) return null;
-    const [contacts, sourceAccounts, scheduledTransfers] = await Promise.all([
+    const [contacts, funding, history, scheduledTransfers, allSourceAccounts] = await Promise.all([
       fetchTransferContacts({ data: "interbank" }),
-      fetchPaySourceAccounts(),
+      fetchTerminalFundingSources(),
+      fetchTerminalFundingHistory({ data: 20 }),
       fetchUserScheduledTransfers({ data: "interbank" }),
+      fetchPaySourceAccounts(),
     ]);
-    return { contacts, sourceAccounts, scheduledTransfers };
+    return {
+      contacts,
+      sourceAccounts: funding.sourceAccounts,
+      terminalCash: funding.terminalCash,
+      history,
+      scheduledTransfers,
+      allSourceAccounts,
+    };
   },
   head: () => ({
     meta: [{ title: "Interbank Transfers — Alta Bank" }],
@@ -42,47 +59,66 @@ function BankInterbankTransfers() {
   const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
   const { accountId } = Route.useSearch();
+  const router = useRouter();
 
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Transfers"
-      title="Interbank"
-      description="Outbound wires to external institutions via NCC-Net settlement."
-     />
-{showMockData ? (
+        eyebrow="Alta Bank · Transfers"
+        title="Interbank"
+        description="Transfer instantly to your Alta Terminal account through NCC. External institution wires are coming soon."
+      />
+      {showMockData ? (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
+          <TransferPageHeader title="Transfer to Alta Terminal · NCC" accountId={accountId} />
           <Section>
-            <TransferFormPreview disabled={!showMockData} />
+            <EmptyBankState
+              title="Sign in to transfer to Alta Terminal"
+              description="Live Bank → Terminal transfers require an authenticated Alta Bank session."
+            />
           </Section>
         </>
       ) : !data ? (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
+          <TransferPageHeader title="Transfer to Alta Terminal · NCC" accountId={accountId} />
           <EmptyBankState
-            title="Unable to load wire transfer page."
+            title="Unable to load interbank transfers."
             description="Sign in and try again."
-          />
-        </>
-      ) : data.sourceAccounts.length === 0 ? (
-        <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
-          <EmptyBankState
-            title="No active Alta Bank accounts yet."
-            description="Open a personal or business operating account to schedule outbound wires."
           />
         </>
       ) : (
         <>
-          <TransferPageHeader title="Wire transfer · NCC-Net" accountId={accountId} />
-          <Section>
+          <TransferPageHeader title="Transfer to Alta Terminal · NCC" accountId={accountId} />
+
+          <Section title="Available now">
+            <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
+              Move FLR from a personal Alta Bank account to your own Alta Terminal trading-cash
+              account. Settlement is immediate and individual through NCC — no batching or delayed
+              clearing.
+            </p>
+            <BankTerminalFundingForm
+              accounts={data.sourceAccounts}
+              terminalAvailableBalance={data.terminalCash.availableBalance}
+              defaultFromAccountId={accountId}
+              onSuccess={() => void router.invalidate()}
+            />
+          </Section>
+
+          <Section title="Recent Bank → Terminal transfers" className="mt-10">
+            <TerminalFundingHistory rows={data.history} />
+          </Section>
+
+          <Section title="Coming soon" className="mt-10">
+            <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
+              Send to another NCC institution or an external wire beneficiary. You can save
+              recipients on the Contacts page meanwhile.
+            </p>
             <TransferFormPreview
               disabled
               contacts={data.contacts}
               defaultFromAccount={
                 accountId
-                  ? data.sourceAccounts.find((account) => account.id === accountId)
+                  ? data.allSourceAccounts.find((account) => account.id === accountId)
                   : undefined
               }
             />
@@ -111,7 +147,7 @@ function InterbankScheduledTransfers({
     <ScheduledTransferCenter
       transferScope="interbank"
       defaultSourceAccountId={defaultSourceAccountId}
-      sourceAccounts={data.sourceAccounts.map((account) => ({
+      sourceAccounts={data.allSourceAccounts.map((account) => ({
         id: account.id,
         accountName: account.accountName,
         accountNumber: account.accountNumber,
@@ -122,7 +158,7 @@ function InterbankScheduledTransfers({
       canManage={false}
       onCreate={async () => {
         throw new Error(
-          "Interbank wire transfers are not yet available. NCC settlement infrastructure is still being built.",
+          "Scheduled interbank wire transfers are not yet available. Instant transfers to your Alta Terminal account are available above.",
         );
       }}
       onCancel={async (paymentId) => {

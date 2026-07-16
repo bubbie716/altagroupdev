@@ -57,7 +57,7 @@ export function NccMaintenancePage({ maintenance }: { maintenance: NccMaintenanc
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  to="/dashboard"
+                  to="/portal"
                   className="inline-flex items-center justify-center rounded-sm border border-[#0c4d32]/30 bg-[#e8f2ed] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#0c4d32]"
                 >
                   Continue to console

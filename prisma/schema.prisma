@@ -97,97 +97,109 @@ model User {
   updatedAt             DateTime              @updatedAt
   lastLoginAt           DateTime              @default(now())
 
-  tags               UserTagAssignment[]
-  companyMemberships CompanyMembership[]
-  sessions           Session[]
-  financialIdempotencyRecords FinancialIdempotencyRecord[]
-  bankAccounts               BankAccount[]
-  transferContacts           TransferContact[]
-  reviewedBankTransactions   BankTransaction[]   @relation("BankTransactionReviewer")
-  sentCompanyInvitations     CompanyInvitation[] @relation("SentCompanyInvitations")
-  receivedCompanyInvitations CompanyInvitation[] @relation("ReceivedCompanyInvitations")
-  scheduledPaymentsCreated   ScheduledPayment[]  @relation("ScheduledPaymentCreator")
-  payrollRunsCreated         PayrollRun[]        @relation("PayrollRunCreator")
-  loanApplicationsSubmitted  LoanApplication[]   @relation("LoanApplicationApplicant")
-  loanApplicationsReviewed LoanApplication[]   @relation("LoanApplicationReviewer")
-  loansBorrowed              Loan[]              @relation("LoanBorrower")
-  loansApproved              Loan[]              @relation("LoanApprover")
-  loanLedgerEntriesCreated   LoanLedgerEntry[]   @relation("LoanLedgerCreator")
-  auditLogsActed             AuditLog[]          @relation("AuditActor")
-  internalNotesAuthored      InternalNote[]      @relation("InternalNoteAuthor")
-  bankInterestAccrualsProcessed BankInterestAccrual[] @relation("InterestAccrualProcessor")
-  scheduledManualInterestCreated ScheduledManualInterestApplication[] @relation("ScheduledManualInterestCreator")
-  bankAccountHoldsCreated    BankAccountHold[]   @relation("BankAccountHoldCreator")
-  bankAccountHoldsReleased   BankAccountHold[]   @relation("BankAccountHoldReleaser")
-  platformSettingsUpdated    PlatformSetting[]   @relation("PlatformSettingUpdatedBy")
-  dealRoomsBorrowed          DealRoom[]          @relation("DealRoomBorrower")
-  dealRoomsAssigned          DealRoom[]          @relation("DealRoomOfficer")
-  dealRoomParticipants       DealRoomParticipant[]
-  dealRoomMessagesSent       DealRoomMessage[]   @relation("DealRoomMessageSender")
-  dealRoomOffersCreated      DealRoomOffer[]     @relation("DealRoomOfferCreator")
-  dealRoomDocumentsUploaded  DealRoomDocument[]  @relation("DealRoomDocumentUploader")
-  dealRoomDocumentRequestsCreated DealRoomDocumentRequest[] @relation("DealRoomDocumentRequestRequestedBy")
-  dealRoomDocumentRequestsReviewed DealRoomDocumentRequest[] @relation("DealRoomDocumentRequestReviewedBy")
-  dealRoomAgreementDraftsGenerated DealRoomAgreementDraft[] @relation("DealRoomAgreementDraftGenerator")
-  dealRoomAgreementDraftsVoided  DealRoomAgreementDraft[] @relation("DealRoomAgreementDraftVoider")
-  dealRoomAgreementSignatures    DealRoomAgreementSignature[]
-  dealRoomsCreated               DealRoom[]                 @relation("DealRoomCreator")
-  dealRoomTasksAssigned          DealRoomTask[]             @relation("DealRoomTaskAssignee")
-  dealRoomTasksCreated           DealRoomTask[]             @relation("DealRoomTaskCreator")
-  dealRoomTasksCompleted         DealRoomTask[]             @relation("DealRoomTaskCompleter")
-  dealRoomStageChanges           DealRoomStageHistory[]     @relation("DealRoomStageChanger")
-  dealRoomStageOwnership         DealRoomStageHistory[]     @relation("DealRoomStageOwner")
-  loanApplicationThreads         LoanApplicationThread[]    @relation("LoanApplicationThreadApplicant")
-  loanApplicationThreadsAssigned LoanApplicationThread[]    @relation("LoanApplicationThreadStaff")
-  loanApplicationThreadMessages  LoanApplicationThreadMessage[] @relation("LoanApplicationThreadMessageSender")
-  userNotifications              UserNotification[]
-  altaCardsOwned                 AltaCard[]                     @relation("AltaCardOwner")
-  altaCardApplications           AltaCardApplication[]          @relation("AltaCardApplicant")
-  altaCardApplicationsReviewed   AltaCardApplication[]          @relation("AltaCardApplicationReviewer")
-  altaCardApplicationThreads         AltaCardApplicationThread[]    @relation("AltaCardApplicationThreadApplicant")
-  altaCardApplicationThreadsAssigned AltaCardApplicationThread[]    @relation("AltaCardApplicationThreadStaff")
-  altaCardApplicationThreadMessages  AltaCardApplicationThreadMessage[] @relation("AltaCardApplicationThreadMessageSender")
-  altaCardReviewRequestsSubmitted    AltaCardReviewRequest[]          @relation("AltaCardReviewRequestApplicant")
-  altaCardReviewRequestsReviewed     AltaCardReviewRequest[]          @relation("AltaCardReviewRequestReviewer")
-  altaCardReviewThreads              AltaCardReviewThread[]           @relation("AltaCardReviewThreadApplicant")
-  altaCardReviewThreadsAssigned      AltaCardReviewThread[]           @relation("AltaCardReviewThreadStaff")
-  altaCardReviewThreadMessages       AltaCardReviewThreadMessage[]    @relation("AltaCardReviewThreadMessageSender")
-  altaEmployeeCards              AltaEmployeeCard[]             @relation("AltaEmployeeCardUser")
-  altaCardTransactionsCreated    AltaCardTransaction[]          @relation("AltaCardTransactionCreator")
-  altaCardFeesWaived             AltaCardFee[]                  @relation("AltaCardFeeWaivedBy")
-  relationshipProfile            RelationshipProfile?
-  relationshipProfileSnapshots   RelationshipProfileSnapshot[]
-  relationshipRecommendations    RelationshipRecommendation[]
-  relationshipRecommendationsReviewed RelationshipRecommendation[] @relation("RelationshipRecommendationReviewer")
-  relationshipTimelineEvents     RelationshipTimelineEvent[]
-  companyRelationshipRecommendationsReviewed CompanyRelationshipRecommendation[] @relation("CompanyRelationshipRecommendationReviewer")
-  opsReviewFlagsCreated          OpsReviewFlag[] @relation("OpsReviewFlagCreatedBy")
-  opsReviewFlagsResolved         OpsReviewFlag[] @relation("OpsReviewFlagResolvedBy")
-  opsExceptionDispositionsActed  OpsExceptionDisposition[] @relation("OpsExceptionDispositionActor")
-  altaPrivateInvitationsReceived AltaPrivateInvitation[] @relation("AltaPrivateInvitationRecipient")
-  altaPrivateInvitationsSent     AltaPrivateInvitation[] @relation("AltaPrivateInvitationSender")
-  botDailyTransferUsage          BotDailyTransferUsage[]
-  bankSettings                   UserBankSettings?
-  secureDealRoomDiscordSessions  SecureDealRoomDiscordSession[]
-  notificationDeliveryQueue      NotificationDeliveryQueue[]
-  paymentsInitiated              Payment[]                      @relation("PaymentInitiatedBy")
-  paymentsAsPayer                Payment[]                      @relation("PaymentPayer")
-  paymentsAsRecipient            Payment[]                      @relation("PaymentRecipient")
-  privateBankingAsCustomer       PrivateBankingRelationship[] @relation("PrivateBankingCustomer")
-  privateBankingAsBanker         PrivateBankingRelationship[] @relation("PrivateBankingBanker")
-  privateBankingAssigned         PrivateBankingRelationship[] @relation("PrivateBankingAssignedBy")
-  staffAssignments               StaffAssignment[]              @relation("StaffAssignmentStaff")
-  staffAssignmentsCreated        StaffAssignment[]              @relation("StaffAssignmentAssigner")
-  documentsUploaded              Document[]                     @relation("DocumentUploader")
-  merchantInvoicesCreated        MerchantInvoice[]              @relation("MerchantInvoiceCreator")
-  merchantInvoicesReceived       MerchantInvoice[]              @relation("MerchantInvoiceRecipient")
-  merchantInvoicePaymentsInitiated MerchantInvoicePayment[]     @relation("MerchantInvoicePaymentInitiator")
-  paymentLinksCreated              PaymentLink[]                  @relation("PaymentLinkCreator")
-  paymentLinkPaymentsInitiated   PaymentLinkPayment[]           @relation("PaymentLinkPaymentInitiator")
-  merchantAutopayApprovals       MerchantAutopayApproval[]
-  altaPaySchedulesAsRecipient    ScheduledPayment[]             @relation("ScheduledPaymentRecipientUser")
-  recurringInvoiceSchedulesCreated MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceScheduleCreator")
-  recurringInvoicesReceived      MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceRecipientUser")
+  tags                                       UserTagAssignment[]
+  companyMemberships                         CompanyMembership[]
+  sessions                                   Session[]
+  financialIdempotencyRecords                FinancialIdempotencyRecord[]
+  bankAccounts                               BankAccount[]
+  transferContacts                           TransferContact[]
+  reviewedBankTransactions                   BankTransaction[]                    @relation("BankTransactionReviewer")
+  sentCompanyInvitations                     CompanyInvitation[]                  @relation("SentCompanyInvitations")
+  receivedCompanyInvitations                 CompanyInvitation[]                  @relation("ReceivedCompanyInvitations")
+  scheduledPaymentsCreated                   ScheduledPayment[]                   @relation("ScheduledPaymentCreator")
+  payrollRunsCreated                         PayrollRun[]                         @relation("PayrollRunCreator")
+  loanApplicationsSubmitted                  LoanApplication[]                    @relation("LoanApplicationApplicant")
+  loanApplicationsReviewed                   LoanApplication[]                    @relation("LoanApplicationReviewer")
+  loansBorrowed                              Loan[]                               @relation("LoanBorrower")
+  loansApproved                              Loan[]                               @relation("LoanApprover")
+  loanLedgerEntriesCreated                   LoanLedgerEntry[]                    @relation("LoanLedgerCreator")
+  auditLogsActed                             AuditLog[]                           @relation("AuditActor")
+  internalNotesAuthored                      InternalNote[]                       @relation("InternalNoteAuthor")
+  bankInterestAccrualsProcessed              BankInterestAccrual[]                @relation("InterestAccrualProcessor")
+  scheduledManualInterestCreated             ScheduledManualInterestApplication[] @relation("ScheduledManualInterestCreator")
+  bankAccountHoldsCreated                    BankAccountHold[]                    @relation("BankAccountHoldCreator")
+  bankAccountHoldsReleased                   BankAccountHold[]                    @relation("BankAccountHoldReleaser")
+  platformSettingsUpdated                    PlatformSetting[]                    @relation("PlatformSettingUpdatedBy")
+  dealRoomsBorrowed                          DealRoom[]                           @relation("DealRoomBorrower")
+  dealRoomsAssigned                          DealRoom[]                           @relation("DealRoomOfficer")
+  dealRoomParticipants                       DealRoomParticipant[]
+  dealRoomMessagesSent                       DealRoomMessage[]                    @relation("DealRoomMessageSender")
+  dealRoomOffersCreated                      DealRoomOffer[]                      @relation("DealRoomOfferCreator")
+  dealRoomDocumentsUploaded                  DealRoomDocument[]                   @relation("DealRoomDocumentUploader")
+  dealRoomDocumentRequestsCreated            DealRoomDocumentRequest[]            @relation("DealRoomDocumentRequestRequestedBy")
+  dealRoomDocumentRequestsReviewed           DealRoomDocumentRequest[]            @relation("DealRoomDocumentRequestReviewedBy")
+  dealRoomAgreementDraftsGenerated           DealRoomAgreementDraft[]             @relation("DealRoomAgreementDraftGenerator")
+  dealRoomAgreementDraftsVoided              DealRoomAgreementDraft[]             @relation("DealRoomAgreementDraftVoider")
+  dealRoomAgreementSignatures                DealRoomAgreementSignature[]
+  dealRoomsCreated                           DealRoom[]                           @relation("DealRoomCreator")
+  dealRoomTasksAssigned                      DealRoomTask[]                       @relation("DealRoomTaskAssignee")
+  dealRoomTasksCreated                       DealRoomTask[]                       @relation("DealRoomTaskCreator")
+  dealRoomTasksCompleted                     DealRoomTask[]                       @relation("DealRoomTaskCompleter")
+  dealRoomStageChanges                       DealRoomStageHistory[]               @relation("DealRoomStageChanger")
+  dealRoomStageOwnership                     DealRoomStageHistory[]               @relation("DealRoomStageOwner")
+  loanApplicationThreads                     LoanApplicationThread[]              @relation("LoanApplicationThreadApplicant")
+  loanApplicationThreadsAssigned             LoanApplicationThread[]              @relation("LoanApplicationThreadStaff")
+  loanApplicationThreadMessages              LoanApplicationThreadMessage[]       @relation("LoanApplicationThreadMessageSender")
+  userNotifications                          UserNotification[]
+  altaCardsOwned                             AltaCard[]                           @relation("AltaCardOwner")
+  altaCardApplications                       AltaCardApplication[]                @relation("AltaCardApplicant")
+  altaCardApplicationsReviewed               AltaCardApplication[]                @relation("AltaCardApplicationReviewer")
+  altaCardApplicationThreads                 AltaCardApplicationThread[]          @relation("AltaCardApplicationThreadApplicant")
+  altaCardApplicationThreadsAssigned         AltaCardApplicationThread[]          @relation("AltaCardApplicationThreadStaff")
+  altaCardApplicationThreadMessages          AltaCardApplicationThreadMessage[]   @relation("AltaCardApplicationThreadMessageSender")
+  altaCardReviewRequestsSubmitted            AltaCardReviewRequest[]              @relation("AltaCardReviewRequestApplicant")
+  altaCardReviewRequestsReviewed             AltaCardReviewRequest[]              @relation("AltaCardReviewRequestReviewer")
+  altaCardReviewThreads                      AltaCardReviewThread[]               @relation("AltaCardReviewThreadApplicant")
+  altaCardReviewThreadsAssigned              AltaCardReviewThread[]               @relation("AltaCardReviewThreadStaff")
+  altaCardReviewThreadMessages               AltaCardReviewThreadMessage[]        @relation("AltaCardReviewThreadMessageSender")
+  altaEmployeeCards                          AltaEmployeeCard[]                   @relation("AltaEmployeeCardUser")
+  altaCardTransactionsCreated                AltaCardTransaction[]                @relation("AltaCardTransactionCreator")
+  altaCardFeesWaived                         AltaCardFee[]                        @relation("AltaCardFeeWaivedBy")
+  relationshipProfile                        RelationshipProfile?
+  relationshipProfileSnapshots               RelationshipProfileSnapshot[]
+  relationshipRecommendations                RelationshipRecommendation[]
+  relationshipRecommendationsReviewed        RelationshipRecommendation[]         @relation("RelationshipRecommendationReviewer")
+  relationshipTimelineEvents                 RelationshipTimelineEvent[]
+  companyRelationshipRecommendationsReviewed CompanyRelationshipRecommendation[]  @relation("CompanyRelationshipRecommendationReviewer")
+  opsReviewFlagsCreated                      OpsReviewFlag[]                      @relation("OpsReviewFlagCreatedBy")
+  opsReviewFlagsResolved                     OpsReviewFlag[]                      @relation("OpsReviewFlagResolvedBy")
+  opsExceptionDispositionsActed              OpsExceptionDisposition[]            @relation("OpsExceptionDispositionActor")
+  altaPrivateInvitationsReceived             AltaPrivateInvitation[]              @relation("AltaPrivateInvitationRecipient")
+  altaPrivateInvitationsSent                 AltaPrivateInvitation[]              @relation("AltaPrivateInvitationSender")
+  botDailyTransferUsage                      BotDailyTransferUsage[]
+  bankSettings                               UserBankSettings?
+  secureDealRoomDiscordSessions              SecureDealRoomDiscordSession[]
+  notificationDeliveryQueue                  NotificationDeliveryQueue[]
+  paymentsInitiated                          Payment[]                            @relation("PaymentInitiatedBy")
+  paymentsAsPayer                            Payment[]                            @relation("PaymentPayer")
+  paymentsAsRecipient                        Payment[]                            @relation("PaymentRecipient")
+  privateBankingAsCustomer                   PrivateBankingRelationship[]         @relation("PrivateBankingCustomer")
+  privateBankingAsBanker                     PrivateBankingRelationship[]         @relation("PrivateBankingBanker")
+  privateBankingAssigned                     PrivateBankingRelationship[]         @relation("PrivateBankingAssignedBy")
+  staffAssignments                           StaffAssignment[]                    @relation("StaffAssignmentStaff")
+  staffAssignmentsCreated                    StaffAssignment[]                    @relation("StaffAssignmentAssigner")
+  documentsUploaded                          Document[]                           @relation("DocumentUploader")
+  merchantInvoicesCreated                    MerchantInvoice[]                    @relation("MerchantInvoiceCreator")
+  merchantInvoicesReceived                   MerchantInvoice[]                    @relation("MerchantInvoiceRecipient")
+  merchantInvoicePaymentsInitiated           MerchantInvoicePayment[]             @relation("MerchantInvoicePaymentInitiator")
+  paymentLinksCreated                        PaymentLink[]                        @relation("PaymentLinkCreator")
+  paymentLinkPaymentsInitiated               PaymentLinkPayment[]                 @relation("PaymentLinkPaymentInitiator")
+  merchantAutopayApprovals                   MerchantAutopayApproval[]
+  altaPaySchedulesAsRecipient                ScheduledPayment[]                   @relation("ScheduledPaymentRecipientUser")
+  recurringInvoiceSchedulesCreated           MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceScheduleCreator")
+  recurringInvoicesReceived                  MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientUser")
+  institutionPrimaryContacts                 FinancialInstitution[]               @relation("InstitutionPrimaryContact")
+  institutionMemberships                     InstitutionMember[]                  @relation("InstitutionMemberUser")
+  institutionMembersInvited                  InstitutionMember[]                  @relation("InstitutionMemberInviter")
+  settlementInstructionsSubmitted            SettlementInstruction[]              @relation("SettlementInstructionSubmitter")
+  settlementReversalsActed                   SettlementReversal[]                 @relation("SettlementReversalActor")
+  settlementCompensationsActed               SettlementCompensation[]             @relation("SettlementCompensationActor")
+  nccApiCredentialsCreated                   NccApiCredential[]                   @relation("NccApiCredentialCreator")
+  nccWebhookEndpointsCreated                 NccWebhookEndpoint[]                 @relation("NccWebhookEndpointCreator")
+  nccReversalRequestsCreated                 NccSettlementReversalRequest[]       @relation("NccReversalRequestCreator")
+  terminalCashAccountsOwned                  TerminalCashAccount[]                @relation("TerminalCashAccountOwnerUser")
+  terminalFundingRequests                    TerminalFundingRequest[]             @relation("TerminalFundingRequestUser")
+  terminalWithdrawalRequests                 TerminalWithdrawalRequest[]          @relation("TerminalWithdrawalRequestUser")
 
   @@index([accountStatus])
 }
@@ -233,47 +245,48 @@ model Company {
   createdAt                     DateTime           @default(now())
   updatedAt                     DateTime           @updatedAt
 
-  memberships       CompanyMembership[]
-  bankAccounts      BankAccount[]
-  invitations       CompanyInvitation[]
-  scheduledPayments ScheduledPayment[]
-  payrollEmployees  PayrollEmployee[]
-  payrollRuns       PayrollRun[]
-  loanApplications  LoanApplication[]
-  loans             Loan[]
-  dealRooms         DealRoom[]
-  loanApplicationThreads LoanApplicationThread[]
-  altaCards            AltaCard[]
-  altaCardApplications AltaCardApplication[]
-  altaCardApplicationThreads AltaCardApplicationThread[]
-  altaCardReviewRequests     AltaCardReviewRequest[]
-  altaCardReviewThreads      AltaCardReviewThread[]
-  altaEmployeeCards    AltaEmployeeCard[]
-  altaCardMerchantTransactions AltaCardTransaction[] @relation("AltaCardMerchantCompany")
+  memberships                  CompanyMembership[]
+  bankAccounts                 BankAccount[]
+  invitations                  CompanyInvitation[]
+  scheduledPayments            ScheduledPayment[]
+  payrollEmployees             PayrollEmployee[]
+  payrollRuns                  PayrollRun[]
+  loanApplications             LoanApplication[]
+  loans                        Loan[]
+  dealRooms                    DealRoom[]
+  loanApplicationThreads       LoanApplicationThread[]
+  altaCards                    AltaCard[]
+  altaCardApplications         AltaCardApplication[]
+  altaCardApplicationThreads   AltaCardApplicationThread[]
+  altaCardReviewRequests       AltaCardReviewRequest[]
+  altaCardReviewThreads        AltaCardReviewThread[]
+  altaEmployeeCards            AltaEmployeeCard[]
+  altaCardMerchantTransactions AltaCardTransaction[]                @relation("AltaCardMerchantCompany")
   relationshipProfile          CompanyRelationshipProfile?
   relationshipSnapshots        CompanyRelationshipProfileSnapshot[]
   relationshipRecommendations  CompanyRelationshipRecommendation[]
   relationshipTimelineEvents   CompanyRelationshipTimelineEvent[]
   merchantInvoices             MerchantInvoice[]
-  merchantInvoicesReceived     MerchantInvoice[] @relation("MerchantInvoiceRecipientCompany")
+  merchantInvoicesReceived     MerchantInvoice[]                    @relation("MerchantInvoiceRecipientCompany")
   paymentLinks                 PaymentLink[]
   merchantAutopayApprovals     MerchantAutopayApproval[]
   recurringInvoiceSchedules    MerchantRecurringInvoiceSchedule[]
-  altaPaySchedulesAsPayee      ScheduledPayment[] @relation("ScheduledPaymentRecipientCompany")
-  recurringInvoicesToCompany   MerchantRecurringInvoiceSchedule[] @relation("RecurringInvoiceRecipientCompany")
-  commercialPlan                 CommercialPlan               @default(CORE)
-  planStatus                     CommercialPlanStatus         @default(ACTIVE)
-  billingStatus                  CommercialBillingStatus      @default(NOT_BILLED)
-  commercialMonthlyFee           Decimal?                     @db.Decimal(18, 2)
-  commercialEnabledFeatures      Json?
-  commercialBillingAccountId     String?
-  commercialNextBillingAt        DateTime?
-  commercialPastDueAt            DateTime?
-  commercialProSubscribedAt      DateTime?
-  commercialProGrantSource       CommercialProGrantSource?
-  commercialProExpiresAt         DateTime?
-  commercialBillingAccount       BankAccount?                 @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
-  branding                       CompanyBranding?
+  altaPaySchedulesAsPayee      ScheduledPayment[]                   @relation("ScheduledPaymentRecipientCompany")
+  recurringInvoicesToCompany   MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientCompany")
+  commercialPlan               CommercialPlan                       @default(CORE)
+  planStatus                   CommercialPlanStatus                 @default(ACTIVE)
+  billingStatus                CommercialBillingStatus              @default(NOT_BILLED)
+  commercialMonthlyFee         Decimal?                             @db.Decimal(18, 2)
+  commercialEnabledFeatures    Json?
+  commercialBillingAccountId   String?
+  commercialNextBillingAt      DateTime?
+  commercialPastDueAt          DateTime?
+  commercialProSubscribedAt    DateTime?
+  commercialProGrantSource     CommercialProGrantSource?
+  commercialProExpiresAt       DateTime?
+  commercialBillingAccount     BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
+  branding                     CompanyBranding?
+  terminalCashAccountsOwned    TerminalCashAccount[]                @relation("TerminalCashAccountOwnerCompany")
 
   @@index([verificationStatus])
 }
@@ -451,10 +464,10 @@ enum IntrabankContactKind {
 }
 
 model TransferContact {
-  id        String               @id @default(cuid())
-  userId    String
-  scope     TransferContactScope
-  label     String
+  id     String               @id @default(cuid())
+  userId String
+  scope  TransferContactScope
+  label  String
 
   intrabankKind IntrabankContactKind?
   bankAccountId String?
@@ -476,52 +489,52 @@ model TransferContact {
 }
 
 model BankAccount {
-  id            String            @id @default(cuid())
-  userId        String
-  companyId     String?
-  ownershipType BankAccountOwnershipType @default(PERSONAL)
-  accountType   BankAccountType
-  accountName   String
-  accountNumber String            @unique
-  status        BankAccountStatus @default(PENDING)
-  balance       Decimal           @default(0) @db.Decimal(18, 2)
-  currency      String            @default("FLR")
-  openingNotes  String?
-  interestRate           Decimal            @default(0) @db.Decimal(10, 6)
+  id                     String                   @id @default(cuid())
+  userId                 String
+  companyId              String?
+  ownershipType          BankAccountOwnershipType @default(PERSONAL)
+  accountType            BankAccountType
+  accountName            String
+  accountNumber          String                   @unique
+  status                 BankAccountStatus        @default(PENDING)
+  balance                Decimal                  @default(0) @db.Decimal(18, 2)
+  currency               String                   @default("FLR")
+  openingNotes           String?
+  interestRate           Decimal                  @default(0) @db.Decimal(10, 6)
   interestRatePeriod     InterestRatePeriod?
-  interestAccrualEnabled Boolean            @default(false)
+  interestAccrualEnabled Boolean                  @default(false)
   lastInterestAccruedAt  DateTime?
   nextInterestAccrualAt  DateTime?
-  restrictDeposits     Boolean           @default(false)
-  restrictWithdrawals  Boolean           @default(false)
-  restrictTransfers    Boolean           @default(false)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  restrictDeposits       Boolean                  @default(false)
+  restrictWithdrawals    Boolean                  @default(false)
+  restrictTransfers      Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company      Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  commercialBillingForCompanies Company[] @relation("CommercialBillingAccount")
-  holds        BankAccountHold[]
-  transactions      BankTransaction[]
-  interestAccruals  BankInterestAccrual[]
-  transferContacts  TransferContact[]
-  scheduledPayments ScheduledPayment[]
-  payrollRuns       PayrollRun[]
-  statements        BankStatement[]
-  loanApplications  LoanApplication[]
-  loansLinked       Loan[]            @relation("LoanLinkedAccount")
-  loansAutoPaySource Loan[]           @relation("LoanAutoPaySource")
-  altaCardAutopaySource AltaCard[]    @relation("AltaCardAutopaySource")
-  loanPaymentsFrom  LoanPayment[]
-  altaCardTransactions AltaCardTransaction[] @relation("AltaCardRelatedBankAccount")
-  altaCardApplicationsPaymentSource AltaCardApplication[] @relation("AltaCardApplicationPaymentSource")
-  altaPayReceiveForUsers          UserBankSettings[]    @relation("UserAltaPayReceiveAccount")
-  altaPayFundingForUsers          UserBankSettings[]    @relation("UserAltaPayFundingAccount")
-  paymentsAsSource                Payment[]             @relation("PaymentSourceAccount")
-  paymentsAsDestination           Payment[]             @relation("PaymentDestinationAccount")
-  merchantInvoicesDestination     MerchantInvoice[]     @relation("MerchantInvoiceDestination")
-  paymentLinksDestination         PaymentLink[]         @relation("PaymentLinkDestination")
-  merchantAutopayFundingApprovals MerchantAutopayApproval[]
+  user                              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company                           Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  commercialBillingForCompanies     Company[]                 @relation("CommercialBillingAccount")
+  holds                             BankAccountHold[]
+  transactions                      BankTransaction[]
+  interestAccruals                  BankInterestAccrual[]
+  transferContacts                  TransferContact[]
+  scheduledPayments                 ScheduledPayment[]
+  payrollRuns                       PayrollRun[]
+  statements                        BankStatement[]
+  loanApplications                  LoanApplication[]
+  loansLinked                       Loan[]                    @relation("LoanLinkedAccount")
+  loansAutoPaySource                Loan[]                    @relation("LoanAutoPaySource")
+  altaCardAutopaySource             AltaCard[]                @relation("AltaCardAutopaySource")
+  loanPaymentsFrom                  LoanPayment[]
+  altaCardTransactions              AltaCardTransaction[]     @relation("AltaCardRelatedBankAccount")
+  altaCardApplicationsPaymentSource AltaCardApplication[]     @relation("AltaCardApplicationPaymentSource")
+  altaPayReceiveForUsers            UserBankSettings[]        @relation("UserAltaPayReceiveAccount")
+  altaPayFundingForUsers            UserBankSettings[]        @relation("UserAltaPayFundingAccount")
+  paymentsAsSource                  Payment[]                 @relation("PaymentSourceAccount")
+  paymentsAsDestination             Payment[]                 @relation("PaymentDestinationAccount")
+  merchantInvoicesDestination       MerchantInvoice[]         @relation("MerchantInvoiceDestination")
+  paymentLinksDestination           PaymentLink[]             @relation("PaymentLinkDestination")
+  merchantAutopayFundingApprovals   MerchantAutopayApproval[]
 
   @@index([userId])
   @@index([companyId])
@@ -615,42 +628,42 @@ enum PayrollRunStatus {
 }
 
 model ScheduledPayment {
-  id                     String                 @id @default(cuid())
+  id                     String                            @id @default(cuid())
   companyId              String?
   bankAccountId          String?
   fundingSource          Json?
   createdByUserId        String
-  transferScope          ScheduledTransferScope @default(INTRABANK)
-  paymentChannel         ScheduledPaymentChannel @default(TRANSFER)
+  transferScope          ScheduledTransferScope            @default(INTRABANK)
+  paymentChannel         ScheduledPaymentChannel           @default(TRANSFER)
   paymentType            ScheduledPaymentType
   label                  String
   recipientName          String
   recipientAccountNumber String?
   recipientCompanyId     String?
-  recipientUserId          String?
+  recipientUserId        String?
   recipientInstitution   String?
   routingNumber          String?
   wireAccountNumber      String?
-  amount                 Decimal                @db.Decimal(18, 2)
-  currency               String                 @default("FLR")
+  amount                 Decimal                           @db.Decimal(18, 2)
+  currency               String                            @default("FLR")
   frequency              PaymentFrequency?
   scheduledDate          DateTime?
   nextRunDate            DateTime?
   lastRunAt              DateTime?
-  consecutiveFailures    Int                    @default(0)
+  consecutiveFailures    Int                               @default(0)
   lastFailureReason      String?
   lastExecutionStatus    ScheduledTransferExecutionStatus?
-  status                 ScheduledPaymentStatus @default(PENDING_REVIEW)
+  status                 ScheduledPaymentStatus            @default(PENDING_REVIEW)
   memo                   String?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
+  createdAt              DateTime                          @default(now())
+  updatedAt              DateTime                          @updatedAt
 
-  company           Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  createdBy         User        @relation("ScheduledPaymentCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  recipientCompany  Company?    @relation("ScheduledPaymentRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
-  recipientUser     User?       @relation("ScheduledPaymentRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
-  executions        ScheduledTransferExecution[]
+  company          Company?                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount      BankAccount?                 @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy        User                         @relation("ScheduledPaymentCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipientCompany Company?                     @relation("ScheduledPaymentRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
+  recipientUser    User?                        @relation("ScheduledPaymentRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  executions       ScheduledTransferExecution[]
 
   @@index([companyId])
   @@index([createdByUserId])
@@ -666,18 +679,18 @@ model ScheduledPayment {
 }
 
 model ScheduledTransferExecution {
-  id                 String                           @id @default(cuid())
-  scheduledPaymentId String
-  scheduledRunAt     DateTime
-  status             ScheduledTransferExecutionStatus @default(PENDING)
-  bankTransactionId  String?
+  id                    String                           @id @default(cuid())
+  scheduledPaymentId    String
+  scheduledRunAt        DateTime
+  status                ScheduledTransferExecutionStatus @default(PENDING)
+  bankTransactionId     String?
   transferReferenceCode String?
-  paymentId          String?
-  retryCount         Int                              @default(0)
-  nextRetryAt        DateTime?
-  failureReason      String?
-  executedAt         DateTime?
-  createdAt          DateTime                         @default(now())
+  paymentId             String?
+  retryCount            Int                              @default(0)
+  nextRetryAt           DateTime?
+  failureReason         String?
+  executedAt            DateTime?
+  createdAt             DateTime                         @default(now())
 
   scheduledPayment ScheduledPayment @relation(fields: [scheduledPaymentId], references: [id], onDelete: Cascade)
   bankTransaction  BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
@@ -691,21 +704,21 @@ model ScheduledTransferExecution {
 }
 
 model MerchantAutopayApproval {
-  id                             String                        @id @default(cuid())
-  userId                         String
-  merchantCompanyId              String
-  fundingAccountId               String?
-  fundingSource                  Json
-  fundingSourceKey               String
-  maxInvoiceAmount               Decimal                       @db.Decimal(18, 2)
-  confirmationRequiredAboveAmount Decimal?                     @db.Decimal(18, 2)
-  allowedFrequency               PaymentFrequency
-  maxPaymentsPerMonth            Int                           @default(1)
-  expiresAt                      DateTime?
-  allowRecurringInvoices         Boolean                       @default(true)
-  status                         MerchantAutopayApprovalStatus @default(ACTIVE)
-  createdAt                      DateTime                      @default(now())
-  updatedAt                      DateTime                      @updatedAt
+  id                              String                        @id @default(cuid())
+  userId                          String
+  merchantCompanyId               String
+  fundingAccountId                String?
+  fundingSource                   Json
+  fundingSourceKey                String
+  maxInvoiceAmount                Decimal                       @db.Decimal(18, 2)
+  confirmationRequiredAboveAmount Decimal?                      @db.Decimal(18, 2)
+  allowedFrequency                PaymentFrequency
+  maxPaymentsPerMonth             Int                           @default(1)
+  expiresAt                       DateTime?
+  allowRecurringInvoices          Boolean                       @default(true)
+  status                          MerchantAutopayApprovalStatus @default(ACTIVE)
+  createdAt                       DateTime                      @default(now())
+  updatedAt                       DateTime                      @updatedAt
 
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   merchantCompany Company      @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
@@ -738,10 +751,10 @@ model MerchantRecurringInvoiceSchedule {
   createdAt           DateTime                       @default(now())
   updatedAt           DateTime                       @updatedAt
 
-  merchantCompany   Company          @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
-  createdBy         User             @relation("RecurringInvoiceScheduleCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  recipientUser     User?            @relation("RecurringInvoiceRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
-  recipientCompany  Company?         @relation("RecurringInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
+  merchantCompany   Company           @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  createdBy         User              @relation("RecurringInvoiceScheduleCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipientUser     User?             @relation("RecurringInvoiceRecipientUser", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  recipientCompany  Company?          @relation("RecurringInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
   generatedInvoices MerchantInvoice[]
 
   @@index([merchantCompanyId, status])
@@ -791,11 +804,11 @@ model PayrollRun {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
-  company       Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bankAccount   BankAccount      @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  createdBy     User             @relation("PayrollRunCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  autoEmployee  PayrollEmployee? @relation("AutoPayrollEmployee", fields: [autoEmployeeId], references: [id], onDelete: SetNull)
-  executions    PayrollRunExecution[]
+  company      Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankAccount  BankAccount           @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy    User                  @relation("PayrollRunCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  autoEmployee PayrollEmployee?      @relation("AutoPayrollEmployee", fields: [autoEmployeeId], references: [id], onDelete: SetNull)
+  executions   PayrollRunExecution[]
 
   @@index([companyId])
   @@index([bankAccountId])
@@ -844,26 +857,26 @@ model PayrollRunLineExecution {
 }
 
 model BankTransaction {
-  id            String                @id @default(cuid())
-  bankAccountId String
-  type          BankTransactionType
-  amount        Decimal               @db.Decimal(18, 2)
-  status        BankTransactionStatus @default(PENDING)
-  description   String
-  memo          String?
-  referenceCode String                @unique
-  proofImageUrl String?
-  proofFileName String?
+  id              String                @id @default(cuid())
+  bankAccountId   String
+  type            BankTransactionType
+  amount          Decimal               @db.Decimal(18, 2)
+  status          BankTransactionStatus @default(PENDING)
+  description     String
+  memo            String?
+  referenceCode   String                @unique
+  proofImageUrl   String?
+  proofFileName   String?
   proofUploadedAt DateTime?
-  proofMimeType String?
-  proofSizeBytes Int?
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  reviewedById  String?
-  reviewedAt    DateTime?
-  reviewNote    String?
+  proofMimeType   String?
+  proofSizeBytes  Int?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  reviewedById    String?
+  reviewedAt      DateTime?
+  reviewNote      String?
   transferGroupId String?
-  ledgerRole    TransferLedgerRole?
+  ledgerRole      TransferLedgerRole?
 
   bankAccount                BankAccount                  @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
   reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -873,7 +886,7 @@ model BankTransaction {
   loanPayment                LoanPayment?
   loanLedgerEntries          LoanLedgerEntry[]
   interestAccrual            BankInterestAccrual?
-  altaCardTransactions       AltaCardTransaction[] @relation("AltaCardRelatedBankTransaction")
+  altaCardTransactions       AltaCardTransaction[]        @relation("AltaCardRelatedBankTransaction")
 
   @@index([bankAccountId])
   @@index([bankAccountId, createdAt])
@@ -1024,10 +1037,10 @@ model LoanApplication {
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
 
-  applicantUser     User         @relation("LoanApplicationApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
-  company           Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  linkedBankAccount BankAccount? @relation(fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
-  reviewedBy        User?        @relation("LoanApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  applicantUser     User                   @relation("LoanApplicationApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company           Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  linkedBankAccount BankAccount?           @relation(fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
+  reviewedBy        User?                  @relation("LoanApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   loan              Loan?
   dealRoom          DealRoom?
   thread            LoanApplicationThread?
@@ -1121,16 +1134,16 @@ model LoanApplicationThread {
 }
 
 model LoanApplicationThreadMessage {
-  id                String                          @id @default(cuid())
-  threadId          String
-  senderUserId      String?
-  senderRole        LoanApplicationThreadSenderRole
-  source            SecureDealRoomMessageSource     @default(WEBSITE)
-  discordMessageId  String?                         @unique
-  body              String?
-  attachments       Json?
-  createdAt         DateTime                        @default(now())
-  deletedAt         DateTime?
+  id               String                          @id @default(cuid())
+  threadId         String
+  senderUserId     String?
+  senderRole       LoanApplicationThreadSenderRole
+  source           SecureDealRoomMessageSource     @default(WEBSITE)
+  discordMessageId String?                         @unique
+  body             String?
+  attachments      Json?
+  createdAt        DateTime                        @default(now())
+  deletedAt        DateTime?
 
   thread LoanApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                 @relation("LoanApplicationThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
@@ -1139,49 +1152,49 @@ model LoanApplicationThreadMessage {
 }
 
 model Loan {
-  id                  String               @id @default(cuid())
-  loanApplicationId   String               @unique
-  borrowerUserId      String?
-  companyId           String?
-  productType         LoanProductType
-  principalAmount     Decimal              @db.Decimal(18, 2)
-  termMonths          Int?
-  outstandingBalance  Decimal              @db.Decimal(18, 2)
-  principalOutstanding Decimal             @db.Decimal(18, 2)
-  accruedInterest     Decimal              @default(0) @db.Decimal(18, 2)
-  interestRate        Decimal              @db.Decimal(8, 4)
-  interestRateType    LoanInterestRateType @default(MONTHLY_PERCENT)
-  lastInterestAccruedAt DateTime?
-  nextInterestAccrualAt DateTime?
-  status              LoanStatus           @default(ACTIVE)
-  linkedBankAccountId String?
-  autoPayEnabled      Boolean              @default(false)
+  id                         String               @id @default(cuid())
+  loanApplicationId          String               @unique
+  borrowerUserId             String?
+  companyId                  String?
+  productType                LoanProductType
+  principalAmount            Decimal              @db.Decimal(18, 2)
+  termMonths                 Int?
+  outstandingBalance         Decimal              @db.Decimal(18, 2)
+  principalOutstanding       Decimal              @db.Decimal(18, 2)
+  accruedInterest            Decimal              @default(0) @db.Decimal(18, 2)
+  interestRate               Decimal              @db.Decimal(8, 4)
+  interestRateType           LoanInterestRateType @default(MONTHLY_PERCENT)
+  lastInterestAccruedAt      DateTime?
+  nextInterestAccrualAt      DateTime?
+  status                     LoanStatus           @default(ACTIVE)
+  linkedBankAccountId        String?
+  autoPayEnabled             Boolean              @default(false)
   autoPaySourceBankAccountId String?
-  approvedById        String
-  approvedAt          DateTime
-  sourceDealRoomId          String?   @unique
-  sourceAgreementId         String?
-  sourceAgreementDraftId    String?   @unique
-  disbursementReferenceCode String?
-  collateralDescription     String?
-  paymentFrequencyLabel     String?
-  minimumPayment            Decimal?  @db.Decimal(18, 2)
-  maturityDate              DateTime?
-  firstPaymentDueDate       DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  approvedById               String
+  approvedAt                 DateTime
+  sourceDealRoomId           String?              @unique
+  sourceAgreementId          String?
+  sourceAgreementDraftId     String?              @unique
+  disbursementReferenceCode  String?
+  collateralDescription      String?
+  paymentFrequencyLabel      String?
+  minimumPayment             Decimal?             @db.Decimal(18, 2)
+  maturityDate               DateTime?
+  firstPaymentDueDate        DateTime?
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
 
-  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
-  borrowerUser      User?           @relation("LoanBorrower", fields: [borrowerUserId], references: [id], onDelete: SetNull)
-  company           Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  linkedBankAccount BankAccount?    @relation("LoanLinkedAccount", fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
-  autoPaySourceBankAccount BankAccount? @relation("LoanAutoPaySource", fields: [autoPaySourceBankAccountId], references: [id], onDelete: SetNull)
-  approvedBy        User            @relation("LoanApprover", fields: [approvedById], references: [id], onDelete: Restrict)
-  payments          LoanPayment[]
-  ledgerEntries     LoanLedgerEntry[]
-  paymentSchedule   LoanPaymentScheduleItem[]
-  interestSchedule  LoanInterestScheduleItem[]
-  dealRoom          DealRoom? @relation("DealRoomExecutedLoan")
+  loanApplication          LoanApplication            @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  borrowerUser             User?                      @relation("LoanBorrower", fields: [borrowerUserId], references: [id], onDelete: SetNull)
+  company                  Company?                   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  linkedBankAccount        BankAccount?               @relation("LoanLinkedAccount", fields: [linkedBankAccountId], references: [id], onDelete: SetNull)
+  autoPaySourceBankAccount BankAccount?               @relation("LoanAutoPaySource", fields: [autoPaySourceBankAccountId], references: [id], onDelete: SetNull)
+  approvedBy               User                       @relation("LoanApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  payments                 LoanPayment[]
+  ledgerEntries            LoanLedgerEntry[]
+  paymentSchedule          LoanPaymentScheduleItem[]
+  interestSchedule         LoanInterestScheduleItem[]
+  dealRoom                 DealRoom?                  @relation("DealRoomExecutedLoan")
 
   @@index([borrowerUserId])
   @@index([companyId])
@@ -1204,10 +1217,10 @@ model LoanPayment {
   status              LoanPaymentStatus @default(PENDING)
   createdAt           DateTime          @default(now())
 
-  loan              Loan                      @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  sourceBankAccount BankAccount?              @relation(fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
-  bankTransaction   BankTransaction?          @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
-  scheduleItem      LoanPaymentScheduleItem?  @relation(fields: [scheduleItemId], references: [id], onDelete: SetNull)
+  loan              Loan                     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  sourceBankAccount BankAccount?             @relation(fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
+  bankTransaction   BankTransaction?         @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  scheduleItem      LoanPaymentScheduleItem? @relation(fields: [scheduleItemId], references: [id], onDelete: SetNull)
 
   @@index([loanId])
   @@index([status])
@@ -1435,58 +1448,58 @@ enum DealRoomParticipantRole {
 }
 
 model DealRoom {
-  id                        String         @id @default(cuid())
-  loanApplicationId         String?        @unique
-  borrowerUserId            String
-  companyId                 String?
-  assignedOfficerId         String?
-  createdByUserId           String?
-  assignedTeamLabel         String         @default("Lending Desk")
-  workflowStage             DealRoomWorkflowStage @default(APPLICATION_RECEIVED)
-  stageEnteredAt            DateTime       @default(now())
-  priority                  DealRoomPriority @default(MEDIUM)
-  status                    DealRoomStatus @default(UNDER_REVIEW)
-  slaOfficerFirstResponseAt DateTime?
-  slaDocumentsRequestedAt   DateTime?
-  slaDocumentsReceivedAt    DateTime?
-  slaAgreementGeneratedAt   DateTime?
-  slaBorrowerSignedAt       DateTime?
-  slaBankSignedAt           DateTime?
-  slaFundingCompletedAt     DateTime?
-  stalledAt                 DateTime?
-  currentRequestedAmount    Decimal        @db.Decimal(18, 2)
-  currentProposedAmount     Decimal?       @db.Decimal(18, 2)
-  currentProposedRate       Decimal?       @db.Decimal(8, 4)
-  currentProposedTermMonths Int?
-  acceptedPrincipal              Decimal?   @db.Decimal(18, 2)
-  acceptedInterestRate           Decimal?   @db.Decimal(8, 4)
-  acceptedTermMonths             Int?
-  acceptedMinimumPayment         Decimal?   @db.Decimal(18, 2)
-  acceptedPaymentFrequency       String?
-  acceptedCollateralDescription  String?
-  acceptedSpecialConditions      String?
-  acceptedOfferId                String?    @unique
-  acceptedAt                     DateTime?
-  createdAt                 DateTime       @default(now())
-  updatedAt                 DateTime       @updatedAt
-  closedAt                  DateTime?
+  id                            String                @id @default(cuid())
+  loanApplicationId             String?               @unique
+  borrowerUserId                String
+  companyId                     String?
+  assignedOfficerId             String?
+  createdByUserId               String?
+  assignedTeamLabel             String                @default("Lending Desk")
+  workflowStage                 DealRoomWorkflowStage @default(APPLICATION_RECEIVED)
+  stageEnteredAt                DateTime              @default(now())
+  priority                      DealRoomPriority      @default(MEDIUM)
+  status                        DealRoomStatus        @default(UNDER_REVIEW)
+  slaOfficerFirstResponseAt     DateTime?
+  slaDocumentsRequestedAt       DateTime?
+  slaDocumentsReceivedAt        DateTime?
+  slaAgreementGeneratedAt       DateTime?
+  slaBorrowerSignedAt           DateTime?
+  slaBankSignedAt               DateTime?
+  slaFundingCompletedAt         DateTime?
+  stalledAt                     DateTime?
+  currentRequestedAmount        Decimal               @db.Decimal(18, 2)
+  currentProposedAmount         Decimal?              @db.Decimal(18, 2)
+  currentProposedRate           Decimal?              @db.Decimal(8, 4)
+  currentProposedTermMonths     Int?
+  acceptedPrincipal             Decimal?              @db.Decimal(18, 2)
+  acceptedInterestRate          Decimal?              @db.Decimal(8, 4)
+  acceptedTermMonths            Int?
+  acceptedMinimumPayment        Decimal?              @db.Decimal(18, 2)
+  acceptedPaymentFrequency      String?
+  acceptedCollateralDescription String?
+  acceptedSpecialConditions     String?
+  acceptedOfferId               String?               @unique
+  acceptedAt                    DateTime?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+  closedAt                      DateTime?
 
-  loanApplication LoanApplication?      @relation(fields: [loanApplicationId], references: [id], onDelete: SetNull)
-  borrowerUser    User                  @relation("DealRoomBorrower", fields: [borrowerUserId], references: [id], onDelete: Cascade)
-  company         Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  assignedOfficer User?                 @relation("DealRoomOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
-  createdBy       User?                 @relation("DealRoomCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  acceptedOffer   DealRoomOffer?        @relation("DealRoomAcceptedOffer", fields: [acceptedOfferId], references: [id], onDelete: SetNull)
-  participants    DealRoomParticipant[]
-  messages        DealRoomMessage[]
-  offers          DealRoomOffer[]       @relation("DealRoomOffers")
-  documents       DealRoomDocument[]
+  loanApplication  LoanApplication?          @relation(fields: [loanApplicationId], references: [id], onDelete: SetNull)
+  borrowerUser     User                      @relation("DealRoomBorrower", fields: [borrowerUserId], references: [id], onDelete: Cascade)
+  company          Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignedOfficer  User?                     @relation("DealRoomOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+  createdBy        User?                     @relation("DealRoomCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  acceptedOffer    DealRoomOffer?            @relation("DealRoomAcceptedOffer", fields: [acceptedOfferId], references: [id], onDelete: SetNull)
+  participants     DealRoomParticipant[]
+  messages         DealRoomMessage[]
+  offers           DealRoomOffer[]           @relation("DealRoomOffers")
+  documents        DealRoomDocument[]
   documentRequests DealRoomDocumentRequest[]
-  agreement       DealRoomAgreement?
-  executedLoan    Loan?                     @relation("DealRoomExecutedLoan", fields: [executedLoanId], references: [id], onDelete: SetNull)
-  executedLoanId  String?                   @unique
-  tasks           DealRoomTask[]
-  stageHistory    DealRoomStageHistory[]
+  agreement        DealRoomAgreement?
+  executedLoan     Loan?                     @relation("DealRoomExecutedLoan", fields: [executedLoanId], references: [id], onDelete: SetNull)
+  executedLoanId   String?                   @unique
+  tasks            DealRoomTask[]
+  stageHistory     DealRoomStageHistory[]
 
   @@index([borrowerUserId])
   @@index([companyId])
@@ -1618,28 +1631,28 @@ enum DealRoomDocumentRequestStatus {
 }
 
 model DealRoomDocument {
-  id                 String                     @id @default(cuid())
-  dealRoomId         String
-  uploadedByUserId   String
-  documentType       DealRoomDocumentType
-  visibility         DealRoomDocumentVisibility @default(SHARED)
-  originalFileName   String
-  storedFileName     String
-  mimeType           String
-  fileSizeBytes      Int
-  storageKey         String
-  description        String?
-  status             DealRoomDocumentStatus     @default(ACTIVE)
-  replacedByDocumentId String?                  @unique
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  deletedAt          DateTime?
+  id                   String                     @id @default(cuid())
+  dealRoomId           String
+  uploadedByUserId     String
+  documentType         DealRoomDocumentType
+  visibility           DealRoomDocumentVisibility @default(SHARED)
+  originalFileName     String
+  storedFileName       String
+  mimeType             String
+  fileSizeBytes        Int
+  storageKey           String
+  description          String?
+  status               DealRoomDocumentStatus     @default(ACTIVE)
+  replacedByDocumentId String?                    @unique
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  deletedAt            DateTime?
 
-  dealRoom         DealRoom                  @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
-  uploadedBy       User                      @relation("DealRoomDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
-  replacedBy       DealRoomDocument?         @relation("DealRoomDocumentReplacement", fields: [replacedByDocumentId], references: [id], onDelete: SetNull)
-  replaces         DealRoomDocument?         @relation("DealRoomDocumentReplacement")
-  documentRequest  DealRoomDocumentRequest?
+  dealRoom        DealRoom                 @relation(fields: [dealRoomId], references: [id], onDelete: Cascade)
+  uploadedBy      User                     @relation("DealRoomDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+  replacedBy      DealRoomDocument?        @relation("DealRoomDocumentReplacement", fields: [replacedByDocumentId], references: [id], onDelete: SetNull)
+  replaces        DealRoomDocument?        @relation("DealRoomDocumentReplacement")
+  documentRequest DealRoomDocumentRequest?
 
   @@index([dealRoomId, createdAt])
   @@index([dealRoomId, status])
@@ -1720,26 +1733,26 @@ model DealRoomAgreementDraft {
   createdAt         DateTime                     @default(now())
   updatedAt         DateTime                     @updatedAt
 
-  agreement          DealRoomAgreement            @relation("DealRoomAgreementDrafts", fields: [agreementId], references: [id], onDelete: Cascade)
-  generatedBy        User?                        @relation("DealRoomAgreementDraftGenerator", fields: [generatedByUserId], references: [id], onDelete: SetNull)
-  voidedBy           User?                        @relation("DealRoomAgreementDraftVoider", fields: [voidedByUserId], references: [id], onDelete: SetNull)
-  signatures         DealRoomAgreementSignature[]
-  activeForAgreement DealRoomAgreement?           @relation("DealRoomAgreementActiveDraft")
-  executedForAgreement DealRoomAgreement?         @relation("DealRoomAgreementExecutedDraft")
+  agreement            DealRoomAgreement            @relation("DealRoomAgreementDrafts", fields: [agreementId], references: [id], onDelete: Cascade)
+  generatedBy          User?                        @relation("DealRoomAgreementDraftGenerator", fields: [generatedByUserId], references: [id], onDelete: SetNull)
+  voidedBy             User?                        @relation("DealRoomAgreementDraftVoider", fields: [voidedByUserId], references: [id], onDelete: SetNull)
+  signatures           DealRoomAgreementSignature[]
+  activeForAgreement   DealRoomAgreement?           @relation("DealRoomAgreementActiveDraft")
+  executedForAgreement DealRoomAgreement?           @relation("DealRoomAgreementExecutedDraft")
 
   @@unique([agreementId, versionNumber])
   @@index([agreementId, status])
 }
 
 model DealRoomAgreementSignature {
-  id             String                          @id @default(cuid())
-  draftId        String
-  party          DealRoomAgreementSignatureParty
-  userId         String
-  signatureName  String
-  discordId      String?
-  ipAddress      String?
-  signedAt       DateTime                        @default(now())
+  id            String                          @id @default(cuid())
+  draftId       String
+  party         DealRoomAgreementSignatureParty
+  userId        String
+  signatureName String
+  discordId     String?
+  ipAddress     String?
+  signedAt      DateTime                        @default(now())
 
   draft DealRoomAgreementDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
   user  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1794,14 +1807,14 @@ model DealRoomStageHistory {
 }
 
 model UserNotification {
-  id           String                  @id @default(cuid())
-  userId       String
-  type         UserNotificationType
-  channel      UserNotificationChannel @default(IN_APP)
-  title        String
-  body         String
-  linkUrl      String?
-  metadata     Json?
+  id                String                  @id @default(cuid())
+  userId            String
+  type              UserNotificationType
+  channel           UserNotificationChannel @default(IN_APP)
+  title             String
+  body              String
+  linkUrl           String?
+  metadata          Json?
   readAt            DateTime?
   discordNotifiedAt DateTime?
   createdAt         DateTime                @default(now())
@@ -1829,6 +1842,25 @@ enum AuditEntityType {
   PAYMENT_LINK
   MERCHANT_AUTOPAY_APPROVAL
   MERCHANT_RECURRING_INVOICE
+  FINANCIAL_INSTITUTION
+  ROUTING_NUMBER
+  SETTLEMENT_ACCOUNT
+  SETTLEMENT_INSTRUCTION
+  SETTLEMENT_ENTRY
+  INSTITUTION_MEMBER
+  SETTLEMENT_EXECUTION
+  TERMINAL_CASH_ACCOUNT
+  TERMINAL_CASH_ENTRY
+  TERMINAL_FUNDING_REQUEST
+  TERMINAL_WITHDRAWAL_REQUEST
+  SETTLEMENT_RECONCILIATION
+  SETTLEMENT_COMPENSATION
+  NCC_API_CREDENTIAL
+  NCC_WEBHOOK_ENDPOINT
+  NCC_WEBHOOK_EVENT
+  NCC_WEBHOOK_DELIVERY
+  NCC_API_REQUEST_LOG
+  NCC_REVERSAL_REQUEST
 }
 
 enum InternalNoteTargetType {
@@ -1846,15 +1878,18 @@ enum BankAccountHoldStatus {
 }
 
 model BankAccountHold {
-  id            String                @id @default(cuid())
-  bankAccountId String
-  amount        Decimal               @db.Decimal(18, 2)
-  reason        String
-  status        BankAccountHoldStatus @default(ACTIVE)
-  createdById   String
-  releasedById  String?
-  createdAt     DateTime              @default(now())
-  releasedAt    DateTime?
+  id                      String                @id @default(cuid())
+  bankAccountId           String
+  amount                  Decimal               @db.Decimal(18, 2)
+  reason                  String
+  status                  BankAccountHoldStatus @default(ACTIVE)
+  createdById             String
+  releasedById            String?
+  /// Stable NCC adapter operation key — unique when set (idempotent prepareDebit).
+  nccOperationKey         String?               @unique
+  settlementInstructionId String?
+  createdAt               DateTime              @default(now())
+  releasedAt              DateTime?
 
   bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
   createdBy   User        @relation("BankAccountHoldCreator", fields: [createdById], references: [id], onDelete: Cascade)
@@ -1862,18 +1897,19 @@ model BankAccountHold {
 
   @@index([bankAccountId])
   @@index([status])
+  @@index([settlementInstructionId])
 }
 
 model OpsJobRun {
-  id            String   @id @default(cuid())
-  jobKey        String   @unique
+  id            String    @id @default(cuid())
+  jobKey        String    @unique
   label         String
   lastSuccessAt DateTime?
   lastFailureAt DateTime?
-  lastStatus    String   @default("UNKNOWN")
+  lastStatus    String    @default("UNKNOWN")
   lastMessage   String?
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
 }
 
 model AuditLog {
@@ -1884,6 +1920,8 @@ model AuditLog {
   targetCompanyId     String?
   targetTransactionId String?
   targetLoanId        String?
+  /// NCC institution scope for portal audit isolation.
+  institutionId       String?
   action              String
   entityType          AuditEntityType
   entityId            String?
@@ -1899,6 +1937,7 @@ model AuditLog {
   @@index([targetCompanyId])
   @@index([targetTransactionId])
   @@index([targetLoanId])
+  @@index([institutionId])
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
@@ -2096,12 +2135,12 @@ model AltaCardApplication {
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
 
-  applicant User     @relation("AltaCardApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  reviewer  User?    @relation("AltaCardApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  paymentSourceAccount BankAccount? @relation("AltaCardApplicationPaymentSource", fields: [paymentSourceAccountId], references: [id], onDelete: SetNull)
-  card      AltaCard?
-  thread    AltaCardApplicationThread?
+  applicant            User                       @relation("AltaCardApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company              Company?                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reviewer             User?                      @relation("AltaCardApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  paymentSourceAccount BankAccount?               @relation("AltaCardApplicationPaymentSource", fields: [paymentSourceAccountId], references: [id], onDelete: SetNull)
+  card                 AltaCard?
+  thread               AltaCardApplicationThread?
 
   @@index([applicantUserId])
   @@index([companyId])
@@ -2147,16 +2186,16 @@ model AltaCardApplicationThread {
 }
 
 model AltaCardApplicationThreadMessage {
-  id                String                              @id @default(cuid())
-  threadId          String
-  senderUserId      String?
-  senderRole        AltaCardApplicationThreadSenderRole
-  source            SecureDealRoomMessageSource         @default(WEBSITE)
-  discordMessageId  String?                             @unique
-  body              String?
-  attachments       Json?
-  createdAt         DateTime                            @default(now())
-  deletedAt         DateTime?
+  id               String                              @id @default(cuid())
+  threadId         String
+  senderUserId     String?
+  senderRole       AltaCardApplicationThreadSenderRole
+  source           SecureDealRoomMessageSource         @default(WEBSITE)
+  discordMessageId String?                             @unique
+  body             String?
+  attachments      Json?
+  createdAt        DateTime                            @default(now())
+  deletedAt        DateTime?
 
   thread AltaCardApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                     @relation("AltaCardApplicationThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
@@ -2199,10 +2238,10 @@ model AltaCardReviewRequest {
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
-  altaCard      AltaCard               @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
-  applicantUser User                   @relation("AltaCardReviewRequestApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
-  company       Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  reviewer      User?                  @relation("AltaCardReviewRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  altaCard      AltaCard              @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
+  applicantUser User                  @relation("AltaCardReviewRequestApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  company       Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  reviewer      User?                 @relation("AltaCardReviewRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   thread        AltaCardReviewThread?
 
   @@index([altaCardId])
@@ -2236,16 +2275,16 @@ model AltaCardReviewThread {
 }
 
 model AltaCardReviewThreadMessage {
-  id                String                              @id @default(cuid())
-  threadId          String
-  senderUserId      String?
-  senderRole        AltaCardApplicationThreadSenderRole
-  source            SecureDealRoomMessageSource         @default(WEBSITE)
-  discordMessageId  String?                             @unique
-  body              String?
-  attachments       Json?
-  createdAt         DateTime                            @default(now())
-  deletedAt         DateTime?
+  id               String                              @id @default(cuid())
+  threadId         String
+  senderUserId     String?
+  senderRole       AltaCardApplicationThreadSenderRole
+  source           SecureDealRoomMessageSource         @default(WEBSITE)
+  discordMessageId String?                             @unique
+  body             String?
+  attachments      Json?
+  createdAt        DateTime                            @default(now())
+  deletedAt        DateTime?
 
   thread AltaCardReviewThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User?                @relation("AltaCardReviewThreadMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
@@ -2254,28 +2293,28 @@ model AltaCardReviewThreadMessage {
 }
 
 model AltaCard {
-  id                 String         @id @default(cuid())
-  ownerUserId        String?
-  companyId          String?
-  applicationId      String?        @unique
-  tier               AltaCardTier
-  cardType           AltaCardType
-  status             AltaCardStatus @default(PENDING)
-  creditLimit        Decimal        @db.Decimal(18, 2)
-  availableCredit    Decimal        @db.Decimal(18, 2)
-  currentBalance     Decimal        @default(0) @db.Decimal(18, 2)
-  statementBalance   Decimal        @default(0) @db.Decimal(18, 2)
-  minimumPaymentDue  Decimal        @default(0) @db.Decimal(18, 2)
-  interestRate       Decimal        @db.Decimal(10, 6)
-  dueDate            DateTime?
+  id                       String                @id @default(cuid())
+  ownerUserId              String?
+  companyId                String?
+  applicationId            String?               @unique
+  tier                     AltaCardTier
+  cardType                 AltaCardType
+  status                   AltaCardStatus        @default(PENDING)
+  creditLimit              Decimal               @db.Decimal(18, 2)
+  availableCredit          Decimal               @db.Decimal(18, 2)
+  currentBalance           Decimal               @default(0) @db.Decimal(18, 2)
+  statementBalance         Decimal               @default(0) @db.Decimal(18, 2)
+  minimumPaymentDue        Decimal               @default(0) @db.Decimal(18, 2)
+  interestRate             Decimal               @db.Decimal(10, 6)
+  dueDate                  DateTime?
   currentBillingCycleStart DateTime?
   currentBillingCycleEnd   DateTime?
-  currentStatementId       String?        @unique
+  currentStatementId       String?               @unique
   lastStatementDate        DateTime?
   nextStatementDate        DateTime?
   paymentDueDate           DateTime?
   billingCycleDay          Int?
-  cardLastFour       String         @default("0000")
+  cardLastFour             String                @default("0000")
   autopayEnabled           Boolean               @default(false)
   autopaySourceAccountId   String?
   autopayType              AltaCardAutopayType?
@@ -2283,20 +2322,20 @@ model AltaCard {
   autopayLastRunAt         DateTime?
   autopayLastStatus        AltaCardAutopayStatus @default(NOT_RUN)
   autopayFailureReason     String?
-  openedAt           DateTime?
-  closedAt           DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  openedAt                 DateTime?
+  closedAt                 DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
 
-  owner         User?                @relation("AltaCardOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  company       Company?             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  application   AltaCardApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
-  employeeCards AltaEmployeeCard[]
-  transactions  AltaCardTransaction[]
-  statements    AltaCardStatement[]
-  fees          AltaCardFee[]
-  currentStatement AltaCardStatement? @relation("AltaCardCurrentStatement", fields: [currentStatementId], references: [id], onDelete: SetNull)
-  autopaySourceAccount BankAccount? @relation("AltaCardAutopaySource", fields: [autopaySourceAccountId], references: [id], onDelete: SetNull)
+  owner                User?                   @relation("AltaCardOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  company              Company?                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  application          AltaCardApplication?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  employeeCards        AltaEmployeeCard[]
+  transactions         AltaCardTransaction[]
+  statements           AltaCardStatement[]
+  fees                 AltaCardFee[]
+  currentStatement     AltaCardStatement?      @relation("AltaCardCurrentStatement", fields: [currentStatementId], references: [id], onDelete: SetNull)
+  autopaySourceAccount BankAccount?            @relation("AltaCardAutopaySource", fields: [autopaySourceAccountId], references: [id], onDelete: SetNull)
   reviewRequests       AltaCardReviewRequest[]
 
   @@index([ownerUserId])
@@ -2323,9 +2362,9 @@ model AltaEmployeeCard {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
-  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  authorizedUser     User     @relation("AltaEmployeeCardUser", fields: [authorizedUserId], references: [id], onDelete: Cascade)
-  parentBusinessCard AltaCard @relation(fields: [parentBusinessCardId], references: [id], onDelete: Cascade)
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorizedUser     User                  @relation("AltaEmployeeCardUser", fields: [authorizedUserId], references: [id], onDelete: Cascade)
+  parentBusinessCard AltaCard              @relation(fields: [parentBusinessCardId], references: [id], onDelete: Cascade)
   transactions       AltaCardTransaction[]
 
   @@index([companyId])
@@ -2374,14 +2413,14 @@ model AltaCardTransaction {
   altaCardStatementId      String?
   metadata                 Json?
 
-  altaCard               AltaCard          @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
-  altaCardStatement      AltaCardStatement? @relation(fields: [altaCardStatementId], references: [id], onDelete: SetNull)
+  altaCard               AltaCard              @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
+  altaCardStatement      AltaCardStatement?    @relation(fields: [altaCardStatementId], references: [id], onDelete: SetNull)
   altaCardFee            AltaCardFee?
-  altaEmployeeCard       AltaEmployeeCard? @relation(fields: [altaEmployeeCardId], references: [id], onDelete: SetNull)
-  merchantCompany        Company?          @relation("AltaCardMerchantCompany", fields: [merchantCompanyId], references: [id], onDelete: SetNull)
-  relatedBankAccount     BankAccount?      @relation("AltaCardRelatedBankAccount", fields: [relatedBankAccountId], references: [id], onDelete: SetNull)
-  relatedBankTransaction BankTransaction?  @relation("AltaCardRelatedBankTransaction", fields: [relatedBankTransactionId], references: [id], onDelete: SetNull)
-  createdBy              User?             @relation("AltaCardTransactionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  altaEmployeeCard       AltaEmployeeCard?     @relation(fields: [altaEmployeeCardId], references: [id], onDelete: SetNull)
+  merchantCompany        Company?              @relation("AltaCardMerchantCompany", fields: [merchantCompanyId], references: [id], onDelete: SetNull)
+  relatedBankAccount     BankAccount?          @relation("AltaCardRelatedBankAccount", fields: [relatedBankAccountId], references: [id], onDelete: SetNull)
+  relatedBankTransaction BankTransaction?      @relation("AltaCardRelatedBankTransaction", fields: [relatedBankTransactionId], references: [id], onDelete: SetNull)
+  createdBy              User?                 @relation("AltaCardTransactionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   reversesTransaction    AltaCardTransaction?  @relation("AltaCardTransactionReversal", fields: [reversesTransactionId], references: [id], onDelete: SetNull)
   reversedBy             AltaCardTransaction[] @relation("AltaCardTransactionReversal")
 
@@ -2408,38 +2447,38 @@ enum AltaCardStatementStatus {
 }
 
 model AltaCardStatement {
-  id                 String                @id @default(cuid())
+  id                 String                  @id @default(cuid())
   altaCardId         String
   statementNumber    Int
   billingPeriodStart DateTime
   billingPeriodEnd   DateTime
   statementDate      DateTime?
   dueDate            DateTime
-  previousBalance    Decimal               @default(0) @db.Decimal(18, 2)
-  purchases          Decimal               @default(0) @db.Decimal(18, 2)
-  payments           Decimal               @default(0) @db.Decimal(18, 2)
-  adjustments        Decimal               @default(0) @db.Decimal(18, 2)
-  interestCharged    Decimal               @default(0) @db.Decimal(18, 2)
-  feesCharged        Decimal               @default(0) @db.Decimal(18, 2)
-  statementBalance   Decimal               @default(0) @db.Decimal(18, 2)
-  amountPaid         Decimal               @default(0) @db.Decimal(18, 2)
-  feesPaid           Decimal               @default(0) @db.Decimal(18, 2)
-  interestPaid       Decimal               @default(0) @db.Decimal(18, 2)
-  principalPaid      Decimal               @default(0) @db.Decimal(18, 2)
-  remainingBalance   Decimal               @default(0) @db.Decimal(18, 2)
-  minimumPayment     Decimal               @default(0) @db.Decimal(18, 2)
-  endingBalance      Decimal               @default(0) @db.Decimal(18, 2)
+  previousBalance    Decimal                 @default(0) @db.Decimal(18, 2)
+  purchases          Decimal                 @default(0) @db.Decimal(18, 2)
+  payments           Decimal                 @default(0) @db.Decimal(18, 2)
+  adjustments        Decimal                 @default(0) @db.Decimal(18, 2)
+  interestCharged    Decimal                 @default(0) @db.Decimal(18, 2)
+  feesCharged        Decimal                 @default(0) @db.Decimal(18, 2)
+  statementBalance   Decimal                 @default(0) @db.Decimal(18, 2)
+  amountPaid         Decimal                 @default(0) @db.Decimal(18, 2)
+  feesPaid           Decimal                 @default(0) @db.Decimal(18, 2)
+  interestPaid       Decimal                 @default(0) @db.Decimal(18, 2)
+  principalPaid      Decimal                 @default(0) @db.Decimal(18, 2)
+  remainingBalance   Decimal                 @default(0) @db.Decimal(18, 2)
+  minimumPayment     Decimal                 @default(0) @db.Decimal(18, 2)
+  endingBalance      Decimal                 @default(0) @db.Decimal(18, 2)
   status             AltaCardStatementStatus @default(OPEN)
   paidAt             DateTime?
   overdueAt          DateTime?
   interestAppliedAt  DateTime?
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
-  altaCard           AltaCard              @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
-  transactions       AltaCardTransaction[]
-  fees               AltaCardFee[]
-  currentForCard     AltaCard?             @relation("AltaCardCurrentStatement")
+  altaCard       AltaCard              @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
+  transactions   AltaCardTransaction[]
+  fees           AltaCardFee[]
+  currentForCard AltaCard?             @relation("AltaCardCurrentStatement")
 
   @@unique([altaCardId, statementNumber])
   @@index([altaCardId])
@@ -2462,23 +2501,23 @@ enum AltaCardFeeStatus {
 }
 
 model AltaCardFee {
-  id                    String           @id @default(cuid())
+  id                    String            @id @default(cuid())
   altaCardId            String
   altaCardStatementId   String?
-  altaCardTransactionId String?          @unique
+  altaCardTransactionId String?           @unique
   type                  AltaCardFeeType
-  amount                Decimal          @db.Decimal(18, 2)
+  amount                Decimal           @db.Decimal(18, 2)
   status                AltaCardFeeStatus @default(ACTIVE)
   reason                String?
   waivedByUserId        String?
   waivedAt              DateTime?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
-  altaCard              AltaCard              @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
-  statement             AltaCardStatement?    @relation(fields: [altaCardStatementId], references: [id], onDelete: SetNull)
-  transaction           AltaCardTransaction?  @relation(fields: [altaCardTransactionId], references: [id], onDelete: SetNull)
-  waivedBy              User?                 @relation("AltaCardFeeWaivedBy", fields: [waivedByUserId], references: [id], onDelete: SetNull)
+  altaCard    AltaCard             @relation(fields: [altaCardId], references: [id], onDelete: Cascade)
+  statement   AltaCardStatement?   @relation(fields: [altaCardStatementId], references: [id], onDelete: SetNull)
+  transaction AltaCardTransaction? @relation(fields: [altaCardTransactionId], references: [id], onDelete: SetNull)
+  waivedBy    User?                @relation("AltaCardFeeWaivedBy", fields: [waivedByUserId], references: [id], onDelete: SetNull)
 
   @@index([altaCardId])
   @@index([altaCardStatementId])
@@ -2520,10 +2559,10 @@ model RelationshipProfile {
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 
-  user       User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  snapshots  RelationshipProfileSnapshot[]
+  user            User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots       RelationshipProfileSnapshot[]
   recommendations RelationshipRecommendation[]
-  timelineEvents RelationshipTimelineEvent[]
+  timelineEvents  RelationshipTimelineEvent[]
 
   @@index([relationshipTier])
   @@index([relationshipScore])
@@ -2571,7 +2610,7 @@ enum RelationshipRecommendationStatus {
 }
 
 model RelationshipRecommendation {
-  id                 String                         @id @default(cuid())
+  id                 String                           @id @default(cuid())
   userId             String
   profileId          String
   recommendationType RelationshipRecommendationType
@@ -2580,12 +2619,12 @@ model RelationshipRecommendation {
   summary            String
   recommendedProduct String?
   recommendedTier    String?
-  recommendedLimit   Decimal?                       @db.Decimal(18, 2)
-  recommendedRate    Decimal?                       @db.Decimal(10, 6)
+  recommendedLimit   Decimal?                         @db.Decimal(18, 2)
+  recommendedRate    Decimal?                         @db.Decimal(10, 6)
   confidenceScore    Int
   reasons            Json
-  createdAt          DateTime                       @default(now())
-  updatedAt          DateTime                       @updatedAt
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
   dismissedAt        DateTime?
   acceptedAt         DateTime?
   reviewedByUserId   String?
@@ -2768,7 +2807,7 @@ model CompanyRelationshipProfileSnapshot {
   calculatedAt              DateTime                @default(now())
   metadata                  Json?
 
-  company Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   profile CompanyRelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([companyId, calculatedAt])
@@ -2777,28 +2816,28 @@ model CompanyRelationshipProfileSnapshot {
 }
 
 model CompanyRelationshipRecommendation {
-  id                 String                              @id @default(cuid())
+  id                 String                                @id @default(cuid())
   companyId          String
   profileId          String
   recommendationType CompanyRelationshipRecommendationType
-  status             RelationshipRecommendationStatus  @default(ACTIVE)
+  status             RelationshipRecommendationStatus      @default(ACTIVE)
   title              String
   summary            String
   recommendedProduct String?
   recommendedTier    String?
-  recommendedLimit   Decimal?                            @db.Decimal(18, 2)
-  recommendedRate    Decimal?                            @db.Decimal(10, 6)
+  recommendedLimit   Decimal?                              @db.Decimal(18, 2)
+  recommendedRate    Decimal?                              @db.Decimal(10, 6)
   confidenceScore    Int
   reasons            Json
-  createdAt          DateTime                            @default(now())
-  updatedAt          DateTime                            @updatedAt
+  createdAt          DateTime                              @default(now())
+  updatedAt          DateTime                              @updatedAt
   dismissedAt        DateTime?
   acceptedAt         DateTime?
   reviewedByUserId   String?
 
-  company    Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company    Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   profile    CompanyRelationshipProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  reviewedBy User?                     @relation("CompanyRelationshipRecommendationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedBy User?                      @relation("CompanyRelationshipRecommendationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
 
   @@index([companyId, status])
   @@index([profileId])
@@ -2819,7 +2858,7 @@ model CompanyRelationshipTimelineEvent {
   metadata          Json?
   createdAt         DateTime                             @default(now())
 
-  company Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company                     @relation(fields: [companyId], references: [id], onDelete: Cascade)
   profile CompanyRelationshipProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([companyId, occurredAt])
@@ -2883,21 +2922,75 @@ enum TransferLedgerRole {
 
 enum FinancialInstitutionType {
   BANK
+  EXCHANGE
+  BROKERAGE
+  PAYMENT_PROVIDER
+  CLEARING_PARTICIPANT
+  /// Legacy alias — prefer CLEARING_PARTICIPANT for new institutions.
   CLEARING_HOUSE
+  /// Legacy alias — prefer BROKERAGE for new institutions.
   BROKER_DEALER
   CUSTODIAN
   OTHER
 }
 
 enum FinancialInstitutionStatus {
+  APPLICANT
   ACTIVE
-  INACTIVE
+  RESTRICTED
   SUSPENDED
+  TERMINATED
+  /// Legacy non-originating status — treated like TERMINATED for new instructions.
+  INACTIVE
 }
 
 enum RoutingNumberStatus {
+  RESERVED
   ACTIVE
+  SUSPENDED
+  RETIRED
+  /// Legacy — treated like RETIRED for routing validation.
   INACTIVE
+}
+
+enum InstitutionMemberRole {
+  INSTITUTION_OWNER
+  INSTITUTION_ADMIN
+  SETTLEMENT_MANAGER
+  SETTLEMENT_OPERATOR
+  AUDITOR
+  VIEWER
+}
+
+enum InstitutionMemberStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum SettlementAccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum SettlementInstructionStatus {
+  CREATED
+  SUBMITTED
+  VALIDATING
+  QUEUED
+  SETTLING
+  SETTLED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum SettlementEntryType {
+  DEBIT
+  CREDIT
+  REVERSAL_DEBIT
+  REVERSAL_CREDIT
+  ADJUSTMENT
 }
 
 enum PrivateBankingRelationshipStatus {
@@ -2971,14 +3064,14 @@ model Payment {
   updatedAt                DateTime      @updatedAt
   completedAt              DateTime?
 
-  payer              User?          @relation("PaymentPayer", fields: [payerUserId], references: [id], onDelete: SetNull)
-  recipient          User?          @relation("PaymentRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
-  sourceAccount      BankAccount?   @relation("PaymentSourceAccount", fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
-  destinationAccount BankAccount?   @relation("PaymentDestinationAccount", fields: [destinationBankAccountId], references: [id], onDelete: SetNull)
-  initiatedBy        User           @relation("PaymentInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
-  transferGroup      TransferGroup? @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
-  merchantInvoice    MerchantInvoice?
-  paymentLinkPayment PaymentLinkPayment?
+  payer               User?                        @relation("PaymentPayer", fields: [payerUserId], references: [id], onDelete: SetNull)
+  recipient           User?                        @relation("PaymentRecipient", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  sourceAccount       BankAccount?                 @relation("PaymentSourceAccount", fields: [sourceBankAccountId], references: [id], onDelete: SetNull)
+  destinationAccount  BankAccount?                 @relation("PaymentDestinationAccount", fields: [destinationBankAccountId], references: [id], onDelete: SetNull)
+  initiatedBy         User                         @relation("PaymentInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+  transferGroup       TransferGroup?               @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  merchantInvoice     MerchantInvoice?
+  paymentLinkPayment  PaymentLinkPayment?
   scheduledExecutions ScheduledTransferExecution[]
 
   @@index([paymentType, status])
@@ -3008,37 +3101,465 @@ model TransferGroup {
 }
 
 model FinancialInstitution {
-  id               String                     @id @default(cuid())
-  name             String
-  shortName        String
-  routingPrefix    String?                    @unique
-  institutionType  FinancialInstitutionType
-  status           FinancialInstitutionStatus @default(ACTIVE)
-  isAlta           Boolean                    @default(false)
-  isNCCParticipant Boolean                    @default(false)
-  metadata         Json?
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
+  id                   String                     @id @default(cuid())
+  legalName            String
+  displayName          String
+  slug                 String                     @unique
+  routingPrefix        String?                    @unique
+  institutionType      FinancialInstitutionType
+  status               FinancialInstitutionStatus @default(APPLICANT)
+  description          String?
+  logoUrl              String?
+  websiteUrl           String?
+  primaryContactUserId String?
+  isAlta               Boolean                    @default(false)
+  isNCCParticipant     Boolean                    @default(false)
+  metadata             Json?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  approvedAt           DateTime?
+  suspendedAt          DateTime?
+  terminatedAt         DateTime?
 
-  routingNumbers RoutingNumber[]
+  primaryContactUser   User?                          @relation("InstitutionPrimaryContact", fields: [primaryContactUserId], references: [id], onDelete: SetNull)
+  routingNumbers       RoutingNumber[]
+  settlementAccounts   SettlementAccount[]
+  members              InstitutionMember[]
+  sentInstructions     SettlementInstruction[]        @relation("SettlementSendingInstitution")
+  receivedInstructions SettlementInstruction[]        @relation("SettlementReceivingInstitution")
+  settlementEntries    SettlementEntry[]
+  apiCredentials       NccApiCredential[]
+  webhookEndpoints     NccWebhookEndpoint[]
+  webhookEvents        NccWebhookEvent[]
+  apiRequestLogs       NccApiRequestLog[]
+  rateLimitBuckets     NccApiRateLimitBucket[]
+  reversalRequests     NccSettlementReversalRequest[]
 
   @@index([status])
   @@index([isAlta])
+  @@index([institutionType])
 }
 
 model RoutingNumber {
-  id                     String              @id @default(cuid())
-  routingNumber          String              @unique
-  financialInstitutionId String
-  status                 RoutingNumberStatus @default(ACTIVE)
-  label                  String?
-  metadata               Json?
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  id            String              @id @default(cuid())
+  institutionId String
+  routingNumber String              @unique
+  status        RoutingNumberStatus @default(RESERVED)
+  isPrimary     Boolean             @default(false)
+  label         String?
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
 
-  financialInstitution FinancialInstitution @relation(fields: [financialInstitutionId], references: [id], onDelete: Cascade)
+  institution           FinancialInstitution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sendingInstructions   SettlementInstruction[] @relation("SettlementSendingRouting")
+  receivingInstructions SettlementInstruction[] @relation("SettlementReceivingRouting")
 
-  @@index([financialInstitutionId])
+  @@index([institutionId])
+  @@index([status])
+  @@index([institutionId, isPrimary])
+}
+
+model InstitutionMember {
+  id              String                  @id @default(cuid())
+  institutionId   String
+  userId          String
+  role            InstitutionMemberRole
+  status          InstitutionMemberStatus @default(ACTIVE)
+  invitedByUserId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  revokedAt       DateTime?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user        User                 @relation("InstitutionMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy   User?                @relation("InstitutionMemberInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([institutionId, userId])
+  @@index([userId, status])
+  @@index([institutionId, status])
+  @@index([role])
+}
+
+model SettlementAccount {
+  id               String                  @id @default(cuid())
+  institutionId    String
+  currency         String                  @default("FLR")
+  ledgerBalance    Decimal                 @default(0) @db.Decimal(18, 2)
+  availableBalance Decimal                 @default(0) @db.Decimal(18, 2)
+  status           SettlementAccountStatus @default(ACTIVE)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  entries     SettlementEntry[]
+
+  @@unique([institutionId, currency])
+  @@index([status])
+}
+
+model SettlementInstruction {
+  id                       String                      @id @default(cuid())
+  publicReference          String                      @unique
+  idempotencyKey           String
+  sendingInstitutionId     String
+  receivingInstitutionId   String
+  sendingRoutingNumberId   String
+  receivingRoutingNumberId String
+  currency                 String                      @default("FLR")
+  amount                   Decimal                     @db.Decimal(18, 2)
+  purpose                  String?
+  externalReference        String?
+  status                   SettlementInstructionStatus @default(CREATED)
+  submittedByUserId        String?
+  submittedAt              DateTime?
+  validatedAt              DateTime?
+  /// NCC ledger finality — not necessarily end-to-end institution completion.
+  settledAt                DateTime?
+  failedAt                 DateTime?
+  cancelledAt              DateTime?
+  reversedAt               DateTime?
+  failureCode              String?
+  failureReason            String?
+  requestHash              String
+  metadata                 Json?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+
+  sendingInstitution     FinancialInstitution        @relation("SettlementSendingInstitution", fields: [sendingInstitutionId], references: [id], onDelete: Restrict)
+  receivingInstitution   FinancialInstitution        @relation("SettlementReceivingInstitution", fields: [receivingInstitutionId], references: [id], onDelete: Restrict)
+  sendingRoutingNumber   RoutingNumber               @relation("SettlementSendingRouting", fields: [sendingRoutingNumberId], references: [id], onDelete: Restrict)
+  receivingRoutingNumber RoutingNumber               @relation("SettlementReceivingRouting", fields: [receivingRoutingNumberId], references: [id], onDelete: Restrict)
+  submittedBy            User?                       @relation("SettlementInstructionSubmitter", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  entries                SettlementEntry[]
+  reversalAsOriginal     SettlementReversal?         @relation("SettlementReversalOriginal")
+  reversalAsReversal     SettlementReversal?         @relation("SettlementReversalInstruction")
+  execution              SettlementExecution?
+  terminalCashEntries    TerminalCashEntry[]
+  fundingRequests        TerminalFundingRequest[]
+  withdrawalRequests     TerminalWithdrawalRequest[]
+  reconciliations        SettlementReconciliation[]
+  outboxEvents           SettlementOutboxEvent[]
+  compensation           SettlementCompensation?
+
+  @@unique([sendingInstitutionId, idempotencyKey])
+  @@index([status])
+  @@index([sendingInstitutionId, createdAt])
+  @@index([receivingInstitutionId, createdAt])
+  @@index([externalReference])
+  @@index([publicReference])
+  @@index([submittedByUserId])
+}
+
+model SettlementEntry {
+  id                      String              @id @default(cuid())
+  settlementInstructionId String
+  settlementAccountId     String
+  institutionId           String
+  entryType               SettlementEntryType
+  amount                  Decimal             @db.Decimal(18, 2)
+  currency                String
+  balanceBefore           Decimal             @db.Decimal(18, 2)
+  balanceAfter            Decimal             @db.Decimal(18, 2)
+  createdAt               DateTime            @default(now())
+
+  instruction       SettlementInstruction @relation(fields: [settlementInstructionId], references: [id], onDelete: Restrict)
+  settlementAccount SettlementAccount     @relation(fields: [settlementAccountId], references: [id], onDelete: Restrict)
+  institution       FinancialInstitution  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  @@index([settlementInstructionId])
+  @@index([settlementAccountId])
+  @@index([institutionId, createdAt])
+}
+
+model SettlementReversal {
+  id                    String   @id @default(cuid())
+  originalInstructionId String   @unique
+  reversalInstructionId String   @unique
+  reason                String
+  actorUserId           String
+  createdAt             DateTime @default(now())
+  metadata              Json?
+
+  originalInstruction SettlementInstruction @relation("SettlementReversalOriginal", fields: [originalInstructionId], references: [id], onDelete: Restrict)
+  reversalInstruction SettlementInstruction @relation("SettlementReversalInstruction", fields: [reversalInstructionId], references: [id], onDelete: Restrict)
+  actor               User                  @relation("SettlementReversalActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+/// End-to-end adapter execution for a settlement instruction.
+/// Instruction.status SETTLED = NCC ledger finality.
+/// Execution.status COMPLETED = destination institution credit confirmed.
+enum SettlementExecutionStatus {
+  NOT_STARTED
+  VALIDATING
+  PREPARING_SOURCE
+  SOURCE_PREPARED
+  POSTING_NCC_LEDGER
+  NCC_LEDGER_POSTED
+  COMMITTING_SOURCE
+  SOURCE_COMMITTED
+  CREDITING_DESTINATION
+  DESTINATION_CREDITED
+  COMPLETED
+  RETRY_PENDING
+  MANUAL_REVIEW
+  COMPENSATING
+  /// Post-ledger compensation completed (source restored + NCC positions reversed).
+  COMPENSATED
+  FAILED
+}
+
+enum SettlementExecutionStep {
+  VALIDATE
+  PREPARE_SOURCE
+  POST_NCC_LEDGER
+  COMMIT_SOURCE
+  CREDIT_DESTINATION
+  FINALIZE
+  IDLE
+}
+
+model SettlementExecution {
+  id                          String                    @id @default(cuid())
+  settlementInstructionId     String                    @unique
+  status                      SettlementExecutionStatus @default(NOT_STARTED)
+  currentStep                 SettlementExecutionStep   @default(VALIDATE)
+  sourceAccountReference      String?
+  destinationAccountReference String?
+  sourcePreparationReference  String?
+  sourceCommitReference       String?
+  destinationCreditReference  String?
+  attemptCount                Int                       @default(0)
+  maxAttempts                 Int                       @default(8)
+  nextRetryAt                 DateTime?
+  lastAttemptAt               DateTime?
+  failureCode                 String?
+  failureReason               String?
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+  completedAt                 DateTime?
+
+  instruction  SettlementInstruction   @relation(fields: [settlementInstructionId], references: [id], onDelete: Restrict)
+  compensation SettlementCompensation?
+
+  @@index([status, nextRetryAt])
+  @@index([updatedAt])
+}
+
+/// Authorized post-ledger compensation for destination-credit failures after NCC + source committed.
+model SettlementCompensation {
+  id                        String   @id @default(cuid())
+  settlementInstructionId   String   @unique
+  settlementExecutionId     String   @unique
+  compensatingInstructionId String?
+  sourceRestoreReference    String?
+  reason                    String
+  actorUserId               String
+  metadata                  Json?
+  createdAt                 DateTime @default(now())
+
+  instruction SettlementInstruction @relation(fields: [settlementInstructionId], references: [id], onDelete: Restrict)
+  execution   SettlementExecution   @relation(fields: [settlementExecutionId], references: [id], onDelete: Restrict)
+  actor       User                  @relation("SettlementCompensationActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+enum TerminalCashAccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum TerminalCashEntryType {
+  FUNDING_CREDIT
+  WITHDRAWAL_DEBIT
+  RESERVATION
+  RESERVATION_RELEASE
+  TRADE_RESERVATION
+  REVERSAL_CREDIT
+  REVERSAL_DEBIT
+  ADJUSTMENT
+}
+
+enum TerminalTransferRequestStatus {
+  CREATED
+  PREPARING
+  NCC_POSTED
+  SOURCE_COMMITTED
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum SettlementOutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SettlementReconciliationStatus {
+  MATCHED
+  PENDING
+  MISMATCH
+  MISSING_SOURCE
+  MISSING_DESTINATION
+  DUPLICATE
+  STALE_RESERVATION
+  MANUAL_REVIEW
+  RESOLVED
+  /// Recognized compensated / manually resolved post-ledger outcome.
+  COMPENSATED
+}
+
+/// Persistent Terminal / trading cash ledger (Alta Terminal + Exchange cash SoR).
+/// Exactly one owner: user XOR company (enforced by check + partial unique indexes).
+model TerminalCashAccount {
+  id               String                    @id @default(cuid())
+  ownerUserId      String?
+  ownerCompanyId   String?
+  currency         String                    @default("FLR")
+  ledgerBalance    Decimal                   @default(0) @db.Decimal(18, 2)
+  availableBalance Decimal                   @default(0) @db.Decimal(18, 2)
+  reservedBalance  Decimal                   @default(0) @db.Decimal(18, 2)
+  status           TerminalCashAccountStatus @default(ACTIVE)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  ownerUser          User?                       @relation("TerminalCashAccountOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerCompany       Company?                    @relation("TerminalCashAccountOwnerCompany", fields: [ownerCompanyId], references: [id], onDelete: Cascade)
+  entries            TerminalCashEntry[]
+  fundingRequests    TerminalFundingRequest[]
+  withdrawalRequests TerminalWithdrawalRequest[]
+
+  @@index([ownerUserId])
+  @@index([ownerCompanyId])
+  @@index([status])
+  @@index([currency])
+}
+
+model TerminalCashEntry {
+  id                      String                @id @default(cuid())
+  terminalCashAccountId   String
+  entryType               TerminalCashEntryType
+  amount                  Decimal               @db.Decimal(18, 2)
+  currency                String
+  balanceBefore           Decimal               @db.Decimal(18, 2)
+  balanceAfter            Decimal               @db.Decimal(18, 2)
+  availableBefore         Decimal               @db.Decimal(18, 2)
+  availableAfter          Decimal               @db.Decimal(18, 2)
+  settlementInstructionId String?
+  externalReference       String?
+  idempotencyKey          String                @unique
+  metadata                Json?
+  createdAt               DateTime              @default(now())
+
+  account     TerminalCashAccount    @relation(fields: [terminalCashAccountId], references: [id], onDelete: Restrict)
+  instruction SettlementInstruction? @relation(fields: [settlementInstructionId], references: [id], onDelete: SetNull)
+
+  @@index([terminalCashAccountId, createdAt])
+  @@index([settlementInstructionId])
+}
+
+model TerminalFundingRequest {
+  id                      String                        @id @default(cuid())
+  userId                  String
+  sourceBankAccountId     String
+  terminalCashAccountId   String
+  settlementInstructionId String?
+  amount                  Decimal                       @db.Decimal(18, 2)
+  currency                String                        @default("FLR")
+  status                  TerminalTransferRequestStatus @default(CREATED)
+  idempotencyKey          String                        @unique
+  failureCode             String?
+  failureReason           String?
+  createdAt               DateTime                      @default(now())
+  updatedAt               DateTime                      @updatedAt
+  completedAt             DateTime?
+
+  user        User                   @relation("TerminalFundingRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  cashAccount TerminalCashAccount    @relation(fields: [terminalCashAccountId], references: [id], onDelete: Restrict)
+  instruction SettlementInstruction? @relation(fields: [settlementInstructionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([sourceBankAccountId])
+  @@index([settlementInstructionId])
+}
+
+model TerminalWithdrawalRequest {
+  id                       String                        @id @default(cuid())
+  userId                   String
+  terminalCashAccountId    String
+  destinationBankAccountId String
+  settlementInstructionId  String?
+  amount                   Decimal                       @db.Decimal(18, 2)
+  currency                 String                        @default("FLR")
+  status                   TerminalTransferRequestStatus @default(CREATED)
+  idempotencyKey           String                        @unique
+  failureCode              String?
+  failureReason            String?
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  completedAt              DateTime?
+
+  user        User                   @relation("TerminalWithdrawalRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  cashAccount TerminalCashAccount    @relation(fields: [terminalCashAccountId], references: [id], onDelete: Restrict)
+  instruction SettlementInstruction? @relation(fields: [settlementInstructionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([destinationBankAccountId])
+  @@index([settlementInstructionId])
+}
+
+model SettlementOutboxEvent {
+  id                      String                 @id @default(cuid())
+  settlementInstructionId String?
+  eventType               String
+  payload                 Json
+  dedupeKey               String                 @unique
+  status                  SettlementOutboxStatus @default(PENDING)
+  attempts                Int                    @default(0)
+  maxAttempts             Int                    @default(10)
+  nextRetryAt             DateTime?
+  lastError               String?
+  /// Sprint 3B.1: claim lease for crash-safe PROCESSING recovery.
+  claimedAt               DateTime?
+  claimToken              String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  processedAt             DateTime?
+
+  instruction SettlementInstruction? @relation(fields: [settlementInstructionId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextRetryAt])
+  @@index([status, claimedAt])
+  @@index([settlementInstructionId])
+}
+
+model SettlementReconciliation {
+  id                      String                         @id @default(cuid())
+  settlementInstructionId String
+  status                  SettlementReconciliationStatus @default(PENDING)
+  findings                Json?
+  resolvedAt              DateTime?
+  resolvedByUserId        String?
+  resolutionNote          String?
+  createdAt               DateTime                       @default(now())
+  updatedAt               DateTime                       @updatedAt
+
+  instruction SettlementInstruction @relation(fields: [settlementInstructionId], references: [id], onDelete: Restrict)
+
+  @@index([settlementInstructionId, createdAt])
   @@index([status])
 }
 
@@ -3137,42 +3658,42 @@ enum MerchantInvoiceEventType {
 }
 
 model MerchantInvoice {
-  id                    String                @id @default(cuid())
-  referenceCode         String                @unique
-  merchantCompanyId     String
-  destinationAccountId  String
-  recipientUserId       String?
-  recipientCompanyId    String?
-  recipientDiscordId    String?
-  amount                Decimal               @db.Decimal(18, 2)
-  currency              String                @default("FLR")
-  feeAmount             Decimal               @default(0) @db.Decimal(18, 2)
-  netAmount             Decimal?              @db.Decimal(18, 2)
-  amountPaid            Decimal               @default(0) @db.Decimal(18, 2)
-  description           String
-  memo                  String?
-  dueDate               DateTime?
-  status                MerchantInvoiceStatus @default(DRAFT)
-  createdByUserId       String
-  sentAt                DateTime?
-  viewedAt              DateTime?
-  paidAt                DateTime?
-  cancelledAt           DateTime?
-  voidedAt              DateTime?
-  lastReminderSentAt    DateTime?
-  paymentId             String?               @unique
-  recurringScheduleId   String?
-  isRecurring           Boolean               @default(false)
-  metadata              Json?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id                   String                @id @default(cuid())
+  referenceCode        String                @unique
+  merchantCompanyId    String
+  destinationAccountId String
+  recipientUserId      String?
+  recipientCompanyId   String?
+  recipientDiscordId   String?
+  amount               Decimal               @db.Decimal(18, 2)
+  currency             String                @default("FLR")
+  feeAmount            Decimal               @default(0) @db.Decimal(18, 2)
+  netAmount            Decimal?              @db.Decimal(18, 2)
+  amountPaid           Decimal               @default(0) @db.Decimal(18, 2)
+  description          String
+  memo                 String?
+  dueDate              DateTime?
+  status               MerchantInvoiceStatus @default(DRAFT)
+  createdByUserId      String
+  sentAt               DateTime?
+  viewedAt             DateTime?
+  paidAt               DateTime?
+  cancelledAt          DateTime?
+  voidedAt             DateTime?
+  lastReminderSentAt   DateTime?
+  paymentId            String?               @unique
+  recurringScheduleId  String?
+  isRecurring          Boolean               @default(false)
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
-  merchantCompany    Company                  @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
-  destinationAccount BankAccount              @relation("MerchantInvoiceDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
-  recipient          User?                    @relation("MerchantInvoiceRecipient", fields: [recipientUserId], references: [id], onDelete: Restrict)
-  recipientCompany   Company?                 @relation("MerchantInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: Restrict)
-  createdBy          User                     @relation("MerchantInvoiceCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  payment            Payment?                 @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  merchantCompany    Company                           @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
+  destinationAccount BankAccount                       @relation("MerchantInvoiceDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  recipient          User?                             @relation("MerchantInvoiceRecipient", fields: [recipientUserId], references: [id], onDelete: Restrict)
+  recipientCompany   Company?                          @relation("MerchantInvoiceRecipientCompany", fields: [recipientCompanyId], references: [id], onDelete: Restrict)
+  createdBy          User                              @relation("MerchantInvoiceCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  payment            Payment?                          @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   recurringSchedule  MerchantRecurringInvoiceSchedule? @relation(fields: [recurringScheduleId], references: [id], onDelete: SetNull)
   lineItems          MerchantInvoiceLineItem[]
   payments           MerchantInvoicePayment[]
@@ -3219,8 +3740,8 @@ model MerchantInvoicePayment {
   createdAt         DateTime                     @default(now())
   completedAt       DateTime?
 
-  invoice       MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  initiatedBy   User            @relation("MerchantInvoicePaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
+  invoice     MerchantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  initiatedBy User            @relation("MerchantInvoicePaymentInitiator", fields: [initiatedByUserId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@index([status])
@@ -3276,9 +3797,9 @@ enum PaymentLinkEventType {
 }
 
 model PaymentLink {
-  id                   String               @id @default(cuid())
-  slug                 String               @unique
-  referenceCode        String               @unique
+  id                   String                @id @default(cuid())
+  slug                 String                @unique
+  referenceCode        String                @unique
   merchantCompanyId    String
   destinationAccountId String
   title                String?
@@ -3286,21 +3807,21 @@ model PaymentLink {
   internalMemo         String?
   amountType           PaymentLinkAmountType
   usageType            PaymentLinkUsageType
-  amount               Decimal?             @db.Decimal(18, 2)
-  minAmount            Decimal?             @db.Decimal(18, 2)
-  maxAmount            Decimal?             @db.Decimal(18, 2)
-  currency             String               @default("FLR")
-  status               PaymentLinkStatus    @default(ACTIVE)
+  amount               Decimal?              @db.Decimal(18, 2)
+  minAmount            Decimal?              @db.Decimal(18, 2)
+  maxAmount            Decimal?              @db.Decimal(18, 2)
+  currency             String                @default("FLR")
+  status               PaymentLinkStatus     @default(ACTIVE)
   expiresAt            DateTime?
-  paymentCount         Int                  @default(0)
-  totalCollected       Decimal              @default(0) @db.Decimal(18, 2)
+  paymentCount         Int                   @default(0)
+  totalCollected       Decimal               @default(0) @db.Decimal(18, 2)
   createdByUserId      String
   pausedAt             DateTime?
   cancelledAt          DateTime?
   completedAt          DateTime?
   metadata             Json?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   merchantCompany    Company              @relation(fields: [merchantCompanyId], references: [id], onDelete: Cascade)
   destinationAccount BankAccount          @relation("PaymentLinkDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
@@ -3350,4 +3871,211 @@ model PaymentLinkEvent {
   paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
 
   @@index([paymentLinkId, createdAt])
+}
+
+// =============================================================================
+// NCC Sprint 3B — Institution API, Credentials & Signed Webhooks
+// =============================================================================
+
+enum NccApiCredentialStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+  ROTATED
+}
+
+enum NccApiEnvironment {
+  TEST
+  LIVE
+}
+
+enum NccWebhookEndpointStatus {
+  ACTIVE
+  DISABLED
+  FAILING
+  REVOKED
+}
+
+enum NccWebhookDeliveryStatus {
+  PENDING
+  DELIVERING
+  DELIVERED
+  RETRY_PENDING
+  FAILED
+  CANCELLED
+}
+
+enum NccReversalRequestStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model NccApiCredential {
+  id                      String                 @id @default(cuid())
+  institutionId           String
+  name                    String
+  environment             NccApiEnvironment
+  keyPrefix               String
+  secretHash              String
+  scopes                  String[]
+  status                  NccApiCredentialStatus @default(ACTIVE)
+  createdByUserId         String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  lastUsedAt              DateTime?
+  expiresAt               DateTime?
+  revokedAt               DateTime?
+  rotatedFromCredentialId String?
+  metadata                Json?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  createdBy   User?                @relation("NccApiCredentialCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  requestLogs NccApiRequestLog[]
+
+  @@unique([institutionId, name])
+  @@unique([keyPrefix])
+  @@index([institutionId, status])
+  @@index([environment, status])
+  @@index([expiresAt])
+}
+
+model NccWebhookEndpoint {
+  id                     String                   @id @default(cuid())
+  institutionId          String
+  name                   String
+  url                    String
+  environment            NccApiEnvironment
+  status                 NccWebhookEndpointStatus @default(ACTIVE)
+  subscribedEvents       String[]
+  signingSecretEncrypted String
+  secretPrefix           String
+  createdByUserId        String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  lastSuccessAt          DateTime?
+  lastFailureAt          DateTime?
+  disabledAt             DateTime?
+  metadata               Json?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  createdBy   User?                @relation("NccWebhookEndpointCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  deliveries  NccWebhookDelivery[]
+
+  @@unique([institutionId, name])
+  @@index([institutionId, status])
+  @@index([environment, status])
+}
+
+model NccWebhookEvent {
+  id               String            @id @default(cuid())
+  institutionId    String
+  eventType        String
+  environment      NccApiEnvironment
+  subjectType      String
+  subjectReference String
+  payload          Json
+  occurredAt       DateTime
+  createdAt        DateTime          @default(now())
+  outboxEventId    String?
+  dedupeKey        String            @unique
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  deliveries  NccWebhookDelivery[]
+
+  @@index([institutionId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([outboxEventId])
+}
+
+model NccWebhookDelivery {
+  id                String                   @id @default(cuid())
+  webhookEventId    String
+  webhookEndpointId String
+  status            NccWebhookDeliveryStatus @default(PENDING)
+  attemptCount      Int                      @default(0)
+  maxAttempts       Int                      @default(12)
+  nextAttemptAt     DateTime?
+  lastAttemptAt     DateTime?
+  /// Sprint 3B.1: claim lease for crash-safe DELIVERING recovery.
+  claimedAt         DateTime?
+  claimToken        String?
+  responseStatus    Int?
+  responseSnippet   String?
+  latencyMs         Int?
+  lastErrorCode     String?
+  deliveredAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  event    NccWebhookEvent    @relation(fields: [webhookEventId], references: [id], onDelete: Restrict)
+  endpoint NccWebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Restrict)
+
+  @@unique([webhookEventId, webhookEndpointId])
+  @@index([status, nextAttemptAt])
+  @@index([status, claimedAt])
+  @@index([webhookEndpointId, createdAt])
+}
+
+model NccApiRequestLog {
+  id                   String            @id @default(cuid())
+  requestId            String            @unique
+  institutionId        String
+  credentialId         String?
+  environment          NccApiEnvironment
+  method               String
+  route                String
+  responseStatus       Int
+  errorCode            String?
+  latencyMs            Int
+  idempotencyKeyPrefix String?
+  sourceIpHash         String?
+  userAgent            String?
+  createdAt            DateTime          @default(now())
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  credential  NccApiCredential?    @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, createdAt])
+  @@index([credentialId, createdAt])
+  @@index([createdAt])
+}
+
+model NccApiRateLimitBucket {
+  id            String   @id @default(cuid())
+  bucketKey     String
+  windowStart   DateTime
+  count         Int      @default(0)
+  institutionId String?
+  updatedAt     DateTime @updatedAt
+
+  institution FinancialInstitution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([bucketKey, windowStart])
+  @@index([windowStart])
+  @@index([institutionId])
+}
+
+model NccSettlementReversalRequest {
+  id                      String                   @id @default(cuid())
+  institutionId           String
+  settlementInstructionId String
+  publicReference         String
+  reason                  String
+  status                  NccReversalRequestStatus @default(PENDING_REVIEW)
+  requestedByCredentialId String?
+  requestedByUserId       String?
+  reviewedByUserId        String?
+  reviewNote              String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  reviewedAt              DateTime?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  requestedBy User?                @relation("NccReversalRequestCreator", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, status])
+  @@index([settlementInstructionId])
+  @@index([status, createdAt])
 }

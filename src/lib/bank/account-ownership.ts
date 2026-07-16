@@ -40,3 +40,9 @@ export function paymentTypeToTransferGroupType(paymentType: PaymentType): Transf
 
 export const ALTA_BANK_INSTITUTION_ID = "inst-alta-bank";
 export const ALTA_BANK_PRIMARY_ROUTING_NUMBER = "011000001";
+
+export const ALTA_TERMINAL_INSTITUTION_ID = "inst-alta-terminal";
+export const ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER = "012000001";
+
+export const ALTA_EXCHANGE_INSTITUTION_ID = "inst-alta-exchange";
+export const ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER = "013000001";

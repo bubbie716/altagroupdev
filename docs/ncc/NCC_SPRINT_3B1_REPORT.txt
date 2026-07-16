@@ -1,0 +1,22 @@
+NCC Sprint 3B.1 Report — Institution API and Webhook Release Hardening
+
+Date: 2026-07-16
+Recommendation: GO
+
+Full detail: docs/ncc/NCC_SPRINT_3B1_REPORT.md
+
+Root causes fixed:
+- Credential prefix "_" delimiter collision → hex-only prefixes
+- SSRF DNS rebinding TOCTOU → pinned IP connections with SNI/Host
+- Stranded DELIVERING/PROCESSING → claimedAt + claimToken leases (90s)
+- List Prisma 500s → strict 4xx validation + compound cursors
+- Missing expiry/delivery audits → writes added (terminal only)
+- Production secret pepper → NCC_SECRETS_KEY required in production
+
+Migration: 20260716180000_ncc_sprint_3b1_leases (applied)
+
+Validation:
+- Typecheck: 363/363 (within baseline)
+- test:ncc: 64/64 × 5 consecutive runs
+- Production build: Pass
+- prisma migrate status: up to date

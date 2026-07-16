@@ -80,7 +80,7 @@ export function NccNav() {
           {user ? (
             <SiteInternalLink
               siteKey="ncc"
-              to="/dashboard"
+              to="/portal"
               className="hidden rounded-sm border border-[#e5e7eb] px-3 py-2 text-[13px] font-medium text-[#374151] hover:bg-[#f9fafb] sm:inline-flex"
             >
               Console
@@ -134,7 +134,7 @@ export function NccNav() {
                 {user ? (
                   <SiteInternalLink
                     siteKey="ncc"
-                    to="/dashboard"
+                    to="/portal"
                     onClick={() => setMobileOpen(false)}
                     className="mb-3 block rounded-sm border border-[#e5e7eb] px-3 py-3 text-center text-[14px] font-medium text-[#374151]"
                   >

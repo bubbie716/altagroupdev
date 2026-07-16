@@ -289,7 +289,8 @@ function AddInterbankContactForm({
   return (
     <Card className="!p-5">
       <p className="mb-4 text-[12px] text-muted-foreground">
-        Wire recipients can be saved now and used when interbank transfers launch.
+        Wire recipients can be saved now and used when external NCC wires launch. Instant transfers to
+        your Alta Terminal account are already available under Transfers → Interbank.
       </p>
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">

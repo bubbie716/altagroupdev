@@ -31,7 +31,7 @@ function BankTransferContactsPage() {
       <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Contacts"
-      description="Saved recipients for Alta Pay and future interbank wires."
+      description="Saved Alta Pay recipients now. External wire beneficiaries for coming-soon NCC wires."
      />
 <TransferPageHeader />
 
@@ -68,7 +68,8 @@ function BankTransferContactsPage() {
           <Section title="Interbank contacts">
             <div className="rounded-xl border border-border bg-surface-1 p-6">
               <p className="mb-4 text-[13px] text-muted-foreground">
-                External wire recipients — ready for when NCC-Net wires launch.
+                External wire recipients — coming soon. Instant transfers to your own Alta Terminal
+                account are available under Transfers → Interbank.
               </p>
               <BankTransferContactsManager
                 scope="interbank"

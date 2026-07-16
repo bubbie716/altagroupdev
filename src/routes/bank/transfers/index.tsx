@@ -47,14 +47,14 @@ function BankTransfersHub() {
           accountId={accountId}
           icon={Landmark}
           title="Interbank"
-          description="Outbound wires to external institutions — schedule future-dated or recurring wires via NCC-Net."
-          detail={showMockData ? "Preview interface" : "Scheduled & recurring wires"}
+          description="Transfer instantly to your Alta Terminal account through NCC. External institution wires are coming soon."
+          detail={showMockData ? "Sign in required" : "Instant NCC · Terminal available now"}
         />
         <TransferTypeCard
           to="/bank/transfers/contacts"
           icon={Users}
           title="Contacts"
-          description="Saved intrabank recipients and external wire beneficiaries."
+          description="Saved Alta Pay recipients now. External wire beneficiaries for when NCC wires launch."
           detail="Use in transfers"
         />
       </div>

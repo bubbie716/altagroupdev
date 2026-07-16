@@ -119,4 +119,4 @@ export async function creditBankAccountInTx(
 }
 
 export const INTERBANK_TRANSFERS_UNAVAILABLE_MESSAGE =
-  "Interbank wire transfers are not yet available. NCC settlement infrastructure is still being built.";
+  "External interbank wire transfers are not yet available. Instant transfers to your Alta Terminal account are available under Transfers → Interbank.";

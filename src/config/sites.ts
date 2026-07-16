@@ -256,8 +256,8 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     tagline: "Clearing infrastructure for Newport",
     primaryRoute: "/",
     homeRoute: "/",
-    dashboardRoute: "/dashboard",
-    defaultAuthenticatedRoute: "/dashboard",
+    dashboardRoute: "/portal",
+    defaultAuthenticatedRoute: "/portal",
     loginEyebrow: "NCC · Log-in",
     loginHome: {
       panelTitle: "Clearing, settlement, and routing for approved institutions.",

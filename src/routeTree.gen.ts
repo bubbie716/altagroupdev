@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ParticipationRouteImport } from './routes/participation'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MarketsRouteImport } from './routes/markets'
@@ -32,6 +33,7 @@ import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
 import { Route as SupportIndexRouteImport } from './routes/support/index'
 import { Route as StructureIndexRouteImport } from './routes/structure/index'
 import { Route as StatusIndexRouteImport } from './routes/status/index'
+import { Route as PortalIndexRouteImport } from './routes/portal/index'
 import { Route as LegalIndexRouteImport } from './routes/legal/index'
 import { Route as LeadershipIndexRouteImport } from './routes/leadership/index'
 import { Route as InternalIndexRouteImport } from './routes/internal/index'
@@ -50,6 +52,14 @@ import { Route as TerminalPortfolioRouteImport } from './routes/terminal/portfol
 import { Route as TerminalNewsRouteImport } from './routes/terminal/news'
 import { Route as TerminalLeaderboardRouteImport } from './routes/terminal/leaderboard'
 import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
+import { Route as PortalSupportRouteImport } from './routes/portal/support'
+import { Route as PortalSettingsRouteImport } from './routes/portal/settings'
+import { Route as PortalRoutingRouteImport } from './routes/portal/routing'
+import { Route as PortalReportsRouteImport } from './routes/portal/reports'
+import { Route as PortalQueueRouteImport } from './routes/portal/queue'
+import { Route as PortalMembersRouteImport } from './routes/portal/members'
+import { Route as PortalAuditRouteImport } from './routes/portal/audit'
+import { Route as PortalAccountsRouteImport } from './routes/portal/accounts'
 import { Route as PaySlugRouteImport } from './routes/pay/$slug'
 import { Route as LegalDocIdRouteImport } from './routes/legal/$docId'
 import { Route as LegalSplatRouteImport } from './routes/legal/$'
@@ -97,6 +107,8 @@ import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/
 import { Route as BankPayRouteRouteImport } from './routes/bank/pay/route'
 import { Route as BankCommercialRouteRouteImport } from './routes/bank/commercial/route'
 import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
+import { Route as PortalSettlementsIndexRouteImport } from './routes/portal/settlements/index'
+import { Route as PortalDevelopersIndexRouteImport } from './routes/portal/developers/index'
 import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
 import { Route as InternalRelationshipsIndexRouteImport } from './routes/internal/relationships/index'
 import { Route as InternalLendingIndexRouteImport } from './routes/internal/lending/index'
@@ -114,6 +126,10 @@ import { Route as BankInvoicesIndexRouteImport } from './routes/bank/invoices/in
 import { Route as BankCommercialIndexRouteImport } from './routes/bank/commercial/index'
 import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/index'
 import { Route as BankAltaCardIndexRouteImport } from './routes/bank/alta-card/index'
+import { Route as PortalSettlementsIdRouteImport } from './routes/portal/settlements/$id'
+import { Route as PortalDevelopersDocumentationRouteImport } from './routes/portal/developers/documentation'
+import { Route as PortalDevelopersApiLogsRouteImport } from './routes/portal/developers/api-logs'
+import { Route as PortalDevelopersApiCredentialsRouteImport } from './routes/portal/developers/api-credentials'
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalTerminalSettingsRouteImport } from './routes/internal/terminal/settings'
 import { Route as InternalRelationshipsUserIdRouteImport } from './routes/internal/relationships/$userId'
@@ -162,6 +178,7 @@ import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/ope
 import { Route as ApiCronScheduledTransfersRouteImport } from './routes/api/cron/scheduled-transfers'
 import { Route as ApiCronRelationshipIntelligenceRouteImport } from './routes/api/cron/relationship-intelligence'
 import { Route as ApiCronOperationalControlsRouteImport } from './routes/api/cron/operational-controls'
+import { Route as ApiCronNccSettlementRouteImport } from './routes/api/cron/ncc-settlement'
 import { Route as ApiCronLoanInterestRouteImport } from './routes/api/cron/loan-interest'
 import { Route as ApiCronDailyServicingRouteImport } from './routes/api/cron/daily-servicing'
 import { Route as ApiCronBankStatementsRouteImport } from './routes/api/cron/bank-statements'
@@ -178,6 +195,7 @@ import { Route as BankLendingApplicationsRouteRouteImport } from './routes/bank/
 import { Route as BankAltaCardCardIdRouteRouteImport } from './routes/bank/alta-card/$cardId/route'
 import { Route as BankAccountsAccountIdRouteRouteImport } from './routes/bank/accounts/$accountId/route'
 import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/account/$accountId/route'
+import { Route as PortalDevelopersWebhooksIndexRouteImport } from './routes/portal/developers/webhooks/index'
 import { Route as InternalLendingDealRoomsIndexRouteImport } from './routes/internal/lending/deal-rooms/index'
 import { Route as InternalBankTransactionsIndexRouteImport } from './routes/internal/bank/transactions/index'
 import { Route as InternalBankAltaPayIndexRouteImport } from './routes/internal/bank/alta-pay/index'
@@ -196,6 +214,7 @@ import { Route as BankAltaCardBusinessIndexRouteImport } from './routes/bank/alt
 import { Route as BankAltaCardCardIdIndexRouteImport } from './routes/bank/alta-card/$cardId/index'
 import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
+import { Route as PortalDevelopersWebhooksIdRouteImport } from './routes/portal/developers/webhooks/$id'
 import { Route as InternalLendingLoansLoanIdRouteImport } from './routes/internal/lending/loans/$loanId'
 import { Route as InternalLendingDealRoomsDealRoomIdRouteImport } from './routes/internal/lending/deal-rooms/$dealRoomId'
 import { Route as InternalCompaniesCompanyIdRelationshipRouteImport } from './routes/internal/companies/$companyId/relationship'
@@ -246,6 +265,8 @@ import { Route as BankAltaCardApplicationsApplicationIdIndexRouteImport } from '
 import { Route as BankAltaCardCardIdStatementsIndexRouteImport } from './routes/bank/alta-card/$cardId/statements/index'
 import { Route as BankAltaCardCardIdReviewIndexRouteImport } from './routes/bank/alta-card/$cardId/review/index'
 import { Route as BankAccountAccountIdCommercialIndexRouteImport } from './routes/bank/account/$accountId/commercial/index'
+import { Route as ApiNccV1SettlementsIndexRouteImport } from './routes/api/ncc/v1/settlements/index'
+import { Route as ApiNccV1InstitutionIndexRouteImport } from './routes/api/ncc/v1/institution/index'
 import { Route as InternalLendingApplicationsApplicationIdThreadRouteImport } from './routes/internal/lending/applications/$applicationId/thread'
 import { Route as InternalAltaCardReviewsReviewIdThreadRouteImport } from './routes/internal/alta-card/reviews/$reviewId/thread'
 import { Route as InternalAltaCardApplicationsApplicationIdThreadRouteImport } from './routes/internal/alta-card/applications/$applicationId/thread'
@@ -258,6 +279,8 @@ import { Route as BankAccountAccountIdCommercialSettingsRouteImport } from './ro
 import { Route as BankAccountAccountIdCommercialPayrollRouteImport } from './routes/bank/account/$accountId/commercial/payroll'
 import { Route as BankAccountAccountIdCommercialBrandingRouteImport } from './routes/bank/account/$accountId/commercial/branding'
 import { Route as BankAccountAccountIdCommercialAnalyticsRouteImport } from './routes/bank/account/$accountId/commercial/analytics'
+import { Route as ApiNccV1InstitutionSettlementAccountsRouteImport } from './routes/api/ncc/v1/institution/settlement-accounts'
+import { Route as ApiNccV1InstitutionRoutingNumbersRouteImport } from './routes/api/ncc/v1/institution/routing-numbers'
 import { Route as ApiDealRoomsDocumentsDocumentIdDownloadRouteImport } from './routes/api/deal-rooms/documents/$documentId/download'
 import { Route as ApiDealRoomsAgreementDraftsDraftIdDownloadRouteImport } from './routes/api/deal-rooms/agreement-drafts/$draftId/download'
 import { Route as ApiDealRoomsDealRoomIdAgreementPreviewRouteImport } from './routes/api/deal-rooms/$dealRoomId/agreement/preview'
@@ -269,6 +292,7 @@ import { Route as BankAltaCardBusinessCompanyIdReviewIndexRouteImport } from './
 import { Route as BankAltaCardCardIdReviewReviewIdIndexRouteImport } from './routes/bank/alta-card/$cardId/review/$reviewId/index'
 import { Route as BankAccountAccountIdCommercialPaymentLinksIndexRouteImport } from './routes/bank/account/$accountId/commercial/payment-links/index'
 import { Route as BankAccountAccountIdCommercialInvoicesIndexRouteImport } from './routes/bank/account/$accountId/commercial/invoices/index'
+import { Route as ApiNccV1SettlementsReferenceIndexRouteImport } from './routes/api/ncc/v1/settlements/$reference/index'
 import { Route as BankAltaCardBusinessApplicationsApplicationIdThreadRouteImport } from './routes/bank/alta-card/business/applications/$applicationId/thread'
 import { Route as BankAltaCardBusinessCompanyIdStatementsStatementIdRouteImport } from './routes/bank/alta-card/business/$companyId/statements/$statementId'
 import { Route as BankAltaCardCardIdReviewReviewIdThreadRouteImport } from './routes/bank/alta-card/$cardId/review/$reviewId/thread'
@@ -276,6 +300,8 @@ import { Route as BankAccountAccountIdCommercialPaymentLinksNewRouteImport } fro
 import { Route as BankAccountAccountIdCommercialPaymentLinksLinkIdRouteImport } from './routes/bank/account/$accountId/commercial/payment-links/$linkId'
 import { Route as BankAccountAccountIdCommercialInvoicesNewRouteImport } from './routes/bank/account/$accountId/commercial/invoices/new'
 import { Route as BankAccountAccountIdCommercialInvoicesInvoiceIdRouteImport } from './routes/bank/account/$accountId/commercial/invoices/$invoiceId'
+import { Route as ApiNccV1SettlementsReferenceReverseRouteImport } from './routes/api/ncc/v1/settlements/$reference/reverse'
+import { Route as ApiNccV1SettlementsReferenceCancelRouteImport } from './routes/api/ncc/v1/settlements/$reference/cancel'
 import { Route as ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/loan-threads/$applicationId/attachments/$attachmentId/download'
 import { Route as ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
 import { Route as ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRouteImport } from './routes/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
@@ -286,6 +312,11 @@ import { Route as BankAccountAccountIdCommercialInvoicesInvoiceIdEditRouteImport
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ParticipationRoute = ParticipationRouteImport.update({
@@ -398,6 +429,11 @@ const StatusIndexRoute = StatusIndexRouteImport.update({
   path: '/status/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const LegalIndexRoute = LegalIndexRouteImport.update({
   id: '/legal/',
   path: '/legal/',
@@ -487,6 +523,46 @@ const TerminalIpoRoute = TerminalIpoRouteImport.update({
   id: '/ipo',
   path: '/ipo',
   getParentRoute: () => TerminalRouteRoute,
+} as any)
+const PortalSupportRoute = PortalSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSettingsRoute = PortalSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalRoutingRoute = PortalRoutingRouteImport.update({
+  id: '/routing',
+  path: '/routing',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalReportsRoute = PortalReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalQueueRoute = PortalQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalMembersRoute = PortalMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAuditRoute = PortalAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAccountsRoute = PortalAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => PortalRoute,
 } as any)
 const PaySlugRoute = PaySlugRouteImport.update({
   id: '/pay/$slug',
@@ -723,6 +799,16 @@ const BankBusinessRouteRoute = BankBusinessRouteRouteImport.update({
   path: '/business',
   getParentRoute: () => BankRouteRoute,
 } as any)
+const PortalSettlementsIndexRoute = PortalSettlementsIndexRouteImport.update({
+  id: '/settlements/',
+  path: '/settlements/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDevelopersIndexRoute = PortalDevelopersIndexRouteImport.update({
+  id: '/developers/',
+  path: '/developers/',
+  getParentRoute: () => PortalRoute,
+} as any)
 const InternalUsersIndexRoute = InternalUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
@@ -810,6 +896,28 @@ const BankAltaCardIndexRoute = BankAltaCardIndexRouteImport.update({
   path: '/alta-card/',
   getParentRoute: () => BankRouteRoute,
 } as any)
+const PortalSettlementsIdRoute = PortalSettlementsIdRouteImport.update({
+  id: '/settlements/$id',
+  path: '/settlements/$id',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDevelopersDocumentationRoute =
+  PortalDevelopersDocumentationRouteImport.update({
+    id: '/developers/documentation',
+    path: '/developers/documentation',
+    getParentRoute: () => PortalRoute,
+  } as any)
+const PortalDevelopersApiLogsRoute = PortalDevelopersApiLogsRouteImport.update({
+  id: '/developers/api-logs',
+  path: '/developers/api-logs',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDevelopersApiCredentialsRoute =
+  PortalDevelopersApiCredentialsRouteImport.update({
+    id: '/developers/api-credentials',
+    path: '/developers/api-credentials',
+    getParentRoute: () => PortalRoute,
+  } as any)
 const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
   id: '/users/$userId',
   path: '/users/$userId',
@@ -1070,6 +1178,11 @@ const ApiCronOperationalControlsRoute =
     path: '/api/cron/operational-controls',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiCronNccSettlementRoute = ApiCronNccSettlementRouteImport.update({
+  id: '/api/cron/ncc-settlement',
+  path: '/api/cron/ncc-settlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronLoanInterestRoute = ApiCronLoanInterestRouteImport.update({
   id: '/api/cron/loan-interest',
   path: '/api/cron/loan-interest',
@@ -1157,6 +1270,12 @@ const BankAccountAccountIdRouteRoute =
     id: '/account/$accountId',
     path: '/account/$accountId',
     getParentRoute: () => BankRouteRoute,
+  } as any)
+const PortalDevelopersWebhooksIndexRoute =
+  PortalDevelopersWebhooksIndexRouteImport.update({
+    id: '/developers/webhooks/',
+    path: '/developers/webhooks/',
+    getParentRoute: () => PortalRoute,
   } as any)
 const InternalLendingDealRoomsIndexRoute =
   InternalLendingDealRoomsIndexRouteImport.update({
@@ -1262,6 +1381,12 @@ const BankAccountAccountIdIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => BankAccountAccountIdRouteRoute,
+  } as any)
+const PortalDevelopersWebhooksIdRoute =
+  PortalDevelopersWebhooksIdRouteImport.update({
+    id: '/developers/webhooks/$id',
+    path: '/developers/webhooks/$id',
+    getParentRoute: () => PortalRoute,
   } as any)
 const InternalLendingLoansLoanIdRoute =
   InternalLendingLoansLoanIdRouteImport.update({
@@ -1559,6 +1684,18 @@ const BankAccountAccountIdCommercialIndexRoute =
     path: '/',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
   } as any)
+const ApiNccV1SettlementsIndexRoute =
+  ApiNccV1SettlementsIndexRouteImport.update({
+    id: '/api/ncc/v1/settlements/',
+    path: '/api/ncc/v1/settlements/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiNccV1InstitutionIndexRoute =
+  ApiNccV1InstitutionIndexRouteImport.update({
+    id: '/api/ncc/v1/institution/',
+    path: '/api/ncc/v1/institution/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const InternalLendingApplicationsApplicationIdThreadRoute =
   InternalLendingApplicationsApplicationIdThreadRouteImport.update({
     id: '/applications/$applicationId/thread',
@@ -1631,6 +1768,18 @@ const BankAccountAccountIdCommercialAnalyticsRoute =
     path: '/analytics',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
   } as any)
+const ApiNccV1InstitutionSettlementAccountsRoute =
+  ApiNccV1InstitutionSettlementAccountsRouteImport.update({
+    id: '/api/ncc/v1/institution/settlement-accounts',
+    path: '/api/ncc/v1/institution/settlement-accounts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiNccV1InstitutionRoutingNumbersRoute =
+  ApiNccV1InstitutionRoutingNumbersRouteImport.update({
+    id: '/api/ncc/v1/institution/routing-numbers',
+    path: '/api/ncc/v1/institution/routing-numbers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiDealRoomsDocumentsDocumentIdDownloadRoute =
   ApiDealRoomsDocumentsDocumentIdDownloadRouteImport.update({
     id: '/api/deal-rooms/documents/$documentId/download',
@@ -1698,6 +1847,12 @@ const BankAccountAccountIdCommercialInvoicesIndexRoute =
     path: '/invoices/',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
   } as any)
+const ApiNccV1SettlementsReferenceIndexRoute =
+  ApiNccV1SettlementsReferenceIndexRouteImport.update({
+    id: '/api/ncc/v1/settlements/$reference/',
+    path: '/api/ncc/v1/settlements/$reference/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const BankAltaCardBusinessApplicationsApplicationIdThreadRoute =
   BankAltaCardBusinessApplicationsApplicationIdThreadRouteImport.update({
     id: '/thread',
@@ -1740,6 +1895,18 @@ const BankAccountAccountIdCommercialInvoicesInvoiceIdRoute =
     id: '/invoices/$invoiceId',
     path: '/invoices/$invoiceId',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
+  } as any)
+const ApiNccV1SettlementsReferenceReverseRoute =
+  ApiNccV1SettlementsReferenceReverseRouteImport.update({
+    id: '/api/ncc/v1/settlements/$reference/reverse',
+    path: '/api/ncc/v1/settlements/$reference/reverse',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiNccV1SettlementsReferenceCancelRoute =
+  ApiNccV1SettlementsReferenceCancelRouteImport.update({
+    id: '/api/ncc/v1/settlements/$reference/cancel',
+    path: '/api/ncc/v1/settlements/$reference/cancel',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute =
   ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRouteImport.update({
@@ -1801,6 +1968,7 @@ export interface FileRoutesByFullPath {
   '/markets': typeof MarketsRoute
   '/network': typeof NetworkRoute
   '/participation': typeof ParticipationRoute
+  '/portal': typeof PortalRouteWithChildren
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
@@ -1849,6 +2017,14 @@ export interface FileRoutesByFullPath {
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
+  '/portal/accounts': typeof PortalAccountsRoute
+  '/portal/audit': typeof PortalAuditRoute
+  '/portal/members': typeof PortalMembersRoute
+  '/portal/queue': typeof PortalQueueRoute
+  '/portal/reports': typeof PortalReportsRoute
+  '/portal/routing': typeof PortalRoutingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/support': typeof PortalSupportRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -1867,6 +2043,7 @@ export interface FileRoutesByFullPath {
   '/internal/': typeof InternalIndexRoute
   '/leadership/': typeof LeadershipIndexRoute
   '/legal/': typeof LegalIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/status/': typeof StatusIndexRoute
   '/structure/': typeof StructureIndexRoute
   '/support/': typeof SupportIndexRoute
@@ -1887,6 +2064,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/ncc-settlement': typeof ApiCronNccSettlementRoute
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
@@ -1935,6 +2113,10 @@ export interface FileRoutesByFullPath {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
+  '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
+  '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
   '/bank/business/': typeof BankBusinessIndexRoute
   '/bank/commercial/': typeof BankCommercialIndexRoute
@@ -1952,6 +2134,8 @@ export interface FileRoutesByFullPath {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/portal/developers/': typeof PortalDevelopersIndexRoute
+  '/portal/settlements/': typeof PortalSettlementsIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
   '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
@@ -1994,6 +2178,7 @@ export interface FileRoutesByFullPath {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/portal/developers/webhooks/$id': typeof PortalDevelopersWebhooksIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
@@ -2012,11 +2197,14 @@ export interface FileRoutesByFullPath {
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
+  '/portal/developers/webhooks/': typeof PortalDevelopersWebhooksIndexRoute
   '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
+  '/api/ncc/v1/institution/routing-numbers': typeof ApiNccV1InstitutionRoutingNumbersRoute
+  '/api/ncc/v1/institution/settlement-accounts': typeof ApiNccV1InstitutionSettlementAccountsRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
@@ -2029,6 +2217,8 @@ export interface FileRoutesByFullPath {
   '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/institution/': typeof ApiNccV1InstitutionIndexRoute
+  '/api/ncc/v1/settlements/': typeof ApiNccV1SettlementsIndexRoute
   '/bank/account/$accountId/commercial/': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements/': typeof BankAltaCardCardIdStatementsIndexRoute
@@ -2040,6 +2230,8 @@ export interface FileRoutesByFullPath {
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/ncc/v1/settlements/$reference/cancel': typeof ApiNccV1SettlementsReferenceCancelRoute
+  '/api/ncc/v1/settlements/$reference/reverse': typeof ApiNccV1SettlementsReferenceReverseRoute
   '/bank/account/$accountId/commercial/invoices/$invoiceId': typeof BankAccountAccountIdCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/account/$accountId/commercial/invoices/new': typeof BankAccountAccountIdCommercialInvoicesNewRoute
   '/bank/account/$accountId/commercial/payment-links/$linkId': typeof BankAccountAccountIdCommercialPaymentLinksLinkIdRoute
@@ -2047,6 +2239,7 @@ export interface FileRoutesByFullPath {
   '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
   '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/settlements/$reference/': typeof ApiNccV1SettlementsReferenceIndexRoute
   '/bank/account/$accountId/commercial/invoices/': typeof BankAccountAccountIdCommercialInvoicesIndexRoute
   '/bank/account/$accountId/commercial/payment-links/': typeof BankAccountAccountIdCommercialPaymentLinksIndexRoute
   '/bank/alta-card/$cardId/review/$reviewId/': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
@@ -2110,6 +2303,14 @@ export interface FileRoutesByTo {
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
+  '/portal/accounts': typeof PortalAccountsRoute
+  '/portal/audit': typeof PortalAuditRoute
+  '/portal/members': typeof PortalMembersRoute
+  '/portal/queue': typeof PortalQueueRoute
+  '/portal/reports': typeof PortalReportsRoute
+  '/portal/routing': typeof PortalRoutingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/support': typeof PortalSupportRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -2128,6 +2329,7 @@ export interface FileRoutesByTo {
   '/internal': typeof InternalIndexRoute
   '/leadership': typeof LeadershipIndexRoute
   '/legal': typeof LegalIndexRoute
+  '/portal': typeof PortalIndexRoute
   '/status': typeof StatusIndexRoute
   '/structure': typeof StructureIndexRoute
   '/support': typeof SupportIndexRoute
@@ -2140,6 +2342,7 @@ export interface FileRoutesByTo {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/ncc-settlement': typeof ApiCronNccSettlementRoute
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
@@ -2188,6 +2391,10 @@ export interface FileRoutesByTo {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
+  '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
+  '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card': typeof BankAltaCardIndexRoute
   '/bank/business': typeof BankBusinessIndexRoute
   '/bank/commercial': typeof BankCommercialIndexRoute
@@ -2205,6 +2412,8 @@ export interface FileRoutesByTo {
   '/internal/lending': typeof InternalLendingIndexRoute
   '/internal/relationships': typeof InternalRelationshipsIndexRoute
   '/internal/users': typeof InternalUsersIndexRoute
+  '/portal/developers': typeof PortalDevelopersIndexRoute
+  '/portal/settlements': typeof PortalSettlementsIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -2243,6 +2452,7 @@ export interface FileRoutesByTo {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/portal/developers/webhooks/$id': typeof PortalDevelopersWebhooksIdRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId': typeof BankAltaCardCardIdIndexRoute
@@ -2261,10 +2471,13 @@ export interface FileRoutesByTo {
   '/internal/bank/alta-pay': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsIndexRoute
+  '/portal/developers/webhooks': typeof PortalDevelopersWebhooksIndexRoute
   '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
+  '/api/ncc/v1/institution/routing-numbers': typeof ApiNccV1InstitutionRoutingNumbersRoute
+  '/api/ncc/v1/institution/settlement-accounts': typeof ApiNccV1InstitutionSettlementAccountsRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
@@ -2277,6 +2490,8 @@ export interface FileRoutesByTo {
   '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/institution': typeof ApiNccV1InstitutionIndexRoute
+  '/api/ncc/v1/settlements': typeof ApiNccV1SettlementsIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements': typeof BankAltaCardCardIdStatementsIndexRoute
@@ -2288,6 +2503,8 @@ export interface FileRoutesByTo {
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/ncc/v1/settlements/$reference/cancel': typeof ApiNccV1SettlementsReferenceCancelRoute
+  '/api/ncc/v1/settlements/$reference/reverse': typeof ApiNccV1SettlementsReferenceReverseRoute
   '/bank/account/$accountId/commercial/invoices/$invoiceId': typeof BankAccountAccountIdCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/account/$accountId/commercial/invoices/new': typeof BankAccountAccountIdCommercialInvoicesNewRoute
   '/bank/account/$accountId/commercial/payment-links/$linkId': typeof BankAccountAccountIdCommercialPaymentLinksLinkIdRoute
@@ -2295,6 +2512,7 @@ export interface FileRoutesByTo {
   '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
   '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/settlements/$reference': typeof ApiNccV1SettlementsReferenceIndexRoute
   '/bank/account/$accountId/commercial/invoices': typeof BankAccountAccountIdCommercialInvoicesIndexRoute
   '/bank/account/$accountId/commercial/payment-links': typeof BankAccountAccountIdCommercialPaymentLinksIndexRoute
   '/bank/alta-card/$cardId/review/$reviewId': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
@@ -2325,6 +2543,7 @@ export interface FileRoutesById {
   '/markets': typeof MarketsRoute
   '/network': typeof NetworkRoute
   '/participation': typeof ParticipationRoute
+  '/portal': typeof PortalRouteWithChildren
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
@@ -2373,6 +2592,14 @@ export interface FileRoutesById {
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
+  '/portal/accounts': typeof PortalAccountsRoute
+  '/portal/audit': typeof PortalAuditRoute
+  '/portal/members': typeof PortalMembersRoute
+  '/portal/queue': typeof PortalQueueRoute
+  '/portal/reports': typeof PortalReportsRoute
+  '/portal/routing': typeof PortalRoutingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/support': typeof PortalSupportRoute
   '/terminal/ipo': typeof TerminalIpoRoute
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/news': typeof TerminalNewsRoute
@@ -2391,6 +2618,7 @@ export interface FileRoutesById {
   '/internal/': typeof InternalIndexRoute
   '/leadership/': typeof LeadershipIndexRoute
   '/legal/': typeof LegalIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/status/': typeof StatusIndexRoute
   '/structure/': typeof StructureIndexRoute
   '/support/': typeof SupportIndexRoute
@@ -2411,6 +2639,7 @@ export interface FileRoutesById {
   '/api/cron/bank-statements': typeof ApiCronBankStatementsRoute
   '/api/cron/daily-servicing': typeof ApiCronDailyServicingRoute
   '/api/cron/loan-interest': typeof ApiCronLoanInterestRoute
+  '/api/cron/ncc-settlement': typeof ApiCronNccSettlementRoute
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
@@ -2459,6 +2688,10 @@ export interface FileRoutesById {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
+  '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
+  '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
   '/bank/business/': typeof BankBusinessIndexRoute
   '/bank/commercial/': typeof BankCommercialIndexRoute
@@ -2476,6 +2709,8 @@ export interface FileRoutesById {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/portal/developers/': typeof PortalDevelopersIndexRoute
+  '/portal/settlements/': typeof PortalSettlementsIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
   '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
@@ -2518,6 +2753,7 @@ export interface FileRoutesById {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/portal/developers/webhooks/$id': typeof PortalDevelopersWebhooksIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
@@ -2536,11 +2772,14 @@ export interface FileRoutesById {
   '/internal/bank/alta-pay/': typeof InternalBankAltaPayIndexRoute
   '/internal/bank/transactions/': typeof InternalBankTransactionsIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
+  '/portal/developers/webhooks/': typeof PortalDevelopersWebhooksIndexRoute
   '/bank/alta-card/business/applications/$applicationId': typeof BankAltaCardBusinessApplicationsApplicationIdRouteRouteWithChildren
   '/api/bank/transactions/$transactionId/proof': typeof ApiBankTransactionsTransactionIdProofRoute
   '/api/deal-rooms/$dealRoomId/agreement/preview': typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   '/api/deal-rooms/agreement-drafts/$draftId/download': typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
+  '/api/ncc/v1/institution/routing-numbers': typeof ApiNccV1InstitutionRoutingNumbersRoute
+  '/api/ncc/v1/institution/settlement-accounts': typeof ApiNccV1InstitutionSettlementAccountsRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
@@ -2553,6 +2792,8 @@ export interface FileRoutesById {
   '/internal/alta-card/applications/$applicationId/thread': typeof InternalAltaCardApplicationsApplicationIdThreadRoute
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/institution/': typeof ApiNccV1InstitutionIndexRoute
+  '/api/ncc/v1/settlements/': typeof ApiNccV1SettlementsIndexRoute
   '/bank/account/$accountId/commercial/': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
   '/bank/alta-card/$cardId/statements/': typeof BankAltaCardCardIdStatementsIndexRoute
@@ -2564,6 +2805,8 @@ export interface FileRoutesById {
   '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsAttachmentIdDownloadRoute
   '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download': typeof ApiAltaCardThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
   '/api/loan-threads/$applicationId/attachments/$attachmentId/download': typeof ApiLoanThreadsApplicationIdAttachmentsAttachmentIdDownloadRoute
+  '/api/ncc/v1/settlements/$reference/cancel': typeof ApiNccV1SettlementsReferenceCancelRoute
+  '/api/ncc/v1/settlements/$reference/reverse': typeof ApiNccV1SettlementsReferenceReverseRoute
   '/bank/account/$accountId/commercial/invoices/$invoiceId': typeof BankAccountAccountIdCommercialInvoicesInvoiceIdRouteWithChildren
   '/bank/account/$accountId/commercial/invoices/new': typeof BankAccountAccountIdCommercialInvoicesNewRoute
   '/bank/account/$accountId/commercial/payment-links/$linkId': typeof BankAccountAccountIdCommercialPaymentLinksLinkIdRoute
@@ -2571,6 +2814,7 @@ export interface FileRoutesById {
   '/bank/alta-card/$cardId/review/$reviewId/thread': typeof BankAltaCardCardIdReviewReviewIdThreadRoute
   '/bank/alta-card/business/$companyId/statements/$statementId': typeof BankAltaCardBusinessCompanyIdStatementsStatementIdRoute
   '/bank/alta-card/business/applications/$applicationId/thread': typeof BankAltaCardBusinessApplicationsApplicationIdThreadRoute
+  '/api/ncc/v1/settlements/$reference/': typeof ApiNccV1SettlementsReferenceIndexRoute
   '/bank/account/$accountId/commercial/invoices/': typeof BankAccountAccountIdCommercialInvoicesIndexRoute
   '/bank/account/$accountId/commercial/payment-links/': typeof BankAccountAccountIdCommercialPaymentLinksIndexRoute
   '/bank/alta-card/$cardId/review/$reviewId/': typeof BankAltaCardCardIdReviewReviewIdIndexRoute
@@ -2602,6 +2846,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/network'
     | '/participation'
+    | '/portal'
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
@@ -2650,6 +2895,14 @@ export interface FileRouteTypes {
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
+    | '/portal/accounts'
+    | '/portal/audit'
+    | '/portal/members'
+    | '/portal/queue'
+    | '/portal/reports'
+    | '/portal/routing'
+    | '/portal/settings'
+    | '/portal/support'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -2668,6 +2921,7 @@ export interface FileRouteTypes {
     | '/internal/'
     | '/leadership/'
     | '/legal/'
+    | '/portal/'
     | '/status/'
     | '/structure/'
     | '/support/'
@@ -2688,6 +2942,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/ncc-settlement'
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
@@ -2736,6 +2991,10 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/portal/developers/api-credentials'
+    | '/portal/developers/api-logs'
+    | '/portal/developers/documentation'
+    | '/portal/settlements/$id'
     | '/bank/alta-card/'
     | '/bank/business/'
     | '/bank/commercial/'
@@ -2753,6 +3012,8 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/portal/developers/'
+    | '/portal/settlements/'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
@@ -2795,6 +3056,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/portal/developers/webhooks/$id'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/alta-card/$cardId/'
@@ -2813,11 +3075,14 @@ export interface FileRouteTypes {
     | '/internal/bank/alta-pay/'
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
+    | '/portal/developers/webhooks/'
     | '/bank/alta-card/business/applications/$applicationId'
     | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
+    | '/api/ncc/v1/institution/routing-numbers'
+    | '/api/ncc/v1/institution/settlement-accounts'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
@@ -2830,6 +3095,8 @@ export interface FileRouteTypes {
     | '/internal/alta-card/applications/$applicationId/thread'
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/api/ncc/v1/institution/'
+    | '/api/ncc/v1/settlements/'
     | '/bank/account/$accountId/commercial/'
     | '/bank/alta-card/$cardId/review/'
     | '/bank/alta-card/$cardId/statements/'
@@ -2841,6 +3108,8 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/ncc/v1/settlements/$reference/cancel'
+    | '/api/ncc/v1/settlements/$reference/reverse'
     | '/bank/account/$accountId/commercial/invoices/$invoiceId'
     | '/bank/account/$accountId/commercial/invoices/new'
     | '/bank/account/$accountId/commercial/payment-links/$linkId'
@@ -2848,6 +3117,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
     | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/api/ncc/v1/settlements/$reference/'
     | '/bank/account/$accountId/commercial/invoices/'
     | '/bank/account/$accountId/commercial/payment-links/'
     | '/bank/alta-card/$cardId/review/$reviewId/'
@@ -2911,6 +3181,14 @@ export interface FileRouteTypes {
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
+    | '/portal/accounts'
+    | '/portal/audit'
+    | '/portal/members'
+    | '/portal/queue'
+    | '/portal/reports'
+    | '/portal/routing'
+    | '/portal/settings'
+    | '/portal/support'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -2929,6 +3207,7 @@ export interface FileRouteTypes {
     | '/internal'
     | '/leadership'
     | '/legal'
+    | '/portal'
     | '/status'
     | '/structure'
     | '/support'
@@ -2941,6 +3220,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/ncc-settlement'
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
@@ -2989,6 +3269,10 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/portal/developers/api-credentials'
+    | '/portal/developers/api-logs'
+    | '/portal/developers/documentation'
+    | '/portal/settlements/$id'
     | '/bank/alta-card'
     | '/bank/business'
     | '/bank/commercial'
@@ -3006,6 +3290,8 @@ export interface FileRouteTypes {
     | '/internal/lending'
     | '/internal/relationships'
     | '/internal/users'
+    | '/portal/developers'
+    | '/portal/settlements'
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
@@ -3044,6 +3330,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/portal/developers/webhooks/$id'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
     | '/bank/alta-card/$cardId'
@@ -3062,10 +3349,13 @@ export interface FileRouteTypes {
     | '/internal/bank/alta-pay'
     | '/internal/bank/transactions'
     | '/internal/lending/deal-rooms'
+    | '/portal/developers/webhooks'
     | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
+    | '/api/ncc/v1/institution/routing-numbers'
+    | '/api/ncc/v1/institution/settlement-accounts'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
@@ -3078,6 +3368,8 @@ export interface FileRouteTypes {
     | '/internal/alta-card/applications/$applicationId/thread'
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/api/ncc/v1/institution'
+    | '/api/ncc/v1/settlements'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/$cardId/review'
     | '/bank/alta-card/$cardId/statements'
@@ -3089,6 +3381,8 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/ncc/v1/settlements/$reference/cancel'
+    | '/api/ncc/v1/settlements/$reference/reverse'
     | '/bank/account/$accountId/commercial/invoices/$invoiceId'
     | '/bank/account/$accountId/commercial/invoices/new'
     | '/bank/account/$accountId/commercial/payment-links/$linkId'
@@ -3096,6 +3390,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
     | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/api/ncc/v1/settlements/$reference'
     | '/bank/account/$accountId/commercial/invoices'
     | '/bank/account/$accountId/commercial/payment-links'
     | '/bank/alta-card/$cardId/review/$reviewId'
@@ -3125,6 +3420,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/network'
     | '/participation'
+    | '/portal'
     | '/profile'
     | '/bank/business'
     | '/bank/commercial'
@@ -3173,6 +3469,14 @@ export interface FileRouteTypes {
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
+    | '/portal/accounts'
+    | '/portal/audit'
+    | '/portal/members'
+    | '/portal/queue'
+    | '/portal/reports'
+    | '/portal/routing'
+    | '/portal/settings'
+    | '/portal/support'
     | '/terminal/ipo'
     | '/terminal/leaderboard'
     | '/terminal/news'
@@ -3191,6 +3495,7 @@ export interface FileRouteTypes {
     | '/internal/'
     | '/leadership/'
     | '/legal/'
+    | '/portal/'
     | '/status/'
     | '/structure/'
     | '/support/'
@@ -3211,6 +3516,7 @@ export interface FileRouteTypes {
     | '/api/cron/bank-statements'
     | '/api/cron/daily-servicing'
     | '/api/cron/loan-interest'
+    | '/api/cron/ncc-settlement'
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
@@ -3259,6 +3565,10 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/portal/developers/api-credentials'
+    | '/portal/developers/api-logs'
+    | '/portal/developers/documentation'
+    | '/portal/settlements/$id'
     | '/bank/alta-card/'
     | '/bank/business/'
     | '/bank/commercial/'
@@ -3276,6 +3586,8 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/portal/developers/'
+    | '/portal/settlements/'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
@@ -3318,6 +3630,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/portal/developers/webhooks/$id'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/alta-card/$cardId/'
@@ -3336,11 +3649,14 @@ export interface FileRouteTypes {
     | '/internal/bank/alta-pay/'
     | '/internal/bank/transactions/'
     | '/internal/lending/deal-rooms/'
+    | '/portal/developers/webhooks/'
     | '/bank/alta-card/business/applications/$applicationId'
     | '/api/bank/transactions/$transactionId/proof'
     | '/api/deal-rooms/$dealRoomId/agreement/preview'
     | '/api/deal-rooms/agreement-drafts/$draftId/download'
     | '/api/deal-rooms/documents/$documentId/download'
+    | '/api/ncc/v1/institution/routing-numbers'
+    | '/api/ncc/v1/institution/settlement-accounts'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
     | '/bank/account/$accountId/commercial/payroll'
@@ -3353,6 +3669,8 @@ export interface FileRouteTypes {
     | '/internal/alta-card/applications/$applicationId/thread'
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/lending/applications/$applicationId/thread'
+    | '/api/ncc/v1/institution/'
+    | '/api/ncc/v1/settlements/'
     | '/bank/account/$accountId/commercial/'
     | '/bank/alta-card/$cardId/review/'
     | '/bank/alta-card/$cardId/statements/'
@@ -3364,6 +3682,8 @@ export interface FileRouteTypes {
     | '/api/alta-card-review-threads/$reviewId/attachments/$attachmentId/download'
     | '/api/alta-card-threads/$applicationId/attachments/$attachmentId/download'
     | '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
+    | '/api/ncc/v1/settlements/$reference/cancel'
+    | '/api/ncc/v1/settlements/$reference/reverse'
     | '/bank/account/$accountId/commercial/invoices/$invoiceId'
     | '/bank/account/$accountId/commercial/invoices/new'
     | '/bank/account/$accountId/commercial/payment-links/$linkId'
@@ -3371,6 +3691,7 @@ export interface FileRouteTypes {
     | '/bank/alta-card/$cardId/review/$reviewId/thread'
     | '/bank/alta-card/business/$companyId/statements/$statementId'
     | '/bank/alta-card/business/applications/$applicationId/thread'
+    | '/api/ncc/v1/settlements/$reference/'
     | '/bank/account/$accountId/commercial/invoices/'
     | '/bank/account/$accountId/commercial/payment-links/'
     | '/bank/alta-card/$cardId/review/$reviewId/'
@@ -3401,6 +3722,7 @@ export interface RootRouteChildren {
   MarketsRoute: typeof MarketsRoute
   NetworkRoute: typeof NetworkRoute
   ParticipationRoute: typeof ParticipationRoute
+  PortalRoute: typeof PortalRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   CompanyLeadershipRoute: typeof CompanyLeadershipRoute
   CompanyNccRoute: typeof CompanyNccRoute
@@ -3423,6 +3745,7 @@ export interface RootRouteChildren {
   ApiCronBankStatementsRoute: typeof ApiCronBankStatementsRoute
   ApiCronDailyServicingRoute: typeof ApiCronDailyServicingRoute
   ApiCronLoanInterestRoute: typeof ApiCronLoanInterestRoute
+  ApiCronNccSettlementRoute: typeof ApiCronNccSettlementRoute
   ApiCronOperationalControlsRoute: typeof ApiCronOperationalControlsRoute
   ApiCronRelationshipIntelligenceRoute: typeof ApiCronRelationshipIntelligenceRoute
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
@@ -3437,6 +3760,13 @@ export interface RootRouteChildren {
   ApiDealRoomsDealRoomIdAgreementPreviewRoute: typeof ApiDealRoomsDealRoomIdAgreementPreviewRoute
   ApiDealRoomsAgreementDraftsDraftIdDownloadRoute: typeof ApiDealRoomsAgreementDraftsDraftIdDownloadRoute
   ApiDealRoomsDocumentsDocumentIdDownloadRoute: typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
+  ApiNccV1InstitutionRoutingNumbersRoute: typeof ApiNccV1InstitutionRoutingNumbersRoute
+  ApiNccV1InstitutionSettlementAccountsRoute: typeof ApiNccV1InstitutionSettlementAccountsRoute
+  ApiNccV1InstitutionIndexRoute: typeof ApiNccV1InstitutionIndexRoute
+  ApiNccV1SettlementsIndexRoute: typeof ApiNccV1SettlementsIndexRoute
+  ApiNccV1SettlementsReferenceCancelRoute: typeof ApiNccV1SettlementsReferenceCancelRoute
+  ApiNccV1SettlementsReferenceReverseRoute: typeof ApiNccV1SettlementsReferenceReverseRoute
+  ApiNccV1SettlementsReferenceIndexRoute: typeof ApiNccV1SettlementsReferenceIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3446,6 +3776,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/participation': {
@@ -3602,6 +3939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StatusIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/legal/': {
       id: '/legal/'
       path: '/legal'
@@ -3727,6 +4071,62 @@ declare module '@tanstack/react-router' {
       fullPath: '/terminal/ipo'
       preLoaderRoute: typeof TerminalIpoRouteImport
       parentRoute: typeof TerminalRouteRoute
+    }
+    '/portal/support': {
+      id: '/portal/support'
+      path: '/support'
+      fullPath: '/portal/support'
+      preLoaderRoute: typeof PortalSupportRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/settings': {
+      id: '/portal/settings'
+      path: '/settings'
+      fullPath: '/portal/settings'
+      preLoaderRoute: typeof PortalSettingsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/routing': {
+      id: '/portal/routing'
+      path: '/routing'
+      fullPath: '/portal/routing'
+      preLoaderRoute: typeof PortalRoutingRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/reports': {
+      id: '/portal/reports'
+      path: '/reports'
+      fullPath: '/portal/reports'
+      preLoaderRoute: typeof PortalReportsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/queue': {
+      id: '/portal/queue'
+      path: '/queue'
+      fullPath: '/portal/queue'
+      preLoaderRoute: typeof PortalQueueRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/members': {
+      id: '/portal/members'
+      path: '/members'
+      fullPath: '/portal/members'
+      preLoaderRoute: typeof PortalMembersRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/audit': {
+      id: '/portal/audit'
+      path: '/audit'
+      fullPath: '/portal/audit'
+      preLoaderRoute: typeof PortalAuditRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/accounts': {
+      id: '/portal/accounts'
+      path: '/accounts'
+      fullPath: '/portal/accounts'
+      preLoaderRoute: typeof PortalAccountsRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/pay/$slug': {
       id: '/pay/$slug'
@@ -4057,6 +4457,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankBusinessRouteRouteImport
       parentRoute: typeof BankRouteRoute
     }
+    '/portal/settlements/': {
+      id: '/portal/settlements/'
+      path: '/settlements'
+      fullPath: '/portal/settlements/'
+      preLoaderRoute: typeof PortalSettlementsIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/developers/': {
+      id: '/portal/developers/'
+      path: '/developers'
+      fullPath: '/portal/developers/'
+      preLoaderRoute: typeof PortalDevelopersIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/internal/users/': {
       id: '/internal/users/'
       path: '/users'
@@ -4175,6 +4589,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/alta-card/'
       preLoaderRoute: typeof BankAltaCardIndexRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/portal/settlements/$id': {
+      id: '/portal/settlements/$id'
+      path: '/settlements/$id'
+      fullPath: '/portal/settlements/$id'
+      preLoaderRoute: typeof PortalSettlementsIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/developers/documentation': {
+      id: '/portal/developers/documentation'
+      path: '/developers/documentation'
+      fullPath: '/portal/developers/documentation'
+      preLoaderRoute: typeof PortalDevelopersDocumentationRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/developers/api-logs': {
+      id: '/portal/developers/api-logs'
+      path: '/developers/api-logs'
+      fullPath: '/portal/developers/api-logs'
+      preLoaderRoute: typeof PortalDevelopersApiLogsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/developers/api-credentials': {
+      id: '/portal/developers/api-credentials'
+      path: '/developers/api-credentials'
+      fullPath: '/portal/developers/api-credentials'
+      preLoaderRoute: typeof PortalDevelopersApiCredentialsRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/internal/users/$userId': {
       id: '/internal/users/$userId'
@@ -4512,6 +4954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronOperationalControlsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/ncc-settlement': {
+      id: '/api/cron/ncc-settlement'
+      path: '/api/cron/ncc-settlement'
+      fullPath: '/api/cron/ncc-settlement'
+      preLoaderRoute: typeof ApiCronNccSettlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/loan-interest': {
       id: '/api/cron/loan-interest'
       path: '/api/cron/loan-interest'
@@ -4623,6 +5072,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/account/$accountId'
       preLoaderRoute: typeof BankAccountAccountIdRouteRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/portal/developers/webhooks/': {
+      id: '/portal/developers/webhooks/'
+      path: '/developers/webhooks'
+      fullPath: '/portal/developers/webhooks/'
+      preLoaderRoute: typeof PortalDevelopersWebhooksIndexRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/internal/lending/deal-rooms/': {
       id: '/internal/lending/deal-rooms/'
@@ -4749,6 +5205,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/account/$accountId/'
       preLoaderRoute: typeof BankAccountAccountIdIndexRouteImport
       parentRoute: typeof BankAccountAccountIdRouteRoute
+    }
+    '/portal/developers/webhooks/$id': {
+      id: '/portal/developers/webhooks/$id'
+      path: '/developers/webhooks/$id'
+      fullPath: '/portal/developers/webhooks/$id'
+      preLoaderRoute: typeof PortalDevelopersWebhooksIdRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/internal/lending/loans/$loanId': {
       id: '/internal/lending/loans/$loanId'
@@ -5100,6 +5563,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdCommercialIndexRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
     }
+    '/api/ncc/v1/settlements/': {
+      id: '/api/ncc/v1/settlements/'
+      path: '/api/ncc/v1/settlements'
+      fullPath: '/api/ncc/v1/settlements/'
+      preLoaderRoute: typeof ApiNccV1SettlementsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ncc/v1/institution/': {
+      id: '/api/ncc/v1/institution/'
+      path: '/api/ncc/v1/institution'
+      fullPath: '/api/ncc/v1/institution/'
+      preLoaderRoute: typeof ApiNccV1InstitutionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/internal/lending/applications/$applicationId/thread': {
       id: '/internal/lending/applications/$applicationId/thread'
       path: '/applications/$applicationId/thread'
@@ -5184,6 +5661,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdCommercialAnalyticsRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
     }
+    '/api/ncc/v1/institution/settlement-accounts': {
+      id: '/api/ncc/v1/institution/settlement-accounts'
+      path: '/api/ncc/v1/institution/settlement-accounts'
+      fullPath: '/api/ncc/v1/institution/settlement-accounts'
+      preLoaderRoute: typeof ApiNccV1InstitutionSettlementAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ncc/v1/institution/routing-numbers': {
+      id: '/api/ncc/v1/institution/routing-numbers'
+      path: '/api/ncc/v1/institution/routing-numbers'
+      fullPath: '/api/ncc/v1/institution/routing-numbers'
+      preLoaderRoute: typeof ApiNccV1InstitutionRoutingNumbersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/deal-rooms/documents/$documentId/download': {
       id: '/api/deal-rooms/documents/$documentId/download'
       path: '/api/deal-rooms/documents/$documentId/download'
@@ -5261,6 +5752,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdCommercialInvoicesIndexRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
     }
+    '/api/ncc/v1/settlements/$reference/': {
+      id: '/api/ncc/v1/settlements/$reference/'
+      path: '/api/ncc/v1/settlements/$reference'
+      fullPath: '/api/ncc/v1/settlements/$reference/'
+      preLoaderRoute: typeof ApiNccV1SettlementsReferenceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bank/alta-card/business/applications/$applicationId/thread': {
       id: '/bank/alta-card/business/applications/$applicationId/thread'
       path: '/thread'
@@ -5309,6 +5807,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/account/$accountId/commercial/invoices/$invoiceId'
       preLoaderRoute: typeof BankAccountAccountIdCommercialInvoicesInvoiceIdRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
+    }
+    '/api/ncc/v1/settlements/$reference/reverse': {
+      id: '/api/ncc/v1/settlements/$reference/reverse'
+      path: '/api/ncc/v1/settlements/$reference/reverse'
+      fullPath: '/api/ncc/v1/settlements/$reference/reverse'
+      preLoaderRoute: typeof ApiNccV1SettlementsReferenceReverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ncc/v1/settlements/$reference/cancel': {
+      id: '/api/ncc/v1/settlements/$reference/cancel'
+      path: '/api/ncc/v1/settlements/$reference/cancel'
+      fullPath: '/api/ncc/v1/settlements/$reference/cancel'
+      preLoaderRoute: typeof ApiNccV1SettlementsReferenceCancelRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/loan-threads/$applicationId/attachments/$attachmentId/download': {
       id: '/api/loan-threads/$applicationId/attachments/$attachmentId/download'
@@ -6213,6 +6725,49 @@ const DiscordRouteChildren: DiscordRouteChildren = {
 const DiscordRouteWithChildren =
   DiscordRoute._addFileChildren(DiscordRouteChildren)
 
+interface PortalRouteChildren {
+  PortalAccountsRoute: typeof PortalAccountsRoute
+  PortalAuditRoute: typeof PortalAuditRoute
+  PortalMembersRoute: typeof PortalMembersRoute
+  PortalQueueRoute: typeof PortalQueueRoute
+  PortalReportsRoute: typeof PortalReportsRoute
+  PortalRoutingRoute: typeof PortalRoutingRoute
+  PortalSettingsRoute: typeof PortalSettingsRoute
+  PortalSupportRoute: typeof PortalSupportRoute
+  PortalIndexRoute: typeof PortalIndexRoute
+  PortalDevelopersApiCredentialsRoute: typeof PortalDevelopersApiCredentialsRoute
+  PortalDevelopersApiLogsRoute: typeof PortalDevelopersApiLogsRoute
+  PortalDevelopersDocumentationRoute: typeof PortalDevelopersDocumentationRoute
+  PortalSettlementsIdRoute: typeof PortalSettlementsIdRoute
+  PortalDevelopersIndexRoute: typeof PortalDevelopersIndexRoute
+  PortalSettlementsIndexRoute: typeof PortalSettlementsIndexRoute
+  PortalDevelopersWebhooksIdRoute: typeof PortalDevelopersWebhooksIdRoute
+  PortalDevelopersWebhooksIndexRoute: typeof PortalDevelopersWebhooksIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAccountsRoute: PortalAccountsRoute,
+  PortalAuditRoute: PortalAuditRoute,
+  PortalMembersRoute: PortalMembersRoute,
+  PortalQueueRoute: PortalQueueRoute,
+  PortalReportsRoute: PortalReportsRoute,
+  PortalRoutingRoute: PortalRoutingRoute,
+  PortalSettingsRoute: PortalSettingsRoute,
+  PortalSupportRoute: PortalSupportRoute,
+  PortalIndexRoute: PortalIndexRoute,
+  PortalDevelopersApiCredentialsRoute: PortalDevelopersApiCredentialsRoute,
+  PortalDevelopersApiLogsRoute: PortalDevelopersApiLogsRoute,
+  PortalDevelopersDocumentationRoute: PortalDevelopersDocumentationRoute,
+  PortalSettlementsIdRoute: PortalSettlementsIdRoute,
+  PortalDevelopersIndexRoute: PortalDevelopersIndexRoute,
+  PortalSettlementsIndexRoute: PortalSettlementsIndexRoute,
+  PortalDevelopersWebhooksIdRoute: PortalDevelopersWebhooksIdRoute,
+  PortalDevelopersWebhooksIndexRoute: PortalDevelopersWebhooksIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 interface ApiAuthDiscordRouteChildren {
   ApiAuthDiscordCallbackRoute: typeof ApiAuthDiscordCallbackRoute
 }
@@ -6289,6 +6844,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketsRoute: MarketsRoute,
   NetworkRoute: NetworkRoute,
   ParticipationRoute: ParticipationRoute,
+  PortalRoute: PortalRouteWithChildren,
   ProfileRoute: ProfileRoute,
   CompanyLeadershipRoute: CompanyLeadershipRoute,
   CompanyNccRoute: CompanyNccRoute,
@@ -6311,6 +6867,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronBankStatementsRoute: ApiCronBankStatementsRoute,
   ApiCronDailyServicingRoute: ApiCronDailyServicingRoute,
   ApiCronLoanInterestRoute: ApiCronLoanInterestRoute,
+  ApiCronNccSettlementRoute: ApiCronNccSettlementRoute,
   ApiCronOperationalControlsRoute: ApiCronOperationalControlsRoute,
   ApiCronRelationshipIntelligenceRoute: ApiCronRelationshipIntelligenceRoute,
   ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
@@ -6332,6 +6889,18 @@ const rootRouteChildren: RootRouteChildren = {
     ApiDealRoomsAgreementDraftsDraftIdDownloadRoute,
   ApiDealRoomsDocumentsDocumentIdDownloadRoute:
     ApiDealRoomsDocumentsDocumentIdDownloadRoute,
+  ApiNccV1InstitutionRoutingNumbersRoute:
+    ApiNccV1InstitutionRoutingNumbersRoute,
+  ApiNccV1InstitutionSettlementAccountsRoute:
+    ApiNccV1InstitutionSettlementAccountsRoute,
+  ApiNccV1InstitutionIndexRoute: ApiNccV1InstitutionIndexRoute,
+  ApiNccV1SettlementsIndexRoute: ApiNccV1SettlementsIndexRoute,
+  ApiNccV1SettlementsReferenceCancelRoute:
+    ApiNccV1SettlementsReferenceCancelRoute,
+  ApiNccV1SettlementsReferenceReverseRoute:
+    ApiNccV1SettlementsReferenceReverseRoute,
+  ApiNccV1SettlementsReferenceIndexRoute:
+    ApiNccV1SettlementsReferenceIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

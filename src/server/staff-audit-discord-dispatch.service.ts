@@ -81,6 +81,15 @@ async function tryBotDelivery(content: string): Promise<boolean> {
 export async function dispatchStaffAuditDiscordMessage(
   content: string,
 ): Promise<{ sent: boolean; via: "direct" | "bot" | "none"; reason?: string }> {
+  if (
+    process.env.NODE_ENV === "test" ||
+    process.env.NCC_SETTLEMENT_TESTS === "1" ||
+    process.env.STAFF_AUDIT_DISCORD_DISABLED === "1" ||
+    process.env.VITEST === "true"
+  ) {
+    return { sent: false, via: "none", reason: "disabled_in_test" };
+  }
+
   const channelId = staffAuditChannelId();
   if (!channelId) {
     return { sent: false, via: "none", reason: "channel_not_configured" };

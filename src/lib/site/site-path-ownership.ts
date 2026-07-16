@@ -9,6 +9,7 @@ const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
   { prefix: "/institutions", siteKey: "ncc" },
   { prefix: "/network", siteKey: "ncc" },
   { prefix: "/participation", siteKey: "ncc" },
+  { prefix: "/portal", siteKey: "ncc" },
   { prefix: "/bank", siteKey: "bank" },
   { prefix: "/exchange", siteKey: "exchange" },
   { prefix: "/terminal", siteKey: "terminal" },

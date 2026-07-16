@@ -70,6 +70,12 @@ export function NccUserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className={menuSeparatorClass} />
         <DropdownMenuItem asChild className={menuItemClass}>
+          <Link to="/portal" className="flex w-full items-center outline-none focus-visible:shadow-none">
+            <LayoutDashboard className="mr-2 size-3.5 text-[#6b7280]" />
+            Institution portal
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className={menuItemClass}>
           <Link to="/admin" className="flex w-full items-center outline-none focus-visible:shadow-none">
             <LayoutDashboard className="mr-2 size-3.5 text-[#6b7280]" />
             Admin panel

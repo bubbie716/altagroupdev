@@ -30,11 +30,11 @@ export function TransferFormPreview({
   return (
     <Card className="mx-auto max-w-2xl space-y-6 !p-6">
       <div className="type-section-title">
-        Wire Transfer · NCC-Net
+        External wire · Coming soon
       </div>
       <p className="mt-2 text-[13px] text-muted-foreground">
-        Outbound wires route through NCC-Net settlement infrastructure — planned clearing network for
-        Newport interbank transfers.
+        Send to another NCC institution or an external beneficiary once public account addressing is
+        available. Instant transfers to your own Alta Terminal account are available above.
       </p>
 
       {contacts.length > 0 && (
@@ -83,21 +83,16 @@ export function TransferFormPreview({
           );
         })}
       </div>
-      {disabled ? (
-        <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-          Wire transfers are not available yet. Manage wire recipients on the Contacts page.
-        </div>
-      ) : (
-        <div className="mt-6 rounded-lg border border-gold/30 bg-gold/5 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-          Wire execution is simulated in this preview. NCC-Net settlement is planned infrastructure.
-        </div>
-      )}
+      <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+        External institution wires are coming soon. You can save beneficiaries on the Contacts page
+        meanwhile. Scheduled and recurring NCC wires are not enabled in this release.
+      </div>
       <button
         type="button"
         disabled
         className="mt-4 cursor-not-allowed rounded-md border border-border bg-surface-2 px-5 py-2.5 text-[13px] font-medium text-muted-foreground"
       >
-        {disabled ? "Submit wire (unavailable)" : "Submit wire (preview only)"}
+        External wire (coming soon)
       </button>
     </Card>
   );

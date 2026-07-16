@@ -14,7 +14,7 @@
     "lint:full": "eslint --cache --cache-location .eslintcache .",
     "typecheck": "node scripts/typecheck-baseline.mjs",
     "typecheck:full": "tsc --noEmit",
-    "validate": "npm run lint && npm run typecheck && npm run test:unit && npm run build",
+    "validate": "npm run lint && npm run typecheck && npm run test:unit && npm run test:ncc && npm run build",
     "check": "npm run validate",
     "format": "prettier --write .",
     "db:generate": "prisma generate",
@@ -43,7 +43,8 @@
     "test:e2e:seed": "tsx tests/e2e/scripts/seed-e2e-data.ts",
     "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts",
     "test:unit": "find src -name '*.test.ts' ! -name '*.integration.test.ts' ! -name 'footer-links.test.ts' ! -name 'site-scoped-content.test.ts' ! -name 'audit-log-discord-bridge.test.ts' ! -name 'customer-operator-notification.test.ts' -print0 | xargs -0 npx tsx --test",
-    "test:unit:integration": "find src -name '*.integration.test.ts' -print0 | xargs -0 npx tsx --test"
+    "test:unit:integration": "find src -name '*.integration.test.ts' -print0 | xargs -0 npx tsx --test",
+    "test:ncc": "NCC_SETTLEMENT_TESTS=1 STAFF_AUDIT_DISCORD_DISABLED=1 npx tsx --test --test-concurrency=1 src/server/ncc/ncc-settlement.test.ts src/server/ncc/ncc-alta-realtime.test.ts src/server/ncc/ncc-hardening-3a1.test.ts src/server/ncc/ncc-api-3b.test.ts src/server/ncc/ncc-api-3b1.test.ts src/server/ncc/ncc-funding-3c.test.ts src/lib/ncc/ncc-portal.test.ts src/lib/bank/ncc-terminal-funding-website.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

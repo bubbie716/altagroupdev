@@ -320,6 +320,8 @@ function dedupeKeyFor(input: WriteAuditLogInput): string {
 
 /** Mirror a database audit row to the staff Discord channel. Fire-and-forget; never throws. */
 export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
+  // Automated tests must never contact the production Discord transport.
+  if (isAuditDiscordDisabled()) return;
   if (DISCORD_SKIP_ACTIONS.has(input.action)) return;
 
   const metadata =
@@ -338,4 +340,13 @@ export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
     source: resolveSource(metadata),
     dedupeKey: dedupeKeyFor(input),
   });
+}
+
+/** True when Discord staff-audit delivery must be skipped (tests / explicit disable). */
+export function isAuditDiscordDisabled(): boolean {
+  if (process.env.NODE_ENV === "test") return true;
+  if (process.env.NCC_SETTLEMENT_TESTS === "1") return true;
+  if (process.env.STAFF_AUDIT_DISCORD_DISABLED === "1") return true;
+  if (process.env.VITEST === "true") return true;
+  return false;
 }

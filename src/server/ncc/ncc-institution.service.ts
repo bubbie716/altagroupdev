@@ -1,0 +1,328 @@
+import { prisma } from "@/server/db";
+import {
+  ALTA_BANK_INSTITUTION_ID,
+  ALTA_BANK_PRIMARY_ROUTING_NUMBER,
+  ALTA_EXCHANGE_INSTITUTION_ID,
+  ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER,
+  ALTA_TERMINAL_INSTITUTION_ID,
+  ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER,
+} from "@/lib/bank/account-ownership";
+import { NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
+import { requireInstitutionPermission, requireNccStaff } from "@/server/ncc/ncc-permissions.service";
+import {
+  cancelInstruction,
+  getInstruction,
+  submitInstruction,
+  type SubmitSettlementInstructionInput,
+} from "@/server/ncc/ncc-settlement.service";
+
+export async function getInstitutionOverview(institutionId: string) {
+  await requireInstitutionPermission(institutionId, "view_institution");
+  return prisma.financialInstitution.findUniqueOrThrow({
+    where: { id: institutionId },
+    include: {
+      routingNumbers: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+      settlementAccounts: true,
+      _count: { select: { members: true, sentInstructions: true, receivedInstructions: true } },
+    },
+  });
+}
+
+export async function listInstitutionRoutingNumbers(institutionId: string) {
+  await requireInstitutionPermission(institutionId, "view_routing_numbers");
+  return prisma.routingNumber.findMany({
+    where: { institutionId },
+    orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+  });
+}
+
+export async function getSettlementAccountSummary(institutionId: string, currency = NCC_DEFAULT_CURRENCY) {
+  await requireInstitutionPermission(institutionId, "view_settlement_accounts");
+  return prisma.settlementAccount.findUnique({
+    where: {
+      institutionId_currency: { institutionId, currency: currency.toUpperCase() },
+    },
+  });
+}
+
+export async function submitInstitutionSettlement(
+  institutionId: string,
+  input: Omit<SubmitSettlementInstructionInput, "sendingInstitutionId" | "submittedByUserId">,
+) {
+  const { user } = await requireInstitutionPermission(institutionId, "submit_settlement");
+  if (input.receivingInstitutionId === institutionId) {
+    throw new Error("SELF_SETTLEMENT_DENIED");
+  }
+  return submitInstruction({
+    ...input,
+    sendingInstitutionId: institutionId,
+    submittedByUserId: user.id,
+  });
+}
+
+export async function getInstitutionInstruction(institutionId: string, instructionId: string) {
+  await requireInstitutionPermission(institutionId, "view_settlement_accounts");
+  const instruction = await getInstruction(instructionId);
+  if (
+    instruction.sendingInstitutionId !== institutionId &&
+    instruction.receivingInstitutionId !== institutionId
+  ) {
+    throw new Error("FORBIDDEN");
+  }
+  return instruction;
+}
+
+export async function listInstitutionInstructions(
+  institutionId: string,
+  options?: { limit?: number },
+) {
+  await requireInstitutionPermission(institutionId, "view_settlement_accounts");
+  const rows = await prisma.settlementInstruction.findMany({
+    where: {
+      OR: [{ sendingInstitutionId: institutionId }, { receivingInstitutionId: institutionId }],
+    },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(options?.limit ?? 50, 100),
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    publicReference: row.publicReference,
+    status: row.status,
+    amount: Number(row.amount.toString()),
+    currency: row.currency,
+    sendingInstitutionId: row.sendingInstitutionId,
+    receivingInstitutionId: row.receivingInstitutionId,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
+export async function cancelInstitutionInstruction(
+  institutionId: string,
+  instructionId: string,
+  reason: string,
+) {
+  const { user } = await requireInstitutionPermission(institutionId, "cancel_settlement");
+  const instruction = await getInstruction(instructionId);
+  if (instruction.sendingInstitutionId !== institutionId) {
+    throw new Error("FORBIDDEN");
+  }
+  return cancelInstruction(instructionId, user.id, reason);
+}
+
+/** Large operating float so Alta internal settlement legs never fail on NCC-side liquidity in Sprint 3A. */
+const ALTA_INTERNAL_SETTLEMENT_FLOAT = 1_000_000_000;
+
+export async function ensureAltaBankInstitutionSeeded(): Promise<void> {
+  await prisma.financialInstitution.upsert({
+    where: { id: ALTA_BANK_INSTITUTION_ID },
+    create: {
+      id: ALTA_BANK_INSTITUTION_ID,
+      legalName: "Alta Bank N.V.",
+      displayName: "Alta Bank",
+      slug: "alta-bank",
+      routingPrefix: "011",
+      institutionType: "BANK",
+      status: "ACTIVE",
+      isAlta: true,
+      isNCCParticipant: true,
+      approvedAt: new Date(),
+    },
+    update: {
+      legalName: "Alta Bank N.V.",
+      displayName: "Alta Bank",
+      slug: "alta-bank",
+      routingPrefix: "011",
+      status: "ACTIVE",
+      isAlta: true,
+      isNCCParticipant: true,
+      approvedAt: new Date(),
+    },
+  });
+
+  await prisma.routingNumber.upsert({
+    where: { routingNumber: ALTA_BANK_PRIMARY_ROUTING_NUMBER },
+    create: {
+      id: "rn-alta-primary",
+      routingNumber: ALTA_BANK_PRIMARY_ROUTING_NUMBER,
+      institutionId: ALTA_BANK_INSTITUTION_ID,
+      status: "ACTIVE",
+      isPrimary: true,
+      label: "Alta Bank Primary Routing",
+      activatedAt: new Date(),
+    },
+    update: {
+      status: "ACTIVE",
+      institutionId: ALTA_BANK_INSTITUTION_ID,
+      isPrimary: true,
+      activatedAt: new Date(),
+    },
+  });
+
+  await prisma.settlementAccount.upsert({
+    where: {
+      institutionId_currency: {
+        institutionId: ALTA_BANK_INSTITUTION_ID,
+        currency: NCC_DEFAULT_CURRENCY,
+      },
+    },
+    create: {
+      id: "sa-alta-bank-flr",
+      institutionId: ALTA_BANK_INSTITUTION_ID,
+      currency: NCC_DEFAULT_CURRENCY,
+      ledgerBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      availableBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      status: "ACTIVE",
+    },
+    // Metadata-only update — never rewrite ledgerBalance / availableBalance.
+    // Initial float is create-only; later float changes require audited admin ops.
+    update: {
+      status: "ACTIVE",
+    },
+  });
+}
+
+async function ensureAltaInternalInstitutionSeeded(input: {
+  id: string;
+  legalName: string;
+  displayName: string;
+  slug: string;
+  routingPrefix: string;
+  institutionType: "EXCHANGE" | "BROKERAGE" | "OTHER";
+  primaryRoutingNumber: string;
+  settlementAccountId: string;
+}): Promise<void> {
+  await prisma.financialInstitution.upsert({
+    where: { id: input.id },
+    create: {
+      id: input.id,
+      legalName: input.legalName,
+      displayName: input.displayName,
+      slug: input.slug,
+      routingPrefix: input.routingPrefix,
+      institutionType: input.institutionType,
+      status: "ACTIVE",
+      isAlta: true,
+      isNCCParticipant: true,
+      approvedAt: new Date(),
+    },
+    update: {
+      legalName: input.legalName,
+      displayName: input.displayName,
+      slug: input.slug,
+      routingPrefix: input.routingPrefix,
+      status: "ACTIVE",
+      isAlta: true,
+      isNCCParticipant: true,
+      approvedAt: new Date(),
+    },
+  });
+
+  await prisma.routingNumber.upsert({
+    where: { routingNumber: input.primaryRoutingNumber },
+    create: {
+      routingNumber: input.primaryRoutingNumber,
+      institutionId: input.id,
+      status: "ACTIVE",
+      isPrimary: true,
+      label: `${input.displayName} Primary Routing`,
+      activatedAt: new Date(),
+    },
+    update: {
+      status: "ACTIVE",
+      institutionId: input.id,
+      isPrimary: true,
+      activatedAt: new Date(),
+    },
+  });
+
+  await prisma.settlementAccount.upsert({
+    where: {
+      institutionId_currency: {
+        institutionId: input.id,
+        currency: NCC_DEFAULT_CURRENCY,
+      },
+    },
+    create: {
+      id: input.settlementAccountId,
+      institutionId: input.id,
+      currency: NCC_DEFAULT_CURRENCY,
+      ledgerBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      availableBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      status: "ACTIVE",
+    },
+    // Metadata-only update — never rewrite balances after create.
+    update: {
+      status: "ACTIVE",
+    },
+  });
+}
+
+/**
+ * Seeds Alta Bank, Alta Terminal, and Alta Exchange as NCC participants with
+ * routing numbers and large operating-float settlement accounts.
+ *
+ * Initial float (1B FLR) is applied only when a settlement account is created.
+ * Re-running this seed is financially idempotent: institution/routing metadata
+ * may refresh, but existing ledgerBalance / availableBalance are never overwritten.
+ */
+export async function ensureAltaInstitutionsSeeded(): Promise<void> {
+  await ensureAltaBankInstitutionSeeded();
+  await ensureAltaInternalInstitutionSeeded({
+    id: ALTA_TERMINAL_INSTITUTION_ID,
+    legalName: "Alta Terminal LLC",
+    displayName: "Alta Terminal",
+    slug: "alta-terminal",
+    routingPrefix: "012",
+    institutionType: "BROKERAGE",
+    primaryRoutingNumber: ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER,
+    settlementAccountId: "sa-alta-terminal-flr",
+  });
+  await ensureAltaInternalInstitutionSeeded({
+    id: ALTA_EXCHANGE_INSTITUTION_ID,
+    legalName: "Alta Exchange LLC",
+    displayName: "Alta Exchange",
+    slug: "alta-exchange",
+    routingPrefix: "013",
+    institutionType: "EXCHANGE",
+    primaryRoutingNumber: ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER,
+    settlementAccountId: "sa-alta-exchange-flr",
+  });
+}
+
+/** Resolves an Alta-internal institution's id + primary ACTIVE routing number id. */
+export async function getInstitutionPrimaryRouting(
+  institutionId: string,
+): Promise<{ institutionId: string; routingNumberId: string } | null> {
+  const routing = await prisma.routingNumber.findFirst({
+    where: { institutionId, isPrimary: true, status: "ACTIVE" },
+  });
+  if (!routing) return null;
+  return { institutionId, routingNumberId: routing.id };
+}
+
+export async function listActiveFinancialInstitutions() {
+  await requireNccStaff();
+  return prisma.financialInstitution.findMany({
+    where: { status: "ACTIVE" },
+    include: { routingNumbers: { where: { status: "ACTIVE" } } },
+    orderBy: [{ isAlta: "desc" }, { displayName: "asc" }],
+  });
+}
+
+export async function getAltaBankInstitution() {
+  return prisma.financialInstitution.findFirst({
+    where: { isAlta: true, status: "ACTIVE" },
+    include: { routingNumbers: { where: { status: "ACTIVE" } } },
+  });
+}
+
+export async function getAltaBankPrimaryRoutingNumber(): Promise<string | null> {
+  const row = await prisma.routingNumber.findFirst({
+    where: {
+      routingNumber: ALTA_BANK_PRIMARY_ROUTING_NUMBER,
+      status: "ACTIVE",
+      institution: { isAlta: true, status: "ACTIVE" },
+    },
+  });
+  return row?.routingNumber ?? null;
+}
