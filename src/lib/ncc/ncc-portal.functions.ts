@@ -11,11 +11,22 @@ export const fetchPortalContext = createServerFn({ method: "GET" })
 export const fetchPortalShell = createServerFn({ method: "GET" })
   .inputValidator((input?: { institutionId?: string }) => input ?? {})
   .handler(async ({ data }) => {
-    const { resolvePortalInstitutionId, getPortalShell } = await import(
+    const { resolvePortalInstitutionId, getPortalShell, listPortalInstitutions } = await import(
       "@/server/ncc/ncc-portal.service"
     );
     const institutionId = await resolvePortalInstitutionId(data.institutionId);
-    return getPortalShell(institutionId);
+    const [shell, institutions] = await Promise.all([
+      getPortalShell(institutionId),
+      listPortalInstitutions(),
+    ]);
+    return { ...shell, institutions };
+  });
+
+export const switchPortalInstitutionRecord = createServerFn({ method: "POST" })
+  .inputValidator((input: { institutionId: string }) => input)
+  .handler(async ({ data }) => {
+    const { switchPortalInstitution } = await import("@/server/ncc/ncc-portal.service");
+    return switchPortalInstitution(data.institutionId);
   });
 
 export const fetchPortalDashboard = createServerFn({ method: "GET" })

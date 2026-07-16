@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Info, Loader2, X } from "lucide-react";
+import { AlertCircle, Check, Clock, Info, Loader2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
@@ -392,6 +392,79 @@ export function BankRequestSuccessCard({
 
       <div className={embedded ? "mt-4" : "mt-5"}>
         <SecondaryButton onClick={onSubmitAnother}>{labels.submitAnother}</SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
+/** In-flight (non-final) result — e.g. NCC transfers still processing after submit. */
+export function BankRequestPendingCard({
+  title,
+  body,
+  hint,
+  actionLabel,
+  onAction,
+  actionBusy = false,
+  variant = "standalone",
+}: {
+  title: string;
+  body: string;
+  hint: ReactNode;
+  actionLabel: string;
+  onAction: () => void;
+  actionBusy?: boolean;
+  variant?: "standalone" | "embedded";
+}) {
+  const embedded = variant === "embedded";
+
+  return (
+    <div
+      className={cn(
+        embedded ? "text-center" : resultCardClass,
+        "animate-in fade-in zoom-in-95 duration-300",
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto flex items-center justify-center rounded-full bg-gold/12",
+          embedded ? "size-12" : "size-[4.5rem]",
+        )}
+      >
+        <Clock className={cn(embedded ? "size-6" : "size-9", "text-gold")} strokeWidth={2.25} aria-hidden />
+      </div>
+
+      <h2
+        className={cn(
+          "font-semibold tracking-tight",
+          embedded ? "mt-4 text-lg" : "mt-5 text-[1.2rem]",
+        )}
+      >
+        {title}
+      </h2>
+
+      <p
+        className={cn(
+          "leading-relaxed text-muted-foreground",
+          embedded ? "mt-2 text-[13px]" : "mt-2.5 text-[14px]",
+        )}
+      >
+        {body}
+      </p>
+
+      <div className={cn("border-t border-border/70", embedded ? "my-4" : "my-6")} />
+
+      <Callout variant="info">{hint}</Callout>
+
+      <div className={embedded ? "mt-4" : "mt-5"}>
+        <button
+          type="button"
+          onClick={onAction}
+          disabled={actionBusy}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border/80 bg-background px-4 py-3 text-[14px] font-medium tracking-tight text-foreground transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {actionBusy ? <Loader2 className="size-4 animate-spin opacity-80" aria-hidden /> : null}
+          {actionLabel}
+        </button>
       </div>
     </div>
   );

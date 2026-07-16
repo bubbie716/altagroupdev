@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -13,7 +12,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { florin } from "@/lib/bank/api";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
-import { transferBlockedReason } from "@/lib/bank/account-status-copy";
+import {
+  formatBankActionError,
+  transferBlockedReason,
+} from "@/lib/bank/account-status-copy";
 import {
   fetchTerminalFundingRequest,
   submitTerminalFundingTransfer,
@@ -21,16 +23,22 @@ import {
 import { resolveFundingIdempotencyKey } from "@/lib/bank/ncc-terminal-funding-idempotency";
 import type { CustomerTerminalFundingView } from "@/server/ncc/ncc-funding.service";
 import {
-  BankRequestActionButton,
   BankRequestErrorCard,
+  BankRequestPendingCard,
   BankRequestSubmitButton,
+  BankRequestSuccessCard,
+  type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
 
-type FormView = "form" | "review" | "success" | "processing" | "error";
+type FormView = "form" | "success" | "processing" | "error";
+
+function accountLabel(account: UserBankAccount) {
+  return `${account.accountName} · ${account.accountNumber} · ${florin(account.availableBalance)} · Personal`;
+}
 
 function resolveInitialFromAccountId(accounts: UserBankAccount[], preferredAccountId?: string) {
   if (preferredAccountId && accounts.some((account) => account.id === preferredAccountId)) {
@@ -66,18 +74,19 @@ export function BankTerminalFundingForm({
   const [memo, setMemo] = useState("");
   const [view, setView] = useState<FormView>("form");
   const [submitting, setSubmitting] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [errorReason, setErrorReason] = useState<string | null>(null);
-  const [result, setResult] = useState<CustomerTerminalFundingView | null>(null);
-  const [terminalBalance, setTerminalBalance] = useState(terminalAvailableBalance);
+  const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+
+  const fromAccount = accounts.find((account) => account.id === fromAccountId);
+  const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
+  const heldFunds = fromAccount?.accountStatusInfo.heldFunds ?? 0;
 
   const amountInputRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef = useRef(0);
-
-  const fromAccount = accounts.find((account) => account.id === fromAccountId);
-  const availableBalance = fromAccount?.availableBalance ?? fromAccount?.balance ?? 0;
-  const heldFunds = fromAccount?.accountStatusInfo.heldFunds ?? 0;
 
   useEffect(() => {
     return () => {
@@ -88,7 +97,8 @@ export function BankTerminalFundingForm({
   function resetForm() {
     setView("form");
     setErrorReason(null);
-    setResult(null);
+    setSubmission(null);
+    setPendingRequestId(null);
     setAmount("");
     setMemo("");
     idempotencyKeyRef.current = null;
@@ -104,11 +114,16 @@ export function BankTerminalFundingForm({
   }
 
   function applyResult(next: CustomerTerminalFundingView) {
-    setResult(next);
-    if (next.terminalAvailableBalance) setTerminalBalance(next.terminalAvailableBalance);
     if (next.status === "COMPLETED") {
-      setView("success");
       idempotencyKeyRef.current = null;
+      setSubmission({
+        referenceCode: next.publicReference ?? next.requestId,
+        amount: Number(next.amount),
+        submittedAt: next.completedAt ?? next.createdAt,
+        accountName: next.sourceAccountLabel,
+        accountNumber: next.sourceAccountNumber,
+      });
+      setView("success");
       onSuccess?.();
       return;
     }
@@ -116,6 +131,7 @@ export function BankTerminalFundingForm({
       showError(next.failureMessage ?? "We couldn’t complete this transfer.");
       return;
     }
+    setPendingRequestId(next.requestId);
     setView("processing");
     schedulePoll(next.requestId);
   }
@@ -128,15 +144,29 @@ export function BankTerminalFundingForm({
         const next = await fetchTerminalFundingRequest({ data: requestId });
         applyResult(next);
       } catch {
-        // Keep processing state; user can refresh history.
+        // Keep processing state; the user can check status manually.
       }
     }, 2_000);
   }
 
-  function goToReview(e: React.FormEvent) {
+  async function checkPendingStatus() {
+    if (!pendingRequestId || checkingStatus) return;
+    setCheckingStatus(true);
+    try {
+      const next = await fetchTerminalFundingRequest({ data: pendingRequestId });
+      applyResult(next);
+    } catch {
+      // Leave processing view untouched on transient errors.
+    } finally {
+      setCheckingStatus(false);
+    }
+  }
+
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitting) return;
 
+    const transferAmount = Number(amount);
     const blocked = fromAccount
       ? transferBlockedReason(fromAccount.accountStatusInfo, "source")
       : null;
@@ -144,13 +174,8 @@ export function BankTerminalFundingForm({
       showError(blocked);
       return;
     }
-    if (!/^\d+(\.\d{1,2})?$/.test(amount.trim())) {
-      showError("Enter a valid amount with up to two decimal places.");
-      return;
-    }
-    const transferAmount = Number(amount);
-    if (!(transferAmount > 0)) {
-      showError("Enter an amount greater than zero.");
+    if (!/^\d+(\.\d{1,2})?$/.test(amount.trim()) || !(transferAmount > 0)) {
+      showError("Enter a valid amount greater than zero with up to two decimal places.");
       return;
     }
     if (transferAmount > availableBalance) {
@@ -161,16 +186,12 @@ export function BankTerminalFundingForm({
       );
       return;
     }
-    setView("review");
-  }
 
-  async function onConfirm() {
-    if (submitting) return;
     setSubmitting(true);
     idempotencyKeyRef.current = resolveFundingIdempotencyKey(idempotencyKeyRef.current);
 
     try {
-      const next = await submitTerminalFundingTransfer({
+      const result = await submitTerminalFundingTransfer({
         data: {
           sourceBankAccountId: fromAccountId,
           amount: amount.trim(),
@@ -179,22 +200,25 @@ export function BankTerminalFundingForm({
           memo: memo.trim() || undefined,
         },
       });
-      applyResult(next);
+      applyResult(result);
     } catch (err) {
       const raw =
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unable to complete transfer.";
-      showError(raw);
+      const formatted = formatBankActionError(raw, {
+        action: "transfer",
+        accountId: fromAccountId,
+      });
+      showError(formatted.message);
     } finally {
       setSubmitting(false);
     }
   }
 
-  const canContinue =
+  const canSubmit =
     !!fromAccountId &&
     !!amount &&
     Number(amount) > 0 &&
-    Number(amount) <= availableBalance &&
-    !submitting;
+    Number(amount) <= availableBalance;
 
   if (accounts.length === 0) {
     return (
@@ -204,232 +228,119 @@ export function BankTerminalFundingForm({
     );
   }
 
+  if (view === "success" && submission) {
+    return (
+      <BankRequestSuccessCard
+        kind="transfer"
+        result={submission}
+        onSubmitAnother={resetForm}
+      />
+    );
+  }
+
+  if (view === "processing") {
+    return (
+      <BankRequestPendingCard
+        title="Transfer Processing"
+        body="Your transfer was sent to NCC and is still processing. Do not resubmit — no additional funds will move."
+        hint={
+          <>
+            You can follow this transfer below under{" "}
+            <strong className="font-medium text-foreground">
+              Recent Bank → Terminal transfers
+            </strong>
+            , including its NCC reference.
+          </>
+        }
+        actionLabel={checkingStatus ? "Checking status…" : "Check Status"}
+        onAction={() => void checkPendingStatus()}
+        actionBusy={checkingStatus}
+      />
+    );
+  }
+
   if (view === "error") {
     return <BankRequestErrorCard reason={errorReason} onTryAgain={resetForm} />;
   }
 
-  if ((view === "success" || view === "processing") && result) {
-    return (
-      <Card className="space-y-5 !p-6">
-        <div>
-          <p className="type-meta text-gold">
-            {result.status === "COMPLETED" ? "Transfer completed" : result.statusLabel}
-          </p>
-          <h2 className="mt-2 font-serif text-[24px] tracking-tight">
-            {florin(Number(result.amount))} to Alta Terminal
-          </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            {result.status === "COMPLETED"
-              ? "Settlement completed immediately through NCC. This transfer is final."
-              : "Your transfer was submitted to NCC and is still processing. Refresh this page or check history for updates — do not resubmit."}
-          </p>
-        </div>
-
-        <dl className="grid gap-3 text-[13px] sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">From</dt>
-            <dd className="mt-1 font-medium">
-              {result.sourceAccountLabel} · {result.sourceAccountNumber}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">To</dt>
-            <dd className="mt-1 font-medium">{result.destinationLabel}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Status</dt>
-            <dd className="mt-1 font-medium">{result.statusLabel}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">NCC reference</dt>
-            <dd className="mt-1 font-mono text-[12px]">{result.publicReference ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Completed</dt>
-            <dd className="mt-1">{formatWhen(result.completedAt)}</dd>
-          </div>
-          {result.bankAvailableBalance ? (
-            <div>
-              <dt className="text-muted-foreground">Updated Bank available</dt>
-              <dd className="mt-1 font-medium">{florin(Number(result.bankAvailableBalance))}</dd>
-            </div>
-          ) : null}
-          {result.terminalAvailableBalance ? (
-            <div>
-              <dt className="text-muted-foreground">Updated Terminal cash</dt>
-              <dd className="mt-1 font-medium">{florin(Number(result.terminalAvailableBalance))}</dd>
-            </div>
-          ) : null}
-        </dl>
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <button
-            type="button"
-            onClick={resetForm}
-            className="rounded-md border border-border bg-background px-4 py-2 text-[13px] font-medium hover:bg-surface-2"
-          >
-            Make another transfer
-          </button>
-          <Link
-            to="/bank/accounts/$accountId"
-            params={{ accountId: result.sourceBankAccountId }}
-            className="rounded-md border border-border bg-background px-4 py-2 text-[13px] font-medium hover:bg-surface-2"
-          >
-            View source account activity
-          </Link>
-        </div>
-      </Card>
-    );
-  }
-
-  if (view === "review") {
-    return (
-      <Card className="space-y-6 !p-6">
-        <div>
-          <p className="type-meta text-gold">Review transfer</p>
-          <h2 className="mt-2 font-serif text-[22px] tracking-tight">Confirm instant settlement</h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-            Once completed, this transfer is immediate and final. NCC settles individually — there is
-            no batching or delayed clearing window.
-          </p>
-        </div>
-        <dl className="grid gap-3 text-[13px] sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">From</dt>
-            <dd className="mt-1 font-medium">
-              {fromAccount?.accountName} · {fromAccount?.accountNumber}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">To</dt>
-            <dd className="mt-1 font-medium">My Alta Terminal account</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Amount</dt>
-            <dd className="mt-1 font-medium">{florin(Number(amount))}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Currency</dt>
-            <dd className="mt-1 font-medium">FLR</dd>
-          </div>
-          {memo.trim() ? (
-            <div className="sm:col-span-2">
-              <dt className="text-muted-foreground">Memo</dt>
-              <dd className="mt-1">{memo.trim()}</dd>
-            </div>
-          ) : null}
-        </dl>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => setView("form")}
-            className="rounded-md border border-border bg-background px-4 py-2 text-[13px] font-medium hover:bg-surface-2 disabled:opacity-60"
-          >
-            Back
-          </button>
-          <BankRequestActionButton
-            onClick={() => void onConfirm()}
-            submitting={submitting}
-            disabled={submitting}
-            submittingLabel="Sending…"
-          >
-            Confirm and send
-          </BankRequestActionButton>
-        </div>
-      </Card>
-    );
-  }
-
   return (
-    <form onSubmit={goToReview} className="mx-auto max-w-2xl space-y-6">
+    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
       <Card className="space-y-6 !p-6">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
           Transfer FLR from your personal Alta Bank account to your own Alta Terminal trading-cash
-          account. Settlement is immediate through NCC.
+          account. Settlement is immediate and final through NCC.
         </p>
 
-        <div>
-          <label className={fieldLabel}>From account</label>
-          <Select value={fromAccountId} onValueChange={setFromAccountId}>
-            <SelectTrigger className="mt-2">
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.accountName} · {account.accountNumber} · {florin(account.availableBalance)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            Available Bank balance:{" "}
-            <span className="font-medium text-foreground">{florin(availableBalance)}</span>
-            {heldFunds > 0 ? ` (${florin(heldFunds)} held)` : null}
-          </p>
-        </div>
+        <fieldset disabled={submitting} className="space-y-6 border-0 p-0 m-0 min-w-0">
+          <label className="block">
+            <span className={fieldLabel}>From account</span>
+            <Select value={fromAccountId} onValueChange={setFromAccountId} disabled={submitting}>
+              <SelectTrigger className={`${inputClass} h-auto min-h-10`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {accountLabel(account)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="mt-2 block text-[12px] text-muted-foreground">
+              Available balance:{" "}
+              <span className="font-medium text-foreground">{florin(availableBalance)}</span>
+              {heldFunds > 0 ? ` (${florin(heldFunds)} held)` : null}
+            </span>
+          </label>
 
-        <div>
-          <label className={fieldLabel}>Destination</label>
-          <input
-            readOnly
-            value="My Alta Terminal account"
-            className={`${inputClass} bg-surface-2/50 text-muted-foreground`}
-          />
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            Terminal cash balance:{" "}
-            <span className="font-medium text-foreground">{florin(Number(terminalBalance))}</span>
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={fieldLabel} htmlFor="terminal-funding-amount">
-              Amount
-            </label>
+          <label className="block">
+            <span className={fieldLabel}>To account</span>
             <input
-              id="terminal-funding-amount"
+              readOnly
+              value="My Alta Terminal account"
+              className={`${inputClass} bg-surface-2/50 text-muted-foreground`}
+            />
+            <span className="mt-2 block text-[12px] text-muted-foreground">
+              Terminal cash balance:{" "}
+              <span className="font-medium text-foreground">
+                {florin(Number(terminalAvailableBalance))}
+              </span>
+            </span>
+          </label>
+
+          <label className="block">
+            <span className={fieldLabel}>Amount (ƒ)</span>
+            <input
               ref={amountInputRef}
-              className={inputClass}
-              inputMode="decimal"
-              placeholder="0.00"
+              type="number"
+              min="0.01"
+              max={availableBalance > 0 ? availableBalance : undefined}
+              step="0.01"
+              required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              required
+              placeholder="0.00"
+              className={`${inputClass} tabular`}
             />
-          </div>
-          <div>
-            <label className={fieldLabel}>Currency</label>
-            <input readOnly value="FLR" className={`${inputClass} bg-surface-2/50 text-muted-foreground`} />
-          </div>
-        </div>
-
-        <div>
-          <label className={fieldLabel} htmlFor="terminal-funding-memo">
-            Memo <span className="text-muted-foreground">(optional)</span>
           </label>
-          <Textarea
-            id="terminal-funding-memo"
-            className="mt-2"
-            rows={3}
-            maxLength={256}
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="Optional note for your records"
-          />
-        </div>
 
-        <div className="rounded-md border border-border bg-surface-2/40 px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
-          Settlement is immediate and final once completed. Sending to another NCC institution or an
-          external beneficiary is coming soon.
-        </div>
+          <label className="block">
+            <span className={fieldLabel}>Memo</span>
+            <Textarea
+              autoResize
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              placeholder="Optional transfer note…"
+              maxLength={256}
+              className={`${inputClass} min-h-[80px]`}
+            />
+          </label>
+        </fieldset>
 
         <BankRequestSubmitButton
           kind="transfer"
-          submitting={false}
-          disabled={!canContinue}
-          label="Continue to review"
+          submitting={submitting}
+          disabled={!canSubmit}
         />
       </Card>
     </form>

@@ -1,13 +1,17 @@
+import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
+import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
 import { ALTA_BANK_INSTITUTION_ID } from "@/lib/bank/account-ownership";
 import { canAccessInternal } from "@/lib/auth/permissions";
 import { requireAuth } from "@/server/auth.service";
+import { buildSetCookie, readCookie } from "@/server/session";
 import { NCC_DEFAULT_CURRENCY, decimalToNumber } from "@/lib/ncc/ncc-money";
 import type {
   PortalAccountSummary,
   PortalAlert,
   PortalAuditRow,
   PortalDashboardMetrics,
+  PortalInstitutionOption,
   PortalInstitutionSummary,
   PortalMemberRow,
   PortalNotification,
@@ -99,16 +103,48 @@ export async function getPortalShell(institutionId: string): Promise<{
   };
 }
 
+/** Sticky portal institution selection — always re-validated against membership. */
+const PORTAL_INSTITUTION_COOKIE = "ncc_portal_institution";
+const PORTAL_INSTITUTION_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 30;
+
+const institutionOptionSelect = {
+  id: true,
+  legalName: true,
+  displayName: true,
+  institutionType: true,
+  status: true,
+} as const;
+
+/** Whether the user may operate this institution's portal (staff or ACTIVE member). */
+async function canOperatePortalInstitution(
+  user: AltaUser,
+  institutionId: string,
+): Promise<boolean> {
+  if (canAccessInternal(user)) {
+    const exists = await prisma.financialInstitution.findUnique({
+      where: { id: institutionId },
+      select: { id: true },
+    });
+    return !!exists;
+  }
+  const membership = await prisma.institutionMember.findFirst({
+    where: { userId: user.id, institutionId, status: "ACTIVE" },
+    select: { id: true },
+  });
+  return !!membership;
+}
+
 /** Resolve which institution the current user operates in the portal. */
 export async function resolvePortalInstitutionId(preferredId?: string | null): Promise<string> {
   const user = await requireAuth();
 
-  if (preferredId && canAccessInternal(user)) {
-    const exists = await prisma.financialInstitution.findUnique({
-      where: { id: preferredId },
-      select: { id: true },
-    });
-    if (exists) return exists.id;
+  if (preferredId && (await canOperatePortalInstitution(user, preferredId))) {
+    return preferredId;
+  }
+
+  const cookieId = readCookie(PORTAL_INSTITUTION_COOKIE, getRequestHeader("cookie"));
+  if (cookieId && cookieId !== preferredId && (await canOperatePortalInstitution(user, cookieId))) {
+    return cookieId;
   }
 
   const membership = await prisma.institutionMember.findFirst({
@@ -123,6 +159,50 @@ export async function resolvePortalInstitutionId(preferredId?: string | null): P
   }
 
   throw new Error("FORBIDDEN");
+}
+
+/** Institutions the current user can operate in the portal (for the switcher). */
+export async function listPortalInstitutions(): Promise<PortalInstitutionOption[]> {
+  const user = await requireAuth();
+
+  if (canAccessInternal(user)) {
+    return prisma.financialInstitution.findMany({
+      where: { isNCCParticipant: true },
+      orderBy: { displayName: "asc" },
+      select: institutionOptionSelect,
+    });
+  }
+
+  const memberships = await prisma.institutionMember.findMany({
+    where: { userId: user.id, status: "ACTIVE" },
+    orderBy: { createdAt: "asc" },
+    select: { institution: { select: institutionOptionSelect } },
+  });
+  return memberships.map((membership) => membership.institution);
+}
+
+/** Persist the portal institution selection after validating access. */
+export async function switchPortalInstitution(
+  institutionId: string,
+): Promise<PortalInstitutionOption> {
+  const user = await requireAuth();
+  if (!(await canOperatePortalInstitution(user, institutionId))) {
+    throw new Error("FORBIDDEN");
+  }
+  const institution = await prisma.financialInstitution.findUniqueOrThrow({
+    where: { id: institutionId },
+    select: institutionOptionSelect,
+  });
+  setResponseHeader(
+    "Set-Cookie",
+    buildSetCookie(
+      PORTAL_INSTITUTION_COOKIE,
+      institution.id,
+      PORTAL_INSTITUTION_COOKIE_MAX_AGE_SEC,
+      getRequestHeader("host") ?? undefined,
+    ),
+  );
+  return institution;
 }
 
 export async function getPortalDashboard(institutionId: string): Promise<{

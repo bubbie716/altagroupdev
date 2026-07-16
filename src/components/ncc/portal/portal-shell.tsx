@@ -1,13 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Menu, Search } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Bell, Check, ChevronsUpDown, Menu, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NccWordmark } from "@/components/ncc/ncc-logo";
 import { NccUserMenu } from "@/components/ncc/ncc-user-menu";
+import { SiteInternalLink } from "@/components/site/site-internal-link";
+import { switchPortalInstitutionRecord } from "@/lib/ncc/ncc-portal.functions";
 import { PORTAL_NAV } from "@/lib/ncc/portal-types";
-import type { PortalInstitutionSummary, PortalNotification } from "@/lib/ncc/portal-types";
+import type {
+  PortalInstitutionOption,
+  PortalInstitutionSummary,
+  PortalNotification,
+} from "@/lib/ncc/portal-types";
 import { PortalStatusBadge } from "@/components/ncc/portal/portal-status-badge";
 import { PortalGlobalSearch } from "@/components/ncc/portal/portal-global-search";
 import {
@@ -37,13 +44,109 @@ function isNavActive(pathname: string, to: string, exact?: boolean): boolean {
   return path === target || path.startsWith(`${target}/`);
 }
 
+function PortalInstitutionSwitcher({
+  institution,
+  institutions,
+  onSwitched,
+}: {
+  institution: PortalInstitutionSummary;
+  institutions: PortalInstitutionOption[];
+  onSwitched?: () => void;
+}) {
+  const router = useRouter();
+  const switchInstitution = useServerFn(switchPortalInstitutionRecord);
+  const [switching, setSwitching] = useState(false);
+
+  const current = (
+    <div className="min-w-0 space-y-1">
+      <div className="truncate text-[12px] font-semibold text-[#111827]">
+        {institution.displayName}
+      </div>
+      <PortalStatusBadge status={institution.status} kind="institution" />
+    </div>
+  );
+
+  if (institutions.length <= 1) {
+    return current;
+  }
+
+  async function handleSwitch(institutionId: string) {
+    if (switching || institutionId === institution.id) return;
+    setSwitching(true);
+    try {
+      await switchInstitution({ data: { institutionId } });
+      await router.invalidate();
+      onSwitched?.();
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        disabled={switching}
+        aria-label="Switch institution"
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-sm border border-transparent px-1.5 py-1 -mx-1.5 text-left outline-none transition-colors",
+          "hover:border-[#e5e7eb] hover:bg-[#f9fafb] data-[state=open]:border-[#e5e7eb] data-[state=open]:bg-[#f9fafb]",
+          switching && "opacity-60",
+        )}
+      >
+        {current}
+        <ChevronsUpDown className="size-3.5 shrink-0 text-[#9ca3af]" aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64 rounded-sm border-[#e5e7eb] bg-white p-1">
+        <DropdownMenuLabel className="px-2.5 py-2 text-[11px] uppercase tracking-[0.12em] text-[#6b7280]">
+          Your institutions
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-[#e5e7eb]" />
+        {institutions.map((option) => {
+          const active = option.id === institution.id;
+          return (
+            <DropdownMenuItem
+              key={option.id}
+              onClick={() => void handleSwitch(option.id)}
+              className="cursor-pointer rounded-sm px-2.5 py-2 focus:bg-[#f9fafb] data-[highlighted]:bg-[#f9fafb]"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12px] font-medium text-[#111827]">
+                  {option.displayName}
+                </div>
+                <div className="mt-0.5 truncate text-[11px] text-[#6b7280]">{option.legalName}</div>
+              </div>
+              {active ? <Check className="ml-2 size-3.5 shrink-0 text-[#0c4d32]" aria-hidden /> : null}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function PortalBackToSiteLink({ onClick }: { onClick?: () => void }) {
+  return (
+    <SiteInternalLink
+      siteKey="ncc"
+      to="/"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6b7280] transition-colors hover:text-[#0c4d32]"
+    >
+      <ArrowLeft className="size-3.5" aria-hidden />
+      Back to NCC home
+    </SiteInternalLink>
+  );
+}
+
 export function PortalShell({
   institution,
   notifications = [],
+  institutions = [],
   children,
 }: {
   institution: PortalInstitutionSummary;
   notifications?: PortalNotification[];
+  institutions?: PortalInstitutionOption[];
   children: React.ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -81,16 +184,16 @@ export function PortalShell({
           <Link to="/portal" className="inline-flex">
             <NccWordmark />
           </Link>
-          <div className="mt-4 space-y-1">
-            <div className="truncate text-[12px] font-semibold text-[#111827]">
-              {institution.displayName}
-            </div>
-            <PortalStatusBadge status={institution.status} kind="institution" />
+          <div className="mt-4">
+            <PortalInstitutionSwitcher institution={institution} institutions={institutions} />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-2 py-3">{nav}</div>
-        <div className="border-t border-[#e5e7eb] px-4 py-3 text-[10px] uppercase tracking-[0.12em] text-[#9ca3af]">
-          Newport Clearing Corporation
+        <div className="space-y-2 border-t border-[#e5e7eb] px-4 py-3">
+          <PortalBackToSiteLink />
+          <div className="text-[10px] uppercase tracking-[0.12em] text-[#9ca3af]">
+            Newport Clearing Corporation
+          </div>
         </div>
       </aside>
 
@@ -107,8 +210,18 @@ export function PortalShell({
               <SheetContent side="left" className="w-72 border-[#e5e7eb] bg-white p-0">
                 <SheetHeader className="border-b border-[#e5e7eb] px-4 py-4 text-left">
                   <SheetTitle className="text-[14px] font-semibold">Institution Portal</SheetTitle>
+                  <div className="mt-2">
+                    <PortalInstitutionSwitcher
+                      institution={institution}
+                      institutions={institutions}
+                      onSwitched={() => setMobileOpen(false)}
+                    />
+                  </div>
                 </SheetHeader>
                 <div className="px-2 py-3">{nav}</div>
+                <div className="border-t border-[#e5e7eb] px-4 py-3">
+                  <PortalBackToSiteLink onClick={() => setMobileOpen(false)} />
+                </div>
               </SheetContent>
             </Sheet>
 

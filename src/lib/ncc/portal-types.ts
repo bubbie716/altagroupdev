@@ -17,6 +17,15 @@ export type PortalInstitutionSummary = {
   isNCCParticipant: boolean;
 };
 
+/** Institution the signed-in user can operate — powers the portal switcher. */
+export type PortalInstitutionOption = {
+  id: string;
+  legalName: string;
+  displayName: string;
+  institutionType: string;
+  status: FinancialInstitutionStatus;
+};
+
 export type PortalDashboardMetrics = {
   institution: PortalInstitutionSummary;
   primaryRoutingNumber: string | null;

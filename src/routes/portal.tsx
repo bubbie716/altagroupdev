@@ -19,9 +19,9 @@ export const Route = createFileRoute("/portal")({
 });
 
 function PortalLayoutRoute() {
-  const { institution, notifications } = Route.useLoaderData();
+  const { institution, notifications, institutions } = Route.useLoaderData();
   return (
-    <PortalShell institution={institution} notifications={notifications}>
+    <PortalShell institution={institution} notifications={notifications} institutions={institutions}>
       <Outlet />
     </PortalShell>
   );
