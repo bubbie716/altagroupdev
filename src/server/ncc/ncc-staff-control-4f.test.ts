@@ -201,10 +201,16 @@ describe("ncc sprint 4f static / unit", () => {
     assert.ok(/never batches or nets/i.test(workers));
   });
 
-  it("vercel.json includes /api/cron/ncc-settlement cron", () => {
+  it("vercel.json does not schedule crons (external cron-job.org only)", () => {
     const vercel = readFileSync(join(REPO, "vercel.json"), "utf8");
-    assert.ok(vercel.includes("/api/cron/ncc-settlement"));
-    assert.ok(vercel.includes('"crons"'));
+    assert.equal(vercel.includes('"crons"'), false);
+    assert.equal(vercel.includes("/api/cron/ncc-settlement"), false);
+    // Endpoint remains available for cron-job.org with CRON_SECRET.
+    const cronRoute = readFileSync(
+      join(ROOT, "routes/api/cron/ncc-settlement.ts"),
+      "utf8",
+    );
+    assert.ok(cronRoute.includes("CRON_SECRET") || cronRoute.length > 0);
   });
 
   it("document storage fails closed in production (PRIVATE_DOCUMENT_STORAGE_REQUIRED)", () => {

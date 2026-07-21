@@ -41,12 +41,6 @@
       ]
     }
   ],
-  "crons": [
-    {
-      "path": "/api/cron/ncc-settlement",
-      "schedule": "*/2 * * * *"
-    }
-  ],
   "redirects": [
     {
       "source": "/:path*",
