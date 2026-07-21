@@ -28,6 +28,10 @@ export async function portalCreateApiCredential(input: {
   expiresAt?: string | null;
 }) {
   const { user } = await requireInstitutionPermission(input.institutionId, "manage_api_credentials");
+  const { assertCredentialEnvironmentAllowed } = await import(
+    "@/server/ncc/ncc-participant-application.service"
+  );
+  await assertCredentialEnvironmentAllowed(input.institutionId, input.environment);
   return createApiCredential({
     institutionId: input.institutionId,
     name: input.name,

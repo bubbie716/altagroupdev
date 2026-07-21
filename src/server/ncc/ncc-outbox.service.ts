@@ -18,6 +18,7 @@ export const NCC_OUTBOX_EVENTS = {
   NCC_POSTED: "settlement.ncc_posted",
   COMPLETED: "settlement.completed",
   FAILED: "settlement.failed",
+  CANCELLED: "settlement.cancelled",
   RETRY_PENDING: "settlement.retry_pending",
   MANUAL_REVIEW: "settlement.manual_review",
   REVERSED: "settlement.reversed",
@@ -29,6 +30,11 @@ export type NccOutboxEventType = (typeof NCC_OUTBOX_EVENTS)[keyof typeof NCC_OUT
 /** Registers a handler for a given outbox eventType. Call at module init time. */
 export function registerOutboxHandler(eventType: string, handler: OutboxHandler): void {
   handlers.set(eventType, handler);
+}
+
+/** Snapshot of event types with registered handlers (for readiness / ops checks). */
+export function listRegisteredOutboxEventTypes(): string[] {
+  return [...handlers.keys()].sort();
 }
 
 /**

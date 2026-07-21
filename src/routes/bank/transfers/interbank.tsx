@@ -21,7 +21,6 @@ import {
   cancelUserScheduledTransferRecord,
   fetchUserScheduledTransfers,
 } from "@/lib/bank/scheduled-transfer.functions";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 type BankInterbankSearch = {
   accountId?: string;
@@ -32,7 +31,6 @@ export const Route = createFileRoute("/bank/transfers/interbank")({
     accountId: typeof search.accountId === "string" ? search.accountId : undefined,
   }),
   loader: async () => {
-    if (isUserFinancialMockDataEnabled()) return null;
     const [contacts, funding, history, scheduledTransfers, allSourceAccounts] = await Promise.all([
       fetchTransferContacts({ data: "interbank" }),
       fetchTerminalFundingSources(),
@@ -56,7 +54,6 @@ export const Route = createFileRoute("/bank/transfers/interbank")({
 });
 
 function BankInterbankTransfers() {
-  const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
   const { accountId } = Route.useSearch();
   const router = useRouter();
@@ -68,17 +65,7 @@ function BankInterbankTransfers() {
         title="Interbank"
         description="Transfer instantly to your Alta Terminal account through NCC. External institution wires are coming soon."
       />
-      {showMockData ? (
-        <>
-          <TransferPageHeader title="Transfer to Alta Terminal · NCC" accountId={accountId} />
-          <Section>
-            <EmptyBankState
-              title="Sign in to transfer to Alta Terminal"
-              description="Live Bank → Terminal transfers require an authenticated Alta Bank session."
-            />
-          </Section>
-        </>
-      ) : !data ? (
+      {!data ? (
         <>
           <TransferPageHeader title="Transfer to Alta Terminal · NCC" accountId={accountId} />
           <EmptyBankState
@@ -99,6 +86,7 @@ function BankInterbankTransfers() {
             <BankTerminalFundingForm
               accounts={data.sourceAccounts}
               terminalAvailableBalance={data.terminalCash.availableBalance}
+              terminalAccountNumberMasked={data.terminalCash.accountNumberMasked}
               defaultFromAccountId={accountId}
               onSuccess={() => void router.invalidate()}
             />

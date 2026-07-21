@@ -4,9 +4,6 @@ import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
 import { IssuerPortalPanel } from "@/components/exchange/issuer-portal";
 import { getCompany } from "@/lib/exchange/api";
 import { issuerPortalBeforeLoad } from "@/lib/auth/guards";
-import { findCompanyMembership } from "@/lib/auth/permissions";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import type { IssuerSession } from "@/lib/exchange/issuer-access";
 
 export const Route = createFileRoute("/exchange/company/$ticker/owner")({
   beforeLoad: issuerPortalBeforeLoad,
@@ -18,7 +15,6 @@ export const Route = createFileRoute("/exchange/company/$ticker/owner")({
 
 function CompanyOwnerPage() {
   const { ticker } = Route.useParams();
-  const user = useCurrentUser();
   const company = getCompany(ticker);
 
   if (!company) {
@@ -39,14 +35,6 @@ function CompanyOwnerPage() {
     );
   }
 
-  if (!user) return null;
-
-  const membership = findCompanyMembership(user, { ticker });
-  const session: IssuerSession = {
-    ticker: company.symbol,
-    organization: membership?.companyName ?? company.name,
-  };
-
   return (
     <>
       <ExchangePageMeta
@@ -55,7 +43,7 @@ function CompanyOwnerPage() {
         description="Publish corporate announcements and monthly financial updates to your Alta Exchange ticker page."
       />
       <div className="flex justify-center">
-        <IssuerPortalPanel company={company} session={session} onSignOut={() => {}} />
+        <IssuerPortalPanel />
       </div>
     </>
   );

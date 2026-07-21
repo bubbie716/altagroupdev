@@ -1,5 +1,5 @@
 import { Card } from "@/components/page-shell";
-import { florin } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
 import {

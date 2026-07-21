@@ -59,11 +59,13 @@ function formatWhen(iso: string | null) {
 export function BankTerminalFundingForm({
   accounts,
   terminalAvailableBalance,
+  terminalAccountNumberMasked,
   defaultFromAccountId,
   onSuccess,
 }: {
   accounts: UserBankAccount[];
   terminalAvailableBalance: string;
+  terminalAccountNumberMasked?: string;
   defaultFromAccountId?: string;
   onSuccess?: () => void;
 }) {
@@ -94,14 +96,18 @@ export function BankTerminalFundingForm({
     };
   }, []);
 
-  function resetForm() {
+  function resetForm(options?: { clearIdempotencyKey?: boolean }) {
     setView("form");
     setErrorReason(null);
     setSubmission(null);
     setPendingRequestId(null);
     setAmount("");
     setMemo("");
-    idempotencyKeyRef.current = null;
+    // Only clear after a confirmed final success. Retries after ambiguous/failed
+    // responses must reuse the same key so money cannot move twice.
+    if (options?.clearIdempotencyKey) {
+      idempotencyKeyRef.current = null;
+    }
     pollCountRef.current = 0;
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     setFromAccountId(resolveInitialFromAccountId(accounts, defaultFromAccountId));
@@ -233,7 +239,7 @@ export function BankTerminalFundingForm({
       <BankRequestSuccessCard
         kind="transfer"
         result={submission}
-        onSubmitAnother={resetForm}
+        onSubmitAnother={() => resetForm({ clearIdempotencyKey: true })}
       />
     );
   }
@@ -260,7 +266,12 @@ export function BankTerminalFundingForm({
   }
 
   if (view === "error") {
-    return <BankRequestErrorCard reason={errorReason} onTryAgain={resetForm} />;
+    return (
+      <BankRequestErrorCard
+        reason={errorReason}
+        onTryAgain={() => resetForm({ clearIdempotencyKey: false })}
+      />
+    );
   }
 
   return (
@@ -297,7 +308,11 @@ export function BankTerminalFundingForm({
             <span className={fieldLabel}>To account</span>
             <input
               readOnly
-              value="My Alta Terminal account"
+              value={
+                terminalAccountNumberMasked
+                  ? `My Alta Terminal · ${terminalAccountNumberMasked}`
+                  : "My Alta Terminal account"
+              }
               className={`${inputClass} bg-surface-2/50 text-muted-foreground`}
             />
             <span className="mt-2 block text-[12px] text-muted-foreground">

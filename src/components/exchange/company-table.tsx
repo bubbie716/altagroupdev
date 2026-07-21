@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
-import { compact, pct } from "@/lib/mock-data";
+import { compact, pct } from "@/lib/format/money-display";
 import type { ListedCompany } from "@/lib/exchange/types";
 import { StatusBadge } from "@/components/internal/status-badge";
 

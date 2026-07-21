@@ -12,6 +12,7 @@ describe("ncc portal", () => {
       PORTAL_NAV.map((item) => item.to),
       [
         "/portal",
+        "/portal/applications",
         "/portal/queue",
         "/portal/settlements",
         "/portal/accounts",

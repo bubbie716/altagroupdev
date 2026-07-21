@@ -18,7 +18,7 @@ import {
   type PortfolioChartPoint,
   type PortfolioTimeRange,
 } from "@/lib/account/portfolio-chart-series";
-import { florin } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
 import { cn } from "@/lib/utils";
 
 type ChartMargin = typeof PORTFOLIO_CHART_MARGIN;

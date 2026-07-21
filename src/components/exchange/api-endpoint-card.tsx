@@ -26,9 +26,9 @@ export function ApiEndpointCard({ endpoint, baseUrl }: { endpoint: ApiEndpoint; 
         <div className="flex flex-wrap gap-6 border-t border-border/40 pt-3">
           <div>
             <div className="type-meta">
-              Mock function
+              Availability
             </div>
-            <code className="mt-1 block font-mono text-[12px] text-gold">{endpoint.mockFn}</code>
+            <span className="mt-1 block text-[12px] text-muted-foreground">{endpoint.availability}</span>
           </div>
           <div>
             <div className="type-meta">

@@ -12,13 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import {
-  DEMO_API_KEY,
-  saveApiSession,
-  submitApiApplication,
-  validateApiKey,
-  type ApiSession,
-} from "@/lib/exchange/api-access";
+import { submitApiApplication, validateApiKey, type ApiSession } from "@/lib/exchange/api-access";
 
 type GateTab = "sign-in" | "apply";
 
@@ -42,7 +36,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [applySuccess, setApplySuccess] = useState<string | null>(null);
+  const [applyNotice, setApplyNotice] = useState<string | null>(null);
 
   function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -51,10 +45,9 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
     try {
       const session = validateApiKey(apiKey);
       if (!session) {
-        setError("Invalid API key. Check your key or apply for access below.");
+        setError("Invalid API key. API access is not yet available in production.");
         return;
       }
-      saveApiSession(session);
       onAuthenticated(session);
     } finally {
       setPending(false);
@@ -64,23 +57,23 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
   function handleApply(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setApplySuccess(null);
+    setApplyNotice(null);
     if (!organization.trim() || !contactName.trim() || !useCase || !description.trim()) {
       setError("Complete all fields before submitting.");
       return;
     }
     setPending(true);
     try {
-      const record = submitApiApplication({
+      const result = submitApiApplication({
         organization: organization.trim(),
         contactName: contactName.trim(),
         useCase,
         description: description.trim(),
       });
-      const session = { key: record.key, organization: record.organization };
-      saveApiSession(session);
-      setApplySuccess(record.key);
-      onAuthenticated(session);
+      if (!result.submitted) {
+        setApplyNotice(result.message);
+        return;
+      }
     } finally {
       setPending(false);
     }
@@ -125,14 +118,12 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
         <Card>
           <form onSubmit={handleSignIn} className="space-y-5">
             <label className="block">
-              <span className="type-meta">
-                API key
-              </span>
+              <span className="type-meta">API key</span>
               <input
                 type="text"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder={DEMO_API_KEY}
+                placeholder="Enter your Alta Exchange API key"
                 className={cn(fieldClass, "font-mono")}
                 required
                 autoComplete="off"
@@ -140,10 +131,8 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
             </label>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <p className="text-[12px] text-muted-foreground">
-              Preview demo key:{" "}
-              <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px]">
-                {DEMO_API_KEY}
-              </code>
+              API keys are issued after Alta Exchange approves your application. Sign-in is not
+              available until credentials are provisioned.
             </p>
             <button
               type="submit"
@@ -158,9 +147,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
         <Card>
           <form onSubmit={handleApply} className="space-y-5">
             <label className="block">
-              <span className="type-meta">
-                Organization
-              </span>
+              <span className="type-meta">Organization</span>
               <input
                 type="text"
                 value={organization}
@@ -171,9 +158,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               />
             </label>
             <label className="block">
-              <span className="type-meta">
-                Contact name
-              </span>
+              <span className="type-meta">Contact name</span>
               <input
                 type="text"
                 value={contactName}
@@ -184,9 +169,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               />
             </label>
             <div className="block">
-              <span className="type-meta">
-                Use case
-              </span>
+              <span className="type-meta">Use case</span>
               <Select value={useCase} onValueChange={setUseCase} required>
                 <SelectTrigger className={cn(fieldClass, "h-auto min-h-10")}>
                   <SelectValue placeholder="Select use case" />
@@ -201,9 +184,7 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               </Select>
             </div>
             <label className="block">
-              <span className="type-meta">
-                Intended integration
-              </span>
+              <span className="type-meta">Intended integration</span>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -213,15 +194,9 @@ export function ApiAccessGate({ onAuthenticated }: { onAuthenticated: (session: 
               />
             </label>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            {applySuccess && (
-              <Card className="border-gold/30 bg-gold/5 !p-4">
-                <p className="text-[13px] leading-relaxed text-muted-foreground">
-                  Application approved for this preview environment. Your API key has been issued and
-                  you are now signed in.
-                </p>
-                <code className="mt-2 block break-all font-mono text-[12px] text-foreground">
-                  {applySuccess}
-                </code>
+            {applyNotice && (
+              <Card className="border-border bg-surface-2/40 !p-4">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{applyNotice}</p>
               </Card>
             )}
             <button

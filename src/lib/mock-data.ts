@@ -1,17 +1,7 @@
 // Mock data for Alta Group platform (roleplay economy, fictional)
+// Retained for tests and non-production fixtures. Production formatters live in lib/format/money-display.ts.
 
-export const florin = (n: number) =>
-  "ƒ" +
-  n.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-export const compact = (n: number) =>
-  Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(n);
-
-export const pct = (n: number) =>
-  (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+export { compact, florin, pct } from "@/lib/format/money-display";
 
 export interface Stock {
   symbol: string;

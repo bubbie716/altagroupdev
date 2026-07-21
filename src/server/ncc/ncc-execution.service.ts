@@ -264,8 +264,8 @@ async function assertAdaptersAvailable(
     receivingInstitution: { id: string; slug: string; isAlta: boolean };
   },
 ): Promise<StepContext | SettlementExecution> {
-  const sendAdapter = getAdapterForInstitution(instruction.sendingInstitution);
-  const recvAdapter = getAdapterForInstitution(instruction.receivingInstitution);
+  const sendAdapter = await getAdapterForInstitution(instruction.sendingInstitution);
+  const recvAdapter = await getAdapterForInstitution(instruction.receivingInstitution);
 
   if (!sendAdapter) {
     const failed = await markFailed(

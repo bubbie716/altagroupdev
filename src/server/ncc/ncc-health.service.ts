@@ -1,5 +1,8 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { OUTBOX_CLAIM_LEASE_MS } from "@/server/ncc/ncc-outbox.service";
+import { WEBHOOK_DELIVERY_LEASE_MS } from "@/server/ncc/ncc-webhook-delivery.service";
+import { countUnexplainedLegacyFloats } from "@/server/ncc/ncc-institution.service";
+import { countExpiredRegulatoryDocuments } from "@/server/ncc/ncc-participant-documents.service";
 
 export type NccIntegrationHealth = {
   adapters: {
@@ -20,6 +23,21 @@ export type NccIntegrationHealth = {
     p99SettlementDurationMs: number | null;
     recentAdapterFailures: number;
     oldestIncompleteUpdatedAt: string | null;
+    compensationBacklog: number;
+    reconciliationMismatchCount: number;
+    outboxBacklog: number;
+    failedOrStaleWorkerClaims: number;
+    manualReviewAgeOldest: string | null;
+    institutionsBelowLiquidityThreshold: number;
+    expiredRegulatoryDocuments: number;
+    unexplainedLegacyFloatCount: number;
+  };
+  connectors: {
+    total: number;
+    active: number;
+    failing: number;
+    draftOrDisabled: number;
+    lastErrorCount: number;
   };
   api: {
     activeCredentials: number;
@@ -39,6 +57,8 @@ export type NccIntegrationHealth = {
     p95DeliveryLatencyMs: number | null;
     ssrfRejections24h: number;
     outboxFanoutBacklog: number;
+    webhookBacklog: number;
+    staleWebhookClaims: number;
   };
   performanceTarget: {
     description: string;
@@ -53,9 +73,12 @@ function percentile(sorted: number[], p: number): number | null {
   return sorted[idx] ?? null;
 }
 
-/** Internal NCC integration health for ops dashboards. */
+/** Internal NCC integration health for ops dashboards — prisma counts only, no fake data. */
 export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const outboxStaleBefore = new Date(Date.now() - OUTBOX_CLAIM_LEASE_MS);
+  const webhookStaleBefore = new Date(Date.now() - WEBHOOK_DELIVERY_LEASE_MS);
+
   const [
     incompleteExecutions,
     manualReviewCount,
@@ -79,8 +102,23 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
     recentDeliveries,
     ssrfRejections24h,
     outboxFanoutBacklog,
+    compensationBacklog,
+    reconciliationMismatchCount,
+    staleOutboxClaims,
+    staleWebhookClaims,
+    oldestManualReview,
+    connectorTotal,
+    connectorActive,
+    connectorFailing,
+    connectorDraftOrDisabled,
+    connectorLastErrorCount,
+    institutionsBelowLiquidityThreshold,
+    expiredRegulatoryDocuments,
+    unexplainedLegacyFloatCount,
   ] = await Promise.all([
-    prisma.settlementExecution.count({ where: { status: { notIn: ["COMPLETED", "FAILED", "COMPENSATED"] } } }),
+    prisma.settlementExecution.count({
+      where: { status: { notIn: ["COMPLETED", "FAILED", "COMPENSATED"] } },
+    }),
     prisma.settlementExecution.count({ where: { status: "MANUAL_REVIEW" } }),
     prisma.settlementExecution.count({ where: { status: "RETRY_PENDING" } }),
     prisma.bankAccountHold.count({
@@ -139,6 +177,55 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
     prisma.settlementOutboxEvent.count({
       where: { status: { in: ["PENDING", "PROCESSING"] } },
     }),
+    prisma.settlementExecution.count({
+      where: {
+        status: { in: ["MANUAL_REVIEW", "FAILED"] },
+        sourceCommitReference: { not: null },
+        destinationCreditReference: null,
+        compensation: { is: null },
+      },
+    }),
+    prisma.settlementReconciliation.count({
+      where: {
+        status: {
+          in: ["MISMATCH", "MISSING_SOURCE", "MISSING_DESTINATION", "DUPLICATE", "STALE_RESERVATION"],
+        },
+      },
+    }),
+    prisma.settlementOutboxEvent.count({
+      where: {
+        status: "PROCESSING",
+        OR: [{ claimedAt: { lt: outboxStaleBefore } }, { claimedAt: null }],
+      },
+    }),
+    prisma.nccWebhookDelivery.count({
+      where: {
+        status: "DELIVERING",
+        OR: [{ claimedAt: { lt: webhookStaleBefore } }, { claimedAt: null }],
+      },
+    }),
+    prisma.settlementExecution.findFirst({
+      where: { status: "MANUAL_REVIEW" },
+      orderBy: { updatedAt: "asc" },
+      select: { updatedAt: true },
+    }),
+    prisma.nccParticipantConnector.count(),
+    prisma.nccParticipantConnector.count({ where: { status: "ACTIVE" } }),
+    prisma.nccParticipantConnector.count({
+      where: { OR: [{ lastErrorCode: { not: null } }, { status: "DISABLED" }] },
+    }),
+    prisma.nccParticipantConnector.count({
+      where: { status: { in: ["DRAFT", "DISABLED"] } },
+    }),
+    prisma.nccParticipantConnector.count({ where: { lastErrorCode: { not: null } } }),
+    prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*)::bigint AS count
+      FROM "SettlementAccount"
+      WHERE "lowLiquidityThreshold" IS NOT NULL
+        AND "availableBalance" <= "lowLiquidityThreshold"
+    `.then((rows) => Number(rows[0]?.count ?? 0)),
+    countExpiredRegulatoryDocuments(),
+    countUnexplainedLegacyFloats(),
   ]);
 
   const durations = completed
@@ -158,6 +245,8 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
     deliveryLatencies.length === 0
       ? null
       : Math.round(deliveryLatencies.reduce((a, b) => a + b, 0) / deliveryLatencies.length);
+
+  const webhookBacklog = pendingDeliveries + retryPendingDeliveries;
 
   return {
     adapters: {
@@ -182,6 +271,21 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
       p99SettlementDurationMs: percentile(durations, 99),
       recentAdapterFailures: recentFailedExecutions,
       oldestIncompleteUpdatedAt: oldest?.updatedAt.toISOString() ?? null,
+      compensationBacklog,
+      reconciliationMismatchCount,
+      outboxBacklog: outboxFanoutBacklog,
+      failedOrStaleWorkerClaims: staleOutboxClaims + staleWebhookClaims,
+      manualReviewAgeOldest: oldestManualReview?.updatedAt.toISOString() ?? null,
+      institutionsBelowLiquidityThreshold,
+      expiredRegulatoryDocuments,
+      unexplainedLegacyFloatCount,
+    },
+    connectors: {
+      total: connectorTotal,
+      active: connectorActive,
+      failing: connectorFailing,
+      draftOrDisabled: connectorDraftOrDisabled,
+      lastErrorCount: connectorLastErrorCount,
     },
     api: {
       activeCredentials,
@@ -201,6 +305,8 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
       p95DeliveryLatencyMs: percentile(deliveryLatencies, 95),
       ssrfRejections24h,
       outboxFanoutBacklog,
+      webhookBacklog,
+      staleWebhookClaims,
     },
     performanceTarget: {
       description:
@@ -210,5 +316,3 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
     },
   };
 }
-
-void Prisma;

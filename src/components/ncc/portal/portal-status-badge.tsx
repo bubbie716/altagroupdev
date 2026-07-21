@@ -22,6 +22,7 @@ const SETTLEMENT_STYLES: Record<string, string> = {
 
 const INSTITUTION_STYLES: Record<string, string> = {
   APPLICANT: "bg-[#fefce8] text-[#a16207] border-[#fef08a]",
+  CERTIFICATION: "bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe]",
   ACTIVE: "bg-[#ecfdf3] text-[#15803d] border-[#bbf7d0]",
   RESTRICTED: "bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]",
   SUSPENDED: "bg-[#fef2f2] text-[#b91c1c] border-[#fecaca]",

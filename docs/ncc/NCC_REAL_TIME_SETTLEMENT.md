@@ -77,17 +77,22 @@ Both sending and receiving institution adapters **must** be registered before so
 - Missing source adapter → `SOURCE_ADAPTER_UNAVAILABLE` (FAILED, audited)
 - Missing destination adapter → `DESTINATION_ADAPTER_UNAVAILABLE` (FAILED, audited)
 - Never generate successful `no-adapter:*` execution references
-- A registered adapter may still process an institution-float leg with no customer `accountReference`
+- A registered adapter may still process an institution-float leg with no customer account number
+
+### Payment addressing (Sprint 4A)
+
+Public and website financial submissions use **routing number + opaque institution-specific account identifier**. NCC envelope-validates the identifier without imposing a universal format. The adapter for the institution selected by the routing number implements `resolveAccount` to apply that institution’s format/normalization rules, resolve, and validate debit/credit eligibility before any NCC ledger post. Opaque internal references are persisted on `SettlementExecution` for resume/history only and are never returned on the public API or webhooks.
 
 ### Orchestration order
 
-1. **assert adapters** — fail closed if either adapter is missing
-2. **validate** — `validateAccountReference` on source and destination adapters (when account refs present)
-3. **prepareDebit** — source adapter holds / reserves customer funds
-4. **post NCC ledger** — `postNccLedgerEntries` (instruction → SETTLED) + `settlement.ncc_posted` outbox
-5. **commitDebit** — source adapter posts the debit
-6. **notifyCredit** — destination adapter posts the credit
-7. **COMPLETED** — `completedAt` set + `settlement.completed` outbox
+1. **resolve payment addresses** — `resolveAccount` on source/destination adapters (when account numbers present); fail closed if adapters missing
+2. **assert adapters** — fail closed if either adapter is missing for execution
+3. **validate** — `validateAccountReference` on resolved internal refs (when present)
+4. **prepareDebit** — source adapter holds / reserves customer funds
+5. **post NCC ledger** — `postNccLedgerEntries` (instruction → SETTLED) + `settlement.ncc_posted` outbox
+6. **commitDebit** — source adapter posts the debit
+7. **notifyCredit** — destination adapter posts the credit
+8. **COMPLETED** — `completedAt` set + `settlement.completed` outbox
 
 ### Initial float policy (Sprint 3A.1)
 

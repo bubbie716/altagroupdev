@@ -3,21 +3,16 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { AltaLogo, AltaWordmark } from "@/components/alta-logo";
 import { SiteNav } from "@/components/site-nav";
-import { AnimatedNumber } from "@/components/animated-number";
 import { HomePortfolioPanel } from "@/components/site/homepages/home-portfolio-panel";
-import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import type { PlatformMetrics } from "@/lib/metrics/platform-metrics";
 import { buildHomepagePlatformMetrics } from "@/lib/metrics/governance-metrics";
 import { MetricValue } from "@/components/metrics/metric-value";
 import {
   assetAllocationFromSnapshot,
-  demoAssetAllocation,
 } from "@/lib/account/asset-allocation";
 import type { HomePortfolioSnapshot } from "@/lib/account/home-portfolio.types";
-import { isPublicSimulatedMarketDataEnabled, isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
-import { getIndices } from "@/lib/exchange/api";
-import { compact, florin, indexSeries, movers, pct } from "@/lib/mock-data";
+import { florin, pct } from "@/lib/format/money-display";
 import {
   resolveEntitySiteLabel,
   resolveEntitySiteUrl,
@@ -96,40 +91,11 @@ function formatSnapshotChangeLabel(snapshot: HomePortfolioSnapshot) {
   return `${sign}${florin(Math.abs(snapshot.dailyPnL))} · ${pct(snapshot.dailyPnLPercent)}`;
 }
 
-function scaleChartSeries<T extends { t: number; v: number; at?: number }>(
-  series: T[],
-  ratio: number,
-): T[] {
-  return series.map((point) => ({ ...point, v: point.v * ratio }));
-}
-
 function flatChartSeries<T extends { t: number; v: number; at?: number }>(
   template: T[],
   value: number,
 ): T[] {
   return template.map((point) => ({ ...point, v: value }));
-}
-
-function buildDemoPortfolioStats(netWorth: number, chartData: typeof indexSeries): PortfolioDashboardStat[] {
-  const florinBalance = 1_240_500;
-  const portfolioValue = 1_885_285;
-  const florinRatio = florinBalance / netWorth;
-  const portfolioRatio = portfolioValue / netWorth;
-
-  return [
-    {
-      label: "Florin Balance",
-      value: florin(florinBalance),
-      currentValue: florinBalance,
-      chartSeries: scaleChartSeries(chartData, florinRatio),
-    },
-    {
-      label: "Investments",
-      value: florin(portfolioValue),
-      currentValue: portfolioValue,
-      chartSeries: scaleChartSeries(chartData, portfolioRatio),
-    },
-  ];
 }
 
 function buildSnapshotPortfolioStats(snapshot: HomePortfolioSnapshot): PortfolioDashboardStat[] {
@@ -152,11 +118,7 @@ function buildSnapshotPortfolioStats(snapshot: HomePortfolioSnapshot): Portfolio
 
 function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
   const user = useCurrentUser();
-  const nsx100 = getIndices()[0];
   const portfolioLocked = !user;
-  const showUserFinancialMock = isUserFinancialMockDataEnabled();
-  const demoNetWorth = 8_412_209.4;
-  const demoAllocation = demoAssetAllocation(demoNetWorth);
 
   const valueProps = [
     { title: "Seamless Banking", desc: "Institutional-grade accounts and treasury." },
@@ -182,8 +144,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
           <AltaLogo className="h-16 w-16 text-foreground" />
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 type-meta">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-            Alta Exchange Open · NSX-100{" "}
-            {nsx100.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            Alta Group · Four institutions online
           </div>
           <h1 className="mt-10 max-w-[20ch] font-serif text-[clamp(3.5rem,8.5vw,7.5rem)] font-normal leading-[0.94] tracking-[-0.035em]">
             Live Like the 1%
@@ -218,12 +179,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
           <div className="grain-dark animate-rise min-w-0 overflow-hidden rounded-2xl border border-border-strong bg-surface-1/90 p-2 shadow-[var(--shadow-elegant)] backdrop-blur">
             <HomePortfolioPanel
               locked={portfolioLocked}
-              showUserFinancialMock={showUserFinancialMock}
               snapshot={snapshot}
-              demoNetWorth={demoNetWorth}
-              demoAllocation={demoAllocation}
-              indexSeries={indexSeries}
-              buildDemoPortfolioStats={buildDemoPortfolioStats}
               buildSnapshotPortfolioStats={buildSnapshotPortfolioStats}
               formatSnapshotChangeLabel={formatSnapshotChangeLabel}
               assetAllocationFromSnapshot={assetAllocationFromSnapshot}
@@ -351,9 +307,6 @@ function Capabilities({ metrics }: { metrics: PlatformMetrics }) {
 }
 
 function ClosingCTA() {
-  const topMover = movers.gainers[0];
-  const nsxIndex = getIndices()[0];
-
   return (
     <section className="mx-auto max-w-[1400px] px-6 py-32">
       <div className="relative overflow-hidden rounded-2xl border border-border-strong bg-surface-1 p-12 md:p-20">
@@ -373,31 +326,11 @@ function ClosingCTA() {
             </h2>
           </div>
           <div className="flex flex-col items-start gap-3">
-            <div className="type-section-title">Live market snapshot</div>
-            {isPublicSimulatedMarketDataEnabled() && <MockDataNotice className="max-w-sm" />}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="tabular text-2xl font-semibold tracking-tight text-foreground">
-                NSX-100{" "}
-                <AnimatedNumber
-                  value={nsxIndex.value}
-                  format={(n) =>
-                    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  }
-                  className="text-[var(--success)]"
-                />
-              </div>
-              <span className="ticker-up inline-flex items-center gap-1 rounded-md border border-[color:var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 font-mono text-[11px] font-medium">
-                ↗ {pct(nsxIndex.change)}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
-              <span>
-                {compact(topMover.marketCap)} top mover · {topMover.symbol}
-              </span>
-              <span className="ticker-up inline-flex items-center gap-1 rounded-md border border-[color:var(--success)]/30 bg-[var(--success)]/10 px-2 py-0.5 font-medium">
-                ↗ {pct(topMover.change)}
-              </span>
-            </div>
+            <div className="type-section-title">Platform status</div>
+            <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+              Alta Bank, NCC clearing, and Terminal cash services are live. Exchange market data and
+              Terminal trading remain unavailable until listing and execution services launch.
+            </p>
             <Link
               to="/terminal"
               className="mt-4 inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-[13px] font-medium tracking-wide text-background transition-transform hover:-translate-y-px"

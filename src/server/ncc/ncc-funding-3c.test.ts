@@ -68,7 +68,7 @@ describe("ncc sprint 3c bank website funding", { skip: !RUN || !isDatabaseConfig
         userId,
         accountType: "CHECKING",
         accountName: `NCC 3C Personal ${suffix}`,
-        accountNumber: `3C${suffix}`.slice(0, 16).padEnd(16, "0"),
+        accountNumber: `AB-2000-${String(100000 + (Number.parseInt(suffix.slice(-5), 36) % 900000)).padStart(6, "0")}`,
         status: "ACTIVE",
         balance: new Prisma.Decimal(2_500),
         currency: "FLR",
@@ -84,7 +84,7 @@ describe("ncc sprint 3c bank website funding", { skip: !RUN || !isDatabaseConfig
         ownershipType: "COMPANY",
         accountType: "BUSINESS_OPERATING",
         accountName: `NCC 3C Co Op ${suffix}`,
-        accountNumber: `3B${suffix}`.slice(0, 16).padEnd(16, "1"),
+        accountNumber: `AB-5000-${String(100000 + ((Number.parseInt(suffix.slice(-5), 36) + 1) % 900000)).padStart(6, "0")}`,
         status: "ACTIVE",
         balance: new Prisma.Decimal(8_000),
         currency: "FLR",
@@ -97,7 +97,7 @@ describe("ncc sprint 3c bank website funding", { skip: !RUN || !isDatabaseConfig
         userId,
         accountType: "CHECKING",
         accountName: `NCC 3C Restricted ${suffix}`,
-        accountNumber: `3R${suffix}`.slice(0, 16).padEnd(16, "2"),
+        accountNumber: `AB-2000-${String(100000 + ((Number.parseInt(suffix.slice(-5), 36) + 2) % 900000)).padStart(6, "0")}`,
         status: "ACTIVE",
         balance: new Prisma.Decimal(500),
         currency: "FLR",
@@ -112,7 +112,7 @@ describe("ncc sprint 3c bank website funding", { skip: !RUN || !isDatabaseConfig
         userId: otherUserId,
         accountType: "CHECKING",
         accountName: `NCC 3C Other ${suffix}`,
-        accountNumber: `3O${suffix}`.slice(0, 16).padEnd(16, "3"),
+        accountNumber: `AB-2000-${String(100000 + ((Number.parseInt(suffix.slice(-5), 36) + 3) % 900000)).padStart(6, "0")}`,
         status: "ACTIVE",
         balance: new Prisma.Decimal(1_000),
         currency: "FLR",
@@ -225,6 +225,10 @@ describe("ncc sprint 3c bank website funding", { skip: !RUN || !isDatabaseConfig
     const metadata = (instruction.metadata ?? {}) as Record<string, unknown>;
     assert.equal(metadata.channel, "bank_website");
     assert.ok(!("batchId" in metadata) && !("clearingBatchId" in metadata));
+    assert.ok(!("sourceAccountReference" in metadata));
+    assert.ok(!("destinationAccountReference" in metadata));
+    assert.ok(instruction.sourceAccountNumberMasked);
+    assert.ok(instruction.destinationAccountNumberMasked);
 
     const execution = await prisma.settlementExecution.findUniqueOrThrow({
       where: { settlementInstructionId: instruction.id },

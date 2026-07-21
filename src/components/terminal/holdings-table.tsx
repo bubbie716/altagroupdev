@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { MiniChart } from "@/components/mini-chart";
-import { florin, makeSeries, stocks } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
 
 type Holding = {
   symbol: string;
@@ -9,9 +9,20 @@ type Holding = {
   avg: number;
   value: number;
   weight: number;
+  name?: string;
+  lastPrice?: number;
+  change?: number;
 };
 
 export function HoldingsTable({ rows }: { rows: Holding[] }) {
+  if (rows.length === 0) {
+    return (
+      <Card className="px-5 py-8 text-center text-[13px] text-muted-foreground">
+        No holdings yet.
+      </Card>
+    );
+  }
+
   return (
     <Card className="!p-0 overflow-hidden">
       <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
@@ -29,9 +40,10 @@ export function HoldingsTable({ rows }: { rows: Holding[] }) {
         </thead>
         <tbody>
           {rows.map((h) => {
-            const s = stocks.find((x) => x.symbol === h.symbol)!;
+            const lastPrice = h.lastPrice ?? h.avg;
             const cost = h.shares * h.avg;
             const p = h.value - cost;
+            const positive = (h.change ?? p) >= 0;
             return (
               <tr key={h.symbol} className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40">
                 <td className="px-5 py-3">
@@ -42,11 +54,11 @@ export function HoldingsTable({ rows }: { rows: Holding[] }) {
                   >
                     {h.symbol}
                   </Link>
-                  <div className="text-[11px] text-muted-foreground">{s.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{h.name ?? h.symbol}</div>
                 </td>
                 <td className="tabular px-5 py-3 text-right">{h.shares.toLocaleString()}</td>
                 <td className="tabular px-5 py-3 text-right text-muted-foreground">{h.avg.toFixed(2)}</td>
-                <td className="tabular px-5 py-3 text-right">{s.price.toFixed(2)}</td>
+                <td className="tabular px-5 py-3 text-right">{lastPrice.toFixed(2)}</td>
                 <td className="tabular px-5 py-3 text-right">{florin(h.value)}</td>
                 <td className={`tabular px-5 py-3 text-right ${p >= 0 ? "ticker-up" : "ticker-down"}`}>
                   {p >= 0 ? "+" : ""}
@@ -56,7 +68,7 @@ export function HoldingsTable({ rows }: { rows: Holding[] }) {
                   {(h.weight * 100).toFixed(1)}%
                 </td>
                 <td className="w-20 px-5 py-3">
-                  <MiniChart data={makeSeries(30, s.price, 1, 0.05)} positive={s.change >= 0} height={28} />
+                  <MiniChart data={[{ t: 0, v: lastPrice }, { t: 1, v: lastPrice }]} positive={positive} height={28} />
                 </td>
               </tr>
             );

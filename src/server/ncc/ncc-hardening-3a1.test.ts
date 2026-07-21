@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { after, before, describe, it } from "node:test";
 import { Prisma } from "@prisma/client";
 import { isDatabaseConfigured, prisma } from "@/server/db";
@@ -62,11 +63,17 @@ describe("ncc 3a.1 compensation eligibility helpers", () => {
     assert.equal(allowed.ok, true);
   });
 
-  it("blocks non-staff actors", () => {
-    assert.throws(
-      () => assertActorMayCompensate({ tags: [] }),
-      (error: unknown) => error instanceof NccCompensationError && error.code === "FORBIDDEN",
+  it("staff compensation gate is dedicated NCC staff membership (not tag tags alone)", () => {
+    // Sprint 4F: assertActorMayCompensate is a no-op; requireNccStaff("initiate_compensation")
+    // enforces dedicated NccStaffMembership. Tag-only internal users are not sufficient.
+    assert.doesNotThrow(() => assertActorMayCompensate({ tags: [] }));
+    const permSource = readFileSync(
+      new URL("../../../lib/ncc/ncc-staff-permissions.ts", import.meta.url),
+      "utf8",
     );
+    assert.ok(permSource.includes("initiate_compensation"));
+    const staffComp = readFileSync(new URL("./ncc-compensation.service.ts", import.meta.url), "utf8");
+    assert.ok(staffComp.includes('requireNccStaff("initiate_compensation")'));
   });
 });
 
@@ -111,7 +118,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
         userId: actorUserId,
         accountType: "CHECKING",
         accountName: `NCC 3A1 ${suffix}`,
-        accountNumber: `H${suffix}`.slice(0, 16).padEnd(16, "2"),
+        accountNumber: `AB-2000-${String(200000 + (Number.parseInt(suffix.slice(-5), 36) % 800000)).padStart(6, "0")}`,
         status: "ACTIVE",
         balance: new Prisma.Decimal(10_000),
         currency: "FLR",
@@ -186,7 +193,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
     // Leave fixtures for inspection; DB tests are additive.
   });
 
-  it("seed creates initial float once and never overwrites balances", async () => {
+  it("seed never overwrites existing settlement balances", async () => {
     await ensureAltaInstitutionsSeeded();
     const before = await prisma.settlementAccount.findUniqueOrThrow({
       where: {
@@ -317,6 +324,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       where: { institutionId: ALTA_TERMINAL_INSTITUTION_ID, isPrimary: true },
     });
     const cash = await ensureUserTerminalCashAccount(actorUserId);
+    const bankAccount = await prisma.bankAccount.findUniqueOrThrow({ where: { id: bankAccountId } });
 
     const instruction = await submitInstruction({
       sendingInstitutionId: ALTA_BANK_INSTITUTION_ID,
@@ -327,10 +335,8 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       currency: NCC_DEFAULT_CURRENCY,
       idempotencyKey: `outbox-ok-${suffix}`,
       submittedByUserId: actorUserId,
-      metadata: {
-        sourceAccountReference: bankAccountId,
-        destinationAccountReference: cash.id,
-      },
+      sourceAccountNumber: bankAccount.accountNumber,
+      destinationAccountNumber: cash.accountNumber,
     });
 
     // Duplicate submission must not duplicate logical outbox events.
@@ -343,10 +349,8 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       currency: NCC_DEFAULT_CURRENCY,
       idempotencyKey: `outbox-ok-${suffix}`,
       submittedByUserId: actorUserId,
-      metadata: {
-        sourceAccountReference: bankAccountId,
-        destinationAccountReference: cash.id,
-      },
+      sourceAccountNumber: bankAccount.accountNumber,
+      destinationAccountNumber: cash.accountNumber,
     });
 
     const events = await listOutboxEventsForInstruction(instruction.id);
@@ -383,6 +387,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       () =>
         prisma.terminalCashAccount.create({
           data: {
+            accountNumber: "999999999991",
             currency: "USD",
             ledgerBalance: 0,
             availableBalance: 0,
@@ -395,6 +400,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       () =>
         prisma.terminalCashAccount.create({
           data: {
+            accountNumber: "999999999992",
             ownerUserId: actorUserId,
             ownerCompanyId: companyId,
             currency: "EUR",
@@ -408,6 +414,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
     await assert.rejects(() =>
       prisma.terminalCashAccount.create({
         data: {
+          accountNumber: "999999999993",
           ownerUserId: actorUserId,
           currency: NCC_DEFAULT_CURRENCY,
           ledgerBalance: 0,
@@ -555,6 +562,9 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
         error instanceof NccCompensationError && error.code === "COMPENSATION_REASON_REQUIRED",
     );
 
+    const bankForCompleted = await prisma.bankAccount.findUniqueOrThrow({
+      where: { id: bankAccountId },
+    });
     const completedInstruction = await submitInstruction({
       sendingInstitutionId: ALTA_BANK_INSTITUTION_ID,
       receivingInstitutionId: ALTA_TERMINAL_INSTITUTION_ID,
@@ -564,9 +574,7 @@ describe("ncc 3a.1 financial hardening", { skip: !RUN || !isDatabaseConfigured()
       currency: NCC_DEFAULT_CURRENCY,
       idempotencyKey: `comp-completed-${suffix}`,
       submittedByUserId: actorUserId,
-      metadata: {
-        sourceAccountReference: bankAccountId,
-      },
+      sourceAccountNumber: bankForCompleted.accountNumber,
     });
     await assert.rejects(
       () =>

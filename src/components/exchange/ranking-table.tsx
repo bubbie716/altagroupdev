@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
-import { pct } from "@/lib/mock-data";
+import { pct } from "@/lib/format/money-display";
 import type { RankingEntry } from "@/lib/exchange/types";
 
 export function RankingTable({

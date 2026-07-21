@@ -399,9 +399,9 @@ export async function submitTerminalFundingRequest(
       purpose: memo || "Terminal funding",
       idempotencyKey: `funding:${fundingRequest.id}`,
       submittedByUserId: userId,
+      sourceAccountNumber: sourceAccount.accountNumber,
+      destinationAccountNumber: terminalAccount.accountNumber,
       metadata: {
-        sourceAccountReference: sourceAccount.id,
-        destinationAccountReference: terminalAccount.id,
         fundingRequestId: fundingRequest.id,
         channel: "bank_website",
       },
@@ -542,8 +542,11 @@ export async function listPersonalFundingSourceAccounts(userId: string) {
 
 export async function getCustomerTerminalCashSnapshot(userId: string, currency = NCC_DEFAULT_CURRENCY) {
   const account = await ensureUserTerminalCashAccount(userId, currency);
+  const { maskPaymentAccountNumber } = await import("@/lib/ncc/ncc-account-number");
   return {
     currency: account.currency,
+    accountNumber: account.accountNumber,
+    accountNumberMasked: maskPaymentAccountNumber(account.accountNumber),
     availableBalance: asDecimal(account.availableBalance).toFixed(2),
     ledgerBalance: asDecimal(account.ledgerBalance).toFixed(2),
   };

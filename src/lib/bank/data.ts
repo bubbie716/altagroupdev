@@ -1,4 +1,5 @@
-import { florin, makeSeries, transactions } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
+import { makeSeries, transactions } from "@/lib/mock-data";
 import { getRoutingNumber } from "@/lib/bank/routing";
 import type {
   AdminClient,

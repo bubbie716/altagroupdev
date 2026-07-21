@@ -189,10 +189,11 @@ export async function submitTerminalWithdrawalRequest(
     purpose: "Terminal withdrawal",
     idempotencyKey: `withdrawal:${withdrawalRequest.id}`,
     submittedByUserId: userId,
+    sourceAccountNumber: terminalAccount.accountNumber,
+    destinationAccountNumber: destinationAccount.accountNumber,
     metadata: {
-      sourceAccountReference: terminalAccount.id,
-      destinationAccountReference: destinationAccount.id,
       withdrawalRequestId: withdrawalRequest.id,
+      channel: "terminal_withdrawal",
     },
   });
 

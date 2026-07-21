@@ -7,7 +7,7 @@ import { KeyStatsGrid, CompanyMetaGrid } from "@/components/exchange/key-stats-g
 import { FilingCard } from "@/components/exchange/filing-card";
 import { CorporateAnnouncementList } from "@/components/exchange/corporate-announcement-list";
 import { getAnnouncements, getCompany } from "@/lib/exchange/api";
-import { compact, florin } from "@/lib/mock-data";
+import { compact } from "@/lib/format/money-display";
 
 export const Route = createFileRoute("/exchange/company/$ticker/")({
   head: ({ params }) => ({

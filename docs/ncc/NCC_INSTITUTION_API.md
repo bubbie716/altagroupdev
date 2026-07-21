@@ -1,9 +1,9 @@
 # NCC Institution API
 
-**Newport Clearing Corporation — Sprint 3B**  
+**Newport Clearing Corporation — Sprint 3B / 4A**  
 Base path: `/api/ncc/v1`
 
-Related: [Authentication](./NCC_API_AUTHENTICATION.md) · [Webhooks](./NCC_WEBHOOKS.md) · [Webhook Security](./NCC_WEBHOOK_SECURITY.md) · [Real-Time Settlement](./NCC_REAL_TIME_SETTLEMENT.md)
+Related: [Authentication](./NCC_API_AUTHENTICATION.md) · [Webhooks](./NCC_WEBHOOKS.md) · [Webhook Security](./NCC_WEBHOOK_SECURITY.md) · [Real-Time Settlement](./NCC_REAL_TIME_SETTLEMENT.md) · [Sprint 4A Account Addressing](./NCC_SPRINT_4A_ACCOUNT_ADDRESSING_REPORT.md)
 
 ---
 
@@ -113,11 +113,29 @@ HTTP status mapping:
 
 **Required header:** `Idempotency-Key: <client-generated-key>`
 
+### Payment addressing (Sprint 4A)
+
+NCC treats an account identifier as an **opaque, institution-specific string**. The routing number selects the institution responsible for validating and resolving it.
+
+```text
+Routing number → institution
+Account identifier → account at that institution (opaque string)
+```
+
+NCC standardizes the request envelope. It does **not** standardize the internal structure of every participant’s account identifiers. Digits-only, alphanumeric, and punctuated identifiers are all valid at the network layer when they pass envelope checks.
+
+Public API fields remain `sourceAccountNumber` / `destinationAccountNumber` for v1 stability; their values are opaque institution-specific account identifiers (not a universal “account number format”).
+
+Customer-facing settlement requests must supply those identifiers, never internal database IDs.
+
 Example body:
 
 ```json
 {
+  "sendingRoutingNumber": "011000002",
   "receivingRoutingNumber": "012000001",
+  "sourceAccountNumber": "AB-2000-482913",
+  "destinationAccountNumber": "840942513093",
   "amount": "100.00",
   "currency": "FLR",
   "purpose": "Treasury transfer",
@@ -125,15 +143,46 @@ Example body:
 }
 ```
 
+| Field | Required | Notes |
+|-------|----------|-------|
+| `receivingRoutingNumber` | Yes | Resolves the receiving institution |
+| `amount` | Yes | Decimal string |
+| `currency` | No | Defaults to `FLR` |
+| `sourceAccountNumber` | When debiting a customer account | Opaque institution-specific identifier (1–64 chars; format owned by sender) |
+| `destinationAccountNumber` | When crediting a customer account | Opaque institution-specific identifier (format owned by receiver) |
+| `sendingRoutingNumber` | No | If supplied, must be ACTIVE and belong to the credential’s institution |
+| `purpose` / `externalReference` | No | Existing optional fields |
+
+**Rejected (hard):** `sourceAccountReference` / `destinationAccountReference` — these are not accepted on the public API (HTTP 400).
+
 Rules:
 
-- Sending institution is always derived from the credential
-- Sending routing number is resolved server-side from the institution’s primary active routing number
+- Sending institution is always derived from the credential (cannot impersonate another sender)
+- Default sending routing number is the institution’s primary ACTIVE routing number when omitted
 - Receiving institution is resolved from the receiving routing number
+- NCC envelope-validates identifiers only (string, length, no control chars / null bytes, no leading/trailing whitespace). It does **not** change case, strip punctuation, remove leading zeros, or apply a universal bank regex.
+- Identifiers are resolved by the institution adapter selected by the routing number **before** any NCC ledger post
+- The same identifier string may exist at two different banks; network identity is `(routing number + identifier)`
 - Self-settlement is denied
 - Amounts are decimal strings (no floating-point math)
-- Same key + same payload → original result
-- Same key + different payload → `409 IDEMPOTENCY_CONFLICT`
+- Idempotency hash includes routing numbers, exact envelope-validated account identifiers, amount, and currency (no global case/punctuation normalization)
+- Same key + same canonical payload → original result
+- Same key + different address or financial body → `409 IDEMPOTENCY_CONFLICT`
+
+### Addressing errors (sanitized)
+
+| Code | Meaning |
+|------|---------|
+| `INVALID_PAYMENT_ADDRESS` | Malformed address or internal-ID shape rejected |
+| `ACCOUNT_UNAVAILABLE` | Unknown / closed / frozen / unauthorized (non-enumerating) |
+| `ACCOUNT_NOT_DEBITABLE` | Source cannot be debited |
+| `ACCOUNT_NOT_CREDITABLE` | Destination cannot be credited |
+| `UNSUPPORTED_CURRENCY` | Currency not supported for the account |
+| `ROUTING_NUMBER_UNAVAILABLE` | Routing unusable or not owned by credential institution |
+| `SOURCE_ADAPTER_UNAVAILABLE` | Sending participant has no adapter |
+| `DESTINATION_ADAPTER_UNAVAILABLE` | Receiving participant has no adapter |
+
+Public responses and webhooks never include internal adapter account references or full account numbers. Masked numbers may appear on authorized portal history.
 
 Response includes `reference`, instruction `status`, `executionStatus`, `executionStep`, amount, currency, institutions, timestamps, and failure fields when applicable.
 
@@ -147,7 +196,7 @@ Safe filters: status, execution status, direction, created date, public referenc
 
 Invalid `status`, `executionStatus`, `direction`, `limit`, or `cursor` values return **400** with the standard error envelope (never incidental 500s). Cursor is a compound `createdAt|id` token for stable ordering.
 
-Receiving institutions see redacted sender private account references.
+Receiving institutions see redacted sender-private fields. Internal adapter account references and full account numbers are never returned.
 
 ---
 
@@ -178,11 +227,13 @@ Dimensions: credential, institution, route class, optional IP hash.
 ## 10. What clients cannot do
 
 - Choose the sending institution
+- Submit internal database IDs as account addresses
 - Set instruction/execution status or ledger balances
-- Bypass routing validation
+- Bypass routing validation or account-resolution adapters
 - Invoke compensation directly
 - Access another institution’s resources
 - Pass credentials in query strings
+- Authorize a debit based only on knowing an account number (source ownership / credential institution still required)
 
 ---
 
@@ -197,6 +248,8 @@ curl -sS https://example.ncc/api/ncc/v1/settlements \
   -H "Content-Type: application/json" \
   -d '{
     "receivingRoutingNumber": "012000001",
+    "sourceAccountNumber": "AB-2000-482913",
+    "destinationAccountNumber": "840942513093",
     "amount": "100.00",
     "currency": "FLR",
     "purpose": "Treasury transfer"
@@ -215,6 +268,8 @@ const res = await fetch("https://example.ncc/api/ncc/v1/settlements", {
   },
   body: JSON.stringify({
     receivingRoutingNumber: "012000001",
+    sourceAccountNumber: "AB-2000-482913",
+    destinationAccountNumber: "840942513093",
     amount: "100.00",
     currency: "FLR",
     purpose: "Treasury transfer",
@@ -236,6 +291,8 @@ r = requests.post(
     },
     json={
         "receivingRoutingNumber": "012000001",
+        "sourceAccountNumber": "AB-2000-482913",
+        "destinationAccountNumber": "840942513093",
         "amount": "100.00",
         "currency": "FLR",
         "purpose": "Treasury transfer",
@@ -252,3 +309,5 @@ print(r.status_code, r.json())
 - API reversals require operations review (safer default)
 - Rate limiting is database-backed (suitable for multi-instance; document Redis upgrade for very high throughput)
 - Public self-registration and open production API access are out of scope
+- External banks must implement `resolveAccount` in their own adapter; NCC does not centrally import every external customer account
+- Float-only institution legs (no customer account numbers) remain supported for Alta settlement-account float transfers where applicable

@@ -2,10 +2,10 @@
  * Institution adapter boundary — NCC must not call institution DB mutation helpers
  * directly outside this abstraction.
  *
- * Sprint 3A: alta-bank / alta-terminal / alta-exchange adapters are real
- * implementations against BankAccount / TerminalCashAccount ledgers. External
- * (non-Alta) institutions will implement the same contract behind authenticated
- * adapters in a later sprint.
+ * Sprint 4A: public payment addresses are routing number + opaque,
+ * institution-specific account identifier. NCC does not standardize identifier
+ * formats across participants. Adapters resolve identifiers to opaque internal
+ * references. Debit/credit operations continue to use those internal references only.
  */
 
 export type InstitutionAdapterKey = "alta-bank" | "alta-exchange" | "alta-terminal" | string;
@@ -26,6 +26,30 @@ export type AdapterCreditResult =
   | { ok: true; credited: boolean; externalReference?: string }
   | { ok: false; code: string; reason: string };
 
+export type AccountResolutionDirection = "debit" | "credit";
+
+/**
+ * Successful account resolution — internal reference must never appear in public
+ * API responses, webhook payloads, request logs, or portal URLs.
+ */
+export type AdapterAccountResolution = {
+  internalAccountReference: string;
+  canonicalAccountNumber: string;
+  maskedAccountNumber: string;
+  currency: string;
+  status: string;
+  debitEligible: boolean;
+  creditEligible: boolean;
+  /** Optional minimal beneficiary label for name-check (never a balance). */
+  beneficiaryLabel?: string | null;
+  resolvedAt: string;
+  resolverKey: string;
+};
+
+export type AdapterResolveResult =
+  | { ok: true; account: AdapterAccountResolution }
+  | { ok: false; code: string; reason: string };
+
 export type InstitutionAdapterDebitInput = {
   settlementInstructionId: string;
   publicReference: string;
@@ -36,9 +60,8 @@ export type InstitutionAdapterDebitInput = {
   amount: string;
   currency: string;
   /**
-   * Customer account reference (BankAccount.id / TerminalCashAccount.id) when this
-   * settlement leg touches a customer ledger. Omitted for pure inter-institution
-   * float movements — adapters must treat this as an NCC-only no-op, not an error.
+   * Opaque internal adapter account reference from resolveAccount().
+   * Omitted for pure inter-institution float movements.
    */
   accountReference?: string;
   /** Acting user for audit/hold attribution. Falls back to the account owner when omitted. */
@@ -59,6 +82,22 @@ export type InstitutionAdapterCreditInput = {
 
 export interface InstitutionAdapter {
   institutionKey: InstitutionAdapterKey;
+  /**
+   * Resolve a public institution-scoped account identifier to an opaque internal
+   * reference. `accountNumber` is an opaque institution-specific string (API field
+   * name retained for v1). Must not treat Prisma IDs as payment addresses.
+   * Normalization / format rules belong entirely to this adapter.
+   */
+  resolveAccount(input: {
+    /** Opaque institution-specific account identifier (public API: *AccountNumber). */
+    accountNumber: string;
+    currency: string;
+    direction: AccountResolutionDirection;
+  }): Promise<AdapterResolveResult>;
+  /**
+   * Validate an already-resolved internal account reference (execution resume /
+   * historical settlements).
+   */
   validateAccountReference(input: {
     accountReference: string;
   }): Promise<AdapterValidationResult>;

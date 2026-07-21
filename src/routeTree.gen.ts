@@ -61,6 +61,7 @@ import { Route as PortalMembersRouteImport } from './routes/portal/members'
 import { Route as PortalAuditRouteImport } from './routes/portal/audit'
 import { Route as PortalAccountsRouteImport } from './routes/portal/accounts'
 import { Route as PaySlugRouteImport } from './routes/pay/$slug'
+import { Route as ParticipationApplyRouteImport } from './routes/participation/apply'
 import { Route as LegalDocIdRouteImport } from './routes/legal/$docId'
 import { Route as LegalSplatRouteImport } from './routes/legal/$'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
@@ -109,6 +110,8 @@ import { Route as BankCommercialRouteRouteImport } from './routes/bank/commercia
 import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
 import { Route as PortalSettlementsIndexRouteImport } from './routes/portal/settlements/index'
 import { Route as PortalDevelopersIndexRouteImport } from './routes/portal/developers/index'
+import { Route as PortalApplicationsIndexRouteImport } from './routes/portal/applications/index'
+import { Route as ParticipationApplicationsIndexRouteImport } from './routes/participation/applications/index'
 import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
 import { Route as InternalRelationshipsIndexRouteImport } from './routes/internal/relationships/index'
 import { Route as InternalLendingIndexRouteImport } from './routes/internal/lending/index'
@@ -128,8 +131,13 @@ import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/in
 import { Route as BankAltaCardIndexRouteImport } from './routes/bank/alta-card/index'
 import { Route as PortalSettlementsIdRouteImport } from './routes/portal/settlements/$id'
 import { Route as PortalDevelopersDocumentationRouteImport } from './routes/portal/developers/documentation'
+import { Route as PortalDevelopersDirectoryRouteImport } from './routes/portal/developers/directory'
+import { Route as PortalDevelopersConnectorRouteImport } from './routes/portal/developers/connector'
 import { Route as PortalDevelopersApiLogsRouteImport } from './routes/portal/developers/api-logs'
 import { Route as PortalDevelopersApiCredentialsRouteImport } from './routes/portal/developers/api-credentials'
+import { Route as PortalCertificationInstitutionIdRouteImport } from './routes/portal/certification/$institutionId'
+import { Route as PortalApplicationsIdRouteImport } from './routes/portal/applications/$id'
+import { Route as ParticipationApplicationsIdRouteImport } from './routes/participation/applications/$id'
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalTerminalSettingsRouteImport } from './routes/internal/terminal/settings'
 import { Route as InternalRelationshipsUserIdRouteImport } from './routes/internal/relationships/$userId'
@@ -569,6 +577,11 @@ const PaySlugRoute = PaySlugRouteImport.update({
   path: '/pay/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ParticipationApplyRoute = ParticipationApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => ParticipationRoute,
+} as any)
 const LegalDocIdRoute = LegalDocIdRouteImport.update({
   id: '/legal/$docId',
   path: '/legal/$docId',
@@ -809,6 +822,17 @@ const PortalDevelopersIndexRoute = PortalDevelopersIndexRouteImport.update({
   path: '/developers/',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalApplicationsIndexRoute = PortalApplicationsIndexRouteImport.update({
+  id: '/applications/',
+  path: '/applications/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const ParticipationApplicationsIndexRoute =
+  ParticipationApplicationsIndexRouteImport.update({
+    id: '/applications/',
+    path: '/applications/',
+    getParentRoute: () => ParticipationRoute,
+  } as any)
 const InternalUsersIndexRoute = InternalUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
@@ -907,6 +931,18 @@ const PortalDevelopersDocumentationRoute =
     path: '/developers/documentation',
     getParentRoute: () => PortalRoute,
   } as any)
+const PortalDevelopersDirectoryRoute =
+  PortalDevelopersDirectoryRouteImport.update({
+    id: '/developers/directory',
+    path: '/developers/directory',
+    getParentRoute: () => PortalRoute,
+  } as any)
+const PortalDevelopersConnectorRoute =
+  PortalDevelopersConnectorRouteImport.update({
+    id: '/developers/connector',
+    path: '/developers/connector',
+    getParentRoute: () => PortalRoute,
+  } as any)
 const PortalDevelopersApiLogsRoute = PortalDevelopersApiLogsRouteImport.update({
   id: '/developers/api-logs',
   path: '/developers/api-logs',
@@ -917,6 +953,23 @@ const PortalDevelopersApiCredentialsRoute =
     id: '/developers/api-credentials',
     path: '/developers/api-credentials',
     getParentRoute: () => PortalRoute,
+  } as any)
+const PortalCertificationInstitutionIdRoute =
+  PortalCertificationInstitutionIdRouteImport.update({
+    id: '/certification/$institutionId',
+    path: '/certification/$institutionId',
+    getParentRoute: () => PortalRoute,
+  } as any)
+const PortalApplicationsIdRoute = PortalApplicationsIdRouteImport.update({
+  id: '/applications/$id',
+  path: '/applications/$id',
+  getParentRoute: () => PortalRoute,
+} as any)
+const ParticipationApplicationsIdRoute =
+  ParticipationApplicationsIdRouteImport.update({
+    id: '/applications/$id',
+    path: '/applications/$id',
+    getParentRoute: () => ParticipationRoute,
   } as any)
 const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
   id: '/users/$userId',
@@ -1967,7 +2020,7 @@ export interface FileRoutesByFullPath {
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
   '/network': typeof NetworkRoute
-  '/participation': typeof ParticipationRoute
+  '/participation': typeof ParticipationRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
@@ -2016,6 +2069,7 @@ export interface FileRoutesByFullPath {
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
+  '/participation/apply': typeof ParticipationApplyRoute
   '/pay/$slug': typeof PaySlugRoute
   '/portal/accounts': typeof PortalAccountsRoute
   '/portal/audit': typeof PortalAuditRoute
@@ -2113,8 +2167,13 @@ export interface FileRoutesByFullPath {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/participation/applications/$id': typeof ParticipationApplicationsIdRoute
+  '/portal/applications/$id': typeof PortalApplicationsIdRoute
+  '/portal/certification/$institutionId': typeof PortalCertificationInstitutionIdRoute
   '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
   '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/connector': typeof PortalDevelopersConnectorRoute
+  '/portal/developers/directory': typeof PortalDevelopersDirectoryRoute
   '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
   '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
@@ -2134,6 +2193,8 @@ export interface FileRoutesByFullPath {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/participation/applications/': typeof ParticipationApplicationsIndexRoute
+  '/portal/applications/': typeof PortalApplicationsIndexRoute
   '/portal/developers/': typeof PortalDevelopersIndexRoute
   '/portal/settlements/': typeof PortalSettlementsIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
@@ -2261,7 +2322,7 @@ export interface FileRoutesByTo {
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
   '/network': typeof NetworkRoute
-  '/participation': typeof ParticipationRoute
+  '/participation': typeof ParticipationRouteWithChildren
   '/profile': typeof ProfileRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -2302,6 +2363,7 @@ export interface FileRoutesByTo {
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
+  '/participation/apply': typeof ParticipationApplyRoute
   '/pay/$slug': typeof PaySlugRoute
   '/portal/accounts': typeof PortalAccountsRoute
   '/portal/audit': typeof PortalAuditRoute
@@ -2391,8 +2453,13 @@ export interface FileRoutesByTo {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/participation/applications/$id': typeof ParticipationApplicationsIdRoute
+  '/portal/applications/$id': typeof PortalApplicationsIdRoute
+  '/portal/certification/$institutionId': typeof PortalCertificationInstitutionIdRoute
   '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
   '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/connector': typeof PortalDevelopersConnectorRoute
+  '/portal/developers/directory': typeof PortalDevelopersDirectoryRoute
   '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
   '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card': typeof BankAltaCardIndexRoute
@@ -2412,6 +2479,8 @@ export interface FileRoutesByTo {
   '/internal/lending': typeof InternalLendingIndexRoute
   '/internal/relationships': typeof InternalRelationshipsIndexRoute
   '/internal/users': typeof InternalUsersIndexRoute
+  '/participation/applications': typeof ParticipationApplicationsIndexRoute
+  '/portal/applications': typeof PortalApplicationsIndexRoute
   '/portal/developers': typeof PortalDevelopersIndexRoute
   '/portal/settlements': typeof PortalSettlementsIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
@@ -2542,7 +2611,7 @@ export interface FileRoutesById {
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
   '/network': typeof NetworkRoute
-  '/participation': typeof ParticipationRoute
+  '/participation': typeof ParticipationRouteWithChildren
   '/portal': typeof PortalRouteWithChildren
   '/profile': typeof ProfileRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
@@ -2591,6 +2660,7 @@ export interface FileRoutesById {
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
+  '/participation/apply': typeof ParticipationApplyRoute
   '/pay/$slug': typeof PaySlugRoute
   '/portal/accounts': typeof PortalAccountsRoute
   '/portal/audit': typeof PortalAuditRoute
@@ -2688,8 +2758,13 @@ export interface FileRoutesById {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/participation/applications/$id': typeof ParticipationApplicationsIdRoute
+  '/portal/applications/$id': typeof PortalApplicationsIdRoute
+  '/portal/certification/$institutionId': typeof PortalCertificationInstitutionIdRoute
   '/portal/developers/api-credentials': typeof PortalDevelopersApiCredentialsRoute
   '/portal/developers/api-logs': typeof PortalDevelopersApiLogsRoute
+  '/portal/developers/connector': typeof PortalDevelopersConnectorRoute
+  '/portal/developers/directory': typeof PortalDevelopersDirectoryRoute
   '/portal/developers/documentation': typeof PortalDevelopersDocumentationRoute
   '/portal/settlements/$id': typeof PortalSettlementsIdRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
@@ -2709,6 +2784,8 @@ export interface FileRoutesById {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/participation/applications/': typeof ParticipationApplicationsIndexRoute
+  '/portal/applications/': typeof PortalApplicationsIndexRoute
   '/portal/developers/': typeof PortalDevelopersIndexRoute
   '/portal/settlements/': typeof PortalSettlementsIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
@@ -2894,6 +2971,7 @@ export interface FileRouteTypes {
     | '/internal/terminal'
     | '/legal/$'
     | '/legal/$docId'
+    | '/participation/apply'
     | '/pay/$slug'
     | '/portal/accounts'
     | '/portal/audit'
@@ -2991,8 +3069,13 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/participation/applications/$id'
+    | '/portal/applications/$id'
+    | '/portal/certification/$institutionId'
     | '/portal/developers/api-credentials'
     | '/portal/developers/api-logs'
+    | '/portal/developers/connector'
+    | '/portal/developers/directory'
     | '/portal/developers/documentation'
     | '/portal/settlements/$id'
     | '/bank/alta-card/'
@@ -3012,6 +3095,8 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/participation/applications/'
+    | '/portal/applications/'
     | '/portal/developers/'
     | '/portal/settlements/'
     | '/bank/account/$accountId/commercial'
@@ -3180,6 +3265,7 @@ export interface FileRouteTypes {
     | '/internal/terminal'
     | '/legal/$'
     | '/legal/$docId'
+    | '/participation/apply'
     | '/pay/$slug'
     | '/portal/accounts'
     | '/portal/audit'
@@ -3269,8 +3355,13 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/participation/applications/$id'
+    | '/portal/applications/$id'
+    | '/portal/certification/$institutionId'
     | '/portal/developers/api-credentials'
     | '/portal/developers/api-logs'
+    | '/portal/developers/connector'
+    | '/portal/developers/directory'
     | '/portal/developers/documentation'
     | '/portal/settlements/$id'
     | '/bank/alta-card'
@@ -3290,6 +3381,8 @@ export interface FileRouteTypes {
     | '/internal/lending'
     | '/internal/relationships'
     | '/internal/users'
+    | '/participation/applications'
+    | '/portal/applications'
     | '/portal/developers'
     | '/portal/settlements'
     | '/api/alta-card-review-threads/$reviewId/attachments'
@@ -3468,6 +3561,7 @@ export interface FileRouteTypes {
     | '/internal/terminal'
     | '/legal/$'
     | '/legal/$docId'
+    | '/participation/apply'
     | '/pay/$slug'
     | '/portal/accounts'
     | '/portal/audit'
@@ -3565,8 +3659,13 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/participation/applications/$id'
+    | '/portal/applications/$id'
+    | '/portal/certification/$institutionId'
     | '/portal/developers/api-credentials'
     | '/portal/developers/api-logs'
+    | '/portal/developers/connector'
+    | '/portal/developers/directory'
     | '/portal/developers/documentation'
     | '/portal/settlements/$id'
     | '/bank/alta-card/'
@@ -3586,6 +3685,8 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/participation/applications/'
+    | '/portal/applications/'
     | '/portal/developers/'
     | '/portal/settlements/'
     | '/bank/account/$accountId/commercial'
@@ -3721,7 +3822,7 @@ export interface RootRouteChildren {
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
   NetworkRoute: typeof NetworkRoute
-  ParticipationRoute: typeof ParticipationRoute
+  ParticipationRoute: typeof ParticipationRouteWithChildren
   PortalRoute: typeof PortalRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   CompanyLeadershipRoute: typeof CompanyLeadershipRoute
@@ -4135,6 +4236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/participation/apply': {
+      id: '/participation/apply'
+      path: '/apply'
+      fullPath: '/participation/apply'
+      preLoaderRoute: typeof ParticipationApplyRouteImport
+      parentRoute: typeof ParticipationRoute
+    }
     '/legal/$docId': {
       id: '/legal/$docId'
       path: '/legal/$docId'
@@ -4471,6 +4579,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalDevelopersIndexRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/applications/': {
+      id: '/portal/applications/'
+      path: '/applications'
+      fullPath: '/portal/applications/'
+      preLoaderRoute: typeof PortalApplicationsIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/participation/applications/': {
+      id: '/participation/applications/'
+      path: '/applications'
+      fullPath: '/participation/applications/'
+      preLoaderRoute: typeof ParticipationApplicationsIndexRouteImport
+      parentRoute: typeof ParticipationRoute
+    }
     '/internal/users/': {
       id: '/internal/users/'
       path: '/users'
@@ -4604,6 +4726,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalDevelopersDocumentationRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/portal/developers/directory': {
+      id: '/portal/developers/directory'
+      path: '/developers/directory'
+      fullPath: '/portal/developers/directory'
+      preLoaderRoute: typeof PortalDevelopersDirectoryRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/developers/connector': {
+      id: '/portal/developers/connector'
+      path: '/developers/connector'
+      fullPath: '/portal/developers/connector'
+      preLoaderRoute: typeof PortalDevelopersConnectorRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/portal/developers/api-logs': {
       id: '/portal/developers/api-logs'
       path: '/developers/api-logs'
@@ -4617,6 +4753,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/portal/developers/api-credentials'
       preLoaderRoute: typeof PortalDevelopersApiCredentialsRouteImport
       parentRoute: typeof PortalRoute
+    }
+    '/portal/certification/$institutionId': {
+      id: '/portal/certification/$institutionId'
+      path: '/certification/$institutionId'
+      fullPath: '/portal/certification/$institutionId'
+      preLoaderRoute: typeof PortalCertificationInstitutionIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/applications/$id': {
+      id: '/portal/applications/$id'
+      path: '/applications/$id'
+      fullPath: '/portal/applications/$id'
+      preLoaderRoute: typeof PortalApplicationsIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/participation/applications/$id': {
+      id: '/participation/applications/$id'
+      path: '/applications/$id'
+      fullPath: '/participation/applications/$id'
+      preLoaderRoute: typeof ParticipationApplicationsIdRouteImport
+      parentRoute: typeof ParticipationRoute
     }
     '/internal/users/$userId': {
       id: '/internal/users/$userId'
@@ -6725,6 +6882,22 @@ const DiscordRouteChildren: DiscordRouteChildren = {
 const DiscordRouteWithChildren =
   DiscordRoute._addFileChildren(DiscordRouteChildren)
 
+interface ParticipationRouteChildren {
+  ParticipationApplyRoute: typeof ParticipationApplyRoute
+  ParticipationApplicationsIdRoute: typeof ParticipationApplicationsIdRoute
+  ParticipationApplicationsIndexRoute: typeof ParticipationApplicationsIndexRoute
+}
+
+const ParticipationRouteChildren: ParticipationRouteChildren = {
+  ParticipationApplyRoute: ParticipationApplyRoute,
+  ParticipationApplicationsIdRoute: ParticipationApplicationsIdRoute,
+  ParticipationApplicationsIndexRoute: ParticipationApplicationsIndexRoute,
+}
+
+const ParticipationRouteWithChildren = ParticipationRoute._addFileChildren(
+  ParticipationRouteChildren,
+)
+
 interface PortalRouteChildren {
   PortalAccountsRoute: typeof PortalAccountsRoute
   PortalAuditRoute: typeof PortalAuditRoute
@@ -6735,10 +6908,15 @@ interface PortalRouteChildren {
   PortalSettingsRoute: typeof PortalSettingsRoute
   PortalSupportRoute: typeof PortalSupportRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  PortalApplicationsIdRoute: typeof PortalApplicationsIdRoute
+  PortalCertificationInstitutionIdRoute: typeof PortalCertificationInstitutionIdRoute
   PortalDevelopersApiCredentialsRoute: typeof PortalDevelopersApiCredentialsRoute
   PortalDevelopersApiLogsRoute: typeof PortalDevelopersApiLogsRoute
+  PortalDevelopersConnectorRoute: typeof PortalDevelopersConnectorRoute
+  PortalDevelopersDirectoryRoute: typeof PortalDevelopersDirectoryRoute
   PortalDevelopersDocumentationRoute: typeof PortalDevelopersDocumentationRoute
   PortalSettlementsIdRoute: typeof PortalSettlementsIdRoute
+  PortalApplicationsIndexRoute: typeof PortalApplicationsIndexRoute
   PortalDevelopersIndexRoute: typeof PortalDevelopersIndexRoute
   PortalSettlementsIndexRoute: typeof PortalSettlementsIndexRoute
   PortalDevelopersWebhooksIdRoute: typeof PortalDevelopersWebhooksIdRoute
@@ -6755,10 +6933,15 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalSettingsRoute: PortalSettingsRoute,
   PortalSupportRoute: PortalSupportRoute,
   PortalIndexRoute: PortalIndexRoute,
+  PortalApplicationsIdRoute: PortalApplicationsIdRoute,
+  PortalCertificationInstitutionIdRoute: PortalCertificationInstitutionIdRoute,
   PortalDevelopersApiCredentialsRoute: PortalDevelopersApiCredentialsRoute,
   PortalDevelopersApiLogsRoute: PortalDevelopersApiLogsRoute,
+  PortalDevelopersConnectorRoute: PortalDevelopersConnectorRoute,
+  PortalDevelopersDirectoryRoute: PortalDevelopersDirectoryRoute,
   PortalDevelopersDocumentationRoute: PortalDevelopersDocumentationRoute,
   PortalSettlementsIdRoute: PortalSettlementsIdRoute,
+  PortalApplicationsIndexRoute: PortalApplicationsIndexRoute,
   PortalDevelopersIndexRoute: PortalDevelopersIndexRoute,
   PortalSettlementsIndexRoute: PortalSettlementsIndexRoute,
   PortalDevelopersWebhooksIdRoute: PortalDevelopersWebhooksIdRoute,
@@ -6843,7 +7026,7 @@ const rootRouteChildren: RootRouteChildren = {
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
   NetworkRoute: NetworkRoute,
-  ParticipationRoute: ParticipationRoute,
+  ParticipationRoute: ParticipationRouteWithChildren,
   PortalRoute: PortalRouteWithChildren,
   ProfileRoute: ProfileRoute,
   CompanyLeadershipRoute: CompanyLeadershipRoute,

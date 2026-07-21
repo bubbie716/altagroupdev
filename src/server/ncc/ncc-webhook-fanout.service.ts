@@ -9,12 +9,19 @@ function redactPayloadForRole(
   role: InstitutionRole,
 ): Record<string, unknown> {
   const copy = { ...payload };
+  // Never expose internal adapter references or encrypted full account numbers.
+  delete copy.sourceAccountReference;
+  delete copy.destinationAccountReference;
+  delete copy.internalSourceAccountReference;
+  delete copy.internalDestinationAccountReference;
+  delete copy.sourceAccountNumberEncrypted;
+  delete copy.destinationAccountNumberEncrypted;
+  delete copy.sourceAccountNumber;
+  delete copy.destinationAccountNumber;
   if (role === "receiver") {
-    delete copy.sourceAccountReference;
     delete copy.sendingPrivateMetadata;
   }
   if (role === "sender") {
-    delete copy.destinationAccountReference;
     delete copy.receivingPrivateMetadata;
   }
   return copy;

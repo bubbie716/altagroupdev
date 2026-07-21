@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
-import { RankingTable } from "@/components/exchange/ranking-table";
+import { EmptyState } from "@/components/data/empty-state";
 import { getMarketStats } from "@/lib/exchange/api";
 
 export const Route = createFileRoute("/exchange/rankings")({
@@ -12,33 +11,25 @@ export const Route = createFileRoute("/exchange/rankings")({
 });
 
 function ExchangeRankings() {
-  const r = getMarketStats().rankings;
+  const rankings = getMarketStats().rankings;
+  const hasRankings = Object.values(rankings).some((rows) => rows.length > 0);
 
   return (
     <>
       <ExchangePageMeta
         eyebrow="Alta Exchange · Rankings"
         title="Market Rankings"
-        description="Top gainers, losers, most active, and largest issuers on Alta Exchange — simulated session data."
+        description="Top gainers, losers, most active, and largest issuers on Alta Exchange."
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Top Gainers">
-          <RankingTable title="Top Gainers" rows={r.gainers} showChange />
-        </Section>
-        <Section title="Top Losers">
-          <RankingTable title="Top Losers" rows={r.losers} showChange />
-        </Section>
-        <Section title="Most Active">
-          <RankingTable title="Most Active" rows={r.mostActive} />
-        </Section>
-        <Section title="Largest Companies">
-          <RankingTable title="Largest Companies" rows={r.largest} />
-        </Section>
-        <Section title="Highest Volume" className="lg:col-span-2">
-          <RankingTable title="Highest Volume" rows={r.highestVolume} />
-        </Section>
-      </div>
+      {!hasRankings ? (
+        <EmptyState
+          eyebrow="Alta Exchange"
+          title="Market rankings are not available yet."
+          description="Gainers, losers, volume, and market-cap leaderboards will publish here once Alta Exchange market data is live."
+          className="max-w-xl"
+        />
+      ) : null}
     </>
   );
 }

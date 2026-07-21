@@ -38,15 +38,7 @@ function PortfolioPanelSkeleton() {
 
 export type HomePortfolioPanelProps = {
   locked: boolean;
-  showUserFinancialMock: boolean;
   snapshot: HomePortfolioSnapshot | null;
-  demoNetWorth: number;
-  demoAllocation: AssetAllocationItem[];
-  indexSeries: { t: number; v: number; at?: number }[];
-  buildDemoPortfolioStats: (
-    netWorth: number,
-    chartData: { t: number; v: number; at?: number }[],
-  ) => PortfolioDashboardStat[];
   buildSnapshotPortfolioStats: (snapshot: HomePortfolioSnapshot) => PortfolioDashboardStat[];
   formatSnapshotChangeLabel: (snapshot: HomePortfolioSnapshot) => string;
   assetAllocationFromSnapshot: (snapshot: {
@@ -59,12 +51,7 @@ export type HomePortfolioPanelProps = {
 export function HomePortfolioPanel(props: HomePortfolioPanelProps) {
   const {
     locked,
-    showUserFinancialMock,
     snapshot,
-    demoNetWorth,
-    demoAllocation,
-    indexSeries,
-    buildDemoPortfolioStats,
     buildSnapshotPortfolioStats,
     formatSnapshotChangeLabel,
     assetAllocationFromSnapshot,
@@ -80,35 +67,33 @@ export function HomePortfolioPanel(props: HomePortfolioPanelProps) {
     chartData: [{ t: 0, v: 0 }],
   };
 
+  const activeSnapshot = snapshot ?? emptySnapshot;
+
   return (
     <Suspense fallback={<PortfolioPanelSkeleton />}>
-      {locked || showUserFinancialMock ? (
-        <PortfolioDashboard
-          locked={locked}
-          signInRedirect="/"
-          gradientId="heroFill"
-          netWorth="ƒ8,412,209.40"
-          changeLabel="+ƒ142,802.10 · +1.72%"
-          currentValue={8_412_209.4}
-          chartData={indexSeries}
-          stats={buildDemoPortfolioStats(demoNetWorth, indexSeries)}
-          assetAllocation={demoAllocation}
-        />
-      ) : (
-        <PortfolioDashboard
-          signInRedirect="/"
-          gradientId="heroFill"
-          netWorth={florin(snapshot?.netWorth ?? 0)}
-          changeLabel={formatSnapshotChangeLabel(snapshot ?? emptySnapshot)}
-          changePositive={(snapshot?.dailyPnL ?? 0) >= 0}
-          currentValue={snapshot?.netWorth}
-          chartData={snapshot?.chartData ?? [{ t: 0, v: 0 }]}
-          stats={buildSnapshotPortfolioStats(snapshot ?? emptySnapshot)}
-          assetAllocation={assetAllocationFromSnapshot(
-            snapshot ?? { florinBalance: 0, portfolioValue: 0 },
-          )}
-        />
-      )}
+      <PortfolioDashboard
+        locked={locked}
+        signInRedirect="/"
+        gradientId="heroFill"
+        netWorth={locked ? "Sign in to view" : florin(activeSnapshot.netWorth)}
+        changeLabel={
+          locked
+            ? "Portfolio unavailable until you sign in."
+            : formatSnapshotChangeLabel(activeSnapshot)
+        }
+        changePositive={activeSnapshot.dailyPnL >= 0}
+        currentValue={locked ? undefined : activeSnapshot.netWorth}
+        chartData={locked ? [{ t: 0, v: 0 }] : activeSnapshot.chartData}
+        stats={locked ? [] : buildSnapshotPortfolioStats(activeSnapshot)}
+        assetAllocation={
+          locked
+            ? []
+            : assetAllocationFromSnapshot({
+                florinBalance: activeSnapshot.florinBalance,
+                portfolioValue: activeSnapshot.portfolioValue,
+              })
+        }
+      />
     </Suspense>
   );
 }

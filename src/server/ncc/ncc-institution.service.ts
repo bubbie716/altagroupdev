@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db";
 import {
   ALTA_BANK_INSTITUTION_ID,
@@ -7,7 +8,7 @@ import {
   ALTA_TERMINAL_INSTITUTION_ID,
   ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER,
 } from "@/lib/bank/account-ownership";
-import { NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
+import { asDecimal, NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
 import { requireInstitutionPermission, requireNccStaff } from "@/server/ncc/ncc-permissions.service";
 import {
   cancelInstruction,
@@ -15,6 +16,8 @@ import {
   submitInstruction,
   type SubmitSettlementInstructionInput,
 } from "@/server/ncc/ncc-settlement.service";
+
+const LEGACY_CREATE_TIME_FLOAT = new Prisma.Decimal("1000000000.00");
 
 export async function getInstitutionOverview(institutionId: string) {
   await requireInstitutionPermission(institutionId, "view_institution");
@@ -109,8 +112,57 @@ export async function cancelInstitutionInstruction(
   return cancelInstruction(instructionId, user.id, reason);
 }
 
-/** Large operating float so Alta internal settlement legs never fail on NCC-side liquidity in Sprint 3A. */
-const ALTA_INTERNAL_SETTLEMENT_FLOAT = 1_000_000_000;
+/** New settlement accounts always start at zero — liquidity requires authorized dual-control ops. */
+const ZERO_SETTLEMENT_BALANCE = 0;
+
+/**
+ * Test-only top-up so Bank↔Terminal suites remain runnable after create-time float removal.
+ * Never runs outside NCC_SETTLEMENT_TESTS; never used for production funding.
+ */
+async function ensureAltaSettlementTestLiquidity(): Promise<void> {
+  if (process.env.NCC_SETTLEMENT_TESTS !== "1") return;
+  const min = new Prisma.Decimal("10000000.00");
+  const accounts = await prisma.settlementAccount.findMany({
+    where: {
+      institutionId: {
+        in: [ALTA_BANK_INSTITUTION_ID, ALTA_TERMINAL_INSTITUTION_ID, ALTA_EXCHANGE_INSTITUTION_ID],
+      },
+      currency: NCC_DEFAULT_CURRENCY,
+    },
+  });
+  for (const account of accounts) {
+    if (asDecimal(account.availableBalance).gte(min)) continue;
+    await prisma.settlementAccount.update({
+      where: { id: account.id },
+      data: {
+        ledgerBalance: min,
+        availableBalance: min,
+      },
+    });
+  }
+}
+
+/**
+ * Detects exact legacy 1B create-time floats and marks them for review.
+ * Does not alter balances.
+ */
+export async function markLegacyCreateTimeFloatsForReview(): Promise<number> {
+  const result = await prisma.settlementAccount.updateMany({
+    where: {
+      ledgerBalance: LEGACY_CREATE_TIME_FLOAT,
+      availableBalance: LEGACY_CREATE_TIME_FLOAT,
+      legacyFloatReviewStatus: "NONE",
+    },
+    data: { legacyFloatReviewStatus: "REQUIRES_REVIEW" },
+  });
+  return result.count;
+}
+
+export async function countUnexplainedLegacyFloats(): Promise<number> {
+  return prisma.settlementAccount.count({
+    where: { legacyFloatReviewStatus: "REQUIRES_REVIEW" },
+  });
+}
 
 export async function ensureAltaBankInstitutionSeeded(): Promise<void> {
   await prisma.financialInstitution.upsert({
@@ -169,12 +221,11 @@ export async function ensureAltaBankInstitutionSeeded(): Promise<void> {
       id: "sa-alta-bank-flr",
       institutionId: ALTA_BANK_INSTITUTION_ID,
       currency: NCC_DEFAULT_CURRENCY,
-      ledgerBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
-      availableBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      ledgerBalance: ZERO_SETTLEMENT_BALANCE,
+      availableBalance: ZERO_SETTLEMENT_BALANCE,
       status: "ACTIVE",
     },
     // Metadata-only update — never rewrite ledgerBalance / availableBalance.
-    // Initial float is create-only; later float changes require audited admin ops.
     update: {
       status: "ACTIVE",
     },
@@ -246,8 +297,8 @@ async function ensureAltaInternalInstitutionSeeded(input: {
       id: input.settlementAccountId,
       institutionId: input.id,
       currency: NCC_DEFAULT_CURRENCY,
-      ledgerBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
-      availableBalance: ALTA_INTERNAL_SETTLEMENT_FLOAT,
+      ledgerBalance: ZERO_SETTLEMENT_BALANCE,
+      availableBalance: ZERO_SETTLEMENT_BALANCE,
       status: "ACTIVE",
     },
     // Metadata-only update — never rewrite balances after create.
@@ -259,11 +310,10 @@ async function ensureAltaInternalInstitutionSeeded(input: {
 
 /**
  * Seeds Alta Bank, Alta Terminal, and Alta Exchange as NCC participants with
- * routing numbers and large operating-float settlement accounts.
+ * routing numbers and zero-balance settlement accounts.
  *
- * Initial float (1B FLR) is applied only when a settlement account is created.
- * Re-running this seed is financially idempotent: institution/routing metadata
- * may refresh, but existing ledgerBalance / availableBalance are never overwritten.
+ * Liquidity must be applied through authorized dual-control liquidity operations.
+ * Re-running this seed never overwrites existing ledgerBalance / availableBalance.
  */
 export async function ensureAltaInstitutionsSeeded(): Promise<void> {
   await ensureAltaBankInstitutionSeeded();
@@ -287,6 +337,8 @@ export async function ensureAltaInstitutionsSeeded(): Promise<void> {
     primaryRoutingNumber: ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER,
     settlementAccountId: "sa-alta-exchange-flr",
   });
+  await markLegacyCreateTimeFloatsForReview();
+  await ensureAltaSettlementTestLiquidity();
 }
 
 /** Resolves an Alta-internal institution's id + primary ACTIVE routing number id. */

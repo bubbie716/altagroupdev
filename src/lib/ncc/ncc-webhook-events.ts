@@ -4,6 +4,7 @@ export const NCC_WEBHOOK_EVENT_TYPES = [
   "settlement.ncc_posted",
   "settlement.completed",
   "settlement.failed",
+  "settlement.cancelled",
   "settlement.retry_pending",
   "settlement.manual_review",
   "settlement.reversed",

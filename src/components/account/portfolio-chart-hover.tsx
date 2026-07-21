@@ -16,7 +16,7 @@ import {
   type PortfolioTimeRange,
   type SeriesResolution,
 } from "@/lib/account/portfolio-chart-series";
-import { florin } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
 import { pct } from "@/lib/terminal/api";
 import { cn } from "@/lib/utils";
 

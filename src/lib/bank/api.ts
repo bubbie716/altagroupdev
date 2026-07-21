@@ -6,7 +6,7 @@
  */
 
 export * from "./types";
-export { florin } from "./data";
+export { florin } from "@/lib/format/money-display";
 
 import {
   bankAccounts,

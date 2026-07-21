@@ -56,6 +56,7 @@ Alta settlement-account seeds set the initial 1B FLR float **only on create**. R
 ```ts
 interface InstitutionAdapter {
   institutionKey: string
+  resolveAccount(input): Promise<AdapterResolveResult>     // Sprint 4A
   validateAccountReference(input): Promise<AdapterValidationResult>
   prepareDebit(input): Promise<AdapterPreparationResult>   // hold / reserve
   commitDebit(input & { holdReference }): Promise<AdapterCommitResult>
@@ -75,7 +76,11 @@ Registry: `institution-adapter.registry.ts`
 Rules:
 
 - Amounts are decimal **strings**; adapters parse with Prisma.Decimal / `ncc-money` (no JS float math).
-- Missing `accountReference` → institution-float no-op (`institution-float:{instructionId}`), not an error.
+- Public addressing uses opaque **account identifiers**; adapters resolve them to opaque internal references before execution.
+- NCC does not require every bank to use the same identifier format. Alta Bank chooses `AB-####-######`; Alta Terminal chooses digits-only 12-character identifiers — those are institution policies, not network rules.
+- Internal database IDs are rejected at the NCC envelope / resolve edge (never accepted as a public payment address).
+- Missing customer identifiers on a leg → institution-float no-op (`institution-float:{instructionId}`), not an error.
+- Missing adapter for a participant that needs resolution → fail closed before NCC ledger post.
 - All prepare / commit / credit paths are **idempotent** on settlement instruction id (and `nccOperationKey` / entry `idempotencyKey`).
 
 ---
@@ -117,8 +122,8 @@ sequenceDiagram
   participant TermAd as Alta Terminal Adapter
 
   User->>Fund: submitTerminalFundingRequest(idempotencyKey, bankAccountId, amount)
-  Fund->>Fund: ensure TerminalCashAccount
-  Fund->>NCC: submitInstruction(Bank → Terminal,<br/>sourceAccountReference=bank,<br/>destinationAccountReference=terminal cash)
+  Fund->>Fund: authorize ownership + ensure TerminalCashAccount
+  Fund->>NCC: submitInstruction(Bank → Terminal,<br/>sourceAccountNumber + destinationAccountNumber)
   NCC->>BankAd: validate + prepareDebit (hold)
   NCC->>NCC: post SettlementEntry DEBIT/CREDIT (SETTLED)
   NCC->>BankAd: commitDebit (BankTransaction NCC-DBT-…)
@@ -154,7 +159,8 @@ sequenceDiagram
   participant BankAd as Alta Bank Adapter
 
   User->>Wd: submitTerminalWithdrawalRequest(idempotencyKey, terminalCashId, bankAccountId, amount)
-  Wd->>NCC: submitInstruction(Terminal → Bank,<br/>source=terminal cash, destination=bank)
+  Wd->>Wd: authorize ownership; load public account numbers
+  Wd->>NCC: submitInstruction(Terminal → Bank,<br/>sourceAccountNumber + destinationAccountNumber)
   NCC->>TermAd: validate + prepareDebit (RESERVATION)
   NCC->>NCC: post SettlementEntry (SETTLED)
   NCC->>TermAd: commitDebit (WITHDRAWAL_DEBIT)
@@ -186,4 +192,14 @@ Sprint 3B wires:
 - Signed HTTPS delivery with SSRF protections
 - Developer portal under `/portal/developers`
 
-Alta Bank ↔ Terminal funding/withdrawal continue to use the same settlement engine; machine clients authenticate as their institution and cannot override sender identity. See [NCC_INSTITUTION_API.md](./NCC_INSTITUTION_API.md) and [NCC_WEBHOOKS.md](./NCC_WEBHOOKS.md).
+Alta Bank ↔ Terminal funding/withdrawal continue to use the same settlement engine and the Sprint 4A payment-address contract; machine clients authenticate as their institution and cannot override sender identity. See [NCC_INSTITUTION_API.md](./NCC_INSTITUTION_API.md), [NCC_WEBHOOKS.md](./NCC_WEBHOOKS.md), and [NCC_SPRINT_4A_ACCOUNT_ADDRESSING_REPORT.md](./NCC_SPRINT_4A_ACCOUNT_ADDRESSING_REPORT.md).
+
+---
+
+## 9. Terminal cash account identifiers (Sprint 4A)
+
+- Each `TerminalCashAccount` has a stable, unique (within Alta Terminal’s namespace) digits-only 12-character `accountNumber` string.
+- Digits-only is **Alta Terminal policy**, not an NCC network requirement. Identifiers remain strings (leading zeros preserved; never coerced through JS `Number`).
+- Assigned at first create via cryptographically secure generation; re-provisioning never rewrites the identifier or balances.
+- Displayed masked in Bank website selectors; full identifier only in authorized detail contexts.
+- Identifiers identify accounts; they are not authentication secrets. Website funding still authorizes via signed-in ownership of the source Bank account.

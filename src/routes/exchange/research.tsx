@@ -1,16 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
-import { FilingCard } from "@/components/exchange/filing-card";
+import { EmptyState } from "@/components/data/empty-state";
 import { getFilings } from "@/lib/exchange/api";
-
-const sections = [
-  { title: "Market Commentary", filter: "commentary" as const },
-  { title: "Company Filings", filter: "filings" as const },
-  { title: "IPO Prospectuses", filter: "prospectuses" as const },
-  { title: "Economic Reports", filter: "economic" as const },
-  { title: "Exchange Notices", filter: "notices" as const },
-];
 
 export const Route = createFileRoute("/exchange/research")({
   head: () => ({
@@ -27,21 +18,17 @@ function ExchangeResearch() {
       <ExchangePageMeta
         eyebrow="Alta Exchange · Research"
         title="Research & Filings"
-        description="Market commentary, issuer filings, IPO prospectuses, and exchange notices — simulated document library."
+        description="Market commentary, issuer filings, IPO prospectuses, and exchange notices."
       />
 
-      {sections.map((s, i) => {
-        const docs = researchDocuments.filter((d) => d.section === s.filter);
-        return (
-          <Section key={s.title} title={s.title} className={i > 0 ? "mt-12" : undefined}>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {docs.map((doc) => (
-                <FilingCard key={doc.title} doc={doc} />
-              ))}
-            </div>
-          </Section>
-        );
-      })}
+      {researchDocuments.length === 0 ? (
+        <EmptyState
+          eyebrow="Alta Exchange"
+          title="No research documents yet."
+          description="Filings, prospectuses, and exchange notices will appear here once Alta Exchange document services are available."
+          className="max-w-xl"
+        />
+      ) : null}
     </>
   );
 }

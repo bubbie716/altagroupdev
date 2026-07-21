@@ -13,7 +13,17 @@ function DevelopersOverviewRoute() {
     {
       to: "/portal/developers/api-credentials" as const,
       title: "API Credentials",
-      body: "Create, rotate, and revoke machine credentials for the NCC Institution API.",
+      body: "Create, rotate, and revoke machine credentials for the NCC Institution API. TEST after approval; LIVE only after activation.",
+    },
+    {
+      to: "/portal/developers/connector" as const,
+      title: "Participant Connector",
+      body: "Configure API or directory resolution mode, signing secret, and timeouts for your TEST connector.",
+    },
+    {
+      to: "/portal/developers/directory" as const,
+      title: "Account Directory",
+      body: "Upload and activate versioned account-identifier spreadsheets. Never posts money by itself.",
     },
     {
       to: "/portal/developers/webhooks" as const,

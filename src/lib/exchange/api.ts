@@ -1,15 +1,8 @@
 /**
- * Alta Exchange API — mock service layer.
+ * Alta Exchange API — production service layer.
  *
- * Future architecture:
- *   Alta Terminal / third-party brokerages
- *         ↓
- *   Alta Exchange API (HTTP)
- *         ↓
- *   Exchange data services
- *
- * Today all functions return in-memory mock data synchronously.
- * Swap implementations here when wiring a real API client.
+ * Returns empty / unavailable market datasets until real Exchange services exist.
+ * Never fabricates listings, prices, or indices.
  */
 
 export * from "./types";

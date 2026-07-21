@@ -14,7 +14,6 @@ import {
   createUserScheduledTransferRecord,
   fetchUserScheduledTransfers,
 } from "@/lib/bank/scheduled-transfer.functions";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import type { UserBankTransfer } from "@/lib/bank/backend-types";
 import {
   BankMobileStack,
@@ -32,7 +31,6 @@ export const Route = createFileRoute("/bank/transfers/intrabank")({
     accountId: typeof search.accountId === "string" ? search.accountId : undefined,
   }),
   loader: async () => {
-    if (isUserFinancialMockDataEnabled()) return null;
     const [accounts, transfers, scheduledTransfers] = await Promise.all([
       fetchActiveBankAccounts(),
       fetchUserInternalTransfers({ data: 20 }),
@@ -47,7 +45,6 @@ export const Route = createFileRoute("/bank/transfers/intrabank")({
 });
 
 function BankIntrabankTransfers() {
-  const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
   const { accountId } = Route.useSearch();
   const router = useRouter();
@@ -59,17 +56,7 @@ function BankIntrabankTransfers() {
       title="Intrabank"
       description="Move money between your own Alta Bank accounts."
      />
-{showMockData ? (
-        <>
-          <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
-          <Card className="!p-6">
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
-            Intrabank transfers between Alta Checking, Savings, Reserve, and Business accounts are
-            simulated in this preview.
-          </p>
-        </Card>
-        </>
-      ) : !data || data.accounts.length === 0 ? (
+{!data || data.accounts.length === 0 ? (
         <>
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
           <EmptyBankState

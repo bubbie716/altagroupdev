@@ -1,9 +1,11 @@
 import { Prisma, type TerminalCashAccount } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { generateTerminalAccountNumber } from "@/lib/ncc/ncc-account-number";
 import { asDecimal, decimalToNumber, NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
 
 export type TerminalCashAccountView = {
   id: string;
+  accountNumber: string;
   ownerUserId: string | null;
   ownerCompanyId: string | null;
   currency: string;
@@ -18,6 +20,7 @@ export type TerminalCashAccountView = {
 function mapTerminalCashAccount(row: TerminalCashAccount): TerminalCashAccountView {
   return {
     id: row.id,
+    accountNumber: row.accountNumber,
     ownerUserId: row.ownerUserId,
     ownerCompanyId: row.ownerCompanyId,
     currency: row.currency,
@@ -28,6 +31,30 @@ function mapTerminalCashAccount(row: TerminalCashAccount): TerminalCashAccountVi
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+async function createWithUniqueAccountNumber(
+  data: Omit<Prisma.TerminalCashAccountCreateInput, "accountNumber">,
+): Promise<TerminalCashAccount> {
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const accountNumber = generateTerminalAccountNumber();
+    try {
+      return await prisma.terminalCashAccount.create({
+        data: { ...data, accountNumber },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const target = error.meta?.target;
+        const targets = Array.isArray(target) ? target.map(String) : [String(target ?? "")];
+        if (targets.some((t) => t.includes("accountNumber"))) {
+          continue;
+        }
+        throw error;
+      }
+      throw error;
+    }
+  }
+  throw new Error("TERMINAL_ACCOUNT_NUMBER_ALLOCATION_FAILED");
 }
 
 /** Idempotently provisions (or returns) a user's Alta Terminal / Exchange trading-cash account. */
@@ -42,15 +69,13 @@ export async function ensureUserTerminalCashAccount(
   if (existing) return mapTerminalCashAccount(existing);
 
   try {
-    const created = await prisma.terminalCashAccount.create({
-      data: {
-        ownerUserId: userId,
-        currency: normalizedCurrency,
-        ledgerBalance: 0,
-        availableBalance: 0,
-        reservedBalance: 0,
-        status: "ACTIVE",
-      },
+    const created = await createWithUniqueAccountNumber({
+      ownerUser: { connect: { id: userId } },
+      currency: normalizedCurrency,
+      ledgerBalance: 0,
+      availableBalance: 0,
+      reservedBalance: 0,
+      status: "ACTIVE",
     });
     return mapTerminalCashAccount(created);
   } catch (error) {
@@ -76,15 +101,13 @@ export async function ensureCompanyTerminalCashAccount(
   if (existing) return mapTerminalCashAccount(existing);
 
   try {
-    const created = await prisma.terminalCashAccount.create({
-      data: {
-        ownerCompanyId: companyId,
-        currency: normalizedCurrency,
-        ledgerBalance: 0,
-        availableBalance: 0,
-        reservedBalance: 0,
-        status: "ACTIVE",
-      },
+    const created = await createWithUniqueAccountNumber({
+      ownerCompany: { connect: { id: companyId } },
+      currency: normalizedCurrency,
+      ledgerBalance: 0,
+      availableBalance: 0,
+      reservedBalance: 0,
+      status: "ACTIVE",
     });
     return mapTerminalCashAccount(created);
   } catch (error) {

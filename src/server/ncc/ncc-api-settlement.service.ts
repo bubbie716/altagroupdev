@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { asDecimal, NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
 import { NccApiError, mapSettlementErrorToApi } from "@/lib/ncc/ncc-api-errors";
+import { validateNccAccountIdentifierEnvelope } from "@/lib/ncc/ncc-account-number";
 import { isRoutingNumberUsable } from "@/lib/ncc/ncc-permissions";
 import { NCC_AUDIT } from "@/lib/ncc/ncc-audit-actions";
 import {
@@ -45,7 +46,8 @@ export const NCC_API_STRING_LIMITS = {
   idempotencyKey: 128,
   purpose: 256,
   externalReference: 128,
-  accountReference: 128,
+  accountNumber: 64,
+  routingNumber: 32,
   reason: 500,
 } as const;
 
@@ -156,8 +158,9 @@ export async function apiSubmitSettlement(
     currency?: string;
     purpose?: string;
     externalReference?: string;
-    sourceAccountReference?: string;
-    destinationAccountReference?: string;
+    sendingRoutingNumber?: string;
+    sourceAccountNumber?: string;
+    destinationAccountNumber?: string;
     idempotencyKey: string;
   },
 ): Promise<ApiSettlementView> {
@@ -184,29 +187,74 @@ export async function apiSubmitSettlement(
     "externalReference",
     NCC_API_STRING_LIMITS.externalReference,
   );
-  const sourceAccountReference = assertOptionalString(
-    input.sourceAccountReference,
-    "sourceAccountReference",
-    NCC_API_STRING_LIMITS.accountReference,
+  const sourceAccountNumberRaw = assertOptionalString(
+    input.sourceAccountNumber,
+    "sourceAccountNumber",
+    NCC_API_STRING_LIMITS.accountNumber,
   );
-  const destinationAccountReference = assertOptionalString(
-    input.destinationAccountReference,
-    "destinationAccountReference",
-    NCC_API_STRING_LIMITS.accountReference,
+  const destinationAccountNumberRaw = assertOptionalString(
+    input.destinationAccountNumber,
+    "destinationAccountNumber",
+    NCC_API_STRING_LIMITS.accountNumber,
+  );
+  // Format-neutral envelope only — participant adapters own format/normalization.
+  const sourceAccountNumber = sourceAccountNumberRaw
+    ? (() => {
+        const checked = validateNccAccountIdentifierEnvelope(sourceAccountNumberRaw);
+        if (!checked.ok) {
+          throw new NccApiError("INVALID_PAYMENT_ADDRESS", "The payment address is invalid.", 422);
+        }
+        return checked.value;
+      })()
+    : undefined;
+  const destinationAccountNumber = destinationAccountNumberRaw
+    ? (() => {
+        const checked = validateNccAccountIdentifierEnvelope(destinationAccountNumberRaw);
+        if (!checked.ok) {
+          throw new NccApiError("INVALID_PAYMENT_ADDRESS", "The payment address is invalid.", 422);
+        }
+        return checked.value;
+      })()
+    : undefined;
+  const sendingRoutingNumberInput = assertOptionalString(
+    input.sendingRoutingNumber,
+    "sendingRoutingNumber",
+    NCC_API_STRING_LIMITS.routingNumber,
   );
 
   const receivingRouting = await prisma.routingNumber.findUnique({
     where: { routingNumber: input.receivingRoutingNumber.trim() },
   });
   if (!receivingRouting || !isRoutingNumberUsable(receivingRouting.status)) {
-    throw new NccApiError("INVALID_ROUTING", "Receiving routing number is invalid or unusable.", 422);
+    throw new NccApiError("ROUTING_NUMBER_UNAVAILABLE", "Receiving routing number is unavailable.", 422);
   }
 
-  const sendingRouting = await prisma.routingNumber.findFirst({
+  let sendingRouting = await prisma.routingNumber.findFirst({
     where: { institutionId: ctx.institutionId, isPrimary: true, status: "ACTIVE" },
   });
+  if (sendingRoutingNumberInput) {
+    const explicit = await prisma.routingNumber.findUnique({
+      where: { routingNumber: sendingRoutingNumberInput.trim() },
+    });
+    if (
+      !explicit ||
+      !isRoutingNumberUsable(explicit.status) ||
+      explicit.institutionId !== ctx.institutionId
+    ) {
+      throw new NccApiError(
+        "ROUTING_NUMBER_UNAVAILABLE",
+        "Sending routing number is unavailable for this institution.",
+        422,
+      );
+    }
+    sendingRouting = explicit;
+  }
   if (!sendingRouting) {
-    throw new NccApiError("INVALID_ROUTING", "Sending institution has no active primary routing number.", 422);
+    throw new NccApiError(
+      "ROUTING_NUMBER_UNAVAILABLE",
+      "Sending institution has no active routing number.",
+      422,
+    );
   }
 
   if (receivingRouting.institutionId === ctx.institutionId) {
@@ -239,11 +287,11 @@ export async function apiSubmitSettlement(
       externalReference,
       idempotencyKey,
       submittedByUserId: actorUserId,
+      sourceAccountNumber,
+      destinationAccountNumber,
       metadata: {
         source: "ncc_api",
         credentialId: ctx.credentialId,
-        sourceAccountReference,
-        destinationAccountReference,
       },
     });
     return mapApiSettlement(instruction.id, ctx.institutionId);
@@ -418,8 +466,9 @@ export async function apiCancelSettlement(
 }
 
 /**
- * Safer default: institution API creates a reversal request for NCC ops review
- * rather than immediately reversing value.
+ * Institution API requests a transfer return (dual-control workflow).
+ * Bridges legacy NccSettlementReversalRequest for audit continuity, then
+ * creates / returns the NccTransferReturn record via requestTransferReturn.
  */
 export async function apiRequestReversal(
   ctx: AuthenticatedNccApiContext,
@@ -455,45 +504,99 @@ export async function apiRequestReversal(
     throw new NccApiError("REVERSAL_REQUIRES_SETTLED", "Reversal requires a SETTLED instruction.", 409);
   }
 
-  const request = await prisma.nccSettlementReversalRequest.create({
-    data: {
+  // Keep a legacy reversal-request row for historical reporting / migration links.
+  let legacyRequest = await prisma.nccSettlementReversalRequest.findFirst({
+    where: {
       institutionId: ctx.institutionId,
       settlementInstructionId: row.id,
-      publicReference: row.publicReference,
-      reason: trimmed,
       status: "PENDING_REVIEW",
       requestedByCredentialId: ctx.credentialId,
-      requestedByUserId: ctx.credential.createdByUserId,
     },
+    orderBy: { createdAt: "desc" },
   });
-
-  const actorUserId =
-    ctx.credential.createdByUserId ??
-    (
-      await prisma.user.findFirst({
-        where: { tags: { some: { tag: "ADMIN" } } },
-        select: { id: true },
-      })
-    )?.id;
-  if (actorUserId) {
-    const { writeAuditLog } = await import("@/server/audit.service");
-    await writeAuditLog({
-      actorUserId,
-      action: NCC_AUDIT.REVERSAL_REQUESTED,
-      entityType: "NCC_REVERSAL_REQUEST",
-      entityId: request.id,
-      institutionId: ctx.institutionId,
-      description: `API reversal request for ${row.publicReference}`,
-      metadata: { reason: trimmed },
+  if (!legacyRequest) {
+    legacyRequest = await prisma.nccSettlementReversalRequest.create({
+      data: {
+        institutionId: ctx.institutionId,
+        settlementInstructionId: row.id,
+        publicReference: row.publicReference,
+        reason: trimmed,
+        status: "PENDING_REVIEW",
+        requestedByCredentialId: ctx.credentialId,
+        requestedByUserId: ctx.credential.createdByUserId,
+      },
     });
   }
 
-  return {
-    requestId: request.id,
-    reference: row.publicReference,
-    status: request.status,
-    reason: trimmed,
-  };
+  const { requestTransferReturn, NccTransferReturnError } = await import(
+    "@/server/ncc/ncc-transfer-return.service"
+  );
+
+  try {
+    const transferReturn = await requestTransferReturn({
+      originalInstructionId: row.id,
+      institutionId: ctx.institutionId,
+      reason: trimmed,
+      idempotencyKey: `api-reversal:${ctx.credentialId}:${row.id}`,
+      requestedByUserId: ctx.credential.createdByUserId ?? undefined,
+      requestedByCredentialId: ctx.credentialId,
+    });
+
+    // Link legacy request when this return was freshly created without a legacy id.
+    await prisma.nccTransferReturn.updateMany({
+      where: {
+        id: transferReturn.id,
+        legacyReversalRequestId: null,
+      },
+      data: { legacyReversalRequestId: legacyRequest.id },
+    });
+
+    const actorUserId =
+      ctx.credential.createdByUserId ??
+      (
+        await prisma.user.findFirst({
+          where: { tags: { some: { tag: "ADMIN" } } },
+          select: { id: true },
+        })
+      )?.id;
+    if (actorUserId) {
+      const { writeAuditLog } = await import("@/server/audit.service");
+      await writeAuditLog({
+        actorUserId,
+        action: NCC_AUDIT.REVERSAL_REQUESTED,
+        entityType: "NCC_TRANSFER_RETURN",
+        entityId: transferReturn.id,
+        institutionId: ctx.institutionId,
+        description: `API transfer-return request for ${row.publicReference}`,
+        metadata: {
+          reason: trimmed,
+          legacyReversalRequestId: legacyRequest.id,
+          transferReturnStatus: transferReturn.status,
+        },
+      });
+    }
+
+    return {
+      requestId: transferReturn.id,
+      reference: row.publicReference,
+      status: transferReturn.status,
+      reason: trimmed,
+    };
+  } catch (error) {
+    if (error instanceof NccTransferReturnError) {
+      if (error.code === "RETURN_REQUIRES_SETTLED") {
+        throw new NccApiError("REVERSAL_REQUIRES_SETTLED", error.message, 409);
+      }
+      if (error.code === "ALREADY_REVERSED") {
+        throw new NccApiError("ALREADY_REVERSED", "Instruction has already been reversed.", 409);
+      }
+      if (error.code === "FORBIDDEN") {
+        throw new NccApiError("NOT_FOUND", "The requested resource was not found.", 404);
+      }
+      throw new NccApiError(error.code, error.message, 400);
+    }
+    throw error;
+  }
 }
 
 export async function apiGetInstitution(ctx: AuthenticatedNccApiContext) {

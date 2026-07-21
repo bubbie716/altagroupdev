@@ -20,7 +20,25 @@ export type AuthenticatedNccApiContext = {
   requestId: string;
 };
 
-function institutionEligible(institution: FinancialInstitution): void {
+function institutionEligible(
+  institution: FinancialInstitution,
+  environment: "TEST" | "LIVE",
+): void {
+  if (environment === "TEST") {
+    // CERTIFICATION institutions may authenticate with TEST credentials only.
+    if (
+      institution.status !== "CERTIFICATION" &&
+      institution.status !== "ACTIVE" &&
+      institution.status !== "RESTRICTED"
+    ) {
+      throw new NccApiError(
+        "INSTITUTION_INACTIVE",
+        "The institution is not eligible for API operations.",
+        403,
+      );
+    }
+    return;
+  }
   if (institution.status !== "ACTIVE") {
     throw new NccApiError("INSTITUTION_INACTIVE", "The institution is not eligible for API operations.", 403);
   }
@@ -154,7 +172,7 @@ export async function authenticateNccApiRequest(
     where: { id: credential.institutionId },
   });
   try {
-    institutionEligible(institution);
+    institutionEligible(institution, credential.environment);
   } catch (error) {
     await recordAuthRejection({ institutionId: institution.id, reason: "institution_ineligible" });
     throw error;

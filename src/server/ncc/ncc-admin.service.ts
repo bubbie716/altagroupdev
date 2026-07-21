@@ -10,7 +10,6 @@ import {
   allocateRoutingNumberCandidate,
   NCC_DEFAULT_CURRENCY,
   slugifyInstitutionName,
-  toMoneyDecimal,
 } from "@/lib/ncc/ncc-money";
 import { requireNccStaff } from "@/server/ncc/ncc-permissions.service";
 
@@ -52,7 +51,7 @@ export async function createInstitution(input: {
   isNCCParticipant?: boolean;
   primaryContactUserId?: string;
 }) {
-  const actor = await requireNccStaff();
+  const actor = await requireNccStaff("manage_institutions");
   const slug = (input.slug?.trim() || slugifyInstitutionName(input.displayName || input.legalName)).toLowerCase();
 
   const institution = await prisma.financialInstitution.create({
@@ -83,43 +82,18 @@ export async function createInstitution(input: {
   return institution;
 }
 
-export async function approveInstitution(institutionId: string) {
-  const actor = await requireNccStaff();
-  const institution = await prisma.financialInstitution.update({
-    where: { id: institutionId },
-    data: {
-      status: "ACTIVE",
-      approvedAt: new Date(),
-      isNCCParticipant: true,
-      suspendedAt: null,
-      terminatedAt: null,
-    },
-  });
-
-  await prisma.settlementAccount.upsert({
-    where: {
-      institutionId_currency: { institutionId, currency: NCC_DEFAULT_CURRENCY },
-    },
-    create: {
-      institutionId,
-      currency: NCC_DEFAULT_CURRENCY,
-      ledgerBalance: 0,
-      availableBalance: 0,
-      status: "ACTIVE",
-    },
-    update: { status: "ACTIVE" },
-  });
-
-  await writeNccAudit({
-    actorUserId: actor.id,
-    action: NCC_AUDIT.INSTITUTION_APPROVED,
-    entityType: "FINANCIAL_INSTITUTION",
-    entityId: institutionId,
-    description: `Institution ${institution.displayName} approved`,
-    institutionId,
-  });
-
-  return institution;
+/**
+ * @deprecated Sprint 4F — unsafe activation bypass removed.
+ * Production activation path is exclusively:
+ * approved application + accepted regulatory documents + passed connector certification
+ * + authorized staff LIVE promotion → ACTIVE participant.
+ * Use `promoteInstitutionToLive` from ncc-live-promotion.service.
+ */
+export async function approveInstitution(_institutionId: string): Promise<never> {
+  await requireNccStaff("manage_institutions");
+  throw new Error(
+    "UNSAFE_ACTIVATION_BYPASS_DISABLED: use approved application + documents + certification + promoteInstitutionToLive",
+  );
 }
 
 async function setInstitutionStatus(
@@ -278,45 +252,19 @@ export async function createSettlementAccount(input: {
   return account;
 }
 
-/** Authorized NCC staff adjustment — not a client path. Credits settlement position only. */
-export async function adjustSettlementAccount(input: {
+/**
+ * @deprecated Sprint 4E — direct balance edits are disabled.
+ * Use dual-control liquidity operations (requestLiquidityOperation / approveLiquidityOperation).
+ */
+export async function adjustSettlementAccount(_input: {
   settlementAccountId: string;
   amount: number;
   reason: string;
-}) {
-  const actor = await requireNccStaff();
-  if (!input.reason.trim()) throw new Error("ADJUSTMENT_REASON_REQUIRED");
-  const amount = toMoneyDecimal(Math.abs(input.amount));
-  const signed = input.amount;
-
-  const updated = await prisma.$transaction(async (tx) => {
-    const account = await tx.settlementAccount.findUniqueOrThrow({
-      where: { id: input.settlementAccountId },
-    });
-    const nextLedger = Number((Number(account.ledgerBalance) + signed).toFixed(2));
-    const nextAvailable = Number((Number(account.availableBalance) + signed).toFixed(2));
-    if (nextLedger < 0 || nextAvailable < 0) throw new Error("NEGATIVE_BALANCE_DENIED");
-
-    return tx.settlementAccount.update({
-      where: { id: account.id },
-      data: {
-        ledgerBalance: nextLedger,
-        availableBalance: nextAvailable,
-      },
-    });
-  });
-
-  await writeNccAudit({
-    actorUserId: actor.id,
-    action: NCC_AUDIT.SETTLEMENT_ACCOUNT_ADJUSTED,
-    entityType: "SETTLEMENT_ACCOUNT",
-    entityId: updated.id,
-    description: `Settlement account adjusted by ${signed}`,
-    institutionId: updated.institutionId,
-    metadata: { reason: input.reason, amount: Number(amount.toString()), signed },
-  });
-
-  return updated;
+}): Promise<never> {
+  await requireNccStaff();
+  throw new Error(
+    "DIRECT_BALANCE_EDIT_DISABLED: use authorized liquidity operations (funding/withdrawal/correction)",
+  );
 }
 
 export async function addInstitutionMember(input: {

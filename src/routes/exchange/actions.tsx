@@ -1,16 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
 import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
-import { CorporateActionTable } from "@/components/exchange/corporate-action-table";
+import { EmptyState } from "@/components/data/empty-state";
 import { getCorporateActions } from "@/lib/exchange/api";
-
-const sections = [
-  { title: "Dividends", filter: "dividends" as const },
-  { title: "Stock Splits", filter: "splits" as const },
-  { title: "Buybacks", filter: "buybacks" as const },
-  { title: "Mergers", filter: "mergers" as const },
-  { title: "Tender Offers", filter: "tenders" as const },
-];
 
 export const Route = createFileRoute("/exchange/actions")({
   head: () => ({
@@ -27,18 +18,17 @@ function ExchangeActions() {
       <ExchangePageMeta
         eyebrow="Alta Exchange · Corporate Actions"
         title="Corporate Actions"
-        description="Dividends, splits, buybacks, mergers, and tender offers across Alta Exchange listed issuers — simulated data."
+        description="Dividends, splits, buybacks, mergers, and tender offers across Alta Exchange listed issuers."
       />
 
-      {sections.map((s) => {
-        const rows = corporateActions.filter((a) => a.category === s.filter);
-        if (rows.length === 0) return null;
-        return (
-          <Section key={s.title} title={s.title} className="mt-10 first:mt-0">
-            <CorporateActionTable actions={rows} />
-          </Section>
-        );
-      })}
+      {corporateActions.length === 0 ? (
+        <EmptyState
+          eyebrow="Alta Exchange"
+          title="No corporate actions yet."
+          description="Dividends, splits, buybacks, and other issuer actions will appear here once Alta Exchange corporate action feeds are live."
+          className="max-w-xl"
+        />
+      ) : null}
     </>
   );
 }

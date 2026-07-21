@@ -1,4 +1,4 @@
-import { florin, pct } from "@/lib/mock-data";
+import { florin, pct } from "@/lib/format/money-display";
 import type { CompanyProfile } from "@/lib/exchange/types";
 
 export function CompanyProfileHeader({ company }: { company: CompanyProfile }) {

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
 import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
-import { IPOCard } from "@/components/exchange/ipo-card";
+import { EmptyState } from "@/components/data/empty-state";
 import { getIPOs } from "@/lib/exchange/api";
 
 export const Route = createFileRoute("/exchange/ipo")({
@@ -12,47 +11,24 @@ export const Route = createFileRoute("/exchange/ipo")({
 });
 
 function ExchangeIPO() {
-  const open = getIPOs("open");
-  const upcoming = getIPOs("upcoming");
-  const recent = getIPOs("recent");
+  const ipos = getIPOs();
 
   return (
     <>
       <ExchangePageMeta
         eyebrow="Alta Exchange · IPO Center"
         title="IPO Center"
-        description="Primary market offerings, bookbuilding, and recently listed issuers on Alta Exchange — simulated preview."
+        description="Primary market offerings, bookbuilding, and recently listed issuers on Alta Exchange."
       />
 
-      <Card className="mb-10 border-gold/30 bg-gold/5">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
-          IPO participation is simulated in this preview.
-        </p>
-      </Card>
-
-      <Section title="Open IPOs">
-        <div className="grid gap-4 md:grid-cols-2">
-          {open.map((ipo) => (
-            <IPOCard key={ipo.ticker} ipo={ipo} />
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Upcoming IPOs" className="mt-12">
-        <div className="grid gap-4 md:grid-cols-2">
-          {upcoming.map((ipo) => (
-            <IPOCard key={ipo.ticker} ipo={ipo} />
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Recently Listed" className="mt-12">
-        <div className="grid gap-4 md:grid-cols-2">
-          {recent.map((ipo) => (
-            <IPOCard key={ipo.ticker} ipo={ipo} />
-          ))}
-        </div>
-      </Section>
+      {ipos.length === 0 ? (
+        <EmptyState
+          eyebrow="Alta Exchange"
+          title="No IPOs listed yet."
+          description="Open offerings, bookbuilding, and recently listed issuers will appear here once Alta Exchange primary market services launch."
+          className="max-w-xl"
+        />
+      ) : null}
     </>
   );
 }

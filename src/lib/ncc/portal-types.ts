@@ -31,6 +31,7 @@ export type PortalDashboardMetrics = {
   primaryRoutingNumber: string | null;
   settlementBalance: number;
   settlementAvailable: number;
+  lowLiquidityThreshold: number | null;
   currency: string;
   todayVolume: number;
   todayCount: number;
@@ -159,6 +160,10 @@ export type PortalAccountSummary = {
   availableBalance: number;
   reservedBalance: number;
   status: string;
+  lowLiquidityThreshold: number | null;
+  frozenAt: string | null;
+  frozenReason: string | null;
+  legacyFloatReviewStatus: string;
   dailyNetMovement: number;
   recentEntries: Array<{
     id: string;
@@ -167,6 +172,13 @@ export type PortalAccountSummary = {
     balanceAfter: number;
     createdAt: string;
     publicReference: string;
+  }>;
+  recentLiquidityOperations?: Array<{
+    id: string;
+    operationType: string;
+    amount: string;
+    status: string;
+    createdAt: string;
   }>;
 };
 
@@ -200,6 +212,7 @@ export type PortalSearchResult = {
 
 export const PORTAL_NAV = [
   { to: "/portal", label: "Dashboard", exact: true },
+  { to: "/portal/applications", label: "Participant Applications" },
   { to: "/portal/queue", label: "Processing & Exceptions" },
   { to: "/portal/settlements", label: "Settlement History" },
   { to: "/portal/accounts", label: "Settlement Accounts" },

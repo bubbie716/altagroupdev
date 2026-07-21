@@ -4,11 +4,9 @@ import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
 import { BankTransferContactsManager } from "@/components/bank/bank-transfer-contacts-manager";
 import { fetchActiveBankAccounts, fetchAllTransferContacts } from "@/lib/bank/bank.functions";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 export const Route = createFileRoute("/bank/transfers/contacts")({
   loader: async () => {
-    if (isUserFinancialMockDataEnabled()) return null;
     const [accounts, contacts] = await Promise.all([
       fetchActiveBankAccounts(),
       fetchAllTransferContacts(),
@@ -22,7 +20,6 @@ export const Route = createFileRoute("/bank/transfers/contacts")({
 });
 
 function BankTransferContactsPage() {
-  const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
   const router = useRouter();
 
@@ -35,13 +32,7 @@ function BankTransferContactsPage() {
      />
 <TransferPageHeader />
 
-      {showMockData ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface-1/40 px-6 py-10 text-center">
-          <p className="text-[13px] text-muted-foreground">
-            Transfer contacts are available when connected to live Alta Bank accounts.
-          </p>
-        </div>
-      ) : !data ? (
+      {!data ? (
         <div className="rounded-xl border border-dashed border-border bg-surface-1/40 px-6 py-10 text-center">
           <p className="text-[13px] text-muted-foreground">Unable to load contacts.</p>
         </div>

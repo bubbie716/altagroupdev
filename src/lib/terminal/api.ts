@@ -1,33 +1,19 @@
 /**
- * Alta Terminal API — mock service layer.
+ * Alta Terminal API — production service layer.
  *
- * Future architecture:
- *   Alta Terminal UI → Alta Terminal API (HTTP) → terminal + exchange data services
- *
- * Today all functions return in-memory mock data synchronously.
+ * Market and portfolio datasets return empty/unavailable values until backed by
+ * persisted Terminal and Exchange services. Cash flows use server functions.
  */
 
 export * from "./types";
-export { compact, florin, pct, getEstimatedCost } from "./data";
+export { compact, florin, pct } from "@/lib/format/money-display";
 
-import {
-  getEstimatedCost,
-  holdings,
-  leaderboard,
-  orders,
-  portfolioSummary,
-  sectorAllocation,
-  portfolioSeries,
-  terminalDashboard,
-  terminalDescription,
-  terminalIpoAccess,
-  terminalNews,
-  terminalResearch,
-  tradeDefaults,
-  tradeHistory,
-  transactions,
-  watchlistGroups,
-} from "./data";
+export const terminalDescription =
+  "An Alta Exchange Product. Market intelligence, portfolios, watchlists, analytics, and order entry in one institutional terminal.";
+
+export function getEstimatedCost(qty: number, price: number) {
+  return qty * price;
+}
 
 /** GET /v1/terminal/description */
 export function getTerminalDescription() {
@@ -36,72 +22,115 @@ export function getTerminalDescription() {
 
 /** GET /v1/terminal/dashboard */
 export function getTerminalDashboard() {
-  return terminalDashboard;
+  return {
+    totalNetWorth: 0,
+    portfolioValue: 0,
+    dailyPnL: 0,
+    dailyPnLPercent: 0,
+    cashAvailable: 0,
+    performanceSeries: [] as { t: number; v: number }[],
+  };
 }
 
 /** GET /v1/terminal/portfolio/performance */
 export function getPortfolioSeries() {
-  return portfolioSeries;
+  return [] as { t: number; v: number }[];
 }
 
 /** GET /v1/terminal/portfolio/summary */
 export function getPortfolioSummary() {
-  return portfolioSummary;
+  return {
+    cashBalance: 0,
+    unrealizedGain: 0,
+    realizedGain: 0,
+    totalReturn: 0,
+  };
 }
 
 /** GET /v1/terminal/portfolio/sector-allocation */
 export function getSectorAllocation() {
-  return sectorAllocation;
+  return [] as { sector: string; weight: number }[];
 }
 
 /** GET /v1/terminal/portfolio/holdings */
 export function getHoldings() {
-  return holdings;
+  return [] as {
+    symbol: string;
+    shares: number;
+    avg: number;
+    value: number;
+    weight: number;
+  }[];
 }
 
 /** GET /v1/terminal/portfolio/transactions */
 export function getPortfolioTransactions() {
-  return transactions;
+  return [] as {
+    id: string;
+    date: string;
+    desc: string;
+    category: string;
+    amount: number;
+  }[];
 }
 
 /** GET /v1/terminal/watchlist */
 export function getWatchlistGroups() {
-  return watchlistGroups;
+  return [] as {
+    name: string;
+    items: {
+      symbol: string;
+      name: string;
+      sector: string;
+      price: number;
+      change: number;
+      volume: number;
+      marketCap: number;
+      alert?: string;
+    }[];
+  }[];
 }
 
 /** GET /v1/terminal/research */
 export function getTerminalResearch() {
-  return terminalResearch;
+  return [];
 }
 
 /** GET /v1/terminal/news */
 export function getTerminalNews() {
-  return terminalNews;
+  return [];
 }
 
 /** GET /v1/terminal/ipo-access */
 export function getTerminalIpoAccess() {
-  return terminalIpoAccess;
+  return [];
 }
 
 /** GET /v1/terminal/leaderboard */
 export function getLeaderboard() {
-  return leaderboard;
+  return {
+    largestPortfolios: [],
+    bestDaily: [],
+    mostActive: [],
+    topPrivate: [],
+    winners: [],
+    losers: [],
+  };
 }
 
 /** GET /v1/terminal/trade/defaults */
 export function getTradeDefaults() {
-  return tradeDefaults;
+  return null;
 }
 
 /** GET /v1/terminal/trade/history */
 export function getTradeHistory() {
-  return tradeHistory;
+  return [];
 }
 
 /** GET /v1/terminal/orders */
 export function getOrders() {
-  return orders;
+  return [];
 }
 
 export const terminalApi = {

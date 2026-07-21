@@ -39,21 +39,34 @@ export const Route = createFileRoute("/api/ncc/v1/settlements/")({
             }
             const body = await readJsonBody<{
               receivingRoutingNumber?: unknown;
+              sendingRoutingNumber?: unknown;
               amount?: unknown;
               currency?: unknown;
               purpose?: unknown;
               externalReference?: unknown;
+              sourceAccountNumber?: unknown;
+              destinationAccountNumber?: unknown;
               sourceAccountReference?: unknown;
               destinationAccountReference?: unknown;
             }>(req, [
               "receivingRoutingNumber",
+              "sendingRoutingNumber",
               "amount",
               "currency",
               "purpose",
               "externalReference",
+              "sourceAccountNumber",
+              "destinationAccountNumber",
               "sourceAccountReference",
               "destinationAccountReference",
             ]);
+            if ("sourceAccountReference" in body || "destinationAccountReference" in body) {
+              throw new NccApiError(
+                "VALIDATION_ERROR",
+                "sourceAccountReference and destinationAccountReference are not accepted. Use sourceAccountNumber and destinationAccountNumber.",
+                400,
+              );
+            }
             if (typeof body.receivingRoutingNumber !== "string" || !body.receivingRoutingNumber.trim()) {
               throw new NccApiError("VALIDATION_ERROR", "receivingRoutingNumber is required.", 400);
             }
@@ -64,8 +77,9 @@ export const Route = createFileRoute("/api/ncc/v1/settlements/")({
               "currency",
               "purpose",
               "externalReference",
-              "sourceAccountReference",
-              "destinationAccountReference",
+              "sendingRoutingNumber",
+              "sourceAccountNumber",
+              "destinationAccountNumber",
             ] as const) {
               if (field in body && body[field] !== undefined && typeof body[field] !== "string") {
                 throw new NccApiError("VALIDATION_ERROR", `${field} must be a string.`, 400);
@@ -78,13 +92,13 @@ export const Route = createFileRoute("/api/ncc/v1/settlements/")({
               purpose: typeof body.purpose === "string" ? body.purpose : undefined,
               externalReference:
                 typeof body.externalReference === "string" ? body.externalReference : undefined,
-              sourceAccountReference:
-                typeof body.sourceAccountReference === "string"
-                  ? body.sourceAccountReference
-                  : undefined,
-              destinationAccountReference:
-                typeof body.destinationAccountReference === "string"
-                  ? body.destinationAccountReference
+              sendingRoutingNumber:
+                typeof body.sendingRoutingNumber === "string" ? body.sendingRoutingNumber : undefined,
+              sourceAccountNumber:
+                typeof body.sourceAccountNumber === "string" ? body.sourceAccountNumber : undefined,
+              destinationAccountNumber:
+                typeof body.destinationAccountNumber === "string"
+                  ? body.destinationAccountNumber
                   : undefined,
               idempotencyKey,
             });

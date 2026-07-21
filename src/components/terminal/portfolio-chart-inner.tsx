@@ -1,5 +1,5 @@
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
-import { florin } from "@/lib/mock-data";
+import { florin } from "@/lib/format/money-display";
 
 export type PortfolioChartInnerProps = {
   data: { t: number; v: number }[];

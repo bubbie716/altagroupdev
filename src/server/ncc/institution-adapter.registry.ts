@@ -1,6 +1,8 @@
+import { prisma } from "@/server/db";
 import { AltaBankInstitutionAdapter } from "@/server/ncc/adapters/alta-bank.adapter";
 import { AltaExchangeInstitutionAdapter } from "@/server/ncc/adapters/alta-exchange.adapter";
 import { AltaTerminalInstitutionAdapter } from "@/server/ncc/adapters/alta-terminal.adapter";
+import { ExternalParticipantAdapter } from "@/server/ncc/adapters/external-participant.adapter";
 import type { InstitutionAdapter, InstitutionAdapterKey } from "@/server/ncc/institution-adapter";
 import {
   ALTA_BANK_INSTITUTION_ID,
@@ -42,10 +44,26 @@ export function resolveInstitutionAdapterKey(institution: {
   return institution.slug;
 }
 
-export function getAdapterForInstitution(institution: {
+/**
+ * Resolve the institution adapter. Non-Alta institutions receive the external
+ * participant adapter only when a non-draft connector is configured.
+ */
+export async function getAdapterForInstitution(institution: {
   id: string;
   slug: string;
   isAlta: boolean;
-}): InstitutionAdapter | null {
-  return getInstitutionAdapter(resolveInstitutionAdapterKey(institution));
+}): Promise<InstitutionAdapter | null> {
+  const key = resolveInstitutionAdapterKey(institution);
+  const registered = getInstitutionAdapter(key);
+  if (registered) return registered;
+  if (!institution.isAlta) {
+    const connector = await prisma.nccParticipantConnector.findUnique({
+      where: { institutionId: institution.id },
+      select: { status: true },
+    });
+    if (connector && connector.status !== "DISABLED" && connector.status !== "DRAFT") {
+      return new ExternalParticipantAdapter(institution.id, key);
+    }
+  }
+  return null;
 }

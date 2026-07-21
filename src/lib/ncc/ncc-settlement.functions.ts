@@ -71,11 +71,17 @@ export const nccCreateInstitution = createServerFn({ method: "POST" })
     return serializeInstitution(await createInstitution(data));
   });
 
+/** @deprecated Sprint 4F — direct activation bypass removed. */
 export const nccApproveInstitution = createServerFn({ method: "POST" })
   .inputValidator((input: { institutionId: string }) => input)
   .handler(async ({ data }) => {
     const { approveInstitution } = await import("@/server/ncc/ncc-admin.service");
-    return serializeInstitution(await approveInstitution(data.institutionId));
+    await approveInstitution(data.institutionId);
+    return serializeInstitution(
+      await (
+        await import("@/server/db")
+      ).prisma.financialInstitution.findUniqueOrThrow({ where: { id: data.institutionId } }),
+    );
   });
 
 export const nccAssignRoutingNumber = createServerFn({ method: "POST" })

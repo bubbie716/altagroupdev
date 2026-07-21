@@ -34,14 +34,20 @@ export function NccParticipationPage() {
               <li>3. Legal execution of Participation Agreement</li>
               <li>4. Production certification and routing number assignment</li>
             </ol>
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
               <SiteInternalLink
                 siteKey="ncc"
-                to="/login"
-                search={{ redirect: "/portal" }}
+                to="/participation/apply"
                 className="inline-flex items-center justify-center rounded-sm bg-[#0c4d32] px-4 py-2.5 text-[13px] font-medium text-white hover:bg-[#083d28]"
               >
                 Apply for Participation
+              </SiteInternalLink>
+              <SiteInternalLink
+                siteKey="ncc"
+                to="/participation/applications"
+                className="inline-flex items-center justify-center rounded-sm border border-[#d1d5db] bg-white px-4 py-2.5 text-[13px] font-medium text-[#111827]"
+              >
+                Track my application
               </SiteInternalLink>
             </div>
           </NccCard>

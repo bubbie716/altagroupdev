@@ -23,6 +23,7 @@ import type {
 } from "@/lib/ncc/portal-types";
 import { requireInstitutionPermission } from "@/server/ncc/ncc-permissions.service";
 import { isCompensationEligible } from "@/server/ncc/ncc-compensation.service";
+import { isInstructionCancelable } from "@/server/ncc/ncc-settlement.service";
 import type {
   Prisma,
   SettlementExecutionStatus,
@@ -37,12 +38,7 @@ function canCancelInstruction(
   status: SettlementInstructionStatus,
   executionStatus: SettlementExecutionStatus | null | undefined,
 ): boolean {
-  if (status === "SETTLED" || status === "REVERSED" || status === "CANCELLED" || status === "FAILED") {
-    return false;
-  }
-  if (status === "SETTLING") return false;
-  if (!executionStatus || executionStatus === "NOT_STARTED") return true;
-  return false;
+  return isInstructionCancelable(status, executionStatus);
 }
 
 function mapInstitution(row: {
@@ -318,6 +314,27 @@ export async function getPortalDashboard(institutionId: string): Promise<{
       href: "/portal/routing",
     });
   }
+  if (
+    account?.lowLiquidityThreshold != null &&
+    decimalToNumber(account.availableBalance) <= decimalToNumber(account.lowLiquidityThreshold)
+  ) {
+    alerts.push({
+      id: "low-liquidity",
+      severity: "warning",
+      title: "Low liquidity",
+      detail: `Available balance ${decimalToNumber(account.availableBalance).toFixed(2)} is at or below the threshold ${decimalToNumber(account.lowLiquidityThreshold).toFixed(2)}.`,
+      href: "/portal/accounts",
+    });
+  }
+  if (account?.status === "FROZEN" || account?.frozenAt != null) {
+    alerts.push({
+      id: "settlement-frozen",
+      severity: "critical",
+      title: "Settlement account frozen",
+      detail: account.frozenReason?.trim() || "Settlement account is frozen; new origination is blocked.",
+      href: "/portal/accounts",
+    });
+  }
 
   const recentAudit = await listPortalAudit(institutionId, { limit: 6 });
 
@@ -346,6 +363,10 @@ export async function getPortalDashboard(institutionId: string): Promise<{
       primaryRoutingNumber: primaryRouting?.routingNumber ?? null,
       settlementBalance: account ? decimalToNumber(account.ledgerBalance) : 0,
       settlementAvailable: account ? decimalToNumber(account.availableBalance) : 0,
+      lowLiquidityThreshold:
+        account?.lowLiquidityThreshold != null
+          ? decimalToNumber(account.lowLiquidityThreshold)
+          : null,
       currency: account?.currency ?? NCC_DEFAULT_CURRENCY,
       todayVolume,
       todayCount: todaySettled.length,
@@ -647,22 +668,24 @@ export async function getPortalAccountSummary(institutionId: string): Promise<Po
   if (!account) return null;
 
   const dayStart = startOfUtcDay();
-  const todayEntries = await prisma.settlementEntry.findMany({
-    where: { settlementAccountId: account.id, createdAt: { gte: dayStart } },
-    select: { entryType: true, amount: true },
-  });
+  const [todayEntries, recent, liquidityView] = await Promise.all([
+    prisma.settlementEntry.findMany({
+      where: { settlementAccountId: account.id, createdAt: { gte: dayStart } },
+      select: { entryType: true, amount: true },
+    }),
+    prisma.settlementEntry.findMany({
+      where: { settlementAccountId: account.id },
+      include: { instruction: { select: { publicReference: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+    }),
+    import("@/server/ncc/ncc-liquidity.service").then((m) => m.getLiquidityPortalView(institutionId)),
+  ]);
   const dailyNetMovement = todayEntries.reduce((sum, entry) => {
     const amount = decimalToNumber(entry.amount);
     if (entry.entryType === "CREDIT" || entry.entryType === "REVERSAL_CREDIT") return sum + amount;
     return sum - amount;
   }, 0);
-
-  const recent = await prisma.settlementEntry.findMany({
-    where: { settlementAccountId: account.id },
-    include: { instruction: { select: { publicReference: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 25,
-  });
 
   return {
     id: account.id,
@@ -673,6 +696,13 @@ export async function getPortalAccountSummary(institutionId: string): Promise<Po
       (decimalToNumber(account.ledgerBalance) - decimalToNumber(account.availableBalance)).toFixed(2),
     ),
     status: account.status,
+    lowLiquidityThreshold:
+      account.lowLiquidityThreshold != null
+        ? decimalToNumber(account.lowLiquidityThreshold)
+        : null,
+    frozenAt: account.frozenAt?.toISOString() ?? null,
+    frozenReason: account.frozenReason,
+    legacyFloatReviewStatus: account.legacyFloatReviewStatus,
     dailyNetMovement: Number(dailyNetMovement.toFixed(2)),
     recentEntries: recent.map((entry) => ({
       id: entry.id,
@@ -681,6 +711,13 @@ export async function getPortalAccountSummary(institutionId: string): Promise<Po
       balanceAfter: decimalToNumber(entry.balanceAfter),
       createdAt: entry.createdAt.toISOString(),
       publicReference: entry.instruction.publicReference,
+    })),
+    recentLiquidityOperations: liquidityView.recentOperations.map((op) => ({
+      id: op.id,
+      operationType: op.operationType,
+      amount: op.amount,
+      status: op.status,
+      createdAt: op.createdAt,
     })),
   };
 }

@@ -1,16 +1,34 @@
 import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { MiniChart } from "@/components/mini-chart";
-import { compact, makeSeries, pct } from "@/lib/mock-data";
-import type { Stock } from "@/lib/mock-data";
+import { compact, pct } from "@/lib/format/money-display";
+
+type WatchlistItem = {
+  symbol: string;
+  name: string;
+  sector: string;
+  price: number;
+  change: number;
+  volume: number;
+  marketCap: number;
+  alert?: string;
+};
 
 export function WatchlistTable({
   items,
   showAlerts = false,
 }: {
-  items: (Stock & { alert?: string })[];
+  items: WatchlistItem[];
   showAlerts?: boolean;
 }) {
+  if (items.length === 0) {
+    return (
+      <Card className="px-5 py-8 text-center text-[13px] text-muted-foreground">
+        No watchlist symbols yet.
+      </Card>
+    );
+  }
+
   return (
     <Card className="!p-0 overflow-hidden">
       <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
@@ -49,7 +67,11 @@ export function WatchlistTable({
                 <td className="px-5 py-3 text-[12px] text-muted-foreground">{s.alert ?? "—"}</td>
               )}
               <td className="w-20 px-5 py-3">
-                <MiniChart data={makeSeries(30, s.price, 1, 0.04)} positive={s.change >= 0} height={28} />
+                <MiniChart
+                  data={[{ t: 0, v: s.price }, { t: 1, v: s.price * (1 + s.change / 100) }]}
+                  positive={s.change >= 0}
+                  height={28}
+                />
               </td>
             </tr>
           ))}

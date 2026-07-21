@@ -37,8 +37,8 @@ export function ApiDocsPanel({
 
       <Card className="mb-10">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Documentation below is available to licensed API consumers only. All endpoints return mock
-          data in this preview — no live market connectivity.
+          Documentation below is available to licensed API consumers only. Market data endpoints are
+          not yet connected — responses are unavailable until Alta Exchange services are live.
         </p>
       </Card>
 
@@ -105,10 +105,10 @@ export function ApiDocsPanel({
         </div>
       </Section>
 
-      <Section title="SDK Import (Preview)" className="mt-12">
+      <Section title="SDK Import" className="mt-12">
         <Card>
           <div className="type-meta">
-            TypeScript — mock service layer
+            TypeScript — unavailable until services are live
           </div>
           <pre className="mt-3 overflow-x-auto rounded-md border border-border/60 bg-surface-2 p-4 font-mono text-[12px] leading-relaxed text-foreground/90">
 {`import { exchangeApi } from "@/lib/exchange/api";

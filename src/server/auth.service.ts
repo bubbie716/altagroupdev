@@ -17,6 +17,17 @@ import { getUiLabUserIfEnabled } from "@/lib/auth/ui-lab";
 const SESSION_USER_CACHE_TTL_MS = 30_000;
 const sessionUserCache = new Map<string, { user: AltaUser; expiresAt: number }>();
 
+/** Test-only auth override — never honored in production builds. */
+let testAuthUser: AltaUser | null = null;
+
+/** Test helper — injects the current user for NCC settlement suites. */
+export function setTestAuthUserForTests(user: AltaUser | null): void {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("setTestAuthUserForTests is unavailable in production");
+  }
+  testAuthUser = user;
+}
+
 function getCachedSessionUser(token: string): AltaUser | null {
   const entry = sessionUserCache.get(token);
   if (!entry) return null;
@@ -39,6 +50,10 @@ export async function readCurrentUser(): Promise<AltaUser | null> {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   const labUser = getUiLabUserIfEnabled();
   if (labUser) return labUser;
+
+  if (testAuthUser && process.env.NODE_ENV !== "production") {
+    return testAuthUser;
+  }
 
   if (!isDatabaseConfigured()) return null;
 
@@ -96,6 +111,9 @@ export async function requireAuth(): Promise<AltaUser> {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   const labUser = getUiLabUserIfEnabled();
   if (labUser) return labUser;
+  if (testAuthUser && process.env.NODE_ENV !== "production") {
+    return testAuthUser;
+  }
   const user = await readCurrentUser();
   if (!user) throw new Error("UNAUTHORIZED");
   if (user.accountStatus === "frozen" || user.accountStatus === "restricted") {

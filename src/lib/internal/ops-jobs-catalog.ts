@@ -138,6 +138,17 @@ export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
     manualRunKey: "company_relationship_recommendations",
     manualImpact: "Regenerates recommendations for all company relationship profiles.",
   },
+  {
+    jobKey: "ncc-settlement-workers",
+    label: "NCC settlement workers",
+    description:
+      "Individual real-time NCC recovery: retries, outbox, webhooks, reconciliation, credentials, compensation. Never batches or nets.",
+    cronEndpoint: "/api/cron/ncc-settlement",
+    nextSchedule: "Every 2 minutes via cron",
+    manualRunKey: "ncc-settlement-workers",
+    manualImpact:
+      "Runs one authenticated NCC worker pass with database overlap lock. Safe to re-run; does not batch settlements.",
+  },
 ];
 
 export function getOpsJobCatalogEntry(jobKey: string): OpsJobCatalogEntry | undefined {

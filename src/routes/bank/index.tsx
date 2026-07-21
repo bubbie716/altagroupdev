@@ -13,17 +13,12 @@ import {
 import { florin } from "@/lib/bank/api";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
 import { buildBankBalanceStripItems } from "@/lib/bank/dashboard-balances";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { useAltaPrivateClientContext } from "@/hooks/use-alta-private-client-context";
-import { BankDashboardMockContent } from "@/routes/bank/-dashboard-mock";
 
 export const Route = createFileRoute("/bank/")({
   beforeLoad: authBeforeLoad,
-  loader: async () => {
-    if (isUserFinancialMockDataEnabled()) return null;
-    return fetchBankDashboardBundle();
-  },
+  loader: async () => fetchBankDashboardBundle(),
   head: () => ({
     meta: [{ title: "Banking Overview — Alta Bank" }],
   }),
@@ -31,7 +26,6 @@ export const Route = createFileRoute("/bank/")({
 });
 
 function BankDashboard() {
-  const showMockData = isUserFinancialMockDataEnabled();
   const data = Route.useLoaderData();
   const privateClient = useAltaPrivateClientContext();
 
@@ -44,14 +38,10 @@ function BankDashboard() {
         description={
           privateClient.isMember
             ? "Your Alta Bank overview."
-            : showMockData
-              ? "Your Alta Bank balances, credit access, private status, and recent activity — simulated preview data."
-              : "Your Alta Bank overview."
+            : "Your Alta Bank overview."
         }
       />
-      {showMockData ? (
-        <BankDashboardMockContent />
-      ) : !data || data.accounts.length === 0 ? (
+      {!data || data.accounts.length === 0 ? (
         <EmptyBankState />
       ) : (
         <BankDashboardLiveContent data={data} />

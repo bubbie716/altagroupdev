@@ -1,9 +1,5 @@
 import type { PlatformMetrics } from "@/lib/metrics/platform-metrics";
-import {
-  LIVE_PLATFORM_SOURCE,
-  PREVIEW_SOURCE,
-  SIMULATED_MARKET_SOURCE,
-} from "@/lib/metrics/platform-metrics";
+import { LIVE_PLATFORM_SOURCE, PREVIEW_SOURCE } from "@/lib/metrics/platform-metrics";
 import { florin } from "@/lib/bank/api";
 
 export type GovernanceMetricItem = {
@@ -25,19 +21,19 @@ export function buildGovernancePlatformMetrics(
     },
     {
       label: "Alta Exchange N.V.",
-      value: "Simulated Market Preview",
-      helper: "Listings, indices, and market data remain simulated for Terminal testing.",
-      sourceLabel: SIMULATED_MARKET_SOURCE,
+      value: "Unavailable",
+      helper: "Listings, indices, and market data are unavailable in this release.",
+      sourceLabel: PREVIEW_SOURCE,
     },
     {
       label: "Alta Terminal",
-      value: "Exchange Product · In Development",
-      helper: "First-party investing interface under Alta Exchange.",
+      value: "Unavailable",
+      helper: "Trading and portfolio market data are unavailable in this release.",
       sourceLabel: PREVIEW_SOURCE,
     },
     {
       label: "NCC",
-      value: "Planned",
+      value: "Operational",
       helper: "Clearing and settlement infrastructure.",
     },
     {

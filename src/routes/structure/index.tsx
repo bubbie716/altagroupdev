@@ -74,8 +74,8 @@ function StructurePage() {
           <Card>
             <div className="type-meta">Disclosures</div>
             <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Alta platform data reflects live platform records where available. Market data remains
-              simulated. Florin-denominated. Not a real-money venue.
+              Alta platform data reflects live platform records where available. Exchange market data
+              is unavailable in this release. Florin-denominated. Not a real-money venue.
             </div>
           </Card>
         </div>
@@ -94,8 +94,8 @@ function StructurePage() {
 
         <Section title="Platform status" className="mt-12">
           <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-            Entity posture and live platform records. Exchange market statistics remain simulated for
-            product testing.
+            Entity posture and live platform records. Exchange market statistics are unavailable in
+            this release.
           </p>
           <GovernanceMetricsGrid items={platformItems} />
         </Section>

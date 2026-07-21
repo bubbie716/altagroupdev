@@ -1,15 +1,24 @@
 import { Prisma, type BankAccount } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { isValidAltaAccountNumber } from "@/lib/bank/account-number";
+import {
+  isLikelyInternalDatabaseId,
+  maskPaymentAccountNumber,
+  normalizeAltaBankAccountIdentifier,
+} from "@/lib/ncc/ncc-account-number";
 import { asDecimal, moneyAdd, moneyLt, moneySub, NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
 import type {
   AdapterCommitResult,
   AdapterCreditResult,
   AdapterPreparationResult,
+  AdapterResolveResult,
   AdapterValidationResult,
   InstitutionAdapter,
   InstitutionAdapterCreditInput,
   InstitutionAdapterDebitInput,
 } from "@/server/ncc/institution-adapter";
+
+const RESOLVER_KEY = "alta-bank@1";
 
 /** Marker prefix recorded when a settlement leg has no customer accountReference. */
 const INSTITUTION_FLOAT_PREFIX = "institution-float";
@@ -39,6 +48,54 @@ function creditDescription(publicReference: string): string {
 export class AltaBankInstitutionAdapter implements InstitutionAdapter {
   institutionKey = "alta-bank" as const;
 
+  async resolveAccount(input: {
+    accountNumber: string;
+    currency: string;
+    direction: "debit" | "credit";
+  }): Promise<AdapterResolveResult> {
+    // Alta Bank policy: AB- prefix is case-insensitive. NCC does not apply this rule.
+    const normalized = normalizeAltaBankAccountIdentifier(input.accountNumber);
+    if (!normalized || isLikelyInternalDatabaseId(normalized) || !isValidAltaAccountNumber(normalized)) {
+      return { ok: false, code: "INVALID_PAYMENT_ADDRESS", reason: "Invalid payment address" };
+    }
+    const currency = input.currency.toUpperCase();
+    if (currency !== NCC_DEFAULT_CURRENCY) {
+      return { ok: false, code: "UNSUPPORTED_CURRENCY", reason: "Unsupported currency" };
+    }
+
+    const account = await prisma.bankAccount.findUnique({ where: { accountNumber: normalized } });
+    // Uniform unavailable surface — do not disclose existence.
+    if (!account || account.status !== "ACTIVE" || account.currency !== currency) {
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
+    }
+
+    const debitEligible = !account.restrictWithdrawals;
+    const creditEligible = !account.restrictDeposits;
+    if (input.direction === "debit" && !debitEligible) {
+      return { ok: false, code: "ACCOUNT_NOT_DEBITABLE", reason: "Account not eligible for debit" };
+    }
+    if (input.direction === "credit" && !creditEligible) {
+      return { ok: false, code: "ACCOUNT_NOT_CREDITABLE", reason: "Account not eligible for credit" };
+    }
+
+    return {
+      ok: true,
+      account: {
+        internalAccountReference: account.id,
+        canonicalAccountNumber: account.accountNumber,
+        maskedAccountNumber: maskPaymentAccountNumber(account.accountNumber),
+        currency: account.currency,
+        status: account.status,
+        debitEligible,
+        creditEligible,
+        beneficiaryLabel: account.accountName,
+        resolvedAt: new Date().toISOString(),
+        resolverKey: RESOLVER_KEY,
+      },
+    };
+  }
+
+  /** Validates an opaque internal BankAccount.id already resolved for execution. */
   async validateAccountReference(input: {
     accountReference: string;
   }): Promise<AdapterValidationResult> {
@@ -48,13 +105,13 @@ export class AltaBankInstitutionAdapter implements InstitutionAdapter {
     }
     const account = await prisma.bankAccount.findUnique({ where: { id: accountReference } });
     if (!account) {
-      return { ok: false, code: "ACCOUNT_NOT_FOUND", reason: "Bank account not found" };
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
     }
     if (account.status !== "ACTIVE") {
-      return { ok: false, code: "ACCOUNT_INACTIVE", reason: `Bank account is ${account.status.toLowerCase()}` };
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
     }
     if (account.currency !== NCC_DEFAULT_CURRENCY) {
-      return { ok: false, code: "CURRENCY_MISMATCH", reason: "Bank account currency does not support NCC settlement" };
+      return { ok: false, code: "UNSUPPORTED_CURRENCY", reason: "Unsupported currency" };
     }
     return { ok: true, accountReference: account.id };
   }

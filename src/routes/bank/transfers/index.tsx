@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Building2, Landmark, Users } from "lucide-react";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { RouteButton } from "@/components/bank/route-button";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 
 type BankTransfersHubSearch = {
   accountId?: string;
@@ -19,7 +18,6 @@ export const Route = createFileRoute("/bank/transfers/")({
 });
 
 function BankTransfersHub() {
-  const showMockData = isUserFinancialMockDataEnabled();
   const { accountId } = Route.useSearch();
 
   return (
@@ -27,11 +25,7 @@ function BankTransfersHub() {
       <BankPageMeta
       eyebrow="Alta Bank · Transfers"
       title="Transfers"
-      description={
-        showMockData
-          ? "Move funds within Alta Bank or send outbound wires via NCC-Net — preview interface."
-          : "Choose how you want to move funds."
-      }
+      description="Choose how you want to move funds."
      />
 <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
         <TransferTypeCard
@@ -48,7 +42,7 @@ function BankTransfersHub() {
           icon={Landmark}
           title="Interbank"
           description="Transfer instantly to your Alta Terminal account through NCC. External institution wires are coming soon."
-          detail={showMockData ? "Sign in required" : "Instant NCC · Terminal available now"}
+          detail="Instant NCC · Terminal available now"
         />
         <TransferTypeCard
           to="/bank/transfers/contacts"

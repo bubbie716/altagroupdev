@@ -1,10 +1,16 @@
 import { Prisma, type TerminalCashAccount } from "@prisma/client";
 import { prisma } from "@/server/db";
-import { asDecimal, moneyAdd, moneyLt, moneySub } from "@/lib/ncc/ncc-money";
+import {
+  isLikelyInternalDatabaseId,
+  isValidTerminalAccountNumber,
+  maskPaymentAccountNumber,
+} from "@/lib/ncc/ncc-account-number";
+import { asDecimal, moneyAdd, moneyLt, moneySub, NCC_DEFAULT_CURRENCY } from "@/lib/ncc/ncc-money";
 import type {
   AdapterCommitResult,
   AdapterCreditResult,
   AdapterPreparationResult,
+  AdapterResolveResult,
   AdapterValidationResult,
   InstitutionAdapter,
   InstitutionAdapterCreditInput,
@@ -43,6 +49,56 @@ class AdapterOperationError extends Error {
 export class AltaTerminalInstitutionAdapter implements InstitutionAdapter {
   constructor(readonly institutionKey: InstitutionAdapterKey = "alta-terminal") {}
 
+  private resolverKey(): string {
+    return `${this.institutionKey}@1`;
+  }
+
+  async resolveAccount(input: {
+    accountNumber: string;
+    currency: string;
+    direction: "debit" | "credit";
+  }): Promise<AdapterResolveResult> {
+    // Alta Terminal policy: 12 digit-character identifiers. Preserve as string
+    // (including leading zeros). Do not parse as Number/BigInt.
+    const identifier = input.accountNumber;
+    if (
+      !identifier ||
+      isLikelyInternalDatabaseId(identifier) ||
+      !isValidTerminalAccountNumber(identifier)
+    ) {
+      return { ok: false, code: "INVALID_PAYMENT_ADDRESS", reason: "Invalid payment address" };
+    }
+    const currency = input.currency.toUpperCase();
+    if (currency !== NCC_DEFAULT_CURRENCY) {
+      return { ok: false, code: "UNSUPPORTED_CURRENCY", reason: "Unsupported currency" };
+    }
+
+    const account = await prisma.terminalCashAccount.findUnique({
+      where: { accountNumber: identifier },
+    });
+    if (!account || account.status !== "ACTIVE" || account.currency !== currency) {
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
+    }
+
+    // ACTIVE Terminal cash is debit/credit eligible; CLOSED/FROZEN already collapsed above.
+    return {
+      ok: true,
+      account: {
+        internalAccountReference: account.id,
+        canonicalAccountNumber: account.accountNumber,
+        maskedAccountNumber: maskPaymentAccountNumber(account.accountNumber),
+        currency: account.currency,
+        status: account.status,
+        debitEligible: true,
+        creditEligible: true,
+        beneficiaryLabel: null,
+        resolvedAt: new Date().toISOString(),
+        resolverKey: this.resolverKey(),
+      },
+    };
+  }
+
+  /** Validates an opaque internal TerminalCashAccount.id already resolved for execution. */
   async validateAccountReference(input: {
     accountReference: string;
   }): Promise<AdapterValidationResult> {
@@ -52,10 +108,10 @@ export class AltaTerminalInstitutionAdapter implements InstitutionAdapter {
     }
     const account = await prisma.terminalCashAccount.findUnique({ where: { id: accountReference } });
     if (!account) {
-      return { ok: false, code: "ACCOUNT_NOT_FOUND", reason: "Terminal cash account not found" };
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
     }
     if (account.status !== "ACTIVE") {
-      return { ok: false, code: "ACCOUNT_INACTIVE", reason: `Terminal cash account is ${account.status.toLowerCase()}` };
+      return { ok: false, code: "ACCOUNT_UNAVAILABLE", reason: "Account unavailable" };
     }
     return { ok: true, accountReference: account.id };
   }

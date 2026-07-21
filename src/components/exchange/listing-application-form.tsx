@@ -11,14 +11,14 @@ import {
 type Field =
   | { label: string; placeholder: string; type?: "text" | "textarea" | "select"; options?: string[]; span?: 2 };
 
-const previewFieldClass =
+const unavailableFieldClass =
   "mt-2 w-full cursor-not-allowed rounded-md border border-border bg-surface-2/50 px-3 py-2 text-sm text-muted-foreground shadow-none";
 
 function toSelectValue(option: string) {
   return option.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
-function PreviewSelect({
+function UnavailableSelect({
   label,
   placeholder,
   options,
@@ -34,7 +34,7 @@ function PreviewSelect({
       </span>
       <Select disabled>
         <SelectTrigger
-          className={`${previewFieldClass} h-auto min-h-10 disabled:cursor-not-allowed disabled:opacity-100 [&>svg]:text-muted-foreground [&>svg]:opacity-50`}
+          className={`${unavailableFieldClass} h-auto min-h-10 disabled:cursor-not-allowed disabled:opacity-100 [&>svg]:text-muted-foreground [&>svg]:opacity-50`}
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -60,14 +60,14 @@ function FormField({ field }: { field: Field }) {
         <Textarea
           autoResize
           placeholder={field.placeholder}
-          className={`${previewFieldClass} min-h-[4.5rem] focus-visible:ring-0`}
+          className={`${unavailableFieldClass} min-h-[4.5rem] focus-visible:ring-0`}
         />
       ) : (
         <input
           type="text"
           readOnly
           placeholder={field.placeholder}
-          className={previewFieldClass}
+          className={unavailableFieldClass}
         />
       )}
     </label>
@@ -81,7 +81,7 @@ function FormSection({ title, fields }: { title: string; fields: Field[] }) {
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {fields.map((f) =>
           f.type === "select" && f.options ? (
-            <PreviewSelect key={f.label} label={f.label} placeholder={f.placeholder} options={f.options} />
+            <UnavailableSelect key={f.label} label={f.label} placeholder={f.placeholder} options={f.options} />
           ) : (
             <FormField key={f.label} field={f} />
           ),
@@ -95,7 +95,7 @@ function UploadPlaceholder({ label }: { label: string }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-surface-2/30 px-4 py-8 text-center">
       <div className="type-meta">{label}</div>
-      <p className="mt-2 text-[12px] text-muted-foreground">Drag and drop or browse — preview only</p>
+      <p className="mt-2 text-[12px] text-muted-foreground">File upload unavailable</p>
       <button
         type="button"
         disabled
@@ -200,7 +200,7 @@ export function ListingApplicationForm() {
 
       <Card className="border-gold/30 bg-gold/5">
         <p className="text-[13px] leading-relaxed text-muted-foreground">
-          Applications are reviewed manually. Submission is simulated in this preview.
+          Applications are reviewed manually. Listing application submission is not available yet.
         </p>
       </Card>
 
@@ -210,14 +210,14 @@ export function ListingApplicationForm() {
           disabled
           className="cursor-not-allowed rounded-md border border-border bg-surface-2 px-5 py-2.5 text-[13px] font-medium text-muted-foreground"
         >
-          Save Draft (preview only)
+          Save Draft (unavailable)
         </button>
         <button
           type="button"
           disabled
           className="cursor-not-allowed rounded-md bg-foreground/40 px-5 py-2.5 text-[13px] font-medium text-background/70"
         >
-          Submit for Review (preview only)
+          Submit for Review (unavailable)
         </button>
       </div>
     </div>

@@ -17,6 +17,8 @@ import {
   cancelInstruction,
   NccSettlementError,
   reverseInstruction,
+  reverseNccLedgerPositionsForCompensation,
+  getInstruction,
   settleInstruction,
   submitInstruction,
 } from "@/server/ncc/ncc-settlement.service";
@@ -25,6 +27,7 @@ import type {
   AdapterCommitResult,
   AdapterCreditResult,
   AdapterPreparationResult,
+  AdapterResolveResult,
   AdapterValidationResult,
   InstitutionAdapter,
   InstitutionAdapterCreditInput,
@@ -34,6 +37,23 @@ import type {
 /** Float-only adapter for foundation settlement tests (no customer ledger). */
 class TestFloatInstitutionAdapter implements InstitutionAdapter {
   constructor(readonly institutionKey: string) {}
+
+  async resolveAccount(): Promise<AdapterResolveResult> {
+    return {
+      ok: true,
+      account: {
+        internalAccountReference: "test-float",
+        canonicalAccountNumber: "000000000001",
+        maskedAccountNumber: "********0001",
+        currency: "FLR",
+        status: "ACTIVE",
+        debitEligible: true,
+        creditEligible: true,
+        resolvedAt: new Date().toISOString(),
+        resolverKey: `${this.institutionKey}@test`,
+      },
+    };
+  }
 
   async validateAccountReference(): Promise<AdapterValidationResult> {
     return { ok: true, accountReference: "test-float" };
@@ -350,7 +370,7 @@ describe("ncc settlement engine", { skip: !RUN || !isDatabaseConfigured() }, () 
     assert.equal(Number(after.ledgerBalance), Number(before.ledgerBalance));
   });
 
-  it("denies cancellation after settlement and allows reversal once", async () => {
+  it("denies cancellation after settlement and disables ledger-only reversal", async () => {
     const instruction = await submitInstruction({
       sendingInstitutionId: senderId,
       receivingInstitutionId: receiverId,
@@ -368,11 +388,24 @@ describe("ncc settlement engine", { skip: !RUN || !isDatabaseConfigured() }, () 
         err instanceof NccSettlementError && err.code === "CANCEL_AFTER_SETTLEMENT_DENIED",
     );
 
-    const reversed = await reverseInstruction(instruction.id, actorUserId, "Ops correction");
+    // Sprint 4F: production ledger-only reversal is retired; use transfer-return workflow.
+    await assert.rejects(
+      () => reverseInstruction(instruction.id, actorUserId, "Ops correction"),
+      (err: unknown) =>
+        err instanceof NccSettlementError && err.code === "LEDGER_ONLY_REVERSAL_DISABLED",
+    );
+
+    await reverseNccLedgerPositionsForCompensation(
+      instruction.id,
+      actorUserId,
+      "Compensation-path ledger restore",
+    );
+    const reversed = await getInstruction(instruction.id);
     assert.equal(reversed.status, "REVERSED");
 
     await assert.rejects(
-      () => reverseInstruction(instruction.id, actorUserId, "again"),
+      () =>
+        reverseNccLedgerPositionsForCompensation(instruction.id, actorUserId, "again"),
       (err: unknown) => err instanceof NccSettlementError && err.code === "ALREADY_REVERSED",
     );
   });

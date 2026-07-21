@@ -2,7 +2,7 @@ export type ApiEndpoint = {
   method: "GET";
   path: string;
   summary: string;
-  mockFn: string;
+  availability: string;
   params?: string;
   response: string;
 };
@@ -14,14 +14,14 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/companies",
     summary: "List all issuers currently listed on Alta Exchange.",
-    mockFn: "getCompanies()",
+    availability: "Unavailable",
     response: "ListedCompany[]",
   },
   {
     method: "GET",
     path: "/companies/:ticker",
     summary: "Retrieve a full company profile including filings, stats, and price history.",
-    mockFn: "getCompany(ticker)",
+    availability: "Unavailable",
     params: "ticker — symbol (e.g. NPC, ALTB)",
     response: "CompanyProfile | null",
   },
@@ -29,14 +29,14 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/indices",
     summary: "List all NSX benchmark indices published by Alta Exchange.",
-    mockFn: "getIndices()",
+    availability: "Unavailable",
     response: "ExchangeIndex[]",
   },
   {
     method: "GET",
     path: "/indices/:symbol",
     summary: "Retrieve a single index with constituents count and time series.",
-    mockFn: "getIndex(symbol)",
+    availability: "Unavailable",
     params: "symbol — index code (e.g. NSX-100)",
     response: "ExchangeIndex | null",
   },
@@ -44,7 +44,7 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/ipos",
     summary: "List IPO offerings — open subscriptions, upcoming bookbuilds, and recent listings.",
-    mockFn: "getIPOs(stage?)",
+    availability: "Unavailable",
     params: "stage — open | upcoming | recent (optional)",
     response: "IPOListing[]",
   },
@@ -52,7 +52,7 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/filings",
     summary: "Research library — commentary, issuer filings, prospectuses, and exchange notices.",
-    mockFn: "getFilings(section?)",
+    availability: "Unavailable",
     params: "section — commentary | filings | prospectuses | economic | notices (optional)",
     response: "ResearchDocument[]",
   },
@@ -60,14 +60,14 @@ export const exchangeApiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/corporate-actions",
     summary: "Corporate actions across listed issuers — dividends, splits, buybacks, mergers, tenders.",
-    mockFn: "getCorporateActions()",
+    availability: "Unavailable",
     response: "CorporateAction[]",
   },
   {
     method: "GET",
     path: "/market/stats",
     summary: "Exchange-wide statistics, live session snapshot, and market rankings.",
-    mockFn: "getMarketStats()",
+    availability: "Unavailable",
     response: "MarketStats",
   },
 ];

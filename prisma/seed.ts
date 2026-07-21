@@ -6,6 +6,11 @@ import {
   VerificationStatus,
 } from "@prisma/client";
 
+if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+  console.error("Refusing to run database seed in production.");
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 const companies = [

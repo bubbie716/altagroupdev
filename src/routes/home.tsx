@@ -2,14 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { EntityHomeRouter } from "@/components/site/entity-home-router";
 import { getSiteConfig } from "@/config/sites";
 import { fetchHomePortfolioSnapshot } from "@/lib/account/home-portfolio.functions";
-import { isUserFinancialMockDataEnabled } from "@/lib/config/data-mode";
 import { fetchPlatformMetrics } from "@/lib/metrics/platform-metrics.functions";
 
 export const Route = createFileRoute("/home")({
   loader: async ({ context }) => {
     const [platformMetrics, snapshot] = await Promise.all([
       fetchPlatformMetrics(),
-      context.user && !isUserFinancialMockDataEnabled()
+      context.user
         ? fetchHomePortfolioSnapshot().catch(() => null)
         : Promise.resolve(null),
     ]);

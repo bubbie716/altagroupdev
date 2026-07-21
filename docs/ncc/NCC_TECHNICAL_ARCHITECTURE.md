@@ -185,10 +185,12 @@ Orchestration order: validate → prepareDebit → post NCC ledger → commitDeb
 
 - Scoped by `(sendingInstitutionId, idempotencyKey)` unique constraint
 - Payload hash (`requestHash`) stored on instruction
+- Canonical hash includes amount, currency, purpose/external reference, sending/receiving routing numbers, and source/destination account numbers
 - Same key + same payload → return existing instruction (and resume incomplete execution)
 - Same key + different payload → `IDEMPOTENCY_CONFLICT`
 - Concurrent creates race-safe via unique constraint + re-read
 - Adapter-level keys: bank `nccOperationKey`, terminal entry `idempotencyKey`, funding/withdrawal request keys
+- Bank website funding retains the client idempotency key across ambiguous/failed retries so money cannot move twice
 
 ---
 
@@ -212,7 +214,8 @@ Orchestration order: validate → prepareDebit → post NCC ledger → commitDeb
 ```ts
 interface InstitutionAdapter {
   institutionKey: string
-  validateAccountReference(input)
+  resolveAccount(input)            // Sprint 4A — public account number → opaque internal ref
+  validateAccountReference(input)  // execution-time check of resolved internal ref
   prepareDebit(input)
   commitDebit(input)
   releaseDebit(input)
@@ -220,13 +223,28 @@ interface InstitutionAdapter {
 }
 ```
 
-Sprint 3A **real** adapters:
+Sprint 3A **real** adapters (Sprint 4A adds `resolveAccount`):
 
 - `AltaBankInstitutionAdapter` — BankAccount / holds / transactions
 - `AltaTerminalInstitutionAdapter` — TerminalCashAccount / entries
 - `AltaExchangeInstitutionAdapter` — same Terminal cash ledger (`alta-exchange` key)
 
-External institutions will implement the same interface behind authenticated transports later.
+External institutions implement the same interface (including account resolution in their own systems). NCC does not centrally import every external customer account.
+
+### Payment addressing model
+
+NCC treats an account identifier as an opaque, institution-specific string. The routing number selects the institution responsible for validating and resolving it.
+
+| Layer | Identifier |
+|-------|------------|
+| Institution | Routing number |
+| Account | Opaque institution-specific account identifier (API fields: `*AccountNumber`) |
+| Network identity | `(routing number + identifier)` — not globally unique identifiers alone |
+| Execution | Opaque internal adapter reference (never public) |
+
+NCC envelope rules only: non-empty string, 1–64 characters, no control/null bytes, no leading/trailing whitespace. No global digits-only, case-fold, or punctuation-stripping rules.
+
+`SettlementInstruction` stores an immutable addressing snapshot (masked display values, routing numbers used, resolver keys, resolution timestamp). Full identifiers, when retained for ops, are encrypted and excluded from webhooks and API request logs.
 
 ---
 

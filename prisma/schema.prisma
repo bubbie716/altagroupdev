@@ -200,6 +200,29 @@ model User {
   terminalCashAccountsOwned                  TerminalCashAccount[]                @relation("TerminalCashAccountOwnerUser")
   terminalFundingRequests                    TerminalFundingRequest[]             @relation("TerminalFundingRequestUser")
   terminalWithdrawalRequests                 TerminalWithdrawalRequest[]          @relation("TerminalWithdrawalRequestUser")
+  nccParticipantApplications                 NccParticipantApplication[]          @relation("NccParticipantApplicationApplicant")
+  nccParticipantApplicationTransitions       NccParticipantApplicationTransition[] @relation("NccParticipantApplicationTransitionActor")
+  nccParticipantApplicationNotes             NccParticipantApplicationNote[]      @relation("NccParticipantApplicationNoteAuthor")
+  nccLiquidityOperationsRequested            NccLiquidityOperation[]              @relation("NccLiquidityRequestedBy")
+  nccLiquidityOperationsApproved             NccLiquidityOperation[]              @relation("NccLiquidityApprovedBy")
+  nccParticipantDocumentsUploaded            NccParticipantDocument[]             @relation("NccParticipantDocumentUploader")
+  nccParticipantDocumentsReviewed            NccParticipantDocument[]             @relation("NccParticipantDocumentReviewer")
+  nccStaffMemberships                        NccStaffMembership[]                 @relation("NccStaffMembershipUser")
+  nccStaffMembershipsInvited                 NccStaffMembership[]                 @relation("NccStaffMembershipInviter")
+  nccStaffMembershipsRevoked                 NccStaffMembership[]                 @relation("NccStaffMembershipRevoker")
+  nccNetworkControlsUpdated                  NccNetworkControl[]                  @relation("NccNetworkControlUpdater")
+  nccNetworkResumeRequested                  NccNetworkControl[]                  @relation("NccNetworkResumeRequester")
+  nccNetworkResumeApproved                   NccNetworkControl[]                  @relation("NccNetworkResumeApprover")
+  nccTransferReturnsRequested                NccTransferReturn[]                  @relation("NccTransferReturnRequester")
+  nccTransferReturnsReviewed                 NccTransferReturn[]                  @relation("NccTransferReturnReviewer")
+  nccTransferReturnsApproved                 NccTransferReturn[]                  @relation("NccTransferReturnApprover")
+  nccEmergencySuspensionsActed               NccEmergencySuspension[]             @relation("NccEmergencySuspensionActor")
+  nccEmergencySuspensionsResumed             NccEmergencySuspension[]             @relation("NccEmergencySuspensionResumer")
+  nccRiskPoliciesUpdated                     NccInstitutionRiskPolicy[]           @relation("NccRiskPolicyUpdater")
+  nccRiskDecisionsOverridden                 NccRiskDecision[]                    @relation("NccRiskDecisionOverrider")
+  nccOperationalAlertsAssigned               NccOperationalAlert[]                @relation("NccOperationalAlertAssignee")
+  nccOperationalAlertsAcked                  NccOperationalAlert[]                @relation("NccOperationalAlertAcker")
+  nccOperationalAlertsResolved               NccOperationalAlert[]                @relation("NccOperationalAlertResolver")
 
   @@index([accountStatus])
 }
@@ -1861,6 +1884,17 @@ enum AuditEntityType {
   NCC_WEBHOOK_DELIVERY
   NCC_API_REQUEST_LOG
   NCC_REVERSAL_REQUEST
+  NCC_PARTICIPANT_APPLICATION
+  NCC_PARTICIPANT_DOCUMENT
+  NCC_LIQUIDITY_OPERATION
+  NCC_STAFF_MEMBERSHIP
+  NCC_NETWORK_CONTROL
+  NCC_TRANSFER_RETURN
+  NCC_EMERGENCY_SUSPENSION
+  NCC_RISK_POLICY
+  NCC_RISK_DECISION
+  NCC_OPERATIONAL_ALERT
+  NCC_WORKER_LOCK
 }
 
 enum InternalNoteTargetType {
@@ -2936,12 +2970,27 @@ enum FinancialInstitutionType {
 
 enum FinancialInstitutionStatus {
   APPLICANT
+  /// Approved for TEST / technical certification — not live settlement.
+  CERTIFICATION
   ACTIVE
   RESTRICTED
   SUSPENDED
   TERMINATED
   /// Legacy non-originating status — treated like TERMINATED for new instructions.
   INACTIVE
+}
+
+enum NccParticipantApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INFORMATION_REQUIRED
+  TECHNICAL_REVIEW
+  APPROVED_FOR_TEST
+  CERTIFICATION
+  APPROVED_FOR_LIVE
+  REJECTED
+  WITHDRAWN
 }
 
 enum RoutingNumberStatus {
@@ -3134,6 +3183,18 @@ model FinancialInstitution {
   apiRequestLogs       NccApiRequestLog[]
   rateLimitBuckets     NccApiRateLimitBucket[]
   reversalRequests     NccSettlementReversalRequest[]
+  participantApplications NccParticipantApplication[]
+  participantConnector    NccParticipantConnector?
+  accountDirectoryVersions NccAccountDirectoryVersion[]
+  accountDirectoryEntries NccAccountDirectoryEntry[]
+  certificationRuns       NccCertificationRun[]
+  liquidityOperations     NccLiquidityOperation[]
+  participantDocuments    NccParticipantDocument[]
+  transferReturns         NccTransferReturn[]
+  emergencySuspensions    NccEmergencySuspension[]
+  riskPolicies            NccInstitutionRiskPolicy[]
+  riskDecisions           NccRiskDecision[]
+  dailyRiskUsage          NccDailyRiskUsage[]
 
   @@index([status])
   @@index([isAlta])
@@ -3183,20 +3244,127 @@ model InstitutionMember {
   @@index([role])
 }
 
-model SettlementAccount {
-  id               String                  @id @default(cuid())
-  institutionId    String
-  currency         String                  @default("FLR")
-  ledgerBalance    Decimal                 @default(0) @db.Decimal(18, 2)
-  availableBalance Decimal                 @default(0) @db.Decimal(18, 2)
-  status           SettlementAccountStatus @default(ACTIVE)
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+enum NccLegacyFloatReviewStatus {
+  NONE
+  REQUIRES_REVIEW
+  AUTHORIZED
+  CORRECTED
+}
 
-  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  entries     SettlementEntry[]
+enum NccLiquidityOperationType {
+  FUNDING
+  WITHDRAWAL
+  AUTHORIZED_CORRECTION
+  OPENING_BALANCE_AUTHORIZATION
+}
+
+enum NccLiquidityOperationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  APPLIED
+  REJECTED
+  CANCELLED
+  FAILED
+}
+
+enum NccParticipantDocumentStatus {
+  UPLOADED
+  PENDING_SCAN
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  REPLACED
+}
+
+model SettlementAccount {
+  id                     String                     @id @default(cuid())
+  institutionId          String
+  currency               String                     @default("FLR")
+  ledgerBalance          Decimal                    @default(0) @db.Decimal(18, 2)
+  availableBalance       Decimal                    @default(0) @db.Decimal(18, 2)
+  status                 SettlementAccountStatus    @default(ACTIVE)
+  /// Alert when available balance falls at or below this threshold (null = no alert).
+  lowLiquidityThreshold  Decimal?                   @db.Decimal(18, 2)
+  legacyFloatReviewStatus NccLegacyFloatReviewStatus @default(NONE)
+  frozenAt               DateTime?
+  frozenReason           String?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+
+  institution         FinancialInstitution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  entries             SettlementEntry[]
+  liquidityOperations NccLiquidityOperation[]
 
   @@unique([institutionId, currency])
+  @@index([status])
+  @@index([legacyFloatReviewStatus])
+}
+
+model NccLiquidityOperation {
+  id                       String                     @id @default(cuid())
+  institutionId            String
+  settlementAccountId      String
+  currency                 String                     @default("FLR")
+  amount                   Decimal                    @db.Decimal(18, 2)
+  operationType            NccLiquidityOperationType
+  externalReference        String?
+  reason                   String
+  idempotencyKey           String                     @unique
+  status                   NccLiquidityOperationStatus @default(PENDING_APPROVAL)
+  requestedByUserId        String
+  approvedByUserId         String?
+  balanceBeforeLedger      Decimal?                   @db.Decimal(18, 2)
+  balanceBeforeAvailable   Decimal?                   @db.Decimal(18, 2)
+  balanceAfterLedger       Decimal?                   @db.Decimal(18, 2)
+  balanceAfterAvailable    Decimal?                   @db.Decimal(18, 2)
+  failureCode              String?
+  metadata                 Json?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  approvedAt               DateTime?
+  appliedAt                DateTime?
+  rejectedAt               DateTime?
+  cancelledAt              DateTime?
+
+  institution       FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  settlementAccount SettlementAccount    @relation(fields: [settlementAccountId], references: [id], onDelete: Restrict)
+  requestedBy       User                 @relation("NccLiquidityRequestedBy", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  approvedBy        User?                @relation("NccLiquidityApprovedBy", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, status])
+  @@index([settlementAccountId, createdAt])
+  @@index([status, createdAt])
+}
+
+model NccParticipantDocument {
+  id               String                       @id @default(cuid())
+  applicationId    String
+  institutionId    String?
+  documentType     String
+  status           NccParticipantDocumentStatus @default(PENDING_SCAN)
+  storageKey       String
+  originalFileName String
+  contentType      String
+  byteSize         Int
+  sha256           String
+  uploadedByUserId String
+  reviewedByUserId String?
+  reviewNote       String?
+  expiresAt        DateTime?
+  replacedById     String?
+  versionNumber    Int                          @default(1)
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  reviewedAt       DateTime?
+
+  application NccParticipantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  institution FinancialInstitution?     @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  uploadedBy  User                      @relation("NccParticipantDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  reviewedBy  User?                     @relation("NccParticipantDocumentReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, documentType])
+  @@index([institutionId, status])
   @@index([status])
 }
 
@@ -3225,6 +3393,17 @@ model SettlementInstruction {
   failureReason            String?
   requestHash              String
   metadata                 Json?
+  /// Immutable public addressing snapshot (Sprint 4A). Masked for portal/logs.
+  sourceAccountNumberMasked          String?
+  destinationAccountNumberMasked     String?
+  sendingRoutingNumberUsed           String?
+  receivingRoutingNumberUsed         String?
+  addressResolvedAt                  DateTime?
+  sourceResolverKey                  String?
+  destinationResolverKey             String?
+  /// Encrypted full account numbers for ops/disputes — never logged or returned publicly.
+  sourceAccountNumberEncrypted       String?
+  destinationAccountNumberEncrypted  String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt
 
@@ -3329,7 +3508,9 @@ model SettlementExecution {
   settlementInstructionId     String                    @unique
   status                      SettlementExecutionStatus @default(NOT_STARTED)
   currentStep                 SettlementExecutionStep   @default(VALIDATE)
+  /// Opaque internal adapter account reference (never a public payment address).
   sourceAccountReference      String?
+  /// Opaque internal adapter account reference (never a public payment address).
   destinationAccountReference String?
   sourcePreparationReference  String?
   sourceCommitReference       String?
@@ -3426,6 +3607,8 @@ model TerminalCashAccount {
   id               String                    @id @default(cuid())
   ownerUserId      String?
   ownerCompanyId   String?
+  /// Customer-visible payment address (digits-only). Stable after first assignment.
+  accountNumber    String                    @unique
   currency         String                    @default("FLR")
   ledgerBalance    Decimal                   @default(0) @db.Decimal(18, 2)
   availableBalance Decimal                   @default(0) @db.Decimal(18, 2)
@@ -3444,6 +3627,7 @@ model TerminalCashAccount {
   @@index([ownerCompanyId])
   @@index([status])
   @@index([currency])
+  @@index([accountNumber])
 }
 
 model TerminalCashEntry {
@@ -4079,3 +4263,501 @@ model NccSettlementReversalRequest {
   @@index([settlementInstructionId])
   @@index([status, createdAt])
 }
+
+/// Sprint 4B — participant onboarding application (not institution metadata).
+model NccParticipantApplication {
+  id                        String                         @id @default(cuid())
+  publicReference           String                         @unique
+  status                    NccParticipantApplicationStatus @default(DRAFT)
+  applicantUserId           String
+  institutionId             String?
+  legalName                 String
+  displayName               String
+  institutionType           FinancialInstitutionType
+  countryJurisdiction       String
+  registeredAddress         String
+  websiteUrl                String?
+  regulatoryAuthority       String
+  licenseOrRegistrationNumber String
+  primaryContactName        String
+  primaryContactEmail       String
+  primaryContactPhone       String?
+  complianceContactName     String
+  complianceContactEmail    String
+  technicalContactName      String
+  technicalContactEmail     String
+  settlementOpsContactName  String
+  settlementOpsContactEmail String
+  expectedTransactionVolume String?
+  expectedPeakRate          String?
+  expectedLiquidityRequirement String?
+  /// Opaque participant-owned account-identifier profile (not an NCC regex).
+  accountIdentifierFormat   Json
+  intendedConnectionMethod  String?
+  applicantNotes            String?
+  /// Checklist of required regulatory documents (secure upload UI deferred if needed).
+  requiredDocuments         Json?
+  informationRequestNote    String?
+  applicantResponseNote     String?
+  rejectionReason           String?
+  testCredentialId          String?
+  provisionedAt             DateTime?
+  submittedAt               DateTime?
+  withdrawnAt               DateTime?
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+
+  applicant    User                               @relation("NccParticipantApplicationApplicant", fields: [applicantUserId], references: [id], onDelete: Restrict)
+  institution  FinancialInstitution?              @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  transitions  NccParticipantApplicationTransition[]
+  internalNotes NccParticipantApplicationNote[]
+  documents     NccParticipantDocument[]
+
+  @@index([applicantUserId, status])
+  @@index([status, createdAt])
+  @@index([institutionId])
+}
+
+model NccParticipantApplicationTransition {
+  id            String                          @id @default(cuid())
+  applicationId String
+  fromStatus    NccParticipantApplicationStatus
+  toStatus      NccParticipantApplicationStatus
+  actorUserId   String
+  reason        String?
+  createdAt     DateTime                        @default(now())
+
+  application NccParticipantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor       User                      @relation("NccParticipantApplicationTransitionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([applicationId, createdAt])
+  @@index([actorUserId])
+}
+
+/// Staff-only internal notes — never exposed to applicants.
+model NccParticipantApplicationNote {
+  id            String   @id @default(cuid())
+  applicationId String
+  authorUserId  String
+  body          String
+  createdAt     DateTime @default(now())
+
+  application NccParticipantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author      User                      @relation("NccParticipantApplicationNoteAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([applicationId, createdAt])
+}
+
+enum NccConnectorMode {
+  API
+  DIRECTORY
+}
+
+enum NccConnectorStatus {
+  DRAFT
+  CONFIGURED
+  ACTIVE
+  DISABLED
+}
+
+enum NccConnectorCertificationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+enum NccDirectoryVersionStatus {
+  UPLOADED
+  VALIDATED
+  ACTIVE
+  SUPERSEDED
+  ROLLED_BACK
+}
+
+enum NccDirectoryEntryStatus {
+  ACTIVE
+  CLOSED
+  FROZEN
+}
+
+enum NccCertificationRunStatus {
+  IN_PROGRESS
+  PASSED
+  FAILED
+  CANCELLED
+}
+
+enum NccCertificationCheckStatus {
+  PENDING
+  PASS
+  FAIL
+  SKIP
+}
+
+/// External participant connector (TEST/LIVE config). Secrets encrypted at rest.
+model NccParticipantConnector {
+  id                     String                         @id @default(cuid())
+  institutionId          String                         @unique
+  mode                   NccConnectorMode               @default(API)
+  baseUrl                String?
+  authType               String                         @default("HMAC_SHA256")
+  /// Encrypted connector shared secret / API key material.
+  authSecretEncrypted    String?
+  timeoutMs              Int                            @default(5000)
+  supportedCurrency      String                         @default("FLR")
+  status                 NccConnectorStatus             @default(DRAFT)
+  certificationStatus    NccConnectorCertificationStatus @default(NOT_STARTED)
+  lastSuccessfulCheckAt  DateTime?
+  lastErrorCode          String?
+  /// Owner-configured TEST account identifier used as the certification debit source.
+  certSourceAccountIdentifier      String?
+  /// Owner-configured TEST account identifier used as the certification credit destination.
+  certDestinationAccountIdentifier String?
+  configuredByUserId     String?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([certificationStatus])
+}
+
+model NccAccountDirectoryVersion {
+  id              String                    @id @default(cuid())
+  institutionId   String
+  currency        String                    @default("FLR")
+  versionNumber   Int
+  status          NccDirectoryVersionStatus @default(UPLOADED)
+  fileName        String?
+  rowCounts       Json?
+  uploadedByUserId String?
+  activatedByUserId String?
+  activatedAt     DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  institution FinancialInstitution      @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  entries     NccAccountDirectoryEntry[]
+
+  @@unique([institutionId, currency, versionNumber])
+  @@index([institutionId, currency, status])
+}
+
+model NccAccountDirectoryEntry {
+  id                              String                  @id @default(cuid())
+  versionId                       String
+  institutionId                   String
+  /// Exact public account identifier string (leading zeros preserved).
+  accountIdentifier               String
+  /// Opaque participant reference — never returned on public NCC APIs/webhooks.
+  participantAccountReference     String
+  currency                        String                  @default("FLR")
+  status                          NccDirectoryEntryStatus @default(ACTIVE)
+  canDebit                        Boolean                 @default(true)
+  canCredit                       Boolean                 @default(true)
+  beneficiaryLabel                String?
+  createdAt                       DateTime                @default(now())
+
+  version     NccAccountDirectoryVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  institution FinancialInstitution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, accountIdentifier])
+  @@index([institutionId, accountIdentifier])
+  @@index([versionId, status])
+}
+
+model NccCertificationRun {
+  id              String                     @id @default(cuid())
+  institutionId   String
+  status          NccCertificationRunStatus  @default(IN_PROGRESS)
+  startedByUserId String?
+  reviewedByUserId String?
+  reviewNote      String?
+  startedAt       DateTime                   @default(now())
+  completedAt     DateTime?
+  approvedAt      DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  institution FinancialInstitution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  checks      NccCertificationCheck[]
+
+  @@index([institutionId, status])
+  @@index([status, createdAt])
+}
+
+model NccCertificationCheck {
+  id          String                      @id @default(cuid())
+  runId       String
+  checkKey    String
+  status      NccCertificationCheckStatus @default(PENDING)
+  detail      String?
+  checkedAt   DateTime?
+  createdAt   DateTime                    @default(now())
+
+  run NccCertificationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, checkKey])
+  @@index([runId, status])
+}
+
+// ─── Sprint 4F — Staff Control Plane & Production Readiness ─────────────────
+
+enum NccStaffRole {
+  VIEWER
+  AUDITOR
+  COMPLIANCE_ANALYST
+  SETTLEMENT_OPERATOR
+  LIQUIDITY_OPERATOR
+  SENIOR_APPROVER
+  NCC_ADMINISTRATOR
+  EMERGENCY_ADMINISTRATOR
+}
+
+enum NccStaffMembershipStatus {
+  ACTIVE
+  REVOKED
+}
+
+model NccStaffMembership {
+  id              String                   @id @default(cuid())
+  userId          String
+  role            NccStaffRole
+  status          NccStaffMembershipStatus @default(ACTIVE)
+  invitedByUserId String?
+  revokedByUserId String?
+  revokeReason    String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  revokedAt       DateTime?
+
+  user      User  @relation("NccStaffMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("NccStaffMembershipInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  revokedBy User? @relation("NccStaffMembershipRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([userId])
+  @@index([status, role])
+}
+
+enum NccNetworkSettlementMode {
+  ACTIVE
+  PAUSE_NEW_SETTLEMENTS
+  EMERGENCY_STOP
+}
+
+/// Singleton network settlement kill switch (id = "default"). Distinct from site maintenance.
+model NccNetworkControl {
+  id                          String                   @id @default("default")
+  mode                        NccNetworkSettlementMode @default(ACTIVE)
+  reason                      String?
+  updatedByUserId             String?
+  pendingResumeRequestedByUserId String?
+  pendingResumeReason         String?
+  pendingResumeApprovedByUserId  String?
+  updatedAt                   DateTime                 @updatedAt
+  createdAt                   DateTime                 @default(now())
+
+  updatedBy               User? @relation("NccNetworkControlUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  pendingResumeRequestedBy User? @relation("NccNetworkResumeRequester", fields: [pendingResumeRequestedByUserId], references: [id], onDelete: SetNull)
+  pendingResumeApprovedBy  User? @relation("NccNetworkResumeApprover", fields: [pendingResumeApprovedByUserId], references: [id], onDelete: SetNull)
+}
+
+enum NccTransferReturnStatus {
+  REQUESTED
+  PENDING_RECEIVING_INSTITUTION
+  APPROVED
+  REJECTED
+  FUNDS_UNAVAILABLE
+  PROCESSING
+  COMPLETED
+  FAILED
+  MANUAL_REVIEW
+}
+
+model NccTransferReturn {
+  id                         String                  @id @default(cuid())
+  publicReference            String                  @unique
+  originalInstructionId      String
+  institutionId              String
+  amount                     Decimal                 @db.Decimal(18, 2)
+  currency                   String                  @default("FLR")
+  reason                     String
+  status                     NccTransferReturnStatus @default(REQUESTED)
+  idempotencyKey             String                  @unique
+  requestedByUserId          String?
+  requestedByCredentialId    String?
+  reviewedByUserId           String?
+  reviewNote                 String?
+  receivingInstitutionApprovedByUserId String?
+  receivingInstitutionApprovedAt       DateTime?
+  executionApprovedByUserId  String?
+  returnInstructionId        String?
+  failureCode                String?
+  failureReason              String?
+  legacyReversalRequestId    String?                 @unique
+  metadata                   Json?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  reviewedAt                 DateTime?
+  completedAt                DateTime?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  requestedBy User?                @relation("NccTransferReturnRequester", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  reviewedBy  User?                @relation("NccTransferReturnReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  executionApprovedBy User?        @relation("NccTransferReturnApprover", fields: [executionApprovedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, status])
+  @@index([originalInstructionId])
+  @@index([status, createdAt])
+}
+
+enum NccEmergencySuspensionStatus {
+  ACTIVE
+  RESUMED
+}
+
+model NccEmergencySuspension {
+  id                String                       @id @default(cuid())
+  institutionId     String
+  reason            String
+  status            NccEmergencySuspensionStatus @default(ACTIVE)
+  suspendedByUserId String
+  resumedByUserId   String?
+  resumeReason      String?
+  /// Snapshot of resources suspended by this action (routing ids, account ids, credential ids, etc.).
+  affectedSnapshot  Json
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  resumedAt         DateTime?
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  suspendedBy User                 @relation("NccEmergencySuspensionActor", fields: [suspendedByUserId], references: [id], onDelete: Restrict)
+  resumedBy   User?                @relation("NccEmergencySuspensionResumer", fields: [resumedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, status])
+  @@index([status, createdAt])
+}
+
+model NccInstitutionRiskPolicy {
+  id                         String    @id @default(cuid())
+  institutionId              String
+  maxTransferAmount          Decimal?  @db.Decimal(18, 2)
+  dailyAmountLimit           Decimal?  @db.Decimal(18, 2)
+  dailyTransactionCountLimit Int?
+  manualReviewThreshold      Decimal?  @db.Decimal(18, 2)
+  probationMaxTransferAmount Decimal?  @db.Decimal(18, 2)
+  probationDailyAmountLimit  Decimal?  @db.Decimal(18, 2)
+  probationDailyTxnLimit     Int?
+  emergencyZeroLimit         Boolean   @default(false)
+  enabled                    Boolean   @default(true)
+  effectiveFrom              DateTime  @default(now())
+  effectiveTo                DateTime?
+  updatedByUserId            String?
+  reason                     String?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  updatedBy   User?                @relation("NccRiskPolicyUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, enabled])
+  @@index([institutionId, effectiveFrom])
+}
+
+enum NccRiskDecisionOutcome {
+  ALLOW
+  REJECT
+  MANUAL_REVIEW
+  COMPLIANCE_HOLD
+  OVERRIDE_ALLOW
+}
+
+model NccRiskDecision {
+  id                      String                 @id @default(cuid())
+  settlementInstructionId String                 @unique
+  institutionId           String
+  outcome                 NccRiskDecisionOutcome
+  reasonCode              String?
+  reason                  String?
+  amount                  Decimal                @db.Decimal(18, 2)
+  policySnapshot          Json?
+  overriddenByUserId      String?
+  overrideReason          String?
+  createdAt               DateTime               @default(now())
+
+  institution  FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  overriddenBy User?                @relation("NccRiskDecisionOverrider", fields: [overriddenByUserId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, createdAt])
+  @@index([outcome, createdAt])
+}
+
+model NccDailyRiskUsage {
+  id               String   @id @default(cuid())
+  institutionId    String
+  usageDate        DateTime @db.Date
+  amountTotal      Decimal  @default(0) @db.Decimal(18, 2)
+  transactionCount Int      @default(0)
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, usageDate])
+  @@index([usageDate])
+}
+
+enum NccOperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum NccOperationalAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model NccOperationalAlert {
+  id               String                     @id @default(cuid())
+  alertKey         String
+  title            String
+  detail           String?
+  severity         NccOperationalAlertSeverity @default(WARNING)
+  status           NccOperationalAlertStatus  @default(OPEN)
+  entityType       String?
+  entityId         String?
+  assignedToUserId String?
+  acknowledgedByUserId String?
+  resolvedByUserId String?
+  notes            String?
+  metadata         Json?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+
+  assignedTo     User? @relation("NccOperationalAlertAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  acknowledgedBy User? @relation("NccOperationalAlertAcker", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
+  resolvedBy     User? @relation("NccOperationalAlertResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity])
+  @@index([alertKey, status])
+  @@index([createdAt])
+}
+
+/// Database-backed overlap lock for NCC worker runs.
+model NccWorkerLock {
+  id         String   @id @default(cuid())
+  jobKey     String   @unique
+  lockedBy   String
+  lockedUntil DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([lockedUntil])
+}
+

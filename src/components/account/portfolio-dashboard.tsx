@@ -35,8 +35,7 @@ import {
   type PortfolioChartPoint,
   type PortfolioTimeRange,
 } from "@/lib/account/portfolio-chart-series";
-import { florin } from "@/lib/mock-data";
-import { pct } from "@/lib/terminal/api";
+import { florin, pct } from "@/lib/format/money-display";
 import { cn } from "@/lib/utils";
 import type { AssetAllocationItem } from "@/lib/account/asset-allocation";
 import { PortfolioAssetAllocation } from "@/components/account/portfolio-asset-allocation";

@@ -33,15 +33,27 @@ function DocumentationRoute() {
           cannot override it.
         </p>
         <p>
+          Payment addresses use routing number (institution) plus an opaque, institution-specific
+          account identifier. Submit{" "}
+          <code className="font-mono text-[12px]">sourceAccountNumber</code> and{" "}
+          <code className="font-mono text-[12px]">destinationAccountNumber</code> (field names retained
+          for v1; values are not a universal bank format). NCC does not require digits-only
+          identifiers. Internal database IDs and legacy{" "}
+          <code className="font-mono text-[12px]">*AccountReference</code> fields are rejected.
+          Knowing an identifier never grants debit authority.
+        </p>
+        <p>
           Webhooks are signed with{" "}
           <code className="font-mono text-[12px]">
             HMAC-SHA256(secret, timestamp + &quot;.&quot; + rawBody)
           </code>{" "}
           and delivered with <code className="font-mono text-[12px]">NCC-Signature</code> headers.
+          Payloads never include internal account references or full account numbers.
         </p>
         <p>
           Full engineering docs live in the repository under{" "}
-          <code className="font-mono text-[12px]">docs/ncc/NCC_INSTITUTION_API.md</code>.
+          <code className="font-mono text-[12px]">docs/ncc/NCC_INSTITUTION_API.md</code> and{" "}
+          <code className="font-mono text-[12px]">docs/ncc/NCC_SPRINT_4A_ACCOUNT_ADDRESSING_REPORT.md</code>.
         </p>
         <Link to="/portal/developers" className="inline-block text-[#0c4d32]">
           ← Back to Developers

@@ -24,9 +24,3 @@ export function saveIssuerSession(session: IssuerSession) {
 export function clearIssuerSession() {
   localStorage.removeItem(SESSION_STORAGE);
 }
-
-export function createPreviewIssuerSession(ticker: string, organization: string): IssuerSession {
-  const session = { ticker: ticker.toUpperCase(), organization };
-  saveIssuerSession(session);
-  return session;
-}

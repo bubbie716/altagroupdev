@@ -11,9 +11,7 @@ import {
 } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
-import { MockDataNotice } from "@/components/data/mock-data-notice";
 import { TerminalSubNav } from "@/components/terminal/terminal-sub-nav";
-import { isPublicSimulatedMarketDataEnabled } from "@/lib/config/data-mode";
 import {
   ALTA_TERMINAL_EYEBROW,
   ALTA_TERMINAL_TAGLINE,
@@ -42,12 +40,7 @@ type TerminalPageLayoutContextValue = {
 const TerminalPageLayoutContext = createContext<TerminalPageLayoutContextValue | null>(null);
 
 export function TerminalLayoutNav() {
-  return (
-    <>
-      {isPublicSimulatedMarketDataEnabled() ? <MockDataNotice className="mb-4" /> : null}
-      <TerminalSubNav />
-    </>
-  );
+  return <TerminalSubNav />;
 }
 
 /** Registers page hero metadata for the persistent /terminal layout shell. */
