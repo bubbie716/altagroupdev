@@ -16,7 +16,7 @@
 **Default runtime config** (`src/lib/config/data-mode.ts`):
 - `SHOW_USER_FINANCIAL_MOCK_DATA = false` — user bank/portfolio data must not masquerade as real
 - `SHOW_PUBLIC_SIMULATED_MARKET_DATA = true` — Exchange/Terminal marketing may show simulated market content
-awdad
+awdadwdad
 ---
 
 ## SECTION 1 — EXECUTIVE SUMMARY
