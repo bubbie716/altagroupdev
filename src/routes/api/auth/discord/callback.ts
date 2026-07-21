@@ -101,6 +101,30 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
 
         if (hostsMatch(callbackHost, returnHost)) {
           const destination = new URL(safePath, url.origin).toString();
+          // #region agent log
+          const sameHostPayload = {
+            callbackHost,
+            returnHost,
+            safePath,
+            destination,
+            returnOrigin,
+            siteKey: site.key,
+          };
+          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+            body: JSON.stringify({
+              sessionId: "49e5fc",
+              runId: "pre-fix",
+              hypothesisId: "C_D",
+              location: "routes/api/auth/discord/callback.ts:same-host",
+              message: "Discord OAuth same-host post-login redirect",
+              data: sameHostPayload,
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          console.error("[alta-debug-49e5fc] oauth-same-host", sameHostPayload);
+          // #endregion
           return redirectWithSetCookies(destination, [
             buildSetCookie(
               getSessionCookieName(),
@@ -120,6 +144,30 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
         const handoffUrl = new URL("/api/auth/session/handoff", returnOrigin);
         handoffUrl.searchParams.set("handoff", handoffId);
         handoffUrl.searchParams.set("redirect", safePath);
+
+        // #region agent log
+        const handoffPayload = {
+          callbackHost,
+          returnHost,
+          safePath,
+          handoffHref: handoffUrl.toString(),
+          returnOrigin,
+        };
+        fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+          body: JSON.stringify({
+            sessionId: "49e5fc",
+            runId: "pre-fix",
+            hypothesisId: "A_D",
+            location: "routes/api/auth/discord/callback.ts:handoff",
+            message: "Discord OAuth cross-host handoff redirect",
+            data: handoffPayload,
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        console.error("[alta-debug-49e5fc] oauth-handoff", handoffPayload);
+        // #endregion
 
         return redirectWithSetCookies(handoffUrl.toString(), [clearState]);
       },

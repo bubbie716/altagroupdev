@@ -31,6 +31,34 @@ import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
 
 function NotFoundComponent() {
+  // #region agent log
+  useEffect(() => {
+    const data = {
+      href: typeof window !== "undefined" ? window.location.href : null,
+      pathname: typeof window !== "undefined" ? window.location.pathname : null,
+      host: typeof window !== "undefined" ? window.location.host : null,
+      search: typeof window !== "undefined" ? window.location.search : null,
+      hasOAuthCode: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code"),
+      hasOAuthState: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("state"),
+      hasHandoff: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("handoff"),
+      referrer: typeof document !== "undefined" ? document.referrer : null,
+    };
+    fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+      body: JSON.stringify({
+        sessionId: "49e5fc",
+        runId: "pre-fix",
+        hypothesisId: "C_E_F",
+        location: "routes/__root.tsx:NotFoundComponent",
+        message: "Production 404 NotFound rendered",
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    console.error("[alta-debug-49e5fc] NotFound", data);
+  }, []);
+  // #endregion
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <div className="flex flex-1 items-center justify-center px-4">
@@ -114,6 +142,30 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
           : undefined,
     });
     if (retiredExchangeRedirect) {
+      // #region agent log
+      const host = readRequestHost();
+      const payload = {
+        pathname: location.pathname,
+        host,
+        searchStr: typeof location.searchStr === "string" ? location.searchStr : null,
+        destination: retiredExchangeRedirect,
+        isApiAuth: location.pathname.startsWith("/api/auth"),
+      };
+      fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+        body: JSON.stringify({
+          sessionId: "49e5fc",
+          runId: "pre-fix",
+          hypothesisId: "A_B",
+          location: "routes/__root.tsx:beforeLoad",
+          message: "Retired Exchange redirect fired",
+          data: payload,
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      console.error("[alta-debug-49e5fc] retiredExchangeRedirect", payload);
+      // #endregion
       throw redirect({ href: retiredExchangeRedirect, replace: true });
     }
 
