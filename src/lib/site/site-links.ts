@@ -16,7 +16,7 @@ export const ALTA_SYSTEM_STATUS_URL = "https://status.altagroup.dev" as const;
 export const SITE_FOOTER_EMPHASIS: Record<SiteKey, string> = {
   corporate: "Corporate",
   bank: "Retail + Commercial Banking",
-  exchange: "Capital Markets",
+  exchange: "Discontinued",
   terminal: "Brokerage",
   ncc: "Financial Infrastructure",
 };
@@ -55,7 +55,7 @@ export function getFooterEntitySectionTitle(siteKey: SiteKey): string {
   const titles: Record<SiteKey, string> = {
     corporate: "Alta Group",
     bank: "Alta Bank",
-    exchange: "Alta Exchange",
+    exchange: "Alta Exchange (Discontinued)",
     terminal: "Alta Terminal",
     ncc: "Newport Clearing Corporation",
   };
@@ -93,9 +93,13 @@ export const FOOTER_COPYRIGHT_ENTITY: Record<SiteKey, FooterCopyrightEntity> = {
 
 export function getFooterCopyrightLines(siteKey: SiteKey): { copyright: string; disclaimer: string } {
   const { legalName, shortName } = FOOTER_COPYRIGHT_ENTITY[siteKey];
+  const serviceClause =
+    siteKey === "exchange"
+      ? `${shortName} product pages are discontinued. Continue on Alta Terminal for brokerage tools.`
+      : `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise.`;
   return {
     copyright: `© 2026 ${legalName} All rights reserved.`,
-    disclaimer: `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise. ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
+    disclaimer: `${serviceClause} ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
   };
 }
 

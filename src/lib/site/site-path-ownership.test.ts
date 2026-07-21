@@ -5,7 +5,7 @@ import { siteKeyForEntityPath, siteKeyForOwnedPath } from "@/lib/site/site-path-
 describe("site-path-ownership", () => {
   it("assigns entity app prefixes", () => {
     assert.equal(siteKeyForOwnedPath("/bank/deposit"), "bank");
-    assert.equal(siteKeyForOwnedPath("/exchange/listings"), "exchange");
+    assert.equal(siteKeyForOwnedPath("/exchange/listings"), null);
     assert.equal(siteKeyForOwnedPath("/terminal/trade"), "terminal");
   });
 

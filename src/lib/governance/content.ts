@@ -2,10 +2,14 @@ import type { LucideIcon } from "lucide-react";
 import { Building2, Coins, Landmark, LineChart } from "lucide-react";
 import {
   ALTA_EXCHANGE_TAGLINE,
-  ALTA_TERMINAL_TAGLINE,
 } from "@/lib/branding/alta-products";
 
-export type EntityStatus = "Operational" | "Exchange Product" | "In Development" | "Planned";
+export type EntityStatus =
+  | "Operational"
+  | "In Development"
+  | "Release Candidate"
+  | "Planned"
+  | "Discontinued";
 
 export type PlatformStatusItem = {
   name: string;
@@ -14,14 +18,13 @@ export type PlatformStatusItem = {
 
 export const platformStatusItems: PlatformStatusItem[] = [
   { name: "Alta Bank N.V.", status: "Operational" },
-  { name: "Alta Exchange N.V.", status: "Operational" },
-  { name: "Alta Terminal", status: "Exchange Product" },
-  { name: "NCC", status: "In Development" },
+  { name: "Alta Terminal", status: "In Development" },
+  { name: "NCC", status: "Release Candidate" },
+  { name: "Alta Exchange N.V.", status: "Discontinued" },
   { name: "Company Registry", status: "Operational" },
   { name: "Discord Authentication", status: "Operational" },
   { name: "Business Banking", status: "Operational" },
   { name: "Developer API", status: "Planned" },
-  { name: "Settlement Network", status: "Planned" },
 ];
 
 /** Compact hierarchy node — ownership/reporting only. */
@@ -41,24 +44,24 @@ export const groupHierarchy: HierarchyNode[] = [
     description: "Banking division of Alta Group N.V.",
   },
   {
+    icon: LineChart,
+    name: "Alta Terminal",
+    status: "In Development",
+    description:
+      "Brokerage and trading platform under development — market data, execution, and custody await external exchange connectivity.",
+  },
+  {
     icon: Building2,
     name: "Alta Exchange N.V.",
-    status: "Operational",
-    description: "National market venue and capital markets platform.",
-    children: [
-      {
-        icon: LineChart,
-        name: "Alta Terminal",
-        status: "Exchange Product",
-        description: "Investor workstation — an Alta Exchange product.",
-      },
-    ],
+    status: "Discontinued",
+    description: "Former national market venue — retired; historical records retained.",
   },
   {
     icon: Coins,
     name: "NCC",
-    status: "Planned",
-    description: "Newport Clearing Corporation — settlement infrastructure.",
+    status: "Release Candidate",
+    description:
+      "Newport Clearing Corporation — cash settlement between participating banks and Alta Terminal. Release candidate undergoing final testing.",
   },
 ];
 
@@ -91,29 +94,30 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     services: ["Deposits", "Business Banking", "Lending", "Treasury Services", "Alta Pay"],
   },
   {
+    icon: LineChart,
+    name: "Alta Terminal",
+    code: "ALT-TRM",
+    status: "In Development",
+    description:
+      "Alta’s brokerage and trading platform. Portfolio tools are available; trading, execution, market data, and custody are not live pending external exchange connectivity.",
+    services: ["Portfolio dashboard", "Watchlists", "Research", "Brokerage accounts"],
+  },
+  {
     icon: Building2,
     name: "Alta Exchange N.V.",
     code: "ALT-EXC",
-    status: "Operational",
+    status: "Discontinued",
     description: ALTA_EXCHANGE_TAGLINE,
-    services: ["Listings", "IPO Center", "Market Data", "Developer API", "Issuer Portal"],
-    products: [
-      {
-        name: "Alta Terminal",
-        subtitle: "Alta Exchange",
-        tagline: ALTA_TERMINAL_TAGLINE,
-        services: ["Portfolio dashboard", "Watchlists", "Research", "Order entry"],
-      },
-    ],
+    services: ["Historical listings", "Archived market data", "Prior issuer records"],
   },
   {
     icon: Coins,
     name: "NCC",
     code: "NCC",
-    status: "Planned",
+    status: "Release Candidate",
     description:
-      "Newport Clearing Corporation — planned clearing and settlement infrastructure for securities and interbank payment flows.",
-    services: ["Interbank Settlement", "Securities Clearing", "Account Registry", "Payment Network"],
+      "Newport Clearing Corporation — cash transfers between participating banks and Alta Terminal. Release candidate undergoing final testing; not a fully released production network. NCC settles cash, not securities trades.",
+    services: ["Bank ↔ Terminal cash", "Institution routing", "Settlement accounts", "Participation network"],
   },
 ];
 
@@ -206,7 +210,30 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
   {
-    sectionTitle: "Exchange Leadership",
+    sectionTitle: "Terminal Leadership",
+    division: "Alta Terminal",
+    roles: [
+      {
+        title: "President, Alta Terminal",
+        name: "FTLCEO",
+        minecraftUsername: "12700k",
+        status: "Appointed",
+        responsibility: "Brokerage operations, product direction, and investor platform governance.",
+      },
+      {
+        title: "Head of Brokerage",
+        status: "Vacant",
+        responsibility: "Client coverage, account onboarding, and trading desk coordination.",
+      },
+      {
+        title: "Market Operations Officer",
+        status: "Vacant",
+        responsibility: "Order routing readiness, market data feeds, and session operations.",
+      },
+    ],
+  },
+  {
+    sectionTitle: "Exchange Leadership (Discontinued)",
     division: "Alta Exchange N.V.",
     roles: [
       {
@@ -214,27 +241,7 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
         name: "FTLCEO",
         minecraftUsername: "12700k",
         status: "Appointed",
-        responsibility: "Market venue operations, listings policy, and exchange governance.",
-      },
-      {
-        title: "Listing Director",
-        status: "Vacant",
-        responsibility: "Issuer onboarding, listing standards, and corporate actions.",
-      },
-      {
-        title: "Issuer Relations Officer",
-        status: "Vacant",
-        responsibility: "Listed company communications and IPO coordination.",
-      },
-      {
-        title: "Market Operations Officer",
-        status: "Vacant",
-        responsibility: "Session management, market data, and surveillance readiness.",
-      },
-      {
-        title: "Developer Relations",
-        status: "Vacant",
-        responsibility: "API access, integration partners, and market data licensing.",
+        responsibility: "Historical market venue governance — entity discontinued; records retained.",
       },
     ],
   },

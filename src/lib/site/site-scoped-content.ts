@@ -1,5 +1,6 @@
 import type { SiteKey } from "@/config/sites";
 import type { LegalEntity } from "@/lib/legal/legal-document-registry";
+import { getLegalDocument } from "@/lib/legal/legal-document-registry";
 import {
   legalDocCategoryOrder,
   legalDocsByCategory,
@@ -42,18 +43,34 @@ function categoryMatchesSite(category: LegalDocCategory, siteKey: SiteKey): bool
   return prefixes.some((prefix) => {
     if (prefix === "AG-") return category.startsWith("Alta Group");
     if (prefix === "AB-") return category.startsWith("Alta Bank");
-    if (prefix === "AE-") return category.startsWith("Alta Exchange");
+    if (prefix === "AE-") {
+      return category.startsWith("Alta Terminal") || category.startsWith("Alta Exchange");
+    }
     return category.startsWith("NCC");
   });
 }
 
+function isArchivedRegistryDoc(docId: string): boolean {
+  return getLegalDocument(docId)?.archived === true;
+}
+
 export function legalDocMatchesSite(doc: LegalDocMeta, siteKey: SiteKey): boolean {
+  if (isArchivedRegistryDoc(doc.id)) return false;
   if (siteKey === "corporate") return true;
+  // Retired exchange site — do not force AE- docs into active acceptance/selection flows.
+  if (siteKey === "exchange") {
+    return categoryPrefixesForSite(siteKey).some(
+      (prefix) => prefix === "AG-" && doc.id.startsWith(prefix),
+    );
+  }
   return categoryPrefixesForSite(siteKey).some((prefix) => doc.id.startsWith(prefix));
 }
 
 export function getLegalDocCategoriesForSite(siteKey: SiteKey): LegalDocCategory[] {
   if (siteKey === "corporate") return [...legalDocCategoryOrder];
+  if (siteKey === "exchange") {
+    return legalDocCategoryOrder.filter((category) => category.startsWith("Alta Group"));
+  }
   return legalDocCategoryOrder.filter((category) => categoryMatchesSite(category, siteKey));
 }
 
@@ -63,13 +80,25 @@ export function getLegalDocsByCategoryForSite(
   const categories = getLegalDocCategoriesForSite(siteKey);
   return Object.fromEntries(
     categories
-      .map((category) => [category, legalDocsByCategory[category]] as const)
+      .map((category) => {
+        const docs = (legalDocsByCategory[category] ?? []).filter(
+          (doc) => !isArchivedRegistryDoc(doc.id),
+        );
+        // Terminal: only active customer agreement (AE-LEGAL-001).
+        if (siteKey === "terminal" && (category.startsWith("Alta Exchange") || category.startsWith("Alta Terminal"))) {
+          return [category, docs.filter((doc) => doc.id === "AE-LEGAL-001")] as const;
+        }
+        return [category, docs] as const;
+      })
       .filter(([, docs]) => docs.length > 0),
   );
 }
 
 export function getLegalDocsForSite(siteKey: SiteKey): LegalDocMeta[] {
-  return getLegalDocCategoriesForSite(siteKey).flatMap((category) => legalDocsByCategory[category]);
+  return getLegalDocCategoriesForSite(siteKey).flatMap((category) => {
+    const docs = getLegalDocsByCategoryForSite(siteKey)[category] ?? [];
+    return docs;
+  });
 }
 
 /** Discord communities visible on a site's support page (Alta Group hub shows all). */

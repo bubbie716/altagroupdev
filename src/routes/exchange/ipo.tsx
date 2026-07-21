@@ -1,34 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ExchangePageMeta } from "@/components/exchange/exchange-page-layout";
-import { EmptyState } from "@/components/data/empty-state";
-import { getIPOs } from "@/lib/exchange/api";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { RETIRED_EXCHANGE_TERMINAL_PATH } from "@/lib/site/exchange-retirement-redirect";
 
 export const Route = createFileRoute("/exchange/ipo")({
-  head: () => ({
-    meta: [{ title: "IPO Center — Alta Exchange" }],
-  }),
-  component: ExchangeIPO,
+  beforeLoad: () => {
+    throw redirect({ to: RETIRED_EXCHANGE_TERMINAL_PATH });
+  },
 });
-
-function ExchangeIPO() {
-  const ipos = getIPOs();
-
-  return (
-    <>
-      <ExchangePageMeta
-        eyebrow="Alta Exchange · IPO Center"
-        title="IPO Center"
-        description="Primary market offerings, bookbuilding, and recently listed issuers on Alta Exchange."
-      />
-
-      {ipos.length === 0 ? (
-        <EmptyState
-          eyebrow="Alta Exchange"
-          title="No IPOs listed yet."
-          description="Open offerings, bookbuilding, and recently listed issuers will appear here once Alta Exchange primary market services launch."
-          className="max-w-xl"
-        />
-      ) : null}
-    </>
-  );
-}

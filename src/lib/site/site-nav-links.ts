@@ -1,7 +1,7 @@
 import { getSiteConfig, type SiteConfig, type SiteKey, type SiteNavLink } from "@/config/sites";
 import { buildExchangePrimaryNavLinks } from "@/lib/exchange/exchange-primary-nav";
 import { buildTerminalPrimaryNavLinks } from "@/lib/terminal/terminal-primary-nav";
-import { resolveCorporateSiteUrl, resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
+import { resolveCorporateSiteUrl } from "@/lib/site/entity-site-url";
 
 function withExternalNavLink(link: SiteNavLink, href: string): SiteNavLink {
   return { ...link, to: href, external: true };
@@ -12,21 +12,12 @@ export function resolveSiteNavLinks(siteKey: SiteKey): SiteNavLink[] {
   const config = getSiteConfig(siteKey);
 
   if (siteKey === "exchange") {
-    return buildExchangePrimaryNavLinks().map((link) => {
-      if (link.label === "Terminal") {
-        return withExternalNavLink(link, resolveEntitySiteUrl("terminal"));
-      }
-      return link;
-    });
+    // Discontinued host — no product nav (routes redirect to Terminal).
+    return buildExchangePrimaryNavLinks();
   }
 
   if (siteKey === "terminal") {
-    return buildTerminalPrimaryNavLinks().map((link) => {
-      if (link.label === "Exchange") {
-        return withExternalNavLink(link, resolveEntitySiteUrl("exchange"));
-      }
-      return link;
-    });
+    return buildTerminalPrimaryNavLinks();
   }
 
   if (siteKey === "ncc") {

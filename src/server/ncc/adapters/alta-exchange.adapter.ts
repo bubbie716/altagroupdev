@@ -1,10 +1,11 @@
 import { AltaTerminalInstitutionAdapter } from "@/server/ncc/adapters/alta-terminal.adapter";
 
 /**
- * Alta Exchange adapter — shares the same Alta trading-cash system of record
- * (TerminalCashAccount / TerminalCashEntry) as Alta Terminal. Exchange settlement
- * legs post against the identical ledger; only the institutionKey used for
- * adapter resolution / audit differs.
+ * @deprecated Sprint 4G — Alta Exchange is retired. Kept on disk for historical
+ * reference only. Not registered in institution-adapter.registry (no new transfers).
+ *
+ * Historically shared the Terminal cash SoR (TerminalCashAccount / TerminalCashEntry);
+ * institutionKey "alta-exchange" was used for adapter resolution / audit only.
  */
 export class AltaExchangeInstitutionAdapter extends AltaTerminalInstitutionAdapter {
   constructor() {

@@ -19,12 +19,12 @@ export const Route = createFileRoute("/structure/")({
       {
         name: "description",
         content:
-          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank N.V., Alta Exchange N.V. (including Alta Terminal), and Newport Clearing Corporation.",
+          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank N.V., Alta Terminal, and Newport Clearing Corporation.",
       },
       { property: "og:title", content: "Alta Group — Structure" },
       {
         property: "og:description",
-        content: "The financial holding company behind Newport's banking, exchange, and clearing infrastructure.",
+        content: "The financial holding company behind Newport's banking, brokerage, and clearing infrastructure.",
       },
     ],
   }),
@@ -47,7 +47,7 @@ function StructurePage() {
           Corporate Structure
         </p>
         <p className={cn(type.body, "mt-6 max-w-2xl text-muted-foreground")}>
-          A single parent holding company — Alta Group N.V. — operating banking, exchange, and clearing
+          A single parent holding company — Alta Group N.V. — operating banking, brokerage, and clearing
           infrastructure for the Republic of Newport.
         </p>
       </FadeIn>
@@ -67,14 +67,14 @@ function StructurePage() {
           <Card>
             <div className="type-meta">Mandate</div>
             <div className="mt-2 text-sm leading-relaxed">
-              Operate banking, exchange, market technology, and clearing infrastructure for the
-              Republic of Newport under unified governance.
+              Operate banking, brokerage, and clearing infrastructure for the Republic of Newport under
+              unified governance.
             </div>
           </Card>
           <Card>
             <div className="type-meta">Disclosures</div>
             <div className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Alta platform data reflects live platform records where available. Exchange market data
+              Alta platform data reflects live platform records where available. Brokerage market data
               is unavailable in this release. Florin-denominated. Not a real-money venue.
             </div>
           </Card>
@@ -86,15 +86,15 @@ function StructurePage() {
 
         <Section title="Entity overview" className="mt-12">
           <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-            Division mandates, service lines, and exchange products. Ownership and reporting
-            relationships are detailed in each entity profile below.
+            Division mandates and service lines. Ownership and reporting relationships are detailed in
+            each entity profile below.
           </p>
           <EntityOverview entities={entityOverviewItems} />
         </Section>
 
         <Section title="Platform status" className="mt-12">
           <p className="mb-6 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
-            Entity posture and live platform records. Exchange market statistics are unavailable in
+            Entity posture and live platform records. Brokerage market statistics are unavailable in
             this release.
           </p>
           <GovernanceMetricsGrid items={platformItems} />

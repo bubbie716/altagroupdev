@@ -1,6 +1,5 @@
 import { prisma } from "@/server/db";
 import { AltaBankInstitutionAdapter } from "@/server/ncc/adapters/alta-bank.adapter";
-import { AltaExchangeInstitutionAdapter } from "@/server/ncc/adapters/alta-exchange.adapter";
 import { AltaTerminalInstitutionAdapter } from "@/server/ncc/adapters/alta-terminal.adapter";
 import { ExternalParticipantAdapter } from "@/server/ncc/adapters/external-participant.adapter";
 import type { InstitutionAdapter, InstitutionAdapterKey } from "@/server/ncc/institution-adapter";
@@ -10,12 +9,16 @@ import {
   ALTA_TERMINAL_INSTITUTION_ID,
 } from "@/lib/bank/account-ownership";
 
+/** Live adapters only — Alta Exchange is retired and intentionally unregistered. */
 const adapters = new Map<InstitutionAdapterKey, InstitutionAdapter>([
   ["alta-bank", new AltaBankInstitutionAdapter()],
-  ["alta-exchange", new AltaExchangeInstitutionAdapter()],
   ["alta-terminal", new AltaTerminalInstitutionAdapter()],
 ]);
 
+/**
+ * Historical ID → key map (includes retired Alta Exchange for resolution only).
+ * `"alta-exchange"` has no registered adapter — getAdapterForInstitution returns null.
+ */
 const INSTITUTION_ID_TO_KEY: Record<string, InstitutionAdapterKey> = {
   [ALTA_BANK_INSTITUTION_ID]: "alta-bank",
   [ALTA_TERMINAL_INSTITUTION_ID]: "alta-terminal",
@@ -39,7 +42,8 @@ export function resolveInstitutionAdapterKey(institution: {
   if (institution.slug === "alta-bank" || (institution.isAlta && institution.slug.includes("bank"))) {
     return "alta-bank";
   }
-  if (institution.slug.includes("exchange")) return "alta-exchange";
+  // Alta Exchange is retired — do not resolve slug "exchange" to a live adapter key
+  // for new work. Historical ID still maps via INSTITUTION_ID_TO_KEY above.
   if (institution.slug.includes("terminal")) return "alta-terminal";
   return institution.slug;
 }
@@ -47,12 +51,15 @@ export function resolveInstitutionAdapterKey(institution: {
 /**
  * Resolve the institution adapter. Non-Alta institutions receive the external
  * participant adapter only when a non-draft connector is configured.
+ * Alta Exchange always returns null (retired — no new transfers).
  */
 export async function getAdapterForInstitution(institution: {
   id: string;
   slug: string;
   isAlta: boolean;
 }): Promise<InstitutionAdapter | null> {
+  if (institution.id === ALTA_EXCHANGE_INSTITUTION_ID) return null;
+
   const key = resolveInstitutionAdapterKey(institution);
   const registered = getInstitutionAdapter(key);
   if (registered) return registered;

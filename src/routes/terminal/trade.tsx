@@ -33,12 +33,12 @@ function TerminalTrade() {
   return (
     <TerminalPageShell
       title="Trade Ticket"
-      description="Prepare buy and sell orders on Alta Exchange."
+      description="Prepare buy and sell orders when brokerage trading is available."
     >
       <EmptyState
         eyebrow="Alta Terminal"
         title="Trading is not available yet."
-        description="Order entry and execution will open after Alta Exchange market access and Terminal trading services are enabled for your account."
+        description="Order entry and execution will open after brokerage trading services are enabled for your account."
         className="max-w-xl"
       />
 

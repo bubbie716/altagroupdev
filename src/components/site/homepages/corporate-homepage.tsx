@@ -46,31 +46,22 @@ const DIVISIONS: Division[] = [
     metric: "Operational · Personal & business banking",
   },
   {
-    siteKey: "exchange",
-    name: "Alta Exchange",
-    headline: "The capital markets platform of Newport.",
-    tag: "02 · Exchange",
-    desc: "Listings, price discovery, trade execution, market data, and issuer services for the Republic.",
-    services: ["Listings", "IPO Center", "Market Data", "Developer API"],
-    metric: "Operational · Capital markets",
-  },
-  {
     siteKey: "terminal",
     name: "Alta Terminal",
     headline: "Invest Like the 1%",
-    tag: "03 · Terminal",
-    desc: "Portfolio, trading, watchlists, and market access — the investor platform built on Alta Exchange.",
-    services: ["Portfolio", "Trading", "Watchlists", "Research"],
-    metric: "Operational · Alta Exchange product",
+    tag: "02 · Brokerage",
+    desc: "Alta’s brokerage and trading platform — portfolios, watchlists, and order tools for Newport investors.",
+    services: ["Portfolio", "Watchlists", "Order entry", "Research"],
+    metric: "Operational · Brokerage platform",
   },
   {
     siteKey: "ncc",
     name: "NCC",
-    headline: "Clearing & Settlement Infrastructure",
-    tag: "04 · Clearing",
-    desc: "Clearing and settlement infrastructure for routing, wires, payment rails, account registry, and securities clearing.",
-    services: ["Interbank Settlement", "Securities Clearing", "Account Registry", "Payment Network"],
-    metric: "Institution infrastructure",
+    headline: "Instant cash settlement",
+    tag: "03 · Clearing",
+    desc: "Newport Clearing Corporation provides instant cash transfers between participating banks and Alta Terminal. NCC settles cash, not securities trades.",
+    services: ["Bank ↔ Terminal cash", "Institution routing", "Settlement accounts"],
+    metric: "Operational · Cash settlement network",
   },
 ];
 
@@ -122,8 +113,8 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
 
   const valueProps = [
     { title: "Seamless Banking", desc: "Institutional-grade accounts and treasury." },
-    { title: "Invest with Confidence", desc: "Unified portfolio and market access." },
-    { title: "Global Markets", desc: "Republic-wide listings and execution." },
+    { title: "Invest with Confidence", desc: "Brokerage tools and portfolio access." },
+    { title: "Instant Settlement", desc: "Bank ↔ Terminal cash via NCC." },
     { title: "Built for Privacy", desc: "Your data stays yours until you sign in." },
   ];
 
@@ -144,14 +135,14 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
           <AltaLogo className="h-16 w-16 text-foreground" />
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 type-meta">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-            Alta Group · Four institutions online
+            Alta Group · Three institutions online
           </div>
           <h1 className="mt-10 max-w-[20ch] font-serif text-[clamp(3.5rem,8.5vw,7.5rem)] font-normal leading-[0.94] tracking-[-0.035em]">
             Live Like the 1%
           </h1>
           <p className="mt-7 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
-            The holding company behind Alta Bank, Alta Exchange, Alta Terminal, and Newport Clearing
-            Corporation — each operated as its own institution.
+            The holding company behind Alta Bank, Alta Terminal, and Newport Clearing Corporation —
+            banking, brokerage, and clearing as separate institutions.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -259,13 +250,13 @@ function Divisions() {
         <div>
           <div className="type-eyebrow">01 — Institutions</div>
           <h2 className="mt-4 text-[clamp(2.25rem,4.4vw,3.75rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
-            Four subsidiaries. <br />
-            <span className="text-muted-foreground">Four dedicated websites.</span>
+            Three subsidiaries. <br />
+            <span className="text-muted-foreground">Three dedicated websites.</span>
           </h2>
         </div>
         <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
           Alta Group is the parent. Each institution below is accessed on its own domain — banking,
-          markets, trading, and clearing as separate experiences.
+          brokerage, and clearing as separate experiences.
         </p>
       </div>
       <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
@@ -328,8 +319,8 @@ function ClosingCTA() {
           <div className="flex flex-col items-start gap-3">
             <div className="type-section-title">Platform status</div>
             <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-              Alta Bank, NCC clearing, and Terminal cash services are live. Exchange market data and
-              Terminal trading remain unavailable until listing and execution services launch.
+              Alta Bank, NCC cash settlement, and Terminal cash services are live. Brokerage trading
+              and market data remain unavailable until those services launch.
             </p>
             <Link
               to="/terminal"

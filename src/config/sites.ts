@@ -1,4 +1,3 @@
-import { EXCHANGE_PRIMARY_NAV_LINKS } from "@/lib/exchange/exchange-primary-nav";
 import { TERMINAL_PRIMARY_NAV_LINKS } from "@/lib/terminal/terminal-primary-nav";
 
 export type SiteKey = "corporate" | "bank" | "exchange" | "terminal" | "ncc";
@@ -84,8 +83,6 @@ const BANK_NAV: SiteNavLink[] = [
   { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
 ];
 
-const EXCHANGE_NAV: SiteNavLink[] = EXCHANGE_PRIMARY_NAV_LINKS;
-
 const TERMINAL_NAV: SiteNavLink[] = TERMINAL_PRIMARY_NAV_LINKS;
 
 const NCC_NAV: SiteNavLink[] = [
@@ -114,8 +111,8 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     loginHome: {
       panelTitle: "The financial infrastructure of Newport.",
       panelDescription:
-        "Alta Bank, Alta Exchange, Alta Terminal, and Newport Clearing Corporation — one integrated platform for individuals, businesses, and institutions.",
-      panelTags: ["Banking", "Capital Markets", "Financial Infrastructure"],
+        "Alta Bank, Alta Terminal, and Newport Clearing Corporation — banking, brokerage, and instant cash settlement for individuals, businesses, and institutions.",
+      panelTags: ["Banking", "Brokerage", "Financial Infrastructure"],
       signInEyebrow: "Member sign-in",
       signInTitle: "Sign in to Alta Group",
       signInDescription:
@@ -130,7 +127,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
       title: "Alta Group",
       description: "Financial infrastructure for Newport.",
       ogTitle: "Alta Group",
-      ogDescription: "The holding company behind Alta Bank, Alta Exchange, Alta Terminal, and NCC.",
+      ogDescription: "The holding company behind Alta Bank, Alta Terminal, and NCC.",
     },
     productionHosts: ["altagroup.dev", "www.altagroup.dev"],
   },
@@ -178,33 +175,33 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     entityName: "Alta Exchange N.V.",
     displayName: "Alta Exchange",
     shortName: "Exchange",
-    description: "Listings, IPOs, and market infrastructure for Newport.",
-    tagline: "The capital markets platform of Newport",
+    description: "This Alta Exchange product site has been discontinued. Brokerage access continues on Alta Terminal.",
+    tagline: "Discontinued",
     primaryRoute: "/",
     homeRoute: "/",
-    dashboardRoute: "/exchange",
-    defaultAuthenticatedRoute: "/exchange",
-    loginEyebrow: "Alta Exchange · Log-in",
+    dashboardRoute: "/terminal",
+    defaultAuthenticatedRoute: "/terminal",
+    loginEyebrow: "Alta Exchange · Discontinued",
     loginHome: {
-      panelTitle: "Listings, IPOs, and market infrastructure for Newport.",
+      panelTitle: "Alta Exchange has been discontinued.",
       panelDescription:
-        "Alta Exchange operates Newport's primary market for listings, price discovery, corporate actions, issuer services, and market data.",
-      panelTags: ["Listings", "IPOs", "Market Data"],
+        "Alta no longer operates an exchange product site. Use Alta Terminal for brokerage and portfolio tools. Instant cash transfers between Alta Bank and Alta Terminal continue through NCC.",
+      panelTags: ["Discontinued", "Use Alta Terminal"],
       signInEyebrow: "Member sign-in",
-      signInTitle: "Sign in to Alta Exchange",
+      signInTitle: "Continue to Alta Terminal",
       signInDescription:
-        "Access listings, IPOs, issuer tools, and market data with your Discord account.",
-      accessTitle: "Alta Exchange Access",
+        "Sign in with Discord. Exchange product pages redirect to Alta Terminal.",
+      accessTitle: "Product discontinued",
       accessSubtitle: "Single sign-on · Discord OAuth",
-      accessFooter: "Issuers · Investors · Market participants",
+      accessFooter: "Redirecting to Alta Terminal",
     },
     wordmarkSuffix: "EXCHANGE",
-    navLinks: EXCHANGE_NAV,
+    navLinks: [],
     seo: {
-      title: "Alta Exchange",
-      description: "Listings, IPOs, and market infrastructure for Newport.",
-      ogTitle: "Alta Exchange",
-      ogDescription: "Listings, IPOs, market data, and issuer services for Newport.",
+      title: "Alta Exchange (Discontinued)",
+      description: "Alta Exchange product pages have been discontinued. Continue on Alta Terminal.",
+      ogTitle: "Alta Exchange (Discontinued)",
+      ogDescription: "This product site is discontinued. Brokerage access is on Alta Terminal.",
     },
     productionHosts: ["exchange.altagroup.dev"],
     localSubdomain: "exchange",
@@ -215,7 +212,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     entityName: "Alta Terminal",
     displayName: "Alta Terminal",
     shortName: "Terminal",
-    description: "Trading, portfolio, and market access by Alta Exchange.",
+    description: "Alta’s brokerage and trading platform for Newport investors.",
     tagline: "Invest Like the 1%",
     primaryRoute: "/",
     homeRoute: "/",
@@ -223,25 +220,25 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     defaultAuthenticatedRoute: "/terminal",
     loginEyebrow: "Alta Terminal · Log-in",
     loginHome: {
-      panelTitle: "Trading, portfolio, and market access for Newport investors.",
+      panelTitle: "Brokerage and portfolio tools for Newport investors.",
       panelDescription:
-        "Portfolio analytics, watchlists, order entry, IPO access, and market research — one workspace built on Alta Exchange.",
-      panelTags: ["Portfolio", "Trading", "Research"],
+        "Alta Terminal is Alta’s brokerage and trading platform. Manage portfolios and watchlists here. Instant cash transfers with Alta Bank settle through NCC — cash settlement is separate from securities trading.",
+      panelTags: ["Brokerage", "Portfolio", "Trading"],
       signInEyebrow: "Member sign-in",
       signInTitle: "Sign in to Alta Terminal",
       signInDescription:
-        "Access your portfolio, trading tools, watchlists, and market research with your Discord account.",
+        "Access your Terminal workspace with your Discord account.",
       accessTitle: "Alta Terminal Access",
       accessSubtitle: "Single sign-on · Discord OAuth",
-      accessFooter: "Portfolio · Trading · Market access",
+      accessFooter: "Brokerage · Portfolio · Cash via NCC",
     },
     wordmarkSuffix: "TERMINAL",
     navLinks: TERMINAL_NAV,
     seo: {
       title: "Alta Terminal",
-      description: "Trading, portfolio, and market access by Alta Exchange.",
+      description: "Alta’s brokerage and trading platform for Newport investors.",
       ogTitle: "Alta Terminal",
-      ogDescription: "Portfolio, trading, watchlists, and market access for Newport investors.",
+      ogDescription: "Brokerage, portfolio tools, and watchlists for Newport investors.",
     },
     productionHosts: ["terminal.altagroup.dev"],
     localSubdomain: "terminal",

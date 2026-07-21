@@ -16,14 +16,14 @@ describe("site-shortcut-routes", () => {
   it("maps dashboard shortcuts per site", () => {
     assert.equal(resolveLegacyDashboardPath("corporate"), "/home");
     assert.equal(resolveLegacyDashboardPath("bank"), "/bank");
-    assert.equal(resolveLegacyDashboardPath("exchange"), "/exchange");
+    assert.equal(resolveLegacyDashboardPath("exchange"), "/terminal");
     assert.equal(resolveLegacyDashboardPath("terminal"), "/terminal");
     assert.equal(resolveLegacyDashboardPath("ncc"), "/portal");
   });
 
-  it("maps markets shortcuts per site", () => {
+  it("maps markets shortcuts to Terminal", () => {
     assert.equal(resolveLegacyMarketsPath("terminal"), "/terminal");
-    assert.equal(resolveLegacyMarketsPath("exchange"), "/exchange");
-    assert.equal(resolveLegacyMarketsPath("bank"), "/exchange");
+    assert.equal(resolveLegacyMarketsPath("exchange"), "/terminal");
+    assert.equal(resolveLegacyMarketsPath("bank"), "/terminal");
   });
 });

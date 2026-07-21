@@ -4,7 +4,6 @@ import {
   ALTA_BANK_INSTITUTION_ID,
   ALTA_BANK_PRIMARY_ROUTING_NUMBER,
   ALTA_EXCHANGE_INSTITUTION_ID,
-  ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER,
   ALTA_TERMINAL_INSTITUTION_ID,
   ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER,
 } from "@/lib/bank/account-ownership";
@@ -118,25 +117,30 @@ const ZERO_SETTLEMENT_BALANCE = 0;
 /**
  * Test-only top-up so Bank↔Terminal suites remain runnable after create-time float removal.
  * Never runs outside NCC_SETTLEMENT_TESTS; never used for production funding.
+ * Only funds never-used zero accounts — re-seed must not overwrite spent balances
+ * (Sprint 3a.1 hardening: seed never rewrites ledgerBalance / availableBalance).
  */
 async function ensureAltaSettlementTestLiquidity(): Promise<void> {
   if (process.env.NCC_SETTLEMENT_TESTS !== "1") return;
-  const min = new Prisma.Decimal("10000000.00");
+  const target = new Prisma.Decimal("10000000.00");
+  // Bank + Terminal only — Alta Exchange is retired and must not receive test liquidity.
   const accounts = await prisma.settlementAccount.findMany({
     where: {
       institutionId: {
-        in: [ALTA_BANK_INSTITUTION_ID, ALTA_TERMINAL_INSTITUTION_ID, ALTA_EXCHANGE_INSTITUTION_ID],
+        in: [ALTA_BANK_INSTITUTION_ID, ALTA_TERMINAL_INSTITUTION_ID],
       },
       currency: NCC_DEFAULT_CURRENCY,
     },
   });
   for (const account of accounts) {
-    if (asDecimal(account.availableBalance).gte(min)) continue;
+    const ledger = asDecimal(account.ledgerBalance);
+    const available = asDecimal(account.availableBalance);
+    if (!ledger.eq(0) || !available.eq(0)) continue;
     await prisma.settlementAccount.update({
       where: { id: account.id },
       data: {
-        ledgerBalance: min,
-        availableBalance: min,
+        ledgerBalance: target,
+        availableBalance: target,
       },
     });
   }
@@ -309,8 +313,84 @@ async function ensureAltaInternalInstitutionSeeded(input: {
 }
 
 /**
- * Seeds Alta Bank, Alta Terminal, and Alta Exchange as NCC participants with
- * routing numbers and zero-balance settlement accounts.
+ * Retires Alta Exchange as an NCC participant without deleting history.
+ * Atomic, idempotent — safe to run repeatedly. Never rewrites balances or
+ * replaces existing retirement timestamps.
+ */
+export async function retireAltaExchangeInstitution(): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.financialInstitution.findUnique({
+      where: { id: ALTA_EXCHANGE_INSTITUTION_ID },
+      select: {
+        id: true,
+        terminatedAt: true,
+        suspendedAt: true,
+      },
+    });
+    if (!existing) return;
+
+    const now = new Date();
+
+    await tx.financialInstitution.update({
+      where: { id: ALTA_EXCHANGE_INSTITUTION_ID },
+      data: {
+        status: "TERMINATED",
+        isNCCParticipant: false,
+        terminatedAt: existing.terminatedAt ?? now,
+        suspendedAt: existing.suspendedAt ?? now,
+      },
+    });
+
+    const routings = await tx.routingNumber.findMany({
+      where: { institutionId: ALTA_EXCHANGE_INSTITUTION_ID },
+      select: { id: true, status: true, deactivatedAt: true },
+    });
+    for (const routing of routings) {
+      if (
+        routing.status === "SUSPENDED" ||
+        routing.status === "RETIRED" ||
+        routing.status === "INACTIVE"
+      ) {
+        continue;
+      }
+      await tx.routingNumber.update({
+        where: { id: routing.id },
+        data: {
+          status: "SUSPENDED",
+          deactivatedAt: routing.deactivatedAt ?? now,
+        },
+      });
+    }
+
+    const accounts = await tx.settlementAccount.findMany({
+      where: { institutionId: ALTA_EXCHANGE_INSTITUTION_ID },
+      select: {
+        id: true,
+        status: true,
+        frozenAt: true,
+        frozenReason: true,
+      },
+    });
+    for (const account of accounts) {
+      if (account.status === "FROZEN") continue;
+      await tx.settlementAccount.update({
+        where: { id: account.id },
+        data: {
+          status: "FROZEN",
+          frozenAt: account.frozenAt ?? now,
+          frozenReason:
+            account.frozenReason ?? "Alta Exchange retired — Sprint 4G legal archival",
+          // ledgerBalance / availableBalance intentionally omitted
+        },
+      });
+    }
+  });
+}
+
+/**
+ * Seeds Alta Bank and Alta Terminal as ACTIVE NCC participants with routing
+ * numbers and zero-balance settlement accounts. Alta Exchange is retired
+ * (TERMINATED) when present — never re-seeded or reactivated as ACTIVE.
  *
  * Liquidity must be applied through authorized dual-control liquidity operations.
  * Re-running this seed never overwrites existing ledgerBalance / availableBalance.
@@ -327,16 +407,7 @@ export async function ensureAltaInstitutionsSeeded(): Promise<void> {
     primaryRoutingNumber: ALTA_TERMINAL_PRIMARY_ROUTING_NUMBER,
     settlementAccountId: "sa-alta-terminal-flr",
   });
-  await ensureAltaInternalInstitutionSeeded({
-    id: ALTA_EXCHANGE_INSTITUTION_ID,
-    legalName: "Alta Exchange LLC",
-    displayName: "Alta Exchange",
-    slug: "alta-exchange",
-    routingPrefix: "013",
-    institutionType: "EXCHANGE",
-    primaryRoutingNumber: ALTA_EXCHANGE_PRIMARY_ROUTING_NUMBER,
-    settlementAccountId: "sa-alta-exchange-flr",
-  });
+  await retireAltaExchangeInstitution();
   await markLegacyCreateTimeFloatsForReview();
   await ensureAltaSettlementTestLiquidity();
 }

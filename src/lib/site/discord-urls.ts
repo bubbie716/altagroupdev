@@ -55,7 +55,7 @@ export const ALTA_DISCORD_COMMUNITIES: Array<{
   {
     entity: "markets",
     label: ALTA_DISCORD_ENTITY_LABELS.markets,
-    description: "Alta Exchange, Alta Terminal, listings, market data, and trading community.",
+    description: "Alta Terminal brokerage support, portfolio questions, and trading community.",
     route: "/discord/markets",
   },
   {

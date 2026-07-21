@@ -11,7 +11,8 @@ const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
   { prefix: "/participation", siteKey: "ncc" },
   { prefix: "/portal", siteKey: "ncc" },
   { prefix: "/bank", siteKey: "bank" },
-  { prefix: "/exchange", siteKey: "exchange" },
+  // /exchange product paths are retired — handled by resolveRetiredExchangeRedirect,
+  // not cross-site ownership (ownership caused Exchange ↔ Terminal host loops).
   { prefix: "/terminal", siteKey: "terminal" },
   { prefix: "/governance", siteKey: "corporate" },
   { prefix: "/structure", siteKey: "corporate" },

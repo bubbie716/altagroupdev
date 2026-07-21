@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ExchangeRouteLayout } from "@/components/exchange/exchange-page-layout";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
+/** Passthrough layout — child routes redirect to Terminal. */
 export const Route = createFileRoute("/exchange")({
-  component: ExchangeRouteLayout,
+  component: () => <Outlet />,
 });

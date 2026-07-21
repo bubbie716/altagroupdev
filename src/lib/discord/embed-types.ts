@@ -66,7 +66,7 @@ export const EMBED_TEMPLATES: { key: EmbedTemplateKey; label: string }[] = [
   { key: "custom", label: "Custom" },
   { key: "alta_group_information", label: "Alta Group Information" },
   { key: "bank_notice", label: "Bank Notice" },
-  { key: "exchange_notice", label: "Exchange Notice" },
+  { key: "exchange_notice", label: "Exchange Notice (Historical)" },
   { key: "ipo_announcement", label: "IPO Announcement" },
   { key: "developer_api_update", label: "Developer API Update" },
   { key: "maintenance_notice", label: "Maintenance Notice" },

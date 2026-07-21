@@ -32,9 +32,10 @@ describe("entity site urls", () => {
   it("resolves plain localhost entity paths without ?site=", () => {
     stubWindow({ hostname: "localhost", port: "3000", protocol: "http:" });
     assert.equal(resolveEntitySiteUrl("bank", "/bank/open"), "http://localhost:3000/bank/open");
+    // /exchange paths are retired (unowned) — local-dev appends ?site= for the discontinued host.
     assert.equal(
       resolveEntitySiteUrl("exchange", "/exchange/listings"),
-      "http://localhost:3000/exchange/listings",
+      "http://localhost:3000/exchange/listings?site=exchange",
     );
   });
 

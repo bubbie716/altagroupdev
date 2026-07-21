@@ -8,26 +8,30 @@ import {
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
 describe("ecosystem config", () => {
-  it("lists Alta ecosystem properties in a stable order", () => {
+  it("lists active Alta ecosystem properties without discontinued Exchange", () => {
     assert.deepEqual(
       ECOSYSTEM_ENTRIES.map((entry) => entry.key),
-      ["corporate", "bank", "exchange", "terminal"],
+      ["corporate", "bank", "terminal"],
     );
   });
 
   it("marks exactly one current site per listed property", () => {
-    for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
+    for (const siteKey of ["corporate", "bank", "terminal"] as const) {
       const links = getEcosystemSwitcherLinks(siteKey);
-      assert.equal(links.length, 4);
+      assert.equal(links.length, 3);
       assert.equal(links.filter((link) => link.current).length, 1);
       assert.equal(links.find((link) => link.current)?.key, siteKey);
     }
   });
 
-  it("does not include NCC in the ecosystem switcher", () => {
+  it("does not include NCC or Exchange in the ecosystem switcher", () => {
     const links = getEcosystemSwitcherLinks("bank");
     assert.equal(
       links.some((link) => link.key === "ncc"),
+      false,
+    );
+    assert.equal(
+      links.some((link) => link.key === "exchange"),
       false,
     );
   });
@@ -43,7 +47,7 @@ describe("ecosystem config", () => {
     const requestHost = "bank.altagroup.dev";
     assert.ok(resolveEntitySiteUrl("corporate", "/home", requestHost).includes("altagroup.dev"));
     assert.ok(
-      resolveEntitySiteUrl("exchange", "/", requestHost).includes("exchange.altagroup.dev"),
+      resolveEntitySiteUrl("terminal", "/", requestHost).includes("terminal.altagroup.dev"),
     );
     assert.ok(
       resolveEntitySiteUrl("ncc", "/", requestHost).includes("newportclearingcorporation.com"),
@@ -52,6 +56,6 @@ describe("ecosystem config", () => {
 
   it("exposes display metadata for the header trigger", () => {
     assert.equal(getCurrentEcosystemEntry("bank").name, "Alta Bank");
-    assert.equal(getCurrentEcosystemEntry("exchange").name, "Alta Exchange");
+    assert.equal(getCurrentEcosystemEntry("terminal").name, "Alta Terminal");
   });
 });

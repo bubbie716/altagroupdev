@@ -235,6 +235,15 @@ describe("ncc sprint 4a account addressing", { skip: !RUN || !isDatabaseConfigur
     await prisma.settlementAccount.deleteMany({
       where: { institutionId: { in: [noAdapterSendId, noAdapterRecvId].filter(Boolean) } },
     });
+    await prisma.nccRiskDecision.deleteMany({
+      where: { institutionId: { in: [noAdapterSendId, noAdapterRecvId].filter(Boolean) } },
+    });
+    await prisma.nccInstitutionRiskPolicy.deleteMany({
+      where: { institutionId: { in: [noAdapterSendId, noAdapterRecvId].filter(Boolean) } },
+    });
+    await prisma.nccDailyRiskUsage.deleteMany({
+      where: { institutionId: { in: [noAdapterSendId, noAdapterRecvId].filter(Boolean) } },
+    });
     await prisma.routingNumber.deleteMany({
       where: { id: { in: [noAdapterSendRoutingId, noAdapterRecvRoutingId].filter(Boolean) } },
     });

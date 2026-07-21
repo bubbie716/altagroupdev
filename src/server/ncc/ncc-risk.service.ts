@@ -232,7 +232,10 @@ async function ensureDailyUsageLocked(
   institutionId: string,
   day: Date,
 ): Promise<{ id: string; amountTotal: Prisma.Decimal; transactionCount: number }> {
-  await tx.nccDailyRiskUsage.upsert({
+  // Upsert by Prisma Date (@db.Date), then lock by primary key.
+  // Do not re-match on usageDate in raw SQL — `${Date}::date` can shift the
+  // calendar day under non-UTC session timezones and yield DAILY_USAGE_LOCK_FAILED.
+  const usage = await tx.nccDailyRiskUsage.upsert({
     where: {
       institutionId_usageDate: { institutionId, usageDate: day },
     },
@@ -250,7 +253,7 @@ async function ensureDailyUsageLocked(
   >`
     SELECT id, "amountTotal", "transactionCount"
     FROM "NccDailyRiskUsage"
-    WHERE "institutionId" = ${institutionId} AND "usageDate" = ${day}::date
+    WHERE id = ${usage.id}
     FOR UPDATE
   `;
   const row = rows[0];

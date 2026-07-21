@@ -31,7 +31,7 @@ export function resolveLegacyDashboardPath(siteKey: SiteKey): string {
   return getSiteConfig(siteKey).dashboardRoute;
 }
 
-/** Legacy "markets" shortcut — exchange on most sites, terminal on Alta Terminal. */
-export function resolveLegacyMarketsPath(siteKey: SiteKey): string {
-  return siteKey === "terminal" ? "/terminal" : "/exchange";
+/** Legacy "markets" shortcut — all sites resolve to Alta Terminal. */
+export function resolveLegacyMarketsPath(_siteKey: SiteKey): string {
+  return "/terminal";
 }

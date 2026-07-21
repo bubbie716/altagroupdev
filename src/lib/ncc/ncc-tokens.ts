@@ -67,10 +67,10 @@ export const NCC_INSTITUTIONS = [
     routing: "021000001",
   },
   {
-    name: "Alta Exchange N.V.",
-    type: "Securities Exchange",
+    name: "Alta Terminal LLC",
+    type: "Brokerage",
     status: "operational" as const,
-    routing: "021000002",
+    routing: "021000003",
   },
   {
     name: "Newport Payment Services",

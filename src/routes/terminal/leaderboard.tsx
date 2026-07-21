@@ -13,12 +13,12 @@ function TerminalLeaderboard() {
   return (
     <TerminalPageShell
       title="Investor Leaderboard"
-      description="Largest portfolios, daily performance, and market activity across Alta Exchange Terminal clients."
+      description="Largest portfolios, daily performance, and activity across Alta Terminal clients."
     >
       <EmptyState
         eyebrow="Alta Terminal"
         title="Leaderboard is not available yet."
-        description="Portfolio rankings and activity leaderboards will publish here once Terminal social and performance services launch."
+        description="Portfolio rankings and activity leaderboards will publish here once Terminal performance services launch."
         className="max-w-xl"
       />
     </TerminalPageShell>

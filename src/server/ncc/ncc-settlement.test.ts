@@ -222,6 +222,9 @@ describe("ncc settlement engine", { skip: !RUN || !isDatabaseConfigured() }, () 
     });
     const instructionIds = instructions.map((row) => row.id);
     if (instructionIds.length > 0) {
+      await prisma.nccRiskDecision.deleteMany({
+        where: { settlementInstructionId: { in: instructionIds } },
+      });
       await prisma.settlementReconciliation.deleteMany({
         where: { settlementInstructionId: { in: instructionIds } },
       });
@@ -252,6 +255,15 @@ describe("ncc settlement engine", { skip: !RUN || !isDatabaseConfigured() }, () 
       },
     });
     await prisma.settlementAccount.deleteMany({
+      where: { institutionId: { in: [senderId, receiverId] } },
+    });
+    await prisma.nccRiskDecision.deleteMany({
+      where: { institutionId: { in: [senderId, receiverId] } },
+    });
+    await prisma.nccInstitutionRiskPolicy.deleteMany({
+      where: { institutionId: { in: [senderId, receiverId] } },
+    });
+    await prisma.nccDailyRiskUsage.deleteMany({
       where: { institutionId: { in: [senderId, receiverId] } },
     });
     await prisma.routingNumber.deleteMany({

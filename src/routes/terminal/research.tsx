@@ -13,12 +13,12 @@ function TerminalResearch() {
   return (
     <TerminalPageShell
       title="Research"
-      description="Company reports, market notes, exchange filings, and economic research."
+      description="Company reports, market notes, and economic research."
     >
       <EmptyState
         eyebrow="Alta Terminal"
         title="No research documents yet."
-        description="Filings, prospectuses, and research notes will appear here once Alta Exchange document services are available."
+        description="Filings, prospectuses, and research notes will appear here once document services are available."
         className="max-w-xl"
       />
     </TerminalPageShell>

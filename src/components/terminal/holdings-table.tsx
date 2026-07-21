@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { MiniChart } from "@/components/mini-chart";
 import { florin } from "@/lib/format/money-display";
@@ -47,13 +46,7 @@ export function HoldingsTable({ rows }: { rows: Holding[] }) {
             return (
               <tr key={h.symbol} className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40">
                 <td className="px-5 py-3">
-                  <Link
-                    to="/exchange/company/$ticker"
-                    params={{ ticker: h.symbol.toLowerCase() }}
-                    className="font-mono hover:text-gold"
-                  >
-                    {h.symbol}
-                  </Link>
+                  <span className="font-mono">{h.symbol}</span>
                   <div className="text-[11px] text-muted-foreground">{h.name ?? h.symbol}</div>
                 </td>
                 <td className="tabular px-5 py-3 text-right">{h.shares.toLocaleString()}</td>

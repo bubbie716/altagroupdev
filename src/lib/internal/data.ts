@@ -41,20 +41,27 @@ export const overviewMetrics: InternalOverviewMetrics = {
 
 export const systemStatus: SystemStatusItem[] = [
   { service: "Alta Bank Core", status: "Operational", detail: "Live bank accounts and treasury records" },
-  { service: "Alta Exchange", status: "Operational", detail: "Simulated market preview — listings and prices for testing" },
-  { service: "Alta Terminal (Exchange product)", status: "Operational", detail: "Order entry simulated · market data preview" },
-  { service: "NCC Clearing", status: "Maintenance", detail: "Planned · not yet active" },
+  {
+    service: "Alta Terminal",
+    status: "Degraded",
+    detail: "Brokerage under development — trading and market data not live pending exchange connectivity",
+  },
+  {
+    service: "NCC Clearing",
+    status: "Degraded",
+    detail: "Bank ↔ Terminal cash settlement — release candidate undergoing final testing",
+  },
   { service: "Issuer Portal", status: "Operational", detail: "Company registry and verification" },
 ];
 
 export const recentAdminActivity: AdminActivityItem[] = [
-  { id: "ACT-8842", timestamp: "2026-06-22 21:22", actor: "exchange.admin", action: "Approved API application", target: "Harbor Logistics — Terminal integration", division: "Exchange" },
-  { id: "ACT-8841", timestamp: "2026-06-22 21:14", actor: "carter.ops", action: "Approved IPO review", target: "Helix Dynamics (HLXD)", division: "Exchange" },
+  { id: "ACT-8842", timestamp: "2026-06-22 21:22", actor: "terminal.ops", action: "Reviewed Terminal funding request", target: "TFUND-44102", division: "Terminal" },
+  { id: "ACT-8841", timestamp: "2026-06-22 21:14", actor: "carter.ops", action: "Reviewed company verification", target: "Helix Dynamics (HLXD)", division: "Compliance" },
   { id: "ACT-8840", timestamp: "2026-06-22 20:52", actor: "rm.jensen", action: "Issued private invite", target: "ALT-PRV-00291", division: "Bank" },
   { id: "ACT-8839", timestamp: "2026-06-22 20:31", actor: "compliance.lee", action: "Escalated transfer flag", target: "TXN-44102", division: "Compliance" },
-  { id: "ACT-8838", timestamp: "2026-06-22 19:48", actor: "exchange.admin", action: "Published market notice", target: "NSX-100 rebalance", division: "Exchange" },
+  { id: "ACT-8838", timestamp: "2026-06-22 19:48", actor: "ncc.ops", action: "Reviewed settlement exception", target: "NCC-INST-991", division: "NCC" },
   { id: "ACT-8837", timestamp: "2026-06-22 19:02", actor: "ops.martinez", action: "Froze account", target: "user: vaultseeker", division: "Bank" },
-  { id: "ACT-8836", timestamp: "2026-06-22 18:44", actor: "terminal.ops", action: "Reviewed order cluster", target: "ORD batch #218", division: "Exchange" },
+  { id: "ACT-8836", timestamp: "2026-06-22 18:44", actor: "terminal.ops", action: "Reviewed order cluster", target: "ORD batch #218", division: "Terminal" },
 ];
 
 export const internalUsers: InternalUser[] = [
@@ -519,20 +526,16 @@ export const bankOpsDepositWithdrawRequests: BankDepositWithdrawRequest[] = [
 ];
 
 export const exchangeOpsSummary: ExchangeOpsSummary = {
-  listedCompanies: 24,
-  securitiesHalted: 1,
-  pendingCorporateActions: 3,
-  activeNotices: 2,
-  apiKeysActive: 18,
-  dailyApiCalls: "142,804",
+  listedCompanies: 0,
+  securitiesHalted: 0,
+  pendingCorporateActions: 0,
+  activeNotices: 0,
+  apiKeysActive: 0,
+  dailyApiCalls: "—",
 };
 
-export const exchangeListings: ExchangeListingRow[] = [
-  { ticker: "NPC", company: "Newport Petroleum Corp.", sector: "Energy", tradingStatus: "Open", lastPrice: "412.55" },
-  { ticker: "ALTB", company: "Alta Bank Holdings", sector: "Financials", tradingStatus: "Open", lastPrice: "286.10" },
-  { ticker: "MRDN", company: "Meridian Logistics", sector: "Industrials", tradingStatus: "Halted", lastPrice: "148.22" },
-  { ticker: "PRTH", company: "Port Haven Maritime", sector: "Industrials", tradingStatus: "Open", lastPrice: "94.18" },
-];
+/** Discontinued Exchange product — no live listings. */
+export const exchangeListings: ExchangeListingRow[] = [];
 
 export const ipoApplications: IpoApplication[] = [
   {
@@ -789,13 +792,13 @@ export const complianceCases: ComplianceCase[] = [
 
 export const internalSettings: InternalSettings = {
   maintenanceMode: false,
-  marketStatus: "Open",
+  marketStatus: "Closed",
   bankTransfers: "Review Required",
-  ipoApplications: "Open",
+  ipoApplications: "Closed",
   featureFlags: [
     { key: "terminal_trade_preview", label: "Terminal order entry (preview)", enabled: true },
     { key: "issuer_portal_uploads", label: "Issuer portal financial uploads", enabled: true },
-    { key: "exchange_api_public", label: "Exchange API documentation gate", enabled: true },
+    { key: "exchange_api_public", label: "Exchange API documentation gate (retired)", enabled: false },
     { key: "private_invite_auto", label: "Automated private invites", enabled: false },
     { key: "compliance_auto_escalate", label: "Auto-escalate critical flags", enabled: false },
   ],

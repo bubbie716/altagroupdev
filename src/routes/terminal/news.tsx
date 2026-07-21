@@ -13,12 +13,12 @@ function TerminalNews() {
   return (
     <TerminalPageShell
       title="Market News"
-      description="Market updates, company announcements, exchange notices, and macro headlines."
+      description="Market updates, company announcements, and macro headlines."
     >
       <EmptyState
         eyebrow="Alta Terminal"
         title="No market news yet."
-        description="Headlines and exchange notices will appear here once Alta Exchange market data services are live."
+        description="Headlines and market notices will appear here once news services are live."
         className="max-w-xl"
       />
     </TerminalPageShell>

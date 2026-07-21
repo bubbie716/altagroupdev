@@ -24,6 +24,7 @@ import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveSiteContextFromRequest, readRequestHost } from "@/lib/site/site-context";
 import { resolveCrossSitePathRedirect, resolveLegacyEntityHostRedirect } from "@/lib/site/entity-path-guard";
+import { resolveRetiredExchangeRedirect } from "@/lib/site/exchange-retirement-redirect";
 import { getDefaultSiteConfig } from "@/config/sites";
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
@@ -103,6 +104,17 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
     });
     if (legacyHostRedirect) {
       throw redirect({ href: legacyHostRedirect, replace: true });
+    }
+
+    const retiredExchangeRedirect = resolveRetiredExchangeRedirect(location.pathname, {
+      host: readRequestHost(),
+      searchStr:
+        typeof location.searchStr === "string"
+          ? location.searchStr
+          : undefined,
+    });
+    if (retiredExchangeRedirect) {
+      throw redirect({ href: retiredExchangeRedirect, replace: true });
     }
 
     const crossSiteRedirect = resolveCrossSitePathRedirect(location.pathname, {

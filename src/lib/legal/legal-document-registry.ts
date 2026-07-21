@@ -19,6 +19,8 @@ export type LegalDocumentDefinition = {
   footerOrder: number;
   showInGlobalFooter: boolean;
   showInEntityFooter: boolean;
+  /** Archived docs remain resolvable by ID but are excluded from active footers/selection. */
+  archived?: boolean;
 };
 
 export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
@@ -154,8 +156,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     entity: "markets",
     version: "1.0",
     footerOrder: 2,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
+    showInGlobalFooter: false,
+    showInEntityFooter: false,
+    archived: true,
   },
   {
     id: "AE-LEGAL-003",
@@ -165,8 +168,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     entity: "markets",
     version: "1.0",
     footerOrder: 3,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
+    showInGlobalFooter: false,
+    showInEntityFooter: false,
+    archived: true,
   },
   {
     id: "AE-LEGAL-004",
@@ -176,8 +180,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     entity: "markets",
     version: "1.0",
     footerOrder: 4,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
+    showInGlobalFooter: false,
+    showInEntityFooter: false,
+    archived: true,
   },
   {
     id: "AE-LEGAL-005",
@@ -187,8 +192,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     entity: "markets",
     version: "1.0",
     footerOrder: 5,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
+    showInGlobalFooter: false,
+    showInEntityFooter: false,
+    archived: true,
   },
   {
     id: "NCC-LEGAL-001",
@@ -246,8 +252,18 @@ export function legalDocLinkParams(id: string) {
   } as const;
 }
 
+/** Resolves by ID including archived docs (prior acceptance / direct URL). */
 export function getLegalDocument(id: string): LegalDocumentDefinition | undefined {
   return LEGAL_DOCUMENTS.find((doc) => doc.id === id);
+}
+
+/** Archived legal definitions for historical lookup (IDs/versions unchanged). */
+export function archivedLegalDocuments(): LegalDocumentDefinition[] {
+  return LEGAL_DOCUMENTS.filter((doc) => doc.archived === true);
+}
+
+function isActiveLegalDocument(doc: LegalDocumentDefinition): boolean {
+  return doc.archived !== true;
 }
 
 function sortFooterDocs(docs: LegalDocumentDefinition[]): LegalDocumentDefinition[] {
@@ -260,6 +276,7 @@ export function footerDocuments(options?: {
   entityOnly?: boolean;
 }): LegalDocumentDefinition[] {
   const filtered = LEGAL_DOCUMENTS.filter((doc) => {
+    if (!isActiveLegalDocument(doc)) return false;
     if (options?.entity && doc.entity !== options.entity) return false;
     if (options?.globalOnly && !doc.showInGlobalFooter) return false;
     if (options?.entityOnly && !doc.showInEntityFooter) return false;
@@ -275,24 +292,28 @@ export function groupFooterDocuments(): LegalDocumentDefinition[] {
 /** Global Legal column — Terms and Privacy only. */
 export function groupEssentialLegalDocuments(): LegalDocumentDefinition[] {
   return sortFooterDocs(
-    LEGAL_DOCUMENTS.filter((doc) => ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id)),
+    LEGAL_DOCUMENTS.filter(
+      (doc) => isActiveLegalDocument(doc) && ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id),
+    ),
   );
 }
 
 const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
   corporate: [],
   bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-007", "AB-LEGAL-003", "AB-LEGAL-005"],
-  exchange: ["AE-LEGAL-002", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
-  terminal: ["AE-LEGAL-001", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"],
+  /** Retired exchange site — no active entity footer docs. */
+  exchange: [],
+  /** Terminal keeps the customer agreement only. */
+  terminal: ["AE-LEGAL-001"],
   ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],
 };
 
-/** Entity-specific footer section documents for the current site. */
+/** Entity-specific footer section documents for the current site (excludes archived). */
 export function siteEntitySectionDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
   return sortFooterDocs(
     SITE_ENTITY_SECTION_DOC_IDS[siteKey]
       .map((id) => getLegalDocument(id))
-      .filter((doc): doc is LegalDocumentDefinition => doc !== undefined),
+      .filter((doc): doc is LegalDocumentDefinition => doc !== undefined && isActiveLegalDocument(doc)),
   );
 }
 
@@ -303,7 +324,9 @@ export function entityFooterDocuments(entity: LegalEntity): LegalDocumentDefinit
 /** Minimal auth / payment footers — group terms only. */
 export function essentialGroupDocuments(): LegalDocumentDefinition[] {
   return sortFooterDocs(
-    LEGAL_DOCUMENTS.filter((doc) => ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id)),
+    LEGAL_DOCUMENTS.filter(
+      (doc) => isActiveLegalDocument(doc) && ["AG-LEGAL-001", "AG-LEGAL-002"].includes(doc.id),
+    ),
   );
 }
 
@@ -329,8 +352,10 @@ export function siteMarketingPrimaryDocuments(siteKey: SiteKey): LegalDocumentDe
 /** Merchant-facing checkout footers. */
 export function paymentFooterDocuments(): LegalDocumentDefinition[] {
   return sortFooterDocs(
-    LEGAL_DOCUMENTS.filter((doc) =>
-      ["AG-LEGAL-001", "AG-LEGAL-002", "AB-LEGAL-003", "AB-LEGAL-004"].includes(doc.id),
+    LEGAL_DOCUMENTS.filter(
+      (doc) =>
+        isActiveLegalDocument(doc) &&
+        ["AG-LEGAL-001", "AG-LEGAL-002", "AB-LEGAL-003", "AB-LEGAL-004"].includes(doc.id),
     ),
   );
 }
@@ -340,7 +365,7 @@ export const FOOTER_DISCLAIMERS = {
     "Alta services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise.",
   bank: "Alta Bank is not a real-world bank and does not hold real-world deposits unless expressly stated otherwise.",
   markets:
-    "Alta Exchange and Alta Terminal are roleplay/virtual economy market services and do not provide real-world investment advice.",
+    "Alta Terminal is a roleplay/virtual economy brokerage service and does not provide real-world investment advice. Alta Exchange is discontinued.",
   ncc: "NCC provides roleplay/virtual economy clearing and settlement infrastructure for approved institutions.",
 } as const;
 

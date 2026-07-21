@@ -27,17 +27,10 @@ export const ECOSYSTEM_ENTRIES: EcosystemEntry[] = [
     homePath: "/",
   },
   {
-    key: "exchange",
-    name: "Alta Exchange",
-    shortName: "Alta Exchange",
-    description: "Listings and market infrastructure",
-    homePath: "/",
-  },
-  {
     key: "terminal",
     name: "Alta Terminal",
     shortName: "Alta Terminal",
-    description: "Trading and portfolios",
+    description: "Brokerage and trading",
     homePath: "/",
   },
 ];

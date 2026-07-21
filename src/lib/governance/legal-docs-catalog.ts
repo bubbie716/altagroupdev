@@ -3,8 +3,9 @@ export type LegalDocCategory =
   | "Alta Group — Legal"
   | "Alta Bank — Corporate"
   | "Alta Bank — Legal"
-  | "Alta Exchange — Corporate"
-  | "Alta Exchange — Legal"
+  | "Alta Terminal — Legal"
+  | "Alta Exchange (Archived) — Corporate"
+  | "Alta Exchange (Archived) — Legal"
   | "NCC — Corporate"
   | "NCC — Legal";
 
@@ -43,8 +44,9 @@ function categoryForId(id: string): LegalDocCategory {
   if (id.startsWith("AG-LEGAL-")) return "Alta Group — Legal";
   if (id.startsWith("AB-COR-")) return "Alta Bank — Corporate";
   if (id.startsWith("AB-LEGAL-")) return "Alta Bank — Legal";
-  if (id.startsWith("AE-COR-")) return "Alta Exchange — Corporate";
-  if (id.startsWith("AE-LEGAL-")) return "Alta Exchange — Legal";
+  if (id === "AE-LEGAL-001") return "Alta Terminal — Legal";
+  if (id.startsWith("AE-COR-")) return "Alta Exchange (Archived) — Corporate";
+  if (id.startsWith("AE-LEGAL-")) return "Alta Exchange (Archived) — Legal";
   if (id.startsWith("NCC-COR-")) return "NCC — Corporate";
   return "NCC — Legal";
 }
@@ -52,7 +54,9 @@ function categoryForId(id: string): LegalDocCategory {
 function entityForId(id: string): string {
   if (id.startsWith("AG-")) return "Alta Group N.V.";
   if (id.startsWith("AB-")) return "Alta Bank";
-  if (id.startsWith("AE-")) return "Alta Exchange";
+  // AE-LEGAL-001 is the active Terminal customer agreement; other AE docs are archived Exchange records.
+  if (id === "AE-LEGAL-001") return "Alta Terminal";
+  if (id.startsWith("AE-")) return "Alta Exchange (Archived)";
   return "Newport Clearing Corporation";
 }
 
@@ -130,8 +134,9 @@ export const legalDocsByCategory = legalDocsCatalog.reduce<
     "Alta Group — Legal": [],
     "Alta Bank — Corporate": [],
     "Alta Bank — Legal": [],
-    "Alta Exchange — Corporate": [],
-    "Alta Exchange — Legal": [],
+    "Alta Terminal — Legal": [],
+    "Alta Exchange (Archived) — Corporate": [],
+    "Alta Exchange (Archived) — Legal": [],
     "NCC — Corporate": [],
     "NCC — Legal": [],
   },
@@ -142,8 +147,9 @@ export const legalDocCategoryOrder: LegalDocCategory[] = [
   "Alta Group — Legal",
   "Alta Bank — Corporate",
   "Alta Bank — Legal",
-  "Alta Exchange — Corporate",
-  "Alta Exchange — Legal",
+  "Alta Terminal — Legal",
+  "Alta Exchange (Archived) — Corporate",
+  "Alta Exchange (Archived) — Legal",
   "NCC — Corporate",
   "NCC — Legal",
 ];

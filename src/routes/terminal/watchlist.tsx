@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
+import { Card } from "@/components/page-shell";
 import { TerminalPageShell } from "@/components/terminal/terminal-layout";
 import { EmptyPortfolioState } from "@/components/data/empty-portfolio-state";
 import { authBeforeLoad } from "@/lib/auth/guards";
@@ -20,7 +20,7 @@ function TerminalWatchlist() {
     >
       <Card className="mb-8 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
         <p className="text-[14px] text-muted-foreground">
-          Monitor Alta Exchange listed companies across grouped watchlists.
+          Track symbols across grouped watchlists once market data is available.
         </p>
         <button
           type="button"
@@ -33,9 +33,9 @@ function TerminalWatchlist() {
 
       <EmptyPortfolioState
         title="Your watchlist is empty."
-        description="Save Alta Exchange listings to track prices and alerts here once terminal access is enabled."
-        ctaLabel="Browse Listings"
-        ctaTo="/exchange/listings"
+        description="Saved symbols will appear here once watchlist and market data services are enabled."
+        ctaLabel="Back to Terminal"
+        ctaTo="/terminal"
       />
     </TerminalPageShell>
   );

@@ -4,8 +4,17 @@ import { Card } from "@/components/page-shell";
 import type { EntityOverviewItem, EntityProduct, EntityStatus } from "@/lib/governance/content";
 
 function statusTone(status: EntityStatus): string {
-  if (status === "Operational" || status === "Exchange Product") return "text-[var(--success)]";
+  if (status === "Operational") return "text-[var(--success)]";
   return "text-muted-foreground";
+}
+
+function isMutedStatus(status: EntityStatus): boolean {
+  return (
+    status === "Planned" ||
+    status === "In Development" ||
+    status === "Release Candidate" ||
+    status === "Discontinued"
+  );
 }
 
 function EntityCardHeader({ entity }: { entity: EntityOverviewItem }) {
@@ -67,7 +76,7 @@ function EntityProductsSection({ products }: { products: EntityProduct[] }) {
           <div className="flex items-start justify-between gap-2">
             <div className="text-base font-semibold tracking-tight">{product.name}</div>
             <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-gold">
-              Exchange product
+              Product
             </span>
           </div>
           <div className="mt-1 type-meta">
@@ -90,40 +99,18 @@ function EntityProductsSection({ products }: { products: EntityProduct[] }) {
   );
 }
 
-function SideEntityCard({
+function EntityCard({
   entity,
   index,
-  className,
-  stretch = false,
 }: {
   entity: EntityOverviewItem;
   index: number;
-  className?: string;
-  stretch?: boolean;
 }) {
-  const muted = entity.status === "Planned" || entity.status === "In Development";
+  const muted = isMutedStatus(entity.status);
 
   return (
-    <FadeIn
-      delay={0.05 + index * 0.08}
-      className={`${stretch ? "h-full" : ""} ${className ?? ""}`}
-    >
-      <Card
-        className={`flex flex-col !p-7 ${muted ? "opacity-90" : ""} ${stretch ? "h-full" : ""}`}
-      >
-        <EntityCardHeader entity={entity} />
-        <EntityServicesList services={entity.services} />
-      </Card>
-    </FadeIn>
-  );
-}
-
-function ExchangeFullCard({ entity, index }: { entity: EntityOverviewItem; index: number }) {
-  const muted = entity.status === "Planned" || entity.status === "In Development";
-
-  return (
-    <FadeIn delay={0.05 + index * 0.08} className="lg:hidden">
-      <Card className={`flex flex-col !p-7 ${muted ? "opacity-90" : ""}`}>
+    <FadeIn delay={0.05 + index * 0.08} className="h-full">
+      <Card className={`flex h-full flex-col !p-7 ${muted ? "opacity-90" : ""}`}>
         <EntityCardHeader entity={entity} />
         <EntityServicesList services={entity.services} />
         {entity.products && entity.products.length > 0 && (
@@ -136,81 +123,13 @@ function ExchangeFullCard({ entity, index }: { entity: EntityOverviewItem; index
   );
 }
 
-function ExchangeTopCard({ entity, index }: { entity: EntityOverviewItem; index: number }) {
-  const muted = entity.status === "Planned" || entity.status === "In Development";
-
-  return (
-    <FadeIn
-      delay={0.05 + index * 0.08}
-      className="hidden h-full lg:col-start-2 lg:row-start-1 lg:block"
-    >
-      <Card
-        className={`flex h-full flex-col !p-7 !pb-7 ${muted ? "opacity-90" : ""} !rounded-b-none !border-b-0`}
-      >
-        <EntityCardHeader entity={entity} />
-        <EntityServicesList services={entity.services} />
-      </Card>
-    </FadeIn>
-  );
-}
-
-function ExchangeProductsCard({
-  entity,
-  index,
-}: {
-  entity: EntityOverviewItem;
-  index: number;
-}) {
-  if (!entity.products || entity.products.length === 0) return null;
-
-  const muted = entity.status === "Planned" || entity.status === "In Development";
-
-  return (
-    <FadeIn
-      delay={0.1 + index * 0.08}
-      className="hidden lg:col-start-2 lg:row-start-2 lg:block"
-    >
-      <Card
-        className={`flex flex-col !p-7 !pt-5 ${muted ? "opacity-90" : ""} -mt-px !rounded-t-none border-t border-border/60`}
-      >
-        <EntityProductsSection products={entity.products} />
-      </Card>
-    </FadeIn>
-  );
-}
-
+/** Peer entity cards under Alta Group (Bank, Terminal, discontinued Exchange, NCC). */
 export function EntityOverview({ entities }: { entities: EntityOverviewItem[] }) {
-  const bank = entities.find((e) => e.code === "ALT-BNK");
-  const exchange = entities.find((e) => e.code === "ALT-EXC");
-  const ncc = entities.find((e) => e.code === "NCC");
-
-  if (!bank || !exchange || !ncc) {
-    return (
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        {entities.map((entity, i) => (
-          <SideEntityCard key={entity.code} entity={entity} index={i} />
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="grid items-stretch gap-6 lg:grid-cols-3 lg:grid-rows-[auto_auto] lg:gap-y-0">
-      <SideEntityCard
-        entity={bank}
-        index={0}
-        stretch
-        className="lg:col-start-1 lg:row-start-1"
-      />
-      <ExchangeFullCard entity={exchange} index={1} />
-      <ExchangeTopCard entity={exchange} index={1} />
-      <ExchangeProductsCard entity={exchange} index={1} />
-      <SideEntityCard
-        entity={ncc}
-        index={2}
-        stretch
-        className="lg:col-start-3 lg:row-start-1"
-      />
+    <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      {entities.map((entity, i) => (
+        <EntityCard key={entity.code} entity={entity} index={i} />
+      ))}
     </div>
   );
 }

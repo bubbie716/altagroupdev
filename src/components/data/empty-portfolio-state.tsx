@@ -12,15 +12,15 @@ type EmptyPortfolioStateProps = {
 
 export function EmptyPortfolioState({
   title = "No portfolio connected yet.",
-  description = "Sign in to access Alta Exchange Terminal and track holdings, orders, and performance.",
-  ctaLabel = "Open Alta Exchange Terminal",
+  description = "Sign in to access Alta Terminal and track holdings, orders, and performance.",
+  ctaLabel = "Open Alta Terminal",
   ctaTo = "/terminal",
   children,
   compact = false,
 }: EmptyPortfolioStateProps) {
   return (
     <EmptyState
-      eyebrow={compact ? "Alta Portfolio" : "An Alta Exchange Product"}
+      eyebrow={compact ? "Alta Portfolio" : "Alta Terminal"}
       title={title}
       description={description}
       compact={compact}

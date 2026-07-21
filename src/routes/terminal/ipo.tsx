@@ -13,12 +13,12 @@ function TerminalIPO() {
   return (
     <TerminalPageShell
       title="IPO Access"
-      description="Track open offerings, upcoming listings, and allocation status on Alta Exchange."
+      description="Track open offerings, upcoming listings, and allocation status when primary market access is available."
     >
       <EmptyState
         eyebrow="Alta Terminal"
         title="IPO access is not available yet."
-        description="Open offerings, bookbuilding, and allocation status will appear here once Alta Exchange primary market services launch."
+        description="Open offerings, bookbuilding, and allocation status will appear here once primary market services launch."
         className="max-w-xl"
       />
     </TerminalPageShell>

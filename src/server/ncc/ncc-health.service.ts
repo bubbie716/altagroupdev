@@ -8,7 +8,8 @@ export type NccIntegrationHealth = {
   adapters: {
     altaBank: { operational: true };
     altaTerminal: { operational: true };
-    altaExchange: { operational: true };
+    /** Retired Sprint 4G — present for health schema continuity, always non-operational. */
+    altaExchange: { operational: false };
   };
   workers: {
     settlement: { lastStatus: string | null; lastSuccessAt: string | null; lastFailureAt: string | null };
@@ -252,7 +253,7 @@ export async function getNccIntegrationHealth(): Promise<NccIntegrationHealth> {
     adapters: {
       altaBank: { operational: true },
       altaTerminal: { operational: true },
-      altaExchange: { operational: true },
+      altaExchange: { operational: false },
     },
     workers: {
       settlement: {

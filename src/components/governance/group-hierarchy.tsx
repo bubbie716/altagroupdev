@@ -3,7 +3,8 @@ import { AltaLogo } from "@/components/alta-logo";
 import type { EntityStatus, HierarchyNode } from "@/lib/governance/content";
 
 function statusTone(status: EntityStatus): string {
-  if (status === "Operational" || status === "Exchange Product") return "text-[var(--success)]";
+  if (status === "Operational") return "text-[var(--success)]";
+  if (status === "Discontinued") return "text-muted-foreground";
   return "text-muted-foreground";
 }
 
@@ -19,7 +20,11 @@ function HierarchyCard({
   className?: string;
 }) {
   const Icon = node.icon;
-  const muted = node.status === "Planned" || node.status === "In Development";
+  const muted =
+    node.status === "Planned" ||
+    node.status === "In Development" ||
+    node.status === "Release Candidate" ||
+    node.status === "Discontinued";
 
   return (
     <FadeIn
@@ -74,15 +79,16 @@ export function GroupHierarchy({ nodes }: { nodes: HierarchyNode[] }) {
           </div>
         </FadeIn>
 
-        <div className="relative my-8 h-14 w-full max-w-3xl">
+        <div className="relative my-8 h-14 w-full max-w-4xl">
           <div className="absolute left-1/2 top-0 h-7 w-px -translate-x-1/2 bg-border-strong" />
-          <div className="absolute left-[16.67%] right-[16.67%] top-7 h-px bg-border-strong" />
-          <div className="absolute left-[16.67%] top-7 h-7 w-px bg-border-strong" />
-          <div className="absolute left-1/2 top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
-          <div className="absolute left-[83.33%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
+          <div className="absolute left-[12.5%] right-[12.5%] top-7 h-px bg-border-strong" />
+          <div className="absolute left-[12.5%] top-7 h-7 w-px bg-border-strong" />
+          <div className="absolute left-[37.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
+          <div className="absolute left-[62.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
+          <div className="absolute left-[87.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
         </div>
 
-        <div className="grid w-full max-w-4xl grid-cols-1 gap-5 md:grid-cols-3 md:items-start">
+        <div className="grid w-full max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-start">
           {nodes.map((node, i) => (
             <div
               key={node.name}

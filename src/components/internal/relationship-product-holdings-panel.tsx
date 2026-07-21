@@ -50,12 +50,8 @@ export function RelationshipProductHoldingsPanel({
           <dd className="mt-1">{holdings.isPrivateClient ? "Client" : "Not enrolled"}</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Alta Exchange</dt>
-          <dd className="mt-1 text-muted-foreground">Placeholder</dd>
-        </div>
-        <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Alta Terminal</dt>
-          <dd className="mt-1 text-muted-foreground">Placeholder</dd>
+          <dd className="mt-1 text-muted-foreground">Brokerage · holdings unavailable</dd>
         </div>
       </dl>
     </section>

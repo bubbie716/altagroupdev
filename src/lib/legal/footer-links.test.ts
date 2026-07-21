@@ -66,8 +66,15 @@ describe("footer links", () => {
   it("lists ecosystem destinations with one current site", () => {
     for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const links = getFooterEcosystemLinks(siteKey);
-      assert.equal(links.length, 4);
-      assert.equal(links.filter((link) => link.current).length, 1);
+      // Exchange is retired from active ecosystem destinations (Sprint 4G).
+      assert.equal(links.length, 3);
+      assert.equal(
+        links.some((link) => link.label === "Alta Exchange"),
+        false,
+      );
+      // On the discontinued exchange host, no ecosystem entry is "current".
+      const expectedCurrent = siteKey === "exchange" ? 0 : 1;
+      assert.equal(links.filter((link) => link.current).length, expectedCurrent);
       assert.equal(
         links.some((link) => link.label === "Newport Clearing Corporation"),
         false,
@@ -118,11 +125,11 @@ describe("footer links", () => {
     );
     assert.deepEqual(
       siteEntitySectionDocuments("exchange").map((doc) => doc.label),
-      ["Listing Agreement", "Trading Rules", "Market Data & API Terms", "Fee Schedule"],
+      [],
     );
     assert.deepEqual(
       siteEntitySectionDocuments("terminal").map((doc) => doc.label),
-      ["Customer Agreement", "Trading Rules", "Market Data & API Terms", "Fee Schedule"],
+      ["Customer Agreement"],
     );
     assert.deepEqual(
       siteEntitySectionDocuments("ncc").map((doc) => doc.label),
@@ -142,6 +149,7 @@ describe("footer links", () => {
       "Governance",
     ]);
     assert.equal(SITE_FOOTER_EMPHASIS.bank, "Retail + Commercial Banking");
-    assert.equal(SITE_FOOTER_EMPHASIS.exchange, "Capital Markets");
+    assert.equal(SITE_FOOTER_EMPHASIS.exchange, "Discontinued");
+    assert.equal(SITE_FOOTER_EMPHASIS.terminal, "Brokerage");
   });
 });

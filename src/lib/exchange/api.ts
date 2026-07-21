@@ -1,8 +1,9 @@
 /**
- * Alta Exchange API — production service layer.
+ * Market data stubs used by Terminal and tests.
  *
- * Returns empty / unavailable market datasets until real Exchange services exist.
- * Never fabricates listings, prices, or indices.
+ * Returns empty / unavailable datasets. Alta does not operate an exchange;
+ * external exchange connectivity is not integrated yet. Never fabricates
+ * listings, prices, or indices.
  */
 
 export * from "./types";

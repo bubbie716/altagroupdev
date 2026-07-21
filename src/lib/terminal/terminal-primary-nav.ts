@@ -7,7 +7,7 @@ export type TerminalPrimaryNavLink = {
   activePaths?: string[];
 };
 
-/** Header nav for Alta Terminal — mirrors bank primary nav; section subtabs live in TerminalSubNav. */
+/** Header nav for Alta Terminal — brokerage workspace. */
 export const TERMINAL_PRIMARY_NAV_LINKS: TerminalPrimaryNavLink[] = [
   {
     label: "Dashboard",
@@ -22,7 +22,6 @@ export const TERMINAL_PRIMARY_NAV_LINKS: TerminalPrimaryNavLink[] = [
   { label: "IPO Access", to: "/terminal/ipo", match: "/terminal/ipo" },
   { label: "News", to: "/terminal/news", match: "/terminal/news" },
   { label: "Leaderboard", to: "/terminal/leaderboard", match: "/terminal/leaderboard" },
-  { label: "Exchange", to: "/exchange", match: "/exchange" },
 ];
 
 export function buildTerminalPrimaryNavLinks(): TerminalPrimaryNavLink[] {

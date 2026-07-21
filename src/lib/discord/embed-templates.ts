@@ -1,5 +1,4 @@
 import {
-  ALTA_EXCHANGE_TAGLINE,
   ALTA_TERMINAL_SUBTITLE,
   ALTA_TERMINAL_TAGLINE,
 } from "@/lib/branding/alta-products";
@@ -27,7 +26,6 @@ export function applyEmbedTemplate(
         description: "Live Like The 1%",
         fields: [
           field("Alta Bank", "Bank Like The 1%"),
-          field("Alta Exchange", ALTA_EXCHANGE_TAGLINE),
           field("Alta Terminal", `${ALTA_TERMINAL_TAGLINE} · ${ALTA_TERMINAL_SUBTITLE}`),
           field("NCC", "Future clearing and settlement infrastructure."),
         ],
@@ -46,34 +44,35 @@ export function applyEmbedTemplate(
       return {
         ...base,
         colorPreset: "alta_navy",
-        authorName: "Alta Exchange",
-        title: "Alta Exchange Notice",
-        description: "Enter the notice details for market participants.",
-        footerText: `Alta Exchange · ${ALTA_EXCHANGE_TAGLINE}`,
+        authorName: "Alta Exchange (Discontinued)",
+        title: "Alta Exchange Notice (Historical)",
+        description:
+          "Historical notice template — Alta Exchange is discontinued. Prefer Alta Terminal for live product messaging.",
+        footerText: "Alta Exchange · Discontinued",
       };
     case "ipo_announcement":
       return {
         ...base,
         colorPreset: "success_green",
-        authorName: "Alta Exchange",
-        title: "IPO Announcement",
-        description: "A new initial public offering has been filed on Alta Exchange.",
+        authorName: "Alta Exchange (Discontinued)",
+        title: "IPO Announcement (Historical)",
+        description: "Historical IPO template — Alta Exchange is discontinued.",
         fields: [
           field("Company", "—"),
           field("Ticker", "—"),
           field("Offering Price", "—"),
-          field("Status", "Pending review"),
+          field("Status", "Discontinued venue"),
         ],
-        footerText: "Alta Exchange · IPO Desk",
+        footerText: "Alta Exchange · Discontinued",
       };
     case "developer_api_update":
       return {
         ...base,
         colorPreset: "alta_navy",
-        authorName: "Alta Exchange API",
-        title: "Alta Exchange API Update",
+        authorName: "Alta Terminal",
+        title: "Developer API Update",
         description: "Summarize the API change, affected endpoints, and effective date.",
-        footerText: "Alta Exchange · Developer Platform",
+        footerText: `Alta Terminal · ${ALTA_TERMINAL_SUBTITLE}`,
       };
     case "maintenance_notice":
       return {

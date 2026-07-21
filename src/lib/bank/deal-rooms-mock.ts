@@ -496,7 +496,7 @@ export const MOCK_DEAL_ROOMS: DealRoom[] = [
       interestRate: 0.054,
       repaymentMonths: 36,
       minimumPayment: 9_000,
-      collateralNotes: "Pledge over Alta Exchange-listed equity portfolio.",
+      collateralNotes: "Pledge over brokerage equity portfolio (Alta Terminal).",
       specialConditions: "Margin maintenance covenant @ 175%. Monthly portfolio valuation.",
       effectiveDate: "2026-06-24",
       version: 1,

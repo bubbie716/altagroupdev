@@ -48,7 +48,7 @@ export function NccDashboardPage() {
               {
                 id: "STL-20260306-001",
                 from: "Alta Bank N.V.",
-                to: "Alta Exchange N.V.",
+                to: "Alta Terminal LLC",
                 amount: "ƒ 1,250,000",
                 status: <NccBadge status="queued" />,
               },

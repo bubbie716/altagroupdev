@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { MiniChart } from "@/components/mini-chart";
 import { compact, pct } from "@/lib/format/money-display";
@@ -47,15 +46,7 @@ export function WatchlistTable({
         <tbody>
           {items.map((s) => (
             <tr key={s.symbol} className="border-b border-border/50 last:border-0 hover:bg-surface-2/40">
-              <td className="px-5 py-3">
-                <Link
-                  to="/exchange/company/$ticker"
-                  params={{ ticker: s.symbol.toLowerCase() }}
-                  className="font-mono hover:text-gold"
-                >
-                  {s.symbol}
-                </Link>
-              </td>
+              <td className="px-5 py-3 font-mono">{s.symbol}</td>
               <td className="px-5 py-3">{s.name}</td>
               <td className="px-5 py-3 text-muted-foreground">{s.sector}</td>
               <td className="tabular px-5 py-3 text-right">{s.price.toFixed(2)}</td>

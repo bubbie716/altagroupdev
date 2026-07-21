@@ -41,10 +41,10 @@ class AdapterOperationError extends Error {
 }
 
 /**
- * Alta Terminal adapter — real implementation against the shared Alta Terminal /
- * Exchange trading-cash ledger (TerminalCashAccount / TerminalCashEntry). This is
- * the single Alta trading-cash system of record; Alta Exchange settlement shares
- * it via institutionKey "alta-exchange" (see alta-exchange.adapter.ts).
+ * Alta Terminal adapter — real implementation against the Terminal trading-cash
+ * ledger (TerminalCashAccount / TerminalCashEntry). Alta Exchange previously
+ * shared this SoR via institutionKey "alta-exchange"; that adapter is retired
+ * (Sprint 4G) and is no longer registered for new settlement.
  */
 export class AltaTerminalInstitutionAdapter implements InstitutionAdapter {
   constructor(readonly institutionKey: InstitutionAdapterKey = "alta-terminal") {}

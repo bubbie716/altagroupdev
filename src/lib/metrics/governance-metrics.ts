@@ -21,20 +21,22 @@ export function buildGovernancePlatformMetrics(
     },
     {
       label: "Alta Exchange N.V.",
-      value: "Unavailable",
-      helper: "Listings, indices, and market data are unavailable in this release.",
+      value: "Discontinued",
+      helper: "Former exchange product — retired; not an operating Alta company.",
       sourceLabel: PREVIEW_SOURCE,
     },
     {
       label: "Alta Terminal",
-      value: "Unavailable",
-      helper: "Trading and portfolio market data are unavailable in this release.",
+      value: "In Development",
+      helper:
+        "Brokerage platform under development. Trading, execution, market data, and custody are not live pending external exchange connectivity.",
       sourceLabel: PREVIEW_SOURCE,
     },
     {
       label: "NCC",
-      value: "Operational",
-      helper: "Clearing and settlement infrastructure.",
+      value: "Release Candidate",
+      helper:
+        "Cash settlement between participating banks and Alta Terminal — release candidate undergoing final testing.",
     },
     {
       label: "Company Registry",

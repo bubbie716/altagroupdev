@@ -68,7 +68,7 @@ describe("ncc 3a.1 compensation eligibility helpers", () => {
     // enforces dedicated NccStaffMembership. Tag-only internal users are not sufficient.
     assert.doesNotThrow(() => assertActorMayCompensate({ tags: [] }));
     const permSource = readFileSync(
-      new URL("../../../lib/ncc/ncc-staff-permissions.ts", import.meta.url),
+      new URL("../../lib/ncc/ncc-staff-permissions.ts", import.meta.url),
       "utf8",
     );
     assert.ok(permSource.includes("initiate_compensation"));
