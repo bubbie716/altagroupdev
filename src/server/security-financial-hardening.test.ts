@@ -42,6 +42,20 @@ describe("OAuth state protection", () => {
     assert.equal(validateOAuthStateCookie(request, nonce), true);
     assert.equal(hashOAuthStateNonce(nonce), createHash("sha256").update(nonce).digest("hex"));
   });
+
+  it("sets Domain=.altagroup.dev on OAuth state cookies in production", () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    delete process.env.ALTA_COOKIE_DOMAIN;
+    try {
+      const cookie = buildOAuthStateCookie("nonce-prod-domain", "terminal.altagroup.dev");
+      assert.match(cookie, /Domain=\.altagroup\.dev/);
+      const wwwCookie = buildOAuthStateCookie("nonce-www", "www.altagroup.dev");
+      assert.match(wwwCookie, /Domain=\.altagroup\.dev/);
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
+  });
 });
 
 describe("rate limiting", () => {

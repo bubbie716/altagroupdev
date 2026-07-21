@@ -57,6 +57,32 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
         }
 
         if (!validateOAuthStateCookie(request, parsed.nonce)) {
+          // #region agent log
+          const cookiePresent = Boolean(
+            request.headers.get("cookie")?.includes("alta_oauth_state="),
+          );
+          const invalidPayload = {
+            callbackHost: new URL(request.url).hostname,
+            returnOrigin: parsed.returnOrigin ?? null,
+            returnTo: parsed.returnTo,
+            cookiePresent,
+            cookieHeaderHostOnlyHint: !cookiePresent,
+          };
+          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+            body: JSON.stringify({
+              sessionId: "49e5fc",
+              runId: "post-fix",
+              hypothesisId: "COOKIE_HOST",
+              location: "routes/api/auth/discord/callback.ts:invalid_state",
+              message: "OAuth state cookie validation failed",
+              data: invalidPayload,
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          console.error("[alta-debug-49e5fc] oauth-invalid-state", invalidPayload);
+          // #endregion
           return loginErrorRedirect(request, "invalid_state");
         }
 

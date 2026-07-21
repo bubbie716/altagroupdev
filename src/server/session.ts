@@ -32,14 +32,29 @@ function registrableDomainForHost(hostname: string): string | null {
   return null;
 }
 
-/** Custom entity domains use host-only cookies (most reliable). Use apex redirects for www. */
+/**
+ * Cookie Domain for production Set-Cookie.
+ * Alta subsidiaries share a Discord callback on www/apex — OAuth state must use
+ * Domain=.altagroup.dev or validateOAuthStateCookie fails (invalid_state).
+ * Custom entity domains (NCC) stay host-only.
+ */
 function sessionCookieDomain(requestHost?: string): string | null {
   if (!isProduction()) return null;
 
   if (requestHost) {
     const hostname = hostnameFromHost(requestHost);
+
+    // Custom entity domains (e.g. NCC): host-only cookies.
     if (registrableDomainForHost(hostname)) {
       return null;
+    }
+
+    if (hostname === "altagroup.dev" || hostname.endsWith(".altagroup.dev")) {
+      const configured = process.env.ALTA_COOKIE_DOMAIN?.trim();
+      if (configured) {
+        return configured.startsWith(".") ? configured : `.${configured}`;
+      }
+      return ".altagroup.dev";
     }
   }
 
