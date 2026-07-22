@@ -67,45 +67,9 @@ export function getDiscordConfig() {
   return { clientId, clientSecret, redirectUri: normalizeRedirectUri(redirectUri) };
 }
 
-function callbackHostPreferenceScore(callbackUri: string): number {
-  try {
-    const host = new URL(callbackUri).hostname.toLowerCase();
-    // Vercel canonicalizes apex → www; prefer www so Discord does not land on a 308 hop.
-    if (host === "www.altagroup.dev") return 3;
-    if (host === "altagroup.dev") return 1;
-    return 2;
-  } catch {
-    return 0;
-  }
-}
-
-function pickPreferredCallback(candidates: string[]): string | null {
-  if (candidates.length === 0) return null;
-  return [...candidates].sort(
-    (a, b) => callbackHostPreferenceScore(b) - callbackHostPreferenceScore(a),
-  )[0]!;
-}
-
 /** Resolve OAuth callback URL for a site origin (canonical host in production). */
 export function resolveOAuthCallbackUri(origin: string): string | null {
   const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
-
-  // Corporate hub: Vercel sends apex → www. Prefer the www callback whenever registered
-  // so Discord does not return through a 308 that can drop OAuth cookies (Safari).
-  try {
-    const host = new URL(origin).hostname.toLowerCase();
-    if (host === "altagroup.dev" || host === "www.altagroup.dev") {
-      const corporate = [
-        "https://www.altagroup.dev/api/auth/discord/callback",
-        "https://altagroup.dev/api/auth/discord/callback",
-      ].filter((uri) => allowed.includes(uri));
-      const preferred = pickPreferredCallback(corporate);
-      if (preferred) return preferred;
-    }
-  } catch {
-    /* ignore */
-  }
-
   const callback = `${origin.replace(/\/$/, "")}/api/auth/discord/callback`;
   if (allowed.includes(callback)) return callback;
   if (process.env.NODE_ENV !== "production" && isDevOAuthOrigin(origin)) return callback;
@@ -115,15 +79,7 @@ export function resolveOAuthCallbackUri(origin: string): string | null {
 /** Shared Alta callback used when an entity domain has no dedicated OAuth redirect registered. */
 export function resolveSharedOAuthCallbackUri(): string | null {
   const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
-  const alta = allowed.filter((uri) => {
-    try {
-      const host = new URL(uri).hostname.toLowerCase();
-      return host === "altagroup.dev" || host.endsWith(".altagroup.dev");
-    } catch {
-      return false;
-    }
-  });
-  return pickPreferredCallback(alta) ?? allowed[0] ?? null;
+  return allowed[0] ?? null;
 }
 
 export function resolveOAuthCallbackUriForSite(returnOrigin: string): string | null {
@@ -136,15 +92,12 @@ export function resolveDiscordRedirectUri(request?: Request): string | null {
   if (!config) return null;
 
   if (!request) {
-    return resolveSharedOAuthCallbackUri() ?? parseRedirectUriList(config.redirectUri)[0] ?? null;
+    const allowed = parseRedirectUriList(process.env.DISCORD_REDIRECT_URI);
+    return allowed[0] ?? config.redirectUri;
   }
 
   const origin = new URL(request.url).origin;
-  return (
-    resolveOAuthCallbackUri(origin) ??
-    resolveSharedOAuthCallbackUri() ??
-    resolveOAuthCallbackUri(new URL(parseRedirectUriList(config.redirectUri)[0] ?? config.redirectUri).origin)
-  );
+  return resolveOAuthCallbackUri(origin) ?? resolveOAuthCallbackUri(new URL(config.redirectUri).origin);
 }
 
 export function isAllowedReturnOrigin(origin: string, allowedCallbacks: string[]): boolean {

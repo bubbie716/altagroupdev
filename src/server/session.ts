@@ -32,29 +32,14 @@ function registrableDomainForHost(hostname: string): string | null {
   return null;
 }
 
-/**
- * Cookie Domain for production Set-Cookie.
- * Alta subsidiaries share a Discord callback on www/apex — OAuth state must use
- * Domain=.altagroup.dev or validateOAuthStateCookie fails (invalid_state).
- * Custom entity domains (NCC) stay host-only.
- */
+/** Custom entity domains use host-only cookies (most reliable). Use apex redirects for www. */
 function sessionCookieDomain(requestHost?: string): string | null {
   if (!isProduction()) return null;
 
   if (requestHost) {
     const hostname = hostnameFromHost(requestHost);
-
-    // Custom entity domains (e.g. NCC): host-only cookies.
     if (registrableDomainForHost(hostname)) {
       return null;
-    }
-
-    if (hostname === "altagroup.dev" || hostname.endsWith(".altagroup.dev")) {
-      const configured = process.env.ALTA_COOKIE_DOMAIN?.trim();
-      if (configured) {
-        return configured.startsWith(".") ? configured : `.${configured}`;
-      }
-      return ".altagroup.dev";
     }
   }
 
@@ -159,22 +144,4 @@ export function redirectWithSetCookies(location: string, cookies: string[]): Res
     headers.append("Set-Cookie", cookie);
   }
   return new Response(null, { status: 302, headers });
-}
-
-/**
- * Safari / WebKit often drops Set-Cookie on a 302 that immediately leaves the site
- * (e.g. OAuth start → discord.com). Serve 200 HTML + meta refresh so the cookie sticks
- * before the cross-site navigation.
- */
-export function htmlRedirectWithSetCookies(location: string, cookies: string[]): Response {
-  const safeLocation = location.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-  const headers = new Headers({
-    "Content-Type": "text/html; charset=utf-8",
-    "Cache-Control": "no-store",
-  });
-  for (const cookie of cookies) {
-    headers.append("Set-Cookie", cookie);
-  }
-  const body = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta http-equiv="refresh" content="0;url=${safeLocation}"/><title>Continuing sign-in</title></head><body><p>Continuing to Discord…</p><p><a href="${safeLocation}">Continue</a></p></body></html>`;
-  return new Response(body, { status: 200, headers });
 }

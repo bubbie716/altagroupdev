@@ -6,9 +6,6 @@ import { useSiteContext } from "@/hooks/use-site-context";
 const ERROR_MESSAGES: Record<string, string> = {
   oauth_denied: "Discord authorization was cancelled.",
   invalid_state: "Login session expired. Please try again.",
-  invalid_state_payload: "Login session expired. Please try again.",
-  invalid_state_cookie: "Login session expired. Please try again.",
-  invalid_state_mismatch: "Login session expired. Please try again.",
   token_exchange_failed: "Could not complete Discord sign-in.",
   oauth_callback_mismatch:
     "Sign-in completed on the wrong domain. Ensure the NCC OAuth callback is configured in production.",

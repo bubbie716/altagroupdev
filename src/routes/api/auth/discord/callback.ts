@@ -51,70 +51,16 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           returnTo: string;
           returnOrigin?: string;
           nonce?: string;
-          redirectUri?: string;
         }>(stateParam);
         if (!parsed?.returnTo) {
-          // #region agent log
-          const unsealPayload = {
-            callbackHost: new URL(request.url).hostname,
-            hasStateParam: Boolean(stateParam),
-          };
-          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
-            body: JSON.stringify({
-              sessionId: "49e5fc",
-              runId: "post-fix",
-              hypothesisId: "UNSEAL",
-              location: "routes/api/auth/discord/callback.ts:unseal",
-              message: "OAuth state unseal/payload failed",
-              data: unsealPayload,
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          console.error("[alta-debug-49e5fc] oauth-unseal-failed", unsealPayload);
-          // #endregion
-          return loginErrorRedirect(request, "invalid_state_payload");
+          return loginErrorRedirect(request, "invalid_state");
         }
 
         if (!validateOAuthStateCookie(request, parsed.nonce)) {
-          // #region agent log
-          const cookiePresent = Boolean(
-            request.headers.get("cookie")?.includes("alta_oauth_state="),
-          );
-          const invalidPayload = {
-            callbackHost: new URL(request.url).hostname,
-            returnOrigin: parsed.returnOrigin ?? null,
-            returnTo: parsed.returnTo,
-            cookiePresent,
-            sealedRedirectUri: parsed.redirectUri ?? null,
-          };
-          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
-            body: JSON.stringify({
-              sessionId: "49e5fc",
-              runId: "post-fix",
-              hypothesisId: "SAFARI_COOKIE",
-              location: "routes/api/auth/discord/callback.ts:invalid_state",
-              message: "OAuth state cookie validation failed",
-              data: invalidPayload,
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          console.error("[alta-debug-49e5fc] oauth-invalid-state", invalidPayload);
-          // #endregion
-          return loginErrorRedirect(
-            request,
-            cookiePresent ? "invalid_state_mismatch" : "invalid_state_cookie",
-          );
+          return loginErrorRedirect(request, "invalid_state");
         }
 
-        const allowedUris = parseRedirectUriListForOAuth();
-        const redirectUri =
-          (parsed.redirectUri && allowedUris.includes(parsed.redirectUri)
-            ? parsed.redirectUri
-            : null) ?? resolveDiscordRedirectUri(request);
+        const redirectUri = resolveDiscordRedirectUri(request);
         if (!redirectUri) {
           return loginErrorRedirect(request, "oauth_not_configured");
         }
@@ -155,30 +101,6 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
 
         if (hostsMatch(callbackHost, returnHost)) {
           const destination = new URL(safePath, url.origin).toString();
-          // #region agent log
-          const sameHostPayload = {
-            callbackHost,
-            returnHost,
-            safePath,
-            destination,
-            returnOrigin,
-            siteKey: site.key,
-          };
-          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
-            body: JSON.stringify({
-              sessionId: "49e5fc",
-              runId: "pre-fix",
-              hypothesisId: "C_D",
-              location: "routes/api/auth/discord/callback.ts:same-host",
-              message: "Discord OAuth same-host post-login redirect",
-              data: sameHostPayload,
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          console.error("[alta-debug-49e5fc] oauth-same-host", sameHostPayload);
-          // #endregion
           return redirectWithSetCookies(destination, [
             buildSetCookie(
               getSessionCookieName(),
@@ -198,30 +120,6 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
         const handoffUrl = new URL("/api/auth/session/handoff", returnOrigin);
         handoffUrl.searchParams.set("handoff", handoffId);
         handoffUrl.searchParams.set("redirect", safePath);
-
-        // #region agent log
-        const handoffPayload = {
-          callbackHost,
-          returnHost,
-          safePath,
-          handoffHref: handoffUrl.toString(),
-          returnOrigin,
-        };
-        fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
-          body: JSON.stringify({
-            sessionId: "49e5fc",
-            runId: "pre-fix",
-            hypothesisId: "A_D",
-            location: "routes/api/auth/discord/callback.ts:handoff",
-            message: "Discord OAuth cross-host handoff redirect",
-            data: handoffPayload,
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        console.error("[alta-debug-49e5fc] oauth-handoff", handoffPayload);
-        // #endregion
 
         return redirectWithSetCookies(handoffUrl.toString(), [clearState]);
       },
