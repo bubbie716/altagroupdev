@@ -115,7 +115,8 @@ export function getMaintenanceScopeForSite(
 export function maintenanceScopesForInternalSettings(siteKey: SiteKey): MaintenanceScope[] {
   switch (siteKey) {
     case "corporate":
-      return ["sitewide", "corporate"];
+      // Group console can toggle every Alta site scope (NCC uses its own portal).
+      return ["sitewide", "corporate", "bank", "terminal", "exchange"];
     case "bank":
       return ["bank"];
     case "exchange":

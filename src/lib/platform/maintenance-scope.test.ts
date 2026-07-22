@@ -49,7 +49,13 @@ describe("maintenance scope routing", () => {
   });
 
   it("maps each internal settings page to its own maintenance scopes", () => {
-    assert.deepEqual(maintenanceScopesForInternalSettings("corporate"), ["sitewide", "corporate"]);
+    assert.deepEqual(maintenanceScopesForInternalSettings("corporate"), [
+      "sitewide",
+      "corporate",
+      "bank",
+      "terminal",
+      "exchange",
+    ]);
     assert.deepEqual(maintenanceScopesForInternalSettings("bank"), ["bank"]);
     assert.deepEqual(maintenanceScopesForInternalSettings("exchange"), ["exchange"]);
     assert.deepEqual(maintenanceScopesForInternalSettings("terminal"), ["terminal"]);

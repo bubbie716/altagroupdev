@@ -71,7 +71,7 @@ export function MaintenanceModePanel({
   const scopeSummary =
     scopes.length === 1
       ? MAINTENANCE_SCOPE_DESCRIPTIONS[scopes[0]!]
-      : "Manage maintenance for this site's scope from this settings page.";
+      : "Toggle sitewide or per-entity maintenance for Alta Group, Bank, Terminal, and the legacy host.";
 
   return (
     <Card className="!p-5">
