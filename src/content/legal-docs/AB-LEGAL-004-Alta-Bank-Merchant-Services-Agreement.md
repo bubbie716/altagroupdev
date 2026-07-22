@@ -1,6 +1,6 @@
 # AB-LEGAL-004 — Alta Bank Merchant Services Agreement
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-004  
 **Version:** 1.0  
 **Status:** Active upon publication  
@@ -590,7 +590,7 @@ Questions, disputes, or support requests should be submitted through official Al
 
 This Merchant Services Agreement is adopted by Alta Bank as the governing agreement for merchant services.
 
-**Approved by:** Alta Bank  
+**Approved by:** Alta Bank N.V.
 **Effective Date:** Immediately upon publication  
 **Version:** 1.0
 **Last Updated:** July 6, 2026  

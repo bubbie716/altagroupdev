@@ -3,9 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { AltaLogo, AltaWordmark } from "./alta-logo";
 import {
-  groupEssentialLegalDocuments,
+  groupFooterDocuments,
   legalDocLinkParams,
   paymentFooterDocuments,
+  siteCompactFooterDocuments,
   siteEntitySectionDocuments,
   type LegalDocumentDefinition,
 } from "@/lib/legal/legal-document-registry";
@@ -107,7 +108,7 @@ function FooterEcosystemColumn({ siteKey }: { siteKey: SiteKey }) {
 }
 
 function FooterLegalColumn({ siteKey }: { siteKey: SiteKey }) {
-  const legalDocs = groupEssentialLegalDocuments();
+  const legalDocs = groupFooterDocuments();
 
   return (
     <FooterColumn title="Legal">
@@ -235,9 +236,17 @@ function CopyrightOnlyFooter({
   siteKey: SiteKey;
   className?: string;
 }) {
+  const docs = siteCompactFooterDocuments(siteKey);
+
   return (
     <footer className={cn("mt-auto shrink-0 border-t border-border/60 bg-surface-1/30", className)}>
-      <div className="mx-auto max-w-[1400px] px-4 py-3 sm:px-6">
+      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-4 sm:px-6">
+        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {docs.map((doc) => (
+            <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
+          ))}
+          <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
+        </nav>
         <FooterCopyrightLines siteKey={siteKey} />
       </div>
     </footer>
@@ -273,6 +282,8 @@ export function LegalDocumentFooter({
   version: string;
   lastUpdated: string;
 }) {
+  const relatedDocs = siteCompactFooterDocuments(siteKey).filter((doc) => doc.id !== docId);
+
   return (
     <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
       <div className="mx-auto max-w-[1400px] space-y-3 px-6 py-4">
@@ -305,6 +316,15 @@ export function LegalDocumentFooter({
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {docId}
         </p>
+        <nav
+          aria-label="Related legal documents"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3"
+        >
+          {relatedDocs.map((doc) => (
+            <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
+          ))}
+          <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
+        </nav>
         <FooterCopyrightLines siteKey={siteKey} />
       </div>
     </footer>

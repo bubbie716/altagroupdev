@@ -52,7 +52,7 @@ const DIVISIONS: Division[] = [
     tag: "02 · Brokerage",
     desc: "Alta’s brokerage and trading platform — portfolios, watchlists, and order tools for Newport investors.",
     services: ["Portfolio", "Watchlists", "Order entry", "Research"],
-    metric: "Operational · Brokerage platform",
+    metric: "In Development · Brokerage platform",
   },
   {
     siteKey: "ncc",
@@ -61,7 +61,7 @@ const DIVISIONS: Division[] = [
     tag: "03 · Clearing",
     desc: "Newport Clearing Corporation provides instant cash transfers between participating banks and Alta Terminal. NCC settles cash, not securities trades.",
     services: ["Bank ↔ Terminal cash", "Institution routing", "Settlement accounts"],
-    metric: "Operational · Cash settlement network",
+    metric: "Release Candidate · Cash settlement network",
   },
 ];
 
@@ -135,7 +135,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
           <AltaLogo className="h-16 w-16 text-foreground" />
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-border bg-surface-1/50 px-3 py-1 type-meta">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-            Alta Group · Three institutions online
+            Alta Group · Online
           </div>
           <h1 className="mt-10 max-w-[20ch] font-serif text-[clamp(3.5rem,8.5vw,7.5rem)] font-normal leading-[0.94] tracking-[-0.035em]">
             Live Like the 1%
@@ -259,7 +259,7 @@ function Divisions() {
           brokerage, and clearing as separate experiences.
         </p>
       </div>
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
         {DIVISIONS.map((division, index) => (
           <DivisionCard key={division.siteKey} division={division} index={index} />
         ))}

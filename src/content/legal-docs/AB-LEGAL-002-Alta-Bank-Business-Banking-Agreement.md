@@ -1,11 +1,11 @@
 # AB-LEGAL-002 — Alta Bank Business Banking Agreement
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-002  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -137,7 +137,7 @@ Verification may include review of:
 - business category;
 - risk level;
 - merchant activity;
-- issuer status;
+- intended use of Alta Bank or Alta Terminal services;
 - supporting documents;
 - prior platform conduct.
 
@@ -528,7 +528,7 @@ Questions, disputes, or support requests should be submitted through official Al
 
 This Business Banking Agreement is adopted by Alta Bank as the governing agreement for business banking accounts.
 
-**Approved by:** Alta Bank  
+**Approved by:** Alta Bank N.V.
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 21, 2026

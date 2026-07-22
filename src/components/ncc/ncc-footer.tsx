@@ -1,8 +1,9 @@
 import { ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
-  groupEssentialLegalDocuments,
+  groupFooterDocuments,
   legalDocLinkParams,
+  siteCompactFooterDocuments,
   siteEntitySectionDocuments,
   type LegalDocumentDefinition,
 } from "@/lib/legal/legal-document-registry";
@@ -46,10 +47,19 @@ function NccFooterColumn({
 
 export function NccCopyrightFooter() {
   const { copyright, disclaimer } = getFooterCopyrightLines("ncc");
+  const legalDocs = siteCompactFooterDocuments("ncc");
 
   return (
     <footer className="mt-auto border-t border-[#e5e7eb] bg-white">
-      <div className="mx-auto max-w-[1400px] space-y-2 px-4 py-3 sm:px-8">
+      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-4 sm:px-8">
+        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
+          {legalDocs.map((doc) => (
+            <NccFooterDocLink key={doc.id} doc={doc} />
+          ))}
+          <SiteInternalLink siteKey="ncc" to={LEGAL_CENTER_PATH} className={footerLinkClass}>
+            Legal Center
+          </SiteInternalLink>
+        </nav>
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#6b7280]">{copyright}</p>
         <p className="max-w-3xl text-[10px] leading-relaxed text-[#6b7280]">{disclaimer}</p>
       </div>
@@ -70,7 +80,7 @@ function NccFooterCopyright() {
 
 export function NccFooter() {
   const siteKey = "ncc" as const;
-  const legalDocs = groupEssentialLegalDocuments();
+  const legalDocs = groupFooterDocuments();
   const supportLinks = getFooterSupportLinks(siteKey);
   const entityDocs = siteEntitySectionDocuments(siteKey);
   const entityTitle = getFooterEntitySectionTitle(siteKey);

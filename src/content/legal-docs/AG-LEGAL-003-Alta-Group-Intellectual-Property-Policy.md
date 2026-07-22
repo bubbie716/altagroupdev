@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.  
 **Document ID:** AG-LEGAL-003  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -139,7 +139,6 @@ This includes, but is not limited to:
 - Alta Pay;
 - Alta Commercial;
 - Alta Private;
-- Alta Markets;
 - any related logos, marks, or product names.
 
 Alta may allow limited use of branding for approved partners, subsidiaries, documents, websites, Discord servers, marketing materials, or platform integrations.
@@ -150,7 +149,7 @@ Alta may revoke branding permission at any time.
 
 ## 8. User Content
 
-Users may submit content to Alta services, including company profiles, issuer information, documents, applications, messages, logos, descriptions, support requests, and other materials.
+Users may submit content to Alta services, including company profiles, security or market information, documents, applications, messages, logos, descriptions, support requests, and other materials.
 
 Users keep ownership of their own original content unless another agreement says otherwise.
 
@@ -160,18 +159,18 @@ Users are responsible for making sure they have the right to submit any content 
 
 ---
 
-## 9. Company, Issuer, and Merchant Content
+## 9. Company, Market, and Merchant Content
 
-Companies, issuers, merchants, and institutions may submit business names, logos, descriptions, disclosures, listings, payment pages, invoices, and other materials.
+Companies, customers, merchants, and institutions may submit business names, logos, descriptions, disclosures, security information, payment pages, invoices, and other materials.
 
 By submitting those materials, they grant Alta permission to use them for:
 
 - company profiles;
-- issuer pages;
+- company and security profiles;
 - payment pages;
 - invoices;
 - merchant tools;
-- market listings;
+- brokerage and market-data interfaces;
 - trading interfaces;
 - disclosures;
 - support;
@@ -185,7 +184,7 @@ Alta may remove, hide, restrict, or modify displayed content if it believes the 
 
 ## 10. Feedback and Suggestions
 
-If a user, employee, contractor, customer, merchant, issuer, or other person gives Alta feedback, ideas, suggestions, feature requests, designs, improvements, or recommendations, Alta may use them without owing compensation unless a separate written agreement says otherwise.
+If a user, employee, contractor, customer, merchant, company, or other person gives Alta feedback, ideas, suggestions, feature requests, designs, improvements, or recommendations, Alta may use them without owing compensation unless a separate written agreement says otherwise.
 
 This helps Alta improve products without later disputes over who suggested an idea.
 
@@ -318,5 +317,5 @@ This Intellectual Property Policy is adopted by Alta Group N.V. as the platform-
 
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 21, 2026

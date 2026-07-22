@@ -22,16 +22,23 @@ describe("site-scoped-content", () => {
     assert.ok(docs.some((doc) => doc.id.startsWith("AB-")));
     assert.equal(docs.some((doc) => doc.id.startsWith("AE-")), false);
     assert.equal(docs.some((doc) => doc.id.startsWith("AT-")), false);
+    for (const id of ["AB-LEGAL-008", "AB-LEGAL-009"]) {
+      assert.ok(docs.some((doc) => doc.id === id), `missing ${id}`);
+    }
   });
 
-  it("shows Alta Group docs on legacy host; Terminal keeps AT-LEGAL-001", () => {
+  it("shows Alta Group docs on legacy host and the complete Terminal document suite", () => {
     const exchangeDocs = getLegalDocsForSite("exchange");
     assert.ok(exchangeDocs.some((doc) => doc.id.startsWith("AG-")));
     assert.equal(exchangeDocs.some((doc) => doc.id.startsWith("AE-")), false);
 
     const terminalDocs = getLegalDocsForSite("terminal");
     assert.ok(terminalDocs.some((doc) => doc.id.startsWith("AG-")));
-    assert.ok(terminalDocs.some((doc) => doc.id === "AT-LEGAL-001"));
+    assert.ok(terminalDocs.some((doc) => doc.id === "AT-COR-001"));
+    assert.deepEqual(
+      terminalDocs.filter((doc) => doc.id.startsWith("AT-LEGAL-")).map((doc) => doc.id),
+      ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
+    );
     assert.equal(terminalDocs.some((doc) => doc.id.startsWith("AE-")), false);
     assert.equal(terminalDocs.some((doc) => doc.id.startsWith("AB-")), false);
   });

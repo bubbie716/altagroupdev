@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.  
 **Document ID:** AG-LEGAL-002  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -56,7 +56,7 @@ This may include:
 - payment records;
 - transfer records;
 - trading or market activity;
-- listing applications;
+- brokerage applications and order activity;
 - API usage records;
 - audit logs;
 - staff action logs;
@@ -73,9 +73,9 @@ Alta does not require users to provide more information than is reasonably neede
 Alta may use information to:
 
 - create and manage accounts;
-- verify users, businesses, merchants, issuers, or institutions;
-- operate banking, payment, exchange, trading, clearing, and settlement services;
-- process transfers, payments, invoices, listings, trades, applications, and support requests;
+- verify users, businesses, merchants, customers, or institutions;
+- operate banking, payment, brokerage, trading-interface, clearing, and settlement services;
+- process transfers, payments, invoices, orders, applications, and support requests;
 - maintain transaction and account records;
 - prevent fraud, abuse, bugs, exploits, and unauthorized access;
 - enforce rules, agreements, and policies;
@@ -87,7 +87,7 @@ Alta may use information to:
 - improve Alta products;
 - maintain security and platform integrity;
 - comply with applicable rules, agreements, or legal obligations;
-- protect Alta Group, subsidiaries, users, merchants, issuers, institutions, and the platform.
+- protect Alta Group, subsidiaries, users, merchants, customers, institutions, and the platform.
 
 ---
 
@@ -150,7 +150,7 @@ Alta may share information with:
 - Discord bots or integrations;
 - participating institutions, when needed for NCC or payment operations;
 - merchants, when needed for payments or invoices;
-- issuers, when needed for exchange or listing services;
+- brokerage, execution, custody, or market-data providers when needed for Alta Terminal services;
 - law enforcement, legal authorities, or platform administrators if required or reasonably necessary;
 - other parties when the user gives permission.
 
@@ -167,8 +167,8 @@ Examples may include:
 - usernames;
 - company names;
 - public company profiles;
-- issuer disclosures;
-- market listings;
+- company disclosures;
+- market-data and security profiles;
 - public trading or market data;
 - leaderboard-style information;
 - Discord announcements;
@@ -278,7 +278,7 @@ These may include:
 - merchant notifications;
 - support messages;
 - dispute updates;
-- listing updates;
+- brokerage and order-status updates;
 - trading or market notices;
 - outage notices;
 - policy updates.
@@ -297,7 +297,7 @@ Alta may log staff actions for security, audit, and accountability purposes.
 
 ## 16. Data Accuracy
 
-Users are responsible for keeping account, company, merchant, issuer, institution, and contact information accurate.
+Users are responsible for keeping account, company, merchant, customer, institution, and contact information accurate.
 
 Alta is not responsible for problems caused by inaccurate, outdated, false, or incomplete information provided by users.
 
@@ -343,5 +343,5 @@ This Privacy Policy is adopted by Alta Group N.V. as the platform-wide privacy p
 
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 21, 2026

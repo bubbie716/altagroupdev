@@ -87,7 +87,7 @@ export const FOOTER_COPYRIGHT_ENTITY: Record<SiteKey, FooterCopyrightEntity> = {
   corporate: { legalName: "Alta Group N.V.", shortName: "Alta Group" },
   bank: { legalName: "Alta Bank N.V.", shortName: "Alta Bank" },
   exchange: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
-  terminal: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
+  terminal: { legalName: "Alta Terminal LLC", shortName: "Alta Terminal" },
   ncc: { legalName: "Newport Clearing Corporation", shortName: "Newport Clearing Corporation" },
 };
 
@@ -98,4 +98,3 @@ export function getFooterCopyrightLines(siteKey: SiteKey): { copyright: string; 
     disclaimer: `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise. ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
   };
 }
-

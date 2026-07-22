@@ -14,7 +14,7 @@ export type PlatformStatusItem = {
 
 export const platformStatusItems: PlatformStatusItem[] = [
   { name: "Alta Bank N.V.", status: "Operational" },
-  { name: "Alta Terminal", status: "In Development" },
+  { name: "Alta Terminal LLC", status: "In Development" },
   { name: "NCC", status: "Release Candidate" },
   { name: "Company Registry", status: "Operational" },
   { name: "Discord Authentication", status: "Operational" },
@@ -40,7 +40,7 @@ export const groupHierarchy: HierarchyNode[] = [
   },
   {
     icon: LineChart,
-    name: "Alta Terminal",
+    name: "Alta Terminal LLC",
     status: "In Development",
     description:
       "Brokerage and trading platform under development — market data, execution, and custody await external exchange connectivity.",
@@ -84,7 +84,7 @@ export const entityOverviewItems: EntityOverviewItem[] = [
   },
   {
     icon: LineChart,
-    name: "Alta Terminal",
+    name: "Alta Terminal LLC",
     code: "ALT-TRM",
     status: "In Development",
     description:
@@ -192,10 +192,10 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
   },
   {
     sectionTitle: "Terminal Leadership",
-    division: "Alta Terminal",
+    division: "Alta Terminal LLC",
     roles: [
       {
-        title: "President, Alta Terminal",
+        title: "President, Alta Terminal LLC",
         name: "FTLCEO",
         minecraftUsername: "12700k",
         status: "Appointed",

@@ -62,6 +62,19 @@ function HierarchyCard({
 }
 
 export function GroupHierarchy({ nodes }: { nodes: HierarchyNode[] }) {
+  const count = Math.max(nodes.length, 1);
+  const stemPercents = nodes.map((_, i) => ((i + 0.5) / count) * 100);
+  const railStart = stemPercents[0] ?? 50;
+  const railEnd = stemPercents[stemPercents.length - 1] ?? 50;
+  const gridColsClass =
+    count <= 1
+      ? "lg:grid-cols-1"
+      : count === 2
+        ? "lg:grid-cols-2"
+        : count === 3
+          ? "lg:grid-cols-3"
+          : "lg:grid-cols-4";
+
   return (
     <div className="paper-grain relative rounded-2xl border border-border-strong bg-surface-1/70 p-8 shadow-elevated md:p-12">
       <div className="flex flex-col items-center">
@@ -77,16 +90,24 @@ export function GroupHierarchy({ nodes }: { nodes: HierarchyNode[] }) {
           </div>
         </FadeIn>
 
-        <div className="relative my-8 h-14 w-full max-w-4xl">
+        <div className="relative my-8 hidden h-14 w-full max-w-4xl lg:block">
           <div className="absolute left-1/2 top-0 h-7 w-px -translate-x-1/2 bg-border-strong" />
-          <div className="absolute left-[12.5%] right-[12.5%] top-7 h-px bg-border-strong" />
-          <div className="absolute left-[12.5%] top-7 h-7 w-px bg-border-strong" />
-          <div className="absolute left-[37.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
-          <div className="absolute left-[62.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
-          <div className="absolute left-[87.5%] top-7 h-7 w-px -translate-x-1/2 bg-border-strong" />
+          <div
+            className="absolute top-7 h-px bg-border-strong"
+            style={{ left: `${railStart}%`, right: `${100 - railEnd}%` }}
+          />
+          {stemPercents.map((left) => (
+            <div
+              key={left}
+              className="absolute top-7 h-7 w-px -translate-x-1/2 bg-border-strong"
+              style={{ left: `${left}%` }}
+            />
+          ))}
         </div>
 
-        <div className="grid w-full max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-start">
+        <div
+          className={`grid w-full max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:items-start ${gridColsClass}`}
+        >
           {nodes.map((node, i) => (
             <div
               key={node.name}

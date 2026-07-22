@@ -18,14 +18,14 @@ const ALL_DISCORD_ENTITIES: AltaDiscordEntity[] = ["group", "bank", "markets", "
 /** Sub-entity legal scope for a site (null = Alta Group hub — shows all entities). */
 export function siteLegalEntity(siteKey: SiteKey): LegalEntity | null {
   if (siteKey === "bank") return "bank";
-  if (siteKey === "exchange" || siteKey === "terminal") return "markets";
+  if (siteKey === "exchange" || siteKey === "terminal") return "terminal";
   if (siteKey === "ncc") return "ncc";
   return null;
 }
 
 function docPrefixForEntity(entity: LegalEntity): string {
   if (entity === "bank") return "AB-";
-  if (entity === "markets") return "AT-";
+  if (entity === "terminal") return "AT-";
   return "NCC-";
 }
 
@@ -82,9 +82,6 @@ export function getLegalDocsByCategoryForSite(
         const docs = (legalDocsByCategory[category] ?? []).filter(
           (doc) => !isArchivedRegistryDoc(doc.id),
         );
-        if (siteKey === "terminal" && category.startsWith("Alta Terminal")) {
-          return [category, docs.filter((doc) => doc.id === "AT-LEGAL-001")] as const;
-        }
         return [category, docs] as const;
       })
       .filter(([, docs]) => docs.length > 0),
@@ -104,7 +101,7 @@ export function siteDiscordEntities(siteKey: SiteKey): AltaDiscordEntity[] {
   const entities: AltaDiscordEntity[] = ["group"];
   const entity = siteLegalEntity(siteKey);
   if (entity === "bank") entities.push("bank");
-  if (entity === "markets") entities.push("markets");
+  if (entity === "terminal") entities.push("markets");
   if (entity === "ncc") entities.push("ncc");
   return entities;
 }

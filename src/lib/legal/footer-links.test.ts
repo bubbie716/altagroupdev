@@ -7,7 +7,9 @@ import {
   groupEssentialLegalDocuments,
   groupFooterDocuments,
   legalDocLinkParams,
+  paymentFooterDocuments,
   resolveLegalDocIdFromSlug,
+  siteCompactFooterDocuments,
   siteEntitySectionDocuments,
 } from "@/lib/legal/legal-document-registry";
 import { hasLegalDocBody } from "@/lib/governance/legal-docs-catalog";
@@ -38,7 +40,7 @@ describe("footer links", () => {
       assert.ok(await hasLegalDocBody(link.params.docId));
     }
 
-    for (const entity of ["bank", "markets", "ncc"] as const) {
+    for (const entity of ["bank", "terminal", "ncc"] as const) {
       for (const doc of entityFooterDocuments(entity)) {
         const link = legalDocLinkParams(doc.id);
         assert.ok(await hasLegalDocBody(link.params.docId));
@@ -116,19 +118,28 @@ describe("footer links", () => {
       [
         "Deposit Agreement",
         "Business Banking Agreement",
+        "Alta Pay Terms",
+        "Merchant Agreement",
+        "Transfer Terms",
         "Alta Card Agreement",
         "Lending Agreement",
-        "Alta Pay Terms",
+        "Alta Private Terms",
         "Fee Schedule",
       ],
     );
     assert.deepEqual(
       siteEntitySectionDocuments("exchange").map((doc) => doc.label),
-      ["Customer Agreement"],
+      [],
     );
     assert.deepEqual(
       siteEntitySectionDocuments("terminal").map((doc) => doc.label),
-      ["Customer Agreement"],
+      [
+        "Customer Agreement",
+        "Order Handling Terms",
+        "Risk Disclosure",
+        "Market Data Terms",
+        "Fee Schedule",
+      ],
     );
     assert.deepEqual(
       siteEntitySectionDocuments("ncc").map((doc) => doc.label),
@@ -136,8 +147,46 @@ describe("footer links", () => {
     );
   });
 
-  it("keeps global legal column to terms and privacy", () => {
+  it("keeps the essential legal set to terms and privacy", () => {
     assert.deepEqual(groupEssentialLegalDocuments().map((doc) => doc.label), ["Terms", "Privacy"]);
+  });
+
+  it("includes the complete Group policy set in full footers", () => {
+    assert.deepEqual(groupFooterDocuments().map((doc) => doc.label), [
+      "Terms",
+      "Privacy",
+      "IP Policy",
+      "Acceptable Use",
+      "Electronic Consent",
+    ]);
+  });
+
+  it("uses focused legal links in compact and checkout footers", () => {
+    assert.deepEqual(siteCompactFooterDocuments("corporate").map((doc) => doc.label), [
+      "Terms",
+      "Privacy",
+      "Electronic Consent",
+    ]);
+    assert.deepEqual(siteCompactFooterDocuments("bank").map((doc) => doc.label), [
+      "Terms",
+      "Privacy",
+      "Electronic Consent",
+      "Deposit Agreement",
+    ]);
+    assert.deepEqual(siteCompactFooterDocuments("terminal").map((doc) => doc.label), [
+      "Terms",
+      "Privacy",
+      "Electronic Consent",
+      "Customer Agreement",
+    ]);
+    assert.deepEqual(paymentFooterDocuments().map((doc) => doc.label), [
+      "Terms",
+      "Privacy",
+      "Electronic Consent",
+      "Alta Pay Terms",
+      "Merchant Agreement",
+      "Transfer Terms",
+    ]);
   });
 
   it("exposes corporate section links and site emphasis copy", () => {

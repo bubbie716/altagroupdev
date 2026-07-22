@@ -75,23 +75,29 @@ describe("public product story excludes Alta Exchange", () => {
 
     const legalDocFiles = readdirSync(join(process.cwd(), "src/content/legal-docs"));
     assert.equal(legalDocFiles.some((name) => name.startsWith("AE-")), false);
-    assert.ok(legalDocFiles.some((name) => name.startsWith("AT-LEGAL-001")));
+    assert.ok(legalDocFiles.some((name) => name.startsWith("AT-COR-001")));
+    for (const id of ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"]) {
+      assert.ok(legalDocFiles.some((name) => name.startsWith(id)), `missing ${id}`);
+    }
+    for (const id of ["AG-COR-004", "AG-LEGAL-004", "AG-LEGAL-005", "AB-LEGAL-008", "AB-LEGAL-009"]) {
+      assert.ok(legalDocFiles.some((name) => name.startsWith(id)), `missing ${id}`);
+    }
 
     for (const doc of footerDocuments()) {
       assertNoExchangeCopy(`${doc.id} ${doc.title} ${doc.label}`, "footerDocuments");
     }
     assert.deepEqual(
       siteEntitySectionDocuments("terminal").map((d) => d.id),
-      ["AT-LEGAL-001"],
+      ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
     );
   });
 
-  it("Terminal agreement body contains no Alta Exchange text", () => {
-    const body = readFileSync(
-      join(process.cwd(), "src/content/legal-docs/AT-LEGAL-001-Alta-Terminal-Customer-Agreement.md"),
-      "utf8",
-    );
-    assertNoExchangeCopy(body, "AT-LEGAL-001", { allowServiceDiscontinuedVerb: true });
+  it("Terminal legal documents contain no Exchange entity copy", () => {
+    const legalDocDir = join(process.cwd(), "src/content/legal-docs");
+    for (const filename of readdirSync(legalDocDir).filter((name) => name.startsWith("AT-"))) {
+      const body = readFileSync(join(legalDocDir, filename), "utf8");
+      assertNoExchangeCopy(body, filename, { allowServiceDiscontinuedVerb: true });
+    }
   });
 
   it("site configs and selectors do not label an Exchange product as discontinued", () => {

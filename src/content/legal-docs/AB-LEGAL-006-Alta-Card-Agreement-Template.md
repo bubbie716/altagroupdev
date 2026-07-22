@@ -1,11 +1,11 @@
 # AB-LEGAL-006 — Alta Card Agreement Template
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-006  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -397,7 +397,7 @@ Remedies may include:
 6. applying Collateral;
 7. restricting Alta Bank accounts controlled by the Cardholder within Alta Bank's platform authority;
 8. setting off amounts owed against available balances held with Alta Bank, where permitted;
-9. denying future credit, banking, payment, merchant, or exchange services;
+9. denying future credit, banking, payment, merchant, or brokerage services;
 10. reporting the Default internally within the Alta ecosystem;
 11. initiating a dispute, claim, or court-style proceeding in the applicable server or roleplay jurisdiction;
 12. seeking platform, Discord, community, or administrative enforcement;
@@ -461,9 +461,9 @@ The Issuer may assign, transfer, sell, pledge, participate, or otherwise dispose
 
 The Cardholder may not assign or transfer the Card, Account, this Agreement, obligations, rights, or access without the Issuer's written consent.
 
-## **14.3 Sale or Securitisation of Receivables**
+## **14.3 Transfer of Receivables**
 
-The Issuer may package, sell, pledge, securitise, or otherwise transfer card receivables, balances, or rights arising under this Agreement.
+The Issuer may assign or transfer card receivables, balances, or rights arising under this Agreement only through a documented Alta Group-approved arrangement.
 
 The Cardholder's payment obligations remain unchanged unless the Issuer provides different payment instructions.
 

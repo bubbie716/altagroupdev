@@ -20,7 +20,7 @@ export function buildGovernancePlatformMetrics(
       sourceLabel: LIVE_PLATFORM_SOURCE,
     },
     {
-      label: "Alta Terminal",
+      label: "Alta Terminal LLC",
       value: "In Development",
       helper:
         "Brokerage platform under development. Trading, execution, market data, and custody are not live pending external exchange connectivity.",

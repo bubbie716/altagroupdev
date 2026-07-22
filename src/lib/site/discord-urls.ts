@@ -3,7 +3,7 @@ export type AltaDiscordEntity = "group" | "bank" | "markets" | "ncc";
 const ENTITY_ENV_KEYS: Record<AltaDiscordEntity, string> = {
   group: "VITE_ALTA_GROUP_DISCORD_URL",
   bank: "VITE_ALTA_BANK_DISCORD_URL",
-  markets: "VITE_ALTA_MARKETS_DISCORD_URL",
+  markets: "VITE_ALTA_TERMINAL_DISCORD_URL",
   ncc: "VITE_ALTA_NCC_DISCORD_URL",
 };
 
@@ -19,7 +19,10 @@ export const ALTA_DISCORD_URLS: Record<AltaDiscordEntity, string> = {
     readDiscordUrl(ENTITY_ENV_KEYS.group) ||
     readDiscordUrl("VITE_ALTA_DISCORD_INVITE_URL"),
   bank: readDiscordUrl(ENTITY_ENV_KEYS.bank),
-  markets: readDiscordUrl(ENTITY_ENV_KEYS.markets),
+  markets:
+    readDiscordUrl(ENTITY_ENV_KEYS.markets) ||
+    // Legacy env key kept so existing deployments keep working.
+    readDiscordUrl("VITE_ALTA_MARKETS_DISCORD_URL"),
   ncc: readDiscordUrl(ENTITY_ENV_KEYS.ncc),
 };
 
@@ -30,7 +33,7 @@ export function getAltaDiscordUrl(entity: AltaDiscordEntity = "group"): string {
 export const ALTA_DISCORD_ENTITY_LABELS: Record<AltaDiscordEntity, string> = {
   group: "Alta Group",
   bank: "Alta Bank",
-  markets: "Alta Markets",
+  markets: "Alta Terminal",
   ncc: "NCC",
 };
 

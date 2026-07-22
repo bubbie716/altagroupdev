@@ -3,12 +3,12 @@
 ## Articles of Incorporation
 
 **Document ID:** AG-COR-001  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Final  
 **Effective Date:** July 6, 2026  
 **Approved By:** Founder / Board of Directors  
 **Classification:** Corporate Governance
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ## Article I — Name
 
@@ -106,13 +106,13 @@ Alta Group may create, own, operate, control, reorganize, merge, sell, or dissol
 
 Subsidiaries may include, but are not limited to:
 
-1. Alta Bank;
-3. Alta Terminal;
-4. Newport Clearing Corporation;
-5. Alta Solutions;
-6. Alta Stakes;
-7. Alta Law; and
-8. Any future subsidiary approved by Alta Group.
+1. Alta Bank N.V.;
+2. Alta Terminal LLC;
+3. Newport Clearing Corporation;
+4. Alta Solutions;
+5. Alta Stakes;
+6. Alta Law; and
+7. Any future subsidiary approved by Alta Group.
 
 Unless otherwise approved by Alta Group, subsidiaries operate under the authority of Alta Group and remain subject to Alta Group’s ownership, governance, reserved powers, and strategic direction.
 
@@ -168,5 +168,5 @@ Upon approval, these Articles shall remain in effect until amended or replaced i
 **Adopted by:** Alta Group N.V.  
 **Founder:** 12700k (a/k/a FTLCEO)
 **Document ID:** AG-COR-001  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 21, 2026

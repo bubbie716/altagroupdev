@@ -1,11 +1,11 @@
 # AB-LEGAL-007 — Alta Bank Loan Agreement (Template)
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-007  
-**Version:** 1.1  
+**Version:** 1.2
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -83,7 +83,6 @@ In this Agreement, unless the context otherwise requires, the following terms sh
 * "**Outstanding Principal**" means, at any time, the principal amount of the Loan that has been disbursed and not yet repaid.  
 * "**Principal**" means the principal amount of the Loan as specified in the Loan Terms Schedule.  
 * "**Secured Loan**" means a Loan secured by Collateral.  
-* "**Securitisation**" means the process by which this Loan is packaged into a bond or other security for sale to investors.  
 * "**Unsecured Loan**" means a Loan not secured by any Collateral.  
 * "**Use Restrictions**" means any limitations on the Borrower's use of Loan proceeds, as specified in the Loan Terms Schedule.
 
@@ -122,7 +121,6 @@ The specific terms of the Loan established pursuant to this Agreement are as fol
 | **Collateral** | \[List all collateral items in format: "item\_id (current/future, holder)"\]   Example: s001 (current, lender)            c002 (future, borrower)            rh015 (current, agent \- \[Agent Name\]) |
 | **Late Payment Interest** | \[X.XX\]% per day per payment, calculated on the overdue payment amount |
 | **Use Restrictions** | \[Specify any restrictions, e.g., "Loan proceeds must be used solely for \[purpose\]" or "No restrictions"\] Note: Use restrictions may be modified or waived only with express written approval of the Lender. |
-| **Bond ID (if securitised)** | \[BOND ID\] OR \[N/A \- Not Securitised\] |
 | **Additional Terms** | \[Any additional negotiated terms\] |
 
 **ARTICLE 3: LOAN DISBURSEMENT AND USE OF PROCEEDS**
@@ -209,29 +207,29 @@ All payments shall be made in the Loan Currency specified in the Loan Terms Sche
 
 The Borrower waives any right to offset any amounts owed to the Lender under this Agreement against any amounts the Borrower claims the Lender owes to the Borrower for any reason.
 
-**ARTICLE 6: SECURITISATION**
+**ARTICLE 6: ASSIGNMENT AND SERVICING**
 
-## **6.1 Right to Securitise**
+## **6.1 Servicing by Alta Bank**
 
-The Lender reserves the absolute right to securitise this Loan by issuing bonds or other securities backed by this Loan. The Borrower acknowledges and consents to such securitisation and agrees that the Lender may transfer, assign, or pledge this Loan and any Collateral to a securitisation vehicle or trustee.
+Alta Bank shall service the Loan through its own systems unless the Loan Terms Schedule or a later written notice identifies an approved servicing provider.
 
-## **6.2 Payment Upon Securitisation**
+## **6.2 Assignment by the Lender**
 
-If this Loan is securitised and a Bond ID is specified in the Loan Terms Schedule:
+The Lender may assign the Loan or appoint another servicer only through a documented arrangement approved by Alta Group. An assignment does not increase the Borrower's principal, interest rate, fees, or other payment obligations.
 
-1\. 	Payments received by the Lender from the Borrower under this Loan shall be applied to satisfy the Lender's obligations to bondholders;
+1\. 	The Borrower shall continue making payments through the existing Alta Bank method unless Alta Bank provides verified replacement instructions through an official channel;
 
-2\. 	The timing of the Lender's collection efforts and distribution to bondholders shall not affect the Borrower's obligation to make timely payments as scheduled;
+2\. 	The Borrower should report suspicious or conflicting payment instructions before sending funds; and
 
-3\. 	The Borrower waives any defence or claim based on the Lender's securitisation of the Loan or any delay in the Lender's processing of payments.
+3\. 	A properly documented assignment does not release the Borrower from obligations already owed under this Agreement.
 
-## **6.3 Failure of Securitisation**
+## **6.3 Failed or Rejected Assignment**
 
-If the Lender attempts to securitise this Loan and the securitisation does not proceed (e.g., the bonds do not sell), this Agreement shall remain in full force and effect, and all terms shall remain binding on the Borrower.
+If a proposed assignment or servicing transfer does not proceed, this Agreement remains in force and Alta Bank remains the servicer.
 
-## **6.4 No Borrower Consent Required**
+## **6.4 Notice**
 
-The Borrower acknowledges that no further consent or notice is required for the Lender to effect a securitisation, and the Borrower agrees to cooperate with the Lender and execute any additional documents reasonably requested to facilitate the securitisation.
+Alta Bank shall provide notice of a completed assignment or servicing change through an official communication channel before new payment instructions take effect.
 
 **ARTICLE 7: COLLATERAL AND SECURITY INTERESTS**
 

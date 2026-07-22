@@ -124,8 +124,17 @@ function EntityCard({
 
 /** Peer entity cards under Alta Group (Bank, Terminal, NCC). */
 export function EntityOverview({ entities }: { entities: EntityOverviewItem[] }) {
+  const cols =
+    entities.length <= 1
+      ? "grid-cols-1"
+      : entities.length === 2
+        ? "sm:grid-cols-2"
+        : entities.length === 3
+          ? "md:grid-cols-3"
+          : "sm:grid-cols-2 xl:grid-cols-4";
+
   return (
-    <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={`grid items-stretch gap-6 ${cols}`}>
       {entities.map((entity, i) => (
         <EntityCard key={entity.code} entity={entity} index={i} />
       ))}

@@ -209,7 +209,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
   terminal: {
     key: "terminal",
     category: "terminal",
-    entityName: "Alta Terminal",
+    entityName: "Alta Terminal LLC",
     displayName: "Alta Terminal",
     shortName: "Terminal",
     description: "Alta’s brokerage and trading platform for Newport investors.",

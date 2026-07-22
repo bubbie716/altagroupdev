@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.  
 **Document ID:** AG-LEGAL-001  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 21, 2026
 
 ---
 
@@ -102,9 +102,9 @@ Alta may publish service-specific rules, including:
 - account agreements;
 - payment terms;
 - merchant terms;
-- exchange rules;
-- listing rules;
-- trading rules;
+- brokerage terms;
+- order-handling terms;
+- trading and market-data disclosures;
 - API terms;
 - NCC operating rules;
 - fee schedules;
@@ -118,7 +118,7 @@ Users agree to follow all rules that apply to the services they use.
 
 ## 7. Balances, Accounts, and Records
 
-Alta may maintain records of user accounts, balances, transactions, holdings, listings, payments, transfers, invoices, fees, loans, settlements, and other activity.
+Alta may maintain records of user accounts, balances, transactions, holdings, orders, payments, transfers, invoices, fees, loans, settlements, and other activity.
 
 Alta may correct, adjust, reverse, freeze, restrict, or investigate records when necessary to address:
 
@@ -151,7 +151,7 @@ Alta is not responsible for losses caused by user error, incorrect account infor
 
 ## 9. Fees
 
-Alta may charge fees for certain products, services, transactions, subscriptions, accounts, listings, APIs, merchant tools, premium features, or other services.
+Alta may charge fees for certain products, services, transactions, subscriptions, accounts, orders, APIs, merchant tools, premium features, or other services.
 
 Fees may be listed in a fee schedule, product page, invoice, agreement, or service-specific terms.
 
@@ -163,7 +163,7 @@ Alta may update fees at any time unless a specific agreement states otherwise.
 
 Alta services may be unavailable, delayed, interrupted, changed, or discontinued at any time.
 
-Alta does not guarantee that any website, bot, Discord service, API, database, payment system, market, listing, account, or product will always be available or error-free.
+Alta does not guarantee that any website, bot, Discord service, API, database, payment system, market-data feed, account, or product will always be available or error-free.
 
 Alta may perform maintenance, upgrades, emergency shutdowns, or service changes without prior notice.
 
@@ -181,7 +181,7 @@ Alta may modify, restrict, reset, or remove beta features at any time.
 
 ## 12. User Content
 
-Users may submit content, including company profiles, listings, messages, documents, logos, descriptions, forms, applications, support tickets, trade information, and other materials.
+Users may submit content, including company profiles, messages, documents, logos, descriptions, forms, applications, support tickets, order information, and other materials.
 
 Users are responsible for the content they submit.
 
@@ -236,7 +236,7 @@ Enforcement actions may include:
 - service termination;
 - merchant restriction;
 - trading restriction;
-- listing suspension;
+- brokerage or order-entry restriction;
 - API restriction;
 - Discord role or channel restriction;
 - removal of content;
@@ -267,7 +267,7 @@ Alta does not guarantee:
 - profits;
 - investment results;
 - successful trades;
-- successful listings;
+- order acceptance or execution;
 - payment completion;
 - account approval;
 - merchant approval;
@@ -346,5 +346,5 @@ These Terms are adopted by Alta Group N.V. as the platform-wide Terms of Service
 
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 21, 2026

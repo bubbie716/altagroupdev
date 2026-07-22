@@ -1,6 +1,6 @@
 # AB-LEGAL-005 — Alta Bank Fee Schedule
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-005  
 **Version:** 1.0  
 **Status:** Active upon publication  
@@ -194,7 +194,7 @@ If another agreement lists a specific fee for a specific product, that specific 
 
 This Fee Schedule is adopted by Alta Bank as the standard fee schedule for Alta Bank services.
 
-**Approved by:** Alta Bank  
+**Approved by:** Alta Bank N.V.
 **Effective Date:** Immediately upon publication  
 **Version:** 1.0
 **Last Updated:** July 6, 2026  

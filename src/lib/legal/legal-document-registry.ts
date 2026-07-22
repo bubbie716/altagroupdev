@@ -3,7 +3,7 @@ import type { SiteKey } from "@/config/sites";
 
 export const LEGAL_DOC_ROUTE = "/legal/$docId" as const;
 
-export type LegalEntity = "group" | "bank" | "markets" | "ncc";
+export type LegalEntity = "group" | "bank" | "terminal" | "ncc";
 
 export type LegalDocumentDefinition = {
   id: string;
@@ -30,8 +30,8 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Terms",
     slug: "terms",
     entity: "group",
-    version: "1.0",
-    lastUpdated: "March 2026",
+    version: "1.1",
+    lastUpdated: "July 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -42,7 +42,8 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Privacy",
     slug: "privacy",
     entity: "group",
-    version: "1.0",
+    version: "1.1",
+    lastUpdated: "July 2026",
     footerOrder: 2,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -53,10 +54,35 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "IP Policy",
     slug: "intellectual-property",
     entity: "group",
-    version: "1.0",
+    version: "1.1",
+    lastUpdated: "July 2026",
     footerOrder: 3,
     showInGlobalFooter: true,
     showInEntityFooter: false,
+  },
+  {
+    id: "AG-LEGAL-004",
+    title: "Alta Acceptable Use Policy",
+    label: "Acceptable Use",
+    slug: "acceptable-use",
+    entity: "group",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 4,
+    showInGlobalFooter: true,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AG-LEGAL-005",
+    title: "Electronic Communications and Consent",
+    label: "Electronic Consent",
+    slug: "electronic-communications",
+    entity: "group",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 5,
+    showInGlobalFooter: true,
+    showInEntityFooter: true,
   },
   {
     id: "AB-LEGAL-001",
@@ -76,7 +102,8 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Business Banking Agreement",
     slug: "bank/business-banking-agreement",
     entity: "bank",
-    version: "1.0",
+    version: "1.1",
+    lastUpdated: "July 2026",
     footerOrder: 2,
     showInGlobalFooter: true,
     showInEntityFooter: true,
@@ -87,8 +114,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Alta Card Agreement",
     slug: "bank/alta-card-agreement",
     entity: "bank",
-    version: "1.0",
-    footerOrder: 3,
+    version: "1.1",
+    lastUpdated: "July 2026",
+    footerOrder: 6,
     showInGlobalFooter: true,
     showInEntityFooter: true,
   },
@@ -98,8 +126,9 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Lending Agreement",
     slug: "bank/lending-agreement",
     entity: "bank",
-    version: "1.1",
-    footerOrder: 4,
+    version: "1.2",
+    lastUpdated: "July 2026",
+    footerOrder: 7,
     showInGlobalFooter: false,
     showInEntityFooter: true,
   },
@@ -110,7 +139,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "bank/alta-pay-terms",
     entity: "bank",
     version: "1.0",
-    footerOrder: 5,
+    footerOrder: 3,
     showInGlobalFooter: true,
     showInEntityFooter: true,
   },
@@ -121,7 +150,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "bank/merchant-services-agreement",
     entity: "bank",
     version: "1.0",
-    footerOrder: 5,
+    footerOrder: 4,
     showInGlobalFooter: true,
     showInEntityFooter: true,
   },
@@ -132,8 +161,32 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     slug: "bank/fee-schedule",
     entity: "bank",
     version: "1.0",
-    footerOrder: 6,
+    footerOrder: 9,
     showInGlobalFooter: true,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AB-LEGAL-008",
+    title: "Alta Bank Transfers and Error Resolution Terms",
+    label: "Transfer Terms",
+    slug: "bank/transfers-error-resolution",
+    entity: "bank",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 5,
+    showInGlobalFooter: false,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AB-LEGAL-009",
+    title: "Alta Private Terms",
+    label: "Alta Private Terms",
+    slug: "bank/alta-private-terms",
+    entity: "bank",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 8,
+    showInGlobalFooter: false,
     showInEntityFooter: true,
   },
   {
@@ -141,11 +194,59 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     title: "Alta Terminal Customer Agreement",
     label: "Customer Agreement",
     slug: "terminal/customer-agreement",
-    entity: "markets",
-    version: "1.0",
+    entity: "terminal",
+    version: "1.1",
     lastUpdated: "July 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AT-LEGAL-002",
+    title: "Alta Terminal Trading and Order Handling Terms",
+    label: "Order Handling Terms",
+    slug: "terminal/order-handling",
+    entity: "terminal",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 2,
+    showInGlobalFooter: false,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AT-LEGAL-003",
+    title: "Alta Terminal Risk Disclosure",
+    label: "Risk Disclosure",
+    slug: "terminal/risk-disclosure",
+    entity: "terminal",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 3,
+    showInGlobalFooter: false,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AT-LEGAL-004",
+    title: "Alta Terminal Market Data and Third-Party Services Terms",
+    label: "Market Data Terms",
+    slug: "terminal/market-data-third-party-services",
+    entity: "terminal",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 4,
+    showInGlobalFooter: false,
+    showInEntityFooter: true,
+  },
+  {
+    id: "AT-LEGAL-005",
+    title: "Alta Terminal Fee Schedule",
+    label: "Fee Schedule",
+    slug: "terminal/fee-schedule",
+    entity: "terminal",
+    version: "1.0",
+    lastUpdated: "July 2026",
+    footerOrder: 5,
+    showInGlobalFooter: false,
     showInEntityFooter: true,
   },
   {
@@ -258,12 +359,28 @@ export function groupEssentialLegalDocuments(): LegalDocumentDefinition[] {
   );
 }
 
+function activeDocumentsById(ids: string[]): LegalDocumentDefinition[] {
+  return ids
+    .map((id) => getLegalDocument(id))
+    .filter((doc): doc is LegalDocumentDefinition => doc !== undefined && isActiveLegalDocument(doc));
+}
+
 const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
   corporate: [],
-  bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-007", "AB-LEGAL-003", "AB-LEGAL-005"],
+  bank: [
+    "AB-LEGAL-001",
+    "AB-LEGAL-002",
+    "AB-LEGAL-003",
+    "AB-LEGAL-004",
+    "AB-LEGAL-008",
+    "AB-LEGAL-006",
+    "AB-LEGAL-007",
+    "AB-LEGAL-009",
+    "AB-LEGAL-005",
+  ],
   /** Legacy host — same Terminal agreement as terminal site. */
-  exchange: ["AT-LEGAL-001"],
-  terminal: ["AT-LEGAL-001"],
+  exchange: [],
+  terminal: ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
   ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],
 };
 
@@ -291,15 +408,16 @@ export function essentialGroupDocuments(): LegalDocumentDefinition[] {
 
 /** Compact dashboard/auth footers — Terms, Privacy, and key entity docs. */
 export function siteCompactFooterDocuments(siteKey: SiteKey): LegalDocumentDefinition[] {
-  const essentials = groupEssentialLegalDocuments();
-  const entityDocs =
-    siteKey === "corporate" ? [] : siteEntitySectionDocuments(siteKey).slice(0, 2);
-
-  const merged = [...entityDocs];
-  for (const doc of essentials) {
-    if (!merged.some((existing) => existing.id === doc.id)) merged.push(doc);
-  }
-  return sortFooterDocs(merged);
+  const entityPrimary: Partial<Record<SiteKey, string>> = {
+    bank: "AB-LEGAL-001",
+    exchange: "AT-LEGAL-001",
+    terminal: "AT-LEGAL-001",
+    ncc: "NCC-LEGAL-001",
+  };
+  const ids = ["AG-LEGAL-001", "AG-LEGAL-002", "AG-LEGAL-005"];
+  const primaryId = entityPrimary[siteKey];
+  if (primaryId) ids.push(primaryId);
+  return activeDocumentsById(ids);
 }
 
 /** @deprecated Use siteEntitySectionDocuments */
@@ -310,13 +428,14 @@ export function siteMarketingPrimaryDocuments(siteKey: SiteKey): LegalDocumentDe
 
 /** Merchant-facing checkout footers. */
 export function paymentFooterDocuments(): LegalDocumentDefinition[] {
-  return sortFooterDocs(
-    LEGAL_DOCUMENTS.filter(
-      (doc) =>
-        isActiveLegalDocument(doc) &&
-        ["AG-LEGAL-001", "AG-LEGAL-002", "AB-LEGAL-003", "AB-LEGAL-004"].includes(doc.id),
-    ),
-  );
+  return activeDocumentsById([
+    "AG-LEGAL-001",
+    "AG-LEGAL-002",
+    "AG-LEGAL-005",
+    "AB-LEGAL-003",
+    "AB-LEGAL-004",
+    "AB-LEGAL-008",
+  ]);
 }
 
 export const FOOTER_DISCLAIMERS = {

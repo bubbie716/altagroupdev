@@ -1,6 +1,6 @@
 # AB-COR-001 — Alta Bank Governance Charter
 
-**Entity:** Alta Bank  
+**Entity:** Alta Bank N.V.
 **Document ID:** AB-COR-001  
 **Version:** 1.1  
 **Status:** Active upon approval  

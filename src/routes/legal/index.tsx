@@ -44,7 +44,7 @@ function LegalIndexPage() {
 
           return (
             <Section key={category} title={category} className={index > 0 ? "mt-12" : undefined}>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {docs.map((doc) => (
                   <LegalDocCard key={doc.id} doc={doc} />
                 ))}

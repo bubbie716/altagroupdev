@@ -3,6 +3,7 @@ export type LegalDocCategory =
   | "Alta Group — Legal"
   | "Alta Bank — Corporate"
   | "Alta Bank — Legal"
+  | "Alta Terminal — Corporate"
   | "Alta Terminal — Legal"
   | "NCC — Corporate"
   | "NCC — Legal";
@@ -42,7 +43,8 @@ function categoryForId(id: string): LegalDocCategory | null {
   if (id.startsWith("AG-LEGAL-")) return "Alta Group — Legal";
   if (id.startsWith("AB-COR-")) return "Alta Bank — Corporate";
   if (id.startsWith("AB-LEGAL-")) return "Alta Bank — Legal";
-  if (id === "AT-LEGAL-001" || id.startsWith("AT-LEGAL-")) return "Alta Terminal — Legal";
+  if (id.startsWith("AT-COR-")) return "Alta Terminal — Corporate";
+  if (id.startsWith("AT-LEGAL-")) return "Alta Terminal — Legal";
   if (id.startsWith("NCC-COR-")) return "NCC — Corporate";
   if (id.startsWith("NCC-LEGAL-")) return "NCC — Legal";
   // Legacy AE-* documents are not part of the public catalog.
@@ -51,7 +53,7 @@ function categoryForId(id: string): LegalDocCategory | null {
 
 function entityForId(id: string): string {
   if (id.startsWith("AG-")) return "Alta Group N.V.";
-  if (id.startsWith("AB-")) return "Alta Bank";
+  if (id.startsWith("AB-")) return "Alta Bank N.V.";
   if (id.startsWith("AT-")) return "Alta Terminal";
   return "Newport Clearing Corporation";
 }
@@ -134,6 +136,7 @@ export const legalDocsByCategory = legalDocsCatalog.reduce<
     "Alta Group — Legal": [],
     "Alta Bank — Corporate": [],
     "Alta Bank — Legal": [],
+    "Alta Terminal — Corporate": [],
     "Alta Terminal — Legal": [],
     "NCC — Corporate": [],
     "NCC — Legal": [],
@@ -145,6 +148,7 @@ export const legalDocCategoryOrder: LegalDocCategory[] = [
   "Alta Group — Legal",
   "Alta Bank — Corporate",
   "Alta Bank — Legal",
+  "Alta Terminal — Corporate",
   "Alta Terminal — Legal",
   "NCC — Corporate",
   "NCC — Legal",
