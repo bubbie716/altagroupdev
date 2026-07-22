@@ -1,15 +1,11 @@
 import type { LucideIcon } from "lucide-react";
-import { Building2, Coins, Landmark, LineChart } from "lucide-react";
-import {
-  ALTA_EXCHANGE_TAGLINE,
-} from "@/lib/branding/alta-products";
+import { Coins, Landmark, LineChart } from "lucide-react";
 
 export type EntityStatus =
   | "Operational"
   | "In Development"
   | "Release Candidate"
-  | "Planned"
-  | "Discontinued";
+  | "Planned";
 
 export type PlatformStatusItem = {
   name: string;
@@ -20,7 +16,6 @@ export const platformStatusItems: PlatformStatusItem[] = [
   { name: "Alta Bank N.V.", status: "Operational" },
   { name: "Alta Terminal", status: "In Development" },
   { name: "NCC", status: "Release Candidate" },
-  { name: "Alta Exchange N.V.", status: "Discontinued" },
   { name: "Company Registry", status: "Operational" },
   { name: "Discord Authentication", status: "Operational" },
   { name: "Business Banking", status: "Operational" },
@@ -49,12 +44,6 @@ export const groupHierarchy: HierarchyNode[] = [
     status: "In Development",
     description:
       "Brokerage and trading platform under development — market data, execution, and custody await external exchange connectivity.",
-  },
-  {
-    icon: Building2,
-    name: "Alta Exchange N.V.",
-    status: "Discontinued",
-    description: "Former national market venue — retired; historical records retained.",
   },
   {
     icon: Coins,
@@ -101,14 +90,6 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     description:
       "Alta’s brokerage and trading platform. Portfolio tools are available; trading, execution, market data, and custody are not live pending external exchange connectivity.",
     services: ["Portfolio dashboard", "Watchlists", "Research", "Brokerage accounts"],
-  },
-  {
-    icon: Building2,
-    name: "Alta Exchange N.V.",
-    code: "ALT-EXC",
-    status: "Discontinued",
-    description: ALTA_EXCHANGE_TAGLINE,
-    services: ["Historical listings", "Archived market data", "Prior issuer records"],
   },
   {
     icon: Coins,
@@ -233,19 +214,6 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
     ],
   },
   {
-    sectionTitle: "Exchange Leadership (Discontinued)",
-    division: "Alta Exchange N.V.",
-    roles: [
-      {
-        title: "President, Alta Exchange N.V.",
-        name: "FTLCEO",
-        minecraftUsername: "12700k",
-        status: "Appointed",
-        responsibility: "Historical market venue governance — entity discontinued; records retained.",
-      },
-    ],
-  },
-  {
     sectionTitle: "NCC Leadership",
     division: "NCC",
     roles: [
@@ -258,7 +226,7 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
       {
         title: "Settlement Director",
         status: "Vacant",
-        responsibility: "Securities clearing design and interbank settlement policy.",
+        responsibility: "Cash settlement design and interbank settlement policy.",
       },
       {
         title: "Network Operations Officer",

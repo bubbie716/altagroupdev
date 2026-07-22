@@ -107,7 +107,6 @@ Alta Group may create, own, operate, control, reorganize, merge, sell, or dissol
 Subsidiaries may include, but are not limited to:
 
 1. Alta Bank;
-2. Alta Exchange;
 3. Alta Terminal;
 4. Newport Clearing Corporation;
 5. Alta Solutions;

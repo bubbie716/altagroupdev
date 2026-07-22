@@ -8,7 +8,7 @@ import {
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
 describe("ecosystem config", () => {
-  it("lists active Alta ecosystem properties without discontinued Exchange", () => {
+  it("lists Alta Group, Alta Bank, and Alta Terminal only", () => {
     assert.deepEqual(
       ECOSYSTEM_ENTRIES.map((entry) => entry.key),
       ["corporate", "bank", "terminal"],

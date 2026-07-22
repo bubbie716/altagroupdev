@@ -6,7 +6,7 @@ import { maintenanceScopesForInternalSettings } from "@/lib/platform/maintenance
 
 export const Route = createFileRoute("/internal/exchange/settings")({
   loader: () => fetchMaintenanceModeSettings(),
-  head: () => ({ meta: [{ title: "Retired Exchange Host Settings — Alta Internal" }] }),
+  head: () => ({ meta: [{ title: "Legacy Host Settings — Alta Internal" }] }),
   component: ExchangeInternalSettingsPage,
 });
 
@@ -15,8 +15,8 @@ function ExchangeInternalSettingsPage() {
 
   return (
     <InternalPageShell
-      title="Retired Exchange Host"
-      description="Maintenance controls for the discontinued exchange.altagroup.dev host. Product traffic redirects to Alta Terminal."
+      title="Legacy Host Settings"
+      description="Maintenance controls for the legacy host that redirects to Alta Terminal."
     >
       <InternalPlatformSettingsSections
         data={{ maintenance }}

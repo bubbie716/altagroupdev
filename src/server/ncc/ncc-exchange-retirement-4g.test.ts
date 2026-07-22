@@ -34,14 +34,13 @@ describe("Sprint 4G Alta Exchange retirement (static)", () => {
     assert.equal(canInstitutionReceiveSettlement("ACTIVE"), true);
   });
 
-  it("archives Exchange legal docs while keeping Terminal customer agreement active", () => {
-    assert.equal(getLegalDocument("AE-LEGAL-001")?.archived, undefined);
+  it("publishes Terminal customer agreement without Exchange legal docs", () => {
+    assert.equal(getLegalDocument("AT-LEGAL-001")?.title, "Alta Terminal Customer Agreement");
+    assert.equal(getLegalDocument("AE-LEGAL-001")?.id, "AT-LEGAL-001");
     for (const id of ["AE-LEGAL-002", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"]) {
-      assert.equal(getLegalDocument(id)?.archived, true);
+      assert.equal(getLegalDocument(id), undefined);
     }
-    const archivedIds = archivedLegalDocuments().map((d) => d.id);
-    assert.ok(archivedIds.includes("AE-LEGAL-002"));
-    assert.equal(archivedIds.includes("AE-LEGAL-001"), false);
+    assert.equal(archivedLegalDocuments().length, 0);
   });
 });
 

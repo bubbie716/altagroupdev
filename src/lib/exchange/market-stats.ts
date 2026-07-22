@@ -1,7 +1,5 @@
 import type { ExchangeIndex, MarketRankings, MarketStats } from "./types";
-import { ALTA_EXCHANGE_TAGLINE } from "@/lib/branding/alta-products";
-
-const exchangeDescription = ALTA_EXCHANGE_TAGLINE;
+import { ALTA_TERMINAL_SUBTITLE } from "@/lib/branding/alta-products";
 
 const emptyIndex: ExchangeIndex = {
   symbol: "NSX-100",
@@ -21,10 +19,10 @@ const emptyRankings: MarketRankings = {
   highestVolume: [],
 };
 
-/** GET /v1/market/stats */
+/** GET /v1/market/stats — empty until external exchange connectivity is available. */
 export function getMarketStats(): MarketStats {
   return {
-    description: exchangeDescription,
+    description: `${ALTA_TERMINAL_SUBTITLE}. Market data unavailable.`,
     stats: [],
     snapshot: {
       index: emptyIndex,

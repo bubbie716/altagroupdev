@@ -137,64 +137,16 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     showInEntityFooter: true,
   },
   {
-    id: "AE-LEGAL-001",
+    id: "AT-LEGAL-001",
     title: "Alta Terminal Customer Agreement",
     label: "Customer Agreement",
-    slug: "markets/customer-agreement",
+    slug: "terminal/customer-agreement",
     entity: "markets",
     version: "1.0",
-    lastUpdated: "March 2026",
+    lastUpdated: "July 2026",
     footerOrder: 1,
     showInGlobalFooter: true,
     showInEntityFooter: true,
-  },
-  {
-    id: "AE-LEGAL-002",
-    title: "Alta Exchange Listing Agreement",
-    label: "Listing Agreement",
-    slug: "markets/listing-agreement",
-    entity: "markets",
-    version: "1.0",
-    footerOrder: 2,
-    showInGlobalFooter: false,
-    showInEntityFooter: false,
-    archived: true,
-  },
-  {
-    id: "AE-LEGAL-003",
-    title: "Alta Exchange Trading Rules",
-    label: "Trading Rules",
-    slug: "markets/trading-rules",
-    entity: "markets",
-    version: "1.0",
-    footerOrder: 3,
-    showInGlobalFooter: false,
-    showInEntityFooter: false,
-    archived: true,
-  },
-  {
-    id: "AE-LEGAL-004",
-    title: "Alta Markets Market Data & API Terms",
-    label: "Market Data & API Terms",
-    slug: "markets/market-data-api-terms",
-    entity: "markets",
-    version: "1.0",
-    footerOrder: 4,
-    showInGlobalFooter: false,
-    showInEntityFooter: false,
-    archived: true,
-  },
-  {
-    id: "AE-LEGAL-005",
-    title: "Alta Exchange Fee Schedule",
-    label: "Fee Schedule",
-    slug: "markets/fee-schedule",
-    entity: "markets",
-    version: "1.0",
-    footerOrder: 5,
-    showInGlobalFooter: false,
-    showInEntityFooter: false,
-    archived: true,
   },
   {
     id: "NCC-LEGAL-001",
@@ -233,6 +185,13 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
 ];
 
 const slugToDocId = new Map(LEGAL_DOCUMENTS.map((doc) => [doc.slug, doc.id]));
+/** Legacy Terminal agreement IDs/slugs resolve to AT-LEGAL-001. */
+slugToDocId.set("markets/customer-agreement", "AT-LEGAL-001");
+
+/** Legacy ID aliases kept for deep links only — not listed in public catalogs. */
+const LEGAL_DOC_ID_ALIASES: Record<string, string> = {
+  "AE-LEGAL-001": "AT-LEGAL-001",
+};
 
 export function legalDocumentPath(doc: LegalDocumentDefinition | string): string {
   const definition = typeof doc === "string" ? getLegalDocument(doc) : doc;
@@ -252,12 +211,13 @@ export function legalDocLinkParams(id: string) {
   } as const;
 }
 
-/** Resolves by ID including archived docs (prior acceptance / direct URL). */
+/** Resolves by ID including legacy aliases for deep links. */
 export function getLegalDocument(id: string): LegalDocumentDefinition | undefined {
-  return LEGAL_DOCUMENTS.find((doc) => doc.id === id);
+  const resolvedId = LEGAL_DOC_ID_ALIASES[id] ?? id;
+  return LEGAL_DOCUMENTS.find((doc) => doc.id === resolvedId);
 }
 
-/** Archived legal definitions for historical lookup (IDs/versions unchanged). */
+/** @deprecated No public archived catalog — legacy Exchange docs are unpublished. */
 export function archivedLegalDocuments(): LegalDocumentDefinition[] {
   return LEGAL_DOCUMENTS.filter((doc) => doc.archived === true);
 }
@@ -301,10 +261,9 @@ export function groupEssentialLegalDocuments(): LegalDocumentDefinition[] {
 const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
   corporate: [],
   bank: ["AB-LEGAL-001", "AB-LEGAL-002", "AB-LEGAL-006", "AB-LEGAL-007", "AB-LEGAL-003", "AB-LEGAL-005"],
-  /** Retired exchange site — no active entity footer docs. */
-  exchange: [],
-  /** Terminal keeps the customer agreement only. */
-  terminal: ["AE-LEGAL-001"],
+  /** Legacy host — same Terminal agreement as terminal site. */
+  exchange: ["AT-LEGAL-001"],
+  terminal: ["AT-LEGAL-001"],
   ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],
 };
 
@@ -365,7 +324,7 @@ export const FOOTER_DISCLAIMERS = {
     "Alta services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise.",
   bank: "Alta Bank is not a real-world bank and does not hold real-world deposits unless expressly stated otherwise.",
   markets:
-    "Alta Terminal is a roleplay/virtual economy brokerage service and does not provide real-world investment advice. Alta Exchange is discontinued.",
+    "Alta Terminal is a roleplay/virtual economy brokerage service and does not provide real-world investment advice. Alta Terminal does not operate a securities exchange.",
   ncc: "NCC provides roleplay/virtual economy clearing and settlement infrastructure for approved institutions.",
 } as const;
 

@@ -49,7 +49,7 @@ Alta Group N.V. owns or controls the intellectual property used across Alta serv
 - platform content; and
 - other materials created for or used by Alta.
 
-This includes intellectual property used by Alta Group and its subsidiaries, including Alta Bank, Alta Exchange, Alta Terminal, NCC, and any future Alta entity or product.
+This includes intellectual property used by Alta Group and its subsidiaries, including Alta Bank, Alta Terminal, NCC, and any future Alta entity or product.
 
 ---
 
@@ -70,8 +70,7 @@ Alta subsidiaries may use Alta intellectual property for their approved business
 This includes use by:
 
 - Alta Bank;
-- Alta Exchange;
-- Alta Terminal as a product of Alta Exchange;
+- Alta Terminal;
 - Newport Clearing Corporation (“NCC”);
 - Alta Solutions;
 - Alta Law;
@@ -135,7 +134,6 @@ This includes, but is not limited to:
 
 - Alta Group;
 - Alta Bank;
-- Alta Exchange;
 - Alta Terminal;
 - NCC;
 - Alta Pay;

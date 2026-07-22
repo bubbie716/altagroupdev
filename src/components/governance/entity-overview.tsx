@@ -12,8 +12,7 @@ function isMutedStatus(status: EntityStatus): boolean {
   return (
     status === "Planned" ||
     status === "In Development" ||
-    status === "Release Candidate" ||
-    status === "Discontinued"
+    status === "Release Candidate"
   );
 }
 
@@ -123,7 +122,7 @@ function EntityCard({
   );
 }
 
-/** Peer entity cards under Alta Group (Bank, Terminal, discontinued Exchange, NCC). */
+/** Peer entity cards under Alta Group (Bank, Terminal, NCC). */
 export function EntityOverview({ entities }: { entities: EntityOverviewItem[] }) {
   return (
     <div className="grid items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">

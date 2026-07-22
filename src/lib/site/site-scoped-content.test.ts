@@ -11,39 +11,29 @@ describe("site-scoped-content", () => {
     const docs = getLegalDocsForSite("corporate");
     assert.ok(docs.some((doc) => doc.id.startsWith("AG-")));
     assert.ok(docs.some((doc) => doc.id.startsWith("AB-")));
-    assert.ok(docs.some((doc) => doc.id.startsWith("AE-")));
+    assert.ok(docs.some((doc) => doc.id.startsWith("AT-")));
     assert.ok(docs.some((doc) => doc.id.startsWith("NCC-")));
+    assert.equal(docs.some((doc) => doc.id.startsWith("AE-")), false);
   });
 
   it("shows Alta Group and bank docs on bank site", () => {
     const docs = getLegalDocsForSite("bank");
     assert.ok(docs.some((doc) => doc.id.startsWith("AG-")));
     assert.ok(docs.some((doc) => doc.id.startsWith("AB-")));
-    assert.equal(
-      docs.some((doc) => doc.id.startsWith("AE-")),
-      false,
-    );
+    assert.equal(docs.some((doc) => doc.id.startsWith("AE-")), false);
+    assert.equal(docs.some((doc) => doc.id.startsWith("AT-")), false);
   });
 
-  it("shows Alta Group docs on exchange site; Terminal keeps active markets docs", () => {
+  it("shows Alta Group docs on legacy host; Terminal keeps AT-LEGAL-001", () => {
     const exchangeDocs = getLegalDocsForSite("exchange");
     assert.ok(exchangeDocs.some((doc) => doc.id.startsWith("AG-")));
-    assert.equal(
-      exchangeDocs.some((doc) => doc.id.startsWith("AE-")),
-      false,
-    );
+    assert.equal(exchangeDocs.some((doc) => doc.id.startsWith("AE-")), false);
 
     const terminalDocs = getLegalDocsForSite("terminal");
     assert.ok(terminalDocs.some((doc) => doc.id.startsWith("AG-")));
-    assert.ok(terminalDocs.some((doc) => doc.id === "AE-LEGAL-001"));
-    assert.equal(
-      terminalDocs.some((doc) => ["AE-LEGAL-002", "AE-LEGAL-003", "AE-LEGAL-004", "AE-LEGAL-005"].includes(doc.id)),
-      false,
-    );
-    assert.equal(
-      terminalDocs.some((doc) => doc.id.startsWith("AB-")),
-      false,
-    );
+    assert.ok(terminalDocs.some((doc) => doc.id === "AT-LEGAL-001"));
+    assert.equal(terminalDocs.some((doc) => doc.id.startsWith("AE-")), false);
+    assert.equal(terminalDocs.some((doc) => doc.id.startsWith("AB-")), false);
   });
 
   it("shows Alta Group and NCC docs on ncc site", () => {

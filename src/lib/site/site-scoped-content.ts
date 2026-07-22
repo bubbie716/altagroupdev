@@ -12,7 +12,7 @@ import {
   type AltaDiscordEntity,
 } from "@/lib/site/discord-urls";
 
-const ALL_LEGAL_DOC_PREFIXES = ["AG-", "AB-", "AE-", "NCC-"] as const;
+const ALL_LEGAL_DOC_PREFIXES = ["AG-", "AB-", "AT-", "NCC-"] as const;
 const ALL_DISCORD_ENTITIES: AltaDiscordEntity[] = ["group", "bank", "markets", "ncc"];
 
 /** Sub-entity legal scope for a site (null = Alta Group hub — shows all entities). */
@@ -25,7 +25,7 @@ export function siteLegalEntity(siteKey: SiteKey): LegalEntity | null {
 
 function docPrefixForEntity(entity: LegalEntity): string {
   if (entity === "bank") return "AB-";
-  if (entity === "markets") return "AE-";
+  if (entity === "markets") return "AT-";
   return "NCC-";
 }
 
@@ -43,9 +43,7 @@ function categoryMatchesSite(category: LegalDocCategory, siteKey: SiteKey): bool
   return prefixes.some((prefix) => {
     if (prefix === "AG-") return category.startsWith("Alta Group");
     if (prefix === "AB-") return category.startsWith("Alta Bank");
-    if (prefix === "AE-") {
-      return category.startsWith("Alta Terminal") || category.startsWith("Alta Exchange");
-    }
+    if (prefix === "AT-") return category.startsWith("Alta Terminal");
     return category.startsWith("NCC");
   });
 }
@@ -57,7 +55,7 @@ function isArchivedRegistryDoc(docId: string): boolean {
 export function legalDocMatchesSite(doc: LegalDocMeta, siteKey: SiteKey): boolean {
   if (isArchivedRegistryDoc(doc.id)) return false;
   if (siteKey === "corporate") return true;
-  // Retired exchange site — do not force AE- docs into active acceptance/selection flows.
+  // Legacy host — Group docs only in legal browser (product pages redirect to Terminal).
   if (siteKey === "exchange") {
     return categoryPrefixesForSite(siteKey).some(
       (prefix) => prefix === "AG-" && doc.id.startsWith(prefix),
@@ -84,9 +82,8 @@ export function getLegalDocsByCategoryForSite(
         const docs = (legalDocsByCategory[category] ?? []).filter(
           (doc) => !isArchivedRegistryDoc(doc.id),
         );
-        // Terminal: only active customer agreement (AE-LEGAL-001).
-        if (siteKey === "terminal" && (category.startsWith("Alta Exchange") || category.startsWith("Alta Terminal"))) {
-          return [category, docs.filter((doc) => doc.id === "AE-LEGAL-001")] as const;
+        if (siteKey === "terminal" && category.startsWith("Alta Terminal")) {
+          return [category, docs.filter((doc) => doc.id === "AT-LEGAL-001")] as const;
         }
         return [category, docs] as const;
       })

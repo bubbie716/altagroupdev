@@ -534,7 +534,7 @@ export const exchangeOpsSummary: ExchangeOpsSummary = {
   dailyApiCalls: "—",
 };
 
-/** Discontinued Exchange product — no live listings. */
+/** Empty listings — market data unavailable until external exchange connectivity. */
 export const exchangeListings: ExchangeListingRow[] = [];
 
 export const ipoApplications: IpoApplication[] = [
@@ -798,7 +798,7 @@ export const internalSettings: InternalSettings = {
   featureFlags: [
     { key: "terminal_trade_preview", label: "Terminal order entry (preview)", enabled: true },
     { key: "issuer_portal_uploads", label: "Issuer portal financial uploads", enabled: true },
-    { key: "exchange_api_public", label: "Exchange API documentation gate (retired)", enabled: false },
+    { key: "exchange_api_public", label: "Market data API documentation gate", enabled: false },
     { key: "private_invite_auto", label: "Automated private invites", enabled: false },
     { key: "compliance_auto_escalate", label: "Auto-escalate critical flags", enabled: false },
   ],

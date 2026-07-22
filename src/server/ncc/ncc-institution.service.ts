@@ -123,7 +123,7 @@ const ZERO_SETTLEMENT_BALANCE = 0;
 async function ensureAltaSettlementTestLiquidity(): Promise<void> {
   if (process.env.NCC_SETTLEMENT_TESTS !== "1") return;
   const target = new Prisma.Decimal("10000000.00");
-  // Bank + Terminal only — Alta Exchange is retired and must not receive test liquidity.
+  // Bank + Terminal only — legacy institution must not receive test liquidity.
   const accounts = await prisma.settlementAccount.findMany({
     where: {
       institutionId: {
@@ -379,7 +379,7 @@ export async function retireAltaExchangeInstitution(): Promise<void> {
           status: "FROZEN",
           frozenAt: account.frozenAt ?? now,
           frozenReason:
-            account.frozenReason ?? "Alta Exchange retired — Sprint 4G legal archival",
+            account.frozenReason ?? "Legacy institution inactive — NCC safeguard",
           // ledgerBalance / availableBalance intentionally omitted
         },
       });

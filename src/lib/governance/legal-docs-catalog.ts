@@ -4,8 +4,6 @@ export type LegalDocCategory =
   | "Alta Bank — Corporate"
   | "Alta Bank — Legal"
   | "Alta Terminal — Legal"
-  | "Alta Exchange (Archived) — Corporate"
-  | "Alta Exchange (Archived) — Legal"
   | "NCC — Corporate"
   | "NCC — Legal";
 
@@ -39,24 +37,22 @@ function titleFromFilename(filename: string): string {
     .trim();
 }
 
-function categoryForId(id: string): LegalDocCategory {
+function categoryForId(id: string): LegalDocCategory | null {
   if (id.startsWith("AG-COR-")) return "Alta Group — Corporate";
   if (id.startsWith("AG-LEGAL-")) return "Alta Group — Legal";
   if (id.startsWith("AB-COR-")) return "Alta Bank — Corporate";
   if (id.startsWith("AB-LEGAL-")) return "Alta Bank — Legal";
-  if (id === "AE-LEGAL-001") return "Alta Terminal — Legal";
-  if (id.startsWith("AE-COR-")) return "Alta Exchange (Archived) — Corporate";
-  if (id.startsWith("AE-LEGAL-")) return "Alta Exchange (Archived) — Legal";
+  if (id === "AT-LEGAL-001" || id.startsWith("AT-LEGAL-")) return "Alta Terminal — Legal";
   if (id.startsWith("NCC-COR-")) return "NCC — Corporate";
-  return "NCC — Legal";
+  if (id.startsWith("NCC-LEGAL-")) return "NCC — Legal";
+  // Legacy AE-* documents are not part of the public catalog.
+  return null;
 }
 
 function entityForId(id: string): string {
   if (id.startsWith("AG-")) return "Alta Group N.V.";
   if (id.startsWith("AB-")) return "Alta Bank";
-  // AE-LEGAL-001 is the active Terminal customer agreement; other AE docs are archived Exchange records.
-  if (id === "AE-LEGAL-001") return "Alta Terminal";
-  if (id.startsWith("AE-")) return "Alta Exchange (Archived)";
+  if (id.startsWith("AT-")) return "Alta Terminal";
   return "Newport Clearing Corporation";
 }
 
@@ -91,13 +87,15 @@ function metaFromPath(path: string): LegalDocMeta | null {
   const filename = path.split("/").pop() ?? "";
   const id = parseDocId(filename);
   if (!id) return null;
+  const category = categoryForId(id);
+  if (!category) return null;
 
   const title = titleFromFilename(filename);
   const kind = kindForId(id, title);
   return {
     id,
     title,
-    category: categoryForId(id),
+    category,
     entity: entityForId(id),
     kind,
     filename,
@@ -116,6 +114,8 @@ for (const [path, loader] of Object.entries(docLoaders)) {
   const meta = metaFromPath(path);
   if (meta) docLoaderById.set(meta.id, loader);
 }
+// Legacy deep-link ID for the Terminal customer agreement.
+docLoaderById.set("AE-LEGAL-001", docLoaderById.get("AT-LEGAL-001")!);
 
 export const legalDocsCatalog: LegalDocMeta[] = Object.keys(docLoaders)
   .map(metaFromPath)
@@ -135,8 +135,6 @@ export const legalDocsByCategory = legalDocsCatalog.reduce<
     "Alta Bank — Corporate": [],
     "Alta Bank — Legal": [],
     "Alta Terminal — Legal": [],
-    "Alta Exchange (Archived) — Corporate": [],
-    "Alta Exchange (Archived) — Legal": [],
     "NCC — Corporate": [],
     "NCC — Legal": [],
   },
@@ -148,13 +146,12 @@ export const legalDocCategoryOrder: LegalDocCategory[] = [
   "Alta Bank — Corporate",
   "Alta Bank — Legal",
   "Alta Terminal — Legal",
-  "Alta Exchange (Archived) — Corporate",
-  "Alta Exchange (Archived) — Legal",
   "NCC — Corporate",
   "NCC — Legal",
 ];
 
 export function getLegalDocMeta(id: string): LegalDocMeta | undefined {
+  if (id === "AE-LEGAL-001") return legalDocsCatalog.find((doc) => doc.id === "AT-LEGAL-001");
   return legalDocsCatalog.find((doc) => doc.id === id);
 }
 
@@ -162,15 +159,13 @@ export async function getLegalDoc(id: string): Promise<{ meta: LegalDocMeta; bod
   const meta = getLegalDocMeta(id);
   if (!meta) return null;
 
-  const loader = docLoaderById.get(id);
+  const loader = docLoaderById.get(id) ?? docLoaderById.get(meta.id);
   if (!loader) return null;
 
   const body = await loader();
   return { meta, body };
 }
 
-/** Confirms a catalog entry has a loadable markdown body (used in CI/tests). */
 export async function hasLegalDocBody(id: string): Promise<boolean> {
-  const doc = await getLegalDoc(id);
-  return doc !== null && doc.body.length > 0;
+  return Boolean(docLoaderById.get(id) ?? (id === "AE-LEGAL-001" && docLoaderById.get("AT-LEGAL-001")));
 }

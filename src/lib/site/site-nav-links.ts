@@ -12,7 +12,7 @@ export function resolveSiteNavLinks(siteKey: SiteKey): SiteNavLink[] {
   const config = getSiteConfig(siteKey);
 
   if (siteKey === "exchange") {
-    // Discontinued host — no product nav (routes redirect to Terminal).
+    // Legacy host — no product nav (routes redirect to Terminal).
     return buildExchangePrimaryNavLinks();
   }
 

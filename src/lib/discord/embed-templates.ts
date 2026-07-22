@@ -40,30 +40,20 @@ export function applyEmbedTemplate(
         description: "Enter the notice details for Alta Bank clients.",
         footerText: "Alta Bank · Bank Like The 1%",
       };
-    case "exchange_notice":
-      return {
-        ...base,
-        colorPreset: "alta_navy",
-        authorName: "Alta Exchange (Discontinued)",
-        title: "Alta Exchange Notice (Historical)",
-        description:
-          "Historical notice template — Alta Exchange is discontinued. Prefer Alta Terminal for live product messaging.",
-        footerText: "Alta Exchange · Discontinued",
-      };
     case "ipo_announcement":
       return {
         ...base,
         colorPreset: "success_green",
-        authorName: "Alta Exchange (Discontinued)",
-        title: "IPO Announcement (Historical)",
-        description: "Historical IPO template — Alta Exchange is discontinued.",
+        authorName: "Alta Terminal",
+        title: "IPO Announcement",
+        description: "Summarize the offering details for Terminal clients when IPO tooling is available.",
         fields: [
           field("Company", "—"),
           field("Ticker", "—"),
           field("Offering Price", "—"),
-          field("Status", "Discontinued venue"),
+          field("Status", "—"),
         ],
-        footerText: "Alta Exchange · Discontinued",
+        footerText: `Alta Terminal · ${ALTA_TERMINAL_SUBTITLE}`,
       };
     case "developer_api_update":
       return {

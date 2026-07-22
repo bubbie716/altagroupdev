@@ -20,12 +20,6 @@ export function buildGovernancePlatformMetrics(
       sourceLabel: LIVE_PLATFORM_SOURCE,
     },
     {
-      label: "Alta Exchange N.V.",
-      value: "Discontinued",
-      helper: "Former exchange product — retired; not an operating Alta company.",
-      sourceLabel: PREVIEW_SOURCE,
-    },
-    {
       label: "Alta Terminal",
       value: "In Development",
       helper:

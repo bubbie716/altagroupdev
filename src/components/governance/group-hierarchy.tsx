@@ -4,7 +4,6 @@ import type { EntityStatus, HierarchyNode } from "@/lib/governance/content";
 
 function statusTone(status: EntityStatus): string {
   if (status === "Operational") return "text-[var(--success)]";
-  if (status === "Discontinued") return "text-muted-foreground";
   return "text-muted-foreground";
 }
 
@@ -23,8 +22,7 @@ function HierarchyCard({
   const muted =
     node.status === "Planned" ||
     node.status === "In Development" ||
-    node.status === "Release Candidate" ||
-    node.status === "Discontinued";
+    node.status === "Release Candidate";
 
   return (
     <FadeIn

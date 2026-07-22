@@ -1,7 +1,7 @@
 import { getSiteConfig } from "@/config/sites";
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
-/** Canonical Terminal path for every retired Alta Exchange product URL. */
+/** Canonical Terminal path for every legacy Exchange host/path request. */
 export const RETIRED_EXCHANGE_TERMINAL_PATH = "/terminal" as const;
 
 function normalizeHostname(host: string): string {
@@ -25,7 +25,7 @@ function appendSearchString(href: string, searchStr?: string): string {
   return url.toString();
 }
 
-/** True when the request host is the discontinued Exchange site. */
+/** True when the request host is the legacy Exchange hostname. */
 export function isRetiredExchangeHost(host: string): boolean {
   const hostname = normalizeHostname(host);
   const config = getSiteConfig("exchange");

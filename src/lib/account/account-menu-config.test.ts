@@ -21,7 +21,7 @@ describe("account-menu-config", () => {
     );
     assert.equal(
       getAccountMenuItems("exchange", { showInternal: true }).at(-1)?.label,
-      "Exchange Internal",
+      "Terminal Internal",
     );
   });
 

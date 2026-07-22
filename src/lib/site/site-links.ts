@@ -16,7 +16,7 @@ export const ALTA_SYSTEM_STATUS_URL = "https://status.altagroup.dev" as const;
 export const SITE_FOOTER_EMPHASIS: Record<SiteKey, string> = {
   corporate: "Corporate",
   bank: "Retail + Commercial Banking",
-  exchange: "Discontinued",
+  exchange: "Brokerage",
   terminal: "Brokerage",
   ncc: "Financial Infrastructure",
 };
@@ -55,7 +55,7 @@ export function getFooterEntitySectionTitle(siteKey: SiteKey): string {
   const titles: Record<SiteKey, string> = {
     corporate: "Alta Group",
     bank: "Alta Bank",
-    exchange: "Alta Exchange (Discontinued)",
+    exchange: "Alta Terminal",
     terminal: "Alta Terminal",
     ncc: "Newport Clearing Corporation",
   };
@@ -86,20 +86,16 @@ export type FooterCopyrightEntity = {
 export const FOOTER_COPYRIGHT_ENTITY: Record<SiteKey, FooterCopyrightEntity> = {
   corporate: { legalName: "Alta Group N.V.", shortName: "Alta Group" },
   bank: { legalName: "Alta Bank N.V.", shortName: "Alta Bank" },
-  exchange: { legalName: "Alta Exchange N.V.", shortName: "Alta Exchange" },
+  exchange: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
   terminal: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
   ncc: { legalName: "Newport Clearing Corporation", shortName: "Newport Clearing Corporation" },
 };
 
 export function getFooterCopyrightLines(siteKey: SiteKey): { copyright: string; disclaimer: string } {
   const { legalName, shortName } = FOOTER_COPYRIGHT_ENTITY[siteKey];
-  const serviceClause =
-    siteKey === "exchange"
-      ? `${shortName} product pages are discontinued. Continue on Alta Terminal for brokerage tools.`
-      : `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise.`;
   return {
     copyright: `© 2026 ${legalName} All rights reserved.`,
-    disclaimer: `${serviceClause} ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
+    disclaimer: `${shortName} services are designed for Minecraft, Discord, roleplay, and virtual economy environments unless expressly stated otherwise. ${shortName} is not officially affiliated with or endorsed by District Roleplay, Minecraft, Mojang AB, or Microsoft Corporation in any way.`,
   };
 }
 

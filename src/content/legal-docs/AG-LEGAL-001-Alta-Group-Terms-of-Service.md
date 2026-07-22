@@ -26,8 +26,7 @@ Alta Group N.V. is the parent company of the Alta ecosystem.
 Alta Group may operate services directly or through subsidiaries, including but not limited to:
 
 - Alta Bank;
-- Alta Exchange;
-- Alta Terminal as a product of Alta Exchange;
+- Alta Terminal;
 - Newport Clearing Corporation (“NCC”);
 - Alta Solutions;
 - Alta Law;

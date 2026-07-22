@@ -23,8 +23,7 @@ This Policy applies to services operated by Alta Group and its subsidiaries, inc
 
 - Alta Group;
 - Alta Bank;
-- Alta Exchange;
-- Alta Terminal as a product of Alta Exchange;
+- Alta Terminal;
 - Newport Clearing Corporation (“NCC”);
 - Alta websites;
 - Alta Discord bots;

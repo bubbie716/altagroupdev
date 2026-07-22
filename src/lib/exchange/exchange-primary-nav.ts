@@ -8,7 +8,7 @@ export type ExchangePrimaryNavLink = {
 };
 
 /**
- * Sprint 4G — Alta Exchange product nav is retired.
+ * Sprint 4G — legacy Exchange product nav is empty; traffic redirects to Terminal.
  * Exchange host auth/marketing pages use an empty primary nav; traffic redirects to Terminal.
  */
 export const EXCHANGE_PRIMARY_NAV_LINKS: ExchangePrimaryNavLink[] = [];

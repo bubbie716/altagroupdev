@@ -49,7 +49,7 @@ export const MAINTENANCE_SCOPE_LABELS: Record<MaintenanceScope, string> = {
   sitewide: "Sitewide Maintenance",
   corporate: "Corporate Maintenance",
   bank: "Bank Maintenance",
-  exchange: "Exchange Maintenance (Discontinued Site)",
+  exchange: "Legacy Host Maintenance",
   terminal: "Terminal Maintenance",
 };
 
@@ -57,7 +57,7 @@ export const MAINTENANCE_SCOPE_DESCRIPTIONS: Record<MaintenanceScope, string> = 
   sitewide: "All Alta sites (excluding NCC), shared routes, and the Discord bank bot.",
   corporate: "Alta Group corporate site only.",
   bank: "Alta Bank site and banking routes.",
-  exchange: "Retired Alta Exchange host only — kept for host compatibility; site is discontinued.",
+  exchange: "Legacy host compatibility only — product traffic redirects to Alta Terminal.",
   terminal: "Alta Terminal site only.",
 };
 
@@ -131,7 +131,7 @@ export function maintenanceTitleForSite(siteKey: SiteKey, scope: MaintenanceScop
   if (scope === "sitewide") return "Sitewide Maintenance";
   if (scope) return MAINTENANCE_SCOPE_LABELS[scope];
   if (siteKey === "bank") return "Bank Maintenance";
-  if (siteKey === "exchange") return "Exchange Maintenance (Discontinued Site)";
+  if (siteKey === "exchange") return "Legacy Host Maintenance";
   if (siteKey === "terminal") return "Terminal Maintenance";
   if (siteKey === "ncc") return "Platform Maintenance";
   return "Corporate Maintenance";
