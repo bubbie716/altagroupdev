@@ -160,3 +160,21 @@ export function redirectWithSetCookies(location: string, cookies: string[]): Res
   }
   return new Response(null, { status: 302, headers });
 }
+
+/**
+ * Safari / WebKit often drops Set-Cookie on a 302 that immediately leaves the site
+ * (e.g. OAuth start → discord.com). Serve 200 HTML + meta refresh so the cookie sticks
+ * before the cross-site navigation.
+ */
+export function htmlRedirectWithSetCookies(location: string, cookies: string[]): Response {
+  const safeLocation = location.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const headers = new Headers({
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  for (const cookie of cookies) {
+    headers.append("Set-Cookie", cookie);
+  }
+  const body = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta http-equiv="refresh" content="0;url=${safeLocation}"/><title>Continuing sign-in</title></head><body><p>Continuing to Discord…</p><p><a href="${safeLocation}">Continue</a></p></body></html>`;
+  return new Response(body, { status: 200, headers });
+}

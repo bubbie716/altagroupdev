@@ -6,6 +6,9 @@ import { useSiteContext } from "@/hooks/use-site-context";
 const ERROR_MESSAGES: Record<string, string> = {
   oauth_denied: "Discord authorization was cancelled.",
   invalid_state: "Login session expired. Please try again.",
+  invalid_state_payload: "Login session expired. Please try again.",
+  invalid_state_cookie: "Login session expired. Please try again.",
+  invalid_state_mismatch: "Login session expired. Please try again.",
   token_exchange_failed: "Could not complete Discord sign-in. If this persists, wait a minute and try again.",
   oauth_callback_mismatch:
     "Sign-in landed on the wrong domain. Contact operations if this continues after retrying.",

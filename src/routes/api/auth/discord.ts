@@ -13,7 +13,7 @@ import {
   buildOAuthStateCookie,
   generateOAuthStateNonce,
 } from "@/server/oauth-state";
-import { redirectWithSetCookies } from "@/server/session";
+import { htmlRedirectWithSetCookies } from "@/server/session";
 import { enforceRateLimit } from "@/server/rate-limit.service";
 
 function stripWww(hostname: string): string {
@@ -104,7 +104,7 @@ export const Route = createFileRoute("/api/auth/discord")({
         }
 
         const nonce = generateOAuthStateNonce();
-        const state = await sealJson({ returnTo, returnOrigin, nonce });
+        const state = await sealJson({ returnTo, returnOrigin, nonce, redirectUri });
         if (!state) {
           return new Response("SESSION_SECRET is not configured.", { status: 503 });
         }
@@ -116,9 +116,11 @@ export const Route = createFileRoute("/api/auth/discord")({
         const startPayload = {
           cookieHost,
           callbackOrigin,
+          redirectUri,
           returnOrigin,
           returnTo,
           bounced: false,
+          htmlCookieRedirect: true,
           sameRegistrable:
             stripWww(new URL(returnOrigin).hostname) === stripWww(url.hostname),
         };
@@ -128,9 +130,9 @@ export const Route = createFileRoute("/api/auth/discord")({
           body: JSON.stringify({
             sessionId: "49e5fc",
             runId: "post-fix",
-            hypothesisId: "OAUTH_BOUNCE",
+            hypothesisId: "SAFARI_COOKIE",
             location: "routes/api/auth/discord.ts:authorize",
-            message: "Issuing Discord authorize redirect with OAuth state cookie",
+            message: "Issuing Discord authorize HTML redirect with OAuth state cookie",
             data: startPayload,
             timestamp: Date.now(),
           }),
@@ -138,7 +140,8 @@ export const Route = createFileRoute("/api/auth/discord")({
         console.error("[alta-debug-49e5fc] oauth-authorize", startPayload);
         // #endregion
 
-        return redirectWithSetCookies(authorizeUrl, [
+        // 200 HTML + Set-Cookie (not 302→Discord): Safari drops cookies on cross-site 302s.
+        return htmlRedirectWithSetCookies(authorizeUrl, [
           buildOAuthStateCookie(nonce, cookieHost),
         ]);
       },

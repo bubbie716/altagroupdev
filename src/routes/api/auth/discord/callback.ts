@@ -51,9 +51,30 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           returnTo: string;
           returnOrigin?: string;
           nonce?: string;
+          redirectUri?: string;
         }>(stateParam);
         if (!parsed?.returnTo) {
-          return loginErrorRedirect(request, "invalid_state");
+          // #region agent log
+          const unsealPayload = {
+            callbackHost: new URL(request.url).hostname,
+            hasStateParam: Boolean(stateParam),
+          };
+          fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "49e5fc" },
+            body: JSON.stringify({
+              sessionId: "49e5fc",
+              runId: "post-fix",
+              hypothesisId: "UNSEAL",
+              location: "routes/api/auth/discord/callback.ts:unseal",
+              message: "OAuth state unseal/payload failed",
+              data: unsealPayload,
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          console.error("[alta-debug-49e5fc] oauth-unseal-failed", unsealPayload);
+          // #endregion
+          return loginErrorRedirect(request, "invalid_state_payload");
         }
 
         if (!validateOAuthStateCookie(request, parsed.nonce)) {
@@ -66,7 +87,7 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
             returnOrigin: parsed.returnOrigin ?? null,
             returnTo: parsed.returnTo,
             cookiePresent,
-            cookieHeaderHostOnlyHint: !cookiePresent,
+            sealedRedirectUri: parsed.redirectUri ?? null,
           };
           fetch("http://127.0.0.1:7929/ingest/900968cf-7850-40f1-892f-1e344d1892dd", {
             method: "POST",
@@ -74,7 +95,7 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
             body: JSON.stringify({
               sessionId: "49e5fc",
               runId: "post-fix",
-              hypothesisId: "COOKIE_HOST",
+              hypothesisId: "SAFARI_COOKIE",
               location: "routes/api/auth/discord/callback.ts:invalid_state",
               message: "OAuth state cookie validation failed",
               data: invalidPayload,
@@ -83,10 +104,17 @@ export const Route = createFileRoute("/api/auth/discord/callback")({
           }).catch(() => {});
           console.error("[alta-debug-49e5fc] oauth-invalid-state", invalidPayload);
           // #endregion
-          return loginErrorRedirect(request, "invalid_state");
+          return loginErrorRedirect(
+            request,
+            cookiePresent ? "invalid_state_mismatch" : "invalid_state_cookie",
+          );
         }
 
-        const redirectUri = resolveDiscordRedirectUri(request);
+        const allowedUris = parseRedirectUriListForOAuth();
+        const redirectUri =
+          (parsed.redirectUri && allowedUris.includes(parsed.redirectUri)
+            ? parsed.redirectUri
+            : null) ?? resolveDiscordRedirectUri(request);
         if (!redirectUri) {
           return loginErrorRedirect(request, "oauth_not_configured");
         }
