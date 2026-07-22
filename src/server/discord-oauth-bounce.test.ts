@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
+import { shouldBounceOAuthToCallbackHost } from "@/routes/api/auth/discord";
 import { resolveOAuthCallbackUriForSite } from "@/server/discord";
 import { buildOAuthStateCookie } from "@/server/oauth-state";
 
@@ -25,10 +26,35 @@ describe("shared Discord callback bounce prerequisites", () => {
     );
   });
 
-  it("sets Domain=.altagroup.dev for terminal OAuth state cookies", () => {
+  it("sets Domain=.altagroup.dev for OAuth state cookies", () => {
     process.env = { ...ORIGINAL_ENV, NODE_ENV: "production" };
     delete process.env.ALTA_COOKIE_DOMAIN;
     const cookie = buildOAuthStateCookie("n", "www.altagroup.dev");
     assert.match(cookie, /Domain=\.altagroup\.dev/);
+  });
+
+  it("does not bounce www ↔ apex (avoids redirect loops)", () => {
+    assert.equal(
+      shouldBounceOAuthToCallbackHost("https://www.altagroup.dev", "https://altagroup.dev"),
+      false,
+    );
+    assert.equal(
+      shouldBounceOAuthToCallbackHost("https://altagroup.dev", "https://www.altagroup.dev"),
+      false,
+    );
+    assert.equal(
+      shouldBounceOAuthToCallbackHost("https://www.altagroup.dev", "https://www.altagroup.dev"),
+      false,
+    );
+  });
+
+  it("does bounce terminal → www shared callback", () => {
+    assert.equal(
+      shouldBounceOAuthToCallbackHost(
+        "https://terminal.altagroup.dev",
+        "https://www.altagroup.dev",
+      ),
+      true,
+    );
   });
 });

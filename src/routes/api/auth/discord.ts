@@ -22,6 +22,24 @@ function stripWww(hostname: string): string {
     : hostname.toLowerCase();
 }
 
+/** Bounce only across different sites (e.g. terminal → www), never www ↔ apex. */
+export function shouldBounceOAuthToCallbackHost(
+  requestOrigin: string,
+  callbackOrigin: string,
+): boolean {
+  if (requestOrigin === callbackOrigin) return false;
+  try {
+    const requestHost = stripWww(new URL(requestOrigin).hostname);
+    const callbackHost = stripWww(new URL(callbackOrigin).hostname);
+    // Same registrable host (www.altagroup.dev vs altagroup.dev): Domain=.altagroup.dev is enough.
+    // Bouncing here loops when the platform also redirects apex ↔ www.
+    if (requestHost === callbackHost) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const Route = createFileRoute("/api/auth/discord")({
   server: {
     handlers: {
@@ -55,7 +73,8 @@ export const Route = createFileRoute("/api/auth/discord")({
         const callbackOrigin = new URL(redirectUri).origin;
         // Shared Discord callback lives on www/apex while login starts on bank/terminal.
         // Bounce onto the callback host first so alta_oauth_state is set where Discord returns.
-        if (callbackOrigin !== url.origin) {
+        // Do not bounce www ↔ apex — that fights hosting redirects and causes "too many redirects".
+        if (shouldBounceOAuthToCallbackHost(url.origin, callbackOrigin)) {
           const bounce = new URL("/api/auth/discord", callbackOrigin);
           bounce.searchParams.set("redirect", returnTo);
           bounce.searchParams.set("returnOrigin", returnOrigin);
@@ -99,6 +118,7 @@ export const Route = createFileRoute("/api/auth/discord")({
           callbackOrigin,
           returnOrigin,
           returnTo,
+          bounced: false,
           sameRegistrable:
             stripWww(new URL(returnOrigin).hostname) === stripWww(url.hostname),
         };
