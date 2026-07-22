@@ -11,6 +11,7 @@ describe("internal-nav-config", () => {
     assert.equal(getInternalNavGroupsForSite("corporate"), INTERNAL_NAV_GROUPS);
     assert.equal(getInternalNavGroupsForSite("bank"), BANK_INTERNAL_NAV_GROUPS);
     assert.equal(getInternalNavGroupsForSite("exchange"), null);
+    assert.equal(getInternalNavGroupsForSite("terminal"), null);
   });
 
   it("points bank dashboard to bank ops home", () => {

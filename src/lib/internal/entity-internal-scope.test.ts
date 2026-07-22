@@ -10,6 +10,7 @@ describe("entity-internal-scope", () => {
     assert.equal(internalHomePathForSite("corporate"), "/internal");
     assert.equal(internalHomePathForSite("bank"), "/internal/bank");
     assert.equal(internalHomePathForSite("exchange"), "/internal");
+    assert.equal(internalHomePathForSite("terminal"), "/internal");
   });
 
   it("allows corporate and bank routes without redirect", () => {
@@ -24,5 +25,10 @@ describe("entity-internal-scope", () => {
     assert.doesNotThrow(() =>
       assertEntityInternalRouteAccess("terminal", "/internal/terminal/settings"),
     );
+  });
+
+  it("redirects exchange/terminal away from unrelated internal routes", () => {
+    assert.throws(() => assertEntityInternalRouteAccess("terminal", "/internal/settings"));
+    assert.throws(() => assertEntityInternalRouteAccess("exchange", "/internal/bank"));
   });
 });
