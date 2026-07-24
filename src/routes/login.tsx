@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { NccLoginPage } from "@/components/ncc/ncc-login-page";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 type LoginSearch = {
   redirect?: string;
@@ -12,7 +13,8 @@ export const Route = createFileRoute("/login")({
     error: typeof search.error === "string" ? search.error : undefined,
   }),
   beforeLoad: ({ search, context }) => {
-    if (context.site.key !== "ncc") {
+    const site = siteFromRouteContext(context);
+    if (site.key !== "ncc") {
       throw redirect({
         to: "/",
         search: {
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/login")({
 
     if (context.user) {
       throw redirect({
-        to: search.redirect ?? context.site.defaultAuthenticatedRoute,
+        to: search.redirect ?? site.defaultAuthenticatedRoute,
         replace: true,
       });
     }

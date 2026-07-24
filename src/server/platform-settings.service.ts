@@ -189,7 +189,7 @@ async function writeSetting(key: string, value: unknown, actorUserId: string): P
   });
 }
 
-/** Admins and operators bypass maintenance mode entirely. */
+/** Admins bypass maintenance mode entirely. */
 export function isMaintenanceBypassUser(user: AltaUser | null | undefined): boolean {
   return canBypassMaintenanceMode(user);
 }
@@ -260,11 +260,12 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
 }
 
 export async function getMaintenanceModeSettings(): Promise<MaintenanceModeSettings> {
-  const { requireOperator } = await import("@/server/permissions.service");
-  const { isAdmin } = await import("@/lib/auth/permissions");
-  const actor = await requireOperator();
+  const { requireAuth } = await import("@/server/auth.service");
+  const { canAccessAnyInternal } = await import("@/lib/auth/permissions");
+  const actor = await requireAuth();
+  if (!canAccessAnyInternal(actor)) throw new Error("FORBIDDEN");
   const state = await getMaintenanceMode();
-  return { ...state, canEdit: isAdmin(actor) };
+  return { ...state, canEdit: canAccessAnyInternal(actor) };
 }
 
 export async function setMaintenanceMode(
@@ -283,7 +284,20 @@ export async function setMaintenanceScope(
   actorUserId: string,
   input: { scope: MaintenanceScope; enabled: boolean; message?: string; reason: string },
 ): Promise<MaintenanceModeState> {
-  await requireAdmin();
+  const { requireAuth } = await import("@/server/auth.service");
+  const {
+    isCorporateAdmin,
+    isBankAdmin,
+    isTerminalAdmin,
+  } = await import("@/lib/auth/permissions");
+  const actor = await requireAuth();
+  if (actor.id !== actorUserId) throw new Error("FORBIDDEN");
+
+  const allowed =
+    isCorporateAdmin(actor) ||
+    (isBankAdmin(actor) && input.scope === "bank") ||
+    (isTerminalAdmin(actor) && (input.scope === "terminal" || input.scope === "exchange"));
+  if (!allowed) throw new Error("FORBIDDEN");
   const trimmedReason = input.reason.trim();
   if (!trimmedReason) badRequest("Reason is required");
 

@@ -10,7 +10,7 @@ export function useIsAdmin(): boolean {
   return user ? isAdmin(user) : false;
 }
 
-/** Renders children only for admin users; operators see clean permission copy. */
+/** Renders children only for admin users. */
 export function AdminOnly({
   children,
   fallback,

@@ -1,7 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import type { AltaUser } from "@/lib/auth/types";
 import type { SiteConfig } from "@/config/sites";
-import { canAccessInternal } from "@/lib/auth/permissions";
+import { canAccessInternalForSite } from "@/lib/auth/permissions";
 import {
   fetchCurrentUser,
   verifyDeveloperAccess,
@@ -10,9 +10,10 @@ import {
 } from "@/lib/auth/auth.functions";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 type GuardContext = {
-  context: { user: AltaUser | null; site: SiteConfig };
+  context: { user: AltaUser | null; site?: SiteConfig };
   location: { href: string; pathname: string };
 };
 
@@ -27,14 +28,14 @@ export function authBeforeLoad({ context, location }: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   if (context.user) return;
-  throw signInRedirect(context.site, location.pathname);
+  throw signInRedirect(siteFromRouteContext(context), location.pathname);
 }
 
 async function requireSignedIn({ context, location }: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   if (!context.user) {
-    throw signInRedirect(context.site, location.pathname);
+    throw signInRedirect(siteFromRouteContext(context), location.pathname);
   }
 }
 
@@ -55,10 +56,11 @@ export async function internalBeforeLoad(context: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;
   const user = context.context.user ?? (await fetchCurrentUser());
+  const site = siteFromRouteContext(context.context);
   if (!user) {
-    throw signInRedirect(context.context.site, context.location.pathname);
+    throw signInRedirect(site, context.location.pathname);
   }
-  if (!canAccessInternal(user)) {
+  if (!canAccessInternalForSite(user, site.key)) {
     throw redirect({ to: "/access-restricted" });
   }
 }

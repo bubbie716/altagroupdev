@@ -1,4 +1,4 @@
-import { canAccessInternal } from "@/lib/auth/permissions";
+import { canAccessBankInternal } from "@/lib/auth/permissions";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
 import { prisma } from "@/server/db";
 
@@ -30,5 +30,5 @@ export async function isBotStaffDiscordUser(
   });
   if (!userRecord) return false;
 
-  return canAccessInternal(mapDbUserToAltaUser(userRecord));
+  return canAccessBankInternal(mapDbUserToAltaUser(userRecord));
 }

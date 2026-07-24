@@ -27,9 +27,12 @@ import {
   altaPayToDescription,
   stripAltaPayFromPrefix,
 } from "@/lib/bank/customer-transaction-copy";
-import { UserTag } from "@prisma/client";
 import { prisma } from "@/server/db";
-import { isSystemActorUserId, SYSTEM_ACTOR_USER_ID } from "@/server/system-actor.service";
+import {
+  isSystemActorUserId,
+  resolveSystemActorUserId,
+  SYSTEM_ACTOR_USER_ID,
+} from "@/server/system-actor.service";
 import {
   refreshCompanyRelationshipStackBestEffort,
   refreshUserRelationshipProfileBestEffort,
@@ -213,6 +216,7 @@ export async function searchPayableRecipients(
   const q = query.trim();
   if (q.length < 1) return [];
 
+  const systemActorId = await resolveSystemActorUserId().catch(() => SYSTEM_ACTOR_USER_ID);
   const [companies, users] = await Promise.all([
     searchPayableCompanies(q),
     prisma.user.findMany({
@@ -220,10 +224,7 @@ export async function searchPayableRecipients(
         id: { not: payerUserId },
         accountStatus: "ACTIVE",
         NOT: {
-          OR: [
-            { id: SYSTEM_ACTOR_USER_ID },
-            { tags: { some: { tag: UserTag.SYSTEM } } },
-          ],
+          OR: [{ id: SYSTEM_ACTOR_USER_ID }, { id: systemActorId }],
         },
         OR: [
           { discordUsername: { contains: q, mode: "insensitive" } },

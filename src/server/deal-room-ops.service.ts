@@ -5,7 +5,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
-import { isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canAccessBankInternal, isAdmin } from "@/lib/auth/permissions";
 import {
   hoursInStage,
   isStalled,
@@ -46,7 +46,7 @@ function forbidden(): never {
 }
 
 function canManageOps(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 async function requireOpsUser(userId: string): Promise<AltaUser> {
@@ -312,7 +312,7 @@ export async function getDealRoomOpsContext(actorUserId: string, dealRoomId: str
 
 export async function listDealRoomOfficers(): Promise<{ id: string; name: string }[]> {
   const users = await prisma.user.findMany({
-    where: { tags: { some: { tag: { in: ["ADMIN", "OPERATOR"] } } } },
+    where: { tags: { some: { tag: { in: ["CORPORATE_ADMIN", "BANK_ADMIN"] } } } },
     select: { id: true, discordUsername: true },
     orderBy: { discordUsername: "asc" },
   });

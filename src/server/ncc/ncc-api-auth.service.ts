@@ -62,7 +62,7 @@ async function recordAuthRejection(input: {
       input.actorUserId ??
       (
         await prisma.user.findFirst({
-          where: { tags: { some: { tag: "ADMIN" } } },
+          where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
           select: { id: true },
         })
       )?.id;
@@ -141,7 +141,7 @@ export async function authenticateNccApiRequest(
           credential.createdByUserId ??
           (
             await prisma.user.findFirst({
-              where: { tags: { some: { tag: "ADMIN" } } },
+              where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
               select: { id: true },
             })
           )?.id;
@@ -198,7 +198,7 @@ export function requireApiScope(ctx: AuthenticatedNccApiContext, scope: NccApiSc
         ctx.credential.createdByUserId ??
         (
           await prisma.user.findFirst({
-            where: { tags: { some: { tag: "ADMIN" } } },
+            where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
             select: { id: true },
           })
         )?.id;

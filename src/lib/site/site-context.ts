@@ -131,3 +131,10 @@ export function resolveSiteContextFromRequest(
 export function fallbackSiteContext(): SiteConfig {
   return getDefaultSiteConfig();
 }
+
+/** Safe site lookup for route head/beforeLoad/loader when context may be incomplete. */
+export function siteFromRouteContext(
+  context: { site?: SiteConfig } | null | undefined,
+): SiteConfig {
+  return context?.site ?? fallbackSiteContext();
+}

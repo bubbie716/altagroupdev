@@ -1,11 +1,12 @@
 import { prisma } from "@/server/db";
 
 async function resolveSystemActorId(): Promise<string | undefined> {
-  const systemUser = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "SYSTEM" } } },
-    select: { id: true },
-  });
-  return systemUser?.id;
+  try {
+    const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+    return await resolveSystemActorUserId();
+  } catch {
+    return undefined;
+  }
 }
 
 function logRefreshFailure(scope: string, id: string, reason: string, error: unknown): void {

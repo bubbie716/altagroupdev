@@ -9,11 +9,10 @@ import type { DealRoomStatus as DbDealRoomStatus, Prisma } from "@prisma/client"
  */
 import type { AltaUser } from "@/lib/auth/types";
 import {
-  canAccessInternal,
+  canAccessBankInternal,
   canManageBusinessTreasury,
   canViewCompanyDealRoom,
   isAdmin,
-  isOperator,
 } from "@/lib/auth/permissions";
 import type {
   AddDealRoomSystemUpdateInput,
@@ -58,11 +57,11 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function canManageDealRoomOps(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 function canViewDealRoom(user: AltaUser, room: Pick<DealRoomRecord, "borrowerUserId" | "companyId">): boolean {
-  if (canAccessInternal(user)) return true;
+  if (canAccessBankInternal(user)) return true;
   if (room.borrowerUserId === user.id) return true;
   if (room.companyId && canViewCompanyDealRoom(user, room.companyId)) return true;
   return false;
@@ -662,7 +661,7 @@ export async function softDeleteDealRoomMessage(
     isSender &&
     Date.now() - message.createdAt.getTime() <= DEAL_ROOM_MESSAGE_SENDER_DELETE_WINDOW_MS;
 
-  if (!isAdmin(actor) && !withinWindow) {
+  if (!canAccessBankInternal(actor) && !withinWindow) {
     badRequest("You can only remove your own messages within 15 minutes, or ask an admin.");
   }
 

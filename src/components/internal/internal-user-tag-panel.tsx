@@ -27,6 +27,16 @@ type PendingAction = {
   tag: UserTag;
 };
 
+const STAFF_TAGS: UserTag[] = ["corporate_admin", "bank_admin", "terminal_admin"];
+
+const TAG_DESCRIPTIONS: Partial<Record<UserTag, string>> = {
+  corporate_admin: "Full access to all Alta internal panels and group settings.",
+  bank_admin: "Bank internal panel and bank operations only.",
+  terminal_admin: "Terminal internal panel (and legacy exchange host settings) only.",
+  private_client:
+    "Alta Private membership is invitation-only. Use the Relationship tab to send invitations; corporate admins may override here in exceptional cases.",
+};
+
 export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
   const router = useRouter();
   const grantTag = useServerFn(grantInternalUserTagRecord);
@@ -71,8 +81,7 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
     if (kind === "revoke" && !action.canRevoke) return;
 
     const needsConfirm =
-      (tag === "admin" && (kind === "grant" || kind === "revoke")) ||
-      (tag === "operator" && kind === "revoke") ||
+      STAFF_TAGS.includes(tag) ||
       (tag === "private_client" && (kind === "grant" || kind === "revoke"));
 
     if (needsConfirm) {
@@ -88,14 +97,14 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
     <>
       <div className="space-y-4">
         <p className="text-[13px] text-muted-foreground">
-          Global Alta access tags. Staff tags (Admin, Operator) require admin privileges to modify.
+          Global Alta access tags. Only corporate admins can grant or revoke staff tags.
         </p>
 
         <div className="space-y-3">
           {ALL_USER_TAGS.map((tag) => {
             const active = user.tags.includes(tag);
             const action = user.capabilities.tags[tag];
-            const isStaff = tag === "admin" || tag === "operator";
+            const isStaff = STAFF_TAGS.includes(tag);
 
             return (
               <div
@@ -118,21 +127,9 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
                       {active ? "Active" : "Not assigned"}
                     </span>
                   </div>
-                  {tag === "admin" && (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Full internal access and tag management.
-                    </p>
-                  )}
-                  {tag === "operator" && (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Internal console access without staff tag management.
-                    </p>
-                  )}
-                  {tag === "private_client" && (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Alta Private membership is invitation-only. Use the Relationship tab to send invitations; admins may override here in exceptional cases.
-                    </p>
-                  )}
+                  {TAG_DESCRIPTIONS[tag] ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">{TAG_DESCRIPTIONS[tag]}</p>
+                  ) : null}
                 </div>
                 <div className="flex gap-2">
                   {action.canGrant && (
@@ -167,7 +164,6 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
         {message && <p className="text-[13px] text-[var(--success)]">{message}</p>}
         {error && <p className="text-[13px] text-destructive">{error}</p>}
         <p className="text-[11px] text-muted-foreground">
-          {/* TODO: Future AuditLog required for tag changes. */}
           Tag changes are applied immediately. Audit logging is planned for a future release.
         </p>
       </div>
@@ -176,15 +172,14 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Confirm {pending?.kind === "grant" ? "grant" : "revoke"} {pending ? formatUserTag(pending.tag) : ""}
+              Confirm {pending?.kind === "grant" ? "grant" : "revoke"}{" "}
+              {pending ? formatUserTag(pending.tag) : ""}
             </DialogTitle>
             <DialogDescription>
-              {pending?.tag === "admin"
-                ? "Admin access grants full internal control including tag management. Confirm only for trusted staff."
+              {pending?.tag === "corporate_admin"
+                ? "Corporate admin grants full internal control across all Alta sites. Confirm only for trusted staff."
                 : pending?.tag === "private_client"
                   ? "Direct Alta Private membership changes bypass the invitation flow. Use only for exceptional admin overrides."
-                  : pending?.tag === "operator" && pending.kind === "revoke"
-                  ? "Revoking operator access removes internal console access for this user."
                   : "This change takes effect immediately."}
             </DialogDescription>
           </DialogHeader>

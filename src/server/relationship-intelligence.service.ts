@@ -710,17 +710,8 @@ export async function getRelationshipSnapshot(userId: string): Promise<Relations
 
 async function resolveAuditActorId(actorUserId?: string): Promise<string> {
   if (actorUserId) return actorUserId;
-  const systemUser = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "SYSTEM" } } },
-    select: { id: true },
-  });
-  if (systemUser) return systemUser.id;
-  const admin = await prisma.user.findFirst({
-    where: { tags: { some: { tag: "ADMIN" } } },
-    select: { id: true },
-  });
-  if (!admin) throw new Error("NO_SYSTEM_ACTOR");
-  return admin.id;
+  const { resolveSystemActorUserId } = await import("@/server/system-actor.service");
+  return resolveSystemActorUserId();
 }
 
 export async function refreshRelationshipProfile(

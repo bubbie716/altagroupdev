@@ -51,8 +51,15 @@ export function NccCopyrightFooter() {
 
   return (
     <footer className="mt-auto border-t border-[#e5e7eb] bg-white">
-      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-4 sm:px-8">
-        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">
+      <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-10 sm:px-8">
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#6b7280]">{copyright}</p>
+          <p className="max-w-3xl text-[10px] leading-relaxed text-[#6b7280]">{disclaimer}</p>
+        </div>
+        <nav
+          aria-label="Legal"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:max-w-xl sm:justify-end lg:max-w-2xl"
+        >
           {legalDocs.map((doc) => (
             <NccFooterDocLink key={doc.id} doc={doc} />
           ))}
@@ -60,8 +67,6 @@ export function NccCopyrightFooter() {
             Legal Center
           </SiteInternalLink>
         </nav>
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#6b7280]">{copyright}</p>
-        <p className="max-w-3xl text-[10px] leading-relaxed text-[#6b7280]">{disclaimer}</p>
       </div>
     </footer>
   );

@@ -439,7 +439,7 @@ export async function evaluateSettlementRisk(input: {
       submittedByUserId ??
       (
         await prisma.user.findFirst({
-          where: { tags: { some: { tag: "ADMIN" } } },
+          where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
           select: { id: true },
         })
       )?.id;

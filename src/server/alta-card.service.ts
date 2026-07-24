@@ -23,13 +23,11 @@ import {
   ALTA_CARD_DEFAULT_LIMITS,
   ALTA_CARD_DEFAULT_RATES,
 } from "@/lib/bank/alta-card-types";
-import {
+import { canAccessBankInternal,
   canManageBusinessTreasury,
   canViewBusinessTreasury,
   canViewCompanyAltaCard,
   canManageCompanyAltaCard,
-  isAdmin,
-  isOperator,
   isPrivateClient,
 } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
@@ -180,7 +178,7 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function assertOperatorOrAdmin(user: AltaUser): void {
-  if (!isAdmin(user) && !isOperator(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 function assertGoldTierAllowed(user: AltaUser, tier: AltaCardTierCode): void {
@@ -227,7 +225,7 @@ export async function assertCompanyAltaCardViewAccess(userId: string, companyId:
 
 export async function assertCardAccess(userId: string, card: { ownerUserId: string | null; companyId: string | null; cardType: string }): Promise<AltaUser> {
   const user = await getAltaUser(userId);
-  if (isAdmin(user) || isOperator(user)) return user;
+  if (canAccessBankInternal(user)) return user;
 
   if (card.cardType === "PERSONAL" && card.ownerUserId === userId) return user;
 
@@ -281,7 +279,7 @@ export async function getCompanyAltaCards(userId: string, companyId: string): Pr
   const user = await getAltaUser(userId);
   await assertCompanyAltaCardViewAccess(userId, companyId);
   const canManageTreasury =
-    isAdmin(user) || isOperator(user) || canManageCompanyAltaCard(user, companyId);
+    canAccessBankInternal(user) || canManageCompanyAltaCard(user, companyId);
 
   const [businessCard, employeeCards, pendingApplication, employeeMemberOptions] = await Promise.all([
     resolveCompanyBusinessCard(companyId),
@@ -336,7 +334,7 @@ export async function listCompanyEmployeeCardMemberOptions(
   companyId: string,
 ): Promise<import("@/lib/bank/alta-card-types").CompanyEmployeeCardMemberOption[]> {
   const user = await getAltaUser(actorUserId);
-  if (!canManageBusinessTreasury(user, { companyId }) && !isAdmin(user) && !isOperator(user)) {
+  if (!canManageBusinessTreasury(user, { companyId }) && !canAccessBankInternal(user)) {
     forbidden();
   }
 
@@ -533,7 +531,7 @@ export {
 export async function activateAltaCard(actorUserId: string, cardId: string): Promise<AltaCardRow> {
   const card = await getCardOrThrow(cardId);
   const user = await assertCardAccess(actorUserId, card);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
 
   if (card.status !== "PENDING") badRequest("Only pending cards can be activated");
   if (!isStaff && card.cardType === "PERSONAL" && card.ownerUserId !== actorUserId) forbidden();
@@ -641,7 +639,7 @@ export async function unfreezeAltaCard(actorUserId: string, cardId: string): Pro
 export async function closeAltaCard(actorUserId: string, cardId: string): Promise<AltaCardRow> {
   const card = await getCardOrThrow(cardId);
   const user = await assertCardAccess(actorUserId, card);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   if (!isStaff && card.cardType === "BUSINESS") forbidden();
   if (card.status === "CLOSED") badRequest("Card is already closed");
 
@@ -792,7 +790,7 @@ export async function updateEmployeeCardLimit(
   if (!employeeCard) notFound();
 
   const user = await getAltaUser(actorUserId);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   if (!isStaff && !canManageBusinessTreasury(user, { companyId: employeeCard.companyId })) {
     forbidden();
   }
@@ -865,7 +863,7 @@ export async function freezeEmployeeCard(
   if (!employeeCard) notFound();
 
   const user = await getAltaUser(actorUserId);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   if (!isStaff && !canManageBusinessTreasury(user, { companyId: employeeCard.companyId })) {
     forbidden();
   }
@@ -908,7 +906,7 @@ export async function closeEmployeeCard(
   if (!employeeCard) notFound();
 
   const user = await getAltaUser(actorUserId);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   if (!isStaff && !canManageBusinessTreasury(user, { companyId: employeeCard.companyId })) {
     forbidden();
   }
@@ -1071,8 +1069,7 @@ export async function listUserBusinessAltaCardCompanies(userId: string): Promise
     (membership) =>
       membership.role !== "viewer" &&
       (canViewCompanyAltaCard(user, membership.companyId) ||
-        isAdmin(user) ||
-        isOperator(user)),
+        canAccessBankInternal(user)),
   );
 
   const results = await Promise.all(

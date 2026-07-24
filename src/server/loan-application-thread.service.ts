@@ -5,11 +5,10 @@ import type {
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import {
-  canAccessInternal,
+  canAccessBankInternal,
   canManageBusinessTreasury,
   canViewCompanyDealRoom,
   isAdmin,
-  isOperator,
 } from "@/lib/auth/permissions";
 import type {
   AssignThreadStaffInput,
@@ -119,7 +118,7 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function isStaff(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 function canViewThread(user: AltaUser, thread: ThreadRecord): boolean {
@@ -602,7 +601,7 @@ export async function ensureThreadForApplication(
   applicationId: string,
 ): Promise<{ threadId: string; applicationId: string }> {
   const actor = await getAltaUser(actorUserId);
-  if (!canAccessInternal(actor)) forbidden();
+  if (!canAccessBankInternal(actor)) forbidden();
   return createThreadForLoanApplication(actorUserId, applicationId);
 }
 

@@ -12,7 +12,7 @@ describe("bot maintenance gate", () => {
     assert.equal(shouldBlockBotUserDuringMaintenance(true, false), true);
   });
 
-  it("allows admin and operator bypass users during maintenance", () => {
+  it("allows admin bypass users during maintenance", () => {
     assert.equal(shouldBlockBotUserDuringMaintenance(true, true), false);
   });
 });

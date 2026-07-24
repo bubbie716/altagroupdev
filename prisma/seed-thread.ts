@@ -6,7 +6,7 @@ async function main() {
   const threadId = "cmqu90jge0001ukjqmzcxsxsr";
 
   // Find any alta staff (or create system messages). Use first user with admin tag.
-  const staff = await db.userTagAssignment.findFirst({ where: { tag: "ADMIN" as any } });
+  const staff = await db.userTagAssignment.findFirst({ where: { tag: "CORPORATE_ADMIN" as any } });
   const staffId = staff?.userId ?? carterId;
 
   const existing = await db.loanApplicationThreadMessage.count({ where: { threadId } });

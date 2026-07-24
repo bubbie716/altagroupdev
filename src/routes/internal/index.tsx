@@ -12,24 +12,26 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import { buildBreadcrumbs } from "@/components/internal/console";
 import { EntityInternalHome } from "@/components/internal/entity-internal-home";
 import { useSiteContext } from "@/hooks/use-site-context";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 export const Route = createFileRoute("/internal/")({
   beforeLoad: ({ context }) => {
-    const siteKey = context.site.key;
+    const siteKey = siteFromRouteContext(context).key;
     if (siteKey === "bank") {
       throw redirect({ to: "/internal/bank" });
     }
   },
   loader: ({ context }) => {
-    const siteKey = context.site.key;
+    const siteKey = siteFromRouteContext(context).key;
     if (siteKey === "exchange" || siteKey === "terminal") {
       return null;
     }
     return fetchEnhancedDashboard();
   },
   head: ({ context }) => {
-    if (context.site.key === "exchange" || context.site.key === "terminal") {
-      return { meta: [{ title: `Internal — ${context.site.displayName}` }] };
+    const site = siteFromRouteContext(context);
+    if (site.key === "exchange" || site.key === "terminal") {
+      return { meta: [{ title: `Internal — ${site.displayName}` }] };
     }
     return { meta: [{ title: "Operations Center — Alta Internal" }] };
   },

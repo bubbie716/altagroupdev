@@ -267,7 +267,7 @@ export async function apiSubmitSettlement(
     ctx.institution.primaryContactUserId ??
     (
       await prisma.user.findFirst({
-        where: { tags: { some: { tag: "ADMIN" } } },
+        where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
         select: { id: true },
       })
     )?.id;
@@ -434,7 +434,7 @@ export async function apiCancelSettlement(
     ctx.institution.primaryContactUserId ??
     (
       await prisma.user.findFirst({
-        where: { tags: { some: { tag: "ADMIN" } } },
+        where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
         select: { id: true },
       })
     )?.id;
@@ -555,7 +555,7 @@ export async function apiRequestReversal(
       ctx.credential.createdByUserId ??
       (
         await prisma.user.findFirst({
-          where: { tags: { some: { tag: "ADMIN" } } },
+          where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
           select: { id: true },
         })
       )?.id;

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { EntityLoginPage } from "@/components/site/entity-login-page";
 import { NccHomePage } from "@/components/ncc/ncc-home-page";
 import { getSiteConfig } from "@/config/sites";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 type HomeSearch = {
   redirect?: string;
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/")({
     error: typeof search.error === "string" ? search.error : undefined,
   }),
   loader: ({ context }) => ({
-    siteKey: context.site.key,
+    siteKey: siteFromRouteContext(context).key,
   }),
   head: ({ loaderData }) => {
     const site = getSiteConfig(loaderData?.siteKey ?? "corporate");

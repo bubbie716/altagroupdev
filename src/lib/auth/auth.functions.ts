@@ -6,12 +6,12 @@ export const fetchCurrentUser = createServerFn({ method: "GET" }).handler(async 
   return readCurrentUser();
 });
 
-/** True when the session user has internal access (admin or operator tag). */
+/** True when the session user has any Alta staff tag. */
 export const verifyInternalAccess = createServerFn({ method: "GET" }).handler(async () => {
   const { readCurrentUser } = await import("@/server/auth.service");
-  const { canAccessInternal } = await import("@/lib/auth/permissions");
+  const { canAccessAnyInternal } = await import("@/lib/auth/permissions");
   const user = await readCurrentUser();
-  return user ? canAccessInternal(user) : false;
+  return user ? canAccessAnyInternal(user) : false;
 });
 
 /** True when the session user has the private_client tag. */

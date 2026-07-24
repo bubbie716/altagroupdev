@@ -1,6 +1,6 @@
 import type { AccountStatus, AltaUser, UserTag } from "@/lib/auth/types";
 import { formatUserTag } from "@/lib/auth/tags";
-import { isAdmin, isOperator } from "@/lib/auth/permissions";
+import { isAdmin } from "@/lib/auth/permissions";
 import type {
   InternalAccessMetrics,
   InternalUserDetail,
@@ -25,8 +25,7 @@ import type { Prisma } from "@prisma/client";
 import { fromDbBankAccountType } from "@/server/bank-mapper";
 import { COMPANY_ROLE_LABELS } from "@/lib/bank/business-banking-types";
 
-const STAFF_TAGS: UserTag[] = ["admin", "operator"];
-const OPERATOR_MANAGEABLE_TAGS: UserTag[] = ["developer", "issuer"];
+const STAFF_TAGS: UserTag[] = ["corporate_admin", "bank_admin", "terminal_admin"];
 
 function forbid(): never {
   throw new Error("FORBIDDEN");
@@ -78,66 +77,41 @@ function buildListWhere(filters: InternalUserListFilters): Prisma.UserWhereInput
   return and.length > 0 ? { AND: and } : {};
 }
 
-function assertActorCanModifyTag(actor: AltaUser, tag: UserTag, action: "grant" | "revoke"): void {
-  if (isAdmin(actor)) return;
-
-  if (!isOperator(actor)) forbid();
-
-  if (STAFF_TAGS.includes(tag)) {
-    badRequest(`Operators cannot ${action} the ${formatUserTag(tag)} tag.`);
-  }
-
-  if (!OPERATOR_MANAGEABLE_TAGS.includes(tag)) {
-    badRequest(`Operators cannot ${action} the ${formatUserTag(tag)} tag.`);
-  }
+function assertActorCanModifyTag(actor: AltaUser, _tag: UserTag, _action: "grant" | "revoke"): void {
+  if (!isAdmin(actor)) forbid();
 }
 
 async function assertNotLastAdmin(targetUserId: string, tag: UserTag): Promise<void> {
-  if (tag !== "admin") return;
+  if (tag !== "corporate_admin") return;
 
   const hasAdmin = await prisma.userTagAssignment.findUnique({
-    where: { userId_tag: { userId: targetUserId, tag: "ADMIN" } },
+    where: { userId_tag: { userId: targetUserId, tag: "CORPORATE_ADMIN" } },
   });
   if (!hasAdmin) return;
 
-  const adminCount = await prisma.userTagAssignment.count({ where: { tag: "ADMIN" } });
+  const adminCount = await prisma.userTagAssignment.count({ where: { tag: "CORPORATE_ADMIN" } });
   if (adminCount <= 1) {
-    badRequest("Cannot remove the last admin on the platform.");
+    badRequest("Cannot remove the last corporate admin on the platform.");
   }
 }
 
 function assertNotSelfAdminChange(actor: AltaUser, targetUserId: string, tag: UserTag): void {
-  if (actor.id === targetUserId && tag === "admin") {
-    badRequest("You cannot modify your own admin tag.");
+  if (actor.id === targetUserId && tag === "corporate_admin") {
+    badRequest("You cannot modify your own corporate admin tag.");
   }
 }
 
 function buildTagCapabilities(actor: AltaUser, targetTags: UserTag[]): InternalUserManagementCapabilities["tags"] {
   const result = {} as Record<UserTag, InternalUserTagAction>;
+  const adminActor = isAdmin(actor);
 
   for (const tag of ALL_USER_TAGS) {
     const hasTag = targetTags.includes(tag);
-    const isStaffTag = STAFF_TAGS.includes(tag);
-    const adminActor = isAdmin(actor);
-    const operatorActor = isOperator(actor) && !adminActor;
-
-    let canGrant = false;
-    let canRevoke = false;
-
-    if (adminActor) {
-      canGrant = !hasTag;
-      canRevoke = hasTag;
-    } else if (operatorActor && OPERATOR_MANAGEABLE_TAGS.includes(tag)) {
-      canGrant = !hasTag;
-      canRevoke = hasTag;
-    }
-
     result[tag] = {
-      canGrant,
-      canRevoke,
-      requiresConfirm:
-        tag === "admin" || (tag === "operator" && hasTag),
-      danger: isStaffTag,
+      canGrant: adminActor && !hasTag,
+      canRevoke: adminActor && hasTag,
+      requiresConfirm: STAFF_TAGS.includes(tag) || tag === "private_client",
+      danger: STAFF_TAGS.includes(tag),
     };
   }
 
@@ -155,13 +129,6 @@ function buildStatusCapabilities(actor: AltaUser): Pick<
     };
   }
 
-  if (isOperator(actor)) {
-    return {
-      canChangeAccountStatus: true,
-      allowedAccountStatuses: ["pending_review", "restricted"],
-    };
-  }
-
   return { canChangeAccountStatus: false, allowedAccountStatuses: [] };
 }
 
@@ -169,6 +136,7 @@ function mapListRow(user: {
   id: string;
   discordId: string;
   discordUsername: string;
+  email: string | null;
   minecraftUsername: string | null;
   accountStatus: import("@prisma/client").AccountStatus;
   lastLoginAt: Date;
@@ -198,22 +166,10 @@ function mapListRow(user: {
 export async function queryInternalAccessMetrics(): Promise<InternalAccessMetrics> {
   await requireOperator();
 
-  const [
-    totalUsers,
-    admins,
-    operators,
-    privateClients,
-    developers,
-    issuers,
-    restrictedUsers,
-    frozenUsers,
-  ] = await Promise.all([
+  const [totalUsers, admins, privateClients, restrictedUsers, frozenUsers] = await Promise.all([
     prisma.user.count(),
-    prisma.userTagAssignment.count({ where: { tag: "ADMIN" } }),
-    prisma.userTagAssignment.count({ where: { tag: "OPERATOR" } }),
+    prisma.userTagAssignment.count({ where: { tag: "CORPORATE_ADMIN" } }),
     prisma.userTagAssignment.count({ where: { tag: "PRIVATE_CLIENT" } }),
-    prisma.userTagAssignment.count({ where: { tag: "DEVELOPER" } }),
-    prisma.userTagAssignment.count({ where: { tag: "ISSUER" } }),
     prisma.user.count({ where: { accountStatus: "RESTRICTED" } }),
     prisma.user.count({ where: { accountStatus: "FROZEN" } }),
   ]);
@@ -221,10 +177,7 @@ export async function queryInternalAccessMetrics(): Promise<InternalAccessMetric
   return {
     totalUsers,
     admins,
-    operators,
     privateClients,
-    developers,
-    issuers,
     restrictedUsers,
     frozenUsers,
   };
@@ -376,7 +329,7 @@ export async function grantInternalUserTag(
   if (!actorRecord) forbid();
   const actor = mapDbUserToAltaUser(actorRecord);
 
-  if (!isAdmin(actor) && !isOperator(actor)) forbid();
+  if (!isAdmin(actor)) forbid();
 
   assertActorCanModifyTag(actor, tag, "grant");
   assertNotSelfAdminChange(actor, targetUserId, tag);
@@ -434,7 +387,7 @@ export async function revokeInternalUserTag(
   if (!actorRecord) forbid();
   const actor = mapDbUserToAltaUser(actorRecord);
 
-  if (!isAdmin(actor) && !isOperator(actor)) forbid();
+  if (!isAdmin(actor)) forbid();
 
   assertActorCanModifyTag(actor, tag, "revoke");
   assertNotSelfAdminChange(actor, targetUserId, tag);

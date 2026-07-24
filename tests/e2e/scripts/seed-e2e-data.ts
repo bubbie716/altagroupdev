@@ -20,8 +20,8 @@ const ROLE_TAGS: Record<E2eRole, UserTag[]> = {
   customer: [],
   businessOwner: [],
   financeManager: [],
-  operator: [UserTag.OPERATOR],
-  admin: [UserTag.ADMIN, UserTag.OPERATOR],
+  operator: [UserTag.BANK_ADMIN],
+  admin: [UserTag.CORPORATE_ADMIN],
 };
 
 const ROLE_USERNAMES: Record<E2eRole, string> = {

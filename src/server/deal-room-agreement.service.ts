@@ -6,11 +6,10 @@ import type {
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import {
-  canAccessInternal,
+  canAccessBankInternal,
   canNegotiateCompanyDealRoom,
   canViewCompanyDealRoom,
   isAdmin,
-  isOperator,
 } from "@/lib/auth/permissions";
 import type {
   AgreementDraftRow,
@@ -57,11 +56,11 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function canManageDealRoomOps(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 function canViewDealRoom(user: AltaUser, room: Pick<DealRoomRecord, "borrowerUserId" | "companyId">): boolean {
-  if (canAccessInternal(user)) return true;
+  if (canAccessBankInternal(user)) return true;
   if (room.borrowerUserId === user.id) return true;
   if (room.companyId && canViewCompanyDealRoom(user, room.companyId)) return true;
   return false;

@@ -52,7 +52,7 @@ export function mapDbUserToAltaUser(user: UserWithRelations): AltaUser {
     accountStatus: fromDbAccountStatus(user.accountStatus),
     developerAccessStatus,
     developerAccess: developerAccessGranted(developerAccessStatus),
-    internalAccess: tags.includes("admin") || tags.includes("operator"),
+    internalAccess: tags.includes("corporate_admin") || tags.includes("bank_admin") || tags.includes("terminal_admin"),
     companyMemberships: mapMemberships(user),
     createdAt: user.createdAt.toISOString(),
     lastLoginAt: user.lastLoginAt.toISOString(),

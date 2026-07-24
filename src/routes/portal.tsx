@@ -2,10 +2,11 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchPortalShell } from "@/lib/ncc/ncc-portal.functions";
 import { PortalShell } from "@/components/ncc/portal/portal-shell";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 export const Route = createFileRoute("/portal")({
   beforeLoad: (opts) => {
-    if (opts.context.site.key !== "ncc") {
+    if (siteFromRouteContext(opts.context).key !== "ncc") {
       throw redirect({ to: "/" });
     }
     return authBeforeLoad(opts);

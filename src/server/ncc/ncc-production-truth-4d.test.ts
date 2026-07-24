@@ -175,7 +175,7 @@ describe("ncc sprint 4d connector honesty", {
       data: {
         discordId: `ncc-4d-s-${suffix}`,
         discordUsername: `ncc_4d_s_${suffix}`,
-        tags: { create: [{ tag: "ADMIN" }] },
+        tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
       },
     });
     staffId = staff.id;

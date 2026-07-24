@@ -117,7 +117,7 @@ describe("ncc sprint 4c connectivity certification", {
       data: {
         discordId: `ncc-4c-s-${suffix}`,
         discordUsername: `ncc_4c_s_${suffix}`,
-        tags: { create: [{ tag: "ADMIN" }] },
+        tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
       },
     });
     staffId = staff.id;

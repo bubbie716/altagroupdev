@@ -352,7 +352,7 @@ async function auditCredentialExpired(row: NccApiCredential): Promise<void> {
       row.createdByUserId ??
       (
         await prisma.user.findFirst({
-          where: { tags: { some: { tag: "ADMIN" } } },
+          where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
           select: { id: true },
         })
       )?.id;

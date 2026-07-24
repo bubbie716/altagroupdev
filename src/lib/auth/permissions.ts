@@ -1,4 +1,5 @@
 import type { AltaUser, CompanyRole, EnrichedCompanyMembership } from "@/lib/auth/types";
+import type { SiteKey } from "@/config/sites";
 import { hasTag } from "@/lib/auth/tags";
 
 /** Company roles that may access the issuer portal (VIEWER excluded). */
@@ -72,37 +73,69 @@ function hasCompanyRole(user: AltaUser, scope: CompanyScope, roles: readonly Com
 
 // — Global permissions (UserTagAssignment) —
 
-export function isAdmin(user: AltaUser): boolean {
-  return hasTag(user, "admin");
+export function isCorporateAdmin(user: AltaUser): boolean {
+  return hasTag(user, "corporate_admin");
 }
 
-export function isOperator(user: AltaUser): boolean {
-  return hasTag(user, "operator");
+export function isBankAdmin(user: AltaUser): boolean {
+  return hasTag(user, "bank_admin");
+}
+
+export function isTerminalAdmin(user: AltaUser): boolean {
+  return hasTag(user, "terminal_admin");
+}
+
+/** Corporate admin — full group control (alias kept for existing call sites). */
+export function isAdmin(user: AltaUser): boolean {
+  return isCorporateAdmin(user);
 }
 
 export function isPrivateClient(user: AltaUser): boolean {
   return hasTag(user, "private_client");
 }
 
-/** Developer tag or approved developer access workflow on the user record. */
+/** Approved developer access workflow on the user record (legacy Exchange field). */
 export function isDeveloper(user: AltaUser): boolean {
-  return hasTag(user, "developer") || user.developerAccess;
+  return user.developerAccess;
 }
 
-export function isIssuer(user: AltaUser): boolean {
-  return hasTag(user, "issuer");
+/** Any Alta staff tag (corporate / bank / terminal). */
+export function canAccessAnyInternal(user: AltaUser): boolean {
+  return isCorporateAdmin(user) || isBankAdmin(user) || isTerminalAdmin(user);
 }
 
-/** Internal console: admin (full) or operator (non-admin internal). */
+/** Bank ops console — corporate or bank admin (not terminal-only staff). */
+export function canAccessBankInternal(user: AltaUser): boolean {
+  return isCorporateAdmin(user) || isBankAdmin(user);
+}
+
+/**
+ * Alta platform staff used by NCC portal / internal platform helpers.
+ * Preserves pre-split behavior: only corporate admins (former global admin).
+ */
 export function canAccessInternal(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return isCorporateAdmin(user);
 }
 
-/** Admins and operators bypass maintenance mode entirely (public + internal routes). */
+/** Whether the user may open `/internal` on the given site. NCC is always false. */
+export function canAccessInternalForSite(user: AltaUser, siteKey: SiteKey): boolean {
+  switch (siteKey) {
+    case "corporate":
+      return isCorporateAdmin(user);
+    case "bank":
+      return canAccessBankInternal(user);
+    case "terminal":
+    case "exchange":
+      return isCorporateAdmin(user) || isTerminalAdmin(user);
+    case "ncc":
+      return false;
+  }
+}
+
+/** Corporate admins bypass maintenance mode on public and internal routes. */
 export function canBypassMaintenanceMode(user: AltaUser | null | undefined): boolean {
   if (!user) return false;
-  if (user.internalAccess) return true;
-  return isAdmin(user) || isOperator(user);
+  return isCorporateAdmin(user);
 }
 
 // — Company-scoped permissions (CompanyMembership) —
@@ -161,13 +194,13 @@ export function isCompanyViewer(user: AltaUser, scope: CompanyScope): boolean {
 
 /** Company business Alta Card line (not employee cards). Viewers are excluded. */
 export function canViewCompanyAltaCard(user: AltaUser, companyId: string): boolean {
-  if (isAdmin(user) || isOperator(user)) return true;
+  if (canAccessBankInternal(user)) return true;
   if (isCompanyViewer(user, { companyId })) return false;
   return canViewBusinessTreasury(user, { companyId });
 }
 
 export function canManageCompanyAltaCard(user: AltaUser, companyId: string): boolean {
-  if (isAdmin(user) || isOperator(user)) return true;
+  if (canAccessBankInternal(user)) return true;
   if (isCompanyViewer(user, { companyId })) return false;
   return canManageBusinessTreasury(user, { companyId });
 }

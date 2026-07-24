@@ -12,7 +12,7 @@ import {
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
-import { canAccessInternal } from "@/lib/auth/tags";
+import { canAccessAnyInternal } from "@/lib/auth/permissions";
 import { logoutUser } from "@/lib/auth/auth.functions";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,7 +38,7 @@ export function AuthUserMenu() {
   }
 
   const initials = user.discordUsername.slice(0, 2).toUpperCase();
-  const showInternal = canAccessInternal(user);
+  const showInternal = canAccessAnyInternal(user) && site.key !== "ncc";
   const menuItems = getAccountMenuItems(site.key, { showInternal });
 
   async function handleLogout() {

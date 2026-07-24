@@ -10,7 +10,7 @@ import type {
   InternalAltaCardApplicationFilters,
   InternalAltaCardApplicationReviewContext,
 } from "@/lib/bank/alta-card-types";
-import { isAdmin, isOperator, isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
+import { canAccessBankInternal, isAdmin, isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import {
   buildAltaCardApplicationAcceptedSystemMessage,
@@ -124,7 +124,7 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function assertOperatorOrAdmin(user: AltaUser): void {
-  if (!isAdmin(user) && !isOperator(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 function assertCanApproveTier(
@@ -134,7 +134,7 @@ function assertCanApproveTier(
   goldOverride?: boolean,
 ): void {
   if (tier === "gold") {
-    if (!isAdmin(admin)) forbidden();
+    if (!canAccessBankInternal(admin)) forbidden();
     if (!isPrivateClient(applicant) && !goldOverride) {
       badRequest("Gold approval requires Alta Private eligibility or admin override");
     }
@@ -559,7 +559,7 @@ export async function getAltaCardApplicationDetail(
   if (!application) notFound();
 
   const user = await getAltaUser(userId);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   const isApplicant = application.applicantUserId === userId;
   const isCompanyTreasury =
     application.companyId != null && canManageBusinessTreasury(user, { companyId: application.companyId });

@@ -72,9 +72,9 @@ export const fetchCompanyBrandingAdminView = createServerFn({ method: "GET" })
   .handler(async ({ data: companyId }) => {
     const { getCompanyBrandingForAdmin } = await import("@/server/company-branding.service");
     const { requireAuth } = await import("@/server/auth.service");
-    const { canAccessInternal } = await import("@/lib/auth/permissions");
+    const { canAccessBankInternal } = await import("@/lib/auth/permissions");
     const user = await requireAuth();
-    if (!canAccessInternal(user)) {
+    if (!canAccessBankInternal(user)) {
       throw new Error("FORBIDDEN");
     }
     return getCompanyBrandingForAdmin(companyId);

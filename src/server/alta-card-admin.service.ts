@@ -16,7 +16,7 @@ import type {
 } from "@/lib/bank/alta-card-types";
 import { altaCardPaymentDescription } from "@/lib/bank/customer-transaction-copy";
 import { getTierDefaultLimit, getTierDefaultRate } from "@/lib/bank/alta-card-tier-config";
-import { isAdmin, isOperator, isPrivateClient } from "@/lib/auth/permissions";
+import { canAccessBankInternal, isAdmin, isPrivateClient } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -87,11 +87,11 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function assertOperatorOrAdmin(user: AltaUser): void {
-  if (!isAdmin(user) && !isOperator(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 function assertAdmin(user: AltaUser): void {
-  if (!isAdmin(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 async function auditAdminEvent(
@@ -226,7 +226,7 @@ export async function changeAltaCardStatus(
   const target = input.status;
 
   if (current === "closed" && target !== "closed") {
-    if (!isAdmin(actor) || !input.adminOverride) {
+    if (!canAccessBankInternal(actor) || !input.adminOverride) {
       badRequest("Closed cards cannot be reopened without admin override");
     }
   }
@@ -285,7 +285,7 @@ export async function updateAltaCardLimitAdmin(
   const previousLimit = decimalToNumber(card.creditLimit);
 
   if (input.creditLimit < balance) {
-    if (!isAdmin(admin) || !input.adminOverride) {
+    if (!canAccessBankInternal(admin) || !input.adminOverride) {
       badRequest("New limit cannot be below current balance without admin override");
     }
   }
@@ -440,7 +440,7 @@ export async function changeAltaCardTierAdmin(
   const previousTier = card.tier.toLowerCase() as AltaCardTierCode;
 
   if (input.tier === "gold") {
-    if (!isAdmin(admin)) forbidden();
+    if (!canAccessBankInternal(admin)) forbidden();
     if (card.ownerUserId) {
       const owner = await getAltaUser(card.ownerUserId);
       if (!isPrivateClient(owner) && !input.goldOverride) {
@@ -671,7 +671,7 @@ export async function unfreezeEmployeeCard(
   if (!reason.trim()) badRequest("Reason is required");
 
   const user = await getAltaUser(actorUserId);
-  const isStaff = isAdmin(user) || isOperator(user);
+  const isStaff = canAccessBankInternal(user);
   const { canManageBusinessTreasury } = await import("@/lib/auth/permissions");
   if (!isStaff && !canManageBusinessTreasury(user, { companyId: employeeCard.companyId })) {
     forbidden();

@@ -1,4 +1,8 @@
-export type InternalUserTag = "admin" | "private_client";
+export type InternalUserTag =
+  | "corporate_admin"
+  | "bank_admin"
+  | "terminal_admin"
+  | "private_client";
 
 /** Per-company role for authorized representatives (future membership model). */
 export type CompanyRole =

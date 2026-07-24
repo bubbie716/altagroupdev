@@ -240,14 +240,17 @@ function CopyrightOnlyFooter({
 
   return (
     <footer className={cn("mt-auto shrink-0 border-t border-border/60 bg-surface-1/30", className)}>
-      <div className="mx-auto max-w-[1400px] space-y-3 px-4 py-4 sm:px-6">
-        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="mx-auto flex max-w-[1400px] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-10 sm:px-6">
+        <FooterCopyrightLines siteKey={siteKey} className="min-w-0 flex-1" />
+        <nav
+          aria-label="Legal"
+          className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:max-w-xl sm:justify-end lg:max-w-2xl"
+        >
           {docs.map((doc) => (
             <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
           ))}
           <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
         </nav>
-        <FooterCopyrightLines siteKey={siteKey} />
       </div>
     </footer>
   );
@@ -316,17 +319,18 @@ export function LegalDocumentFooter({
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {docId}
         </p>
-        <nav
-          aria-label="Related legal documents"
-          className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3"
-        >
-          {relatedDocs.map((doc) => (
-            <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
-          ))}
-          <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
-        </nav>
-        <FooterCopyrightLines siteKey={siteKey} />
-      </div>
+        <div className="flex flex-col gap-4 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
+          <FooterCopyrightLines siteKey={siteKey} className="min-w-0 flex-1" />
+          <nav
+            aria-label="Related legal documents"
+            className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:max-w-xl sm:justify-end lg:max-w-2xl"
+          >
+            {relatedDocs.map((doc) => (
+              <FooterDocLink key={doc.id} doc={doc} className={footerInlineLinkClass} />
+            ))}
+            <FooterLegalCenterLink siteKey={siteKey} className={footerInlineLinkClass} />
+          </nav>
+        </div>      </div>
     </footer>
   );
 }

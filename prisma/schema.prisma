@@ -8,12 +8,10 @@ datasource db {
 }
 
 enum UserTag {
-  ADMIN
-  OPERATOR
+  CORPORATE_ADMIN
+  BANK_ADMIN
+  TERMINAL_ADMIN
   PRIVATE_CLIENT
-  DEVELOPER
-  ISSUER
-  SYSTEM
 }
 
 enum AccountStatus {

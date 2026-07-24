@@ -70,7 +70,7 @@ export const internalUsers: InternalUser[] = [
     username: "vaultseeker",
     discordId: "284719384712345678",
     minecraftUsername: "VaultSeeker",
-    tags: ["admin", "private_client"],
+    tags: ["corporate_admin", "private_client"],
     accountStatus: "Active",
     lastActive: "2026-06-22 21:08",
     companyMemberships: [
@@ -105,7 +105,7 @@ export const internalUsers: InternalUser[] = [
     username: "meridian_founder",
     discordId: "562938471029384756",
     minecraftUsername: "MeridianCEO",
-    tags: ["admin", "private_client"],
+    tags: ["corporate_admin", "private_client"],
     accountStatus: "Active",
     lastActive: "2026-06-22 19:22",
     companyMemberships: [

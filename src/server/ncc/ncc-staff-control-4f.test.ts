@@ -277,7 +277,7 @@ describe("ncc sprint 4f staff control", { skip: !RUN || !isDatabaseConfigured() 
           data: {
             discordId: `ncc-4f-${label}-${suffix}`,
             discordUsername: `ncc_4f_${label}_${suffix}`,
-            tags: { create: [{ tag: "ADMIN" }] },
+            tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
           },
         });
 

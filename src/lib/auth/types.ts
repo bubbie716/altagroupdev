@@ -6,7 +6,11 @@
  */
 
 /** Backend permission tags — a user may have multiple. */
-export type UserTag = "admin" | "operator" | "private_client" | "developer" | "issuer";
+export type UserTag =
+  | "corporate_admin"
+  | "bank_admin"
+  | "terminal_admin"
+  | "private_client";
 
 export type AccountStatus = "active" | "restricted" | "frozen" | "pending_review";
 

@@ -7,8 +7,8 @@ Alta Group maintenance mode lets **admins** take the public platform offline whi
 When maintenance mode is **enabled**:
 
 - Anonymous visitors see `/maintenance` instead of normal site pages.
-- Signed-in users who are **not** admins or operators are also redirected to `/maintenance`.
-- Bank, Exchange, profile, companies, and other public platform routes are blocked at the root router guard (server-side).
+- Signed-in users who are **not** admins are also redirected to `/maintenance`.
+- Bank, Terminal, profile, companies, and other public platform routes are blocked at the root router guard (server-side).
 - The **Discord bot** blocks slash commands, hub buttons/modals, invitation actions, and deal room channel sync for the same users. Outbound bot delivery (DMs, staff audit posts, web-initiated deal room setup) continues.
 
 When maintenance mode is **disabled**, routing behaves normally.
@@ -28,22 +28,24 @@ Only users with the **admin** tag may enable, disable, or save maintenance setti
 These paths are **never** redirected to maintenance:
 
 - `/maintenance` — the public maintenance page
-- `/login` — Discord sign-in
+- `/` and `/login` — Discord sign-in (unsigned users only)
 - `/access-restricted` — permission denial page
 - `/api/*` — auth callbacks, logout, cron, and other API handlers
 
-### Internal operations (admins/operators)
+### Internal operations (admins)
 
-Users with **admin** or **operator** tags bypass maintenance entirely. They can use the full public platform and all internal routes without seeing `/maintenance`.
+Users with the **admin** tag bypass maintenance entirely. They can use the full public platform and all internal routes without seeing `/maintenance`. Operators do not bypass.
 
-If a bypass user lands on `/maintenance`, they are redirected to `/` automatically.
+Unsigned users can still open sign-in during maintenance. After signing in, non-admins are sent back to `/maintenance`.
+
+If an admin lands on `/maintenance`, they are redirected to `/` automatically.
 
 ## Lockout prevention
 
-1. **Bypass users** — Admins and operators are never redirected to `/maintenance`.
+1. **Bypass users** — Admins are never redirected to `/maintenance`.
 2. **Database read failure** — If maintenance settings cannot be read, the platform defaults to **maintenance OFF** so admins are not accidentally locked out.
-3. **Auth preserved** — Login and session API routes are exempt; admins can sign in during maintenance.
-4. **Internal routes** — Not blocked for bypass users; `/internal/settings` is always reachable for admins/operators.
+3. **Auth preserved** — Sign-in paths and session API routes stay reachable; admins can sign in during maintenance.
+4. **Internal routes** — Not blocked for admins; `/internal/settings` remains reachable for admins who can bypass.
 5. **No client-only enforcement** — The root route `beforeLoad` guard evaluates maintenance server-side on every navigation.
 
 ## Audit behavior

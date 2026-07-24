@@ -309,7 +309,7 @@ async function computeAvgStaffResponseHours(): Promise<number | null> {
 export async function getLendingDeskStats(): Promise<LendingDeskStats> {
   const [officersOnDesk, activeFacilities, pendingReview, avgResponseHours] = await Promise.all([
     prisma.user.count({
-      where: { tags: { some: { tag: { in: ["ADMIN", "OPERATOR"] } } } },
+      where: { tags: { some: { tag: { in: ["CORPORATE_ADMIN", "BANK_ADMIN"] } } } },
     }),
     prisma.loan.count({ where: { status: "ACTIVE" } }),
     countPendingLoanApplications(),

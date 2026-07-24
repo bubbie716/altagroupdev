@@ -36,7 +36,7 @@ async function safeAudit(input: {
       input.actorUserId ??
       (
         await prisma.user.findFirst({
-          where: { tags: { some: { tag: "ADMIN" } } },
+          where: { tags: { some: { tag: "CORPORATE_ADMIN" } } },
           select: { id: true },
         })
       )?.id;

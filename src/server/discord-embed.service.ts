@@ -1,4 +1,4 @@
-import { canAccessInternal } from "@/lib/auth/permissions";
+import { canAccessBankInternal } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import {
   DISCORD_CHANNELS,
@@ -148,7 +148,7 @@ export async function requireOperatorFromRequest(request: Request): Promise<Alta
   if (user.accountStatus === "frozen" || user.accountStatus === "restricted") {
     throw new Error("ACCOUNT_RESTRICTED");
   }
-  if (!canAccessInternal(user)) throw new Error("FORBIDDEN");
+  if (!canAccessBankInternal(user)) throw new Error("FORBIDDEN");
   return user;
 }
 

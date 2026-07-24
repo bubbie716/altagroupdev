@@ -8,13 +8,15 @@ import {
 } from "@/components/internal/console/internal-nav-config";
 import { BackToSiteButton } from "@/components/internal/console/back-to-site-button";
 import { useSiteContext } from "@/hooks/use-site-context";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { internalHomePathForSite } from "@/lib/internal/entity-internal-scope";
 
 export function InternalSidebar() {
   const site = useSiteContext();
+  const user = useCurrentUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navGroups = getInternalNavGroupsForSite(site.key) ?? [];
-  const homePath = internalHomePathForSite(site.key);
+  const homePath = internalHomePathForSite(site.key, user);
   const consoleLabel =
     site.key === "corporate" ? "Group operations console" : "Operations console";
 

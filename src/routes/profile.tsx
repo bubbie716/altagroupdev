@@ -37,7 +37,7 @@ function ProfilePage() {
     .toUpperCase();
 
   const isPrivate = user.tags.includes("private_client");
-  const isOperator = user.tags.includes("operator") || user.tags.includes("admin");
+  const isAdminUser = user.tags.includes("corporate_admin");
 
   const memberSinceLabel = user.createdAt.slice(0, 10);
   const lastLoginLabel = user.lastLoginAt.slice(0, 16).replace("T", " ") + " ET";
@@ -73,7 +73,7 @@ function ProfilePage() {
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <StatusBadge status={formatAccountStatus(user.accountStatus)} />
                   {isPrivate ? <StatusBadge status="Private Client" /> : null}
-                  {isOperator ? <StatusBadge status="Operator" tone="gold" /> : null}
+                  {isAdminUser ? <StatusBadge status="Corporate Admin" tone="gold" /> : null}
                 </div>
               </div>
             </div>

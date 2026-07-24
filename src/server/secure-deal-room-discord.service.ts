@@ -5,7 +5,7 @@ import type {
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import {
-  canAccessInternal,
+  canAccessBankInternal,
   canManageBusinessTreasury,
   canViewCompanyDealRoom,
 } from "@/lib/auth/permissions";
@@ -643,7 +643,7 @@ export async function ingestDiscordChannelMessage(
   }
 
   const altaUser = mapDbUserToAltaUser(userRecord);
-  const isStaff = canAccessInternal(altaUser);
+  const isStaff = canAccessBankInternal(altaUser);
   const isApplicant = await canUserPostAsApplicant(
     session.dealRoomType,
     session.threadId,

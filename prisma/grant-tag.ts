@@ -3,29 +3,28 @@ import { UserTag, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const TAG_ALIASES: Record<string, UserTag> = {
-  admin: UserTag.ADMIN,
-  operator: UserTag.OPERATOR,
+  admin: UserTag.CORPORATE_ADMIN,
+  corporate_admin: UserTag.CORPORATE_ADMIN,
+  bank_admin: UserTag.BANK_ADMIN,
+  terminal_admin: UserTag.TERMINAL_ADMIN,
   private_client: UserTag.PRIVATE_CLIENT,
   private: UserTag.PRIVATE_CLIENT,
-  developer: UserTag.DEVELOPER,
-  issuer: UserTag.ISSUER,
-  system: UserTag.SYSTEM,
 };
 
 const TAG_LABELS: Record<UserTag, string> = {
-  [UserTag.ADMIN]: "admin",
-  [UserTag.OPERATOR]: "operator",
+  [UserTag.CORPORATE_ADMIN]: "corporate_admin",
+  [UserTag.BANK_ADMIN]: "bank_admin",
+  [UserTag.TERMINAL_ADMIN]: "terminal_admin",
   [UserTag.PRIVATE_CLIENT]: "private_client",
-  [UserTag.DEVELOPER]: "developer",
-  [UserTag.ISSUER]: "issuer",
-  [UserTag.SYSTEM]: "system",
 };
 
 function parseTag(value: string): UserTag {
   const normalized = value.trim().toLowerCase();
   const tag = TAG_ALIASES[normalized];
   if (!tag) {
-    throw new Error(`Unknown tag "${value}". Use: admin, operator, private_client, developer, issuer`);
+    throw new Error(
+      `Unknown tag "${value}". Use: corporate_admin, bank_admin, terminal_admin, private_client (admin → corporate_admin)`,
+    );
   }
   return tag;
 }
@@ -52,8 +51,8 @@ async function main() {
 
   if (!discordId || tagArgs.length === 0) {
     console.error("Usage: npm run db:grant-tag -- <discordId> <tag> [tag2 ...] [--remove]");
-    console.error("Example: npm run db:grant-tag -- 123456789012345678 admin private_client");
-    console.error("Tags: admin, operator, private_client, developer, issuer");
+    console.error("Example: npm run db:grant-tag -- 123456789012345678 corporate_admin private_client");
+    console.error("Tags: corporate_admin, bank_admin, terminal_admin, private_client (admin aliases corporate_admin)");
     process.exit(1);
   }
 

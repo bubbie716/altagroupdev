@@ -135,7 +135,7 @@ async function upsertUser() {
       developerAccessStatus: "APPROVED",
     },
   });
-  for (const tag of [UserTag.ADMIN, UserTag.OPERATOR, UserTag.PRIVATE_CLIENT, UserTag.DEVELOPER, UserTag.ISSUER]) {
+  for (const tag of [UserTag.CORPORATE_ADMIN, UserTag.PRIVATE_CLIENT]) {
     await prisma.userTagAssignment.upsert({
       where: { userId_tag: { userId: USER_ID, tag } },
       create: { userId: USER_ID, tag },

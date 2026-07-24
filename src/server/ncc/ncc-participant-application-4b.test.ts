@@ -60,7 +60,7 @@ describe("ncc sprint 4b participant application", { skip: !RUN || !isDatabaseCon
       data: {
         discordId: `ncc-4b-s-${suffix}`,
         discordUsername: `ncc_4b_s_${suffix}`,
-        tags: { create: [{ tag: "ADMIN" }] },
+        tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
       },
     });
     staffId = staff.id;

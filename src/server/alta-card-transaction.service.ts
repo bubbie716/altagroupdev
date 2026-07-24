@@ -26,7 +26,7 @@ import {
   altaCardReversalDescription,
   altaPayToDescription,
 } from "@/lib/bank/customer-transaction-copy";
-import { canManageCompanyAltaCard, canUseBusinessAltaCardLineForAltaPay, isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canAccessBankInternal, canManageCompanyAltaCard, canUseBusinessAltaCardLineForAltaPay, isAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -82,7 +82,7 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function assertOperatorOrAdmin(user: AltaUser): void {
-  if (!isAdmin(user) && !isOperator(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 function assertCardChargeable(status: AltaCardStatus, adminOverride = false): void {
@@ -302,7 +302,7 @@ async function loadEmployeeCard(employeeCardId: string): Promise<DbEmployeeCard>
 
 async function assertPersonalCardAccess(userId: string, card: DbCard): Promise<AltaUser> {
   const user = await getAltaUser(userId);
-  if (isAdmin(user) || isOperator(user)) return user;
+  if (canAccessBankInternal(user)) return user;
   if (card.cardType === "PERSONAL" && card.ownerUserId === userId) return user;
   if (card.cardType === "BUSINESS" && card.companyId && canManageCompanyAltaCard(user, card.companyId)) {
     return user;

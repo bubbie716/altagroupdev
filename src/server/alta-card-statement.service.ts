@@ -19,7 +19,7 @@ import {
   getNextBillingCycle,
 } from "@/lib/bank/alta-card-billing-cycle";
 import { allocatePaymentToBuckets } from "@/lib/bank/alta-card-payment-allocation";
-import { canManageCompanyAltaCard, isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canAccessBankInternal, canManageCompanyAltaCard, isAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -62,11 +62,11 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 }
 
 function assertOperatorOrAdmin(user: AltaUser): void {
-  if (!isAdmin(user) && !isOperator(user)) forbidden();
+  if (!canAccessBankInternal(user)) forbidden();
 }
 
 async function assertStatementGenerationActor(user: AltaUser, actorUserId: string): Promise<void> {
-  if (isAdmin(user) || isOperator(user)) return;
+  if (canAccessBankInternal(user)) return;
   const { isSystemActorUserId } = await import("@/server/system-actor.service");
   if (await isSystemActorUserId(actorUserId)) return;
   forbidden();
@@ -428,7 +428,7 @@ function assertCanGenerateCardStatement(
   user: AltaUser,
   card: { ownerUserId: string | null; companyId: string | null; cardType: string },
 ): void {
-  if (isAdmin(user) || isOperator(user)) return;
+  if (canAccessBankInternal(user)) return;
   if (card.cardType === "PERSONAL" && card.ownerUserId === user.id) return;
   if (card.cardType === "BUSINESS" && card.companyId && canManageCompanyAltaCard(user, card.companyId)) {
     return;
@@ -832,7 +832,7 @@ export async function listCardStatements(
     include: userWithMembershipsInclude,
   });
   const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
-  const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
+  const isStaffUser = altaUser ? canAccessBankInternal(altaUser) : false;
 
   const customerVisibleStatuses = [
     "GENERATED",
@@ -880,7 +880,7 @@ export async function getCardStatementDetail(
     include: userWithMembershipsInclude,
   });
   const altaUser = userRecord ? mapDbUserToAltaUser(userRecord) : null;
-  const isStaffUser = altaUser ? isAdmin(altaUser) || isOperator(altaUser) : false;
+  const isStaffUser = altaUser ? canAccessBankInternal(altaUser) : false;
   if (statement.status === "OPEN" && !isStaffUser) notFound();
 
   let transactions = statement.transactions;

@@ -1,6 +1,6 @@
 import type { AltaCardAutopayStatus, AltaCardAutopayType, AltaCardStatementStatus } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
-import { canManageCompanyAltaCard, isAdmin, isOperator } from "@/lib/auth/permissions";
+import { canAccessBankInternal, canManageCompanyAltaCard, isAdmin } from "@/lib/auth/permissions";
 import {
   calculateAltaCardMinimumPayment,
   calculateRemainingStatementBalance,
@@ -113,7 +113,7 @@ async function assertCanManageAutopay(user: AltaUser, card: {
   ownerUserId: string | null;
   companyId: string | null;
 }): Promise<void> {
-  if (isAdmin(user) || isOperator(user)) return;
+  if (canAccessBankInternal(user)) return;
   if (card.cardType === "PERSONAL" && card.ownerUserId === user.id) return;
   if (card.cardType === "BUSINESS" && card.companyId && canManageCompanyAltaCard(user, card.companyId)) {
     return;
@@ -126,7 +126,7 @@ async function assertCanViewAutopay(user: AltaUser, card: {
   ownerUserId: string | null;
   companyId: string | null;
 }): Promise<void> {
-  if (isAdmin(user) || isOperator(user)) return;
+  if (canAccessBankInternal(user)) return;
   if (card.cardType === "PERSONAL" && card.ownerUserId === user.id) return;
   if (card.cardType === "BUSINESS" && card.companyId) {
     const { assertCardAccess } = await import("@/server/alta-card.service");

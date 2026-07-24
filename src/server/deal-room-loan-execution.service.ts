@@ -14,7 +14,7 @@ import {
   LOAN_INTEREST_CHARGE_DESCRIPTION,
 } from "@/lib/bank/customer-transaction-copy";
 import {
-  canAccessInternal,
+  canAccessBankInternal,
   canViewCompanyDealRoom,
   isPrivateClient,
 } from "@/lib/auth/permissions";
@@ -486,7 +486,7 @@ export async function getDealRoomExecutionSummary(
   if (!room) notFound();
 
   const canView =
-    canAccessInternal(altaUser) ||
+    canAccessBankInternal(altaUser) ||
     room.borrowerUserId === actorUserId ||
     (room.companyId != null && canViewCompanyDealRoom(altaUser, room.companyId));
   if (!canView) return null;

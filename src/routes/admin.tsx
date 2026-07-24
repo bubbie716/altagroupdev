@@ -6,10 +6,11 @@ import {
   fetchNccControlPlaneOverview,
 } from "@/lib/ncc/ncc-control-plane.functions";
 import { fetchNccMaintenanceModeSettings } from "@/lib/ncc/ncc-maintenance.functions";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: (opts) => {
-    if (opts.context.site.key !== "ncc") {
+    if (siteFromRouteContext(opts.context).key !== "ncc") {
       throw redirect({ to: "/" });
     }
     return authBeforeLoad(opts);

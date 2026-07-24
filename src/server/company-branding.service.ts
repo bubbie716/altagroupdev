@@ -1,5 +1,5 @@
 import type { AltaUser } from "@/lib/auth/types";
-import { canManageMerchantInvoices, canAccessInternal, canViewMerchantInvoices } from "@/lib/auth/permissions";
+import { canManageMerchantInvoices, canAccessBankInternal, canViewMerchantInvoices } from "@/lib/auth/permissions";
 import type { CompanyBrandingInput, CompanyBrandingSettingsView } from "@/lib/bank/company-branding-types";
 import {
   DEFAULT_ACCENT_COLOR,
@@ -236,7 +236,7 @@ export async function resetCompanyBrandingAdmin(
   reason: string,
 ): Promise<void> {
   const actor = await getAltaUser(actorUserId);
-  if (!canAccessInternal(actor)) forbidden();
+  if (!canAccessBankInternal(actor)) forbidden();
 
   const trimmedReason = reason.trim();
   if (!trimmedReason) badRequest("A reason is required to reset company branding.");
@@ -286,7 +286,7 @@ export async function rejectCompanyBrandingAdmin(
   reason: string,
 ): Promise<void> {
   const actor = await getAltaUser(actorUserId);
-  if (!canAccessInternal(actor)) forbidden();
+  if (!canAccessBankInternal(actor)) forbidden();
 
   const trimmedReason = reason.trim();
   if (!trimmedReason) badRequest("A reason is required to reject company branding.");

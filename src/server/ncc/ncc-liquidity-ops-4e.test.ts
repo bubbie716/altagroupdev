@@ -177,7 +177,7 @@ describe("ncc sprint 4e liquidity and ops", { skip: !RUN || !isDatabaseConfigure
       data: {
         discordId: `ncc-4e-req-${suffix}`,
         discordUsername: `ncc_4e_req_${suffix}`,
-        tags: { create: [{ tag: "ADMIN" }] },
+        tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
       },
     });
     requesterId = requester.id;
@@ -185,7 +185,7 @@ describe("ncc sprint 4e liquidity and ops", { skip: !RUN || !isDatabaseConfigure
       data: {
         discordId: `ncc-4e-apr-${suffix}`,
         discordUsername: `ncc_4e_apr_${suffix}`,
-        tags: { create: [{ tag: "ADMIN" }] },
+        tags: { create: [{ tag: "CORPORATE_ADMIN" }] },
       },
     });
     approverId = approver.id;

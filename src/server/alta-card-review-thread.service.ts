@@ -5,10 +5,9 @@ import type {
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
 import { ALTA_CARD_REVIEW_THREAD_WELCOME_MESSAGE } from "@/lib/bank/secure-deal-room-system-copy";
-import {
+import { canAccessBankInternal,
   canManageBusinessTreasury,
   isAdmin,
-  isOperator,
 } from "@/lib/auth/permissions";
 import type {
   AltaCardReviewThreadContext,
@@ -108,7 +107,7 @@ function badRequest(message: string): never {
 }
 
 function isStaff(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 async function getAltaUser(userId: string): Promise<AltaUser> {

@@ -14,10 +14,13 @@ import { NccMaintenancePage } from "@/components/ncc/ncc-maintenance-page";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { Card } from "@/components/page-shell";
 import { Link } from "@tanstack/react-router";
+import { siteFromRouteContext } from "@/lib/site/site-context";
+import { buildSignInSearch, resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
 
 export const Route = createFileRoute("/maintenance")({
   beforeLoad: async ({ context }) => {
-    if (context.site.key === "ncc") {
+    const site = siteFromRouteContext(context);
+    if (site.key === "ncc") {
       const maintenance = await fetchNccMaintenanceMode();
       if (!maintenance.enabled || canBypassMaintenanceMode(context.user)) {
         throw redirect({ to: "/" });
@@ -26,27 +29,31 @@ export const Route = createFileRoute("/maintenance")({
     }
 
     const maintenance = await fetchMaintenanceMode();
-    const siteMaintenanceActive = isMaintenanceActiveForSite(context.site.key, maintenance.scopes);
+    const siteMaintenanceActive = isMaintenanceActiveForSite(site.key, maintenance.scopes);
     if (!siteMaintenanceActive || canBypassMaintenanceMode(context.user)) {
       throw redirect({ to: "/" });
     }
   },
   loader: async ({ context }) => {
-    if (context.site.key === "ncc") {
+    const site = siteFromRouteContext(context);
+    if (site.key === "ncc") {
       return { kind: "ncc" as const, maintenance: await fetchNccMaintenanceMode() };
     }
     return { kind: "alta" as const, maintenance: await fetchMaintenanceMode() };
   },
-  head: ({ context }) => ({
-    meta: [
-      {
-        title:
-          context.site.key === "ncc"
-            ? "Network Maintenance — Newport Clearing Corporation"
-            : `${maintenanceTitleForSite(context.site.key, null)} — ${context.site.displayName}`,
-      },
-    ],
-  }),
+  head: ({ context }) => {
+    const site = siteFromRouteContext(context);
+    return {
+      meta: [
+        {
+          title:
+            site.key === "ncc"
+              ? "Network Maintenance — Newport Clearing Corporation"
+              : `${maintenanceTitleForSite(site.key, null)} — ${site.displayName}`,
+        },
+      ],
+    };
+  },
   component: MaintenancePage,
 });
 
@@ -69,6 +76,7 @@ function AltaMaintenancePage({
   const activeScope = getMaintenanceScopeForSite(site.key, maintenance.scopes);
   const title = maintenanceTitleForSite(site.key, activeScope);
   const startedAt = activeScope ? maintenance.scopeStartedAt[activeScope] : maintenance.startedAt;
+  const signInPath = resolveSiteSignInPath(site.key);
 
   return (
     <LoginPortalShell brandEyebrow={`${site.displayName} · Be Back Shortly`}>
@@ -124,6 +132,22 @@ function AltaMaintenancePage({
                 Internal Operations
               </Link>
             </div>
+          </div>
+        ) : null}
+
+        {!user ? (
+          <div className="mt-8 text-center">
+            <Link
+              to={signInPath}
+              search={buildSignInSearch(site.key)}
+              className="inline-flex items-center justify-center rounded-md border border-border px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+            >
+              Sign in
+            </Link>
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              Admins regain full access after signing in. Other accounts stay on this page until
+              maintenance ends.
+            </p>
           </div>
         ) : null}
 

@@ -15,19 +15,17 @@ import type {
 } from "@prisma/client";
 
 const USER_TAG_TO_DB: Record<UserTag, DbUserTag> = {
-  admin: "ADMIN",
-  operator: "OPERATOR",
+  corporate_admin: "CORPORATE_ADMIN",
+  bank_admin: "BANK_ADMIN",
+  terminal_admin: "TERMINAL_ADMIN",
   private_client: "PRIVATE_CLIENT",
-  developer: "DEVELOPER",
-  issuer: "ISSUER",
 };
 
 const USER_TAG_FROM_DB: Record<DbUserTag, UserTag> = {
-  ADMIN: "admin",
-  OPERATOR: "operator",
+  CORPORATE_ADMIN: "corporate_admin",
+  BANK_ADMIN: "bank_admin",
+  TERMINAL_ADMIN: "terminal_admin",
   PRIVATE_CLIENT: "private_client",
-  DEVELOPER: "developer",
-  ISSUER: "issuer",
 };
 
 const ACCOUNT_STATUS_TO_DB: Record<AccountStatus, DbAccountStatus> = {

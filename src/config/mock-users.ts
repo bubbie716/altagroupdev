@@ -4,7 +4,7 @@ import type { AccountStatus, CompanyMembership, UserTag } from "@/lib/auth/types
  * TEMPORARY — dev/staging overrides by Discord ID.
  *
  * Backend tags for real users live in Postgres (`UserTagAssignment`).
- * Use `npm run db:grant-tag -- <discordId> admin` after first login.
+ * Use `npm run db:grant-tag -- <discordId> corporate_admin` after first login.
  * This file applies dev-only overrides for fake Discord IDs.
  */
 export interface MockUserOverride {
@@ -18,7 +18,7 @@ export interface MockUserOverride {
 export const MOCK_USER_OVERRIDES: Record<string, MockUserOverride> = {
   /** Demo overrides for local testing (memberships, tags, statuses). */
   "000000000000000001": {
-    tags: ["admin", "private_client"],
+    tags: ["corporate_admin", "private_client"],
     minecraftUsername: "VaultSeeker",
     developerAccess: true,
     companyMemberships: [{ companyId: "CO-NPC", role: "finance_manager" }],

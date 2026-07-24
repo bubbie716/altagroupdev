@@ -1,0 +1,6 @@
+-- Replace global ADMIN with site-scoped staff tags.
+-- CORPORATE_ADMIN inherits all previous ADMIN assignments.
+
+ALTER TYPE "UserTag" ADD VALUE IF NOT EXISTS 'CORPORATE_ADMIN';
+ALTER TYPE "UserTag" ADD VALUE IF NOT EXISTS 'BANK_ADMIN';
+ALTER TYPE "UserTag" ADD VALUE IF NOT EXISTS 'TERMINAL_ADMIN';

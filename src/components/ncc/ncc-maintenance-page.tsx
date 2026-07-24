@@ -53,7 +53,7 @@ export function NccMaintenancePage({ maintenance }: { maintenance: NccMaintenanc
           {isBypassUser ? (
             <div className="mt-8 rounded-sm border border-[#0c4d32]/20 bg-[#e8f2ed]/60 px-5 py-4">
               <p className="text-[13px] text-[#4b5563]">
-                Your operator account bypasses maintenance mode. The NCC site remains available.
+                Your admin account bypasses maintenance mode. The NCC site remains available.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -69,6 +69,21 @@ export function NccMaintenancePage({ maintenance }: { maintenance: NccMaintenanc
                   Admin panel
                 </Link>
               </div>
+            </div>
+          ) : null}
+
+          {!user ? (
+            <div className="mt-8 text-center">
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center rounded-sm border border-[#e5e7eb] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-[#374151]"
+              >
+                Sign in
+              </Link>
+              <p className="mt-3 text-[12px] text-[#6b7280]">
+                Admins regain full access after signing in. Other accounts stay on this page until
+                maintenance ends.
+              </p>
             </div>
           ) : null}
 

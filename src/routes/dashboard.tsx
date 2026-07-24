@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { resolveLegacyDashboardPath } from "@/lib/site/site-shortcut-routes";
+import { siteFromRouteContext } from "@/lib/site/site-context";
 
 function normalizePath(path: string): string {
   return path.replace(/\/$/, "") || "/";
@@ -7,7 +8,7 @@ function normalizePath(path: string): string {
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: ({ context, location }) => {
-    const target = resolveLegacyDashboardPath(context.site.key);
+    const target = resolveLegacyDashboardPath(siteFromRouteContext(context).key);
     if (normalizePath(location.pathname) === normalizePath(target)) {
       return;
     }

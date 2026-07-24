@@ -1,10 +1,9 @@
 import { Prisma } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
-import {
+import { canAccessBankInternal,
   canManageBusinessTreasury,
   canManageCompanyAltaCard,
   isAdmin,
-  isOperator,
   isPrivateClient,
 } from "@/lib/auth/permissions";
 import type {
@@ -226,7 +225,7 @@ async function uploadReviewAttachmentFiles(
 }
 
 function isStaff(user: AltaUser): boolean {
-  return isAdmin(user) || isOperator(user);
+  return canAccessBankInternal(user);
 }
 
 function decimalToNumber(value: { toString(): string } | null | undefined): number | null {
@@ -715,7 +714,7 @@ export async function processReviewDecision(
       cardId,
       creditLimit: approvedLimit,
       reason: `Account review approval: ${input.reason.trim()}`,
-      adminOverride: isAdmin(staff),
+      adminOverride: canAccessBankInternal(staff),
     });
     await writeAuditLog({
       actorUserId: staffUserId,

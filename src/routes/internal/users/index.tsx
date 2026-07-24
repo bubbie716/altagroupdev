@@ -27,11 +27,10 @@ export const Route = createFileRoute("/internal/users/")({
         ? search.discordId.trim()
         : undefined,
     tag:
-      search.tag === "admin" ||
-      search.tag === "operator" ||
-      search.tag === "private_client" ||
-      search.tag === "developer" ||
-      search.tag === "issuer"
+      search.tag === "corporate_admin" ||
+      search.tag === "bank_admin" ||
+      search.tag === "terminal_admin" ||
+      search.tag === "private_client"
         ? search.tag
         : undefined,
     accountStatus:
