@@ -6,8 +6,10 @@ import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { SecurityStatusBadge } from "@/components/terminal/market-status";
 import { OrderTicket } from "@/components/terminal/order-ticket";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
+import { PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
 import {
   addTerminalWatchlistSymbol,
+  fetchEligibleTerminalCompanies,
   fetchTerminalSecurity,
   removeTerminalWatchlistSymbol,
 } from "@/lib/terminal/terminal.functions";
@@ -22,14 +24,22 @@ export const Route = createFileRoute("/terminal/security/$symbol")({
       ["1D", "1W", "1M", "3M", "1Y", "ALL"].includes(search.range)
         ? (search.range as TerminalChartRange)
         : ("1D" as TerminalChartRange),
+    portfolioId: typeof search.portfolioId === "string" ? search.portfolioId : undefined,
   }),
-  loaderDeps: ({ search }) => ({ range: search.range }),
+  // Only portfolio changes should reload the route — chart ranges switch client-side.
+  loaderDeps: ({ search }) => ({ portfolioId: search.portfolioId }),
   loader: async ({ params, deps }) => {
-    const data = await fetchTerminalSecurity({
-      data: { symbol: params.symbol, range: deps.range },
-    });
+    const [data, eligibleCompanies] = await Promise.all([
+      fetchTerminalSecurity({
+        data: {
+          symbol: params.symbol,
+          portfolioId: deps.portfolioId,
+        },
+      }),
+      fetchEligibleTerminalCompanies(),
+    ]);
     if (!data.security && data.mode !== "unavailable") throw notFound();
-    return data;
+    return { ...data, eligibleCompanies };
   },
   head: ({ loaderData, params }) => ({
     meta: [
@@ -45,6 +55,7 @@ export const Route = createFileRoute("/terminal/security/$symbol")({
 
 function TerminalSecurityPage() {
   const data = Route.useLoaderData();
+  const { range: initialRange } = Route.useSearch();
   const navigate = Route.useNavigate();
   const router = useRouter();
   const addWatch = useServerFn(addTerminalWatchlistSymbol);
@@ -69,6 +80,10 @@ function TerminalSecurityPage() {
 
   const marketClosed =
     data.marketStatus.status === "closed" || data.marketStatus.status === "holiday";
+  const portfolioId = data.selectedPortfolio?.id ?? null;
+  const portfolioLabel = data.selectedPortfolio
+    ? `${data.selectedPortfolio.name} · ${data.selectedPortfolio.ownerLabel}`
+    : null;
 
   return (
     <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0">
@@ -87,35 +102,49 @@ function TerminalSecurityPage() {
               <PriceChange amount={security.dayChange} percent={security.dayChangePercent} />
             </div>
           </div>
-          <button
-            type="button"
-            disabled={watchBusy}
-            onClick={() => {
-              setWatchBusy(true);
-              void (
-                data.onWatchlist
-                  ? removeWatch({ data: security.symbol })
-                  : addWatch({ data: security.symbol })
-              )
-                .then(() => invalidateRouteData(router))
-                .finally(() => setWatchBusy(false));
-            }}
-            className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
-          >
-            {data.onWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <PortfolioSwitcher
+              portfolios={data.portfolios}
+              selectedId={portfolioId}
+              eligibleCompanies={data.eligibleCompanies}
+              compact
+              onSelect={(id) => {
+                void navigate({
+                  search: (prev) => ({ ...prev, portfolioId: id }),
+                  replace: true,
+                });
+              }}
+              onCreated={(p) => {
+                void navigate({
+                  search: (prev) => ({ ...prev, portfolioId: p.id }),
+                  replace: true,
+                });
+              }}
+            />
+            <button
+              type="button"
+              disabled={watchBusy}
+              onClick={() => {
+                setWatchBusy(true);
+                void (
+                  data.onWatchlist
+                    ? removeWatch({ data: security.symbol })
+                    : addWatch({ data: security.symbol })
+                )
+                  .then(() => invalidateRouteData(router))
+                  .finally(() => setWatchBusy(false));
+              }}
+              className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+            >
+              {data.onWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+            </button>
+          </div>
         </div>
 
         <SecurityChart
-          data={data.history}
-          range={data.range}
+          seriesByRange={data.historyByRange}
+          initialRange={initialRange}
           positive={security.dayChange >= 0}
-          onRangeChange={(range) =>
-            void navigate({
-              search: (prev) => ({ ...prev, range }),
-              replace: true,
-            })
-          }
         />
 
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -160,6 +189,8 @@ function TerminalSecurityPage() {
           position={data.position}
           mode={data.mode}
           marketClosed={marketClosed}
+          portfolioId={portfolioId}
+          portfolioLabel={portfolioLabel}
           onSubmitted={() => void invalidateRouteData(router)}
         />
       </aside>
@@ -171,6 +202,8 @@ function TerminalSecurityPage() {
           position={data.position}
           mode={data.mode}
           marketClosed={marketClosed}
+          portfolioId={portfolioId}
+          portfolioLabel={portfolioLabel}
           compact
           onSubmitted={() => void invalidateRouteData(router)}
         />

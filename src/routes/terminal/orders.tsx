@@ -12,7 +12,12 @@ import {
 import { OrdersList, OrderStatusBadge } from "@/components/terminal/orders-list";
 import { MoneyValue } from "@/components/terminal/money-value";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
-import { cancelTerminalOrder, fetchTerminalOrders } from "@/lib/terminal/terminal.functions";
+import { PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
+import {
+  cancelTerminalOrder,
+  fetchEligibleTerminalCompanies,
+  fetchTerminalOrders,
+} from "@/lib/terminal/terminal.functions";
 import { filterOrders } from "@/lib/terminal/market-filters";
 import type { OrderRecord, OrderSide, OrderStatus } from "@/lib/terminal/types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
@@ -20,13 +25,24 @@ import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/terminal/orders")({
-  loader: async () => fetchTerminalOrders(),
+  validateSearch: (search: Record<string, unknown>) => ({
+    portfolioId: typeof search.portfolioId === "string" ? search.portfolioId : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ portfolioId: search.portfolioId }),
+  loader: async ({ deps }) => {
+    const [orders, eligibleCompanies] = await Promise.all([
+      fetchTerminalOrders({ data: { portfolioId: deps.portfolioId } }),
+      fetchEligibleTerminalCompanies(),
+    ]);
+    return { ...orders, eligibleCompanies };
+  },
   head: () => ({ meta: [{ title: "Orders — Alta Terminal" }] }),
   component: TerminalOrdersPage,
 });
 
 function TerminalOrdersPage() {
-  const { mode, orders } = Route.useLoaderData();
+  const { mode, orders, portfolios, selectedPortfolio, eligibleCompanies } = Route.useLoaderData();
+  const navigate = Route.useNavigate();
   const router = useRouter();
   const cancelFn = useServerFn(cancelTerminalOrder);
   const [status, setStatus] = useState<OrderStatus | "all">("all");
@@ -41,11 +57,25 @@ function TerminalOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[24px] font-medium tracking-tight">Orders</h1>
-        <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
-          Open, filled, cancelled, and rejected orders.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[24px] font-medium tracking-tight">Orders</h1>
+          <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
+            Open, filled, cancelled, and rejected orders
+            {selectedPortfolio ? ` for ${selectedPortfolio.name}` : ""}.
+          </p>
+        </div>
+        <PortfolioSwitcher
+          portfolios={portfolios}
+          selectedId={selectedPortfolio?.id ?? null}
+          eligibleCompanies={eligibleCompanies}
+          onSelect={(id) => {
+            void navigate({ search: { portfolioId: id }, replace: true });
+          }}
+          onCreated={(p) => {
+            void navigate({ search: { portfolioId: p.id }, replace: true });
+          }}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -67,7 +97,10 @@ function TerminalOrdersPage() {
         orders={filtered}
         onSelect={setSelected}
         onCancel={(orderId) => {
-          void cancelFn({ data: orderId }).then(() => invalidateRouteData(router));
+          if (!selectedPortfolio) return;
+          void cancelFn({
+            data: { portfolioId: selectedPortfolio.id, orderId },
+          }).then(() => invalidateRouteData(router));
         }}
       />
 
@@ -81,16 +114,12 @@ function TerminalOrdersPage() {
                   <OrderStatusBadge status={selected.status} />
                 </DialogTitle>
                 <DialogDescription className="text-[var(--terminal-muted)]">
-                  {selected.name}
+                  {selected.name} · {selected.side} {selected.type}
                 </DialogDescription>
               </DialogHeader>
-              <dl className="space-y-2 text-[13px]">
-                <Detail label="Side" value={selected.side.toUpperCase()} />
-                <Detail label="Type" value={selected.type} />
-                <Detail
-                  label="Quantity"
-                  value={`${selected.filledQuantity}/${selected.quantity}`}
-                />
+              <dl className="mt-2 grid grid-cols-2 gap-3 text-[13px]">
+                <Detail label="Quantity" value={String(selected.quantity)} />
+                <Detail label="Filled" value={String(selected.filledQuantity)} />
                 <Detail
                   label="Limit"
                   value={
@@ -102,28 +131,28 @@ function TerminalOrdersPage() {
                   }
                 />
                 <Detail
-                  label="Avg fill"
-                  value={
-                    selected.averageFillPrice != null ? (
-                      <MoneyValue value={selected.averageFillPrice} asPrice size="sm" />
-                    ) : (
-                      "—"
-                    )
-                  }
-                />
-                <Detail
-                  label="Value"
+                  label="Est. value"
                   value={<MoneyValue value={selected.estimatedValue} size="sm" />}
                 />
                 <Detail label="Submitted" value={formatActivityDateTime(selected.submittedAt)} />
-                {selected.rejectReason ? (
-                  <Detail label="Reason" value={selected.rejectReason} />
-                ) : null}
+                <Detail label="Updated" value={formatActivityDateTime(selected.updatedAt)} />
               </dl>
+              {selected.rejectReason ? (
+                <p className="mt-3 text-[13px] text-[var(--terminal-red)]">{selected.rejectReason}</p>
+              ) : null}
             </>
           ) : null}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[11px] text-[var(--terminal-muted)]">{label}</dt>
+      <dd className="mt-0.5">{value}</dd>
     </div>
   );
 }
@@ -140,36 +169,22 @@ function FilterGroup({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-2" role="group" aria-label={label}>
-      <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
-        {label}
-      </span>
-      <div className="flex gap-1 rounded-md bg-[var(--terminal-surface)] p-1">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => onChange(option)}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-[11px] capitalize",
-              value === option
-                ? "bg-[var(--terminal-green)]/15 text-[var(--terminal-green)]"
-                : "text-[var(--terminal-muted)]",
-            )}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Detail({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-[var(--terminal-muted)]">{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+          className={cn(
+            "rounded-md px-2.5 py-1.5 text-[12px] capitalize",
+            value === option
+              ? "bg-[var(--terminal-surface-2)] text-[var(--terminal-text)]"
+              : "text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]",
+          )}
+        >
+          {option}
+        </button>
+      ))}
     </div>
   );
 }

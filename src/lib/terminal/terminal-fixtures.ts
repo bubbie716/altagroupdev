@@ -30,7 +30,6 @@ export function buildDeterministicSeries(
     price = Math.max(0.5, price + drift);
     out.push({ t: endTime - (points - 1 - i) * stepMs, v: Number(price.toFixed(2)) });
   }
-  // Pin last close near intended base for visual consistency
   if (out.length) out[out.length - 1] = { ...out[out.length - 1]!, v: Number(base.toFixed(2)) };
   return out;
 }
@@ -266,17 +265,39 @@ export function getFixturePriceHistory(symbol: string, range: TerminalChartRange
 export const FIXTURE_INITIAL_WATCHLIST = ["MINE", "CYBR", "UTIL"] as const;
 
 export const FIXTURE_CASH_BALANCE = 12_450.0;
+export const FIXTURE_COMPANY_CASH = 85_000.0;
+export const FIXTURE_EMPTY_CASH = 5_000.0;
 
-export function buildFixturePortfolio(
-  securities: SecuritySummary[],
-  cash = FIXTURE_CASH_BALANCE,
+export type FixtureLot = { symbol: string; quantity: number; averageCost: number };
+
+export const FIXTURE_PERSONAL_CORE_LOTS: FixtureLot[] = [
+  { symbol: "ALTA", quantity: 40, averageCost: 110.25 },
+  { symbol: "GOLD", quantity: 25, averageCost: 61.4 },
+  { symbol: "UTIL", quantity: 30, averageCost: 49.8 },
+];
+
+export const FIXTURE_COMPANY_LOTS: FixtureLot[] = [
+  { symbol: "ALTA", quantity: 120, averageCost: 98.5 },
+  { symbol: "CYBR", quantity: 45, averageCost: 88.2 },
+  { symbol: "NPRT", quantity: 80, averageCost: 39.1 },
+];
+
+/** Stable mock portfolio ids for a user (used when DB is unavailable). */
+export function mockPortfolioIds(userId: string) {
+  return {
+    personalCore: `tp_${userId}_core`,
+    personalGrowth: `tp_${userId}_growth`,
+    companyAltg: `tp_${userId}_co_altg`,
+  } as const;
+}
+
+export function buildFixturePortfolioFromLots(
+  portfolioId: string,
+  lots: FixtureLot[],
+  cash: number,
+  seriesSeed: number,
 ): PortfolioSnapshot {
-  const lots: Array<{ symbol: string; quantity: number; averageCost: number }> = [
-    { symbol: "ALTA", quantity: 40, averageCost: 110.25 },
-    { symbol: "GOLD", quantity: 25, averageCost: 61.4 },
-    { symbol: "UTIL", quantity: 30, averageCost: 49.8 },
-  ];
-
+  const securities = listFixtureSecurities();
   const bySymbol = new Map(securities.map((s) => [s.symbol, s]));
   let equity = 0;
   const holdings = lots.map((lot) => {
@@ -310,23 +331,44 @@ export function buildFixturePortfolio(
   const priorEquity = equity - dayChange;
   const totalCost = lots.reduce((sum, lot) => sum + lot.quantity * lot.averageCost, 0);
   const totalReturn = equity - totalCost;
-
-  const portfolioSeries = seriesForRanges(9001, equity, 0.008);
+  const totalValue = equity + cash;
 
   return {
+    portfolioId,
     equityValue: Number(equity.toFixed(2)),
     cashBalance: cash,
     buyingPower: cash,
+    totalValue: Number(totalValue.toFixed(2)),
     dayChange: Number(dayChange.toFixed(2)),
     dayChangePercent: priorEquity > 0 ? Number(((dayChange / priorEquity) * 100).toFixed(2)) : 0,
     totalReturn: Number(totalReturn.toFixed(2)),
     totalReturnPercent: totalCost > 0 ? Number(((totalReturn / totalCost) * 100).toFixed(2)) : 0,
+    unrealizedReturn: Number(totalReturn.toFixed(2)),
+    unrealizedReturnPercent:
+      totalCost > 0 ? Number(((totalReturn / totalCost) * 100).toFixed(2)) : 0,
     holdings,
-    seriesByRange: portfolioSeries,
+    seriesByRange: seriesForRanges(seriesSeed, Math.max(totalValue, cash), 0.008),
   };
 }
 
-export function buildEmptyFixturePortfolio(cash = FIXTURE_CASH_BALANCE): PortfolioSnapshot {
+export function buildFixturePortfolio(
+  securities: SecuritySummary[],
+  cash = FIXTURE_CASH_BALANCE,
+  portfolioId = "tp_personal_core",
+): PortfolioSnapshot {
+  void securities;
+  return buildFixturePortfolioFromLots(
+    portfolioId,
+    FIXTURE_PERSONAL_CORE_LOTS,
+    cash,
+    9001,
+  );
+}
+
+export function buildEmptyFixturePortfolio(
+  cash = FIXTURE_EMPTY_CASH,
+  portfolioId = "tp_personal_growth",
+): PortfolioSnapshot {
   const flat = buildDeterministicSeries(42, cash, 40, 0.002);
   const series = {
     "1D": flat,
@@ -337,13 +379,17 @@ export function buildEmptyFixturePortfolio(cash = FIXTURE_CASH_BALANCE): Portfol
     ALL: flat,
   } as Record<TerminalChartRange, PricePoint[]>;
   return {
+    portfolioId,
     equityValue: 0,
     cashBalance: cash,
     buyingPower: cash,
+    totalValue: cash,
     dayChange: 0,
     dayChangePercent: 0,
     totalReturn: 0,
     totalReturnPercent: 0,
+    unrealizedReturn: 0,
+    unrealizedReturnPercent: 0,
     holdings: [],
     seriesByRange: series,
   };
@@ -365,10 +411,50 @@ export function watchlistFromSymbols(symbols: string[]): WatchlistItem[] {
     }));
 }
 
-export function buildFixtureOrders(): OrderRecord[] {
+export function buildFixtureOrders(portfolioId: string, variant: "core" | "company" | "empty"): OrderRecord[] {
+  if (variant === "empty") return [];
+  if (variant === "company") {
+    return [
+      {
+        id: `ord_${portfolioId}_open_1`,
+        portfolioId,
+        symbol: "ALTA",
+        name: "Alta Group Holdings",
+        side: "buy",
+        type: "limit",
+        status: "open",
+        quantity: 25,
+        filledQuantity: 0,
+        limitPrice: 124,
+        averageFillPrice: null,
+        estimatedValue: 3100,
+        submittedAt: "2026-07-20T14:22:00.000Z",
+        updatedAt: "2026-07-20T14:22:00.000Z",
+        rejectReason: null,
+      },
+      {
+        id: `ord_${portfolioId}_filled_1`,
+        portfolioId,
+        symbol: "CYBR",
+        name: "Cyberdock Systems",
+        side: "buy",
+        type: "market",
+        status: "filled",
+        quantity: 15,
+        filledQuantity: 15,
+        limitPrice: null,
+        averageFillPrice: 92.1,
+        estimatedValue: 1381.5,
+        submittedAt: "2026-07-15T16:40:00.000Z",
+        updatedAt: "2026-07-15T16:40:03.000Z",
+        rejectReason: null,
+      },
+    ];
+  }
   return [
     {
-      id: "ord_open_alta_1",
+      id: `ord_${portfolioId}_open_alta_1`,
+      portfolioId,
       symbol: "ALTA",
       name: "Alta Group Holdings",
       side: "buy",
@@ -384,7 +470,8 @@ export function buildFixtureOrders(): OrderRecord[] {
       rejectReason: null,
     },
     {
-      id: "ord_filled_mine_1",
+      id: `ord_${portfolioId}_filled_mine_1`,
+      portfolioId,
       symbol: "MINE",
       name: "Minecart Logistics",
       side: "buy",
@@ -400,7 +487,8 @@ export function buildFixtureOrders(): OrderRecord[] {
       rejectReason: null,
     },
     {
-      id: "ord_cancelled_cybr_1",
+      id: `ord_${portfolioId}_cancelled_cybr_1`,
+      portfolioId,
       symbol: "CYBR",
       name: "Cyberdock Systems",
       side: "sell",
@@ -416,7 +504,8 @@ export function buildFixtureOrders(): OrderRecord[] {
       rejectReason: null,
     },
     {
-      id: "ord_rejected_halt_1",
+      id: `ord_${portfolioId}_rejected_halt_1`,
+      portfolioId,
       symbol: "HALT",
       name: "Harbor Halt Industries",
       side: "buy",

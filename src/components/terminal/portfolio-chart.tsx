@@ -245,22 +245,23 @@ export function PortfolioChart({
 }
 
 export function SecurityChart({
-  data,
-  range,
-  onRangeChange,
+  seriesByRange,
   positive,
   className,
+  initialRange = "1D",
 }: {
-  data: PricePoint[];
-  range: TerminalChartRange;
-  onRangeChange: (range: TerminalChartRange) => void;
+  seriesByRange: Record<TerminalChartRange, PricePoint[]>;
   positive: boolean;
   className?: string;
+  initialRange?: TerminalChartRange;
 }) {
+  const [range, setRange] = useState<TerminalChartRange>(initialRange);
+  const data = useMemo(() => seriesByRange[range] ?? [], [range, seriesByRange]);
+
   return (
     <section className={cn("min-w-0 space-y-3", className)} aria-label="Price history">
       <div className="flex justify-end">
-        <RangeSelector value={range} onChange={onRangeChange} />
+        <RangeSelector value={range} onChange={setRange} />
       </div>
       <InteractiveTerminalChart
         data={data}

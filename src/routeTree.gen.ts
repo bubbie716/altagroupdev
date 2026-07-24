@@ -110,6 +110,7 @@ import { Route as BankCommercialIndexRouteImport } from './routes/bank/commercia
 import { Route as BankBusinessIndexRouteImport } from './routes/bank/business/index'
 import { Route as BankAltaCardIndexRouteImport } from './routes/bank/alta-card/index'
 import { Route as TerminalSecuritySymbolRouteImport } from './routes/terminal/security/$symbol'
+import { Route as TerminalPortfolioPortfolioIdRouteImport } from './routes/terminal/portfolio/$portfolioId'
 import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users/$userId'
 import { Route as InternalTerminalSettingsRouteImport } from './routes/internal/terminal/settings'
 import { Route as InternalRelationshipsUserIdRouteImport } from './routes/internal/relationships/$userId'
@@ -785,6 +786,12 @@ const TerminalSecuritySymbolRoute = TerminalSecuritySymbolRouteImport.update({
   path: '/security/$symbol',
   getParentRoute: () => TerminalRouteRoute,
 } as any)
+const TerminalPortfolioPortfolioIdRoute =
+  TerminalPortfolioPortfolioIdRouteImport.update({
+    id: '/$portfolioId',
+    path: '/$portfolioId',
+    getParentRoute: () => TerminalPortfolioRoute,
+  } as any)
 const InternalUsersUserIdRoute = InternalUsersUserIdRouteImport.update({
   id: '/users/$userId',
   path: '/users/$userId',
@@ -1817,7 +1824,7 @@ export interface FileRoutesByFullPath {
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
   '/terminal/orders': typeof TerminalOrdersRoute
-  '/terminal/portfolio': typeof TerminalPortfolioRoute
+  '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
@@ -1899,6 +1906,7 @@ export interface FileRoutesByFullPath {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/terminal/portfolio/$portfolioId': typeof TerminalPortfolioPortfolioIdRoute
   '/terminal/security/$symbol': typeof TerminalSecuritySymbolRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
   '/bank/business/': typeof BankBusinessIndexRoute
@@ -2073,7 +2081,7 @@ export interface FileRoutesByTo {
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
   '/terminal/orders': typeof TerminalOrdersRoute
-  '/terminal/portfolio': typeof TerminalPortfolioRoute
+  '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
@@ -2147,6 +2155,7 @@ export interface FileRoutesByTo {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/terminal/portfolio/$portfolioId': typeof TerminalPortfolioPortfolioIdRoute
   '/terminal/security/$symbol': typeof TerminalSecuritySymbolRoute
   '/bank/alta-card': typeof BankAltaCardIndexRoute
   '/bank/business': typeof BankBusinessIndexRoute
@@ -2331,7 +2340,7 @@ export interface FileRoutesById {
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
   '/terminal/orders': typeof TerminalOrdersRoute
-  '/terminal/portfolio': typeof TerminalPortfolioRoute
+  '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
@@ -2413,6 +2422,7 @@ export interface FileRoutesById {
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
   '/internal/users/$userId': typeof InternalUsersUserIdRoute
+  '/terminal/portfolio/$portfolioId': typeof TerminalPortfolioPortfolioIdRoute
   '/terminal/security/$symbol': typeof TerminalSecuritySymbolRoute
   '/bank/alta-card/': typeof BankAltaCardIndexRoute
   '/bank/business/': typeof BankBusinessIndexRoute
@@ -2685,6 +2695,7 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/terminal/portfolio/$portfolioId'
     | '/terminal/security/$symbol'
     | '/bank/alta-card/'
     | '/bank/business/'
@@ -2933,6 +2944,7 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/terminal/portfolio/$portfolioId'
     | '/terminal/security/$symbol'
     | '/bank/alta-card'
     | '/bank/business'
@@ -3198,6 +3210,7 @@ export interface FileRouteTypes {
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
     | '/internal/users/$userId'
+    | '/terminal/portfolio/$portfolioId'
     | '/terminal/security/$symbol'
     | '/bank/alta-card/'
     | '/bank/business/'
@@ -4081,6 +4094,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/terminal/security/$symbol'
       preLoaderRoute: typeof TerminalSecuritySymbolRouteImport
       parentRoute: typeof TerminalRouteRoute
+    }
+    '/terminal/portfolio/$portfolioId': {
+      id: '/terminal/portfolio/$portfolioId'
+      path: '/$portfolioId'
+      fullPath: '/terminal/portfolio/$portfolioId'
+      preLoaderRoute: typeof TerminalPortfolioPortfolioIdRouteImport
+      parentRoute: typeof TerminalPortfolioRoute
     }
     '/internal/users/$userId': {
       id: '/internal/users/$userId'
@@ -6057,13 +6077,24 @@ const InternalRouteRouteWithChildren = InternalRouteRoute._addFileChildren(
   InternalRouteRouteChildren,
 )
 
+interface TerminalPortfolioRouteChildren {
+  TerminalPortfolioPortfolioIdRoute: typeof TerminalPortfolioPortfolioIdRoute
+}
+
+const TerminalPortfolioRouteChildren: TerminalPortfolioRouteChildren = {
+  TerminalPortfolioPortfolioIdRoute: TerminalPortfolioPortfolioIdRoute,
+}
+
+const TerminalPortfolioRouteWithChildren =
+  TerminalPortfolioRoute._addFileChildren(TerminalPortfolioRouteChildren)
+
 interface TerminalRouteRouteChildren {
   TerminalIpoRoute: typeof TerminalIpoRoute
   TerminalLeaderboardRoute: typeof TerminalLeaderboardRoute
   TerminalMarketsRoute: typeof TerminalMarketsRoute
   TerminalNewsRoute: typeof TerminalNewsRoute
   TerminalOrdersRoute: typeof TerminalOrdersRoute
-  TerminalPortfolioRoute: typeof TerminalPortfolioRoute
+  TerminalPortfolioRoute: typeof TerminalPortfolioRouteWithChildren
   TerminalResearchRoute: typeof TerminalResearchRoute
   TerminalTradeRoute: typeof TerminalTradeRoute
   TerminalWatchlistRoute: typeof TerminalWatchlistRoute
@@ -6077,7 +6108,7 @@ const TerminalRouteRouteChildren: TerminalRouteRouteChildren = {
   TerminalMarketsRoute: TerminalMarketsRoute,
   TerminalNewsRoute: TerminalNewsRoute,
   TerminalOrdersRoute: TerminalOrdersRoute,
-  TerminalPortfolioRoute: TerminalPortfolioRoute,
+  TerminalPortfolioRoute: TerminalPortfolioRouteWithChildren,
   TerminalResearchRoute: TerminalResearchRoute,
   TerminalTradeRoute: TerminalTradeRoute,
   TerminalWatchlistRoute: TerminalWatchlistRoute,

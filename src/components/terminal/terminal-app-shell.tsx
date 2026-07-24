@@ -4,7 +4,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Moon, Search, Sun, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { AltaLogo } from "@/components/alta-logo";
 import { AuthUserMenu } from "@/components/auth/user-menu";
 import { EcosystemSwitcher } from "@/components/site/ecosystem-switcher";
 import { MarketStatusBadge } from "@/components/terminal/market-status";
@@ -94,16 +93,7 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--terminal-border)] bg-[var(--terminal-bg)]/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-3 px-3 sm:px-6">
-        <Link
-          to="/terminal"
-          className="flex shrink-0 items-center gap-2"
-          aria-label="Alta Terminal home"
-        >
-          <AltaLogo className="h-6 w-6" />
-          <span className="hidden text-[13px] font-medium tracking-tight sm:inline">
-            Alta Terminal
-          </span>
-        </Link>
+        <EcosystemSwitcher siteKey={site.key} variant="branded" className="shrink-0" />
 
         <nav className="ml-1 hidden items-center gap-1 lg:flex" aria-label="Terminal">
           {TERMINAL_PRIMARY_NAV_LINKS.map((link) => {
@@ -184,9 +174,6 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
             className="hidden sm:inline-flex"
           />
         ) : null}
-        <div className="hidden sm:block">
-          <EcosystemSwitcher siteKey={site.key} />
-        </div>
         <button
           type="button"
           onClick={toggle}

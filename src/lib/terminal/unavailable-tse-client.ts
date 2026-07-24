@@ -11,6 +11,7 @@ import type {
   SubmitOrderResult,
   CancelOrderResult,
   TerminalChartRange,
+  TerminalPortfolioSummary,
   TseClient,
   WatchlistItem,
   Holding,
@@ -18,15 +19,19 @@ import type {
 
 const UNAVAILABLE_MSG = "Market connection unavailable";
 
-function emptyPortfolio(): PortfolioSnapshot {
+function emptyPortfolio(portfolioId = ""): PortfolioSnapshot {
   return {
+    portfolioId,
     equityValue: 0,
     cashBalance: 0,
     buyingPower: 0,
+    totalValue: 0,
     dayChange: 0,
     dayChangePercent: 0,
     totalReturn: 0,
     totalReturnPercent: 0,
+    unrealizedReturn: 0,
+    unrealizedReturnPercent: 0,
     holdings: [],
     seriesByRange: {
       "1D": [],
@@ -69,8 +74,8 @@ export class UnavailableTseClient implements TseClient {
     return [];
   }
 
-  async getPortfolio(): Promise<PortfolioSnapshot> {
-    return emptyPortfolio();
+  async getPortfolio(portfolioId: string): Promise<PortfolioSnapshot> {
+    return emptyPortfolio(portfolioId);
   }
 
   async getHoldings(): Promise<Holding[]> {
@@ -96,6 +101,7 @@ export class UnavailableTseClient implements TseClient {
   async previewOrder(input: OrderPreviewInput): Promise<OrderPreviewResult> {
     return {
       ok: false,
+      portfolioId: input.portfolioId,
       symbol: input.symbol,
       side: input.side,
       type: input.type,
@@ -118,13 +124,16 @@ export class UnavailableTseClient implements TseClient {
     return { ok: false, errors: [UNAVAILABLE_MSG] };
   }
 
-  async getHomeDashboard(): Promise<HomeDashboard> {
+  async getHomeDashboard(portfolios: TerminalPortfolioSummary[]): Promise<HomeDashboard> {
     return {
-      portfolio: emptyPortfolio(),
+      marketStatus: await this.getMarketStatus(),
+      combinedValue: 0,
+      combinedDayChange: 0,
+      combinedDayChangePercent: 0,
+      portfolios,
       watchlistPreview: [],
       movers: { gainers: [], losers: [] },
       recentOrders: [],
-      marketStatus: await this.getMarketStatus(),
     };
   }
 }

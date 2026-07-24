@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AuthGate, LoginPortalShell } from "@/components/auth/auth-gate";
+import { TerminalSignInPage } from "@/components/terminal/terminal-sign-in-page";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
 
@@ -26,6 +27,10 @@ export function EntityLoginPage({
   const user = useCurrentUser();
   const site = useSiteContext();
   const redirectTo = redirect ?? site.defaultAuthenticatedRoute;
+
+  if (site.key === "terminal" || site.key === "exchange") {
+    return <TerminalSignInPage redirectTo={redirectTo} error={error} />;
+  }
 
   if (user) {
     const displayName = user.minecraftUsername?.trim() || user.discordUsername;

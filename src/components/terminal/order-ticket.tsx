@@ -28,6 +28,8 @@ export function OrderTicket({
   position,
   mode,
   marketClosed,
+  portfolioId,
+  portfolioLabel,
   onSubmitted,
   className,
   compact = false,
@@ -37,6 +39,8 @@ export function OrderTicket({
   position: Holding | null;
   mode: TseDataSourceMode;
   marketClosed?: boolean;
+  portfolioId: string | null;
+  portfolioLabel?: string | null;
   onSubmitted?: () => void;
   className?: string;
   compact?: boolean;
@@ -53,7 +57,11 @@ export function OrderTicket({
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const disabled = mode === "unavailable" || security.tradingStatus === "halted" || marketClosed;
+  const disabled =
+    mode === "unavailable" ||
+    security.tradingStatus === "halted" ||
+    marketClosed ||
+    !portfolioId;
 
   const qty = Number(quantity);
   const est = useMemo(() => {
@@ -64,9 +72,14 @@ export function OrderTicket({
   async function handlePreview() {
     setError(null);
     setResultMessage(null);
+    if (!portfolioId) {
+      setError("Select a portfolio before trading");
+      return;
+    }
     try {
       const next = await previewFn({
         data: {
+          portfolioId,
           symbol: security.symbol,
           side,
           type,
@@ -82,12 +95,13 @@ export function OrderTicket({
   }
 
   async function handleConfirm() {
-    if (!preview?.ok) return;
+    if (!preview?.ok || !portfolioId) return;
     setSubmitting(true);
     setError(null);
     try {
       const result = await submitFn({
         data: {
+          portfolioId,
           symbol: security.symbol,
           side,
           type,
@@ -120,9 +134,22 @@ export function OrderTicket({
       )}
     >
       {!compact ? (
-        <h2 className="text-[13px] font-medium tracking-wide text-[var(--terminal-muted)]">
-          Order
-        </h2>
+        <div>
+          <h2 className="text-[13px] font-medium tracking-wide text-[var(--terminal-muted)]">
+            Order
+          </h2>
+          {portfolioLabel ? (
+            <p className="mt-1 text-[12px] text-[var(--terminal-text)]">
+              Trading from <span className="font-medium">{portfolioLabel}</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-[12px] text-[var(--terminal-red)]">No portfolio selected</p>
+          )}
+        </div>
+      ) : portfolioLabel ? (
+        <p className="mb-2 text-[11px] text-[var(--terminal-muted)]">
+          From <span className="text-[var(--terminal-text)]">{portfolioLabel}</span>
+        </p>
       ) : null}
 
       <div className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-[var(--terminal-surface-2)] p-1">

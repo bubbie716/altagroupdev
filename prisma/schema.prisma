@@ -166,6 +166,9 @@ model User {
   altaPrivateInvitationsSent                 AltaPrivateInvitation[]              @relation("AltaPrivateInvitationSender")
   botDailyTransferUsage                      BotDailyTransferUsage[]
   bankSettings                               UserBankSettings?
+  terminalSettings                           UserTerminalSettings?
+  terminalPortfoliosOwned                    TerminalPortfolio[]                  @relation("TerminalPortfolioOwnerUser")
+  terminalPortfoliosCreated                  TerminalPortfolio[]                  @relation("TerminalPortfolioCreator")
   secureDealRoomDiscordSessions              SecureDealRoomDiscordSession[]
   notificationDeliveryQueue                  NotificationDeliveryQueue[]
   paymentsInitiated                          Payment[]                            @relation("PaymentInitiatedBy")
@@ -272,6 +275,7 @@ model Company {
   commercialProExpiresAt       DateTime?
   commercialBillingAccount     BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
   branding                     CompanyBranding?
+  terminalPortfolios           TerminalPortfolio[]
 
   @@index([verificationStatus])
 }
@@ -3294,4 +3298,50 @@ model PaymentLinkEvent {
   paymentLink PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
 
   @@index([paymentLinkId, createdAt])
+}
+
+enum TerminalPortfolioOwnerType {
+  PERSONAL
+  COMPANY
+}
+
+enum TerminalPortfolioStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model TerminalPortfolio {
+  id              String                     @id @default(cuid())
+  name            String
+  ownerType       TerminalPortfolioOwnerType
+  ownerUserId     String?
+  ownerCompanyId  String?
+  createdByUserId String
+  status          TerminalPortfolioStatus    @default(ACTIVE)
+  isDefault       Boolean                    @default(false)
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  ownerUser     User?    @relation("TerminalPortfolioOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerCompany  Company? @relation(fields: [ownerCompanyId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("TerminalPortfolioCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  selectedBy    UserTerminalSettings[]
+
+  @@index([ownerUserId, status])
+  @@index([ownerCompanyId, status])
+  @@index([createdByUserId])
+  @@index([isDefault])
+}
+
+model UserTerminalSettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  lastSelectedPortfolioId String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastSelectedPortfolio TerminalPortfolio? @relation(fields: [lastSelectedPortfolioId], references: [id], onDelete: SetNull)
+
+  @@index([lastSelectedPortfolioId])
 }

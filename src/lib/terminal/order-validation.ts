@@ -29,9 +29,28 @@ export function validateOrderPreview(input: {
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  if (!order.portfolioId?.trim()) {
+    return {
+      ok: false,
+      portfolioId: "",
+      symbol: order.symbol,
+      side: order.side,
+      type: order.type,
+      quantity: order.quantity,
+      limitPrice: order.limitPrice ?? null,
+      estimatedValue: 0,
+      estimatedFees: 0,
+      buyingPowerAfter: null,
+      holdingsAfter: null,
+      warnings,
+      errors: ["Portfolio is required"],
+    };
+  }
+
   if (!security) {
     return {
       ok: false,
+      portfolioId: order.portfolioId,
       symbol: order.symbol,
       side: order.side,
       type: order.type,
@@ -100,6 +119,7 @@ export function validateOrderPreview(input: {
 
   return {
     ok: errors.length === 0,
+    portfolioId: order.portfolioId,
     symbol: security.symbol,
     side: order.side,
     type: order.type,

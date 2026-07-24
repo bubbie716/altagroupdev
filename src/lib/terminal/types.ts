@@ -10,6 +10,9 @@ export type OrderSide = "buy" | "sell";
 export type OrderType = "market" | "limit";
 export type OrderStatus = "open" | "filled" | "cancelled" | "rejected" | "partial";
 
+export type TerminalPortfolioOwnerTypeCode = "personal" | "company";
+export type TerminalPortfolioStatusCode = "active" | "archived";
+
 export type PricePoint = {
   t: number;
   v: number;
@@ -60,15 +63,39 @@ export type Holding = {
 };
 
 export type PortfolioSnapshot = {
+  portfolioId: string;
   equityValue: number;
   cashBalance: number;
   buyingPower: number;
+  totalValue: number;
   dayChange: number;
   dayChangePercent: number;
   totalReturn: number;
   totalReturnPercent: number;
+  unrealizedReturn: number;
+  unrealizedReturnPercent: number;
   holdings: Holding[];
   seriesByRange: Record<TerminalChartRange, PricePoint[]>;
+};
+
+export type TerminalPortfolioSummary = {
+  id: string;
+  name: string;
+  ownerType: TerminalPortfolioOwnerTypeCode;
+  ownerUserId: string | null;
+  ownerCompanyId: string | null;
+  ownerLabel: string;
+  status: TerminalPortfolioStatusCode;
+  isDefault: boolean;
+  totalValue: number;
+  dayChange: number;
+  dayChangePercent: number;
+  capabilities: {
+    canView: boolean;
+    canTrade: boolean;
+    canRename: boolean;
+    canArchive: boolean;
+  };
 };
 
 export type WatchlistItem = {
@@ -83,6 +110,7 @@ export type WatchlistItem = {
 
 export type OrderRecord = {
   id: string;
+  portfolioId: string;
   symbol: string;
   name: string;
   side: OrderSide;
@@ -99,6 +127,7 @@ export type OrderRecord = {
 };
 
 export type OrderPreviewInput = {
+  portfolioId: string;
   symbol: string;
   side: OrderSide;
   type: OrderType;
@@ -108,6 +137,7 @@ export type OrderPreviewInput = {
 
 export type OrderPreviewResult = {
   ok: boolean;
+  portfolioId: string;
   symbol: string;
   side: OrderSide;
   type: OrderType;
@@ -126,23 +156,25 @@ export type SubmitOrderResult =
   | {
       ok: false;
       errors: string[];
-      code?: "market_closed" | "halted" | "validation" | "unavailable";
+      code?: "market_closed" | "halted" | "validation" | "unavailable" | "portfolio_required";
     };
 
 export type CancelOrderResult = { ok: true; order: OrderRecord } | { ok: false; errors: string[] };
 
 export type HomeDashboard = {
-  portfolio: PortfolioSnapshot;
+  marketStatus: MarketStatusSnapshot;
+  combinedValue: number;
+  combinedDayChange: number;
+  combinedDayChangePercent: number;
+  portfolios: TerminalPortfolioSummary[];
   watchlistPreview: WatchlistItem[];
   movers: { gainers: SecuritySummary[]; losers: SecuritySummary[] };
   recentOrders: OrderRecord[];
-  marketStatus: MarketStatusSnapshot;
 };
 
 export type TseDataSourceMode = "mock" | "unavailable" | "live";
 
 export type TseClientContext = {
-  /** Authenticated Alta customer. Future live adapters resolve this to a brokerage account. */
   userId: string;
 };
 
@@ -153,14 +185,16 @@ export interface TseClient {
   getSecurity(symbol: string): Promise<SecurityDetail | null>;
   getQuote(symbol: string): Promise<SecuritySummary | null>;
   getPriceHistory(symbol: string, range: TerminalChartRange): Promise<PricePoint[]>;
-  getPortfolio(): Promise<PortfolioSnapshot>;
-  getHoldings(): Promise<Holding[]>;
+  getPortfolio(portfolioId: string): Promise<PortfolioSnapshot>;
+  getHoldings(portfolioId: string): Promise<Holding[]>;
   getWatchlist(): Promise<WatchlistItem[]>;
   addToWatchlist(symbol: string): Promise<WatchlistItem[]>;
   removeFromWatchlist(symbol: string): Promise<WatchlistItem[]>;
-  listOrders(): Promise<OrderRecord[]>;
+  listOrders(portfolioId: string): Promise<OrderRecord[]>;
   previewOrder(input: OrderPreviewInput): Promise<OrderPreviewResult>;
   submitOrder(input: OrderPreviewInput): Promise<SubmitOrderResult>;
-  cancelOrder(orderId: string): Promise<CancelOrderResult>;
-  getHomeDashboard(): Promise<HomeDashboard>;
+  cancelOrder(portfolioId: string, orderId: string): Promise<CancelOrderResult>;
+  getHomeDashboard(portfolios: TerminalPortfolioSummary[]): Promise<HomeDashboard>;
+  /** Seed mock market state for a newly created portfolio. */
+  ensurePortfolioMarketState?(portfolioId: string, seed?: "populated" | "empty"): Promise<void>;
 }

@@ -31,7 +31,7 @@ export const ECOSYSTEM_ENTRIES: EcosystemEntry[] = [
     name: "Alta Terminal",
     shortName: "Alta Terminal",
     description: "Brokerage and trading",
-    homePath: "/",
+    homePath: "/terminal",
   },
 ];
 
