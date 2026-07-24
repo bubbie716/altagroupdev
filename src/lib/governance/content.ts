@@ -131,16 +131,6 @@ export const executiveLeadership: LeadershipCard[] = [
     status: "Vacant",
     responsibility: "Financial planning, treasury oversight, and institutional reporting.",
   },
-  {
-    title: "Chief Technology Officer",
-    status: "Vacant",
-    responsibility: "Platform engineering, market technology, and digital infrastructure.",
-  },
-  {
-    title: "Chief Legal Officer",
-    status: "Vacant",
-    responsibility: "Corporate governance, regulatory affairs, and issuer compliance.",
-  },
 ];
 
 export type DivisionLeadershipGroup = {
@@ -161,16 +151,6 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
         status: "Appointed",
         responsibility: "Banking operations, client coverage, and treasury services.",
       },
-      {
-        title: "Private Banking Director",
-        status: "Vacant",
-        responsibility: "Private client relationships, wealth accounts, and advisory coverage.",
-      },
-      {
-        title: "Relationship Manager",
-        status: "Vacant",
-        responsibility: "Day-to-day client service and account stewardship.",
-      },
     ],
   },
   {
@@ -183,16 +163,6 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
         minecraftUsername: "12700k",
         status: "Appointed",
         responsibility: "Brokerage operations, product direction, and investor platform governance.",
-      },
-      {
-        title: "Head of Brokerage",
-        status: "Vacant",
-        responsibility: "Client coverage, account onboarding, and trading desk coordination.",
-      },
-      {
-        title: "Market Operations Officer",
-        status: "Vacant",
-        responsibility: "Order routing readiness, market data feeds, and session operations.",
       },
     ],
   },
