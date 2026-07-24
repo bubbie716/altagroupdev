@@ -119,7 +119,7 @@ export function BankRequestsInProgress({
     <div id={BANK_REQUESTS_IN_PROGRESS_ID} className="mx-auto mt-8 max-w-5xl scroll-mt-8">
       <Card className={cn(bankTableShellClass, "!p-0")}>
         <div className="border-b border-border px-5 py-4 sm:px-6">
-          <h2 className="font-medium tracking-tight">Requests in Progress</h2>
+          <h2 className="font-medium tracking-tight">Previous Requests</h2>
           <p className="mt-1 text-[12px] text-muted-foreground">
             Pending, approved, and recently declined requests.
           </p>

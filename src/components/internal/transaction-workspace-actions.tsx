@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "@tanstack/react-router";
 import { OpsAction } from "@/components/internal/ops-action";
 import { florin } from "@/lib/bank/api";
 import {
@@ -24,7 +23,6 @@ type TxLike = {
 };
 
 export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
-  const router = useRouter();
   const isPending = tx.status.toUpperCase() === "PENDING";
   const type = tx.type.toUpperCase();
 
@@ -47,7 +45,6 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
                 silentNotification: options?.silentNotification,
               },
             });
-            void router.invalidate();
           }}
         />
       </div>
@@ -71,7 +68,6 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             await approveBankDeposit({
               data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
             });
-            void router.invalidate();
           }}
         />
         <OpsAction
@@ -86,7 +82,6 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             await denyBankDeposit({
               data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
             });
-            void router.invalidate();
           }}
         />
       </div>
@@ -109,7 +104,6 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             await approveBankWithdrawal({
               data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
             });
-            void router.invalidate();
           }}
         />
         <OpsAction
@@ -124,7 +118,6 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             await denyBankWithdrawal({
               data: { transactionId: tx.id, reviewNote: reason, silentNotification: options?.silentNotification },
             });
-            void router.invalidate();
           }}
         />
       </div>

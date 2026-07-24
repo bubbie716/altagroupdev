@@ -676,9 +676,6 @@ export async function getRelationshipProfile(userId: string): Promise<Relationsh
     "productsHeld" in snapshot.metadata
   ) {
     productsHeld = snapshot.metadata.productsHeld as RelationshipProductsHeld;
-  } else {
-    const calculated = await calculateRelationshipProfile(userId);
-    productsHeld = calculated.productsHeld;
   }
 
   return mapProfileRow(row, productsHeld);
@@ -1024,31 +1021,61 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
 
 export async function getRelationshipProfileSummary(userId: string): Promise<RelationshipProfileSummary | null> {
   await requireOperator();
-  const calculated = await calculateRelationshipProfile(userId);
-  const profile = await getRelationshipProfile(userId);
+  const row = await prisma.relationshipProfile.findUnique({ where: { userId } });
+  if (!row) return null;
   return {
     userId,
-    relationshipSince: calculated.relationshipSince,
-    relationshipScore: calculated.relationshipScore,
-    relationshipTier: calculated.relationshipTier,
-    privateBankingEligible: calculated.privateBankingEligible,
-    privateBankingClient: calculated.privateBankingClient,
-    totalAltaAssets: calculated.totalAltaAssets,
-    productsHeld: calculated.productsHeld,
-    lastCalculatedAt: profile?.lastCalculatedAt ?? calculated.lastCalculatedAt,
+    relationshipSince: row.relationshipSince.toISOString(),
+    relationshipScore: row.relationshipScore,
+    relationshipTier: tierToCode(row.relationshipTier),
+    privateBankingEligible: row.privateBankingEligible,
+    privateBankingClient: row.privateBankingClient,
+    totalAltaAssets: decimalToNumber(row.totalAltaAssets),
+    productsHeld: {
+      activeBankAccounts: 0,
+      activeAltaCards: 0,
+      activeLoans: 0,
+      paidOffLoans: 0,
+      businessCompanies: 0,
+      verifiedCompanies: 0,
+      isPrivateClient: row.privateBankingClient,
+    },
+    lastCalculatedAt: row.lastCalculatedAt.toISOString(),
   };
 }
 
 export async function getRelationshipProfileSummariesForUsers(
   userIds: string[],
 ): Promise<Record<string, RelationshipProfileSummary>> {
+  await requireOperator();
   const unique = [...new Set(userIds.filter(Boolean))];
   if (unique.length === 0) return {};
 
-  const summaries = await Promise.all(unique.map((id) => getRelationshipProfileSummary(id)));
+  const rows = await prisma.relationshipProfile.findMany({
+    where: { userId: { in: unique } },
+  });
+
   const byUserId: Record<string, RelationshipProfileSummary> = {};
-  for (const summary of summaries) {
-    if (summary) byUserId[summary.userId] = summary;
+  for (const row of rows) {
+    byUserId[row.userId] = {
+      userId: row.userId,
+      relationshipSince: row.relationshipSince.toISOString(),
+      relationshipScore: row.relationshipScore,
+      relationshipTier: tierToCode(row.relationshipTier),
+      privateBankingEligible: row.privateBankingEligible,
+      privateBankingClient: row.privateBankingClient,
+      totalAltaAssets: decimalToNumber(row.totalAltaAssets),
+      productsHeld: {
+        activeBankAccounts: 0,
+        activeAltaCards: 0,
+        activeLoans: 0,
+        paidOffLoans: 0,
+        businessCompanies: 0,
+        verifiedCompanies: 0,
+        isPrivateClient: row.privateBankingClient,
+      },
+      lastCalculatedAt: row.lastCalculatedAt.toISOString(),
+    };
   }
   return byUserId;
 }

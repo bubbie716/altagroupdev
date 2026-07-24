@@ -136,7 +136,6 @@ import { Route as CompaniesCompanyIdSettingsRouteImport } from './routes/compani
 import { Route as CompaniesCompanyIdMembersRouteImport } from './routes/companies/$companyId/members'
 import { Route as BankTransfersIntrabankRouteImport } from './routes/bank/transfers/intrabank'
 import { Route as BankTransfersInterbankRouteImport } from './routes/bank/transfers/interbank'
-import { Route as BankTransfersContactsRouteImport } from './routes/bank/transfers/contacts'
 import { Route as BankStatementsStatementIdRouteImport } from './routes/bank/statements/$statementId'
 import { Route as BankLendingApplyRouteImport } from './routes/bank/lending/apply'
 import { Route as BankInvoicesInvoiceIdRouteImport } from './routes/bank/invoices/$invoiceId'
@@ -926,11 +925,6 @@ const BankTransfersIntrabankRoute = BankTransfersIntrabankRouteImport.update({
 const BankTransfersInterbankRoute = BankTransfersInterbankRouteImport.update({
   id: '/interbank',
   path: '/interbank',
-  getParentRoute: () => BankTransfersRouteRoute,
-} as any)
-const BankTransfersContactsRoute = BankTransfersContactsRouteImport.update({
-  id: '/contacts',
-  path: '/contacts',
   getParentRoute: () => BankTransfersRouteRoute,
 } as any)
 const BankStatementsStatementIdRoute =
@@ -1856,7 +1850,6 @@ export interface FileRoutesByFullPath {
   '/bank/invoices/$invoiceId': typeof BankInvoicesInvoiceIdRoute
   '/bank/lending/apply': typeof BankLendingApplyRoute
   '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
-  '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
@@ -2102,7 +2095,6 @@ export interface FileRoutesByTo {
   '/bank/invoices/$invoiceId': typeof BankInvoicesInvoiceIdRoute
   '/bank/lending/apply': typeof BankLendingApplyRoute
   '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
-  '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
@@ -2366,7 +2358,6 @@ export interface FileRoutesById {
   '/bank/invoices/$invoiceId': typeof BankInvoicesInvoiceIdRoute
   '/bank/lending/apply': typeof BankLendingApplyRoute
   '/bank/statements/$statementId': typeof BankStatementsStatementIdRoute
-  '/bank/transfers/contacts': typeof BankTransfersContactsRoute
   '/bank/transfers/interbank': typeof BankTransfersInterbankRoute
   '/bank/transfers/intrabank': typeof BankTransfersIntrabankRoute
   '/companies/$companyId/members': typeof CompaniesCompanyIdMembersRoute
@@ -2636,7 +2627,6 @@ export interface FileRouteTypes {
     | '/bank/invoices/$invoiceId'
     | '/bank/lending/apply'
     | '/bank/statements/$statementId'
-    | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
@@ -2882,7 +2872,6 @@ export interface FileRouteTypes {
     | '/bank/invoices/$invoiceId'
     | '/bank/lending/apply'
     | '/bank/statements/$statementId'
-    | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
@@ -3145,7 +3134,6 @@ export interface FileRouteTypes {
     | '/bank/invoices/$invoiceId'
     | '/bank/lending/apply'
     | '/bank/statements/$statementId'
-    | '/bank/transfers/contacts'
     | '/bank/transfers/interbank'
     | '/bank/transfers/intrabank'
     | '/companies/$companyId/members'
@@ -4240,13 +4228,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankTransfersInterbankRouteImport
       parentRoute: typeof BankTransfersRouteRoute
     }
-    '/bank/transfers/contacts': {
-      id: '/bank/transfers/contacts'
-      path: '/contacts'
-      fullPath: '/bank/transfers/contacts'
-      preLoaderRoute: typeof BankTransfersContactsRouteImport
-      parentRoute: typeof BankTransfersRouteRoute
-    }
     '/bank/statements/$statementId': {
       id: '/bank/statements/$statementId'
       path: '/statements/$statementId'
@@ -5297,14 +5278,12 @@ const BankPayRouteRouteWithChildren = BankPayRouteRoute._addFileChildren(
 )
 
 interface BankTransfersRouteRouteChildren {
-  BankTransfersContactsRoute: typeof BankTransfersContactsRoute
   BankTransfersInterbankRoute: typeof BankTransfersInterbankRoute
   BankTransfersIntrabankRoute: typeof BankTransfersIntrabankRoute
   BankTransfersIndexRoute: typeof BankTransfersIndexRoute
 }
 
 const BankTransfersRouteRouteChildren: BankTransfersRouteRouteChildren = {
-  BankTransfersContactsRoute: BankTransfersContactsRoute,
   BankTransfersInterbankRoute: BankTransfersInterbankRoute,
   BankTransfersIntrabankRoute: BankTransfersIntrabankRoute,
   BankTransfersIndexRoute: BankTransfersIndexRoute,

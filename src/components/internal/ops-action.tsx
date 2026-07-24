@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 
 export type OpsActionVariant = "default" | "primary" | "danger";
 
@@ -74,7 +75,7 @@ export function OpsAction({
         onCancel={() => setOpen(false)}
         onConfirm={async (reason, options) => {
           await onConfirm(reason, options);
-          await router.invalidate();
+          await invalidateRouteData(router);
         }}
       >
         {impact ? (

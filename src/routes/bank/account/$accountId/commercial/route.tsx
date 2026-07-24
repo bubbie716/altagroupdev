@@ -2,9 +2,10 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { fetchAccountCommercialLayout } from "@/lib/bank/account-commercial-loader.functions";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial")({
-  loader: async ({ params }) => {
+  beforeLoad: async ({ params }) => {
     try {
-      return await fetchAccountCommercialLayout({ data: params.accountId });
+      const commercialLayout = await fetchAccountCommercialLayout({ data: params.accountId });
+      return { commercialLayout };
     } catch {
       throw redirect({
         to: "/bank/account/$accountId",
@@ -12,5 +13,6 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial")({
       });
     }
   },
+  loader: ({ context }) => context.commercialLayout,
   component: () => <Outlet />,
 });

@@ -372,61 +372,103 @@ export async function getUserBankAccountDetail(
   accountId: string,
 ): Promise<UserBankAccountDetail> {
   const account = await requireAccessibleAccount(accountId, userId);
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { discordUsername: true },
-  });
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const depositTypes = ["DEPOSIT", "INTEREST_CREDIT"] as const;
+  const withdrawalTypes = ["WITHDRAWAL", "LOAN_PAYMENT", "INTEREST_CHARGE"] as const;
 
-  const recentTransactions = await prisma.bankTransaction.findMany({
-    where: {
-      bankAccountId: accountId,
-      status: { not: "PENDING" },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-    include: {
-      bankAccount: {
-        include: {
-          user: { select: { discordUsername: true } },
-          company: true,
-        },
-      },
-    },
-  });
-
-  const monthTransactions = await prisma.bankTransaction.findMany({
-    where: {
-      bankAccountId: accountId,
-      status: "APPROVED",
-      createdAt: { gte: monthStart },
-    },
-  });
-
-  let depositsThisMonth = 0;
-  let withdrawalsThisMonth = 0;
-  for (const tx of monthTransactions) {
-    const amount = decimalToNumber(tx.amount);
-    if (tx.type === "DEPOSIT" || tx.type === "INTEREST_CREDIT") depositsThisMonth += amount;
-    if (tx.type === "WITHDRAWAL" || tx.type === "LOAN_PAYMENT" || tx.type === "INTEREST_CHARGE") {
-      withdrawalsThisMonth += amount;
-    }
-  }
-
-  const balance = decimalToNumber(account.balance);
   const { getAccountAvailableBalance, getActiveHoldTotal, getPendingWithdrawalTotal } = await import(
     "@/server/account-balance.service"
   );
-  const [availableBalance, heldFunds, pendingWithdrawals] = await Promise.all([
+
+  const [
+    user,
+    recentTransactions,
+    depositAgg,
+    withdrawalAgg,
+    availableBalance,
+    heldFunds,
+    pendingWithdrawals,
+    lastInterestCredit,
+  ] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { discordUsername: true },
+    }),
+    prisma.bankTransaction.findMany({
+      where: {
+        bankAccountId: accountId,
+        status: { not: "PENDING" },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        bankAccount: {
+          select: { accountName: true, accountNumber: true },
+        },
+      },
+    }),
+    prisma.bankTransaction.aggregate({
+      where: {
+        bankAccountId: accountId,
+        status: "APPROVED",
+        createdAt: { gte: monthStart },
+        type: { in: [...depositTypes] },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.bankTransaction.aggregate({
+      where: {
+        bankAccountId: accountId,
+        status: "APPROVED",
+        createdAt: { gte: monthStart },
+        type: { in: [...withdrawalTypes] },
+      },
+      _sum: { amount: true },
+    }),
     getAccountAvailableBalance(accountId),
     getActiveHoldTotal(accountId),
     getPendingWithdrawalTotal(accountId),
+    prisma.bankTransaction.findFirst({
+      where: {
+        bankAccountId: accountId,
+        type: "INTEREST_CREDIT",
+        status: "APPROVED",
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true, amount: true },
+    }),
   ]);
+
+  const depositsThisMonth = depositAgg._sum.amount ? decimalToNumber(depositAgg._sum.amount) : 0;
+  const withdrawalsThisMonth = withdrawalAgg._sum.amount
+    ? decimalToNumber(withdrawalAgg._sum.amount)
+    : 0;
+
+  const mappedRecent = recentTransactions.map((tx) =>
+    mapUserBankTransaction({
+      ...tx,
+      bankAccount: {
+        accountName: tx.bankAccount.accountName,
+        accountNumber: tx.bankAccount.accountNumber,
+        user: { discordUsername: user?.discordUsername ?? "" },
+        company: null,
+      },
+    }),
+  );
+
   const summary = mapUserBankAccount({
     ...account,
-    transactions: recentTransactions.slice(0, 1),
+    transactions: recentTransactions.slice(0, 1).map((tx) => ({
+      ...tx,
+      bankAccount: {
+        accountName: tx.bankAccount.accountName,
+        accountNumber: tx.bankAccount.accountNumber,
+        user: { discordUsername: user?.discordUsername ?? "" },
+        company: null,
+      },
+    })),
   });
   const accountStatusInfo = buildCustomerAccountStatus({
     status: summary.status,
@@ -438,17 +480,7 @@ export async function getUserBankAccountDetail(
   });
 
   const { buildAccountInterestInfo } = await import("@/lib/bank/account-interest-service");
-  const lastInterestCredit = await prisma.bankTransaction.findFirst({
-    where: {
-      bankAccountId: accountId,
-      type: "INTEREST_CREDIT",
-      status: "APPROVED",
-    },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true, amount: true },
-  });
   const interestInfo = buildAccountInterestInfo(account, lastInterestCredit);
-
   const ownerLabel = account.company?.name ?? user?.discordUsername ?? "Personal";
 
   return {
@@ -459,7 +491,7 @@ export async function getUserBankAccountDetail(
     netChangeThisMonth: depositsThisMonth - withdrawalsThisMonth,
     availableBalance,
     accountStatusInfo,
-    recentTransactions: recentTransactions.map(mapUserBankTransaction),
+    recentTransactions: mappedRecent,
     interestInfo,
   };
 }
@@ -476,8 +508,8 @@ export async function getUserBankDashboard(userId: string): Promise<UserBankDash
 }
 
 export async function getUserBankSummary(userId: string): Promise<UserBankSummary> {
-  const accounts = await listUserBankAccounts(userId);
   const user = await loadAltaUserOrThrow(userId);
+  const accounts = await listUserBankAccountsForUser(user);
 
   const [pendingDepositCount, pendingWithdrawalCount] = await Promise.all([
     prisma.bankTransaction.count({
@@ -702,39 +734,45 @@ export async function openBankAccount(
   const accountScope = companyId ? ("business" as const) : ("personal" as const);
   const accountCopy = formatBankAccountOpenedCopy(accountName, accountScope);
 
-  if (companyId) {
-    const { recordCompanyTimelineEventIfBusiness } = await import(
-      "@/server/company-relationship-timeline.service"
-    );
-    await recordCompanyTimelineEventIfBusiness(companyId, {
-      eventType: "BUSINESS_ACCOUNT_OPENED",
-      title: accountCopy.title,
-      description: accountCopy.description,
-      occurredAt: new Date(),
-      relatedEntityType: "BANK_ACCOUNT",
-      relatedEntityId: account.id,
-      metadata: { accountName },
-      dedupeKey: `account:${account.id}`,
-    });
-  } else {
-    const { recordRelationshipTimelineEvent } = await import("@/server/relationship-timeline.service");
-    await recordRelationshipTimelineEvent({
-      userId,
-      eventType: "BANK_ACCOUNT_OPENED",
-      title: accountCopy.title,
-      description: accountCopy.description,
-      occurredAt: new Date(),
-      relatedEntityType: "BANK_ACCOUNT",
-      relatedEntityId: account.id,
-      metadata: { accountName },
-    });
-  }
-
   void (async () => {
-    const { refreshFromBankAccountContextBestEffort } = await import(
-      "@/server/relationship-refresh-hooks.service"
-    );
     try {
+      if (companyId) {
+        const { recordCompanyTimelineEventIfBusiness } = await import(
+          "@/server/company-relationship-timeline.service"
+        );
+        await recordCompanyTimelineEventIfBusiness(companyId, {
+          eventType: "BUSINESS_ACCOUNT_OPENED",
+          title: accountCopy.title,
+          description: accountCopy.description,
+          occurredAt: new Date(),
+          relatedEntityType: "BANK_ACCOUNT",
+          relatedEntityId: account.id,
+          metadata: { accountName },
+          dedupeKey: `account:${account.id}`,
+        });
+      } else {
+        const { recordRelationshipTimelineEvent } = await import(
+          "@/server/relationship-timeline.service"
+        );
+        await recordRelationshipTimelineEvent({
+          userId,
+          eventType: "BANK_ACCOUNT_OPENED",
+          title: accountCopy.title,
+          description: accountCopy.description,
+          occurredAt: new Date(),
+          relatedEntityType: "BANK_ACCOUNT",
+          relatedEntityId: account.id,
+          metadata: { accountName },
+        });
+      }
+    } catch (error) {
+      console.error("[bank] account-open timeline failed", error);
+    }
+
+    try {
+      const { refreshFromBankAccountContextBestEffort } = await import(
+        "@/server/relationship-refresh-hooks.service"
+      );
       await refreshFromBankAccountContextBestEffort(
         { userId, companyId },
         companyId ? "business-account-opened" : "bank-account-opened",
@@ -742,30 +780,32 @@ export async function openBankAccount(
     } catch (error) {
       console.error("[bank] relationship refresh failed", error);
     }
+
+    try {
+      const { writeAuditLog } = await import("@/server/audit.service");
+      await writeAuditLog({
+        actorUserId: userId,
+        action: companyId ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
+        entityType: "BANK_ACCOUNT",
+        entityId: account.id,
+        targetUserId: userId,
+        targetAccountId: account.id,
+        targetCompanyId: companyId ?? undefined,
+        description: `Opened ${accountName}`,
+        metadata: auditSourceMetadata("website", {
+          accountName,
+          accountType: input.accountType,
+          accountNumber,
+          status,
+        }),
+      });
+    } catch (error) {
+      console.error("[bank] account-open audit failed", error);
+    }
   })();
 
-  const statusLabel =
-    status === "ACTIVE" ? "Active" : "Pending Review";
-
+  const statusLabel = status === "ACTIVE" ? "Active" : "Pending Review";
   const accountTypeLabel = formatBankAccountTypeLabel(input.accountType);
-
-  const { writeAuditLog } = await import("@/server/audit.service");
-  await writeAuditLog({
-    actorUserId: userId,
-    action: companyId ? "BUSINESS_ACCOUNT_OPENED" : "BANK_ACCOUNT_OPENED",
-    entityType: "BANK_ACCOUNT",
-    entityId: account.id,
-    targetUserId: userId,
-    targetAccountId: account.id,
-    targetCompanyId: companyId ?? undefined,
-    description: `Opened ${accountName}`,
-    metadata: auditSourceMetadata("website", {
-      accountName,
-      accountType: input.accountType,
-      accountNumber,
-      status,
-    }),
-  });
 
   return {
     accountId: account.id,
@@ -1461,13 +1501,16 @@ export async function approveDeposit(
     },
   });
 
+  // Do not block the ops UI on relationship scoring / recommendations.
   const { refreshFromBankAccountContextBestEffort } = await import(
     "@/server/relationship-refresh-hooks.service"
   );
-  await refreshFromBankAccountContextBestEffort(
+  void refreshFromBankAccountContextBestEffort(
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "deposit-completed",
-  );
+  ).catch((error) => {
+    console.error("[bank] post-deposit relationship refresh failed", error);
+  });
 }
 
 export async function denyDeposit(
@@ -1662,13 +1705,16 @@ export async function approveWithdrawal(
     },
   });
 
+  // Do not block the ops UI on relationship scoring / recommendations.
   const { refreshFromBankAccountContextBestEffort } = await import(
     "@/server/relationship-refresh-hooks.service"
   );
-  await refreshFromBankAccountContextBestEffort(
+  void refreshFromBankAccountContextBestEffort(
     { userId: record.bankAccount.userId, companyId: record.bankAccount.companyId },
     "withdrawal-completed",
-  );
+  ).catch((error) => {
+    console.error("[bank] post-withdrawal relationship refresh failed", error);
+  });
 }
 
 export async function denyWithdrawal(

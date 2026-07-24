@@ -890,8 +890,10 @@ export async function getCustomerCompanyRelationshipView(
 
 export async function getAdminCompanyRelationshipDetail(
   companyId: string,
+  options?: { liveCalculate?: boolean },
 ): Promise<AdminCompanyRelationshipDetail> {
   await requireOperator();
+  const liveCalculate = options?.liveCalculate !== false;
 
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error("NOT_FOUND");
@@ -899,37 +901,59 @@ export async function getAdminCompanyRelationshipDetail(
   const profile = await getCompanyRelationshipProfile(companyId);
   let calculated: CalculatedCompanyRelationshipProfile;
   try {
-    calculated =
-      company.verificationStatus === "VERIFIED"
-        ? await calculateCompanyRelationshipProfile(companyId)
-        : {
-            relationshipSince: company.createdAt.toISOString(),
-            relationshipScore: 0,
-            relationshipTier: "NEW",
-            commercialBankingEligible: false,
-            totalBusinessAssets: 0,
-            lifetimeDeposits: 0,
-            lifetimeWithdrawals: 0,
-            lifetimeInterestEarned: 0,
-            lifetimeInterestPaid: 0,
-            lifetimeAltaPayVolume: 0,
-            lifetimeLoanPayments: 0,
-            lifetimeCardPayments: 0,
-            activeLoanBalance: 0,
-            activeCardBalance: 0,
-            currentCreditExposure: 0,
-            productHoldings: {
-              activeBusinessAccounts: 0,
-              activeBusinessLoans: 0,
-              activeBusinessCards: 0,
-              paidOffBusinessLoans: 0,
-              businessCardApplications: 0,
-              treasuryPlaceholder: true,
-              exchangePlaceholder: true,
-            },
-            lastCalculatedAt: new Date().toISOString(),
-            factors: [],
-          };
+    if (liveCalculate && company.verificationStatus === "VERIFIED") {
+      calculated = await calculateCompanyRelationshipProfile(companyId);
+    } else if (profile) {
+      calculated = {
+        relationshipSince: profile.relationshipSince,
+        relationshipScore: profile.relationshipScore,
+        relationshipTier: profile.relationshipTier,
+        commercialBankingEligible: profile.commercialBankingEligible,
+        totalBusinessAssets: profile.totalBusinessAssets,
+        lifetimeDeposits: profile.lifetimeDeposits,
+        lifetimeWithdrawals: profile.lifetimeWithdrawals,
+        lifetimeInterestEarned: profile.lifetimeInterestEarned,
+        lifetimeInterestPaid: profile.lifetimeInterestPaid,
+        lifetimeAltaPayVolume: profile.lifetimeAltaPayVolume,
+        lifetimeLoanPayments: profile.lifetimeLoanPayments,
+        lifetimeCardPayments: profile.lifetimeCardPayments,
+        activeLoanBalance: profile.activeLoanBalance,
+        activeCardBalance: profile.activeCardBalance,
+        currentCreditExposure: profile.currentCreditExposure,
+        productHoldings: profile.productHoldings,
+        lastCalculatedAt: profile.lastCalculatedAt,
+        factors: [],
+      };
+    } else {
+      calculated = {
+        relationshipSince: company.createdAt.toISOString(),
+        relationshipScore: 0,
+        relationshipTier: "NEW",
+        commercialBankingEligible: false,
+        totalBusinessAssets: 0,
+        lifetimeDeposits: 0,
+        lifetimeWithdrawals: 0,
+        lifetimeInterestEarned: 0,
+        lifetimeInterestPaid: 0,
+        lifetimeAltaPayVolume: 0,
+        lifetimeLoanPayments: 0,
+        lifetimeCardPayments: 0,
+        activeLoanBalance: 0,
+        activeCardBalance: 0,
+        currentCreditExposure: 0,
+        productHoldings: {
+          activeBusinessAccounts: 0,
+          activeBusinessLoans: 0,
+          activeBusinessCards: 0,
+          paidOffBusinessLoans: 0,
+          businessCardApplications: 0,
+          treasuryPlaceholder: true,
+          exchangePlaceholder: true,
+        },
+        lastCalculatedAt: new Date().toISOString(),
+        factors: [],
+      };
+    }
   } catch {
     calculated = profile
       ? {
@@ -982,17 +1006,21 @@ export async function getAdminCompanyRelationshipDetail(
         };
   }
 
-  const timelineCount = await prisma.companyRelationshipTimelineEvent.count({ where: { companyId } });
-  const firstEvent = await prisma.companyRelationshipTimelineEvent.findFirst({
-    where: { companyId },
-    orderBy: { occurredAt: "asc" },
-    select: { occurredAt: true },
-  });
-  const latestEvent = await prisma.companyRelationshipTimelineEvent.findFirst({
-    where: { companyId },
-    orderBy: { occurredAt: "desc" },
-    select: { occurredAt: true },
-  });
+  const [timelineCount, firstEvent, latestEvent] = liveCalculate
+    ? await Promise.all([
+        prisma.companyRelationshipTimelineEvent.count({ where: { companyId } }),
+        prisma.companyRelationshipTimelineEvent.findFirst({
+          where: { companyId },
+          orderBy: { occurredAt: "asc" },
+          select: { occurredAt: true },
+        }),
+        prisma.companyRelationshipTimelineEvent.findFirst({
+          where: { companyId },
+          orderBy: { occurredAt: "desc" },
+          select: { occurredAt: true },
+        }),
+      ])
+    : [0, null, null];
 
   return {
     company: {
@@ -1014,36 +1042,62 @@ export async function getCompanyRelationshipProfileSummary(
   companyId: string,
 ): Promise<CompanyRelationshipProfileSummary | null> {
   await requireOperator();
-  const company = await prisma.company.findUnique({ where: { id: companyId } });
-  if (!company || company.verificationStatus !== "VERIFIED") return null;
+  const row = await prisma.companyRelationshipProfile.findUnique({ where: { companyId } });
+  if (!row) return null;
 
-  const [calculated, profile] = await Promise.all([
-    calculateCompanyRelationshipProfile(companyId),
-    getCompanyRelationshipProfile(companyId),
-  ]);
+  const productHoldings: CompanyProductHoldings = {
+    activeBusinessAccounts: row.activeBusinessAccounts,
+    activeBusinessLoans: row.activeBusinessLoans,
+    activeBusinessCards: row.activeBusinessCards,
+    paidOffBusinessLoans: row.paidOffBusinessLoans,
+    businessCardApplications: 0,
+    treasuryPlaceholder: true,
+    exchangePlaceholder: true,
+  };
 
   return {
-    companyId,
-    relationshipSince: calculated.relationshipSince,
-    relationshipScore: calculated.relationshipScore,
-    relationshipTier: calculated.relationshipTier,
-    commercialBankingEligible: calculated.commercialBankingEligible,
-    totalBusinessAssets: calculated.totalBusinessAssets,
-    productHoldings: calculated.productHoldings,
-    lastCalculatedAt: profile?.lastCalculatedAt ?? calculated.lastCalculatedAt,
+    companyId: row.companyId,
+    relationshipSince: row.relationshipSince.toISOString(),
+    relationshipScore: row.relationshipScore,
+    relationshipTier: tierToCode(row.relationshipTier),
+    commercialBankingEligible: row.commercialBankingEligible,
+    totalBusinessAssets: decimalToNumber(row.totalBusinessAssets),
+    productHoldings,
+    lastCalculatedAt: row.lastCalculatedAt.toISOString(),
   };
 }
 
 export async function getCompanyRelationshipProfileSummariesForCompanies(
   companyIds: string[],
 ): Promise<Record<string, CompanyRelationshipProfileSummary>> {
+  await requireOperator();
   const unique = [...new Set(companyIds.filter(Boolean))];
   if (unique.length === 0) return {};
 
-  const summaries = await Promise.all(unique.map((id) => getCompanyRelationshipProfileSummary(id)));
+  const rows = await prisma.companyRelationshipProfile.findMany({
+    where: { companyId: { in: unique } },
+  });
+
   const byCompanyId: Record<string, CompanyRelationshipProfileSummary> = {};
-  for (const summary of summaries) {
-    if (summary) byCompanyId[summary.companyId] = summary;
+  for (const row of rows) {
+    byCompanyId[row.companyId] = {
+      companyId: row.companyId,
+      relationshipSince: row.relationshipSince.toISOString(),
+      relationshipScore: row.relationshipScore,
+      relationshipTier: tierToCode(row.relationshipTier),
+      commercialBankingEligible: row.commercialBankingEligible,
+      totalBusinessAssets: decimalToNumber(row.totalBusinessAssets),
+      productHoldings: {
+        activeBusinessAccounts: row.activeBusinessAccounts,
+        activeBusinessLoans: row.activeBusinessLoans,
+        activeBusinessCards: row.activeBusinessCards,
+        paidOffBusinessLoans: row.paidOffBusinessLoans,
+        businessCardApplications: 0,
+        treasuryPlaceholder: true,
+        exchangePlaceholder: true,
+      },
+      lastCalculatedAt: row.lastCalculatedAt.toISOString(),
+    };
   }
   return byCompanyId;
 }

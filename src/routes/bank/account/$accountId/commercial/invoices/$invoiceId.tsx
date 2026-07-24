@@ -2,18 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { MerchantInvoiceDetailPanel } from "@/components/bank/merchant-invoices/merchant-invoice-detail-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchMerchantInvoiceDetail } from "@/lib/bank/merchant-invoice.functions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/invoices/$invoiceId")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
+  loader: async ({ context, params }) => {
+    const commercial = requireCommercialFromRouteContext(context);
     const invoice = await fetchMerchantInvoiceDetail({
-      data: { companyId: context.companyId, invoiceId: params.invoiceId },
+      data: { companyId: commercial.companyId, invoiceId: params.invoiceId },
     });
-    return { invoice, companyId: context.companyId };
+    return { invoice, companyId: commercial.companyId };
   },
   head: () => ({ meta: [{ title: "Invoice Detail — Business Account" }] }),
   component: AccountCommercialInvoiceDetailPage,

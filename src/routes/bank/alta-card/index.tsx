@@ -20,11 +20,13 @@ import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 export const Route = createFileRoute("/bank/alta-card/")({
   beforeLoad: authBeforeLoad,
   loader: async () => {
-    const card = await fetchUserAltaCard();
-    const cardDetail = card ? await fetchAltaCardDetail({ data: card.id }).catch(() => null) : null;
-    const [billingSummary, pendingApplication, reviewEligibility, autopayContext] = await Promise.all([
-      card ? fetchCardBillingSummaryRecord({ data: card.id }) : null,
+    const [card, pendingApplication] = await Promise.all([
+      fetchUserAltaCard(),
       fetchUserPendingAltaCardApplication(),
+    ]);
+    const [cardDetail, billingSummary, reviewEligibility, autopayContext] = await Promise.all([
+      card ? fetchAltaCardDetail({ data: card.id }).catch(() => null) : null,
+      card ? fetchCardBillingSummaryRecord({ data: card.id }) : null,
       card ? fetchAltaCardReviewEligibility({ data: card.id }).catch(() => null) : null,
       card ? fetchAltaCardAutopayContext({ data: card.id }).catch(() => null) : null,
     ]);

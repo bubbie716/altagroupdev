@@ -1,8 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { CommercialBankingContext } from "@/lib/bank/commercial-banking-types";
+
+export type AccountCommercialRouteContext = CommercialBankingContext & { accountId: string };
+
+export type AccountCommercialLayoutData = {
+  accountContext: unknown;
+  context: AccountCommercialRouteContext | null;
+  showPayroll: boolean;
+  showMerchant: boolean;
+};
+
+/** Read commercial context placed on the route tree by the commercial layout beforeLoad. */
+export function requireCommercialFromRouteContext(context: {
+  commercialLayout?: AccountCommercialLayoutData;
+}): AccountCommercialRouteContext {
+  const commercial = context.commercialLayout?.context ?? null;
+  if (!commercial) {
+    throw new Error("FORBIDDEN");
+  }
+  return commercial;
+}
 
 export const fetchAccountCommercialLayout = createServerFn({ method: "GET" })
   .inputValidator((accountId: string) => accountId)
-  .handler(async ({ data: accountId }) => {
+  .handler(async ({ data: accountId }): Promise<AccountCommercialLayoutData> => {
     const { requireAuth } = await import("@/server/auth.service");
     const { resolveBusinessAccountContext } = await import(
       "@/server/business-account-context.service"
@@ -27,7 +48,7 @@ export const fetchAccountCommercialLayout = createServerFn({ method: "GET" })
     }
     const showPayroll = roleCanPayroll && planHasPayroll;
 
-    let context = null;
+    let context: AccountCommercialRouteContext | null = null;
     try {
       const commercial = await resolveCommercialBankingContext(user, accountContext.companyId);
       context = { ...commercial, accountId };

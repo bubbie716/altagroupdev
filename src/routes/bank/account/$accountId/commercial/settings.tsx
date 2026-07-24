@@ -2,14 +2,15 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { CommercialSettingsPanel } from "@/components/bank/commercial/commercial-settings-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { fetchCommercialSettings } from "@/lib/bank/commercial-banking.functions";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { Route as CommercialRoute } from "./route";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/settings")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
-    const settings = await fetchCommercialSettings({ data: context.companyId });
+  loader: async ({ context }) => {
+    const commercial = requireCommercialFromRouteContext(context);
+    const settings = await fetchCommercialSettings({ data: commercial.companyId });
     return { settings };
   },
   head: () => ({ meta: [{ title: "Commercial Settings — Business Account" }] }),
@@ -22,6 +23,8 @@ function AccountCommercialSettingsPage() {
   const { settings } = Route.useLoaderData();
   const router = useRouter();
 
+  if (!context) return null;
+
   return (
     <AccountCommercialShell context={context}>
       <Section title="Plan & billing">
@@ -29,7 +32,7 @@ function AccountCommercialSettingsPage() {
           settings={settings}
           accountId={accountId}
           onUpdated={() => {
-            void router.invalidate();
+            void invalidateRouteData(router);
           }}
         />
       </Section>

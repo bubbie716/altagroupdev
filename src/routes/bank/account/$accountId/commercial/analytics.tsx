@@ -4,7 +4,7 @@ import { Card, Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { BasicMerchantAnalyticsPanel } from "@/components/bank/commercial/basic-merchant-analytics-panel";
 import { MerchantAnalyticsPanel } from "@/components/bank/commercial/merchant-analytics-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import {
   fetchBasicMerchantAnalytics,
   fetchMerchantAnalytics,
@@ -22,23 +22,23 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/analyt
         ? (search.range as MerchantAnalyticsRange)
         : ("30D" as MerchantAnalyticsRange),
   }),
-  loader: async ({ params, deps }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
+  loader: async ({ context, deps }) => {
+    const commercial = requireCommercialFromRouteContext(context);
     const range = deps.range;
     const isAdvanced =
-      context.plan.commercialPlan === "PRO" &&
-      context.plan.planStatus === "ACTIVE" &&
-      context.plan.enabledFeatures.includes("merchant_analytics");
+      commercial.plan.commercialPlan === "PRO" &&
+      commercial.plan.planStatus === "ACTIVE" &&
+      commercial.plan.enabledFeatures.includes("merchant_analytics");
 
     let analytics = null;
     let basicAnalytics = null;
-    if (context.isVerified && context.canViewAnalytics) {
+    if (commercial.isVerified && commercial.canViewAnalytics) {
       if (isAdvanced) {
         analytics = await fetchMerchantAnalytics({
-          data: { companyId: context.companyId, range },
+          data: { companyId: commercial.companyId, range },
         });
       } else {
-        basicAnalytics = await fetchBasicMerchantAnalytics({ data: context.companyId });
+        basicAnalytics = await fetchBasicMerchantAnalytics({ data: commercial.companyId });
       }
     }
 
@@ -54,6 +54,8 @@ function AccountCommercialAnalyticsPage() {
   const { context } = CommercialRoute.useLoaderData();
   const { analytics, basicAnalytics, isAdvanced } = Route.useLoaderData();
   const router = useRouter();
+
+  if (!context) return null;
 
   return (
     <AccountCommercialShell context={context}>

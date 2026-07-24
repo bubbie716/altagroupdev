@@ -42,11 +42,13 @@ export const Route = createFileRoute("/bank/pay/")({
     return result;
   },
   loader: async () => {
-    const fundingSources = await fetchPayFundingSources();
-    const history = await fetchUserAltaPayHistory({ data: 25 });
-    const bankSettings = await fetchUserBankSettings();
-    const schedules = await fetchAltaPaySchedules();
-    const autopayApprovals = await fetchMerchantAutopayApprovals();
+    const [fundingSources, history, bankSettings, schedules, autopayApprovals] = await Promise.all([
+      fetchPayFundingSources(),
+      fetchUserAltaPayHistory({ data: 25 }),
+      fetchUserBankSettings(),
+      fetchAltaPaySchedules(),
+      fetchMerchantAutopayApprovals(),
+    ]);
     return { fundingSources, history, bankSettings, schedules, autopayApprovals };
   },
   head: () => ({

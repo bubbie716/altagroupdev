@@ -11,13 +11,27 @@ export const Route = createFileRoute("/internal/bank/accounts/$accountId")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
   }),
-  loader: async ({ params }) => {
+  loaderDeps: ({ search }) => ({ tab: search.tab }),
+  loader: async ({ params, deps }) => {
+    const includeAudit = deps.tab === "audit";
+    const includeNotes = deps.tab === "notes";
+    const includeActivity = deps.tab === "activity";
     const [account, auditLogs, notes, ops, timeline] = await Promise.all([
       fetchInternalBankAccountDetail({ data: params.accountId }),
-      fetchAuditLogsForEntity({ data: { entityType: "BANK_ACCOUNT", entityId: params.accountId } }),
-      fetchInternalNotes({ data: { targetType: "BANK_ACCOUNT", targetId: params.accountId } }),
+      includeAudit
+        ? fetchAuditLogsForEntity({
+            data: { entityType: "BANK_ACCOUNT", entityId: params.accountId },
+          })
+        : Promise.resolve([]),
+      includeNotes
+        ? fetchInternalNotes({ data: { targetType: "BANK_ACCOUNT", targetId: params.accountId } })
+        : Promise.resolve([]),
       fetchAccountOpsSummary({ data: params.accountId }),
-      fetchActivityTimeline({ data: { entityType: "BANK_ACCOUNT", entityId: params.accountId } }),
+      includeActivity
+        ? fetchActivityTimeline({
+            data: { entityType: "BANK_ACCOUNT", entityId: params.accountId },
+          })
+        : Promise.resolve([]),
     ]);
     return { account, auditLogs, notes, ops, timeline };
   },

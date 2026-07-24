@@ -88,26 +88,28 @@ export function BankAccountOpenForm() {
 
   if (createdAccount) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <Card className="space-y-6 !p-8 text-center">
+      <div className="mx-auto w-full max-w-3xl">
+        <Card className="space-y-6 !p-8 text-center sm:!p-10">
           <p className="type-meta">
             Account created
           </p>
-          <h2 className="text-2xl font-semibold tracking-tight">{createdAccount.accountName}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{createdAccount.accountName}</h2>
           <p className="text-[13px] text-muted-foreground">{createdAccount.accountTypeLabel}</p>
 
-          <div className="mx-auto max-w-sm rounded-lg border border-border bg-surface-2/40 px-5 py-4 text-left">
-            <div className="flex flex-col gap-1 border-b border-border/50 py-3">
-              <span className={fieldLabel}>Routing number</span>
-              <span className="font-mono text-[13px]">{createdAccount.routingNumber}</span>
-            </div>
-            <div className="flex flex-col gap-1 py-3">
-              <span className={fieldLabel}>Account number</span>
-              <span className="font-mono text-[13px]">{createdAccount.accountNumber}</span>
-            </div>
-            <div className="flex flex-col gap-1 border-t border-border/50 py-3">
-              <span className={fieldLabel}>Status</span>
-              <span className="font-mono text-[13px]">{createdAccount.statusLabel}</span>
+          <div className="rounded-lg border border-border bg-surface-2/40 px-6 py-2 text-left sm:px-8">
+            <div className="grid gap-0 sm:grid-cols-3 sm:divide-x sm:divide-border/50">
+              <div className="flex flex-col gap-1 border-b border-border/50 py-4 sm:border-b-0 sm:px-5 sm:first:pl-0 sm:last:pr-0">
+                <span className={fieldLabel}>Routing number</span>
+                <span className="font-mono text-[13px] sm:text-sm">{createdAccount.routingNumber}</span>
+              </div>
+              <div className="flex flex-col gap-1 border-b border-border/50 py-4 sm:border-b-0 sm:px-5">
+                <span className={fieldLabel}>Account number</span>
+                <span className="font-mono text-[13px] sm:text-sm">{createdAccount.accountNumber}</span>
+              </div>
+              <div className="flex flex-col gap-1 py-4 sm:px-5 sm:last:pr-0">
+                <span className={fieldLabel}>Status</span>
+                <span className="font-mono text-[13px] sm:text-sm">{createdAccount.statusLabel}</span>
+              </div>
             </div>
           </div>
 
@@ -132,7 +134,7 @@ export function BankAccountOpenForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-2xl space-y-6">
+    <form onSubmit={onSubmit} className="mx-auto w-full max-w-3xl space-y-6">
       <Card className="space-y-6 !p-6">
         <label className="block">
           <span className={fieldLabel}>Ownership</span>

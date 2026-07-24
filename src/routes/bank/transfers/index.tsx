@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Building2, Landmark, Users } from "lucide-react";
+import { ArrowRight, Building2, Landmark } from "lucide-react";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { RouteButton } from "@/components/bank/route-button";
 
@@ -23,11 +23,11 @@ function BankTransfersHub() {
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Transfers"
-      title="Transfers"
-      description="Choose how you want to move funds."
-     />
-<div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+        eyebrow="Alta Bank · Transfers"
+        title="Transfers"
+        description="Choose how you want to move funds."
+      />
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
         <TransferTypeCard
           to="/bank/transfers/intrabank"
           accountId={accountId}
@@ -44,13 +44,6 @@ function BankTransfersHub() {
           description="Transfer instantly between your Alta Bank accounts. External institution wires are coming soon."
           detail="Intrabank available now"
         />
-        <TransferTypeCard
-          to="/bank/transfers/contacts"
-          icon={Users}
-          title="Contacts"
-          description="Saved Alta Pay recipients now. External wire beneficiaries will be available when interbank wires launch."
-          detail="Use in transfers"
-        />
       </div>
     </>
   );
@@ -64,17 +57,14 @@ function TransferTypeCard({
   description,
   detail,
 }: {
-  to: "/bank/transfers/intrabank" | "/bank/transfers/interbank" | "/bank/transfers/contacts";
+  to: "/bank/transfers/intrabank" | "/bank/transfers/interbank";
   accountId?: string;
   icon: typeof Building2;
   title: string;
   description: string;
   detail: string;
 }) {
-  const search =
-    accountId && (to === "/bank/transfers/intrabank" || to === "/bank/transfers/interbank")
-      ? { accountId }
-      : undefined;
+  const search = accountId ? { accountId } : undefined;
 
   return (
     <RouteButton to={to} search={search} className="group block h-full w-full text-left">

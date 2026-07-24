@@ -293,6 +293,99 @@ export const fetchRelationshipOperatorPanel = createServerFn({ method: "GET" })
     };
   });
 
+/** Lightweight chrome for customer workspace tabs other than Relationship. */
+export const fetchRelationshipWorkspaceChrome = createServerFn({ method: "GET" })
+  .inputValidator((userId: string) => userId)
+  .handler(async ({ data: userId }) => {
+    const { prisma } = await import("@/server/db");
+    const { requireOperator } = await import("@/server/permissions.service");
+    await requireOperator();
+
+    const [row, card] = await Promise.all([
+      prisma.relationshipProfile.findUnique({ where: { userId } }),
+      prisma.altaCard.findFirst({
+        where: { ownerUserId: userId, status: { notIn: ["CLOSED", "EXPIRED"] } },
+        select: { id: true },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
+
+    const emptyProductsHeld = {
+      activeBankAccounts: 0,
+      activeAltaCards: 0,
+      activeLoans: 0,
+      paidOffLoans: 0,
+      businessCompanies: 0,
+      verifiedCompanies: 0,
+      isPrivateClient: row?.privateBankingClient ?? false,
+    };
+    const emptyProductHoldings = {
+      bankAccountsTotal: 0,
+      bankAccountsActive: 0,
+      altaCardStatus: null as string | null,
+      altaCardTier: null as string | null,
+      altaCardCount: 0,
+      businessCardCount: 0,
+      activeLoans: 0,
+      paidOffLoans: 0,
+      companyMemberships: 0,
+      verifiedCompanies: 0,
+      isPrivateClient: row?.privateBankingClient ?? false,
+      exchangePlaceholder: true,
+      terminalPlaceholder: true,
+    };
+    const emptyLendingSignals = {
+      delinquentCardCount: 0,
+      defaultedLoanCount: 0,
+      overdueInstallmentCount: 0,
+      altaCardStatus: null as string | null,
+      altaCardTier: null as string | null,
+    };
+
+    const panel = row
+      ? {
+          userId,
+          hasPersistedProfile: true,
+          relationshipSince: row.relationshipSince.toISOString(),
+          relationshipScore: row.relationshipScore,
+          relationshipTier: row.relationshipTier as
+            | "NEW"
+            | "STANDARD"
+            | "PREFERRED"
+            | "PREMIER"
+            | "PRIVATE_ELIGIBLE"
+            | "PRIVATE_CLIENT",
+          privateBankingEligible: row.privateBankingEligible,
+          privateBankingClient: row.privateBankingClient,
+          totalBankAssets: Number(row.totalBankAssets.toString()),
+          totalAltaAssets: Number(row.totalAltaAssets.toString()),
+          totalInvestments: Number(row.totalInvestments.toString()),
+          lifetimeDeposits: Number(row.lifetimeDeposits.toString()),
+          lifetimeWithdrawals: Number(row.lifetimeWithdrawals.toString()),
+          lifetimeInterestPaid: Number(row.lifetimeInterestPaid.toString()),
+          lifetimeAltaPayVolume: Number(row.lifetimeAltaPayVolume.toString()),
+          lifetimeLoanPayments: Number(row.lifetimeLoanPayments.toString()),
+          lifetimeCardPayments: Number(row.lifetimeCardPayments.toString()),
+          activeLoanBalance: Number(row.activeLoanBalance.toString()),
+          activeCardBalance: Number(row.activeCardBalance.toString()),
+          currentCreditExposure: Number(row.currentCreditExposure.toString()),
+          productsHeld: emptyProductsHeld,
+          productHoldings: emptyProductHoldings,
+          lendingSignals: emptyLendingSignals,
+          lastCalculatedAt: row.lastCalculatedAt.toISOString(),
+        }
+      : null;
+
+    return {
+      panel,
+      recommendations: [],
+      timelinePreview: [],
+      preApprovalReadiness: null,
+      altaCardId: card?.id ?? null,
+      canManageInvitations: false,
+    };
+  });
+
 export const fetchRelationshipProfileSummariesForUsers = createServerFn({ method: "GET" })
   .inputValidator((userIds: string[]) => userIds)
   .handler(async ({ data: userIds }) => {

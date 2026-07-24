@@ -2,18 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { PaymentLinkDetailPanel } from "@/components/bank/payment-links/payment-link-detail-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchPaymentLinkDetail } from "@/lib/bank/payment-link.functions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/$linkId")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
+  loader: async ({ context, params }) => {
+    const commercial = requireCommercialFromRouteContext(context);
     const link = await fetchPaymentLinkDetail({
-      data: { companyId: context.companyId, linkId: params.linkId },
+      data: { companyId: commercial.companyId, linkId: params.linkId },
     });
-    return { link, companyId: context.companyId };
+    return { link, companyId: commercial.companyId };
   },
   head: () => ({ meta: [{ title: "Payment Link — Business Account" }] }),
   component: AccountCommercialPaymentLinkDetailPage,

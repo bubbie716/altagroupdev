@@ -1,14 +1,17 @@
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { LoanDetailView } from "@/components/bank/loan-detail-view";
-import { fetchUserLoans } from "@/lib/bank/lending.functions";
+import { fetchLoanDetail } from "@/lib/bank/lending.functions";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 
 export const Route = createFileRoute("/bank/lending/loans/$loanId")({
   loader: async ({ params }) => {
-    const loans = await fetchUserLoans();
-    const loan = loans.find((entry) => entry.id === params.loanId);
-    if (!loan) throw notFound();
-    return { loan };
+    try {
+      const loan = await fetchLoanDetail({ data: params.loanId });
+      return { loan };
+    } catch {
+      throw notFound();
+    }
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -40,7 +43,7 @@ function BankLendingLoanDetail() {
       <LoanDetailView
         loan={loan}
         onUpdated={async () => {
-          await router.invalidate();
+          await invalidateRouteData(router);
         }}
       />
     </>

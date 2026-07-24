@@ -14,15 +14,16 @@ export const Route = createFileRoute("/bank/alta-card/business/$companyId/")({
   loader: async ({ params }) => {
     try {
       const companyCards = await fetchCompanyAltaCards({ data: params.companyId });
-      const billingSummary = await fetchCompanyBillingSummaryRecord({ data: params.companyId }).catch(
-        () => null,
-      );
-      const autopayContext = companyCards.businessCard
-        ? await fetchAltaCardAutopayContext({ data: companyCards.businessCard.id }).catch(() => null)
-        : null;
-      const reviewEligibility = companyCards.businessCard
-        ? await fetchAltaCardReviewEligibility({ data: companyCards.businessCard.id }).catch(() => null)
-        : null;
+      const cardId = companyCards.businessCard?.id;
+      const [billingSummary, autopayContext, reviewEligibility] = await Promise.all([
+        fetchCompanyBillingSummaryRecord({ data: params.companyId }).catch(() => null),
+        cardId
+          ? fetchAltaCardAutopayContext({ data: cardId }).catch(() => null)
+          : Promise.resolve(null),
+        cardId
+          ? fetchAltaCardReviewEligibility({ data: cardId }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
       return { ...companyCards, billingSummary, autopayContext, reviewEligibility };
     } catch {
       throw redirect({ to: "/bank/alta-card/business" });

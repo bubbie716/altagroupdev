@@ -3,22 +3,24 @@ import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { CommercialBrandingPanel } from "@/components/bank/commercial/commercial-branding-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { canPublishInvoiceBranding } from "@/lib/bank/commercial-banking-types";
 import { fetchCompanyBrandingSettings } from "@/lib/bank/company-branding.functions";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { Route as CommercialRoute } from "./route";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/branding")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
-    if (!canPublishInvoiceBranding(context.plan)) {
+  loader: async ({ context, params }) => {
+    const commercial = requireCommercialFromRouteContext(context);
+    if (!canPublishInvoiceBranding(commercial.plan)) {
       throw redirect({
         to: accountCommercialRoutes.settings,
         params: { accountId: params.accountId },
       });
     }
-    const branding = await fetchCompanyBrandingSettings({ data: context.companyId });
-    return { context, branding };
+    const branding = await fetchCompanyBrandingSettings({ data: commercial.companyId });
+    return { branding };
   },
   head: () => ({ meta: [{ title: "Branding — Commercial Settings" }] }),
   component: CommercialBrandingSettingsPage,
@@ -26,8 +28,11 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/brandi
 
 function CommercialBrandingSettingsPage() {
   const { accountId } = Route.useParams();
-  const { context, branding } = Route.useLoaderData();
+  const { context } = CommercialRoute.useLoaderData();
+  const { branding } = Route.useLoaderData();
   const router = useRouter();
+
+  if (!context) return null;
 
   return (
     <AccountCommercialShell context={context}>
@@ -44,7 +49,7 @@ function CommercialBrandingSettingsPage() {
           settings={branding}
           accountId={accountId}
           onUpdated={() => {
-            void router.invalidate();
+            void invalidateRouteData(router);
           }}
         />
       </Section>

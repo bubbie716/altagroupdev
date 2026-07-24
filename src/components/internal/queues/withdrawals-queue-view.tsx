@@ -113,7 +113,6 @@ export function WithdrawalsQueueView({
               await approveBankWithdrawal({
                 data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
               });
-              void router.invalidate();
             }}
           />
           <OpsAction
@@ -127,7 +126,6 @@ export function WithdrawalsQueueView({
               await denyBankWithdrawal({
                 data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
               });
-              void router.invalidate();
             }}
           />
         </div>
@@ -179,7 +177,6 @@ export function WithdrawalsQueueView({
               onConfirm={async (reason) => {
                 await bulkApproveFn({ data: { transactionIds: [...selected], reviewNote: reason } });
                 setSelected(new Set());
-                void router.invalidate();
               }}
             />
             <OpsAction
@@ -193,7 +190,6 @@ export function WithdrawalsQueueView({
               onConfirm={async (reason) => {
                 await bulkDenyFn({ data: { transactionIds: [...selected], reviewNote: reason } });
                 setSelected(new Set());
-                void router.invalidate();
               }}
             />
           </>

@@ -2,17 +2,18 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { CommercialDashboardPanel } from "@/components/bank/commercial/commercial-dashboard-panel";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { fetchCommercialDashboard } from "@/lib/bank/commercial-banking.functions";
+import { Route as CommercialRoute } from "./route";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/")({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      const { context } = await fetchAccountCommercialContext({ data: params.accountId });
-      const dashboard = context.isVerified
-        ? await fetchCommercialDashboard({ data: context.companyId })
+      const commercial = requireCommercialFromRouteContext(context);
+      const dashboard = commercial.isVerified
+        ? await fetchCommercialDashboard({ data: commercial.companyId })
         : null;
-      return { context, dashboard };
+      return { dashboard };
     } catch {
       throw redirect({
         to: "/bank/account/$accountId/commercial/settings",
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/")({
 
 function AccountCommercialDashboardPage() {
   const { accountId } = Route.useParams();
-  const { context, dashboard } = Route.useLoaderData();
+  const { context } = CommercialRoute.useLoaderData();
+  const { dashboard } = Route.useLoaderData();
+
+  if (!context) return null;
 
   return (
     <AccountCommercialShell context={context}>

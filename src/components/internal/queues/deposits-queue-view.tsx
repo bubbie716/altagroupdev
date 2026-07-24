@@ -129,7 +129,6 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
               await approveBankDeposit({
                 data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
               });
-              void router.invalidate();
             }}
           />
           <OpsAction
@@ -144,7 +143,6 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
               await denyBankDeposit({
                 data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
               });
-              void router.invalidate();
             }}
           />
         </div>
@@ -202,7 +200,6 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
               onConfirm={async (reason) => {
                 const result = await bulkApproveFn({ data: { transactionIds: [...selected], reviewNote: reason } });
                 setSelected(new Set());
-                void router.invalidate();
                 return result;
               }}
             />
@@ -217,7 +214,6 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
               onConfirm={async (reason) => {
                 await bulkDenyFn({ data: { transactionIds: [...selected], reviewNote: reason } });
                 setSelected(new Set());
-                void router.invalidate();
               }}
             />
           </>

@@ -83,8 +83,8 @@ export function TransferFormPreview({
         })}
       </div>
       <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-        External institution wires are coming soon. You can save beneficiaries on the Contacts page
-        meanwhile. Scheduled and recurring interbank wires are not enabled in this release.
+        External institution wires are coming soon. Scheduled and recurring interbank wires are not
+        enabled in this release.
       </div>
       <button
         type="button"

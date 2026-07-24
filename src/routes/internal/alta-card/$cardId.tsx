@@ -39,7 +39,14 @@ export const Route = createFileRoute("/internal/alta-card/$cardId")({
     recommendationId:
       typeof search.recommendationId === "string" ? search.recommendationId : undefined,
   }),
-  loader: async ({ params }) => {
+  loaderDeps: ({ search }) => ({ tab: search.tab }),
+  loader: async ({ params, deps }) => {
+    const tab = deps.tab;
+    const includeAudit = tab === "audit";
+    const includeActivity = tab === "activity";
+    const includeRelationship = tab === "relationship";
+    const includeNotes = tab === "notes";
+
     const [ops, statements, fees, autopay, auditLogs, timeline] = await Promise.all([
       fetchInternalCardOperationsContext({ data: params.cardId }),
       fetchCardStatements({ data: params.cardId }),
@@ -61,21 +68,33 @@ export const Route = createFileRoute("/internal/alta-card/$cardId")({
         },
         audit: [],
       })),
-      fetchAuditLogsForEntity({ data: { entityType: "ALTA_CARD", entityId: params.cardId } }).catch(() => []),
-      fetchActivityTimeline({ data: { entityType: "ALTA_CARD", entityId: params.cardId } }).catch(() => []),
+      includeAudit
+        ? fetchAuditLogsForEntity({ data: { entityType: "ALTA_CARD", entityId: params.cardId } }).catch(
+            () => [],
+          )
+        : Promise.resolve([]),
+      includeActivity
+        ? fetchActivityTimeline({
+            data: { entityType: "ALTA_CARD", entityId: params.cardId },
+          }).catch(() => [])
+        : Promise.resolve([]),
     ]);
     const ownerUserId = ops.card.ownerUserId;
     const companyId = ops.card.companyId;
-    const notes = ownerUserId
-      ? await fetchInternalNotes({ data: { targetType: "USER", targetId: ownerUserId } }).catch(() => [])
-      : [];
-    const integration = ownerUserId
-      ? await fetchResolvedRelationshipIntegrationBestEffort({
-          userId: ownerUserId,
-          companyId,
-          context: "ALTA_CARD",
-        })
-      : null;
+    const notes =
+      includeNotes && ownerUserId
+        ? await fetchInternalNotes({ data: { targetType: "USER", targetId: ownerUserId } }).catch(
+            () => [],
+          )
+        : [];
+    const integration =
+      includeRelationship && ownerUserId
+        ? await fetchResolvedRelationshipIntegrationBestEffort({
+            userId: ownerUserId,
+            companyId,
+            context: "ALTA_CARD",
+          })
+        : null;
     return { ops, statements, fees, autopay, integration, ownerUserId, companyId, auditLogs, timeline, notes };
   },
   head: () => ({ meta: [{ title: "Alta Card — Alta Internal" }] }),

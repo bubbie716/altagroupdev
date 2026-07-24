@@ -12,6 +12,7 @@ async function createDmChannel(botToken: string, recipientId: string): Promise<s
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ recipient_id: recipientId }),
+    signal: AbortSignal.timeout(8_000),
   });
 
   if (!response.ok) {
@@ -36,6 +37,7 @@ async function postChannelMessage(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(8_000),
   });
 
   if (!response.ok) {

@@ -6,12 +6,16 @@ async function actorId() {
 }
 
 export const fetchAdminCompanyRelationshipDetail = createServerFn({ method: "GET" })
-  .inputValidator((companyId: string) => companyId)
-  .handler(async ({ data: companyId }) => {
+  .inputValidator((input: string | { companyId: string; liveCalculate?: boolean }) =>
+    typeof input === "string" ? { companyId: input, liveCalculate: true } : input,
+  )
+  .handler(async ({ data }) => {
     const { getAdminCompanyRelationshipDetail } = await import(
       "@/server/company-relationship-intelligence.service"
     );
-    return getAdminCompanyRelationshipDetail(companyId);
+    return getAdminCompanyRelationshipDetail(data.companyId, {
+      liveCalculate: data.liveCalculate,
+    });
   });
 
 export const refreshCompanyRelationshipProfileRecord = createServerFn({ method: "POST" })

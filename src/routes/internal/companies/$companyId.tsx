@@ -40,7 +40,12 @@ export const Route = createFileRoute("/internal/companies/$companyId")({
       await Promise.all([
         fetchCompany360({ data: { companyId: params.companyId, includeTimeline } }),
         fetchOpsReviewFlagsForCompany({ data: params.companyId }),
-        fetchAdminCompanyRelationshipDetail({ data: params.companyId }).catch(() => null),
+        fetchAdminCompanyRelationshipDetail({
+          data: {
+            companyId: params.companyId,
+            liveCalculate: includeRelationshipExtras,
+          },
+        }).catch(() => null),
         includeAudit
           ? fetchAuditLogsForEntity({
               data: { entityType: "COMPANY", entityId: params.companyId },

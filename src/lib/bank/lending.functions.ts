@@ -59,6 +59,17 @@ export const fetchUserLoans = createServerFn({ method: "GET" }).handler(async ()
   return getUserLoans(userId);
 });
 
+export const fetchLoanDetail = createServerFn({ method: "GET" })
+  .inputValidator((loanId: string) => loanId)
+  .handler(async ({ data: loanId }) => {
+    const { ensureLoanPaymentSchedule, getLoanDetail } = await import("@/server/loan.service");
+    const userId = await actorId();
+    const loan = await getLoanDetail(userId, loanId);
+    if (!loan.termMonths) return loan;
+    await ensureLoanPaymentSchedule(loanId);
+    return getLoanDetail(userId, loanId);
+  });
+
 export const fetchLoanPaymentContext = createServerFn({ method: "GET" })
   .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {

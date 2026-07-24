@@ -2,21 +2,21 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { PaymentLinkForm } from "@/components/bank/payment-links/payment-link-form";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-banking.functions";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/new")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
-    const limits = await fetchCommercialReceivableCreationLimits({ data: context.companyId });
+  loader: async ({ context, params }) => {
+    const commercial = requireCommercialFromRouteContext(context);
+    const limits = await fetchCommercialReceivableCreationLimits({ data: commercial.companyId });
     if (!limits.canCreatePaymentLink) {
       throw redirect({
         to: accountCommercialRoutes.paymentLinks,
         params: { accountId: params.accountId },
       });
     }
-    return { companyId: context.companyId };
+    return { companyId: commercial.companyId };
   },
   head: () => ({ meta: [{ title: "New Payment Link — Business Account" }] }),
   component: AccountCommercialNewPaymentLinkPage,

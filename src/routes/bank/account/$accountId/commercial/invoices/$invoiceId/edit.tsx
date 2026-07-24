@@ -1,17 +1,17 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { MerchantInvoiceForm } from "@/components/bank/merchant-invoices/merchant-invoice-form";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchMerchantInvoiceDetail } from "@/lib/bank/merchant-invoice.functions";
 
 export const Route = createFileRoute(
   "/bank/account/$accountId/commercial/invoices/$invoiceId/edit",
 )({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
+  loader: async ({ context, params }) => {
+    const commercial = requireCommercialFromRouteContext(context);
     const invoice = await fetchMerchantInvoiceDetail({
-      data: { companyId: context.companyId, invoiceId: params.invoiceId },
+      data: { companyId: commercial.companyId, invoiceId: params.invoiceId },
     });
     if (invoice.status !== "DRAFT") {
       throw redirect({
@@ -19,7 +19,7 @@ export const Route = createFileRoute(
         params: { accountId: params.accountId, invoiceId: params.invoiceId },
       });
     }
-    return { invoice, companyId: context.companyId };
+    return { invoice, companyId: commercial.companyId };
   },
   head: () => ({ meta: [{ title: "Edit Invoice Draft — Business Account" }] }),
   component: AccountCommercialEditInvoicePage,

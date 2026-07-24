@@ -12,6 +12,7 @@ export const Route = createFileRoute("/internal")({
     const site = siteFromRouteContext(ctx.context);
     assertEntityInternalRouteAccess(site.key, ctx.location.pathname, ctx.context.user);
   },
+  staleTime: 60_000,
   loader: () => fetchCreditDeskSettings(),
   component: InternalLayout,
 });

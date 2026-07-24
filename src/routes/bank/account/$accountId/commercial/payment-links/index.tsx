@@ -2,21 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { AccountCommercialShell } from "@/components/bank/commercial/account-commercial-shell";
 import { PaymentLinkDashboardPanel } from "@/components/bank/payment-links/payment-link-dashboard";
-import { fetchAccountCommercialContext } from "@/lib/bank/account-commercial-loader.functions";
+import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-banking.functions";
 import { fetchPaymentLinkDashboard } from "@/lib/bank/payment-link.functions";
 import { Route as CommercialRoute } from "../route";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/")({
-  loader: async ({ params }) => {
-    const { context } = await fetchAccountCommercialContext({ data: params.accountId });
-    if (!context.isVerified) {
+  loader: async ({ context }) => {
+    const commercial = requireCommercialFromRouteContext(context);
+    if (!commercial.isVerified) {
       return { dashboard: null, canCreate: true, createLimitMessage: undefined };
     }
 
     const [dashboard, limits] = await Promise.all([
-      fetchPaymentLinkDashboard({ data: context.companyId }),
-      fetchCommercialReceivableCreationLimits({ data: context.companyId }),
+      fetchPaymentLinkDashboard({ data: commercial.companyId }),
+      fetchCommercialReceivableCreationLimits({ data: commercial.companyId }),
     ]);
 
     return {
@@ -33,6 +33,8 @@ function AccountCommercialPaymentLinksPage() {
   const { accountId } = Route.useParams();
   const { context } = CommercialRoute.useLoaderData();
   const { dashboard, canCreate, createLimitMessage } = Route.useLoaderData();
+
+  if (!context) return null;
 
   return (
     <AccountCommercialShell context={context}>

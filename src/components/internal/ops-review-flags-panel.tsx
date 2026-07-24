@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { OpsReviewFlagReasonCode, OpsReviewFlagRow, OpsReviewFlagTargetType } from "@/lib/internal/ops-review-flag.types";
 import { OPS_REVIEW_FLAG_REASONS, OPS_REVIEW_FLAG_REASON_LABELS } from "@/lib/internal/ops-review-flag.types";
@@ -19,7 +18,6 @@ export function OpsReviewFlagsPanel({
   targetId: string;
   initialFlags: OpsReviewFlagRow[];
 }) {
-  const router = useRouter();
   const createFn = useServerFn(createOpsReviewFlagOps);
   const resolveFn = useServerFn(resolveOpsReviewFlagOps);
   const [reasonCode, setReasonCode] = useState<OpsReviewFlagReasonCode>("MANUAL_REVIEW");
@@ -57,7 +55,6 @@ export function OpsReviewFlagsPanel({
                         silentNotification: options?.silentNotification,
                       },
                     });
-                    void router.invalidate();
                   }}
                 />
               </div>
@@ -111,7 +108,6 @@ export function OpsReviewFlagsPanel({
                 },
               });
               setCustomReason("");
-              void router.invalidate();
             }}
           />
         </div>

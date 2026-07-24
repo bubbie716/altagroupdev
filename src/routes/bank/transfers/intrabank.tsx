@@ -21,6 +21,7 @@ import {
   BankMobileStackRow,
   BankTableScroll,
 } from "@/components/bank/bank-scroll-contain";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 
 type BankIntrabankSearch = {
   accountId?: string;
@@ -70,7 +71,7 @@ function BankIntrabankTransfers() {
           <BankInternalTransferForm
             accounts={data.accounts}
             defaultFromAccountId={accountId}
-            onSuccess={() => void router.invalidate()}
+            onSuccess={() => void invalidateRouteData(router)}
           />
 
           {data.accounts.length >= 2 && (

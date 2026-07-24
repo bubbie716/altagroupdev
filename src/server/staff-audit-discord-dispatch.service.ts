@@ -29,6 +29,7 @@ async function postChannelTextMessage(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ content: content.slice(0, 2000) }),
+    signal: AbortSignal.timeout(8_000),
   });
 
   if (!response.ok) {

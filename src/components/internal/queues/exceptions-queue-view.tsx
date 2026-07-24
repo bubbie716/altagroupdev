@@ -128,7 +128,6 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
             confirmLabel="Resolve"
             onConfirm={async (reason) => {
               await dispositionFn({ data: { exceptionKey: i.id, status: "RESOLVED", reason } });
-              void router.invalidate();
             }}
           />
           <OpsAction
@@ -139,7 +138,6 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
             confirmLabel="Escalate"
             onConfirm={async (reason) => {
               await dispositionFn({ data: { exceptionKey: i.id, status: "ESCALATED", reason } });
-              void router.invalidate();
             }}
           />
           <OpsAction
@@ -150,7 +148,6 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
             confirmLabel="Dismiss"
             onConfirm={async (reason) => {
               await dispositionFn({ data: { exceptionKey: i.id, status: "DISMISSED", reason } });
-              void router.invalidate();
             }}
           />
         </div>
