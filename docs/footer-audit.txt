@@ -1,7 +1,6 @@
 Alta Ecosystem Footer Audit
 ===========================
 Date: July 6, 2026
-Scope: alta group, alta bank, alta exchange, alta terminal, ncc, status, docs
 
 Goal
 ----
@@ -15,7 +14,6 @@ Sites audited
 - Alta Bank (bank.altagroup.dev)
 - Alta Exchange (exchange.altagroup.dev)
 - Alta Terminal (terminal.altagroup.dev)
-- Newport Clearing Corporation (ncc domain)
 - Status (status.altagroup.dev — external redirect)
 - Docs (docs.altagroup.dev — coming soon via /docs)
 
@@ -25,14 +23,11 @@ Sites audited
 
 Component              File                                      Used by
 ---------              ----                                      -------
-SiteFooterGate         src/components/site-footer-gate.tsx       Single root mount in __root.tsx (all non-NCC sites)
 SiteFooter             src/components/footers.tsx                  Variant router: marketing / dashboard / auth / legal / none
 MarketingFooter        src/components/footers.tsx                Public/marketing pages (corporate, bank, exchange, terminal)
 DashboardFooter        src/components/footers.tsx                Authenticated app pages (/bank/*, /exchange/*, etc.)
 AuthenticationFooter   src/components/footers.tsx                /, /login, /maintenance, /access-restricted
-LegalDocumentFooter    src/components/footers.tsx                /legal/$docId on non-NCC sites
 CheckoutLegalLinks     src/components/footers.tsx                Merchant checkout (/pay/$slug) — inline only, not site chrome
-NccFooter              src/components/ncc/ncc-footer.tsx         All NCC pages via NccLayout
 Footer variant resolver src/lib/platform/footer-variant.ts       Path -> variant mapping
 Link config            src/lib/site/site-links.ts                Ecosystem, support, corporate section links
 Legal doc config       src/lib/legal/legal-document-registry.ts  Entity sections, compact docs, disclaimers
@@ -50,10 +45,7 @@ Not footers (excluded from audit):
 Issue                                          Status
 -----                                          ------
 Double root + layout footers                   Already fixed — single SiteFooterGate at root
-NCC double footer                              Already fixed — gate returns null for NCC
 Duplicate copyright in compact footer          FIXED — compact uses one FooterCopyrightLines block
-Corporate Bank/Markets/NCC legal columns       FIXED — corporate no longer duplicates entity legal docs
-NCC separate copyright entity                  FIXED — unified Alta Group N.V. copyright + global disclaimer
 Entity marketing footer duplicating group legal FIXED — Legal column is Terms + Privacy + Legal Center only
 
 No duplicate footer components were deleted; architecture was already centralized.
@@ -82,7 +74,6 @@ Link                         Fix
 ----                         ---
 System Status                Now on every full + compact dashboard footer via status.altagroup.dev
 Documentation                Added -> /docs
-Discord                      Added -> entity-specific /discord, /discord/bank, /discord/markets, /discord/ncc
 Contact                      Added -> /contact
 Legal Center on entity sites External link to corporate /legal
 Ecosystem cross-links        All resolve to correct production subdomains (or ?site= in local dev)
@@ -99,7 +90,6 @@ Variant    Code name   Component              When
 Full       marketing   MarketingFooter        /home, /structure, /legal, /support, /docs, /contact, /discord/*
 Compact    dashboard   DashboardFooter        /bank/*, /exchange/*, /terminal/*, /companies/*, /profile
 Minimal    auth        AuthenticationFooter   /, login, maintenance, access-restricted
-Legal      legal       LegalDocumentFooter    /legal/$docId (non-NCC)
 None       none        —                      /internal/*, /pay/*, statement print views
 
 Per-site full footer layout (all properties):
@@ -118,7 +108,6 @@ Every full footer includes Alta Ecosystem with current site highlighted
 - Alta Bank -> bank.altagroup.dev
 - Alta Exchange -> exchange.altagroup.dev
 - Alta Terminal -> terminal.altagroup.dev
-- Newport Clearing Corporation -> ncc domain
 
 Compact/dashboard and auth footers include an inline ecosystem link row for
 discoverability on app pages.
@@ -133,7 +122,6 @@ Alta Group      Full / compact / auth / legal  yes        yes    all 5     Leade
 Alta Bank       Full / compact / auth          yes (Bank) yes    all 5     Deposit, Business Banking, Alta Card, Alta Pay, Fee Schedule  unified
 Alta Exchange   Full / compact / auth          yes (Exch) yes    all 5     Listing, Trading Rules, Market Data & API, Fee Schedule       unified
 Alta Terminal   Full / compact / auth          yes (Term) yes    all 5     Customer Agreement, Trading Rules, Market Data & API, Fee Schedule  unified
-NCC             NccFooter only                 yes (NCC)  yes    all 5     Participation, Operating Rules, Fee Schedule      unified
 Status          External (status.altagroup.dev) N/A       —      Linked from all Alta footers                        —
 Docs            Root MarketingFooter on /docs  yes        yes    all 5     Corporate section                                 unified
 
@@ -146,7 +134,6 @@ Alta Ecosystem
   Alta Bank
   Alta Exchange
   Alta Terminal
-  Newport Clearing Corporation
   (current site highlighted)
 
 Legal
@@ -166,7 +153,6 @@ Entity-specific section (one per site)
   Alta Bank:      Deposit Agreement, Business Banking, Alta Card, Alta Pay, Fee Schedule
   Alta Exchange:  Listing Agreement, Trading Rules, Market Data & API Terms, Fee Schedule
   Alta Terminal:  Customer Agreement, Trading Rules, Market Data & API Terms, Fee Schedule
-  NCC:            Participation Agreement, Operating Rules, Fee Schedule
 
 Copyright (single bar only)
   (c) 2026 Alta Group N.V. All rights reserved.
@@ -178,13 +164,11 @@ Site emphasis (under wordmark)
   Alta Bank:      Retail + Commercial Banking
   Alta Exchange:  Capital Markets
   Alta Terminal:  Brokerage
-  NCC:            Financial Infrastructure
 
 
 8. PAGES STILL NEEDING MANUAL REVIEW
 ------------------------------------
 
-1. NCC legal document pages (/legal/$docId on NCC) — use full NccFooter via NccLayout,
    not the slim LegalDocumentFooter. Works, but heavier than the legal variant on other sites.
 
 2. docs.altagroup.dev — Coming Soon page; footer links to /docs correctly but docs
@@ -205,7 +189,6 @@ Site emphasis (under wordmark)
 9. RECOMMENDATIONS FOR FURTHER POLISH
 -------------------------------------
 
-1. NCC legal doc slim footer — Use a legal-variant footer on NCC /legal/$docId
    (metadata + copyright) instead of the full 5-column footer.
 
 2. Dedicated minimal auth variant — Auth pages could hide the ecosystem inline row and
@@ -231,7 +214,6 @@ REMOVED / VERIFIED ABSENT FROM FOOTERS
 - Duplicate Terms links
 - Duplicate Privacy links
 - "Member Access"
-- "NCC — In Development"
 - Page-specific login text in footer bars
 - Discord login text in footer bars
 - Old placeholder links (audit found none remaining in footer components)

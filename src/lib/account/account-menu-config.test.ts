@@ -25,11 +25,7 @@ describe("account-menu-config", () => {
     );
   });
 
-  it("omits internal link for NCC and when access is denied", () => {
-    assert.deepEqual(
-      getAccountMenuItems("ncc", { showInternal: true }).map((item) => item.to),
-      ["/profile", "/companies"],
-    );
+  it("omits internal link when access is denied", () => {
     assert.deepEqual(
       getAccountMenuItems("bank", { showInternal: false }).map((item) => item.to),
       ["/profile", "/companies"],

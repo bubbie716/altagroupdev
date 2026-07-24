@@ -24,12 +24,8 @@ describe("ecosystem config", () => {
     }
   });
 
-  it("does not include NCC or Exchange in the ecosystem switcher", () => {
+  it("does not include Exchange in the ecosystem switcher", () => {
     const links = getEcosystemSwitcherLinks("bank");
-    assert.equal(
-      links.some((link) => link.key === "ncc"),
-      false,
-    );
     assert.equal(
       links.some((link) => link.key === "exchange"),
       false,
@@ -48,9 +44,6 @@ describe("ecosystem config", () => {
     assert.ok(resolveEntitySiteUrl("corporate", "/home", requestHost).includes("altagroup.dev"));
     assert.ok(
       resolveEntitySiteUrl("terminal", "/", requestHost).includes("terminal.altagroup.dev"),
-    );
-    assert.ok(
-      resolveEntitySiteUrl("ncc", "/", requestHost).includes("newportclearingcorporation.com"),
     );
   });
 

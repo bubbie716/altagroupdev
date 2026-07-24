@@ -27,7 +27,6 @@ export function applyEmbedTemplate(
         fields: [
           field("Alta Bank", "Bank Like The 1%"),
           field("Alta Terminal", `${ALTA_TERMINAL_TAGLINE} · ${ALTA_TERMINAL_SUBTITLE}`),
-          field("NCC", "Future clearing and settlement infrastructure."),
         ],
         footerText: "Alta Group · Live Like The 1%",
       };

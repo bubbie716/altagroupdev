@@ -20,14 +20,14 @@ describe("resolveRouteSkeleton", () => {
     assert.equal(skeletonName("/bank/pay"), "SkeletonBankContentPage");
   });
 
-  it("maps internal, markets, legal, and ncc routes", () => {
+  it("maps internal, markets, legal, and shortcut routes", () => {
     assert.equal(skeletonName("/internal"), "SkeletonInternalDashboard");
     assert.equal(skeletonName("/internal/bank/transactions"), "SkeletonInternalTablePage");
     assert.equal(skeletonName("/terminal"), "SkeletonMarketsDashboard");
     assert.equal(skeletonName("/exchange/listings"), "SkeletonMarketsDashboard");
     assert.equal(skeletonName("/legal/privacy"), "SkeletonLegalPage");
-    assert.equal(skeletonName("/admin"), "SkeletonNccDashboard");
-    assert.equal(skeletonName("/dashboard"), "SkeletonNccDashboard");
+    assert.equal(skeletonName("/admin"), "SkeletonShortcutDashboard");
+    assert.equal(skeletonName("/dashboard"), "SkeletonShortcutDashboard");
   });
 
   it("maps account and corporate surfaces", () => {

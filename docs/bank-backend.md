@@ -19,7 +19,6 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 
 - Automatic deposits
 - Minecraft economy API integration
-- NCC settlement / wires (live customer wire execution)
 
 ## Data models
 

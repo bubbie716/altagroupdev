@@ -56,7 +56,6 @@ describe("site admin permissions", () => {
     assert.equal(canAccessInternalForSite(user, "bank"), true);
     assert.equal(canAccessInternalForSite(user, "corporate"), false);
     assert.equal(canAccessInternalForSite(user, "terminal"), false);
-    assert.equal(canAccessInternalForSite(user, "ncc"), false);
   });
 
   it("gives terminal_admin terminal/exchange access only", () => {
@@ -70,12 +69,11 @@ describe("site admin permissions", () => {
     assert.equal(canBypassMaintenanceMode(user), false);
   });
 
-  it("lets corporate_admin into every Alta internal site except NCC", () => {
+  it("lets corporate_admin into every Alta internal site", () => {
     const user = userWithTags(["corporate_admin"]);
     assert.equal(canAccessInternalForSite(user, "corporate"), true);
     assert.equal(canAccessInternalForSite(user, "bank"), true);
     assert.equal(canAccessInternalForSite(user, "terminal"), true);
     assert.equal(canAccessInternalForSite(user, "exchange"), true);
-    assert.equal(canAccessInternalForSite(user, "ncc"), false);
   });
 });

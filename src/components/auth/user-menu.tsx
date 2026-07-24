@@ -38,7 +38,7 @@ export function AuthUserMenu() {
   }
 
   const initials = user.discordUsername.slice(0, 2).toUpperCase();
-  const showInternal = canAccessAnyInternal(user) && site.key !== "ncc";
+  const showInternal = canAccessAnyInternal(user);
   const menuItems = getAccountMenuItems(site.key, { showInternal });
 
   async function handleLogout() {

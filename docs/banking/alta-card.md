@@ -832,7 +832,6 @@ Migrations:
 
 - No rewards program
 - No Discord bot notifications (TODO hooks in autopay service only)
-- No NCC integration
 - No disputes/chargebacks
 - No card-network / POS authorization
 - No fraud detection / collections workflows

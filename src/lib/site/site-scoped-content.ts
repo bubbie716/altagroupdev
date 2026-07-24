@@ -12,21 +12,20 @@ import {
   type AltaDiscordEntity,
 } from "@/lib/site/discord-urls";
 
-const ALL_LEGAL_DOC_PREFIXES = ["AG-", "AB-", "AT-", "NCC-"] as const;
-const ALL_DISCORD_ENTITIES: AltaDiscordEntity[] = ["group", "bank", "markets", "ncc"];
+const ALL_LEGAL_DOC_PREFIXES = ["AG-", "AB-", "AT-"] as const;
+const ALL_DISCORD_ENTITIES: AltaDiscordEntity[] = ["group", "bank", "markets"];
 
 /** Sub-entity legal scope for a site (null = Alta Group hub — shows all entities). */
 export function siteLegalEntity(siteKey: SiteKey): LegalEntity | null {
   if (siteKey === "bank") return "bank";
   if (siteKey === "exchange" || siteKey === "terminal") return "terminal";
-  if (siteKey === "ncc") return "ncc";
   return null;
 }
 
 function docPrefixForEntity(entity: LegalEntity): string {
   if (entity === "bank") return "AB-";
   if (entity === "terminal") return "AT-";
-  return "NCC-";
+  return "AG-";
 }
 
 function categoryPrefixesForSite(siteKey: SiteKey): string[] {
@@ -44,7 +43,7 @@ function categoryMatchesSite(category: LegalDocCategory, siteKey: SiteKey): bool
     if (prefix === "AG-") return category.startsWith("Alta Group");
     if (prefix === "AB-") return category.startsWith("Alta Bank");
     if (prefix === "AT-") return category.startsWith("Alta Terminal");
-    return category.startsWith("NCC");
+    return false;
   });
 }
 
@@ -102,7 +101,6 @@ export function siteDiscordEntities(siteKey: SiteKey): AltaDiscordEntity[] {
   const entity = siteLegalEntity(siteKey);
   if (entity === "bank") entities.push("bank");
   if (entity === "terminal") entities.push("markets");
-  if (entity === "ncc") entities.push("ncc");
   return entities;
 }
 

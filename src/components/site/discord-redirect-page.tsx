@@ -12,7 +12,6 @@ export function createDiscordRedirectRoute(entity: AltaDiscordEntity) {
     group: "VITE_ALTA_GROUP_DISCORD_URL",
     bank: "VITE_ALTA_BANK_DISCORD_URL",
     markets: "VITE_ALTA_TERMINAL_DISCORD_URL",
-    ncc: "VITE_ALTA_NCC_DISCORD_URL",
   }[entity];
 
   return {

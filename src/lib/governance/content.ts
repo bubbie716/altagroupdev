@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Coins, Landmark, LineChart } from "lucide-react";
+import { Landmark, LineChart } from "lucide-react";
 
 export type EntityStatus =
   | "Operational"
@@ -15,7 +15,6 @@ export type PlatformStatusItem = {
 export const platformStatusItems: PlatformStatusItem[] = [
   { name: "Alta Bank N.V.", status: "Operational" },
   { name: "Alta Terminal LLC", status: "In Development" },
-  { name: "NCC", status: "Release Candidate" },
   { name: "Company Registry", status: "Operational" },
   { name: "Discord Authentication", status: "Operational" },
   { name: "Business Banking", status: "Operational" },
@@ -44,13 +43,6 @@ export const groupHierarchy: HierarchyNode[] = [
     status: "In Development",
     description:
       "Brokerage and trading platform under development — market data, execution, and custody await external exchange connectivity.",
-  },
-  {
-    icon: Coins,
-    name: "NCC",
-    status: "Release Candidate",
-    description:
-      "Newport Clearing Corporation — cash settlement between participating banks and Alta Terminal. Release candidate undergoing final testing.",
   },
 ];
 
@@ -90,15 +82,6 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     description:
       "Alta’s brokerage and trading platform. Portfolio tools are available; trading, execution, market data, and custody are not live pending external exchange connectivity.",
     services: ["Portfolio dashboard", "Watchlists", "Research", "Brokerage accounts"],
-  },
-  {
-    icon: Coins,
-    name: "NCC",
-    code: "NCC",
-    status: "Release Candidate",
-    description:
-      "Newport Clearing Corporation — cash transfers between participating banks and Alta Terminal. Release candidate undergoing final testing; not a fully released production network. NCC settles cash, not securities trades.",
-    services: ["Bank ↔ Terminal cash", "Institution routing", "Settlement accounts", "Participation network"],
   },
 ];
 
@@ -210,28 +193,6 @@ export const divisionLeadership: DivisionLeadershipGroup[] = [
         title: "Market Operations Officer",
         status: "Vacant",
         responsibility: "Order routing readiness, market data feeds, and session operations.",
-      },
-    ],
-  },
-  {
-    sectionTitle: "NCC Leadership",
-    division: "NCC",
-    roles: [
-      {
-        title: "President, NCC",
-        name: "Musclebound",
-        status: "Appointed",
-        responsibility: "Clearing network planning and settlement infrastructure.",
-      },
-      {
-        title: "Settlement Director",
-        status: "Vacant",
-        responsibility: "Cash settlement design and interbank settlement policy.",
-      },
-      {
-        title: "Network Operations Officer",
-        status: "Vacant",
-        responsibility: "Payment rails, account registry, and network resilience.",
       },
     ],
   },

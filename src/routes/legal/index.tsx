@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { LegalDocCard } from "@/components/governance/legal-doc-card";
 import { CorporatePageShell } from "@/components/site/corporate-page-shell";
-import { NccLegalPage } from "@/components/ncc/ncc-legal-page";
 import { Section } from "@/components/page-shell";
 import { getLegalDocCategoriesForSite, getLegalDocsByCategoryForSite } from "@/lib/site/site-scoped-content";
 
@@ -15,11 +14,6 @@ export const Route = createFileRoute("/legal/")({
 
 function LegalIndexPage() {
   const site = useSiteContext();
-
-  if (site.key === "ncc") {
-    return <NccLegalPage />;
-  }
-
   const categories = getLegalDocCategoriesForSite(site.key);
   const docsByCategory = getLegalDocsByCategoryForSite(site.key);
 

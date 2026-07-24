@@ -27,12 +27,6 @@ export function buildGovernancePlatformMetrics(
       sourceLabel: PREVIEW_SOURCE,
     },
     {
-      label: "NCC",
-      value: "Release Candidate",
-      helper:
-        "Cash settlement between participating banks and Alta Terminal — release candidate undergoing final testing.",
-    },
-    {
       label: "Company Registry",
       value: metrics.totalCompanies.toLocaleString(),
       helper: "Registered companies on Alta Group.",

@@ -122,7 +122,7 @@ function EntityCard({
   );
 }
 
-/** Peer entity cards under Alta Group (Bank, Terminal, NCC). */
+/** Peer entity cards under Alta Group (Bank, Terminal). */
 export function EntityOverview({ entities }: { entities: EntityOverviewItem[] }) {
   const cols =
     entities.length <= 1

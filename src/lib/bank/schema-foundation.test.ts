@@ -52,12 +52,6 @@ describe("schema foundation services", () => {
     assert.equal(typeof mod.findTransferGroupByReferenceCode, "function");
   });
 
-  it("exports financial institution helpers", async () => {
-    const mod = await import("../../server/financial-institution.service.ts");
-    assert.equal(typeof mod.getAltaBankInstitution, "function");
-    assert.equal(typeof mod.ensureAltaBankInstitutionSeeded, "function");
-  });
-
   it("exports relationship and assignment helpers", async () => {
     const mod = await import("../../server/relationship-assignment.service.ts");
     assert.equal(typeof mod.assignPrivateBanker, "function");

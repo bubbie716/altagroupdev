@@ -42,7 +42,6 @@ Alta Group surfaces two distinct categories of numbers across the public site, b
 
 **Examples:**
 
-- NCC settlement network volume
 - Internal IPO queue counts (until wired to DB)
 - Compliance flag counts
 - API application queue (until wired to DB)

@@ -345,7 +345,6 @@ export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
 /** True when Discord staff-audit delivery must be skipped (tests / explicit disable). */
 export function isAuditDiscordDisabled(): boolean {
   if (process.env.NODE_ENV === "test") return true;
-  if (process.env.NCC_SETTLEMENT_TESTS === "1") return true;
   if (process.env.STAFF_AUDIT_DISCORD_DISABLED === "1") return true;
   if (process.env.VITEST === "true") return true;
   return false;

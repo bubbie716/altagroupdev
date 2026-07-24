@@ -80,25 +80,17 @@ All accounts use the `AB-[CODE]-[UNIQUE]` format assigned at opening. To renumbe
 npm run db:migrate-account-numbers
 ```
 
-## Future: NCC routing integration
 
-The Newport Clearing Corporation (NCC) may eventually assign institution-specific routing numbers and manage settlement rails between Alta Bank and other Newport financial institutions.
 
 **Planned approach**
 
-1. NCC assigns routing numbers per institution (or per Alta Bank charter)
-2. `getRoutingNumber()` reads from NCC registry or institution config instead of a hardcoded constant
-3. Cross-institution transfers validate routing + account number against NCC directory
-4. Wire and ACH-style flows use NCC settlement rather than manual review
 
-Until NCC is live, all Alta accounts use routing number `011000001`.
 
 ## Future: Institution account numbering
 
 When Alta Bank connects to external institutions or subsidiary charters:
 
 - Product codes may expand (e.g. `6000` for treasury, `7000` for escrow)
-- NCC may require institution-specific prefixes beyond `AB`
 - Account numbers may need check-digit validation for automated rails
 - Institution routing tables would map `(routing, accountNumber)` → settlement endpoint
 

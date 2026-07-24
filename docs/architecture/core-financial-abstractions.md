@@ -1,6 +1,5 @@
 # Core Financial Abstractions
 
-Schema Sprint 3 introduces shared data-model foundations identified in the [Entity & Data Model Audit](../operations/entity-data-model-audit.txt). These entities prepare Alta for NCC, Exchange, and Terminal without changing current customer-facing bank behavior.
 
 ## Design principles
 
@@ -29,7 +28,6 @@ A first-class customer payment — the business operation — rather than indivi
 
 **Created today for:** Alta Pay (bank-funded), intrabank transfers.
 
-**Future use:** NCC wires, Exchange settlement, merchant invoicing, Terminal funding.
 
 **Service:** `src/server/payment-entity.service.ts` — `recordPairedPaymentInTx()`
 
@@ -77,11 +75,9 @@ Canonical registry of banks and market infrastructure participants.
 | `routingPrefix` | Institution prefix (Alta: `AB`) |
 | `institutionType` | `BANK`, `CLEARING_HOUSE`, `BROKER_DEALER`, … |
 | `isAlta` | Alta Bank flag |
-| `isNCCParticipant` | Future NCC membership |
 
 **Seeded:** Alta Bank (`inst-alta-bank`).
 
-**Future use:** NCC clearing, interbank routing, wire counterparty validation, Exchange custodians.
 
 ---
 
@@ -93,9 +89,7 @@ Routing numbers linked to `FinancialInstitution`.
 
 **Seeded:** `011000001` (Alta Bank primary — matches `docs/account-numbering.md`).
 
-**Future use:** Interbank transfers, wire instructions, NCC settlement paths.
 
-**Note:** Display routing for customer accounts still uses `getRoutingNumber()` for backwards compatibility. DB rows prepare NCC multi-institution routing.
 
 ---
 

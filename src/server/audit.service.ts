@@ -29,7 +29,6 @@ function mapAuditRow(
     targetCompanyId: row.targetCompanyId,
     targetTransactionId: row.targetTransactionId,
     targetLoanId: row.targetLoanId,
-    institutionId: row.institutionId,
     action: row.action,
     entityType: row.entityType,
     entityId: row.entityId,
@@ -61,7 +60,6 @@ export async function writeAuditLog(input: WriteAuditLogInput): Promise<void> {
       targetCompanyId: input.targetCompanyId ?? null,
       targetTransactionId: input.targetTransactionId ?? null,
       targetLoanId: input.targetLoanId ?? null,
-      institutionId: input.institutionId ?? null,
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId ?? null,
@@ -99,7 +97,6 @@ function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {
   if (filters.targetUserId) and.push({ targetUserId: filters.targetUserId });
   if (filters.targetAccountId) and.push({ targetAccountId: filters.targetAccountId });
   if (filters.targetCompanyId) and.push({ targetCompanyId: filters.targetCompanyId });
-  if (filters.institutionId) and.push({ institutionId: filters.institutionId });
 
   if (filters.from) {
     and.push({ createdAt: { gte: new Date(filters.from) } });

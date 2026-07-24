@@ -9,7 +9,7 @@ const fields = [
   { key: "recipientName", label: "Recipient name", placeholder: "Treasury Operations" },
   { key: "routingNumber", label: "Routing number", placeholder: "021000021" },
   { key: "accountNumber", label: "Account number", placeholder: "•••• •••• 4821" },
-  { key: "settlementNetwork", label: "Settlement network", placeholder: "NCC-Net", value: "NCC-Net" },
+  { key: "settlementNetwork", label: "Settlement network", placeholder: "External wire", value: "External wire" },
   { key: "amount", label: "Amount", placeholder: "ƒ0.00" },
   { key: "memo", label: "Memo", placeholder: "Operating disbursement" },
 ] as const;
@@ -33,8 +33,7 @@ export function TransferFormPreview({
         External wire · Coming soon
       </div>
       <p className="mt-2 text-[13px] text-muted-foreground">
-        Send to another NCC institution or an external beneficiary once public account addressing is
-        available. Instant transfers to your own Alta Terminal account are available above.
+        Send to an external financial institution once public account addressing is available.
       </p>
 
       {contacts.length > 0 && (
@@ -85,7 +84,7 @@ export function TransferFormPreview({
       </div>
       <div className="mt-6 rounded-lg border border-border bg-surface-2/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
         External institution wires are coming soon. You can save beneficiaries on the Contacts page
-        meanwhile. Scheduled and recurring NCC wires are not enabled in this release.
+        meanwhile. Scheduled and recurring interbank wires are not enabled in this release.
       </div>
       <button
         type="button"

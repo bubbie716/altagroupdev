@@ -4,13 +4,10 @@ import { hostsMatch } from "@/server/session-handoff";
 
 describe("session-handoff", () => {
   it("treats www and apex as the same host", () => {
-    assert.equal(
-      hostsMatch("newportclearingcorporation.com", "www.newportclearingcorporation.com"),
-      true,
-    );
+    assert.equal(hostsMatch("altagroup.dev", "www.altagroup.dev"), true);
   });
 
   it("does not match different domains", () => {
-    assert.equal(hostsMatch("altagroup.dev", "newportclearingcorporation.com"), false);
+    assert.equal(hostsMatch("altagroup.dev", "bank.altagroup.dev"), false);
   });
 });

@@ -19,12 +19,12 @@ export const Route = createFileRoute("/structure/")({
       {
         name: "description",
         content:
-          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank N.V., Alta Terminal, and Newport Clearing Corporation.",
+          "Corporate structure of Alta Group N.V. — parent holding company of Alta Bank N.V. and Alta Terminal.",
       },
       { property: "og:title", content: "Alta Group — Structure" },
       {
         property: "og:description",
-        content: "The financial holding company behind Newport's banking, brokerage, and clearing infrastructure.",
+        content: "The financial holding company behind Newport's banking and brokerage platforms.",
       },
     ],
   }),
@@ -47,8 +47,8 @@ function StructurePage() {
           Corporate Structure
         </p>
         <p className={cn(type.body, "mt-6 max-w-2xl text-muted-foreground")}>
-          A single parent holding company — Alta Group N.V. — operating banking, brokerage, and clearing
-          infrastructure for the Republic of Newport.
+          A single parent holding company — Alta Group N.V. — operating banking and brokerage
+          platforms for the Republic of Newport.
         </p>
       </FadeIn>
 
@@ -67,7 +67,7 @@ function StructurePage() {
           <Card>
             <div className="type-meta">Mandate</div>
             <div className="mt-2 text-sm leading-relaxed">
-              Operate banking, brokerage, and clearing infrastructure for the Republic of Newport under
+              Operate banking and brokerage platforms for the Republic of Newport under
               unified governance.
             </div>
           </Card>

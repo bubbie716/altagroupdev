@@ -107,7 +107,6 @@ Live customer paths still using preview / coming soon / V1 disclosure:
 - Alta Card apply visual: "Preview · terms set at approval"
 - Alta Card landing: "no merchant network... in V1"
 - Interbank: "Automatic payment execution coming in a future release" (business-future-notice)
-- Wire preview: "NCC-Net settlement is planned infrastructure" (transfer-form-preview.tsx)
 - Alta Card RI panel: "Relationship intelligence pending"
 
 Mock-mode only (OK if mock banner visible):

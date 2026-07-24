@@ -54,15 +54,6 @@ const DIVISIONS: Division[] = [
     services: ["Portfolio", "Watchlists", "Order entry", "Research"],
     metric: "In Development · Brokerage platform",
   },
-  {
-    siteKey: "ncc",
-    name: "NCC",
-    headline: "Instant cash settlement",
-    tag: "03 · Clearing",
-    desc: "Newport Clearing Corporation provides instant cash transfers between participating banks and Alta Terminal. NCC settles cash, not securities trades.",
-    services: ["Bank ↔ Terminal cash", "Institution routing", "Settlement accounts"],
-    metric: "Release Candidate · Cash settlement network",
-  },
 ];
 
 export function CorporateHomepage({ platformMetrics, snapshot = null }: CorporateHomepageProps) {
@@ -114,7 +105,6 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
   const valueProps = [
     { title: "Seamless Banking", desc: "Institutional-grade accounts and treasury." },
     { title: "Invest with Confidence", desc: "Brokerage tools and portfolio access." },
-    { title: "Instant Settlement", desc: "Bank ↔ Terminal cash via NCC." },
     { title: "Built for Privacy", desc: "Your data stays yours until you sign in." },
   ];
 
@@ -141,8 +131,8 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
             Live Like the 1%
           </h1>
           <p className="mt-7 max-w-2xl text-[17px] leading-relaxed text-muted-foreground">
-            The holding company behind Alta Bank, Alta Terminal, and Newport Clearing Corporation —
-            banking, brokerage, and clearing as separate institutions.
+            The holding company behind Alta Bank and Alta Terminal —
+            banking and brokerage as separate institutions.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -178,7 +168,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
             />
           </div>
           {portfolioLocked && (
-            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-3">
               {valueProps.map((item) => (
                 <div
                   key={item.title}
@@ -250,16 +240,16 @@ function Divisions() {
         <div>
           <div className="type-eyebrow">01 — Institutions</div>
           <h2 className="mt-4 text-[clamp(2.25rem,4.4vw,3.75rem)] font-semibold leading-[1.0] tracking-[-0.018em]">
-            Three subsidiaries. <br />
-            <span className="text-muted-foreground">Three dedicated websites.</span>
+            Two subsidiaries. <br />
+            <span className="text-muted-foreground">Two dedicated websites.</span>
           </h2>
         </div>
         <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-          Alta Group is the parent. Each institution below is accessed on its own domain — banking,
-          brokerage, and clearing as separate experiences.
+          Alta Group is the parent. Each institution below is accessed on its own domain — banking
+          and brokerage as separate experiences.
         </p>
       </div>
-      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+      <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2">
         {DIVISIONS.map((division, index) => (
           <DivisionCard key={division.siteKey} division={division} index={index} />
         ))}
@@ -319,8 +309,8 @@ function ClosingCTA() {
           <div className="flex flex-col items-start gap-3">
             <div className="type-section-title">Platform status</div>
             <p className="max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-              Alta Bank, NCC cash settlement, and Terminal cash services are live. Brokerage trading
-              and market data remain unavailable until those services launch.
+              Alta Bank is live. Brokerage trading and market data on Alta Terminal remain
+              unavailable until those services launch.
             </p>
             <Link
               to="/terminal"

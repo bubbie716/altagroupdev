@@ -49,7 +49,6 @@ Future readiness          7/10    Hub + push-DM architecture scales
   8. Alta Private invitation DMs — ceremonial accept/decline; conditional nav feels
      earned
   9. Discord-specific limits + web escalation — e.g. large transfers hand off to web
- 10. Push notification pipeline — scales to Exchange, Terminal, NCC without
      rebuilding bot UX
 
 
@@ -130,7 +129,6 @@ Strongly recommended for week-one (not quite blockers):
   Card/loan payment initiation     Card/loan mgmt stays web
   Statements / tax docs            Screen real estate + compliance
   Company role management          Out of scope
-  Exchange/Terminal/NCC management Push notifications only in V2
 
 
 ================================================================================
@@ -285,7 +283,6 @@ Card/loan payments   Card as Pay funding   No             Payment due reminder D
 Alta Commercial      Business in hub       No             Treasury dashboard web
 Exchange notifs      Push DM pipeline      No             Inform-only DMs
 Terminal notifs      Same pipeline         No             Inform-only DMs
-NCC notifs           Same pipeline         No             Inform-only DMs
 
 Architecture verdict: Hub pages + action modals + push DMs scales well. Alta Pay
 should own pay-to-other flows; Transfer owns self-custody only; notifications

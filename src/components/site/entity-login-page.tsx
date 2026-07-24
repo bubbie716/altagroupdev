@@ -8,7 +8,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_state: "Login session expired. Please try again.",
   token_exchange_failed: "Could not complete Discord sign-in.",
   oauth_callback_mismatch:
-    "Sign-in completed on the wrong domain. Ensure the NCC OAuth callback is configured in production.",
+    "Sign-in completed on the wrong domain. Ensure the OAuth callback is configured in production.",
   profile_fetch_failed: "Could not load your Discord profile.",
   oauth_not_configured: "Discord OAuth is not configured on this environment.",
   database_not_configured: "Database is not configured (DATABASE_URL).",

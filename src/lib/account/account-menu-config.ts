@@ -18,7 +18,7 @@ export function getAccountMenuItems(
     { label: "Companies", to: "/companies", icon: Building2 },
   ];
 
-  if (options.showInternal && siteKey !== "ncc") {
+  if (options.showInternal) {
     const site = getSiteConfig(siteKey);
     items.push({
       label: siteKey === "corporate" ? "Internal" : `${site.shortName} Internal`,

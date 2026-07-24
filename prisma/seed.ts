@@ -3,7 +3,7 @@
  *
  * Production and staging databases must stay fresh — no mock companies,
  * fake users, or test settlement liquidity. Schema comes from migrations only.
- * Alta Bank / Terminal NCC bootstrap (if needed) is done by authorized ops,
+ * Alta Bank / Terminal bootstrap (if needed) is done by authorized ops,
  * not by this seed.
  */
 if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {

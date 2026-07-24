@@ -110,14 +110,14 @@ export function canAccessBankInternal(user: AltaUser): boolean {
 }
 
 /**
- * Alta platform staff used by NCC portal / internal platform helpers.
+ * Alta platform staff used by internal platform helpers.
  * Preserves pre-split behavior: only corporate admins (former global admin).
  */
 export function canAccessInternal(user: AltaUser): boolean {
   return isCorporateAdmin(user);
 }
 
-/** Whether the user may open `/internal` on the given site. NCC is always false. */
+/** Whether the user may open `/internal` on the given site. */
 export function canAccessInternalForSite(user: AltaUser, siteKey: SiteKey): boolean {
   switch (siteKey) {
     case "corporate":
@@ -127,8 +127,6 @@ export function canAccessInternalForSite(user: AltaUser, siteKey: SiteKey): bool
     case "terminal":
     case "exchange":
       return isCorporateAdmin(user) || isTerminalAdmin(user);
-    case "ncc":
-      return false;
   }
 }
 

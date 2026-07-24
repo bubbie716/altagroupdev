@@ -17,7 +17,7 @@ function hostnameFromHost(host: string): string {
   return host.split(":")[0].trim().toLowerCase();
 }
 
-/** Share session cookies across www + apex on entity custom domains (e.g. NCC). */
+/** Share session cookies across www + apex on entity custom domains. */
 function registrableDomainForHost(hostname: string): string | null {
   for (const key of SITE_KEYS) {
     const config = SITE_CONFIGS[key];

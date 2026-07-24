@@ -35,7 +35,6 @@ export function SiteFooterGate() {
   const site = useSiteContext();
 
   if (suppressSiteFooter) return null;
-  if (site.key === "ncc") return null;
 
   const variant = variantOverride ?? resolveFooterVariant(pathname);
   if (variant === "none") return null;

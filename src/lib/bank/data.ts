@@ -224,7 +224,7 @@ export const transferHistory: TransferRecord[] = [
     to: "Meridian Holdings LLP",
     amount: -240_000,
     status: "Completed",
-    settlement: "NCC-Net",
+    settlement: "External wire",
   },
   {
     id: "TRF-8814",
@@ -244,7 +244,7 @@ export const transferHistory: TransferRecord[] = [
     to: "Payroll — Staff Accounts",
     amount: -428_500,
     status: "Scheduled",
-    settlement: "NCC-Net",
+    settlement: "External wire",
   },
   {
     id: "TRF-8795",
@@ -254,7 +254,7 @@ export const transferHistory: TransferRecord[] = [
     to: "Harbor Capital Partners",
     amount: -1_200_000,
     status: "Completed",
-    settlement: "NCC-Net",
+    settlement: "External wire",
   },
 ];
 
@@ -346,7 +346,7 @@ export const bankMarketingSections: BankMarketingSection[] = [
   { title: "Business Banking", desc: "Operating accounts, payroll, and treasury for Newport institutions.", to: "/bank/business" },
   { title: "Bank Products", desc: "Retail, business, and Alta Private deposit products for Newport.", to: "/bank/products" },
   { title: "Lending", desc: "Personal, business, and secured credit for Newport's leading clients.", to: "/bank/lending" },
-  { title: "Transfers & Wires", desc: "Internal transfers and NCC-Net wire settlement — planned clearing infrastructure.", to: "/bank/transfers" },
+  { title: "Transfers & Wires", desc: "Internal transfers and external wire settlement.", to: "/bank/transfers" },
   { title: "Bank Like the 1%", desc: "Balances, credit access, private status, and activity across your Alta Bank relationship.", to: "/bank" },
   { title: "Alta Private", desc: "Invitation-only private banking — reserved for Newport's most influential clients.", to: "/bank/private" },
 ];

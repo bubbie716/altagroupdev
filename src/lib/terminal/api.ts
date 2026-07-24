@@ -9,7 +9,7 @@ export * from "./types";
 export { compact, florin, pct } from "@/lib/format/money-display";
 
 export const terminalDescription =
-  "Alta’s brokerage and trading platform. Portfolio tools, watchlists, and order entry for Newport investors. Cash transfers between Alta Bank and Alta Terminal settle instantly through NCC.";
+  "Alta’s brokerage and trading platform. Portfolio tools, watchlists, and order entry for Newport investors.";
 
 export function getEstimatedCost(qty: number, price: number) {
   return qty * price;

@@ -3,7 +3,7 @@ import type { SiteKey } from "@/config/sites";
 
 export const LEGAL_DOC_ROUTE = "/legal/$docId" as const;
 
-export type LegalEntity = "group" | "bank" | "terminal" | "ncc";
+export type LegalEntity = "group" | "bank" | "terminal";
 
 export type LegalDocumentDefinition = {
   id: string;
@@ -249,40 +249,6 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     showInGlobalFooter: false,
     showInEntityFooter: true,
   },
-  {
-    id: "NCC-LEGAL-001",
-    title: "NCC Participation Agreement",
-    label: "Participation Agreement",
-    slug: "ncc/participation-agreement",
-    entity: "ncc",
-    version: "1.0",
-    lastUpdated: "March 2026",
-    footerOrder: 1,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
-  },
-  {
-    id: "NCC-LEGAL-002",
-    title: "NCC Operating Rules",
-    label: "Operating Rules",
-    slug: "ncc/operating-rules",
-    entity: "ncc",
-    version: "1.0",
-    footerOrder: 2,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
-  },
-  {
-    id: "NCC-LEGAL-003",
-    title: "NCC Fee Schedule",
-    label: "Fee Schedule",
-    slug: "ncc/fee-schedule",
-    entity: "ncc",
-    version: "1.0",
-    footerOrder: 3,
-    showInGlobalFooter: true,
-    showInEntityFooter: true,
-  },
 ];
 
 const slugToDocId = new Map(LEGAL_DOCUMENTS.map((doc) => [doc.slug, doc.id]));
@@ -381,7 +347,6 @@ const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
   /** Legacy host — same Terminal agreement as terminal site. */
   exchange: [],
   terminal: ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
-  ncc: ["NCC-LEGAL-001", "NCC-LEGAL-002", "NCC-LEGAL-003"],
 };
 
 /** Entity-specific footer section documents for the current site (excludes archived). */
@@ -412,7 +377,6 @@ export function siteCompactFooterDocuments(siteKey: SiteKey): LegalDocumentDefin
     bank: "AB-LEGAL-001",
     exchange: "AT-LEGAL-001",
     terminal: "AT-LEGAL-001",
-    ncc: "NCC-LEGAL-001",
   };
   const ids = ["AG-LEGAL-001", "AG-LEGAL-002", "AG-LEGAL-005"];
   const primaryId = entityPrimary[siteKey];
@@ -444,7 +408,6 @@ export const FOOTER_DISCLAIMERS = {
   bank: "Alta Bank is not a real-world bank and does not hold real-world deposits unless expressly stated otherwise.",
   markets:
     "Alta Terminal is a roleplay/virtual economy brokerage service and does not provide real-world investment advice. Alta Terminal does not operate a securities exchange.",
-  ncc: "NCC provides roleplay/virtual economy clearing and settlement infrastructure for approved institutions.",
 } as const;
 
 export { LEGAL_CENTER_PATH };

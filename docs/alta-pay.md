@@ -91,7 +91,6 @@ Documented as TODOs in `alta-pay.service.ts`:
 Also planned separately:
 
 - Payment disputes / chargebacks
-- External bank wires / NCC (explicitly out of scope for Alta Pay V1)
 
 ## API surface
 

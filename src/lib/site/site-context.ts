@@ -15,7 +15,6 @@ const SUBDOMAIN_TO_SITE: Record<string, SiteKey> = {
   bank: "bank",
   exchange: "exchange",
   terminal: "terminal",
-  ncc: "ncc",
 };
 
 function normalizeHostname(host: string): string {

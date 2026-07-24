@@ -54,7 +54,7 @@ export const MAINTENANCE_SCOPE_LABELS: Record<MaintenanceScope, string> = {
 };
 
 export const MAINTENANCE_SCOPE_DESCRIPTIONS: Record<MaintenanceScope, string> = {
-  sitewide: "All Alta sites (excluding NCC), shared routes, and the Discord bank bot.",
+  sitewide: "All Alta sites, shared routes, and the Discord bank bot.",
   corporate: "Alta Group corporate site only.",
   bank: "Alta Bank site and banking routes.",
   exchange: "Legacy host compatibility only — product traffic redirects to Alta Terminal.",
@@ -90,7 +90,6 @@ export function getActiveMaintenanceScopes(scopes: MaintenanceScopeFlags): Maint
 }
 
 export function isMaintenanceActiveForSite(siteKey: SiteKey, scopes: MaintenanceScopeFlags): boolean {
-  if (siteKey === "ncc") return false;
   if (scopes.sitewide) return true;
   if (siteKey === "corporate") return scopes.corporate;
   if (siteKey === "bank") return scopes.bank;
@@ -115,7 +114,7 @@ export function getMaintenanceScopeForSite(
 export function maintenanceScopesForInternalSettings(siteKey: SiteKey): MaintenanceScope[] {
   switch (siteKey) {
     case "corporate":
-      // Group console can toggle every Alta site scope (NCC uses its own portal).
+      // Group console can toggle every Alta site scope.
       return ["sitewide", "corporate", "bank", "terminal", "exchange"];
     case "bank":
       return ["bank"];
@@ -134,6 +133,5 @@ export function maintenanceTitleForSite(siteKey: SiteKey, scope: MaintenanceScop
   if (siteKey === "bank") return "Bank Maintenance";
   if (siteKey === "exchange") return "Legacy Host Maintenance";
   if (siteKey === "terminal") return "Terminal Maintenance";
-  if (siteKey === "ncc") return "Platform Maintenance";
   return "Corporate Maintenance";
 }

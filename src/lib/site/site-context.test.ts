@@ -12,13 +12,7 @@ describe("site context", () => {
     assert.equal(resolveSiteKeyFromHost("bank.altagroup.dev"), "bank");
     assert.equal(resolveSiteKeyFromHost("exchange.altagroup.dev"), "exchange");
     assert.equal(resolveSiteKeyFromHost("terminal.altagroup.dev"), "terminal");
-    assert.equal(resolveSiteKeyFromHost("ncc.altagroup.dev"), "ncc");
     assert.equal(resolveSiteKeyFromHost("www.altagroup.dev"), "corporate");
-  });
-
-  it("resolves NCC custom production domain", () => {
-    assert.equal(resolveSiteKeyFromHost("newportclearingcorporation.com"), "ncc");
-    assert.equal(resolveSiteKeyFromHost("www.newportclearingcorporation.com"), "ncc");
   });
 
   it("resolves entity subdomains in local dev", () => {
@@ -40,7 +34,6 @@ describe("site context", () => {
     process.env.NODE_ENV = "development";
     assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/bank/open" }), "bank");
     assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/terminal/trade" }), "terminal");
-    assert.equal(resolveSiteKey({ host: "localhost:3000", pathname: "/company/ncc" }), "ncc");
     process.env.NODE_ENV = original;
   });
 });

@@ -83,7 +83,6 @@ export async function dispatchStaffAuditDiscordMessage(
 ): Promise<{ sent: boolean; via: "direct" | "bot" | "none"; reason?: string }> {
   if (
     process.env.NODE_ENV === "test" ||
-    process.env.NCC_SETTLEMENT_TESTS === "1" ||
     process.env.STAFF_AUDIT_DISCORD_DISABLED === "1" ||
     process.env.VITEST === "true"
   ) {

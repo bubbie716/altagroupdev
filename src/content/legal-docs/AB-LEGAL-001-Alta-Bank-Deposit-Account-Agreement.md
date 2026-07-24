@@ -96,7 +96,7 @@ Deposit methods may include:
 - staff-reviewed deposits;
 - internal transfers;
 - merchant payments;
-- NCC or interbank transfers;
+- interbank transfers;
 - other methods approved by Alta Bank.
 
 Alta Bank may accept, reject, delay, review, reverse, or adjust a deposit if necessary to address fraud, mistakes, duplicate submissions, insufficient proof, abuse, technical errors, platform issues, or rule violations.

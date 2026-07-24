@@ -9,17 +9,8 @@ describe("site-path-ownership", () => {
     assert.equal(siteKeyForOwnedPath("/terminal/trade"), "terminal");
   });
 
-  it("assigns NCC ops prefixes", () => {
-    assert.equal(siteKeyForOwnedPath("/institutions"), "ncc");
-    assert.equal(siteKeyForOwnedPath("/company/ncc"), "ncc");
-    assert.equal(siteKeyForOwnedPath("/portal"), "ncc");
-    assert.equal(siteKeyForOwnedPath("/portal/queue"), "ncc");
-  });
-
-  it("treats dashboard, login, admin, and markets as shared shortcuts", () => {
+  it("treats dashboard and markets as shared shortcuts", () => {
     assert.equal(siteKeyForOwnedPath("/dashboard"), null);
-    assert.equal(siteKeyForOwnedPath("/login"), null);
-    assert.equal(siteKeyForOwnedPath("/admin"), null);
     assert.equal(siteKeyForOwnedPath("/markets"), null);
   });
 

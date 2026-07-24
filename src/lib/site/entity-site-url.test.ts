@@ -20,7 +20,6 @@ describe("entity site urls", () => {
   it("resolves production hostnames", () => {
     assert.equal(resolveEntitySiteHostname("bank"), "bank.altagroup.dev");
     assert.equal(resolveEntitySiteHostname("corporate"), "altagroup.dev");
-    assert.equal(resolveEntitySiteHostname("ncc"), "newportclearingcorporation.com");
   });
 
   it("resolves plain localhost entity home with ?site=", () => {
@@ -32,7 +31,6 @@ describe("entity site urls", () => {
   it("resolves plain localhost entity paths without ?site=", () => {
     stubWindow({ hostname: "localhost", port: "3000", protocol: "http:" });
     assert.equal(resolveEntitySiteUrl("bank", "/bank/open"), "http://localhost:3000/bank/open");
-    // /exchange paths are unowned — local-dev appends ?site= for the legacy host.
     assert.equal(
       resolveEntitySiteUrl("exchange", "/exchange/listings"),
       "http://localhost:3000/exchange/listings?site=exchange",
@@ -51,9 +49,5 @@ describe("entity site urls", () => {
     stubWindow({ hostname: "altagroup.dev", port: "", protocol: "https:" });
     assert.equal(resolveEntitySiteUrl("exchange"), "https://exchange.altagroup.dev/");
     assert.equal(resolveEntitySiteUrl("terminal", "/"), "https://terminal.altagroup.dev/");
-    assert.equal(
-      resolveEntitySiteUrl("ncc", "/company/ncc"),
-      "https://newportclearingcorporation.com/company/ncc",
-    );
   });
 });

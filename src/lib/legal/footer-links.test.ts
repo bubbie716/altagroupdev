@@ -22,7 +22,6 @@ import {
   getFooterSupportLinks,
   SITE_FOOTER_EMPHASIS,
 } from "@/lib/site/site-links";
-import { NCC_LEGAL_DOCS } from "@/lib/ncc/ncc-tokens";
 
 describe("footer links", () => {
   it("resolves every registered footer document to a catalog entry", async () => {
@@ -40,7 +39,7 @@ describe("footer links", () => {
       assert.ok(await hasLegalDocBody(link.params.docId));
     }
 
-    for (const entity of ["bank", "terminal", "ncc"] as const) {
+    for (const entity of ["bank", "terminal"] as const) {
       for (const doc of entityFooterDocuments(entity)) {
         const link = legalDocLinkParams(doc.id);
         assert.ok(await hasLegalDocBody(link.params.docId));
@@ -56,15 +55,6 @@ describe("footer links", () => {
     }
   });
 
-  it("exposes valid NCC footer legal paths", async () => {
-    for (const doc of NCC_LEGAL_DOCS) {
-      assert.ok(doc.path.startsWith("/legal/"));
-      const segment = doc.path.replace(/^\/legal\//, "");
-      const id = resolveLegalDocIdFromSlug(segment) ?? segment;
-      assert.ok(await hasLegalDocBody(id));
-    }
-  });
-
   it("lists ecosystem destinations with one current site", () => {
     for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const links = getFooterEcosystemLinks(siteKey);
@@ -73,13 +63,8 @@ describe("footer links", () => {
         links.some((link) => link.label === "Alta Exchange"),
         false,
       );
-      // Legacy exchange host has no matching ecosystem entry marked current.
       const expectedCurrent = siteKey === "exchange" ? 0 : 1;
       assert.equal(links.filter((link) => link.current).length, expectedCurrent);
-      assert.equal(
-        links.some((link) => link.label === "Newport Clearing Corporation"),
-        false,
-      );
 
       for (const link of links) {
         if ("external" in link && link.external) {
@@ -94,7 +79,7 @@ describe("footer links", () => {
   });
 
   it("lists support destinations for every site", () => {
-    for (const siteKey of ["corporate", "bank", "exchange", "terminal", "ncc"] as const) {
+    for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const links = getFooterSupportLinks(siteKey);
       assert.deepEqual(links.map((link) => link.label), ["Support Center", "System Status"]);
 
@@ -140,10 +125,6 @@ describe("footer links", () => {
         "Market Data Terms",
         "Fee Schedule",
       ],
-    );
-    assert.deepEqual(
-      siteEntitySectionDocuments("ncc").map((doc) => doc.label),
-      ["Participation Agreement", "Operating Rules", "Fee Schedule"],
     );
   });
 

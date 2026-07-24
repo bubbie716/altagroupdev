@@ -4,7 +4,7 @@ import { resolveCorporateSiteUrl, resolveEntitySiteUrl } from "@/lib/site/entity
 export type EcosystemEntry = {
   key: SiteKey;
   name: string;
-  /** Compact label for header triggers (e.g. NCC). */
+  /** Compact label for header triggers. */
   shortName: string;
   description: string;
   homePath: string;

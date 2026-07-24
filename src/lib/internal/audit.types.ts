@@ -12,8 +12,6 @@ export type AuditLogRow = {
   targetCompanyId: string | null;
   targetTransactionId: string | null;
   targetLoanId: string | null;
-  /** NCC institution scope for portal audit isolation. */
-  institutionId: string | null;
   action: string;
   entityType: AuditEntityType;
   entityId: string | null;
@@ -31,7 +29,6 @@ export type AuditLogFilters = {
   targetUserId?: string;
   targetAccountId?: string;
   targetCompanyId?: string;
-  institutionId?: string;
   from?: string;
   to?: string;
 };
@@ -47,7 +44,5 @@ export type WriteAuditLogInput = {
   targetCompanyId?: string;
   targetTransactionId?: string;
   targetLoanId?: string;
-  /** NCC institution scope for portal audit isolation. */
-  institutionId?: string;
   metadata?: Record<string, unknown>;
 };

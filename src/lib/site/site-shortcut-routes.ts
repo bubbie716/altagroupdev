@@ -7,8 +7,6 @@ import { getSiteConfig } from "@/config/sites";
  */
 export const SITE_SHORTCUT_PATH_PREFIXES = [
   "/dashboard",
-  "/login",
-  "/admin",
   "/markets",
 ] as const;
 

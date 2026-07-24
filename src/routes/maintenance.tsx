@@ -9,8 +9,6 @@ import {
   isMaintenanceActiveForSite,
   maintenanceTitleForSite,
 } from "@/lib/platform/maintenance-types";
-import { fetchNccMaintenanceMode } from "@/lib/ncc/ncc-maintenance.functions";
-import { NccMaintenancePage } from "@/components/ncc/ncc-maintenance-page";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { Card } from "@/components/page-shell";
 import { Link } from "@tanstack/react-router";
@@ -20,36 +18,21 @@ import { buildSignInSearch, resolveSiteSignInPath } from "@/lib/site/site-sign-i
 export const Route = createFileRoute("/maintenance")({
   beforeLoad: async ({ context }) => {
     const site = siteFromRouteContext(context);
-    if (site.key === "ncc") {
-      const maintenance = await fetchNccMaintenanceMode();
-      if (!maintenance.enabled || canBypassMaintenanceMode(context.user)) {
-        throw redirect({ to: "/" });
-      }
-      return;
-    }
-
     const maintenance = await fetchMaintenanceMode();
     const siteMaintenanceActive = isMaintenanceActiveForSite(site.key, maintenance.scopes);
     if (!siteMaintenanceActive || canBypassMaintenanceMode(context.user)) {
       throw redirect({ to: "/" });
     }
   },
-  loader: async ({ context }) => {
-    const site = siteFromRouteContext(context);
-    if (site.key === "ncc") {
-      return { kind: "ncc" as const, maintenance: await fetchNccMaintenanceMode() };
-    }
-    return { kind: "alta" as const, maintenance: await fetchMaintenanceMode() };
+  loader: async () => {
+    return { maintenance: await fetchMaintenanceMode() };
   },
   head: ({ context }) => {
     const site = siteFromRouteContext(context);
     return {
       meta: [
         {
-          title:
-            site.key === "ncc"
-              ? "Network Maintenance — Newport Clearing Corporation"
-              : `${maintenanceTitleForSite(site.key, null)} — ${site.displayName}`,
+          title: `${maintenanceTitleForSite(site.key, null)} — ${site.displayName}`,
         },
       ],
     };
@@ -58,17 +41,14 @@ export const Route = createFileRoute("/maintenance")({
 });
 
 function MaintenancePage() {
-  const data = Route.useLoaderData();
-  if (data.kind === "ncc") {
-    return <NccMaintenancePage maintenance={data.maintenance} />;
-  }
-  return <AltaMaintenancePage maintenance={data.maintenance} />;
+  const { maintenance } = Route.useLoaderData();
+  return <AltaMaintenancePage maintenance={maintenance} />;
 }
 
 function AltaMaintenancePage({
   maintenance,
 }: {
-  maintenance: Extract<Awaited<ReturnType<typeof fetchMaintenanceMode>>, unknown>;
+  maintenance: Awaited<ReturnType<typeof fetchMaintenanceMode>>;
 }) {
   const site = useSiteContext();
   const user = useCurrentUser();

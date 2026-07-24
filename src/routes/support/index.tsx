@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { SiteNav } from "@/components/site-nav";
 import { useSiteContext } from "@/hooks/use-site-context";
-import { NccSupportPage } from "@/components/ncc/ncc-support-page";
 import { ALTA_DISCORD_URLS } from "@/lib/site/discord-urls";
 import { getDiscordCommunitiesForSite } from "@/lib/site/site-scoped-content";
 
@@ -15,11 +14,6 @@ export const Route = createFileRoute("/support/")({
 
 function SupportCenterPage() {
   const site = useSiteContext();
-
-  if (site.key === "ncc") {
-    return <NccSupportPage />;
-  }
-
   const communities = getDiscordCommunitiesForSite(site.key);
 
   return (

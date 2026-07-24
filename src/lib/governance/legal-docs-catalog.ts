@@ -4,9 +4,7 @@ export type LegalDocCategory =
   | "Alta Bank — Corporate"
   | "Alta Bank — Legal"
   | "Alta Terminal — Corporate"
-  | "Alta Terminal — Legal"
-  | "NCC — Corporate"
-  | "NCC — Legal";
+  | "Alta Terminal — Legal";
 
 export type LegalDocKind = "corporate" | "legal" | "template";
 
@@ -45,8 +43,6 @@ function categoryForId(id: string): LegalDocCategory | null {
   if (id.startsWith("AB-LEGAL-")) return "Alta Bank — Legal";
   if (id.startsWith("AT-COR-")) return "Alta Terminal — Corporate";
   if (id.startsWith("AT-LEGAL-")) return "Alta Terminal — Legal";
-  if (id.startsWith("NCC-COR-")) return "NCC — Corporate";
-  if (id.startsWith("NCC-LEGAL-")) return "NCC — Legal";
   // Legacy AE-* documents are not part of the public catalog.
   return null;
 }
@@ -55,7 +51,7 @@ function entityForId(id: string): string {
   if (id.startsWith("AG-")) return "Alta Group N.V.";
   if (id.startsWith("AB-")) return "Alta Bank N.V.";
   if (id.startsWith("AT-")) return "Alta Terminal";
-  return "Newport Clearing Corporation";
+  return "Alta Group N.V.";
 }
 
 function kindForId(id: string, title: string): LegalDocKind {
@@ -138,8 +134,6 @@ export const legalDocsByCategory = legalDocsCatalog.reduce<
     "Alta Bank — Legal": [],
     "Alta Terminal — Corporate": [],
     "Alta Terminal — Legal": [],
-    "NCC — Corporate": [],
-    "NCC — Legal": [],
   },
 );
 
@@ -150,8 +144,6 @@ export const legalDocCategoryOrder: LegalDocCategory[] = [
   "Alta Bank — Legal",
   "Alta Terminal — Corporate",
   "Alta Terminal — Legal",
-  "NCC — Corporate",
-  "NCC — Legal",
 ];
 
 export function getLegalDocMeta(id: string): LegalDocMeta | undefined {

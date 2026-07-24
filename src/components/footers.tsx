@@ -194,30 +194,17 @@ function FooterCopyrightLines({ siteKey, className }: { siteKey: SiteKey; classN
   );
 }
 
-function StandardSiteFooter({
-  siteKey,
-  showEcosystem = siteKey !== "ncc",
-}: {
-  siteKey: SiteKey;
-  showEcosystem?: boolean;
-}) {
-  const columnCount = showEcosystem ? 5 : 4;
-
+function StandardSiteFooter({ siteKey }: { siteKey: SiteKey }) {
   return (
     <footer className="mt-auto shrink-0 border-t border-border/60 bg-surface-1/30">
       <div className="mx-auto max-w-[1400px] px-6 py-12">
-        <div
-          className={cn(
-            "grid gap-10 sm:grid-cols-2",
-            columnCount === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4",
-          )}
-        >
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
             <AltaWordmark />
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">{SITE_FOOTER_EMPHASIS[siteKey]}</p>
           </div>
 
-          {showEcosystem ? <FooterEcosystemColumn siteKey={siteKey} /> : null}
+          <FooterEcosystemColumn siteKey={siteKey} />
           <FooterLegalColumn siteKey={siteKey} />
           <FooterSupportColumn siteKey={siteKey} />
           <FooterEntityColumn siteKey={siteKey} />

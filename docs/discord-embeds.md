@@ -56,7 +56,6 @@ Enforced client-side (preview) and server-side (send):
 
 Built-in presets populate the editor:
 
-- **Alta Group Information** — brand overview with Bank, Exchange, Terminal, NCC fields
 - **Bank Notice** — Alta Bank operational notice
 - **Exchange Notice** — market participant notice
 - **IPO Announcement** — company, ticker, price, status fields

@@ -204,40 +204,24 @@ export function SkeletonMarketsDashboard({ className }: { className?: string }) 
   );
 }
 
-/** NCC dashboard / console. */
-export function SkeletonNccDashboard({ className }: { className?: string }) {
+/** Legacy shortcut routes (/dashboard, /admin). */
+export function SkeletonShortcutDashboard({ className }: { className?: string }) {
   return (
-    <SkeletonRegion className={cn("space-y-8", className)} label="Loading NCC console">
-      <div className="space-y-3 border-b border-[#e5e7eb] pb-6">
+    <SkeletonRegion className={cn("space-y-8", className)} label="Loading dashboard">
+      <div className="space-y-3 border-b border-border/60 pb-6">
         <Skeleton className="h-2.5 w-28 rounded" />
         <SkeletonHeading size="lg" />
         <SkeletonText lines={2} className="max-w-xl" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-sm border border-[#e5e7eb] bg-white p-5 shadow-sm"
-            aria-hidden
-          >
+          <SkeletonCard key={i} className="p-5">
             <Skeleton className="h-2.5 w-20 rounded" />
             <Skeleton className="mt-3 h-7 w-24 rounded-md" />
-          </div>
+          </SkeletonCard>
         ))}
       </div>
-      <div className="overflow-hidden rounded-sm border border-[#e5e7eb] bg-white">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 border-b border-[#e5e7eb] px-4 py-3 last:border-0"
-            aria-hidden
-          >
-            <Skeleton className="h-3.5 w-[40%] max-w-[12rem] rounded" />
-            <Skeleton className="h-3 w-20 rounded" />
-            <Skeleton className="ml-auto h-3 w-16 rounded" />
-          </div>
-        ))}
-      </div>
+      <SkeletonTable rows={6} cols={3} />
     </SkeletonRegion>
   );
 }

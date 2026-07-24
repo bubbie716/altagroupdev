@@ -24,7 +24,6 @@ This Policy applies to services operated by Alta Group and its subsidiaries, inc
 - Alta Group;
 - Alta Bank;
 - Alta Terminal;
-- Newport Clearing Corporation (“NCC”);
 - Alta websites;
 - Alta Discord bots;
 - Alta APIs;
@@ -148,7 +147,7 @@ Alta may share information with:
 - database providers;
 - authentication providers;
 - Discord bots or integrations;
-- participating institutions, when needed for NCC or payment operations;
+- participating institutions, when needed for payment operations;
 - merchants, when needed for payments or invoices;
 - brokerage, execution, custody, or market-data providers when needed for Alta Terminal services;
 - law enforcement, legal authorities, or platform administrators if required or reasonably necessary;

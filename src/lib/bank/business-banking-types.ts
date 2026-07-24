@@ -195,7 +195,7 @@ export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
 };
 
 export const INTERBANK_EXECUTION_NOTICE =
-  "Scheduled and recurring interbank wires are not yet available. Instant Bank → Alta Terminal transfers settle immediately through NCC.";
+  "Scheduled and recurring interbank wires are not yet available.";
 
 export const FUTURE_EXECUTION_NOTICE =
   "Automatic payment execution is not available yet.";

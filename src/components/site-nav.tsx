@@ -108,7 +108,6 @@ export const SiteNav = memo(function SiteNav() {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (site.key === "ncc") return null;
   const navLinks = site.key === "bank" ? bankNavLinks : resolveSiteNavLinks(site.key);
 
   const isDenseNav = site.key === "bank" || site.key === "exchange" || site.key === "terminal";

@@ -210,24 +210,6 @@
     transition: background-color 0.4s ease, color 0.4s ease;
   }
 
-  /* NCC — institutional white canvas (html + body for overscroll / route transitions). */
-  html.ncc-site {
-    background-color: #ffffff;
-    --background: oklch(1 0 0);
-    --surface-1: oklch(1 0 0);
-    --surface-2: oklch(0.985 0.002 160);
-    --foreground: oklch(0.21 0.02 160);
-    --muted-foreground: oklch(0.45 0.02 160);
-    --border: oklch(0.21 0.02 160 / 10%);
-    --border-strong: oklch(0.21 0.02 160 / 16%);
-  }
-
-  html.ncc-site body {
-    background-color: #ffffff;
-    color: #111827;
-    transition: color 0.4s ease;
-  }
-
   textarea {
     resize: none;
   }
@@ -662,19 +644,6 @@
       transform: none;
     }
   }
-  /* NCC light canvas — slightly stronger fill so skeletons read on white. */
-  html.ncc-site .skeleton {
-    background-color: color-mix(in oklab, #e5e7eb 85%, transparent);
-  }
-  html.ncc-site .skeleton::after {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in oklab, #111827 4%, transparent),
-      transparent
-    );
-  }
-
   /* Safari: native selects need explicit appearance reset when styled. */
   select {
     -webkit-appearance: none;

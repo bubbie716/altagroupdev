@@ -108,11 +108,10 @@ Subsidiaries may include, but are not limited to:
 
 1. Alta Bank N.V.;
 2. Alta Terminal LLC;
-3. Newport Clearing Corporation;
-4. Alta Solutions;
-5. Alta Stakes;
-6. Alta Law; and
-7. Any future subsidiary approved by Alta Group.
+3. Alta Solutions;
+4. Alta Stakes;
+5. Alta Law; and
+6. Any future subsidiary approved by Alta Group.
 
 Unless otherwise approved by Alta Group, subsidiaries operate under the authority of Alta Group and remain subject to Alta Group’s ownership, governance, reserved powers, and strategic direction.
 

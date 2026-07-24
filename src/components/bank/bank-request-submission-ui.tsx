@@ -397,7 +397,7 @@ export function BankRequestSuccessCard({
   );
 }
 
-/** In-flight (non-final) result — e.g. NCC transfers still processing after submit. */
+/** In-flight (non-final) result — e.g. transfers still processing after submit. */
 export function BankRequestPendingCard({
   title,
   body,

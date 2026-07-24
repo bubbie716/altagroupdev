@@ -17,7 +17,6 @@ Intrabank transfers and payroll batches are **auto-approved on creation**. Inter
 
 - Withdrawals
 - External wires / interbank scheduled transfers
-- NCC transfers
 - Deposit requests
 - Any transfer requiring manual review
 

@@ -10,13 +10,10 @@ const HEX_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
 const IMPERSONATION_NEEDLES = [
   "alta bank",
   "alta group",
-  "alta ncc",
-  "newport clearing",
-  "newport central clearing",
+  "alta terminal",
   "official alta",
   "verified by alta",
   "alta official",
-  "ncc official",
   "government",
   "fdic",
   "sec.gov",
@@ -72,7 +69,7 @@ export function assertSafeBrandingText(text: string): void {
   for (const needle of IMPERSONATION_NEEDLES) {
     if (lower.includes(needle)) {
       throw new CompanyBrandingValidationError(
-        "Branding text cannot impersonate Alta Bank, NCC, or official system entities.",
+        "Branding text cannot impersonate Alta Bank or official system entities.",
       );
     }
   }

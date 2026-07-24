@@ -42,7 +42,6 @@ When `SHOW_USER_FINANCIAL_MOCK_DATA` is `false`, authenticated pages must **not*
 | `/bank/accounts` | “You do not have any Alta Bank accounts yet.” |
 | `/bank/transfers` | Transfer hub — choose Intrabank or Interbank |
 | `/bank/transfers/intrabank` | Live intrabank transfers — own accounts or another player |
-| `/bank/transfers/interbank` | Wire preview only (NCC-Net) |
 | `/bank/private` | No fake private metrics, card, or banker assignment |
 | `/terminal` | “No portfolio connected yet.” → Explore Alta Exchange |
 | `/terminal/portfolio` | “You do not have any holdings yet.” |
@@ -83,7 +82,6 @@ This restores simulated bank dashboards, terminal portfolios, and homepage net-w
 ## TODO — replace empty states with real backends
 
 - [ ] Alta Bank accounts, balances, and transactions (Postgres + bank service)
-- [ ] Transfers and wire initiation (NCC-Net integration)
 - [ ] Alta Private relationship profile (invitation + banker assignment)
 - [ ] Terminal portfolio positions synced from exchange/custody
 - [ ] Order entry and trade history

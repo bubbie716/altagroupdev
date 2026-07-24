@@ -11,7 +11,7 @@ import {
   SkeletonInternalTablePage,
   SkeletonLegalPage,
   SkeletonMarketsDashboard,
-  SkeletonNccDashboard,
+  SkeletonShortcutDashboard,
 } from "@/components/ui/skeleton-pages";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ export function resolveRouteSkeleton(pathname: string): ReactNode {
   }
 
   if (path === "/admin" || path === "/dashboard" || path.startsWith("/dashboard/")) {
-    return <SkeletonNccDashboard />;
+    return <SkeletonShortcutDashboard />;
   }
 
   if (path.startsWith("/internal")) {

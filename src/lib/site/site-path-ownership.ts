@@ -2,14 +2,9 @@ import type { SiteKey } from "@/config/sites";
 
 /**
  * Path prefixes owned by a single Alta site. Longer prefixes are listed first so
- * `/company/ncc` wins over `/company`.
+ * nested entity paths win over parent prefixes.
  */
 const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
-  { prefix: "/company/ncc", siteKey: "ncc" },
-  { prefix: "/institutions", siteKey: "ncc" },
-  { prefix: "/network", siteKey: "ncc" },
-  { prefix: "/participation", siteKey: "ncc" },
-  { prefix: "/portal", siteKey: "ncc" },
   { prefix: "/bank", siteKey: "bank" },
   // /exchange product paths are retired — handled by resolveRetiredExchangeRedirect,
   // not cross-site ownership (ownership caused Exchange ↔ Terminal host loops).
@@ -36,8 +31,6 @@ const SHARED_PATH_PREFIXES = [
   "/companies",
   "/internal",
   "/dashboard",
-  "/login",
-  "/admin",
   "/markets",
 ] as const;
 

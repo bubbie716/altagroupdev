@@ -27,7 +27,6 @@ Alta Group may operate services directly or through subsidiaries, including but 
 
 - Alta Bank;
 - Alta Terminal;
-- Newport Clearing Corporation (“NCC”);
 - Alta Solutions;
 - Alta Law;
 - Alta Stakes; and
@@ -106,7 +105,6 @@ Alta may publish service-specific rules, including:
 - order-handling terms;
 - trading and market-data disclosures;
 - API terms;
-- NCC operating rules;
 - fee schedules;
 - dispute procedures;
 - community rules;

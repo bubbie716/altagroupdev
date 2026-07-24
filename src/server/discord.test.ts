@@ -11,7 +11,7 @@ describe("resolveOAuthCallbackUri", () => {
       DISCORD_CLIENT_ID: "client",
       DISCORD_CLIENT_SECRET: "secret",
       DISCORD_REDIRECT_URI:
-        "https://altagroup.dev/api/auth/discord/callback,https://newportclearingcorporation.com/api/auth/discord/callback",
+        "https://altagroup.dev/api/auth/discord/callback,https://bank.altagroup.dev/api/auth/discord/callback",
       NODE_ENV: "production",
     };
   });
@@ -22,8 +22,8 @@ describe("resolveOAuthCallbackUri", () => {
 
   it("returns the callback when origin is registered in production", () => {
     assert.equal(
-      resolveOAuthCallbackUri("https://newportclearingcorporation.com"),
-      "https://newportclearingcorporation.com/api/auth/discord/callback",
+      resolveOAuthCallbackUri("https://bank.altagroup.dev"),
+      "https://bank.altagroup.dev/api/auth/discord/callback",
     );
   });
 
@@ -37,7 +37,7 @@ describe("resolveOAuthReturnUrl", () => {
     process.env = {
       ...ORIGINAL_ENV,
       DISCORD_REDIRECT_URI:
-        "https://altagroup.dev/api/auth/discord/callback,https://newportclearingcorporation.com/api/auth/discord/callback",
+        "https://altagroup.dev/api/auth/discord/callback,https://bank.altagroup.dev/api/auth/discord/callback",
       NODE_ENV: "production",
     };
   });
@@ -52,17 +52,17 @@ describe("resolveOAuthReturnUrl", () => {
       request,
       {
         returnTo: "/dashboard",
-        returnOrigin: "https://newportclearingcorporation.com",
+        returnOrigin: "https://bank.altagroup.dev",
       },
       "/home",
     );
-    assert.equal(url, "https://newportclearingcorporation.com/dashboard");
+    assert.equal(url, "https://bank.altagroup.dev/dashboard");
   });
 
   it("allows return to a known site origin when only the shared callback is registered", () => {
     process.env.DISCORD_REDIRECT_URI = "https://altagroup.dev/api/auth/discord/callback";
     assert.equal(
-      isAllowedReturnOrigin("https://newportclearingcorporation.com", [
+      isAllowedReturnOrigin("https://bank.altagroup.dev", [
         "https://altagroup.dev/api/auth/discord/callback",
       ]),
       true,

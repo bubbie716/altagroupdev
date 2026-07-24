@@ -59,10 +59,6 @@ export function assertEntityInternalRouteAccess(
 ): void {
   const path = normalizePathname(pathname);
 
-  if (siteKey === "ncc") {
-    throw redirect({ to: "/access-restricted" });
-  }
-
   if (siteKey === "exchange") {
     if (path === "/internal" || path === "/internal/exchange/settings") {
       // Tag check below

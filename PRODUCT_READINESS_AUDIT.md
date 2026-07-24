@@ -143,12 +143,10 @@ Alta is a **credible manual-review bank and company registry** sitting on top of
 | **Account opening** | Live form | `openBankAccount` | `BankAccount` | **Works** |
 | **Account detail pages** | Live | `getUserBankAccountDetail` | `BankAccount`, `BankTransaction` | **Works** (statements/notices placeholder) |
 | **Account numbering** | Displayed | `generateAccountNumber` | Unique constraint | **Works** (`AB-[PRODUCT]-[UNIQUE]`) |
-| **Routing numbers** | Displayed | Static `011000001` | None | **Works** (constant, not NCC) |
 | **Deposits** | Live form | `submitDepositRequest` | PENDING tx | **Works** (proof = `pending-upload://` placeholder) |
 | **Withdrawals** | Live form | `submitWithdrawalRequest` | PENDING tx | **Works** |
 | **Intrabank transfers (own accounts)** | Live form | `submitInternalTransfer` | Instant TRF paired txns | **Works** |
 | **Intrabank transfers (other players)** | Live form | Same service, account number lookup | Instant TRF paired txns | **Works** |
-| **Interbank wires (NCC-Net)** | Preview form | None | None | **PARTIAL** (UI only) |
 | **Business banking marketing** | Page | Mock | None | **PARTIAL** |
 | **Business operating accounts** | Via open form | Verified company gate | `BankAccount` + `companyId` | **Works** |
 | **Private banking portal** | Gated page | Tag check only | None | **PARTIAL** (empty unless mock flag) |
@@ -270,7 +268,6 @@ There is no custody, no order entry, no fill reporting, no account linking to Ex
 | **Watchlist / WatchlistItem** | Terminal watchlists |
 | **ApiKey / ApiApplication** | Developer API |
 | **PrivateBankingRelationship** | Alta Private tier, banker, card |
-| **WireTransfer** | Interbank/NCC-Net (or extend BankTransaction types) |
 | **LoanApplication / Loan** | Bank lending |
 | **ComplianceCase** | Internal compliance |
 | **AuditLog** | Cross-division operator actions |
@@ -337,7 +334,6 @@ Internal is a **bank ops + company verification console** wearing the uniform of
 #### Alta Group
 - [ ] Platform overview / division map (single source of truth)
 - [ ] User onboarding runbook (Discord → bank → company → exchange)
-- [ ] Brand/product naming glossary (Intrabank vs Interbank vs NCC-Net)
 
 #### Alta Bank
 - [ ] Operator runbook (deposit/withdrawal review SLAs, proof verification process)
@@ -359,12 +355,6 @@ Internal is a **bank ops + company verification console** wearing the uniform of
 - [ ] Brokerage account model (relationship to bank custody)
 - [ ] Order types and trading hours spec
 - [ ] Portfolio accounting spec
-
-#### NCC (National Clearing Corporation)
-- [ ] NCC-Net settlement architecture
-- [ ] Routing number registry plan
-- [ ] Wire format specification
-- [ ] Interbank vs intrabank definitions (product terminology)
 
 #### Internal / Operations
 - [ ] Tag grant/revoke policy and audit requirements

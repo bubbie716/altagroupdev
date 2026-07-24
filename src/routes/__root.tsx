@@ -12,8 +12,6 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../components/theme";
 import { SITE_INIT_SCRIPT } from "@/lib/site/site-chrome-script";
-import { NccSiteChrome } from "@/components/ncc/ncc-site-chrome";
-import { cn } from "@/lib/utils";
 import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { loadRootSession } from "@/lib/auth/root-session-loader";
@@ -145,21 +143,16 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
       exchange: false,
       terminal: false,
     };
-    let nccMaintenanceEnabled = false;
     try {
       const session = await loadRootSession();
       user = session.user;
       maintenanceScopes = session.maintenanceScopes;
-      nccMaintenanceEnabled = session.nccMaintenanceEnabled;
     } catch (error) {
       console.error("[auth] Failed to load root session", error);
     }
 
     const pathname = location.pathname;
-    const maintenanceEnabled =
-      site.key === "ncc"
-        ? nccMaintenanceEnabled
-        : isMaintenanceActiveForSite(site.key, maintenanceScopes);
+    const maintenanceEnabled = isMaintenanceActiveForSite(site.key, maintenanceScopes);
 
     if (maintenanceEnabled && isMaintenanceBypassUser(user) && pathname === "/maintenance") {
       throw redirect({ to: "/" });
@@ -234,16 +227,10 @@ function RootComponent() {
     <ThemeProvider>
         <RouteTransitionProvider>
           <FooterProvider>
-            <NccSiteChrome siteKey={site.key} />
             <NumberInputScrollGuard />
             {isUiLabMode() && <UiLabBanner />}
             <SiteReturnPathTracker />
-            <div
-              className={cn(
-                "flex min-h-screen flex-col",
-                site.key === "ncc" ? "bg-white" : "bg-background",
-              )}
-            >
+            <div className="flex min-h-screen flex-col bg-background">
               <div className="flex min-h-0 flex-1 flex-col">
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <Outlet />

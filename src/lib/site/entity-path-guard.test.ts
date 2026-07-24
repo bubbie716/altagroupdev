@@ -77,17 +77,6 @@ describe("resolveCrossSitePathRedirect", () => {
     );
   });
 
-  it("redirects NCC paths from corporate production host to NCC domain", () => {
-    assert.equal(
-      resolveCrossSitePathRedirect("/company/ncc", { host: "altagroup.dev" }),
-      "http://newportclearingcorporation.com/company/ncc",
-    );
-    assert.equal(
-      resolveCrossSitePathRedirect("/institutions", { host: "bank.altagroup.dev" }),
-      "http://newportclearingcorporation.com/institutions",
-    );
-  });
-
   it("redirects corporate paths away from plain localhost with ?site= override", () => {
     assert.equal(
       resolveCrossSitePathRedirect("/structure", {
@@ -119,18 +108,9 @@ describe("resolveEntitySubdomainRedirect", () => {
 });
 
 describe("resolveLegacyEntityHostRedirect", () => {
-  it("redirects legacy NCC subdomain to canonical domain", () => {
+  it("returns null for legacy entity host redirects", () => {
     assert.equal(
-      resolveLegacyEntityHostRedirect("/company/ncc", { host: "ncc.altagroup.dev" }),
-      "http://newportclearingcorporation.com/company/ncc",
-    );
-  });
-
-  it("does not redirect the canonical NCC domain", () => {
-    assert.equal(
-      resolveLegacyEntityHostRedirect("/company/ncc", {
-        host: "newportclearingcorporation.com",
-      }),
+      resolveLegacyEntityHostRedirect("/company", { host: "bank.altagroup.dev" }),
       null,
     );
   });

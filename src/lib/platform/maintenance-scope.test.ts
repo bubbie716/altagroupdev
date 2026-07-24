@@ -15,20 +15,12 @@ const flags = {
 };
 
 describe("maintenance scope routing", () => {
-  it("applies sitewide maintenance to every Alta site except NCC", () => {
+  it("applies sitewide maintenance to every Alta site", () => {
     const active = { ...flags, sitewide: true };
     assert.equal(isMaintenanceActiveForSite("corporate", active), true);
     assert.equal(isMaintenanceActiveForSite("bank", active), true);
     assert.equal(isMaintenanceActiveForSite("exchange", active), true);
     assert.equal(isMaintenanceActiveForSite("terminal", active), true);
-    assert.equal(isMaintenanceActiveForSite("ncc", active), false);
-  });
-
-  it("does not apply Alta scoped maintenance to NCC", () => {
-    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, corporate: true }), false);
-    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, bank: true }), false);
-    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, exchange: true }), false);
-    assert.equal(isMaintenanceActiveForSite("ncc", { ...flags, terminal: true }), false);
   });
 
   it("applies scoped maintenance only to matching sites", () => {
@@ -59,6 +51,5 @@ describe("maintenance scope routing", () => {
     assert.deepEqual(maintenanceScopesForInternalSettings("bank"), ["bank"]);
     assert.deepEqual(maintenanceScopesForInternalSettings("exchange"), ["exchange"]);
     assert.deepEqual(maintenanceScopesForInternalSettings("terminal"), ["terminal"]);
-    assert.deepEqual(maintenanceScopesForInternalSettings("ncc"), []);
   });
 });

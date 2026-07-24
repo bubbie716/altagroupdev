@@ -41,14 +41,14 @@ function BankTransfersHub() {
           accountId={accountId}
           icon={Landmark}
           title="Interbank"
-          description="Transfer instantly to your Alta Terminal account through NCC. External institution wires are coming soon."
-          detail="Instant NCC · Terminal available now"
+          description="Transfer instantly between your Alta Bank accounts. External institution wires are coming soon."
+          detail="Intrabank available now"
         />
         <TransferTypeCard
           to="/bank/transfers/contacts"
           icon={Users}
           title="Contacts"
-          description="Saved Alta Pay recipients now. External wire beneficiaries for when NCC wires launch."
+          description="Saved Alta Pay recipients now. External wire beneficiaries will be available when interbank wires launch."
           detail="Use in transfers"
         />
       </div>

@@ -289,8 +289,7 @@ function AddInterbankContactForm({
   return (
     <Card className="!p-5">
       <p className="mb-4 text-[12px] text-muted-foreground">
-        Wire recipients can be saved now and used when external NCC wires launch. Instant transfers to
-        your Alta Terminal account are already available under Transfers → Interbank.
+        Wire recipients can be saved now and used when external interbank wires launch.
       </p>
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
@@ -333,7 +332,7 @@ function AddInterbankContactForm({
         </div>
         <label className="block">
           <span className={fieldLabel}>Settlement network</span>
-          <input readOnly value="NCC-Net" className={`${inputClass} bg-surface-2/50 text-muted-foreground`} />
+          <input readOnly value="External wire" className={`${inputClass} bg-surface-2/50 text-muted-foreground`} />
         </label>
         <p className="font-mono text-[10px] text-muted-foreground">
           Alta routing for reference: {getRoutingNumber()}

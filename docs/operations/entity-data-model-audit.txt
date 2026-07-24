@@ -7,7 +7,6 @@ Perspective: Chief Systems Architect — final architecture review before
 long-term development.
 
 Method: Full schema review (58 models, ~90 enums), cross-referenced with
-service-layer usage and planned products (Exchange, Terminal, NCC,
 Commercial).
 
 Date: July 3, 2026
@@ -31,10 +30,8 @@ Deal rooms & secure threads         58      Dual architectures; triplicated thre
 Ops & audit (AuditLog, notes)       70      Good intent; weak polymorphic FK integrity
 Relationship intelligence           55      Over-designed CRM mirror; premature denorm
 Alta Private / Commercial           50      Tag + invitation only; no relationship entity
-Exchange / Terminal / NCC           0       No database models exist
 
 Verdict: Alta's banking schema can support current products without redesign.
-Exchange, Terminal, NCC, crypto, bonds, ETFs, custody, and settlement require
 major new schema layers. Building those products on today's model without first
 introducing shared abstractions will produce fragmentation and painful
 migrations.
@@ -117,7 +114,7 @@ migrations.
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Security / Listing / IPO / Order / Trade / Portfolio / Holding              │
 │  Watchlist / MarketData / CorporateAction / Dividend                         │
-│  Institution / RoutingNumber / Settlement / NCCClearing                      │
+│  Institution / RoutingNumber / Settlement                                    │
 │  Invoice / PaymentRequest / Merchant / CustodyAccount                        │
 │  ApiKey / ApiApplication / PrivateBankingRelationship                        │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -196,7 +193,6 @@ Rank  Entity / Concept                    Why it's weak
 17    BankAccount.userId required         Business accounts always tied to creating user,
                                           not company-primary
 18    DealRoomParticipant                 Orphan risk on officer reassignment (no cleanup)
-19    Exchange / Terminal / NCC           Zero schema — entire product lines have no
                                           foundation
 20    Document storage                    Split across transaction proof fields,
                                           DealRoomDocument, JSON attachments — no unified
@@ -219,8 +215,6 @@ Portfolio / Holding / Position      Terminal portfolio, corporate treasury inves
 Order / Trade / Execution           Terminal trading
 Watchlist / WatchlistItem           Terminal
 CorporateAction / DividendRecord    Exchange, portfolio performance
-Settlement / ClearingRecord         NCC, interbank, securities
-FinancialInstitution / RoutingNumber NCC, wires, interbank
 WireTransfer (or PaymentInstruction) Interbank fulfillment beyond ScheduledPayment fields
 Invoice / PaymentRequest /          Merchant payments, Alta Pay evolution
 MerchantAccount
@@ -348,7 +342,7 @@ Add junction tables
 
 Add lookup tables
 -----------------
-- FinancialInstitution (name, routingPrefix, nccMemberId, status)
+- FinancialInstitution (name, routingPrefix, status)
 - InstrumentType (EQUITY, BOND, ETF, CRYPTO, INDEX)
 - CorporateActionType lookup
 
@@ -445,7 +439,6 @@ Exchange listings       No                    Need Instrument, Listing, ListingA
 IPO workflow            No                    Need IPOApplication, offering terms, allocation
 Terminal                No                    Need BrokerageAccount, Portfolio, Holding,
                                               Order, Trade, Watchlist
-NCC                     No                    Need Institution, Settlement, ClearingRecord,
                                               routing registry
 Crypto / Bonds / ETFs   No                    Need Instrument with type hierarchy; same core
                                               as Exchange
@@ -514,7 +507,6 @@ P0 — Before building Exchange or Terminal
    status
 3. Introduce TransferGroup / Payment — first-class link for transaction pairs,
    Alta Pay, reversals
-4. Add FinancialInstitution + RoutingNumber — required before NCC or live
    interbank
 5. Unify secure messaging — one thread + message model replacing 3 duplicates
 
@@ -536,7 +528,6 @@ P2 — Before Exchange IPO / Terminal trading
 15. MarketDataSnapshot (instrumentId, price, asOf)
 16. Watchlist + WatchlistItem
 17. ListingApplication / IPOApplication
-18. Settlement + ClearingRecord (NCC foundation)
 
 P3 — Consolidation & cleanup
 
@@ -554,7 +545,6 @@ P3 — Consolidation & cleanup
 ================================================================================
 
 If Alta continues building on this data model, will it still be solid after
-adding Exchange, Terminal, Commercial Banking, NCC, Crypto, Bonds, ETFs, and
 future financial products?
 
 No — not without deliberate foundational work first.
@@ -575,10 +565,8 @@ What will break or require painful migration:
 - Alta Pay and transfers as implicit transaction pairs will become unmaintainable
   at millions of transactions
 - Three duplicate secure thread models will multiply with every new product
-  (Commercial onboarding, Exchange listing review, NCC membership)
 - Denormalized balances across bank, card, and loan without unified
   reconciliation will corrupt at concurrency scale
-- Zero NCC/settlement/institution models mean interbank ScheduledPayments have
   no fulfillment path
 - Relationship CRM duplication (user + company × 4 tables each) will not scale
   to 50k subjects
@@ -589,7 +577,6 @@ Recommended path:
    shared abstractions — even before Exchange UI goes live.
 2. Before Exchange: Add Listing, BrokerageAccount, Holding — anchor to existing
    Company.ticker.
-3. Before NCC: Add Settlement and routing registry — extend ScheduledPayment
    interbank to reference Institution FK.
 4. Consolidate: Merge secure threads and relationship CRM before adding
    Commercial/Private RM workflows.
@@ -616,7 +603,6 @@ Need redesign                       Secure thread triplication, Relationship CRM
 Too tightly coupled                 BankAccount.userId required for business accounts;
                                     LoanApplication↔DealRoom↔Loan atomic chain;
                                     AltaCard↔BankAccount autopay
-Under-designed                      Exchange/Terminal/NCC (missing entirely), Alta Pay,
                                     interbank, Private Banking relationship, merchant
                                     payments, documents
 Over-designed                       RelationshipProfile aggregates, legacy DealRoom (14
@@ -624,12 +610,10 @@ Over-designed                       RelationshipProfile aggregates, legacy DealR
                                     stack overlapping V1 threads)
 Fit naturally                       Payroll, scheduled transfers (intrabank), company
                                     verification, card lifecycle, loan servicing, audit/ops
-Require schema changes              Exchange, Terminal, NCC, crypto, bonds, ETFs, indices,
                                     IPO, corporate actions, custody, settlement, invoices,
                                     developer API
 Should become generic first         Instrument (all securities), Payment/TransferGroup (all
                                     money movement), SecureThread (all deal rooms),
-                                    FinancialInstitution (NCC/interbank), Document (all
                                     file storage), StaffAssignment (all RM/officer routing)
 
 

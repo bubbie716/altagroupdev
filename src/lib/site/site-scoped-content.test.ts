@@ -12,7 +12,6 @@ describe("site-scoped-content", () => {
     assert.ok(docs.some((doc) => doc.id.startsWith("AG-")));
     assert.ok(docs.some((doc) => doc.id.startsWith("AB-")));
     assert.ok(docs.some((doc) => doc.id.startsWith("AT-")));
-    assert.ok(docs.some((doc) => doc.id.startsWith("NCC-")));
     assert.equal(docs.some((doc) => doc.id.startsWith("AE-")), false);
   });
 
@@ -43,21 +42,11 @@ describe("site-scoped-content", () => {
     assert.equal(terminalDocs.some((doc) => doc.id.startsWith("AB-")), false);
   });
 
-  it("shows Alta Group and NCC docs on ncc site", () => {
-    const categories = getLegalDocCategoriesForSite("ncc");
-    assert.ok(categories.some((category) => category.startsWith("Alta Group")));
-    assert.ok(categories.some((category) => category.startsWith("NCC")));
-    assert.equal(
-      categories.some((category) => category.startsWith("Alta Bank")),
-      false,
-    );
-  });
-
   it("shows all discord communities on corporate support", () => {
     const communities = getDiscordCommunitiesForSite("corporate");
     assert.deepEqual(
       communities.map((c) => c.entity),
-      ["group", "bank", "markets", "ncc"],
+      ["group", "bank", "markets"],
     );
   });
 
@@ -73,10 +62,6 @@ describe("site-scoped-content", () => {
     assert.deepEqual(
       getDiscordCommunitiesForSite("terminal").map((c) => c.entity),
       ["group", "markets"],
-    );
-    assert.deepEqual(
-      getDiscordCommunitiesForSite("ncc").map((c) => c.entity),
-      ["group", "ncc"],
     );
   });
 });

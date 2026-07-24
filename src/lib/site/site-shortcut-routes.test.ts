@@ -9,7 +9,7 @@ import {
 describe("site-shortcut-routes", () => {
   it("recognizes shortcut paths", () => {
     assert.equal(isSiteShortcutPath("/dashboard"), true);
-    assert.equal(isSiteShortcutPath("/login"), true);
+    assert.equal(isSiteShortcutPath("/markets"), true);
     assert.equal(isSiteShortcutPath("/bank"), false);
   });
 
@@ -18,7 +18,6 @@ describe("site-shortcut-routes", () => {
     assert.equal(resolveLegacyDashboardPath("bank"), "/bank");
     assert.equal(resolveLegacyDashboardPath("exchange"), "/terminal");
     assert.equal(resolveLegacyDashboardPath("terminal"), "/terminal");
-    assert.equal(resolveLegacyDashboardPath("ncc"), "/portal");
   });
 
   it("maps markets shortcuts to Terminal", () => {

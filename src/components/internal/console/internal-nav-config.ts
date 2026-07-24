@@ -132,7 +132,6 @@ export function getInternalNavGroupsForSite(siteKey: SiteKey): InternalNavGroup[
       return BANK_INTERNAL_NAV_GROUPS;
     case "exchange":
     case "terminal":
-    case "ncc":
       return null;
   }
 }

@@ -81,7 +81,7 @@ export function randomToken(bytes = 32): string {
   return toBase64Url(arr);
 }
 
-/** Hex-only token — never contains `_`, safe as NCC credential keyPrefix delimiters. */
+/** Hex-only token — never contains `_`, safe as credential keyPrefix delimiters. */
 export function randomHexToken(bytes = 6): string {
   const arr = new Uint8Array(bytes);
   crypto.getRandomValues(arr);
@@ -93,24 +93,22 @@ function isProductionRuntime(): boolean {
 }
 
 /**
- * Master key for NCC secret encryption and API credential hashing.
- * Production requires NCC_SECRETS_KEY (min 32). SESSION_SECRET / dev pepper are non-prod only.
+ * Master key for secret encryption and API credential hashing.
+ * Production requires SESSION_SECRET (min 32). Dev pepper is non-prod only.
  */
-export function requireNccSecretsKey(): string {
-  const dedicated = process.env.NCC_SECRETS_KEY?.trim();
-  if (dedicated && dedicated.length >= 32) return dedicated;
-  if (isProductionRuntime()) {
-    throw new Error(
-      "NCC_SECRETS_KEY is required in production (min 32 characters). SESSION_SECRET fallback and the development pepper are not permitted.",
-    );
-  }
+export function requireSecretsKey(): string {
   const session = getSessionSecret();
   if (session) return session;
-  return "ncc-dev-pepper-not-for-production-use!!!!";
+  if (isProductionRuntime()) {
+    throw new Error(
+      "SESSION_SECRET is required in production (min 32 characters). The development pepper is not permitted.",
+    );
+  }
+  return "alta-dev-pepper-not-for-production-use!!!!";
 }
 
 function getSecretsMasterKey(): string {
-  return requireNccSecretsKey();
+  return requireSecretsKey();
 }
 
 async function importAesKey(secret: string): Promise<CryptoKey> {
@@ -129,7 +127,7 @@ export async function encryptSecret(plaintext: string): Promise<string> {
     new TextEncoder().encode(plaintext),
   );
   const bytes = new Uint8Array(ciphertext);
-  // v1 = key-version metadata for future NCC_SECRETS_KEY rotation migrations.
+  // v1 = key-version metadata for future SESSION_SECRET rotation migrations.
   return `v1.${toBase64Url(iv)}.${toBase64Url(bytes)}`;
 }
 
@@ -154,10 +152,10 @@ export async function decryptSecret(payload: string): Promise<string | null> {
 
 /** One-way hash for API authentication secrets (high-entropy machine secrets). */
 export async function hashApiSecret(secret: string): Promise<string> {
-  const pepper = requireNccSecretsKey();
+  const pepper = requireSecretsKey();
   const digest = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(`${pepper}:ncc-api:${secret}`),
+    new TextEncoder().encode(`${pepper}:api-secret:${secret}`),
   );
   return toBase64Url(new Uint8Array(digest));
 }

@@ -47,18 +47,6 @@
       "has": [{ "type": "host", "value": "exchange.altagroup.dev" }],
       "destination": "https://terminal.altagroup.dev/terminal",
       "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "ncc.altagroup.dev" }],
-      "destination": "https://newportclearingcorporation.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.newportclearingcorporation.com" }],
-      "destination": "https://newportclearingcorporation.com/:path*",
-      "permanent": true
     }
   ]
 }

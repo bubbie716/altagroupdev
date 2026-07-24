@@ -20,7 +20,7 @@ const sessionUserCache = new Map<string, { user: AltaUser; expiresAt: number }>(
 /** Test-only auth override — never honored in production builds. */
 let testAuthUser: AltaUser | null = null;
 
-/** Test helper — injects the current user for NCC settlement suites. */
+/** Test helper — injects the current user for integration test suites. */
 export function setTestAuthUserForTests(user: AltaUser | null): void {
   if (process.env.NODE_ENV === "production") {
     throw new Error("setTestAuthUserForTests is unavailable in production");

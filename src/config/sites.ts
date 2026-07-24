@@ -1,6 +1,6 @@
 import { TERMINAL_PRIMARY_NAV_LINKS } from "@/lib/terminal/terminal-primary-nav";
 
-export type SiteKey = "corporate" | "bank" | "exchange" | "terminal" | "ncc";
+export type SiteKey = "corporate" | "bank" | "exchange" | "terminal";
 
 export type SiteNavLink = {
   label: string;
@@ -12,7 +12,7 @@ export type SiteNavLink = {
   activePaths?: string[];
 };
 
-export type SiteCategory = "corporate" | "banking" | "markets" | "terminal" | "infrastructure";
+export type SiteCategory = "corporate" | "banking" | "markets" | "terminal";
 
 export type SiteSeo = {
   title: string;
@@ -85,15 +85,6 @@ const BANK_NAV: SiteNavLink[] = [
 
 const TERMINAL_NAV: SiteNavLink[] = TERMINAL_PRIMARY_NAV_LINKS;
 
-const NCC_NAV: SiteNavLink[] = [
-  { label: "Home", to: "/", exact: true },
-  { label: "Institutions", to: "/institutions", match: "/institutions" },
-  { label: "Participation", to: "/participation", match: "/participation" },
-  { label: "Network", to: "/network", match: "/network" },
-  { label: "Legal", to: "/legal", match: "/legal" },
-  { label: "Support", to: "/support", match: "/support" },
-];
-
 export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
   corporate: {
     key: "corporate",
@@ -111,7 +102,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     loginHome: {
       panelTitle: "The financial infrastructure of Newport.",
       panelDescription:
-        "Alta Bank, Alta Terminal, and Newport Clearing Corporation — banking, brokerage, and instant cash settlement for individuals, businesses, and institutions.",
+        "Alta Bank and Alta Terminal — banking and brokerage for individuals, businesses, and institutions across Newport.",
       panelTags: ["Banking", "Brokerage", "Financial Infrastructure"],
       signInEyebrow: "Member sign-in",
       signInTitle: "Sign in to Alta Group",
@@ -127,7 +118,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
       title: "Alta Group",
       description: "Financial infrastructure for Newport.",
       ogTitle: "Alta Group",
-      ogDescription: "The holding company behind Alta Bank, Alta Terminal, and NCC.",
+      ogDescription: "The holding company behind Alta Bank and Alta Terminal.",
     },
     productionHosts: ["altagroup.dev", "www.altagroup.dev"],
   },
@@ -186,14 +177,14 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     loginHome: {
       panelTitle: "Brokerage and portfolio tools for Newport investors.",
       panelDescription:
-        "Alta Terminal is Alta’s brokerage and trading platform. Manage portfolios and watchlists here. Instant cash transfers with Alta Bank settle through NCC.",
+        "Alta Terminal is Alta’s brokerage and trading platform. Manage portfolios and watchlists here.",
       panelTags: ["Brokerage", "Portfolio", "Trading"],
       signInEyebrow: "Member sign-in",
       signInTitle: "Sign in to Alta Terminal",
       signInDescription: "Access your Terminal workspace with your Discord account.",
       accessTitle: "Alta Terminal Access",
       accessSubtitle: "Single sign-on · Discord OAuth",
-      accessFooter: "Brokerage · Portfolio · Cash via NCC",
+      accessFooter: "Brokerage · Portfolio · Trading",
     },
     wordmarkSuffix: "TERMINAL",
     navLinks: [],
@@ -222,7 +213,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     loginHome: {
       panelTitle: "Brokerage and portfolio tools for Newport investors.",
       panelDescription:
-        "Alta Terminal is Alta’s brokerage and trading platform. Manage portfolios and watchlists here. Instant cash transfers with Alta Bank settle through NCC — cash settlement is separate from securities trading.",
+        "Alta Terminal is Alta’s brokerage and trading platform. Manage portfolios and watchlists here.",
       panelTags: ["Brokerage", "Portfolio", "Trading"],
       signInEyebrow: "Member sign-in",
       signInTitle: "Sign in to Alta Terminal",
@@ -230,7 +221,7 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
         "Access your Terminal workspace with your Discord account.",
       accessTitle: "Alta Terminal Access",
       accessSubtitle: "Single sign-on · Discord OAuth",
-      accessFooter: "Brokerage · Portfolio · Cash via NCC",
+      accessFooter: "Brokerage · Portfolio · Trading",
     },
     wordmarkSuffix: "TERMINAL",
     navLinks: TERMINAL_NAV,
@@ -242,49 +233,6 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     },
     productionHosts: ["terminal.altagroup.dev"],
     localSubdomain: "terminal",
-  },
-  ncc: {
-    key: "ncc",
-    category: "infrastructure",
-    entityName: "Newport Clearing Corporation",
-    displayName: "NCC",
-    shortName: "NCC",
-    description: "Clearing, settlement, and routing infrastructure for approved institutions.",
-    tagline: "Clearing infrastructure for Newport",
-    primaryRoute: "/",
-    homeRoute: "/",
-    dashboardRoute: "/portal",
-    defaultAuthenticatedRoute: "/portal",
-    loginEyebrow: "NCC · Log-in",
-    loginHome: {
-      panelTitle: "Clearing, settlement, and routing for approved institutions.",
-      panelDescription:
-        "NCC provides institution connectivity, participation standards, and operating rules for clearing and settlement across the Alta ecosystem.",
-      panelTags: ["Clearing", "Settlement", "Institutions"],
-      signInEyebrow: "Institution sign-in",
-      signInTitle: "Sign in to NCC",
-      signInDescription:
-        "Approved institution representatives can access clearing, settlement, and network tools with your Discord account.",
-      accessTitle: "Institution Access",
-      accessSubtitle: "Single sign-on · Discord OAuth",
-      accessFooter: "Approved institutions · Authorized representatives",
-    },
-    wordmarkSuffix: "NCC",
-    navLinks: NCC_NAV,
-    ctaLabel: "Apply for Participation",
-    ctaRoute: "/participation",
-    seo: {
-      title: "Newport Clearing Corporation",
-      description: "Clearing, settlement, and routing infrastructure for approved institutions.",
-      ogTitle: "Newport Clearing Corporation",
-      ogDescription: "Institution clearing, settlement, and participation infrastructure.",
-    },
-    productionHosts: [
-      "newportclearingcorporation.com",
-      "www.newportclearingcorporation.com",
-      "ncc.altagroup.dev",
-    ],
-    localSubdomain: "ncc",
   },
 };
 
