@@ -33,17 +33,33 @@ function SupportCenterPage() {
         <ul className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
           {communities.map((community) => {
             const inviteUrl = ALTA_DISCORD_URLS[community.entity];
+            const isFeatured = community.entity === "group" && communities.length === 3;
 
             return (
-              <li key={community.entity} className="flex flex-col bg-surface-1 p-6 sm:p-7">
-                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                  Discord
+              <li
+                key={community.entity}
+                className={
+                  isFeatured
+                    ? "flex flex-col bg-surface-1 p-6 sm:col-span-2 sm:flex-row sm:items-end sm:justify-between sm:gap-10 sm:p-8"
+                    : "flex flex-col bg-surface-1 p-6 sm:p-7"
+                }
+              >
+                <div className={isFeatured ? "min-w-0 flex-1" : undefined}>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Discord
+                  </div>
+                  <h2 className="mt-3 text-xl font-semibold tracking-tight">{community.label}</h2>
+                  <p
+                    className={
+                      isFeatured
+                        ? "mt-3 max-w-2xl text-[13.5px] leading-relaxed text-muted-foreground"
+                        : "mt-3 flex-1 text-[13.5px] leading-relaxed text-muted-foreground"
+                    }
+                  >
+                    {community.description}
+                  </p>
                 </div>
-                <h2 className="mt-3 text-xl font-semibold tracking-tight">{community.label}</h2>
-                <p className="mt-3 flex-1 text-[13.5px] leading-relaxed text-muted-foreground">
-                  {community.description}
-                </p>
-                <div className="mt-6">
+                <div className={isFeatured ? "mt-6 shrink-0 sm:mt-0" : "mt-6"}>
                   {inviteUrl ? (
                     <a
                       href={inviteUrl}

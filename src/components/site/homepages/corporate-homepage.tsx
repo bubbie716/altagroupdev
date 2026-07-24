@@ -143,10 +143,10 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
             <Link
-              to="/leadership"
+              to="/support"
               className="inline-flex items-center gap-2 rounded-md border border-border-strong bg-surface-1/60 px-5 py-3 text-[13px] font-medium tracking-wide text-foreground transition-colors hover:bg-surface-2"
             >
-              Leadership
+              Support
             </Link>
           </div>
         </motion.div>
