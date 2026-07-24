@@ -1,6 +1,31 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { OrderPreviewInput } from "@/lib/terminal/types";
+import type {
+  OrderPreviewInput,
+  TerminalPortfolioSummary,
+  TseClient,
+} from "@/lib/terminal/types";
 import type { CreateTerminalPortfolioInput } from "@/lib/terminal/terminal-portfolio.service";
+
+async function enrichPortfolioSummaries(
+  client: TseClient,
+  portfolios: TerminalPortfolioSummary[],
+): Promise<TerminalPortfolioSummary[]> {
+  return Promise.all(
+    portfolios.map(async (portfolio) => {
+      try {
+        const snapshot = await client.getPortfolio(portfolio.id);
+        return {
+          ...portfolio,
+          totalValue: snapshot.totalValue,
+          dayChange: snapshot.dayChange,
+          dayChangePercent: snapshot.dayChangePercent,
+        };
+      } catch {
+        return portfolio;
+      }
+    }),
+  );
+}
 
 async function requireTerminalUser() {
   const { isUiLabMode, getUiLabUserIfEnabled } = await import("@/lib/auth/ui-lab");
@@ -53,7 +78,10 @@ export const fetchTerminalSecurity = createServerFn({ method: "GET" })
     } = await import("@/lib/terminal/terminal-portfolio.service");
     const { getTseClient } = await import("@/lib/terminal/tse-client");
     const client = getTseClient({ userId: user.id });
-    const portfolios = await listAccessibleTerminalPortfolios(user);
+    const portfolios = await enrichPortfolioSummaries(
+      client,
+      await listAccessibleTerminalPortfolios(user),
+    );
     const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
     const ranges = ["1D", "1W", "1M", "3M", "1Y", "ALL"] as const;
 
@@ -117,9 +145,25 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
     } = await import("@/lib/terminal/terminal-portfolio.service");
     const { getTseClient } = await import("@/lib/terminal/tse-client");
     const client = getTseClient({ userId: user.id });
-    const portfolios = await listAccessibleTerminalPortfolios(user);
-    const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
+    const portfolios = await enrichPortfolioSummaries(
+      client,
+      await listAccessibleTerminalPortfolios(user),
+    );
     const eligibleCompanies = eligibleCompaniesForPortfolioCreate(user);
+
+    if (data.portfolioId && !portfolios.some((portfolio) => portfolio.id === data.portfolioId)) {
+      return {
+        mode: client.mode,
+        portfolios,
+        selectedPortfolio: null,
+        portfolio: null,
+        orders: [],
+        eligibleCompanies,
+        portfolioUnavailable: true as const,
+      };
+    }
+
+    const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
 
     if (!portfolioId) {
       return {
@@ -129,6 +173,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         portfolio: null,
         orders: [],
         eligibleCompanies,
+        portfolioUnavailable: false as const,
       };
     }
 
@@ -145,6 +190,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
       portfolio,
       orders,
       eligibleCompanies,
+      portfolioUnavailable: false as const,
     };
   });
 
@@ -187,7 +233,10 @@ export const fetchTerminalOrders = createServerFn({ method: "GET" })
     } = await import("@/lib/terminal/terminal-portfolio.service");
     const { getTseClient } = await import("@/lib/terminal/tse-client");
     const client = getTseClient({ userId: user.id });
-    const portfolios = await listAccessibleTerminalPortfolios(user);
+    const portfolios = await enrichPortfolioSummaries(
+      client,
+      await listAccessibleTerminalPortfolios(user),
+    );
     const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
     if (!portfolioId) {
       return { mode: client.mode, orders: [], portfolios, selectedPortfolio: null };

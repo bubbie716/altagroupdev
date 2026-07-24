@@ -830,7 +830,7 @@
 }
 
 /* Alta Terminal — Robinhood-inspired brokerage shell */
-.terminal-shell {
+:where(.terminal-shell, body:has(.terminal-shell)) {
   --terminal-bg: #ffffff;
   --terminal-surface: #f7f8f5;
   --terminal-surface-2: #eef0eb;
@@ -859,6 +859,9 @@
   --chart-4: var(--terminal-red);
   --ring: var(--terminal-green);
   --gold: var(--terminal-green);
+}
+
+.terminal-shell {
   color: var(--terminal-text);
   background: var(--terminal-bg);
   min-height: 100dvh;
@@ -869,7 +872,7 @@
     color 180ms ease;
 }
 
-.dark .terminal-shell {
+.dark :where(.terminal-shell, body:has(.terminal-shell)) {
   --terminal-bg: #0a0b0d;
   --terminal-surface: #111318;
   --terminal-surface-2: #171a1f;
@@ -877,6 +880,9 @@
   --terminal-border-strong: rgba(255, 255, 255, 0.16);
   --terminal-text: #f4f1ea;
   --terminal-muted: #8b9099;
+}
+
+.dark .terminal-shell {
   color-scheme: dark;
 }
 

@@ -149,7 +149,7 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
                   <Link
                     to="/terminal/security/$symbol"
                     params={{ symbol: row.symbol }}
-                    search={{ range: "1D" }}
+                    search={{ range: "1D", portfolioId: undefined }}
                     className="flex items-center justify-between px-3 py-2.5 text-[13px] hover:bg-[var(--terminal-surface-2)]"
                     onClick={() => {
                       setOpen(false);

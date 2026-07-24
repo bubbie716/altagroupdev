@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 
 export function HoldingsTable({
   holdings,
+  portfolioId,
   className,
 }: {
   holdings: Holding[];
+  portfolioId?: string | null;
   className?: string;
 }) {
   if (!holdings.length) {
@@ -55,7 +57,7 @@ export function HoldingsTable({
                   <Link
                     to="/terminal/security/$symbol"
                     params={{ symbol: h.symbol }}
-                    search={{ range: "1D" }}
+                    search={{ range: "1D", portfolioId: portfolioId ?? undefined }}
                     className="font-medium hover:text-[var(--terminal-green)]"
                   >
                     {h.symbol}
@@ -98,7 +100,7 @@ export function HoldingsTable({
             <Link
               to="/terminal/security/$symbol"
               params={{ symbol: h.symbol }}
-              search={{ range: "1D" }}
+              search={{ range: "1D", portfolioId: portfolioId ?? undefined }}
               className="block"
             >
               <div className="flex items-start justify-between gap-3">

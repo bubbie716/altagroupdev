@@ -1,7 +1,7 @@
 "use client";
 
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import {
@@ -206,6 +206,8 @@ export function CreatePortfolioDialog({
   const [companyId, setCompanyId] = useState(eligibleCompanies[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const portfolioNameId = useId();
+  const companySelectId = useId();
 
   async function handleCreate() {
     setBusy(true);
@@ -240,11 +242,12 @@ export function CreatePortfolioDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <label className="block space-y-1.5">
+          <label htmlFor={portfolioNameId} className="block space-y-1.5">
             <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
               Name
             </span>
             <input
+              id={portfolioNameId}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px] outline-none focus:border-[var(--terminal-green)]"
@@ -280,18 +283,27 @@ export function CreatePortfolioDialog({
               Company
             </label>
             {ownerType === "company" && eligibleCompanies.length > 0 ? (
-              <select
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                className="mt-1 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px]"
-              >
-                {eligibleCompanies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                    {c.ticker ? ` (${c.ticker})` : ""}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label
+                  htmlFor={companySelectId}
+                  className="mb-1.5 block text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]"
+                >
+                  Company account
+                </label>
+                <select
+                  id={companySelectId}
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
+                  className="w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px]"
+                >
+                  {eligibleCompanies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.ticker ? ` (${c.ticker})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             ) : null}
             {eligibleCompanies.length === 0 ? (
               <p className="text-[12px] text-[var(--terminal-muted)]">
@@ -327,11 +339,14 @@ export function CreatePortfolioDialog({
 
 export function PortfolioOwnerBadge({
   portfolio,
+  decorative = false,
 }: {
   portfolio: Pick<TerminalPortfolioSummary, "ownerType" | "ownerLabel">;
+  decorative?: boolean;
 }) {
   return (
     <span
+      aria-hidden={decorative || undefined}
       className={cn(
         "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px]",
         portfolio.ownerType === "company"
@@ -356,7 +371,7 @@ export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioS
           <p className="truncate text-[14px] font-medium">{portfolio.name}</p>
           <p className="mt-0.5 text-[11px] text-[var(--terminal-muted)]">{portfolio.ownerLabel}</p>
         </div>
-        <PortfolioOwnerBadge portfolio={portfolio} />
+        <PortfolioOwnerBadge portfolio={portfolio} decorative />
       </div>
       <div className="mt-3 flex items-end justify-between gap-2">
         <MoneyValue value={portfolio.totalValue} size="md" />

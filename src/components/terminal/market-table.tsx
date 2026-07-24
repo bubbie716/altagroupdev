@@ -71,7 +71,7 @@ export function MarketTable({
                   <Link
                     to="/terminal/security/$symbol"
                     params={{ symbol: row.symbol }}
-                    search={{ range: "1D" }}
+                    search={{ range: "1D", portfolioId: undefined }}
                     className="font-medium text-[var(--terminal-text)] hover:text-[var(--terminal-green)]"
                   >
                     {row.symbol}
@@ -109,7 +109,7 @@ export function MarketTable({
             <Link
               to="/terminal/security/$symbol"
               params={{ symbol: row.symbol }}
-              search={{ range: "1D" }}
+              search={{ range: "1D", portfolioId: undefined }}
               className="flex items-center gap-3 py-3.5"
             >
               <div className="min-w-0 flex-1">

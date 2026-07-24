@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
@@ -52,6 +52,28 @@ function TerminalPortfolioDetailPage() {
   const [renameValue, setRenameValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (data.portfolioUnavailable) {
+    return (
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--terminal-muted)]">
+          Portfolio unavailable
+        </p>
+        <h1 className="mt-2 text-[26px] font-medium tracking-tight">
+          We couldn&apos;t open that portfolio
+        </h1>
+        <p className="mt-3 text-[14px] text-[var(--terminal-muted)]">
+          It may have been archived, deleted, or belong to an account you cannot access.
+        </p>
+        <Link
+          to="/terminal/portfolio"
+          className="mt-6 inline-flex rounded-md bg-[var(--terminal-green)] px-4 py-2.5 text-[13px] font-medium text-black"
+        >
+          Return to portfolios
+        </Link>
+      </div>
+    );
+  }
 
   if (data.mode === "unavailable") {
     return <TerminalUnavailableState />;
@@ -168,7 +190,7 @@ function TerminalPortfolioDetailPage() {
             </p>
           </div>
         ) : (
-          <HoldingsTable holdings={portfolio.holdings} />
+          <HoldingsTable holdings={portfolio.holdings} portfolioId={selectedPortfolio.id} />
         )}
       </section>
 
@@ -196,11 +218,12 @@ function TerminalPortfolioDetailPage() {
               Portfolio settings
             </h2>
             {selectedPortfolio.capabilities.canRename ? (
-              <label className="mt-4 block space-y-1.5">
+              <label htmlFor="terminal-portfolio-name" className="mt-4 block space-y-1.5">
                 <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
                   Name
                 </span>
                 <input
+                  id="terminal-portfolio-name"
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   className="w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px] outline-none focus:border-[var(--terminal-green)]"

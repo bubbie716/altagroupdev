@@ -269,11 +269,13 @@ export function OrderTicket({
           <DialogHeader>
             <DialogTitle>Confirm order</DialogTitle>
             <DialogDescription className="text-[var(--terminal-muted)]">
-              Review this {side} order for {security.symbol} before submitting.
+              Review this {side} order for {security.symbol}
+              {portfolioLabel ? ` from ${portfolioLabel}` : ""} before submitting.
             </DialogDescription>
           </DialogHeader>
           {preview ? (
             <div className="space-y-2 text-[13px]">
+              <Row label="Portfolio" value={portfolioLabel ?? "—"} />
               <Row label="Side" value={preview.side.toUpperCase()} />
               <Row label="Type" value={preview.type} />
               <Row label="Quantity" value={String(preview.quantity)} />

@@ -92,6 +92,7 @@ import { Route as BankTransfersRouteRouteImport } from './routes/bank/transfers/
 import { Route as BankPayRouteRouteImport } from './routes/bank/pay/route'
 import { Route as BankCommercialRouteRouteImport } from './routes/bank/commercial/route'
 import { Route as BankBusinessRouteRouteImport } from './routes/bank/business/route'
+import { Route as TerminalPortfolioIndexRouteImport } from './routes/terminal/portfolio/index'
 import { Route as InternalUsersIndexRouteImport } from './routes/internal/users/index'
 import { Route as InternalRelationshipsIndexRouteImport } from './routes/internal/relationships/index'
 import { Route as InternalLendingIndexRouteImport } from './routes/internal/lending/index'
@@ -693,6 +694,11 @@ const BankBusinessRouteRoute = BankBusinessRouteRouteImport.update({
   id: '/business',
   path: '/business',
   getParentRoute: () => BankRouteRoute,
+} as any)
+const TerminalPortfolioIndexRoute = TerminalPortfolioIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TerminalPortfolioRoute,
 } as any)
 const InternalUsersIndexRoute = InternalUsersIndexRouteImport.update({
   id: '/users/',
@@ -1925,6 +1931,7 @@ export interface FileRoutesByFullPath {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/terminal/portfolio/': typeof TerminalPortfolioIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
   '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
@@ -2081,7 +2088,6 @@ export interface FileRoutesByTo {
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
   '/terminal/orders': typeof TerminalOrdersRoute
-  '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
@@ -2174,6 +2180,7 @@ export interface FileRoutesByTo {
   '/internal/lending': typeof InternalLendingIndexRoute
   '/internal/relationships': typeof InternalRelationshipsIndexRoute
   '/internal/users': typeof InternalUsersIndexRoute
+  '/terminal/portfolio': typeof TerminalPortfolioIndexRoute
   '/api/alta-card-review-threads/$reviewId/attachments': typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   '/api/alta-card-threads/$applicationId/attachments': typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   '/api/auth/discord/callback': typeof ApiAuthDiscordCallbackRoute
@@ -2441,6 +2448,7 @@ export interface FileRoutesById {
   '/internal/lending/': typeof InternalLendingIndexRoute
   '/internal/relationships/': typeof InternalRelationshipsIndexRoute
   '/internal/users/': typeof InternalUsersIndexRoute
+  '/terminal/portfolio/': typeof TerminalPortfolioIndexRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialRouteRouteWithChildren
   '/bank/alta-card/applications/$applicationId': typeof BankAltaCardApplicationsApplicationIdRouteRouteWithChildren
   '/bank/alta-card/business/$companyId': typeof BankAltaCardBusinessCompanyIdRouteRouteWithChildren
@@ -2714,6 +2722,7 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/terminal/portfolio/'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
@@ -2870,7 +2879,6 @@ export interface FileRouteTypes {
     | '/terminal/markets'
     | '/terminal/news'
     | '/terminal/orders'
-    | '/terminal/portfolio'
     | '/terminal/research'
     | '/terminal/trade'
     | '/terminal/watchlist'
@@ -2963,6 +2971,7 @@ export interface FileRouteTypes {
     | '/internal/lending'
     | '/internal/relationships'
     | '/internal/users'
+    | '/terminal/portfolio'
     | '/api/alta-card-review-threads/$reviewId/attachments'
     | '/api/alta-card-threads/$applicationId/attachments'
     | '/api/auth/discord/callback'
@@ -3229,6 +3238,7 @@ export interface FileRouteTypes {
     | '/internal/lending/'
     | '/internal/relationships/'
     | '/internal/users/'
+    | '/terminal/portfolio/'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/applications/$applicationId'
     | '/bank/alta-card/business/$companyId'
@@ -3968,6 +3978,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/business'
       preLoaderRoute: typeof BankBusinessRouteRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/terminal/portfolio/': {
+      id: '/terminal/portfolio/'
+      path: '/'
+      fullPath: '/terminal/portfolio/'
+      preLoaderRoute: typeof TerminalPortfolioIndexRouteImport
+      parentRoute: typeof TerminalPortfolioRoute
     }
     '/internal/users/': {
       id: '/internal/users/'
@@ -6079,10 +6096,12 @@ const InternalRouteRouteWithChildren = InternalRouteRoute._addFileChildren(
 
 interface TerminalPortfolioRouteChildren {
   TerminalPortfolioPortfolioIdRoute: typeof TerminalPortfolioPortfolioIdRoute
+  TerminalPortfolioIndexRoute: typeof TerminalPortfolioIndexRoute
 }
 
 const TerminalPortfolioRouteChildren: TerminalPortfolioRouteChildren = {
   TerminalPortfolioPortfolioIdRoute: TerminalPortfolioPortfolioIdRoute,
+  TerminalPortfolioIndexRoute: TerminalPortfolioIndexRoute,
 }
 
 const TerminalPortfolioRouteWithChildren =

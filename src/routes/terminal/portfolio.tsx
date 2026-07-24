@@ -1,20 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { fetchTerminalPortfolio } from "@/lib/terminal/terminal.functions";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-/** Redirect `/terminal/portfolio` to the resolved default / recent portfolio. */
+/**
+ * Layout for /terminal/portfolio and /terminal/portfolio/$portfolioId.
+ * Redirect for the bare path lives in portfolio/index.tsx so child routes
+ * are not stuck in a parent redirect loop.
+ */
 export const Route = createFileRoute("/terminal/portfolio")({
-  loader: async () => {
-    const data = await fetchTerminalPortfolio({ data: {} });
-    if (data.selectedPortfolio?.id) {
-      throw redirect({
-        to: "/terminal/portfolio/$portfolioId",
-        params: { portfolioId: data.selectedPortfolio.id },
-      });
-    }
-    throw redirect({
-      to: "/terminal/portfolio/$portfolioId",
-      params: { portfolioId: "new" },
-    });
-  },
-  component: () => null,
+  component: () => <Outlet />,
 });
