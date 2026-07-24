@@ -1,6 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { TerminalRouteLayout } from "@/components/terminal/terminal-layout";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { authBeforeLoad } from "@/lib/auth/guards";
+import { TerminalAppShell } from "@/components/terminal/terminal-app-shell";
+import { fetchTerminalHome } from "@/lib/terminal/terminal.functions";
 
 export const Route = createFileRoute("/terminal")({
-  component: TerminalRouteLayout,
+  beforeLoad: authBeforeLoad,
+  staleTime: 30_000,
+  loader: async () => {
+    try {
+      const home = await fetchTerminalHome();
+      return {
+        mode: home.mode,
+        marketStatus: home.dashboard.marketStatus,
+      };
+    } catch {
+      return {
+        mode: "unavailable" as const,
+        marketStatus: null,
+      };
+    }
+  },
+  component: TerminalLayoutRoute,
 });
+
+function TerminalLayoutRoute() {
+  const { mode, marketStatus } = Route.useLoaderData();
+  return (
+    <TerminalAppShell mode={mode} marketStatus={marketStatus}>
+      <Outlet />
+    </TerminalAppShell>
+  );
+}

@@ -1,5 +1,5 @@
-/** Alta Terminal — brokerage product tagline (title) */
-export const ALTA_TERMINAL_TAGLINE = "Invest Like The 1%";
+/** Alta Terminal — brokerage product title (no marketing slogans in-app) */
+export const ALTA_TERMINAL_TAGLINE = "Alta Terminal";
 
 /** Alta Terminal — product positioning (not an exchange operator) */
 export const ALTA_TERMINAL_SUBTITLE = "Alta’s brokerage and trading platform";

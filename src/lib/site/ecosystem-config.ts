@@ -16,7 +16,7 @@ export const ECOSYSTEM_ENTRIES: EcosystemEntry[] = [
     key: "corporate",
     name: "Alta Group",
     shortName: "Alta Group",
-    description: "Parent company",
+    description: "Corporate info",
     homePath: "/home",
   },
   {

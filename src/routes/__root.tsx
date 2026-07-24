@@ -15,13 +15,23 @@ import { SITE_INIT_SCRIPT } from "@/lib/site/site-chrome-script";
 import { SiteReturnPathTracker } from "@/components/navigation/site-return-path-tracker";
 import { RouteTransitionProvider } from "@/components/navigation/route-transition";
 import { loadRootSession } from "@/lib/auth/root-session-loader";
-import { isMaintenanceBypassUser, shouldEnforceMaintenance } from "@/lib/platform/maintenance-guard";
+import {
+  isMaintenanceBypassUser,
+  shouldEnforceMaintenance,
+} from "@/lib/platform/maintenance-guard";
 import { isMaintenanceActiveForSite } from "@/lib/platform/maintenance-types";
 import type { AltaUser } from "@/lib/auth/types";
 import "@/lib/auth/router-context";
 import { getUiLabUserIfEnabled, isUiLabMode } from "@/lib/auth/ui-lab";
-import { resolveSiteContextFromRequest, readRequestHost, siteFromRouteContext } from "@/lib/site/site-context";
-import { resolveCrossSitePathRedirect, resolveLegacyEntityHostRedirect } from "@/lib/site/entity-path-guard";
+import {
+  resolveSiteContextFromRequest,
+  readRequestHost,
+  siteFromRouteContext,
+} from "@/lib/site/site-context";
+import {
+  resolveCrossSitePathRedirect,
+  resolveLegacyEntityHostRedirect,
+} from "@/lib/site/entity-path-guard";
 import { resolveRetiredExchangeRedirect } from "@/lib/site/exchange-retirement-redirect";
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
@@ -90,14 +100,14 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: import("@/config/sites").SiteConfig }>()({
+export const Route = createRootRouteWithContext<{
+  user: AltaUser | null;
+  site: import("@/config/sites").SiteConfig;
+}>()({
   beforeLoad: async ({ location }) => {
     const legacyHostRedirect = resolveLegacyEntityHostRedirect(location.pathname, {
       host: readRequestHost(),
-      searchStr:
-        typeof location.searchStr === "string"
-          ? location.searchStr
-          : undefined,
+      searchStr: typeof location.searchStr === "string" ? location.searchStr : undefined,
     });
     if (legacyHostRedirect) {
       throw redirect({ href: legacyHostRedirect, replace: true });
@@ -105,10 +115,7 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
 
     const retiredExchangeRedirect = resolveRetiredExchangeRedirect(location.pathname, {
       host: readRequestHost(),
-      searchStr:
-        typeof location.searchStr === "string"
-          ? location.searchStr
-          : undefined,
+      searchStr: typeof location.searchStr === "string" ? location.searchStr : undefined,
     });
     if (retiredExchangeRedirect) {
       throw redirect({ href: retiredExchangeRedirect, replace: true });
@@ -117,10 +124,7 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
     const crossSiteRedirect = resolveCrossSitePathRedirect(location.pathname, {
       host: readRequestHost(),
       search: location.search as Record<string, unknown>,
-      searchStr:
-        typeof location.searchStr === "string"
-          ? location.searchStr
-          : undefined,
+      searchStr: typeof location.searchStr === "string" ? location.searchStr : undefined,
     });
     if (crossSiteRedirect) {
       throw redirect({ href: crossSiteRedirect, replace: true });
@@ -171,31 +175,31 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
   head: ({ context }) => {
     const site = siteFromRouteContext(context);
     return {
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: site.seo.title },
-      { name: "description", content: site.seo.description },
-      { name: "author", content: site.displayName },
-      { property: "og:title", content: site.seo.ogTitle ?? site.seo.title },
-      { property: "og:description", content: site.seo.ogDescription ?? site.seo.description },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-      { rel: "shortcut icon", href: "/favicon.svg", type: "image/svg+xml" },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
-      },
-    ],
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: site.seo.title },
+        { name: "description", content: site.seo.description },
+        { name: "author", content: site.displayName },
+        { property: "og:title", content: site.seo.ogTitle ?? site.seo.title },
+        { property: "og:description", content: site.seo.ogDescription ?? site.seo.description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [
+        { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+        { rel: "shortcut icon", href: "/favicon.svg", type: "image/svg+xml" },
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        },
+      ],
     };
   },
   shellComponent: RootShell,
@@ -206,7 +210,7 @@ export const Route = createRootRouteWithContext<{ user: AltaUser | null; site: i
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: SITE_INIT_SCRIPT }} />
@@ -225,21 +229,21 @@ function RootComponent() {
 
   return (
     <ThemeProvider>
-        <RouteTransitionProvider>
-          <FooterProvider>
-            <NumberInputScrollGuard />
-            {isUiLabMode() && <UiLabBanner />}
-            <SiteReturnPathTracker />
-            <div className="flex min-h-screen flex-col bg-background">
-              <div className="flex min-h-0 flex-1 flex-col">
-                {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-                <Outlet />
-              </div>
-              <SiteFooterGate />
+      <RouteTransitionProvider>
+        <FooterProvider>
+          <NumberInputScrollGuard />
+          {isUiLabMode() && <UiLabBanner />}
+          <SiteReturnPathTracker />
+          <div className="flex min-h-screen flex-col bg-background">
+            <div className="flex min-h-0 flex-1 flex-col">
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
             </div>
-          </FooterProvider>
-        </RouteTransitionProvider>
-      </ThemeProvider>
+            <SiteFooterGate />
+          </div>
+        </FooterProvider>
+      </RouteTransitionProvider>
+    </ThemeProvider>
   );
 }
 

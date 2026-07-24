@@ -1,73 +1,148 @@
-import { Card } from "@/components/page-shell";
-import { MiniChart } from "@/components/mini-chart";
-import { florin } from "@/lib/format/money-display";
+"use client";
 
-type Holding = {
-  symbol: string;
-  shares: number;
-  avg: number;
-  value: number;
-  weight: number;
-  name?: string;
-  lastPrice?: number;
-  change?: number;
-};
+import { Link } from "@tanstack/react-router";
+import type { Holding } from "@/lib/terminal/types";
+import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
+import { Sparkline } from "@/components/terminal/sparkline";
+import { cn } from "@/lib/utils";
 
-export function HoldingsTable({ rows }: { rows: Holding[] }) {
-  if (rows.length === 0) {
+export function HoldingsTable({
+  holdings,
+  className,
+}: {
+  holdings: Holding[];
+  className?: string;
+}) {
+  if (!holdings.length) {
     return (
-      <Card className="px-5 py-8 text-center text-[13px] text-muted-foreground">
-        No holdings yet.
-      </Card>
+      <div className="rounded-lg border border-[var(--terminal-border)] px-4 py-10 text-center">
+        <p className="text-[15px] font-medium">No holdings yet</p>
+        <p className="mt-2 text-[13px] text-[var(--terminal-muted)]">
+          Explore markets to find securities and place your first order.
+        </p>
+        <Link
+          to="/terminal/markets"
+          search={{ q: "", filter: "all" }}
+          className="mt-4 inline-flex rounded-md bg-[var(--terminal-green)] px-4 py-2 text-[13px] font-medium text-black"
+        >
+          Browse markets
+        </Link>
+      </div>
     );
   }
 
   return (
-    <Card className="!p-0 overflow-hidden">
-      <div className="w-full overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
-        <thead>
-          <tr className="border-b border-border text-left type-meta">
-            <th className="px-5 py-3">Symbol</th>
-            <th className="px-5 py-3 text-right">Shares</th>
-            <th className="px-5 py-3 text-right">Avg Cost</th>
-            <th className="px-5 py-3 text-right">Last</th>
-            <th className="px-5 py-3 text-right">Value</th>
-            <th className="px-5 py-3 text-right">P&L</th>
-            <th className="px-5 py-3 text-right">Weight</th>
-            <th className="px-5 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((h) => {
-            const lastPrice = h.lastPrice ?? h.avg;
-            const cost = h.shares * h.avg;
-            const p = h.value - cost;
-            const positive = (h.change ?? p) >= 0;
-            return (
-              <tr key={h.symbol} className="border-b border-border/50 last:border-0 transition-colors hover:bg-surface-2/40">
-                <td className="px-5 py-3">
-                  <span className="font-mono">{h.symbol}</span>
-                  <div className="text-[11px] text-muted-foreground">{h.name ?? h.symbol}</div>
+    <>
+      <div className={cn("hidden md:block overflow-x-auto", className)}>
+        <table className="terminal-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th className="text-right">Qty</th>
+              <th className="text-right">Avg cost</th>
+              <th className="text-right">Price</th>
+              <th className="text-right">Value</th>
+              <th className="text-right">Total return</th>
+              <th className="text-right">Day</th>
+              <th className="text-right">Weight</th>
+              <th className="text-right">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {holdings.map((h) => (
+              <tr key={h.symbol}>
+                <td>
+                  <Link
+                    to="/terminal/security/$symbol"
+                    params={{ symbol: h.symbol }}
+                    search={{ range: "1D" }}
+                    className="font-medium hover:text-[var(--terminal-green)]"
+                  >
+                    {h.symbol}
+                  </Link>
+                  <div className="mt-0.5 max-w-[160px] truncate text-[11px] text-[var(--terminal-muted)]">
+                    {h.name}
+                  </div>
                 </td>
-                <td className="tabular px-5 py-3 text-right">{h.shares.toLocaleString()}</td>
-                <td className="tabular px-5 py-3 text-right text-muted-foreground">{h.avg.toFixed(2)}</td>
-                <td className="tabular px-5 py-3 text-right">{lastPrice.toFixed(2)}</td>
-                <td className="tabular px-5 py-3 text-right">{florin(h.value)}</td>
-                <td className={`tabular px-5 py-3 text-right ${p >= 0 ? "ticker-up" : "ticker-down"}`}>
-                  {p >= 0 ? "+" : ""}
-                  {florin(p)}
+                <td className="text-right">{h.quantity}</td>
+                <td className="text-right">
+                  <MoneyValue value={h.averageCost} asPrice size="sm" />
                 </td>
-                <td className="tabular px-5 py-3 text-right text-muted-foreground">
-                  {(h.weight * 100).toFixed(1)}%
+                <td className="text-right">
+                  <MoneyValue value={h.lastPrice} asPrice size="sm" />
                 </td>
-                <td className="w-20 px-5 py-3">
-                  <MiniChart data={[{ t: 0, v: lastPrice }, { t: 1, v: lastPrice }]} positive={positive} height={28} />
+                <td className="text-right">
+                  <MoneyValue value={h.marketValue} size="sm" />
+                </td>
+                <td className="text-right">
+                  <PriceChange amount={h.totalReturn} percent={h.totalReturnPercent} compact />
+                </td>
+                <td className="text-right">
+                  <PriceChange amount={h.dayReturn} percent={h.dayReturnPercent} compact />
+                </td>
+                <td className="text-right text-[var(--terminal-muted)]">
+                  {h.weightPercent.toFixed(1)}%
+                </td>
+                <td className="text-right">
+                  <Sparkline data={h.sparkline} positive={h.dayReturn >= 0} />
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table></div>
-    </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ul className="space-y-0 md:hidden" aria-label="Holdings">
+        {holdings.map((h) => (
+          <li key={h.symbol} className="border-b border-[var(--terminal-border)] py-3.5">
+            <Link
+              to="/terminal/security/$symbol"
+              params={{ symbol: h.symbol }}
+              search={{ range: "1D" }}
+              className="block"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{h.symbol}</p>
+                  <p className="text-[12px] text-[var(--terminal-muted)]">
+                    {h.quantity} sh · {h.weightPercent.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="text-right">
+                  <MoneyValue value={h.marketValue} size="sm" />
+                  <div className="mt-0.5">
+                    <PriceChange amount={h.totalReturn} percent={h.totalReturnPercent} compact />
+                  </div>
+                </div>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+export function AllocationBars({ holdings }: { holdings: Holding[] }) {
+  if (!holdings.length) return null;
+  return (
+    <div className="space-y-3" aria-label="Portfolio allocation">
+      {holdings.map((h) => (
+        <div key={h.symbol}>
+          <div className="mb-1 flex justify-between text-[12px]">
+            <span>{h.symbol}</span>
+            <span className="tabular-nums text-[var(--terminal-muted)]">
+              {h.weightPercent.toFixed(1)}%
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--terminal-surface-2)]">
+            <div
+              className="h-full rounded-full bg-[var(--terminal-green)]"
+              style={{ width: `${Math.min(100, h.weightPercent)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
