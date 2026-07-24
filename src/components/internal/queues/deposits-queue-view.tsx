@@ -103,6 +103,7 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
           proofFileName={r.proofFileName}
           proofUploadedAt={r.proofUploadedAt}
           hasProof={r.hasProof}
+          transactionId={r.id}
         />
       ),
     },

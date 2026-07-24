@@ -14,6 +14,10 @@ export function getProofFileUrl(
   if (!pathOrUrl?.trim()) return null;
   const value = pathOrUrl.trim();
   if (value.startsWith("pending-upload://")) return null;
+  // Already resolved to the authenticated download route by a mapper.
+  if (value.startsWith("/api/bank/transactions/") && value.includes("/proof")) {
+    return value;
+  }
   if (options?.transactionId) {
     if (
       value.startsWith("bank-proofs/") ||

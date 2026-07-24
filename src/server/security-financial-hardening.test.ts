@@ -72,6 +72,12 @@ describe("private proof storage URLs", () => {
     assert.equal(resolveProofStorageKey(storageKey), storageKey);
   });
 
+  it("preserves already-mapped authenticated download routes", () => {
+    const mapped = "/api/bank/transactions/tx-1/proof";
+    assert.equal(getProofFileUrl(mapped), mapped);
+    assert.equal(getProofFileUrl(mapped, { transactionId: "tx-other" }), mapped);
+  });
+
   it("preserves legacy public blob URLs for migration", () => {
     const legacy = "https://blob.vercel-storage.com/bank-proofs/user-1/deposit/old.jpg";
     assert.equal(
