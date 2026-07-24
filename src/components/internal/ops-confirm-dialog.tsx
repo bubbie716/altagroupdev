@@ -99,7 +99,7 @@ export function OpsConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 p-4"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-4"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !pending) onCancel();
@@ -113,7 +113,7 @@ export function OpsConfirmDialog({
           aria-labelledby={titleId}
           aria-describedby={description ? descId : undefined}
           tabIndex={-1}
-          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-border bg-background p-5 shadow-elevated outline-none"
+          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-border bg-surface-1 p-5 shadow-elevated outline-none"
           onClick={(e) => e.stopPropagation()}
         >
         <h3 id={titleId} className="text-[15px] font-medium tracking-tight">

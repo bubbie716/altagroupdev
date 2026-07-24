@@ -390,7 +390,7 @@ export function PortfolioDashboard({
       </div>
 
       {locked && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-background/55 via-background/70 to-background/80 backdrop-blur-[1px]">
+        <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden rounded-xl bg-surface-1/95 backdrop-blur-sm">
           <div className="mx-auto w-full max-w-md px-4 py-8 text-center sm:px-6">
             <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-full border border-gold/25 bg-[color-mix(in_oklch,var(--gold)_8%,var(--background))] shadow-sm">
               <Lock className="size-[18px] text-gold" strokeWidth={1.75} aria-hidden />

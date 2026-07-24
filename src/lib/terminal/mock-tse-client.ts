@@ -3,6 +3,7 @@ import type {
   MarketStatusSnapshot,
   OrderRecord,
   OrderPreviewInput,
+  PortfolioActivityRecord,
   SecuritySummary,
   TerminalChartRange,
   TerminalPortfolioSummary,
@@ -11,16 +12,10 @@ import type {
   WatchlistItem,
 } from "@/lib/terminal/types";
 import {
-  FIXTURE_CASH_BALANCE,
-  FIXTURE_COMPANY_CASH,
-  FIXTURE_COMPANY_LOTS,
   FIXTURE_EMPTY_CASH,
   FIXTURE_INITIAL_WATCHLIST,
   FIXTURE_MARKET_STATUS,
-  FIXTURE_PERSONAL_CORE_LOTS,
   buildEmptyFixturePortfolio,
-  buildFixtureOrders,
-  buildFixturePortfolioFromLots,
   getFixturePriceHistory,
   getFixtureSecurity,
   listFixtureSecurities,
@@ -28,18 +23,38 @@ import {
   watchlistFromSymbols,
   type FixtureLot,
 } from "@/lib/terminal/terminal-fixtures";
+import {
+  FIXTURE_PROFILES,
+  applyFixtureLedger,
+  buildSnapshotFromLedger,
+  type FixtureProfileKey,
+} from "@/lib/terminal/terminal-fixture-ledger";
 import { validateOrderPreview } from "@/lib/terminal/order-validation";
 
 type PortfolioMarketState = {
+  profile: FixtureProfileKey;
   cash: number;
   lots: FixtureLot[];
   orders: OrderRecord[];
+  activity: PortfolioActivityRecord[];
   seriesSeed: number;
-  seeded: "populated" | "empty" | "company";
 };
 
 function cloneLots(lots: FixtureLot[]): FixtureLot[] {
   return lots.map((lot) => ({ ...lot }));
+}
+
+function stateFromProfile(portfolioId: string, key: FixtureProfileKey): PortfolioMarketState {
+  const profile = FIXTURE_PROFILES[key];
+  const applied = applyFixtureLedger(portfolioId, profile);
+  return {
+    profile: key,
+    cash: applied.cash,
+    lots: cloneLots(applied.lots),
+    orders: applied.orders.map((o) => ({ ...o })),
+    activity: applied.activity.map((a) => ({ ...a })),
+    seriesSeed: profile.seriesSeed,
+  };
 }
 
 /**
@@ -61,27 +76,11 @@ export class MockTseClient implements TseClient {
 
   private seedDefaultPortfolios() {
     const ids = mockPortfolioIds(this.context.userId);
-    this.portfolios.set(ids.personalCore, {
-      cash: FIXTURE_CASH_BALANCE,
-      lots: cloneLots(FIXTURE_PERSONAL_CORE_LOTS),
-      orders: buildFixtureOrders(ids.personalCore, "core"),
-      seriesSeed: 9001,
-      seeded: "populated",
-    });
-    this.portfolios.set(ids.personalGrowth, {
-      cash: FIXTURE_EMPTY_CASH,
-      lots: [],
-      orders: buildFixtureOrders(ids.personalGrowth, "empty"),
-      seriesSeed: 9002,
-      seeded: "empty",
-    });
-    this.portfolios.set(ids.companyAltg, {
-      cash: FIXTURE_COMPANY_CASH,
-      lots: cloneLots(FIXTURE_COMPANY_LOTS),
-      orders: buildFixtureOrders(ids.companyAltg, "company"),
-      seriesSeed: 9100,
-      seeded: "company",
-    });
+    this.portfolios.set(ids.personalCore, stateFromProfile(ids.personalCore, "core"));
+    this.portfolios.set(ids.personalGrowth, stateFromProfile(ids.personalGrowth, "growth"));
+    this.portfolios.set(ids.personalIncome, stateFromProfile(ids.personalIncome, "income"));
+    this.portfolios.set(ids.personalActive, stateFromProfile(ids.personalActive, "active"));
+    this.portfolios.set(ids.companyAltg, stateFromProfile(ids.companyAltg, "treasury"));
   }
 
   async ensurePortfolioMarketState(
@@ -90,21 +89,30 @@ export class MockTseClient implements TseClient {
   ): Promise<void> {
     if (this.portfolios.has(portfolioId)) return;
     if (seed === "populated") {
-      this.portfolios.set(portfolioId, {
-        cash: FIXTURE_CASH_BALANCE,
-        lots: cloneLots(FIXTURE_PERSONAL_CORE_LOTS),
-        orders: buildFixtureOrders(portfolioId, "core"),
-        seriesSeed: 9200 + this.portfolios.size,
-        seeded: "populated",
-      });
+      this.portfolios.set(portfolioId, stateFromProfile(portfolioId, "core"));
       return;
     }
     this.portfolios.set(portfolioId, {
+      profile: "empty",
       cash: FIXTURE_EMPTY_CASH,
       lots: [],
       orders: [],
+      activity: [
+        {
+          id: `act_${portfolioId}_open`,
+          portfolioId,
+          kind: "cash_deposit",
+          occurredAt: "2026-07-21T12:00:00.000Z",
+          amount: FIXTURE_EMPTY_CASH,
+          symbol: null,
+          quantity: null,
+          price: null,
+          orderId: null,
+          description: "Opening cash",
+          cashAfter: FIXTURE_EMPTY_CASH,
+        },
+      ],
       seriesSeed: 9300 + this.portfolios.size,
-      seeded: "empty",
     });
   }
 
@@ -147,10 +155,29 @@ export class MockTseClient implements TseClient {
   async getPortfolio(portfolioId: string) {
     await this.ensurePortfolioMarketState(portfolioId, "empty");
     const state = this.requireState(portfolioId);
+    const profile = FIXTURE_PROFILES[state.profile];
+    const applied = {
+      profile: state.profile,
+      cash: state.cash,
+      lots: state.lots,
+      orders: state.orders,
+      activity: state.activity,
+      equityMarks: [],
+      totalDeposits: 0,
+      totalWithdrawals: 0,
+      realizedGainLoss: 0,
+    };
     if (state.lots.length === 0) {
-      return buildEmptyFixturePortfolio(state.cash, portfolioId);
+      const empty = buildEmptyFixturePortfolio(state.cash, portfolioId);
+      return buildSnapshotFromLedger(portfolioId, applied, {
+        ...profile,
+        seriesSeed: state.seriesSeed,
+      });
     }
-    return buildFixturePortfolioFromLots(portfolioId, state.lots, state.cash, state.seriesSeed);
+    return buildSnapshotFromLedger(portfolioId, applied, {
+      ...profile,
+      seriesSeed: state.seriesSeed,
+    });
   }
 
   async getHoldings(portfolioId: string) {
@@ -180,6 +207,12 @@ export class MockTseClient implements TseClient {
     await this.ensurePortfolioMarketState(portfolioId, "empty");
     const state = this.requireState(portfolioId);
     return [...state.orders].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  }
+
+  async listPortfolioActivity(portfolioId: string): Promise<PortfolioActivityRecord[]> {
+    await this.ensurePortfolioMarketState(portfolioId, "empty");
+    const state = this.requireState(portfolioId);
+    return [...state.activity].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   }
 
   async previewOrder(input: OrderPreviewInput) {
@@ -275,6 +308,22 @@ export class MockTseClient implements TseClient {
             averageCost: security.lastPrice,
           });
         }
+        state.activity = [
+          {
+            id: `act_live_${this.orderSeq}`,
+            portfolioId: input.portfolioId,
+            kind: "buy_fill",
+            occurredAt: now,
+            amount: -preview.estimatedValue,
+            symbol: security.symbol,
+            quantity: input.quantity,
+            price: security.lastPrice,
+            orderId: order.id,
+            description: `Bought ${input.quantity} ${security.symbol}`,
+            cashAfter: state.cash,
+          },
+          ...state.activity,
+        ];
       } else {
         state.cash = Number(
           (state.cash + preview.estimatedValue - preview.estimatedFees).toFixed(2),
@@ -286,6 +335,22 @@ export class MockTseClient implements TseClient {
             state.lots = state.lots.filter((l) => l.symbol !== security.symbol);
           }
         }
+        state.activity = [
+          {
+            id: `act_live_${this.orderSeq}`,
+            portfolioId: input.portfolioId,
+            kind: "sell_fill",
+            occurredAt: now,
+            amount: preview.estimatedValue,
+            symbol: security.symbol,
+            quantity: input.quantity,
+            price: security.lastPrice,
+            orderId: order.id,
+            description: `Sold ${input.quantity} ${security.symbol}`,
+            cashAfter: state.cash,
+          },
+          ...state.activity,
+        ];
       }
     }
 

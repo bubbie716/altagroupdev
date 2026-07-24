@@ -106,7 +106,7 @@ export function InternalGlobalSearch({ variant = "page" }: { variant?: "page" | 
         ) : null}
       </div>
       {open && results.length > 0 ? (
-        <div className="absolute z-50 mt-1 max-h-80 w-full min-w-[18rem] overflow-auto rounded border border-border bg-background shadow-elevated">
+        <div className="absolute z-50 mt-1 max-h-80 w-full min-w-[18rem] overflow-auto rounded border border-border bg-surface-1 shadow-elevated">
           {results.map((r) => (
             <button
               key={`${r.type}-${r.id}`}

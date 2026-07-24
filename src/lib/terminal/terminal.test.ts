@@ -183,12 +183,20 @@ describe("terminal tse clients", () => {
 
     const core = await client.getPortfolio(ids.personalCore);
     const growth = await client.getPortfolio(ids.personalGrowth);
+    const income = await client.getPortfolio(ids.personalIncome);
     const company = await client.getPortfolio(ids.companyAltg);
 
     assert.ok(core.holdings.length > 0);
-    assert.equal(growth.holdings.length, 0);
+    assert.ok(growth.holdings.length > 0);
+    assert.ok(income.holdings.length > 0);
     assert.ok(company.holdings.length > 0);
     assert.notEqual(core.totalValue, company.totalValue);
+    assert.notEqual(growth.totalValue, income.totalValue);
+
+    const emptyId = `tp_${userId}_scratch`;
+    await client.ensurePortfolioMarketState?.(emptyId, "empty");
+    const empty = await client.getPortfolio(emptyId);
+    assert.equal(empty.holdings.length, 0);
 
     const preview = await client.previewOrder({
       portfolioId: ids.personalCore,
@@ -210,7 +218,7 @@ describe("terminal tse clients", () => {
     assert.equal(rejected.ok, false);
 
     const submitted = await client.submitOrder({
-      portfolioId: ids.personalGrowth,
+      portfolioId: emptyId,
       symbol: "MINE",
       side: "buy",
       type: "limit",
@@ -219,12 +227,12 @@ describe("terminal tse clients", () => {
     });
     assert.equal(submitted.ok, true);
     if (submitted.ok) {
-      assert.equal(submitted.order.portfolioId, ids.personalGrowth);
+      assert.equal(submitted.order.portfolioId, emptyId);
       assert.equal(submitted.order.status, "open");
     }
 
-    const growthOrders = await client.listOrders(ids.personalGrowth);
-    assert.ok(growthOrders.some((o) => o.id === (submitted.ok ? submitted.order.id : "")));
+    const emptyOrders = await client.listOrders(emptyId);
+    assert.ok(emptyOrders.some((o) => o.id === (submitted.ok ? submitted.order.id : "")));
     const coreOrders = await client.listOrders(ids.personalCore);
     assert.equal(
       coreOrders.some((o) => o.id === (submitted.ok ? submitted.order.id : "")),

@@ -58,7 +58,7 @@ function seedMemoryStore(user: AltaUser): MemoryStore {
   const portfolios: TerminalPortfolioRecord[] = [
     {
       id: ids.personalCore,
-      name: "Core",
+      name: "Core Portfolio",
       ownerType: "personal",
       ownerUserId: user.id,
       ownerCompanyId: null,
@@ -71,7 +71,33 @@ function seedMemoryStore(user: AltaUser): MemoryStore {
     },
     {
       id: ids.personalGrowth,
-      name: "Growth",
+      name: "Growth Portfolio",
+      ownerType: "personal",
+      ownerUserId: user.id,
+      ownerCompanyId: null,
+      ownerLabel: "Personal",
+      createdByUserId: user.id,
+      status: "active",
+      isDefault: false,
+      createdAt: ts,
+      updatedAt: ts,
+    },
+    {
+      id: ids.personalIncome,
+      name: "Income Portfolio",
+      ownerType: "personal",
+      ownerUserId: user.id,
+      ownerCompanyId: null,
+      ownerLabel: "Personal",
+      createdByUserId: user.id,
+      status: "active",
+      isDefault: false,
+      createdAt: ts,
+      updatedAt: ts,
+    },
+    {
+      id: ids.personalActive,
+      name: "Active Trading",
       ownerType: "personal",
       ownerUserId: user.id,
       ownerCompanyId: null,
@@ -88,7 +114,7 @@ function seedMemoryStore(user: AltaUser): MemoryStore {
   if (altg && canViewCompanyTerminalPortfolio(user, altg.companyId)) {
     portfolios.push({
       id: ids.companyAltg,
-      name: "Treasury",
+      name: "ALTG Treasury",
       ownerType: "company",
       ownerUserId: null,
       ownerCompanyId: altg.companyId,

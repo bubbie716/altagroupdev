@@ -1,17 +1,19 @@
 import type { ReactNode } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { AllocationBars, HoldingsTable } from "@/components/terminal/holdings-table";
 import { OrdersList } from "@/components/terminal/orders-list";
+import { ActivityList } from "@/components/terminal/activity-list";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
 import {
   CreatePortfolioDialog,
   PortfolioOwnerBadge,
   PortfolioSwitcher,
 } from "@/components/terminal/portfolio-switcher";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 import {
   archiveTerminalPortfolioFn,
   fetchTerminalPortfolio,
@@ -30,6 +32,7 @@ export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
       onboarding: false as const,
     };
   },
+  pendingComponent: () => <RoutePendingFallback label="Loading portfolio" />,
   head: ({ loaderData }) => ({
     meta: [
       {
@@ -45,12 +48,13 @@ export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
 function TerminalPortfolioDetailPage() {
   const data = Route.useLoaderData();
   const router = useRouter();
+  const navigate = useNavigate();
   const renameFn = useServerFn(renameTerminalPortfolioFn);
   const archiveFn = useServerFn(archiveTerminalPortfolioFn);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"rename" | "archive" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (data.portfolioUnavailable) {
@@ -97,16 +101,22 @@ function TerminalPortfolioDetailPage() {
           open={createOpen}
           onOpenChange={setCreateOpen}
           eligibleCompanies={data.eligibleCompanies}
+          onCreated={(p) => {
+            void navigate({
+              to: "/terminal/portfolio/$portfolioId",
+              params: { portfolioId: p.id },
+            });
+          }}
         />
       </div>
     );
   }
 
-  const { selectedPortfolio, portfolio, orders, portfolios, eligibleCompanies } = data;
+  const { selectedPortfolio, portfolio, orders, activity, portfolios, eligibleCompanies } = data;
   const empty = portfolio.holdings.length === 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" key={selectedPortfolio.id}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-3">
           <PortfolioSwitcher
@@ -202,12 +212,38 @@ function TerminalPortfolioDetailPage() {
       ) : null}
 
       <section>
-        <h2 className="mb-3 text-[15px] font-medium">Orders & activity</h2>
-        <OrdersList orders={orders} />
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-[15px] font-medium">Orders</h2>
+          <Link
+            to="/terminal/orders"
+            search={{ portfolioId: selectedPortfolio.id }}
+            className="text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-green)]"
+          >
+            View all
+          </Link>
+        </div>
+        {orders.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[var(--terminal-border)] px-4 py-8 text-center">
+            <p className="text-[14px] font-medium">No orders yet</p>
+            <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
+              Place a trade from Markets to see order history here.
+            </p>
+          </div>
+        ) : (
+          <OrdersList orders={orders} />
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-[15px] font-medium">Activity</h2>
+        <ActivityList
+          activity={activity ?? []}
+          emptyMessage="Deposits, fills, dividends, and fees will appear here."
+        />
       </section>
 
       {settingsOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4 sm:items-center">
           <div
             role="dialog"
             aria-modal
@@ -242,10 +278,10 @@ function TerminalPortfolioDetailPage() {
               {selectedPortfolio.capabilities.canArchive ? (
                 <button
                   type="button"
-                  disabled={busy}
-                  className="rounded-md border border-[var(--terminal-red)]/40 px-3 py-2 text-[13px] text-[var(--terminal-red)]"
+                  disabled={busy !== null}
+                  className="rounded-md border border-[var(--terminal-red)]/40 px-3 py-2 text-[13px] text-[var(--terminal-red)] disabled:opacity-50"
                   onClick={() => {
-                    setBusy(true);
+                    setBusy("archive");
                     void archiveFn({ data: selectedPortfolio.id })
                       .then(() => {
                         setSettingsOpen(false);
@@ -254,19 +290,19 @@ function TerminalPortfolioDetailPage() {
                       .catch((err) =>
                         setError(err instanceof Error ? err.message : "Archive failed"),
                       )
-                      .finally(() => setBusy(false));
+                      .finally(() => setBusy(null));
                   }}
                 >
-                  Archive
+                  {busy === "archive" ? "Archiving…" : "Archive"}
                 </button>
               ) : null}
               {selectedPortfolio.capabilities.canRename ? (
                 <button
                   type="button"
-                  disabled={busy || !renameValue.trim()}
+                  disabled={busy !== null || !renameValue.trim()}
                   className="rounded-md bg-[var(--terminal-green)] px-3 py-2 text-[13px] font-medium text-black disabled:opacity-50"
                   onClick={() => {
-                    setBusy(true);
+                    setBusy("rename");
                     void renameFn({
                       data: { portfolioId: selectedPortfolio.id, name: renameValue },
                     })
@@ -277,10 +313,10 @@ function TerminalPortfolioDetailPage() {
                       .catch((err) =>
                         setError(err instanceof Error ? err.message : "Rename failed"),
                       )
-                      .finally(() => setBusy(false));
+                      .finally(() => setBusy(null));
                   }}
                 >
-                  Save
+                  {busy === "rename" ? "Saving…" : "Save"}
                 </button>
               ) : null}
             </div>

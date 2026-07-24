@@ -66,7 +66,7 @@ export function LoanRepaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border-border bg-background">
+      <DialogContent className="max-w-lg border-border bg-surface-1">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-[0.12em]">Make payment</DialogTitle>
           <DialogDescription>

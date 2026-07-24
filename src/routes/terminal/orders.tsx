@@ -23,6 +23,7 @@ import type { OrderRecord, OrderSide, OrderStatus } from "@/lib/terminal/types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { cn } from "@/lib/utils";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 export const Route = createFileRoute("/terminal/orders")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/terminal/orders")({
     ]);
     return { ...orders, eligibleCompanies };
   },
+  pendingComponent: () => <RoutePendingFallback label="Loading orders" />,
   head: () => ({ meta: [{ title: "Orders — Alta Terminal" }] }),
   component: TerminalOrdersPage,
 });

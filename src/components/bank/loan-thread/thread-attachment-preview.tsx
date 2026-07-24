@@ -62,7 +62,7 @@ export function ThreadAttachmentPreviewDialog({
             </Button>
           ) : null}
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-4">
+        <div className="min-h-0 flex-1 overflow-auto bg-surface-1 p-4">
           {kind === "image" ? (
             <img
               src={href}

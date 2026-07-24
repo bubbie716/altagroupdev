@@ -161,6 +161,33 @@ export type SubmitOrderResult =
 
 export type CancelOrderResult = { ok: true; order: OrderRecord } | { ok: false; errors: string[] };
 
+/** Portfolio cash/security activity — adapter-level ledger, not mock-only. */
+export type PortfolioActivityKind =
+  | "cash_deposit"
+  | "cash_withdrawal"
+  | "buy_fill"
+  | "sell_fill"
+  | "dividend"
+  | "trading_fee"
+  | "adjustment"
+  | "realized_gain_loss";
+
+export type PortfolioActivityRecord = {
+  id: string;
+  portfolioId: string;
+  kind: PortfolioActivityKind;
+  occurredAt: string;
+  /** Signed cash delta for this event (buys negative, sells/deposits positive). */
+  amount: number;
+  symbol: string | null;
+  quantity: number | null;
+  price: number | null;
+  orderId: string | null;
+  description: string;
+  /** Running cash after this event (when provided by the adapter). */
+  cashAfter: number | null;
+};
+
 export type HomeDashboard = {
   marketStatus: MarketStatusSnapshot;
   combinedValue: number;
@@ -194,6 +221,7 @@ export interface TseClient {
   previewOrder(input: OrderPreviewInput): Promise<OrderPreviewResult>;
   submitOrder(input: OrderPreviewInput): Promise<SubmitOrderResult>;
   cancelOrder(portfolioId: string, orderId: string): Promise<CancelOrderResult>;
+  listPortfolioActivity(portfolioId: string): Promise<PortfolioActivityRecord[]>;
   getHomeDashboard(portfolios: TerminalPortfolioSummary[]): Promise<HomeDashboard>;
   /** Seed mock market state for a newly created portfolio. */
   ensurePortfolioMarketState?(portfolioId: string, seed?: "populated" | "empty"): Promise<void>;

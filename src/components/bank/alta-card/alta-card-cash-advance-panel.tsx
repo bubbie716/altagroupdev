@@ -452,7 +452,7 @@ export function AltaCardCashAdvancePanel({
           </button>
         )}
         <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent className="max-w-lg border-border bg-background">
+          <DialogContent className="max-w-lg border-border bg-surface-1">
             <DialogHeader>
               <DialogTitle className="font-serif text-[20px]">Cash advance</DialogTitle>
               <DialogDescription>{advanceDescription}</DialogDescription>

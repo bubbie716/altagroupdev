@@ -1,7 +1,7 @@
 "use client";
 
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useId, useMemo, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import {
@@ -20,12 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useControlledMenu } from "@/hooks/use-controlled-menu";
 import { createTerminalPortfolioFn } from "@/lib/terminal/terminal.functions";
 import type { TerminalPortfolioSummary } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 
 type EligibleCompany = { id: string; name: string; ticker: string | null };
+
+const DEFAULT_CREATE_NAME = "New portfolio";
 
 export function PortfolioSwitcher({
   portfolios,
@@ -39,15 +42,31 @@ export function PortfolioSwitcher({
   portfolios: TerminalPortfolioSummary[];
   selectedId: string | null;
   eligibleCompanies?: EligibleCompany[];
+  /**
+   * Called exactly once after a successful create.
+   * When provided, the parent owns navigation — this component will not navigate.
+   * When omitted, navigates to the new portfolio detail route.
+   */
   onCreated?: (portfolio: TerminalPortfolioSummary) => void;
-  /** Override default navigation to portfolio detail. */
+  /** Override default navigation when selecting an existing portfolio. */
   onSelect?: (portfolioId: string) => void;
   className?: string;
   compact?: boolean;
 }) {
   const navigate = useNavigate();
+  const isRoutePending = useRouterState({ select: (s) => s.status === "pending" });
+  const menu = useControlledMenu();
   const [createOpen, setCreateOpen] = useState(false);
+  /** Optimistic label while a switch/create navigation is in flight. */
+  const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+
   const selected = portfolios.find((p) => p.id === selectedId) ?? null;
+  const displayName = pendingLabel ?? selected?.name ?? "Select portfolio";
+  const displayOwner = pendingLabel ? "Switching…" : (selected?.ownerLabel ?? "—");
+
+  useEffect(() => {
+    if (!isRoutePending) setPendingLabel(null);
+  }, [isRoutePending, selectedId]);
 
   const personal = useMemo(
     () => portfolios.filter((p) => p.ownerType === "personal"),
@@ -58,21 +77,39 @@ export function PortfolioSwitcher({
     [portfolios],
   );
 
-  function goToPortfolio(id: string) {
-    if (onSelect) {
-      onSelect(id);
+  function selectPortfolio(id: string, label?: string) {
+    if (menu.isNavigating()) return;
+    const name = label ?? portfolios.find((p) => p.id === id)?.name ?? null;
+    if (name) setPendingLabel(name);
+    menu.runAfterClose(() => {
+      if (onSelect) {
+        onSelect(id);
+        return;
+      }
+      void navigate({ to: "/terminal/portfolio/$portfolioId", params: { portfolioId: id } });
+    });
+  }
+
+  function handleCreated(portfolio: TerminalPortfolioSummary) {
+    setPendingLabel(portfolio.name);
+    // Parent owns navigation when onCreated is provided — never also call onSelect/goToPortfolio.
+    if (onCreated) {
+      onCreated(portfolio);
       return;
     }
-    void navigate({ to: "/terminal/portfolio/$portfolioId", params: { portfolioId: id } });
+    void navigate({
+      to: "/terminal/portfolio/$portfolioId",
+      params: { portfolioId: portfolio.id },
+    });
   }
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menu.open} onOpenChange={menu.setOpen}>
         <DropdownMenuTrigger
           className={cn(
             "inline-flex max-w-full items-center gap-1.5 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-2.5 py-1.5 text-left outline-none",
-            "hover:bg-[var(--terminal-surface-2)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
+            "hover:bg-[var(--menu-item-hover)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
             className,
           )}
           aria-label={
@@ -83,11 +120,11 @@ export function PortfolioSwitcher({
         >
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-medium text-[var(--terminal-text)]">
-              {selected?.name ?? "Select portfolio"}
+              {displayName}
             </span>
             {!compact ? (
               <span className="block truncate text-[11px] text-[var(--terminal-muted)]">
-                {selected?.ownerLabel ?? "—"}
+                {displayOwner}
               </span>
             ) : null}
           </span>
@@ -95,7 +132,10 @@ export function PortfolioSwitcher({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="w-[min(calc(100vw-2rem),18rem)] rounded-lg border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-1.5"
+          className="w-[min(calc(100vw-2rem),18rem)] rounded-lg border-[var(--terminal-border)] bg-[var(--menu-surface)] p-1.5 text-[var(--terminal-text)]"
+          onCloseAutoFocus={(event) => {
+            if (menu.isNavigating()) event.preventDefault();
+          }}
         >
           {personal.length > 0 ? (
             <>
@@ -107,7 +147,7 @@ export function PortfolioSwitcher({
                   key={p.id}
                   portfolio={p}
                   current={p.id === selectedId}
-                  onSelect={() => goToPortfolio(p.id)}
+                  onSelect={() => selectPortfolio(p.id, p.name)}
                 />
               ))}
             </>
@@ -123,7 +163,7 @@ export function PortfolioSwitcher({
                   key={p.id}
                   portfolio={p}
                   current={p.id === selectedId}
-                  onSelect={() => goToPortfolio(p.id)}
+                  onSelect={() => selectPortfolio(p.id, p.name)}
                 />
               ))}
             </>
@@ -136,7 +176,10 @@ export function PortfolioSwitcher({
           <DropdownMenuSeparator className="bg-[var(--terminal-border)]" />
           <DropdownMenuItem
             className="cursor-pointer gap-2 rounded-md px-2 py-2 text-[13px]"
-            onSelect={() => setCreateOpen(true)}
+            onSelect={() => {
+              menu.close();
+              setCreateOpen(true);
+            }}
           >
             <Plus className="size-3.5" aria-hidden />
             Create portfolio
@@ -148,11 +191,7 @@ export function PortfolioSwitcher({
         open={createOpen}
         onOpenChange={setCreateOpen}
         eligibleCompanies={eligibleCompanies}
-        onCreated={(portfolio) => {
-          setCreateOpen(false);
-          onCreated?.(portfolio);
-          goToPortfolio(portfolio.id);
-        }}
+        onCreated={handleCreated}
       />
     </>
   );
@@ -171,9 +210,12 @@ function PortfolioMenuItem({
     <DropdownMenuItem
       className={cn(
         "cursor-pointer items-start rounded-md px-2 py-2",
-        current && "bg-[var(--terminal-surface-2)]",
+        current && "bg-[var(--menu-item-selected)]",
       )}
-      onSelect={onSelect}
+      onSelect={(event) => {
+        event.preventDefault();
+        onSelect();
+      }}
     >
       <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
         {current ? <Check className="size-3.5 text-[var(--terminal-green)]" aria-hidden /> : null}
@@ -201,15 +243,41 @@ export function CreatePortfolioDialog({
   onCreated?: (portfolio: TerminalPortfolioSummary) => void;
 }) {
   const createFn = useServerFn(createTerminalPortfolioFn);
-  const [name, setName] = useState("New portfolio");
+  const [name, setName] = useState(DEFAULT_CREATE_NAME);
   const [ownerType, setOwnerType] = useState<"personal" | "company">("personal");
   const [companyId, setCompanyId] = useState(eligibleCompanies[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [succeeded, setSucceeded] = useState(false);
   const portfolioNameId = useId();
   const companySelectId = useId();
+  const submitGuard = useRef(false);
+  const shouldResetRef = useRef(false);
+
+  function resetForm() {
+    setName(DEFAULT_CREATE_NAME);
+    setOwnerType("personal");
+    setCompanyId(eligibleCompanies[0]?.id ?? "");
+    setError(null);
+    setSucceeded(false);
+    submitGuard.current = false;
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (busy && !next) return;
+    if (!next && shouldResetRef.current) {
+      // Defer reset until after the close animation so the form does not flash.
+      window.setTimeout(() => {
+        resetForm();
+        shouldResetRef.current = false;
+      }, 200);
+    }
+    onOpenChange(next);
+  }
 
   async function handleCreate() {
+    if (busy || submitGuard.current || succeeded) return;
+    submitGuard.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -220,11 +288,12 @@ export function CreatePortfolioDialog({
           ownerCompanyId: ownerType === "company" ? companyId : null,
         },
       });
+      setSucceeded(true);
+      shouldResetRef.current = true;
       onCreated?.(created);
       onOpenChange(false);
-      setName("New portfolio");
-      setOwnerType("personal");
     } catch (err) {
+      submitGuard.current = false;
       setError(err instanceof Error ? err.message : "Could not create portfolio");
     } finally {
       setBusy(false);
@@ -232,8 +301,19 @@ export function CreatePortfolioDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-[var(--terminal-border)] bg-[var(--terminal-surface)] sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="border-[var(--terminal-border)] bg-[var(--menu-surface)] sm:max-w-md"
+        onPointerDownOutside={(event) => {
+          if (busy) event.preventDefault();
+        }}
+        onEscapeKeyDown={(event) => {
+          if (busy) event.preventDefault();
+        }}
+        onCloseAutoFocus={(event) => {
+          if (succeeded) event.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Create portfolio</DialogTitle>
           <DialogDescription className="text-[var(--terminal-muted)]">
@@ -249,12 +329,13 @@ export function CreatePortfolioDialog({
             <input
               id={portfolioNameId}
               value={name}
+              disabled={busy}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px] outline-none focus:border-[var(--terminal-green)]"
+              className="w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[13px] outline-none focus:border-[var(--terminal-green)] disabled:opacity-60"
             />
           </label>
 
-          <fieldset className="space-y-2">
+          <fieldset className="space-y-2" disabled={busy}>
             <legend className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
               Owner
             </legend>
@@ -312,20 +393,25 @@ export function CreatePortfolioDialog({
             ) : null}
           </fieldset>
 
-          {error ? <p className="text-[13px] text-[var(--terminal-red)]">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-[13px] text-[var(--terminal-red)]">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         <DialogFooter>
           <button
             type="button"
-            className="rounded-md px-3 py-2 text-[13px] text-[var(--terminal-muted)]"
-            onClick={() => onOpenChange(false)}
+            disabled={busy}
+            className="rounded-md px-3 py-2 text-[13px] text-[var(--terminal-muted)] disabled:opacity-50"
+            onClick={() => handleOpenChange(false)}
           >
             Cancel
           </button>
           <button
             type="button"
-            disabled={busy || !name.trim() || (ownerType === "company" && !companyId)}
+            disabled={busy || succeeded || !name.trim() || (ownerType === "company" && !companyId)}
             onClick={() => void handleCreate()}
             className="rounded-md bg-[var(--terminal-green)] px-4 py-2 text-[13px] font-medium text-black disabled:opacity-50"
           >

@@ -50,7 +50,7 @@ export function BankTransferContactsManager({
             : "No saved wire recipients yet."}
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border rounded-lg border border-border bg-surface-1">
           {scopedContacts.map((contact) => (
             <ContactRow key={contact.id} contact={contact} onChanged={onChanged} />
           ))}

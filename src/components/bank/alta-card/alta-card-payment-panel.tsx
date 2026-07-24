@@ -464,7 +464,7 @@ export function AltaCardPaymentPanel({
           </button>
         )}
         <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent className="max-w-lg border-border bg-background">
+          <DialogContent className="max-w-lg border-border bg-surface-1">
             <DialogHeader>
               <DialogTitle className="font-serif text-[20px]">Make a payment</DialogTitle>
               <DialogDescription>{paymentDescription}</DialogDescription>

@@ -43,7 +43,7 @@ const UPGRADE_DESCRIPTION =
   "Upgrade to Alta Commercial Pro for unlimited invoices, payment links, and team members.";
 
 const upgradeDialogClass =
-  "max-w-md gap-3 border-border bg-background p-5 sm:max-h-[min(85dvh,calc(100dvh-5rem))]";
+  "max-w-md gap-3 border-border bg-surface-1 p-5 sm:max-h-[min(85dvh,calc(100dvh-5rem))]";
 
 type FormView = "compose" | "review" | "success" | "error";
 

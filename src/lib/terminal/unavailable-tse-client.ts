@@ -15,6 +15,7 @@ import type {
   TseClient,
   WatchlistItem,
   Holding,
+  PortfolioActivityRecord,
 } from "@/lib/terminal/types";
 
 const UNAVAILABLE_MSG = "Market connection unavailable";
@@ -95,6 +96,10 @@ export class UnavailableTseClient implements TseClient {
   }
 
   async listOrders(): Promise<OrderRecord[]> {
+    return [];
+  }
+
+  async listPortfolioActivity(): Promise<PortfolioActivityRecord[]> {
     return [];
   }
 

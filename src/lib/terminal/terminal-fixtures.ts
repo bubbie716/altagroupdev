@@ -287,6 +287,8 @@ export function mockPortfolioIds(userId: string) {
   return {
     personalCore: `tp_${userId}_core`,
     personalGrowth: `tp_${userId}_growth`,
+    personalIncome: `tp_${userId}_income`,
+    personalActive: `tp_${userId}_active`,
     companyAltg: `tp_${userId}_co_altg`,
   } as const;
 }

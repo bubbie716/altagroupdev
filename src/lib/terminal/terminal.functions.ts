@@ -158,6 +158,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         selectedPortfolio: null,
         portfolio: null,
         orders: [],
+        activity: [],
         eligibleCompanies,
         portfolioUnavailable: true as const,
       };
@@ -172,6 +173,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         selectedPortfolio: null,
         portfolio: null,
         orders: [],
+        activity: [],
         eligibleCompanies,
         portfolioUnavailable: false as const,
       };
@@ -179,9 +181,10 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
 
     await rememberSelectedTerminalPortfolio(user, portfolioId);
     const selectedPortfolio = await getTerminalPortfolioForUser(user, portfolioId);
-    const [portfolio, orders] = await Promise.all([
+    const [portfolio, orders, activity] = await Promise.all([
       client.getPortfolio(portfolioId),
       client.listOrders(portfolioId),
+      client.listPortfolioActivity(portfolioId),
     ]);
     return {
       mode: client.mode,
@@ -189,6 +192,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
       selectedPortfolio,
       portfolio,
       orders,
+      activity,
       eligibleCompanies,
       portfolioUnavailable: false as const,
     };

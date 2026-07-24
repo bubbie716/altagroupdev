@@ -143,7 +143,7 @@ export function StatementCenterGenerateForm({
           </PopoverTrigger>
           <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
             <div className="max-h-64 space-y-1 overflow-y-auto" role="listbox" aria-multiselectable="true">
-              <label className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-surface-2/60">
+              <label className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-surface-2">
                 <input
                   type="checkbox"
                   className="mt-0.5"
@@ -161,7 +161,7 @@ export function StatementCenterGenerateForm({
               {accounts.map((account) => (
                 <label
                   key={account.id}
-                  className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-surface-2/60"
+                  className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-surface-2"
                 >
                   <input
                     type="checkbox"

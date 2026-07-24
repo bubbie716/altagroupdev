@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AltaLogo } from "@/components/alta-logo";
+import { useControlledMenu } from "@/hooks/use-controlled-menu";
 import { cn } from "@/lib/utils";
 import type { SiteKey } from "@/config/sites";
 import {
@@ -62,16 +62,17 @@ export function EcosystemSwitcher({
   const current = getCurrentEcosystemEntry(siteKey);
   const links = getEcosystemSwitcherLinks(siteKey);
   const isTerminal = siteKey === "terminal";
+  const menu = useControlledMenu();
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menu.open} onOpenChange={menu.setOpen}>
       <DropdownMenuTrigger
         className={cn(
           "inline-flex cursor-pointer items-center gap-1.5 rounded-md text-left outline-none transition-colors",
           "focus-visible:ring-1 focus-visible:ring-gold/40",
           variant === "branded"
-            ? "max-w-[min(100%,16rem)] px-1 py-1 hover:bg-[var(--terminal-surface-2)] focus-visible:ring-[var(--terminal-green)]/40"
-            : "max-w-[min(100%,14rem)] px-1.5 py-1 hover:bg-surface-2/60",
+            ? "max-w-[min(100%,16rem)] px-1 py-1 hover:bg-[var(--menu-item-hover)] focus-visible:ring-[var(--terminal-green)]/40"
+            : "max-w-[min(100%,14rem)] px-1.5 py-1 hover:bg-[var(--menu-item-hover)]",
           className,
         )}
         aria-label={`Alta ecosystem — currently ${current.name}`}
@@ -97,10 +98,13 @@ export function EcosystemSwitcher({
       <DropdownMenuContent
         align="start"
         className={cn(
-          "w-[min(calc(100vw-2rem),18rem)] rounded-lg p-1.5 shadow-md",
+          "w-[min(calc(100vw-2rem),18rem)] rounded-lg bg-[var(--menu-surface)] p-1.5 shadow-md",
           isTerminal &&
-            "border-[var(--terminal-border)] bg-[var(--terminal-surface)] text-[var(--terminal-text)]",
+            "border-[var(--terminal-border)] text-[var(--terminal-text)]",
         )}
+        onCloseAutoFocus={(event) => {
+          if (menu.isNavigating()) event.preventDefault();
+        }}
       >
         <DropdownMenuLabel
           className={cn(
@@ -116,12 +120,13 @@ export function EcosystemSwitcher({
             isTerminal && link.key === "terminal" ? (
               <DropdownMenuItem
                 key={link.key}
-                asChild
-                className="cursor-pointer items-start rounded-md bg-[var(--terminal-surface-2)]/60 px-2 py-2"
+                className="cursor-pointer items-start rounded-md bg-[var(--menu-item-selected)] px-2 py-2"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  menu.close();
+                }}
               >
-                <Link to="/terminal" className="no-underline">
-                  <EcosystemLinkRow name={link.name} description={link.description} current />
-                </Link>
+                <EcosystemLinkRow name={link.name} description={link.description} current />
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -129,9 +134,7 @@ export function EcosystemSwitcher({
                 disabled
                 className={cn(
                   "cursor-default items-start rounded-md px-2 py-2 opacity-100",
-                  isTerminal
-                    ? "bg-[var(--terminal-surface-2)]/50 focus:bg-[var(--terminal-surface-2)]/50"
-                    : "bg-surface-2/50 focus:bg-surface-2/50",
+                  "bg-[var(--menu-item-selected)] focus:bg-[var(--menu-item-selected)]",
                 )}
               >
                 <EcosystemLinkRow name={link.name} description={link.description} current />
@@ -140,12 +143,16 @@ export function EcosystemSwitcher({
           ) : (
             <DropdownMenuItem
               key={link.key}
-              asChild
               className="cursor-pointer items-start rounded-md px-2 py-2"
+              onSelect={(event) => {
+                event.preventDefault();
+                if (menu.isNavigating()) return;
+                menu.runAfterClose(() => {
+                  window.location.assign(link.href);
+                });
+              }}
             >
-              <a href={link.href} className="cursor-pointer no-underline">
-                <EcosystemLinkRow name={link.name} description={link.description} current={false} />
-              </a>
+              <EcosystemLinkRow name={link.name} description={link.description} current={false} />
             </DropdownMenuItem>
           ),
         )}
@@ -176,7 +183,7 @@ export function EcosystemSwitcherMobileSection({
           <li key={link.key}>
             {link.current ? (
               <div
-                className="flex items-start gap-2 rounded-md bg-surface-2 px-3 py-2.5"
+                className="flex items-start gap-2 rounded-md bg-[var(--menu-item-selected)] px-3 py-2.5"
                 aria-current="page"
               >
                 <EcosystemLinkRow name={link.name} description={link.description} current />
@@ -185,7 +192,7 @@ export function EcosystemSwitcherMobileSection({
               <a
                 href={link.href}
                 onClick={onNavigate}
-                className="flex cursor-pointer items-start gap-2 rounded-md px-3 py-2.5 text-foreground transition-colors hover:bg-surface-2/60"
+                className="flex cursor-pointer items-start gap-2 rounded-md px-3 py-2.5 text-foreground transition-colors hover:bg-[var(--menu-item-hover)]"
               >
                 <EcosystemLinkRow name={link.name} description={link.description} current={false} />
               </a>

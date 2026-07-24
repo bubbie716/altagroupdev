@@ -92,7 +92,7 @@ export function MerchantInvoiceRecipientField({
         />
       </div>
       {recipients.length > 0 && !selectedRecipient ? (
-        <ul className="mt-2 overflow-hidden rounded-md border border-border">
+        <ul className="mt-2 overflow-hidden rounded-md border border-border bg-surface-1 shadow-md">
           {recipients.map((recipient) => (
             <li key={`${recipient.kind}:${recipient.id}`}>
               <button
@@ -103,7 +103,7 @@ export function MerchantInvoiceRecipientField({
                   onSelectedRecipientChange(recipient);
                   setQuery(recipient.displayName);
                 }}
-                className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RecipientRowContent recipient={recipient} />
               </button>
@@ -111,7 +111,7 @@ export function MerchantInvoiceRecipientField({
           ))}
         </ul>
       ) : selectedRecipient ? (
-        <ul className="mt-2 overflow-hidden rounded-md border border-border">
+        <ul className="mt-2 overflow-hidden rounded-md border border-border bg-surface-1 shadow-md">
           <li className="flex w-full items-start gap-3 border-l-2 border-gold bg-gold/5 px-4 py-3 text-left text-sm">
             <RecipientRowContent recipient={selectedRecipient} />
           </li>

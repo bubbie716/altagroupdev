@@ -82,7 +82,7 @@ export function AltaCardEmployeeCardManageButton({
         Manage
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md border-border bg-background">
+        <DialogContent className="max-w-md border-border bg-surface-1">
           <DialogHeader>
             <DialogTitle className="font-serif text-[20px]">Manage employee card</DialogTitle>
             <DialogDescription>

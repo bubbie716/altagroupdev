@@ -71,8 +71,16 @@
   --surface-2: oklch(0.955 0.012 85); /* #F1EEE7 muted surface */
   --card: var(--surface-1);
   --card-foreground: var(--foreground);
-  --popover: var(--surface-2);
+  /* Solid elevated panel — never match page ivory so overlays stay readable */
+  --popover: var(--surface-1);
   --popover-foreground: var(--foreground);
+
+  /* Menu / dropdown semantics — cool neutral gray, not gold/beige accent */
+  --menu-surface: var(--surface-1);
+  --menu-item-hover: oklch(0.94 0.006 250);
+  --menu-item-selected: oklch(0.91 0.008 250);
+  --menu-item-destructive-hover: oklch(0.95 0.03 25);
+  --menu-item-focus-ring: var(--ring);
 
   /* Deep navy primary (matches Alta mark) */
   --primary: oklch(0.24 0.05 260);
@@ -146,8 +154,14 @@
   --surface-2: oklch(0.22 0.018 256);
   --card: var(--surface-1);
   --card-foreground: oklch(1 0 0);
-  --popover: var(--surface-2);
+  --popover: var(--surface-1);
   --popover-foreground: oklch(1 0 0);
+
+  --menu-surface: var(--surface-1);
+  --menu-item-hover: oklch(0.24 0.014 252);
+  --menu-item-selected: oklch(0.27 0.016 252);
+  --menu-item-destructive-hover: oklch(0.28 0.05 25);
+  --menu-item-focus-ring: var(--ring);
 
   --primary: oklch(0.32 0.072 264);
   --primary-foreground: oklch(0.98 0 0);
@@ -846,8 +860,14 @@
   --surface-2: var(--terminal-surface-2);
   --card: var(--terminal-surface);
   --card-foreground: var(--terminal-text);
-  --popover: var(--terminal-surface-2);
+  --popover: var(--terminal-surface);
   --popover-foreground: var(--terminal-text);
+  --menu-surface: var(--terminal-surface);
+  /* Cool gray with a whisper of green — not brown/gold */
+  --menu-item-hover: color-mix(in srgb, var(--terminal-surface-2) 88%, var(--terminal-green) 12%);
+  --menu-item-selected: color-mix(in srgb, var(--terminal-surface-2) 78%, var(--terminal-green) 22%);
+  --menu-item-destructive-hover: color-mix(in srgb, var(--terminal-surface) 85%, var(--terminal-red) 15%);
+  --menu-item-focus-ring: var(--terminal-green);
   --muted: var(--terminal-surface-2);
   --muted-foreground: var(--terminal-muted);
   --border: var(--terminal-border);
@@ -880,6 +900,10 @@
   --terminal-border-strong: rgba(255, 255, 255, 0.16);
   --terminal-text: #f4f1ea;
   --terminal-muted: #8b9099;
+  --menu-surface: #111318;
+  --menu-item-hover: #1a1e24;
+  --menu-item-selected: #1f242b;
+  --menu-item-destructive-hover: color-mix(in srgb, #111318 80%, var(--terminal-red) 20%);
 }
 
 .dark .terminal-shell {

@@ -459,7 +459,7 @@ export function AltaPayForm({
               />
             </div>
             {payableResults.length > 0 && !selectedRecipient && (
-              <ul className="mt-2 overflow-hidden rounded-md border border-border">
+              <ul className="mt-2 overflow-hidden rounded-md border border-border bg-surface-1 shadow-md">
                 {payableResults.map((recipient) => {
                   const Icon = recipientIcon(recipient);
                   return (
@@ -476,7 +476,7 @@ export function AltaPayForm({
                           setRecipientResults([]);
                           setComposeError(null);
                         }}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/60"
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
                       >
                         <Icon className="mt-0.5 size-4 shrink-0 text-gold" />
                         <span>

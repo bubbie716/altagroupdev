@@ -257,10 +257,10 @@ function ScheduleForm({
         <span className="type-meta">Payee</span>
         <input className={inputClass} value={query} onChange={(e) => void handleSearch(e.target.value)} placeholder="Search company or person" />
         {payableRecipients.length > 0 && !selected ? (
-          <ul className="mt-2 max-h-40 overflow-auto rounded-md border border-border">
+          <ul className="mt-2 max-h-40 overflow-auto rounded-md border border-border bg-surface-1 shadow-md">
             {payableRecipients.map((r) => (
               <li key={`${r.kind}:${r.id}`}>
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-muted/40" onClick={() => {
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => {
                   setSelected(r);
                   setQuery(r.name);
                   setRecipients([]);
@@ -385,10 +385,10 @@ function AutopayForm({
         <span className="type-meta">Merchant</span>
         <input className={inputClass} value={query} onChange={(e) => void handleSearch(e.target.value)} placeholder="Search verified company" />
         {companies.length > 0 && !merchantCompanyId ? (
-          <ul className="mt-2 max-h-40 overflow-auto rounded-md border border-border">
+          <ul className="mt-2 max-h-40 overflow-auto rounded-md border border-border bg-surface-1 shadow-md">
             {companies.map((c) => (
               <li key={c.id}>
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-muted/40" onClick={() => { setMerchantCompanyId(c.id); setMerchantName(c.name); setQuery(c.name); setCompanies([]); }}>
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-surface-2" onClick={() => { setMerchantCompanyId(c.id); setMerchantName(c.name); setQuery(c.name); setCompanies([]); }}>
                   {c.name}
                 </button>
               </li>
