@@ -1,5 +1,8 @@
 import type { RelationshipTierCode } from "@/lib/bank/relationship-intelligence-types";
-import { RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/relationship-intelligence-config";
+import {
+  RELATIONSHIP_PREMIER_PROGRESS_CEILING,
+  RELATIONSHIP_TIER_THRESHOLDS,
+} from "@/lib/bank/relationship-intelligence-config";
 
 /** Customer-facing relationship tiers. */
 export type DisplayRelationshipTierCode = "STANDARD" | "PREFERRED" | "PREMIER";
@@ -12,7 +15,7 @@ export const DISPLAY_RELATIONSHIP_TIER_LABELS: Record<DisplayRelationshipTierCod
 
 const DISPLAY_TIER_LADDER: DisplayRelationshipTierCode[] = ["STANDARD", "PREFERRED", "PREMIER"];
 
-/** Legacy stored tier codes that are no longer assigned and have no display tier of their own. */
+/** Legacy DB-only tier codes — no longer assigned; display as Premier. */
 function isLegacyStoredTier(tier: RelationshipTierCode): boolean {
   return tier === "PRIVATE_CLIENT" || tier === "PRIVATE_ELIGIBLE";
 }
@@ -75,7 +78,7 @@ export function computeDisplayRelationshipProgress(
 
   if (!nextCode) {
     const floor = RELATIONSHIP_TIER_THRESHOLDS.PREMIER;
-    const ceiling = RELATIONSHIP_TIER_THRESHOLDS.PRIVATE_ELIGIBLE;
+    const ceiling = RELATIONSHIP_PREMIER_PROGRESS_CEILING;
     const span = ceiling - floor;
     const progressPercent =
       span <= 0

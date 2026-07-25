@@ -56,7 +56,7 @@ export const systemStatus: SystemStatusItem[] = [
 export const recentAdminActivity: AdminActivityItem[] = [
   { id: "ACT-8842", timestamp: "2026-06-22 21:22", actor: "terminal.ops", action: "Reviewed Terminal funding request", target: "TFUND-44102", division: "Terminal" },
   { id: "ACT-8841", timestamp: "2026-06-22 21:14", actor: "carter.ops", action: "Reviewed company verification", target: "Helix Dynamics (HLXD)", division: "Compliance" },
-  { id: "ACT-8840", timestamp: "2026-06-22 20:52", actor: "rm.jensen", action: "Issued private invite", target: "ALT-PRV-00291", division: "Bank" },
+  { id: "ACT-8840", timestamp: "2026-06-22 20:52", actor: "rm.jensen", action: "Reviewed relationship profile", target: "harborline", division: "Bank" },
   { id: "ACT-8839", timestamp: "2026-06-22 20:31", actor: "compliance.lee", action: "Escalated transfer flag", target: "TXN-44102", division: "Compliance" },
   { id: "ACT-8838", timestamp: "2026-06-22 19:48", actor: "ops.martinez", action: "Reviewed transfer flag", target: "TXN-44102", division: "Compliance" },
   { id: "ACT-8837", timestamp: "2026-06-22 19:02", actor: "ops.martinez", action: "Froze account", target: "user: vaultseeker", division: "Bank" },
@@ -459,7 +459,7 @@ export const bankOpsDepositWithdrawRequests: BankDepositWithdrawRequest[] = [
     account: "ALT-PRV-00291",
     holder: "harborline",
     amount: "ƒ2,000,000",
-    method: "Private negotiated CD rollover",
+    method: "Negotiated CD rollover",
     status: "Review",
     submitted: "2026-06-22 19:30",
   },
@@ -763,7 +763,6 @@ export const internalSettings: InternalSettings = {
     { key: "terminal_trade_preview", label: "Terminal order entry (preview)", enabled: true },
     { key: "issuer_portal_uploads", label: "Issuer portal financial uploads", enabled: true },
     { key: "exchange_api_public", label: "Market data API documentation gate", enabled: false },
-    { key: "private_invite_auto", label: "Automated private invites", enabled: false },
     { key: "compliance_auto_escalate", label: "Auto-escalate critical flags", enabled: false },
   ],
 };

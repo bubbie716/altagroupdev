@@ -68,7 +68,7 @@ export function buildCustomerAccountStatus(input: {
     inGoodStanding,
     hasIssues,
     headline,
-    notices: inGoodStanding ? [ACCOUNT_STATUS_COPY.goodStanding] : dedupeNotices(notices),
+    notices: inGoodStanding ? [] : dedupeNotices(notices),
   };
 }
 

@@ -1,5 +1,9 @@
 # Alta Platform — Product Readiness Audit
 
+> **Historical status (2026-07):** This audit is retained for archival reference.
+> Alta Private / Private Banking was retired and is not a current or planned product.
+> Findings below reflect the codebase as of the audit date and were not rewritten.
+
 **Audit date:** June 22, 2026  
 **Scope:** Entire Alta Capital Suite codebase  
 **Type:** Product, architecture, and launch-readiness (not code quality, not security)  

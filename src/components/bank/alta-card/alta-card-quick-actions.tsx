@@ -1,3 +1,5 @@
+"use client";
+
 import { useRouter } from "@tanstack/react-router";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
@@ -8,9 +10,10 @@ import {
 } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { AltaCardCashAdvancePanel } from "@/components/bank/alta-card/alta-card-cash-advance-panel";
 import { AltaCardPaymentPanel } from "@/components/bank/alta-card/alta-card-payment-panel";
-import { activateAltaCardRecord, freezeAltaCardRecord, unfreezeAltaCardRecord } from "@/lib/bank/alta-card.functions";
+import { activateAltaCardRecord } from "@/lib/bank/alta-card.functions";
 import { altaCardStatementsLink, altaCardReviewLink, altaCardReviewDetailLink } from "@/lib/bank/alta-card-navigation";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import { useBankActionLauncher } from "@/components/bank/actions/use-bank-action-launcher";
 
 export function AltaCardQuickActions({
   card,
@@ -21,6 +24,7 @@ export function AltaCardQuickActions({
 }) {
   const router = useRouter();
   const creditDeskNav = useCreditDeskCustomerNav();
+  const { openAction } = useBankActionLauncher();
   const canPay = card.currentBalance > 0 && card.status !== "closed";
   const canAdvance = card.status === "active" && card.availableCredit > 0;
   const canAltaPay = card.status === "active";
@@ -74,7 +78,9 @@ export function AltaCardQuickActions({
               label="Freeze card"
               variant="ghost"
               tile
-              onClick={() => void freezeAltaCardRecord({ data: card.id }).then(() => router.invalidate())}
+              onClick={() => {
+                openAction("card-freeze", { cardId: card.id });
+              }}
             />
           </AltaCardQuickActionCell>
         ) : null}
@@ -85,7 +91,9 @@ export function AltaCardQuickActions({
               label="Unfreeze"
               variant="primary"
               tile
-              onClick={() => void unfreezeAltaCardRecord({ data: card.id }).then(() => router.invalidate())}
+              onClick={() => {
+                openAction("card-unfreeze", { cardId: card.id });
+              }}
             />
           </AltaCardQuickActionCell>
         ) : null}

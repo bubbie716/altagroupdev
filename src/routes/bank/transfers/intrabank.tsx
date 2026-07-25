@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Section, Card } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { TransferPageHeader } from "@/components/bank/transfer-page-header";
-import { BankInternalTransferForm } from "@/components/bank/bank-internal-transfer-form";
+import { BankActionPageSurface } from "@/components/bank/actions/bank-action-page-surface";
+import { TransferActionFlow } from "@/components/bank/actions/flows/transfer-action-flow";
 import { ScheduledTransferCenter } from "@/components/bank/scheduled-transfer-center";
 import { EmptyBankState } from "@/components/data/empty-bank-state";
 import { florin } from "@/lib/bank/api";
@@ -68,11 +69,20 @@ function BankIntrabankTransfers() {
       ) : (
         <>
           <TransferPageHeader title="Internal transfer · Instant settlement" accountId={accountId} />
-          <BankInternalTransferForm
-            accounts={data.accounts}
-            defaultFromAccountId={accountId}
-            onSuccess={() => void invalidateRouteData(router)}
-          />
+          <BankActionPageSurface>
+            {(ctrl) => (
+              <TransferActionFlow
+                accounts={data.accounts}
+                defaultAccountId={accountId}
+                {...ctrl}
+                onDone={() => {
+                  ctrl.onDone();
+                  void invalidateRouteData(router);
+                }}
+                initialTiming="now"
+              />
+            )}
+          </BankActionPageSurface>
 
           {data.accounts.length >= 2 && (
             <Section title="Scheduled & recurring transfers" className="mt-10">

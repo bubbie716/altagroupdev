@@ -10,9 +10,12 @@ const PAGES = [
   { name: "bank-home", url: `${BASE}/bank?site=bank` },
   { name: "bank-products", url: `${BASE}/bank/products?site=bank` },
   { name: "alta-card", url: `${BASE}/bank/alta-card?site=bank` },
+  { name: "alta-card-business", url: `${BASE}/bank/alta-card/business?site=bank` },
   { name: "alta-card-apply", url: `${BASE}/bank/alta-card/apply?site=bank` },
   { name: "lending", url: `${BASE}/bank/lending?site=bank` },
   { name: "profile", url: `${BASE}/profile?site=bank` },
+  { name: "internal", url: `${BASE}/internal?site=bank` },
+  { name: "internal-alta-card", url: `${BASE}/internal/alta-card?site=bank` },
   { name: "removed-private", url: `${BASE}/bank/private?site=bank`, expectNotFound: true },
   { name: "removed-private-queue", url: `${BASE}/internal/queues/private-banking?site=bank`, expectNotFound: true },
 ];
@@ -86,7 +89,12 @@ async function runCase(browser, viewport, theme, pageSpec) {
           ok = fail(`${pageSpec.name}: expected Alta Gold discoverability`);
         }
       }
-      if (pageSpec.name === "bank-home" || pageSpec.name === "alta-card") {
+      if (pageSpec.name === "alta-card-business") {
+        if (!/Business Alta Card|Alta Card/i.test(text)) {
+          ok = fail(`${pageSpec.name}: expected Business Alta Card surface`);
+        }
+      }
+      if (pageSpec.name === "bank-home" || pageSpec.name === "alta-card" || pageSpec.name === "internal") {
         const nav = await page.locator("nav, header").allInnerTexts();
         const navText = nav.join("\n");
         if (/Alta Private|Private Banking/i.test(navText)) {

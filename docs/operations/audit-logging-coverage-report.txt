@@ -1,3 +1,9 @@
+HISTORICAL STATUS (2026-07)
+---------------------------
+This document is retained for archival reference. Alta Private / Private Banking
+was retired and is not a current or planned product. Findings below reflect the
+codebase as of the audit date and were not rewritten.
+
 Alta Audit Logging Coverage Report
 ===================================
 Scope: Alta web app (altaweb) + Alta Companion Discord Bot (altabot)

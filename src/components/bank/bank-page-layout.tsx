@@ -10,23 +10,28 @@ import {
   type ReactNode,
 } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { PageShell } from "@/components/page-shell";
+import { BankTopNav } from "@/components/bank/bank-top-nav";
+import { BankMobileBottomNav } from "@/components/bank/bank-mobile-nav";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
+import { BankActionHost } from "@/components/bank/actions/bank-action-host";
 import { useResolvedPathname } from "@/components/navigation/use-resolved-pathname";
+import { cn } from "@/lib/utils";
 
 export type BankPageMetaProps = {
-  eyebrow: string;
-  title: string;
+  eyebrow?: string;
+  title?: string;
   description?: string;
-  /** Subtle line beneath the title. */
   subtitle?: string;
   action?: ReactNode;
   printDocument?: boolean;
+  /** Hide the page title block (dashboard uses its own hierarchy). */
+  hideTitle?: boolean;
 };
 
 const defaultMeta: BankPageMetaProps = {
   eyebrow: "Alta Bank",
   title: "Banking",
+  hideTitle: false,
 };
 
 function metaFieldsEqual(a: BankPageMetaProps, b: BankPageMetaProps): boolean {
@@ -36,7 +41,8 @@ function metaFieldsEqual(a: BankPageMetaProps, b: BankPageMetaProps): boolean {
     a.description === b.description &&
     a.subtitle === b.subtitle &&
     a.action === b.action &&
-    a.printDocument === b.printDocument
+    a.printDocument === b.printDocument &&
+    a.hideTitle === b.hideTitle
   );
 }
 
@@ -46,7 +52,7 @@ type BankPageLayoutContextValue = {
 
 const BankPageLayoutContext = createContext<BankPageLayoutContextValue | null>(null);
 
-/** Registers page hero metadata for the persistent /bank layout shell. */
+/** Registers page metadata for the persistent /bank layout shell. */
 export function BankPageMeta(props: BankPageMetaProps) {
   const ctx = useContext(BankPageLayoutContext);
   useLayoutEffect(() => {
@@ -62,6 +68,7 @@ export function BankPageMeta(props: BankPageMetaProps) {
     props.subtitle,
     props.action,
     props.printDocument,
+    props.hideTitle,
   ]);
 
   return null;
@@ -75,39 +82,107 @@ export function isChromelessBankPath(pathname: string): boolean {
   );
 }
 
-/** Full-screen bank routes (deal room threads) — no shared bank chrome at all. */
 export function isFullScreenBankPath(pathname: string): boolean {
   return pathname.includes("/thread");
 }
 
-function BankChromeLayout({ showBankSubNav }: { showBankSubNav: boolean }) {
+function shouldShowSectionSubNav(pathname: string): boolean {
+  if (isChromelessBankPath(pathname)) return false;
+  return (
+    pathname.startsWith("/bank/lending") ||
+    pathname.startsWith("/bank/alta-card") ||
+    pathname.startsWith("/bank/pay") ||
+    pathname.startsWith("/bank/business") ||
+    pathname.startsWith("/bank/commercial")
+  );
+}
+
+function BankChromeLayout() {
   const [meta, setMetaState] = useState<BankPageMetaProps>(defaultMeta);
   const setMeta = useCallback((next: BankPageMetaProps) => {
     setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
+  const resolvedPathname = useResolvedPathname();
+  const showSubNav = shouldShowSectionSubNav(resolvedPathname);
+  const showTitle = !meta.hideTitle && Boolean(meta.title);
 
   return (
     <BankPageLayoutContext.Provider value={layoutValue}>
-      <PageShell {...meta} animateHero={false}>
-        <div className="flex min-h-0 flex-1 flex-col">
-          {showBankSubNav ? <BankSubNav /> : null}
-          <div className="route-page-content">
-            <Outlet />
-          </div>
+      <div
+        className={cn(
+          "flex min-h-0 w-full flex-1 flex-col overflow-x-clip bg-background",
+          meta.printDocument && "statement-print-page",
+        )}
+      >
+        <div className={cn(meta.printDocument && "print:hidden")}>
+          <BankTopNav />
         </div>
-      </PageShell>
+
+        <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1120px] flex-1 flex-col px-4 sm:px-6">
+          {showSubNav ? (
+            <div className={cn("pt-3", meta.printDocument && "print:hidden")}>
+              <BankSubNav />
+            </div>
+          ) : null}
+
+          {showTitle ? (
+            <div
+              className={cn(
+                "shrink-0 border-b border-border/50 pb-4 pt-6 sm:pb-5 sm:pt-8",
+                meta.printDocument && "print:hidden",
+              )}
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                <div className="min-w-0">
+                  {meta.eyebrow ? (
+                    <div className="text-[12px] font-medium text-muted-foreground">{meta.eyebrow}</div>
+                  ) : null}
+                  <h1 className="mt-1 break-words text-[1.5rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
+                    {meta.title}
+                  </h1>
+                  {meta.description ? (
+                    <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+                      {meta.description}
+                    </p>
+                  ) : null}
+                </div>
+                {meta.action ? (
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+                    {meta.action}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col py-6 sm:py-8",
+              "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-10",
+              meta.printDocument && "print:py-0",
+            )}
+          >
+            <Outlet />
+          </main>
+        </div>
+
+        <div className={cn(meta.printDocument && "print:hidden")}>
+          <BankMobileBottomNav />
+        </div>
+
+        <BankActionHost />
+      </div>
     </BankPageLayoutContext.Provider>
   );
 }
 
 export function BankRouteLayout() {
   const locationPathname = useRouterState({ select: (s) => s.location.pathname });
-  const resolvedPathname = useResolvedPathname();
 
   if (isFullScreenBankPath(locationPathname)) {
     return <Outlet />;
   }
 
-  return <BankChromeLayout showBankSubNav={!isChromelessBankPath(resolvedPathname)} />;
+  return <BankChromeLayout />;
 }

@@ -8,7 +8,7 @@ export interface EditorialStat {
 /**
  * Editorial CTA strip — mono eyebrow, serif headline, body, action row,
  * gold hairline divider, mono stat row. Used as marketing hero on
- * Bank Lending, Business, Products, and Private landing pages.
+ * Bank Lending, Business, and Products landing pages.
  */
 export function EditorialCtaStrip({
   eyebrow,

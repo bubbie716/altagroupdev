@@ -83,6 +83,7 @@ import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
 import { Route as BankDepositRouteImport } from './routes/bank/deposit'
 import { Route as BankDashboardRouteImport } from './routes/bank/dashboard'
 import { Route as BankCreditDeskClosedRouteImport } from './routes/bank/credit-desk-closed'
+import { Route as BankActivityRouteImport } from './routes/bank/activity'
 import { Route as BankAccountsRouteImport } from './routes/bank/accounts'
 import { Route as InternalLendingRouteRouteImport } from './routes/internal/lending/route'
 import { Route as InternalBankRouteRouteImport } from './routes/internal/bank/route'
@@ -644,6 +645,11 @@ const BankDashboardRoute = BankDashboardRouteImport.update({
 const BankCreditDeskClosedRoute = BankCreditDeskClosedRouteImport.update({
   id: '/credit-desk-closed',
   path: '/credit-desk-closed',
+  getParentRoute: () => BankRouteRoute,
+} as any)
+const BankActivityRoute = BankActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
   getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAccountsRoute = BankAccountsRouteImport.update({
@@ -1762,6 +1768,7 @@ export interface FileRoutesByFullPath {
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/internal/lending': typeof InternalLendingRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
+  '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
@@ -2016,6 +2023,7 @@ export interface FileRoutesByTo {
   '/markets': typeof MarketsRoute
   '/profile': typeof ProfileRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
+  '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
@@ -2271,6 +2279,7 @@ export interface FileRoutesById {
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/internal/lending': typeof InternalLendingRouteRouteWithChildren
   '/bank/accounts': typeof BankAccountsRouteWithChildren
+  '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
   '/bank/dashboard': typeof BankDashboardRoute
   '/bank/deposit': typeof BankDepositRoute
@@ -2541,6 +2550,7 @@ export interface FileRouteTypes {
     | '/internal/bank'
     | '/internal/lending'
     | '/bank/accounts'
+    | '/bank/activity'
     | '/bank/credit-desk-closed'
     | '/bank/dashboard'
     | '/bank/deposit'
@@ -2795,6 +2805,7 @@ export interface FileRouteTypes {
     | '/markets'
     | '/profile'
     | '/bank/accounts'
+    | '/bank/activity'
     | '/bank/credit-desk-closed'
     | '/bank/dashboard'
     | '/bank/deposit'
@@ -3049,6 +3060,7 @@ export interface FileRouteTypes {
     | '/internal/bank'
     | '/internal/lending'
     | '/bank/accounts'
+    | '/bank/activity'
     | '/bank/credit-desk-closed'
     | '/bank/dashboard'
     | '/bank/deposit'
@@ -3864,6 +3876,13 @@ declare module '@tanstack/react-router' {
       path: '/credit-desk-closed'
       fullPath: '/bank/credit-desk-closed'
       preLoaderRoute: typeof BankCreditDeskClosedRouteImport
+      parentRoute: typeof BankRouteRoute
+    }
+    '/bank/activity': {
+      id: '/bank/activity'
+      path: '/activity'
+      fullPath: '/bank/activity'
+      preLoaderRoute: typeof BankActivityRouteImport
       parentRoute: typeof BankRouteRoute
     }
     '/bank/accounts': {
@@ -5593,6 +5612,7 @@ interface BankRouteRouteChildren {
   BankPayRouteRoute: typeof BankPayRouteRouteWithChildren
   BankTransfersRouteRoute: typeof BankTransfersRouteRouteWithChildren
   BankAccountsRoute: typeof BankAccountsRouteWithChildren
+  BankActivityRoute: typeof BankActivityRoute
   BankCreditDeskClosedRoute: typeof BankCreditDeskClosedRoute
   BankDashboardRoute: typeof BankDashboardRoute
   BankDepositRoute: typeof BankDepositRoute
@@ -5631,6 +5651,7 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankPayRouteRoute: BankPayRouteRouteWithChildren,
   BankTransfersRouteRoute: BankTransfersRouteRouteWithChildren,
   BankAccountsRoute: BankAccountsRouteWithChildren,
+  BankActivityRoute: BankActivityRoute,
   BankCreditDeskClosedRoute: BankCreditDeskClosedRoute,
   BankDashboardRoute: BankDashboardRoute,
   BankDepositRoute: BankDepositRoute,

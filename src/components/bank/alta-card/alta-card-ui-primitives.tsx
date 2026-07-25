@@ -95,25 +95,44 @@ export function AltaCardMetric({
   label,
   value,
   emphasis,
+  dense,
+  className,
 }: {
   label: string;
   value: string;
   emphasis?: boolean;
+  /** Tighter padding and type — used where several metrics share a mobile row. */
+  dense?: boolean;
+  className?: string;
 }) {
   return (
     <div
       className={cn(
-        "min-w-0 rounded-lg border border-border bg-surface-1/80 p-4",
+        "min-w-0 rounded-lg border border-border bg-surface-1/80",
+        dense ? "p-3 sm:p-3.5" : "p-4",
         emphasis && "border-gold/25 bg-gold/5",
+        className,
       )}
     >
-      <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <dt
+        className={cn(
+          "font-mono uppercase tracking-[0.16em] text-muted-foreground",
+          dense ? "text-[9px] leading-relaxed sm:text-[10px]" : "text-[10px] tracking-[0.18em]",
+        )}
+      >
         {label}
       </dt>
       <dd
         className={cn(
-          "mt-2 break-words font-mono tabular-nums text-foreground",
-          emphasis ? "text-[18px] sm:text-[20px]" : "text-[15px]",
+          "break-words font-mono tabular-nums text-foreground",
+          dense ? "mt-1.5" : "mt-2",
+          dense
+            ? emphasis
+              ? "text-[15px] sm:text-[17px]"
+              : "text-[13px] sm:text-[14px]"
+            : emphasis
+              ? "text-[18px] sm:text-[20px]"
+              : "text-[15px]",
         )}
       >
         {value}

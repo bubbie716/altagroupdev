@@ -164,7 +164,7 @@ async function upsertCompanies() {
 }
 
 async function upsertAccounts() {
-  // Retire retired Private Banking account fixtures from earlier UI Lab seeds.
+  // Remove legacy reserve account fixtures from earlier UI Lab seeds.
   await prisma.bankAccount.deleteMany({
     where: { id: { in: ["BA-LAB-RSV", "BA-LAB-NPC-RSV"] } },
   });

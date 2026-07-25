@@ -34,7 +34,7 @@ export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">Credit Desk</div>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-            Temporarily stop new credit applications — personal loans, business loans, private liquidity
+            Temporarily stop new credit applications — personal loans, business loans, negotiated liquidity
             lines, Alta Card applications, and account review requests. Closing the Credit Desk also
             cancels all pending applications and reviews. Existing loans, Alta Cards, payments, and
             autopay remain active.

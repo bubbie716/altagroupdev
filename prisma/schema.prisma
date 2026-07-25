@@ -11,6 +11,7 @@ enum UserTag {
   CORPORATE_ADMIN
   BANK_ADMIN
   TERMINAL_ADMIN
+  /// Legacy DB-only value — no application meaning; do not grant.
   PRIVATE_CLIENT
 }
 
@@ -2493,6 +2494,7 @@ enum RelationshipTier {
   STANDARD
   PREFERRED
   PREMIER
+  /// Legacy DB-only codes — historical rows only; display as Premier.
   PRIVATE_ELIGIBLE
   PRIVATE_CLIENT
 }
@@ -2503,6 +2505,7 @@ model RelationshipProfile {
   relationshipSince      DateTime
   relationshipScore      Int              @default(0)
   relationshipTier       RelationshipTier @default(NEW)
+  /// Legacy columns — no longer written or used for product gating.
   privateBankingEligible Boolean          @default(false)
   privateBankingClient   Boolean          @default(false)
   totalBankAssets        Decimal          @default(0) @db.Decimal(18, 2)
@@ -2561,6 +2564,7 @@ enum RelationshipRecommendationType {
   ALTA_CARD_LIMIT
   ALTA_CARD_RATE
   LOAN_PRE_APPROVAL
+  /// Legacy recommendation type — no longer generated.
   PRIVATE_BANKING_INVITE
   PRODUCT_OPPORTUNITY
 }
@@ -2622,6 +2626,7 @@ enum RelationshipTimelineEventType {
   LOAN_FUNDED
   LOAN_PAYMENT_MADE
   LOAN_PAID_OFF
+  /// Legacy timeline event types — retained for historical rows.
   PRIVATE_BANKING_ELIGIBLE
   ALTA_PRIVATE_INVITED
   PRIVATE_BANKING_CLIENT
@@ -2652,6 +2657,7 @@ model RelationshipTimelineEvent {
   @@index([relatedEntityType, relatedEntityId])
 }
 
+/// Legacy invitation table — product retired; model retained for historical rows.
 enum AltaPrivateInvitationStatus {
   PENDING
   ACCEPTED
@@ -2884,6 +2890,7 @@ enum TransferLedgerRole {
   REVERSAL_CREDIT
 }
 
+/// Legacy banker-assignment table — product retired; retained for historical rows.
 enum PrivateBankingRelationshipStatus {
   ACTIVE
   INACTIVE
@@ -2921,6 +2928,7 @@ enum StaffAssignmentSubjectType {
 }
 
 enum StaffAssignmentType {
+  /// Legacy assignment type — product retired.
   ALTA_PRIVATE_BANKER
   COMMERCIAL_BANKER
   CREDIT_DESK
@@ -2991,6 +2999,7 @@ model TransferGroup {
   @@index([createdAt])
 }
 
+/// Legacy banker-assignment rows — product retired; retained for historical data.
 model PrivateBankingRelationship {
   id               String                           @id @default(cuid())
   customerUserId   String

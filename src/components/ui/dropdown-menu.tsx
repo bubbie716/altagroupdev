@@ -5,6 +5,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { overlayZClass } from "@/lib/ui/overlay-layers";
 
 const DropdownMenu = ({
   modal = false,
@@ -50,8 +51,10 @@ const DropdownMenuSubContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
     ref={ref}
+    data-alta-overlay="nested"
     className={cn(
-      "z-[110] min-w-[8rem] overflow-hidden rounded-md border border-border bg-[var(--menu-surface)] p-1 text-popover-foreground shadow-lg",
+      "min-w-[8rem] overflow-hidden rounded-md border border-border bg-[var(--menu-surface)] p-1 text-popover-foreground shadow-lg",
+      overlayZClass("nestedPortal"),
       "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
       "data-[state=closed]:pointer-events-none data-[state=closed]:invisible data-[state=closed]:opacity-0 data-[state=closed]:animate-none",
       "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
@@ -71,8 +74,10 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       collisionPadding={collisionPadding}
+      data-alta-overlay="nested"
       className={cn(
-        "z-[110] max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border border-border bg-[var(--menu-surface)] p-1 text-popover-foreground shadow-lg",
+        "max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border border-border bg-[var(--menu-surface)] p-1 text-popover-foreground shadow-lg",
+        overlayZClass("nestedPortal"),
         // Keep open motion; drop exit animation so portals unmount immediately on select/nav.
         "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         "data-[state=closed]:pointer-events-none data-[state=closed]:invisible data-[state=closed]:opacity-0 data-[state=closed]:animate-none",

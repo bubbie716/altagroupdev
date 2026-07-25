@@ -142,6 +142,112 @@ export const BANK_DISCORD_NOTIFICATION_OPTIONS = BANK_DISCORD_NOTIFICATION_GROUP
   (group) => group.options,
 );
 
+/** Decisions, failures, and money-out alerts — the minimum useful set. */
+export const IMPORTANT_DISCORD_NOTIFICATION_TYPES: readonly UserNotificationType[] = [
+  "DEPOSIT_APPROVED",
+  "WITHDRAWAL_APPROVED",
+  "TRANSFER_FAILED",
+  "LARGE_MONEY_MOVEMENT_ALERT",
+  "ALTA_PAY_FAILED",
+  "SCHEDULED_TRANSFER_FAILED",
+  "PAYROLL_RUN_FAILED",
+  "CUSTOMER_PAYMENT_FAILED",
+  "MERCHANT_PAYMENT_FAILED",
+  "MERCHANT_INVOICE_OVERDUE",
+  "COMMERCIAL_PRO_BILLING_FAILED",
+  "COMMERCIAL_PRO_PAST_DUE",
+  "COMMERCIAL_BILLING_LOW_BALANCE_WARNING",
+  "LOAN_APPLICATION_APPROVED",
+  "LOAN_APPLICATION_DENIED",
+  "LOAN_AUTOPAY_FAILED",
+  "ALTA_CARD_APPLICATION_APPROVED",
+  "ALTA_CARD_APPLICATION_DENIED",
+  "ALTA_CARD_AUTOPAY_FAILED",
+  "ALTA_CARD_FROZEN",
+  "COMPANY_VERIFIED",
+];
+
+/** Everything except request receipts and reminders. */
+const NOT_RECOMMENDED_DISCORD_NOTIFICATION_TYPES: readonly UserNotificationType[] = [
+  "DEPOSIT_SUBMITTED",
+  "WITHDRAWAL_SUBMITTED",
+  "MERCHANT_INVOICE_REMINDER",
+  "PAYMENT_LINK_RECEIPT",
+  "COMMERCIAL_PRO_BILLING_SUCCEEDED",
+  "COMMERCIAL_PRO_RENEWAL_REMINDER",
+];
+
+export const RECOMMENDED_DISCORD_NOTIFICATION_TYPES: readonly UserNotificationType[] =
+  BANK_DISCORD_NOTIFICATION_OPTIONS.filter(
+    (option) => !NOT_RECOMMENDED_DISCORD_NOTIFICATION_TYPES.includes(option.type),
+  ).map((option) => option.type);
+
+export type DiscordNotificationPreset = "off" | "important" | "recommended" | "all" | "custom";
+
+export const DISCORD_NOTIFICATION_PRESETS: ReadonlyArray<{
+  id: Exclude<DiscordNotificationPreset, "off">;
+  label: string;
+  hint: string;
+}> = [
+  { id: "important", label: "Important only", hint: "Decisions, failures, and money out" },
+  { id: "recommended", label: "Recommended", hint: "Important alerts plus settled activity" },
+  { id: "all", label: "All", hint: "Every Alta Bank alert" },
+  { id: "custom", label: "Custom", hint: "Choose alerts by category" },
+];
+
+/** Missing keys mean "enabled", so presets write an explicit value for every type. */
+export function discordPrefsForPreset(
+  preset: Exclude<DiscordNotificationPreset, "custom">,
+): DiscordNotificationPrefs {
+  const enabled =
+    preset === "off"
+      ? []
+      : preset === "important"
+        ? IMPORTANT_DISCORD_NOTIFICATION_TYPES
+        : preset === "recommended"
+          ? RECOMMENDED_DISCORD_NOTIFICATION_TYPES
+          : BANK_DISCORD_NOTIFICATION_OPTIONS.map((option) => option.type);
+
+  const prefs: DiscordNotificationPrefs = {};
+  for (const option of BANK_DISCORD_NOTIFICATION_OPTIONS) {
+    prefs[option.type] = enabled.includes(option.type);
+  }
+  return prefs;
+}
+
+export function isDiscordNotificationEnabled(
+  prefs: DiscordNotificationPrefs,
+  type: UserNotificationType,
+): boolean {
+  return prefs[type] !== false;
+}
+
+export function enabledDiscordNotificationCount(prefs: DiscordNotificationPrefs): number {
+  return BANK_DISCORD_NOTIFICATION_OPTIONS.filter((option) =>
+    isDiscordNotificationEnabled(prefs, option.type),
+  ).length;
+}
+
+function matchesTypeSet(
+  prefs: DiscordNotificationPrefs,
+  types: readonly UserNotificationType[],
+): boolean {
+  return BANK_DISCORD_NOTIFICATION_OPTIONS.every(
+    (option) => isDiscordNotificationEnabled(prefs, option.type) === types.includes(option.type),
+  );
+}
+
+export function resolveDiscordNotificationPreset(
+  prefs: DiscordNotificationPrefs,
+): DiscordNotificationPreset {
+  const enabled = enabledDiscordNotificationCount(prefs);
+  if (enabled === 0) return "off";
+  if (enabled === BANK_DISCORD_NOTIFICATION_OPTIONS.length) return "all";
+  if (matchesTypeSet(prefs, IMPORTANT_DISCORD_NOTIFICATION_TYPES)) return "important";
+  if (matchesTypeSet(prefs, RECOMMENDED_DISCORD_NOTIFICATION_TYPES)) return "recommended";
+  return "custom";
+}
+
 export const PAYMENT_ENGINE_NOTIFICATION_OPTIONS: ReadonlyArray<{
   key: PaymentEngineNotificationPrefKey;
   label: string;

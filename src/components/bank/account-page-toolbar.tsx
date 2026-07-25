@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { RouteButton } from "@/components/bank/route-button";
 import {
   Select,
   SelectContent,
@@ -15,6 +14,7 @@ import { findCompanyMembership } from "@/lib/auth/permissions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { resolveAccountSwitchSuffix } from "@/lib/bank/account-switch-path";
 import { florin } from "@/lib/bank/api";
+import { cn } from "@/lib/utils";
 
 function accountOptionLabel(account: UserBankAccount): string {
   return `${account.accountName} · ${account.accountNumber} · ${florin(account.balance)}`;
@@ -23,9 +23,11 @@ function accountOptionLabel(account: UserBankAccount): string {
 export function AccountPageToolbar({
   accounts,
   currentAccountId,
+  className,
 }: {
   accounts: UserBankAccount[];
   currentAccountId: string;
+  className?: string;
 }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -66,34 +68,30 @@ export function AccountPageToolbar({
   });
 
   return (
-    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <RouteButton
-        to="/bank"
-        className="inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
+    <div className={cn("min-w-0 w-full sm:max-w-md sm:shrink-0", className)}>
+      <label className="sr-only" htmlFor="account-page-switcher">
+        Account
+      </label>
+      <Select
+        value={accountSelect.value}
+        open={accountSelect.open}
+        onOpenChange={accountSelect.onOpenChange}
+        onValueChange={accountSelect.onValueChange}
       >
-        Back to dashboard
-      </RouteButton>
-
-      <div className="min-w-0 sm:ml-auto sm:max-w-lg">
-        <div className="mb-2 type-meta">Account</div>
-        <Select
-          value={accountSelect.value}
-          open={accountSelect.open}
-          onOpenChange={accountSelect.onOpenChange}
-          onValueChange={accountSelect.onValueChange}
+        <SelectTrigger
+          id="account-page-switcher"
+          className="h-10 w-full bg-surface-1 font-mono text-[12px] shadow-none"
         >
-          <SelectTrigger className="w-full font-mono text-[12px] shadow-none">
-            <SelectValue placeholder="Select account" />
-          </SelectTrigger>
-          <SelectContent>
-            {switcherAccounts.map((account) => (
-              <SelectItem key={account.id} value={account.id} className="font-mono text-[12px]">
-                {accountOptionLabel(account)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <SelectValue placeholder="Select account" />
+        </SelectTrigger>
+        <SelectContent className="bg-[var(--menu-surface)]">
+          {switcherAccounts.map((account) => (
+            <SelectItem key={account.id} value={account.id} className="font-mono text-[12px]">
+              {accountOptionLabel(account)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

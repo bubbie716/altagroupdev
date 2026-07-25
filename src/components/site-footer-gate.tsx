@@ -41,5 +41,14 @@ export function SiteFooterGate() {
 
   const legalDoc = variant === "legal" ? resolveLegalDocFooter(pathname) : undefined;
 
-  return <SiteFooter variant={variant} legalDoc={legalDoc} siteKey={site.key} />;
+  // Bank customer chrome uses a fixed mobile bottom nav — hide marketing footer on small screens.
+  const bankCustomerChrome =
+    pathname === "/bank" ||
+    (pathname.startsWith("/bank/") && !pathname.includes("/thread"));
+
+  return (
+    <div className={bankCustomerChrome ? "hidden md:block" : undefined}>
+      <SiteFooter variant={variant} legalDoc={legalDoc} siteKey={site.key} />
+    </div>
+  );
 }

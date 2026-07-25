@@ -1,25 +1,28 @@
-import { ArrowUpRight } from "lucide-react";
+"use client";
+
+import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ChevronRight } from "lucide-react";
 import { Card } from "@/components/page-shell";
-import { RouteButton } from "@/components/bank/route-button";
+import { BankActionLauncher } from "@/components/bank/actions/bank-action-launcher";
+import { cn } from "@/lib/utils";
 
 const actions = [
   {
     title: "Transfer",
-    description: "Move money between your own Alta Bank accounts.",
-    buttonLabel: "Transfer funds",
-    to: "/bank/transfers/" as const,
+    hint: "Between your Alta Bank accounts",
+    action: "transfer" as const,
+    icon: ArrowLeftRight,
   },
   {
     title: "Deposit",
-    description: "Submit a Florin deposit request with proof for manual review.",
-    buttonLabel: "Submit deposit",
-    to: "/bank/deposit" as const,
+    hint: "Submit a Florin deposit with proof",
+    action: "deposit" as const,
+    icon: ArrowDownToLine,
   },
   {
     title: "Withdraw",
-    description: "Request a withdrawal from this account. Balance updates after approval.",
-    buttonLabel: "Request withdrawal",
-    to: "/bank/withdraw" as const,
+    hint: "Request a withdrawal for review",
+    action: "withdraw" as const,
+    icon: ArrowUpFromLine,
   },
 ] as const;
 
@@ -31,23 +34,30 @@ export function AccountQuickActions({
   className?: string;
 }) {
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-4 ${className}`}>
-      {actions.map((action) => (
-        <Card key={action.title} className="flex min-h-0 flex-1 flex-col !p-6">
-          <div className="text-base font-medium tracking-tight">{action.title}</div>
-          <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
-            {action.description}
-          </p>
-          <RouteButton
-            to={action.to}
-            search={{ accountId }}
-            className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground transition-colors hover:bg-surface-2"
+    <Card className={cn("flex min-h-0 flex-col divide-y divide-border/50 !p-0", className)}>
+      {actions.map((item) => {
+        const Icon = item.icon;
+        return (
+          <BankActionLauncher
+            key={item.title}
+            action={item.action}
+            accountId={accountId}
+            variant="ghost"
+            className="h-auto w-full justify-start gap-3 rounded-none px-4 py-3 text-left font-normal first:rounded-t-xl last:rounded-b-xl"
           >
-            {action.buttonLabel}
-            <ArrowUpRight className="size-3.5" />
-          </RouteButton>
-        </Card>
-      ))}
-    </div>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground">
+              <Icon className="size-3.5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-medium leading-tight">{item.title}</span>
+              <span className="mt-0.5 block truncate text-[12px] font-normal text-muted-foreground">
+                {item.hint}
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </BankActionLauncher>
+        );
+      })}
+    </Card>
   );
 }

@@ -1,7 +1,10 @@
 import { florin } from "@/lib/bank/api";
 import { altaCardTierLabel, formatAltaCardRate } from "@/lib/bank/alta-card-types";
 import { COMPANY_RELATIONSHIP_TIER_LABELS, COMPANY_RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/company-relationship-intelligence-config";
-import { RELATIONSHIP_TIER_LABELS, RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/relationship-intelligence-config";
+import {
+  RELATIONSHIP_TIER_LABELS,
+  RELATIONSHIP_TIER_SCORE_FLOORS,
+} from "@/lib/bank/relationship-intelligence-config";
 
 export type CustomerTimelineScope = "personal" | "business";
 
@@ -787,8 +790,8 @@ export function isRelationshipTierUpgrade(
 ): boolean {
   if (!previousTier) return true;
   const thresholds =
-    scope === "business" ? COMPANY_RELATIONSHIP_TIER_THRESHOLDS : RELATIONSHIP_TIER_THRESHOLDS;
+    scope === "business" ? COMPANY_RELATIONSHIP_TIER_THRESHOLDS : RELATIONSHIP_TIER_SCORE_FLOORS;
   const tierRank = (tier: string, table: Record<string, number>) =>
-    tier in table ? table[tier] : 0;
+    tier in table ? table[tier]! : 0;
   return tierRank(newTier, thresholds) > tierRank(previousTier, thresholds);
 }

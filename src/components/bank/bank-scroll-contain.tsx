@@ -125,3 +125,7 @@ export function BankSubNavScroll({
 
 export const bankSubNavClass =
   "flex w-max max-w-full gap-1 border-b border-border/60 pb-3 sm:w-full sm:flex-wrap sm:pb-4 [&>*]:shrink-0 [&>*]:whitespace-nowrap";
+
+/** Tab row without its own border — use when nested in a shared chrome row. */
+export const bankSubNavInlineClass =
+  "flex w-max max-w-full gap-1 sm:w-full sm:flex-wrap [&>*]:shrink-0 [&>*]:whitespace-nowrap";

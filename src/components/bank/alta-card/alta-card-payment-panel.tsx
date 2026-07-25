@@ -14,9 +14,10 @@ import {
 import {
   BankRequestErrorCard,
   BankRequestSubmitButton,
-  BankRequestSuccessCard,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
+import { BankProcessResult } from "@/components/bank/actions/bank-process-ui";
+import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
 import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
@@ -179,6 +180,7 @@ export function AltaCardPaymentPanel({
     if (!sourceAccountId || submitting) return;
 
     setSubmitting(true);
+    const startedAt = Date.now();
 
     try {
       const res = (await submit({
@@ -199,6 +201,7 @@ export function AltaCardPaymentPanel({
         accountNumber: selectedAccount?.accountNumber ?? "—",
       };
 
+      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmission(submitted);
       setView("success");
       await router.invalidate();
@@ -217,10 +220,25 @@ export function AltaCardPaymentPanel({
 
     if (view === "success" && submission) {
       return (
-        <BankRequestSuccessCard
-          kind="card_payment"
-          result={submission}
-          onSubmitAnother={resetForm}
+        <BankProcessResult
+          kind="success"
+          title="Payment completed"
+          liveMessage={`Paid ${florin(submission.amount)} toward Alta Card.`}
+          summary={[
+            { label: "Amount", value: florin(submission.amount) },
+            { label: "Card", value: cardTargetLabel },
+            {
+              label: "From",
+              value: submission.accountName,
+              secondary: submission.accountNumber,
+            },
+            {
+              label: "Balance after",
+              value: formatAltaCardCurrency(resultingBalance),
+            },
+            { label: "Reference", value: submission.referenceCode, mono: true },
+          ]}
+          onDone={() => handleOpenChange(false)}
         />
       );
     }
@@ -417,18 +435,9 @@ export function AltaCardPaymentPanel({
             </label>
           </fieldset>
 
-          {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
+          {composeError ? <p className="text-sm text-destructive" role="alert">{composeError}</p> : null}
 
           <div className={cn("flex flex-wrap items-center gap-2", isModal && "mt-6")}>
-            {isModal ? (
-              <button
-                type="button"
-                onClick={() => handleOpenChange(false)}
-                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60"
-              >
-                Cancel
-              </button>
-            ) : null}
             <BankRequestSubmitButton
               kind="card_payment"
               submitting={false}
@@ -464,12 +473,19 @@ export function AltaCardPaymentPanel({
           </button>
         )}
         <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent className="max-w-lg border-border bg-surface-1">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-[20px]">Make a payment</DialogTitle>
+          <DialogContent
+            className={cn(
+              "max-w-lg gap-0 overflow-hidden border-border bg-surface-1 p-0",
+              "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] max-md:max-h-[min(88dvh,calc(100dvh-5.5rem))] max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
+            )}
+          >
+            <DialogHeader className="border-b border-border px-4 py-3 pr-14 text-left sm:px-5">
+              <DialogTitle className="text-[16px] font-semibold">Make a payment</DialogTitle>
               <DialogDescription>{paymentDescription}</DialogDescription>
             </DialogHeader>
-            {renderContent()}
+            <div className="overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+              {renderContent()}
+            </div>
           </DialogContent>
         </Dialog>
       </>

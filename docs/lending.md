@@ -10,7 +10,7 @@ All amounts are in **Florins (ƒ)**. All advertised rates are **monthly interest
 |---------|-------|--------------|--------------|
 | Personal Credit Line | Up to ƒ1.5M | 7.5% monthly | Up to 6 months |
 | Business Credit Line | Up to ƒ10M | 6% monthly | Up to 8 months |
-| Private Liquidity Line | Up to ƒ25M | Negotiated monthly | Negotiated terms |
+| Negotiated Liquidity Line | Up to ƒ25M | Negotiated monthly | Negotiated terms |
 
 Product pages show **typical** repayment terms only. Applicants may request terms from **1–120 months** on the application form. The **final repayment schedule** (installment amounts and cadence) is determined during underwriting and encoded in the loan payment schedule at acceptance.
 
@@ -64,7 +64,7 @@ V1 uses **monthly interest rates** stored on each loan (`MONTHLY_PERCENT`):
 
 - Personal default at approval: **7.5% monthly**
 - Business default at approval: **6% monthly**
-- Private: operator-entered negotiated monthly rate
+- Negotiated Liquidity Line: operator-entered negotiated monthly rate
 
 Monthly charge:
 

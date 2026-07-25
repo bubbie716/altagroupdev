@@ -37,6 +37,7 @@ import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
 import { TransientOverlayRouteGuard } from "@/components/ui/transient-overlay-route-guard";
+import { UiLabBankActionScenarioControl } from "@/components/bank/actions/ui-lab-bank-action-scenario-control";
 
 function NotFoundComponent() {
   return (
@@ -294,9 +295,15 @@ function UiLabBannerClient() {
         letterSpacing: "0.08em",
         textTransform: "uppercase",
         boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
       }}
     >
-      UI Lab Mode Active — Using Mock Admin User
+      <span>UI Lab Mode Active — Using Mock Admin User</span>
+      <UiLabBankActionScenarioControl />
     </div>
   );
 }

@@ -23,7 +23,7 @@ When `VITE_UI_LAB_MODE=true`:
 
 - The root `beforeLoad` skips `fetchCurrentUser()` and injects a mock
   user into router context.
-- `authBeforeLoad`, `privateClientBeforeLoad`, `developerBeforeLoad`,
+- `authBeforeLoad`, `developerBeforeLoad`,
   `issuerPortalBeforeLoad`, and `internalBeforeLoad` short-circuit and
   allow the route to render.
 - DATABASE_URL and Discord OAuth env vars are not required for

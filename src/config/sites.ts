@@ -69,18 +69,16 @@ const CORPORATE_NAV: SiteNavLink[] = [
   { label: "Support", to: "/support", match: "/support" },
 ];
 
-/** Static fallback; live bank header uses `buildBankPrimaryNavLinks` via `useBankPrimaryNavLinks`. */
+/** Static fallback; live bank header uses `BANK_HOME_PRIMARY_LINKS` / `buildBankPrimaryNavLinks`. */
 const BANK_NAV: SiteNavLink[] = [
-  { label: "Dashboard", to: "/bank", exact: true, match: "/bank", activePaths: ["/bank/account"] },
-  { label: "Deposit", to: "/bank/deposit", match: "/bank/deposit" },
-  { label: "Withdraw", to: "/bank/withdraw", match: "/bank/withdraw" },
-  { label: "Transfers", to: "/bank/transfers", match: "/bank/transfers" },
-  { label: "Alta Pay", to: "/bank/pay", match: "/bank/pay" },
-  { label: "Alta Card", to: "/bank/alta-card", match: "/bank/alta-card" },
-  { label: "Lending", to: "/bank/lending", match: "/bank/lending" },
-  { label: "Products", to: "/bank/products", match: "/bank/products", activePaths: ["/bank/deposits"] },
-  { label: "Statements", to: "/bank/statements", match: "/bank/statements" },
-  { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
+  { label: "Home", to: "/bank", exact: true, match: "/bank" },
+  {
+    label: "Accounts",
+    to: "/bank/accounts",
+    match: "/bank/accounts",
+    activePaths: ["/bank/account", "/bank/open"],
+  },
+  { label: "Activity", to: "/bank/activity", match: "/bank/activity" },
 ];
 
 const TERMINAL_NAV: SiteNavLink[] = TERMINAL_PRIMARY_NAV_LINKS;

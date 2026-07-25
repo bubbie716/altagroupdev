@@ -1,8 +1,11 @@
 import { Card } from "@/components/page-shell";
-import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
+import {
+  presentUserBankTransaction,
+  type BankTransactionPresentation,
+} from "@/lib/bank/transaction-display";
 import type { UserBankTransaction } from "@/lib/bank/backend-types";
+import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
 import { EmptyState } from "@/components/data/empty-state";
 import { BankAccountActivityLink } from "@/components/bank/bank-account-activity-link";
@@ -14,6 +17,12 @@ import {
   BankTableScroll,
   bankTableShellClass,
 } from "@/components/bank/bank-scroll-contain";
+
+/** Pending and denied rows get emphasis so a toned-down amount is not read as settled. */
+function statusToneClass(view: BankTransactionPresentation): string | undefined {
+  if (!view.showStatus) return undefined;
+  return view.tone === "denied" ? "text-destructive" : "text-muted-foreground";
+}
 
 export function BankAccountTransactions({
   transactions,
@@ -41,7 +50,7 @@ export function BankAccountTransactions({
     <>
       <BankMobileStack>
         {transactions.map((tx) => {
-          const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
+          const view = presentUserBankTransaction(tx);
           return (
             <BankMobileStackRow key={tx.id}>
               <div className="flex items-start justify-between gap-3">
@@ -52,17 +61,17 @@ export function BankAccountTransactions({
                   </p>
                 </div>
                 <span
-                  className={`type-finance-md shrink-0 font-medium ${
-                    signedAmount >= 0 ? "ticker-up" : "ticker-down"
-                  }`}
+                  className={cn("type-finance-md shrink-0 font-medium", view.amountClassName)}
+                  aria-label={view.accessibleAmount}
                 >
-                  {signedAmount >= 0 ? "+" : ""}
-                  {florin(signedAmount)}
+                  {view.displayAmount}
                 </span>
               </div>
               <BankMobileStackField label="Reference">{tx.referenceCode}</BankMobileStackField>
-              <BankMobileStackField label="Type">{tx.typeLabel}</BankMobileStackField>
-              <BankMobileStackField label="Status">{tx.statusLabel}</BankMobileStackField>
+              <BankMobileStackField label="Type">{view.typeLabel}</BankMobileStackField>
+              <BankMobileStackField label="Status">
+                <span className={statusToneClass(view)}>{view.statusLabel ?? tx.statusLabel}</span>
+              </BankMobileStackField>
               {showAccount ? (
                 <BankMobileStackField label="Account">
                   <BankAccountActivityLink
@@ -104,7 +113,7 @@ export function BankAccountTransactions({
           </thead>
           <tbody>
             {transactions.map((tx) => {
-              const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
+              const view = presentUserBankTransaction(tx);
 
               return (
                 <tr
@@ -127,15 +136,15 @@ export function BankAccountTransactions({
                     {tx.referenceCode}
                   </td>
                   <td>{tx.description}</td>
-                  <td className="text-muted-foreground">{tx.typeLabel}</td>
-                  <td className="type-finance-sm">{tx.statusLabel}</td>
+                  <td className="text-muted-foreground">{view.typeLabel}</td>
+                  <td className={cn("type-finance-sm", statusToneClass(view))}>
+                    {view.statusLabel ?? tx.statusLabel}
+                  </td>
                   <td
-                    className={`type-finance-md text-right font-medium ${
-                      signedAmount >= 0 ? "ticker-up" : "ticker-down"
-                    }`}
+                    className={cn("type-finance-md text-right font-medium", view.amountClassName)}
+                    aria-label={view.accessibleAmount}
                   >
-                    {signedAmount >= 0 ? "+" : ""}
-                    {florin(signedAmount)}
+                    {view.displayAmount}
                   </td>
                   <td className="px-5 py-3 text-[12px]">
                     {tx.hasProof && tx.proofImageUrl ? (

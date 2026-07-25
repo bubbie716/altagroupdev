@@ -4,7 +4,7 @@ import type { BankStatementDetail } from "@/lib/bank/statement-types";
 import { florin } from "@/lib/bank/api";
 import { AltaWordmark } from "@/components/alta-logo";
 import { formatActivityDateLong, formatStatementTransactionDateTime } from "@/lib/format-datetime";
-import { getSignedBankTransactionAmount } from "@/lib/bank/transaction-display";
+import { presentUserBankTransaction } from "@/lib/bank/transaction-display";
 import { RouteButton } from "@/components/bank/route-button";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
@@ -185,7 +185,7 @@ export function StatementDocument({
                 </thead>
                 <tbody>
                   {statement.transactions.map((tx) => {
-                    const signedAmount = getSignedBankTransactionAmount(tx.type, tx.amount);
+                    const amount = presentUserBankTransaction(tx);
                     const { dateLine, timeLine } = formatStatementTransactionDateTime(tx.createdAt);
                     return (
                     <tr key={tx.id} className="statement-document__row border-b border-border/40 print:border-neutral-200">
@@ -202,8 +202,7 @@ export function StatementDocument({
                         </div>
                       </td>
                       <td className={`${STATEMENT_TX_CELL} whitespace-nowrap text-right type-finance-nums print:text-black`}>
-                        {signedAmount >= 0 ? "+" : "−"}
-                        {florin(Math.abs(signedAmount))}
+                        {amount.displayAmount}
                       </td>
                     </tr>
                     );

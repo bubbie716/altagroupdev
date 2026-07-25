@@ -72,7 +72,12 @@ export function EcosystemSwitcher({
           "inline-flex cursor-pointer items-center gap-1.5 rounded-md text-left outline-none transition-colors",
           "focus-visible:ring-1 focus-visible:ring-gold/40",
           variant === "branded"
-            ? "max-w-[min(100%,16rem)] px-1 py-1 hover:bg-[var(--menu-item-hover)] focus-visible:ring-[var(--terminal-green)]/40"
+            ? cn(
+                "max-w-[min(100%,16rem)] px-1 py-1 hover:bg-[var(--menu-item-hover)]",
+                isTerminal
+                  ? "focus-visible:ring-[var(--terminal-green)]/40"
+                  : "focus-visible:ring-primary/30",
+              )
             : "max-w-[min(100%,14rem)] px-1.5 py-1 hover:bg-[var(--menu-item-hover)]",
           className,
         )}
@@ -81,11 +86,19 @@ export function EcosystemSwitcher({
         {variant === "branded" ? (
           <>
             <AltaLogo className="h-6 w-6 shrink-0" />
-            <span className="hidden truncate text-[13px] font-medium tracking-tight text-[var(--terminal-text)] sm:inline">
+            <span
+              className={cn(
+                "hidden truncate text-[13px] font-medium tracking-tight sm:inline",
+                isTerminal ? "text-[var(--terminal-text)]" : "text-foreground",
+              )}
+            >
               {current.name}
             </span>
             <ChevronDown
-              className="size-3.5 shrink-0 text-[var(--terminal-muted)] opacity-70"
+              className={cn(
+                "size-3.5 shrink-0 opacity-70",
+                isTerminal ? "text-[var(--terminal-muted)]" : "text-muted-foreground",
+              )}
               aria-hidden
             />
           </>

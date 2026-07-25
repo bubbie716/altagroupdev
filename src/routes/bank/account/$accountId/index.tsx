@@ -44,6 +44,54 @@ function ProfileRow({
   );
 }
 
+/**
+ * Compact month-to-date metric cell. The label wraps onto a second line
+ * instead of truncating, which is what clipped "Withdrawals this month"
+ * in the previous five-across desktop grid.
+ */
+function MonthMetric({
+  label,
+  period,
+  value,
+  signedValue,
+  className,
+}: {
+  label: string;
+  period: string;
+  value: string;
+  signedValue?: number;
+  className?: string;
+}) {
+  const signedTone =
+    signedValue === undefined || signedValue === 0
+      ? undefined
+      : signedValue > 0
+        ? "text-[var(--success)]"
+        : "text-[var(--destructive)]";
+
+  return (
+    <div
+      className={cn(
+        "min-w-0 rounded-xl border border-border bg-surface-1/80 p-3.5 shadow-card transition-colors duration-200 hover:border-border-strong sm:p-4",
+        className,
+      )}
+    >
+      <div className="type-meta leading-relaxed">
+        <span className="block">{label}</span>
+        <span className="block text-muted-foreground/70">{period}</span>
+      </div>
+      <div
+        className={cn(
+          "mt-2 break-words font-mono text-[15px] font-semibold leading-none tabular-nums sm:text-[17px]",
+          signedTone,
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function AccountOverviewPage() {
   const { account, businessContext, isBusinessOperating } = AccountRoute.useLoaderData();
   const isClosed = account.status === "closed";
@@ -56,16 +104,39 @@ function AccountOverviewPage() {
     <>
       {isClosed ? <ClosedAccountBanner accountId={account.id} /> : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <BankStatCard label="Current Balance" value={florin(account.balance)} />
-        <BankStatCard label="Available Balance" value={florin(account.availableBalance)} />
-        <BankStatCard label="Deposits This Month" value={florin(account.depositsThisMonth)} />
-        <BankStatCard label="Withdrawals This Month" value={florin(account.withdrawalsThisMonth)} />
-        <BankStatCard
-          label="Net Change"
-          value={`${account.netChangeThisMonth >= 0 ? "+" : ""}${florin(account.netChangeThisMonth)}`}
-          signedValue={account.netChangeThisMonth}
-        />
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
+        <div className="rounded-xl border border-border bg-surface-1/80 p-5 shadow-card transition-colors duration-200 hover:border-border-strong">
+          <div className="type-meta">Current balance</div>
+          <div className="type-finance-hero mt-2 break-words leading-none">
+            {florin(account.balance)}
+          </div>
+          <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-border/60 pt-3">
+            <span className="type-meta">Available</span>
+            <span className="font-mono text-[14px] tabular-nums">
+              {florin(account.availableBalance)}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <MonthMetric
+            label="Deposits"
+            period="This month"
+            value={florin(account.depositsThisMonth)}
+          />
+          <MonthMetric
+            label="Withdrawals"
+            period="This month"
+            value={florin(account.withdrawalsThisMonth)}
+          />
+          <MonthMetric
+            label="Net change"
+            period="This month"
+            value={`${account.netChangeThisMonth >= 0 ? "+" : ""}${florin(account.netChangeThisMonth)}`}
+            signedValue={account.netChangeThisMonth}
+            className="col-span-2 sm:col-span-1"
+          />
+        </div>
       </div>
 
       {isBusinessOperating && businessContext && (

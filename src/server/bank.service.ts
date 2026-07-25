@@ -325,18 +325,53 @@ export async function getUserBankDashboardBundle(userId: string): Promise<{
   dashboard: UserBankDashboard;
   accounts: UserBankAccount[];
   transactions: UserBankTransaction[];
+  pendingRequests: BankRequestInProgress[];
+  personalCard: import("@/lib/bank/alta-card-types").AltaCardRow | null;
+  companyCards: import("@/lib/bank/alta-card-types").AltaCardRow[];
 }> {
   const user = await loadAltaUserOrThrow(userId);
-  const [accounts, transactions, ancillary] = await Promise.all([
+  const { getUserAltaCard, listUserBusinessAltaCardCompanies } = await import(
+    "@/server/alta-card.service"
+  );
+
+  const [
+    accounts,
+    transactions,
+    ancillary,
+    pendingDeposits,
+    pendingWithdrawals,
+    personalCard,
+    businessCompanies,
+  ] = await Promise.all([
     listUserBankAccountsForUser(user),
-    listUserRecentTransactionsForUser(user, 10),
+    listUserRecentTransactionsForUser(user, 25),
     fetchBankDashboardAncillary(user),
+    listUserBankRequestsInProgressForUser(user, "deposit"),
+    listUserBankRequestsInProgressForUser(user, "withdrawal"),
+    getUserAltaCard(userId).catch(() => null),
+    listUserBusinessAltaCardCompanies(userId).catch(() => []),
   ]);
+
+  const pendingRequests = [...pendingDeposits, ...pendingWithdrawals]
+    .filter((row) => row.status === "pending" || row.status === "denied")
+    .sort((a, b) => Date.parse(b.lastUpdatedAt) - Date.parse(a.lastUpdatedAt));
+
+  const companyCards = businessCompanies
+    .map((company) => company.businessCard)
+    .filter((card): card is NonNullable<typeof card> => Boolean(card));
+
   const dashboard: UserBankDashboard = {
     ...buildUserBankDashboardMetrics(accounts),
     ...ancillary,
   };
-  return { dashboard, accounts, transactions };
+  return {
+    dashboard,
+    accounts,
+    transactions,
+    pendingRequests,
+    personalCard,
+    companyCards,
+  };
 }
 
 export async function getUserBankAccountDetail(

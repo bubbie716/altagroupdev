@@ -3,7 +3,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { RouteButton } from "@/components/bank/route-button";
-import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
+import { BankSubNavScroll, bankSubNavInlineClass } from "@/components/bank/bank-scroll-contain";
 import {
   BUSINESS_ACCOUNT_MODULES,
   canAccessBusinessModule,
@@ -60,8 +60,8 @@ export function BusinessAccountSubNav({
   );
 
   return (
-    <BankSubNavScroll>
-      <nav className={bankSubNavClass}>
+    <BankSubNavScroll className="mb-0 sm:mb-0">
+      <nav className={bankSubNavInlineClass}>
       {visibleModules.map((mod) => {
         const to = `${base}${MODULE_PATHS[mod]}` as
           | "/bank/account/$accountId"
@@ -114,8 +114,8 @@ export function PersonalAccountSubNav({ accountId }: { accountId: string }) {
   ] as const;
 
   return (
-    <BankSubNavScroll>
-      <nav className={bankSubNavClass}>
+    <BankSubNavScroll className="mb-0 sm:mb-0">
+      <nav className={bankSubNavInlineClass}>
       {links.map((l) => {
         const path = `${base}${l.suffix}`;
         const active =

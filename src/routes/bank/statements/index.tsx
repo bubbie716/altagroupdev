@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
+import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { StatementListTable } from "@/components/bank/statement-list-table";
-import { StatementCenterGenerateForm } from "@/components/bank/statement-center-generate-form";
-import { BankStatStrip } from "@/components/bank/bank-stat-strip";
+import { StatementCenterGenerateDialog } from "@/components/bank/statement-center-generate-form";
 import {
   fetchPreviousStatementPeriod,
   fetchStatementCenterStatements,
@@ -35,40 +34,28 @@ function BankStatementsPage() {
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Statements"
-      title="Statement Center"
-      description="Monthly account statements for your personal and business Alta Bank accounts."
-     />
-<BankStatStrip
-        items={[
-          { label: "Personal statements", value: String(personal.length) },
-          { label: "Business statements", value: String(business.length) },
-          { label: "Total on file", value: String(statements.length) },
-        ]}
+        eyebrow="Alta Bank · Statements"
+        title="Statement Center"
+        description="Monthly statements generated from approved transaction history."
+        action={
+          <StatementCenterGenerateDialog
+            accounts={generatableAccounts}
+            defaultPeriod={defaultPeriod}
+          />
+        }
       />
-
-      <Section title="Generate statement" className="mt-8 mb-10">
-        <Card className="mx-auto max-w-xl !p-6">
-          <StatementCenterGenerateForm accounts={generatableAccounts} defaultPeriod={defaultPeriod} />
-        </Card>
-      </Section>
-
-      <p className="mb-8 rounded-md border border-border bg-surface-1/60 px-4 py-3 text-[12px] text-muted-foreground">
-        Statements are generated from approved transaction history.
-      </p>
 
       {statements.length === 0 ? (
         <Section title="Statements">
-          <div className="rounded-xl border border-border bg-surface-1">
+          <div className="rounded-xl border border-border bg-surface-1 p-5">
             <StatementListTable statements={statements} returnFrom="center" />
           </div>
         </Section>
       ) : (
-        <>
-          {personal.length > 0 && (
+        <div className="space-y-8">
+          {personal.length > 0 ? (
             <Section
               title="Personal accounts"
-              className={business.length > 0 ? "mb-10" : undefined}
               action={
                 <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   {personal.length} on file
@@ -79,8 +66,8 @@ function BankStatementsPage() {
                 <StatementListTable statements={personal} returnFrom="center" />
               </div>
             </Section>
-          )}
-          {business.length > 0 && (
+          ) : null}
+          {business.length > 0 ? (
             <Section
               title="Business accounts"
               action={
@@ -93,8 +80,8 @@ function BankStatementsPage() {
                 <StatementListTable statements={business} returnFrom="center" />
               </div>
             </Section>
-          )}
-        </>
+          ) : null}
+        </div>
       )}
     </>
   );

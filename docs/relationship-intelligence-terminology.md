@@ -20,6 +20,7 @@ LEGACY STORED CODES
 values on historical rows. They carry no application meaning: nothing writes
 them, and display helpers collapse them to Premier. See
 `isLegacyStoredTier()` in `src/lib/bank/relationship-terminology.ts`.
+Premier progress uses `RELATIONSHIP_PREMIER_PROGRESS_CEILING` (850).
 
 KEY FILES
 ---------

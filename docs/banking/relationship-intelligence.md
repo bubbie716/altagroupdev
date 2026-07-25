@@ -28,19 +28,19 @@ This profile supports:
 
 ## V2 — Recommendations & pre-approvals
 
-Relationship Intelligence V2 generates **read-only** `RelationshipRecommendation` rows from persisted profiles. Admins review, dismiss, or accept — **nothing auto-applies** to products, limits, rates, loans, or private enrollment.
+Relationship Intelligence V2 generates **read-only** `RelationshipRecommendation` rows from persisted profiles. Admins review, dismiss, or accept — **nothing auto-applies** to products, limits, rates, or loans.
 
 ### `RelationshipRecommendation`
 
 | Field | Purpose |
 |-------|---------|
-| `recommendationType` | Alta Card tier/limit/rate, loan pre-approval, private invite, product opportunity |
+| `recommendationType` | Alta Card tier/limit/rate, loan pre-approval, product opportunity |
 | `status` | `ACTIVE`, `REVIEWED`, `DISMISSED`, `ACCEPTED`, `EXPIRED` |
 | `confidenceScore` | 0–100 internal signal (admin-only) |
 | `recommendedTier` / `recommendedLimit` / `recommendedRate` | Suggested values |
 | `reasons` | JSON bullets + optional `actionPath` deep link |
 
-Rules live in `src/lib/bank/relationship-recommendation-config.ts`.
+Rules live in `src/lib/bank/relationship-recommendation-config.ts`. The legacy enum value `PRIVATE_BANKING_INVITE` remains for historical rows only and is no longer generated.
 
 ### Recommendation engine
 
@@ -62,11 +62,10 @@ Scheduler: `refreshRelationshipRecommendationsScheduled()` in `relationship-inte
 
 ### Pre-approval logic (read-only)
 
-- **Alta Card tier:** Preferred → Navy, Premier → Black, Private → Gold
+- **Alta Card tier:** Preferred → Navy, Premier → Black (legacy stored Premier-band tiers also map to Gold recommendations)
 - **Limit:** Assets, score, exposure, payment history
-- **Rate:** Score discount; Gold/private = negotiable floor
+- **Rate:** Score discount; Gold = negotiable floor
 - **Loan pre-approval:** Score ≥ 500, no delinquency/default, assets or deposit activity
-- **Private invite:** Eligibility flag, score + assets, or business + Alta Pay volume
 - **Product opportunities:** Missing Alta Card, business lending when volume high
 
 ### Admin review workflow
@@ -76,7 +75,6 @@ Scheduler: `refreshRelationshipRecommendationsScheduled()` in `relationship-inte
 - **Accept** records audit + deep links only:
   - Alta Card → `/internal/alta-card/$cardId?suggestedTier=&suggestedLimit=&suggestedRate=` (prefill ops panel)
   - Loans → `/internal/lending?preApprovalUserId=`
-  - Private → `/internal/users/$userId?privateReview=true` (tag panel placeholder)
 
 Widgets on internal Alta Card detail, card application/review, lending application thread, loan detail, user detail.
 
@@ -180,7 +178,6 @@ Scheduler hook: `refreshRelationshipProfilesScheduled()` in `src/server/relation
 ## Customer usage
 
 - `/bank/relationship` — tier, relationship since, total Alta assets, products held
-- Private eligibility message when applicable
 - **Does not** expose negative factors, weights, or internal risk detail
 
 ---
@@ -352,7 +349,7 @@ Suggested tier, limit, rate, reasons, and confidence shown when recommendations 
 
 ### V4 safety rules
 
-- No auto-approve loans, card limits, tiers, rates, or private enrollment
+- No auto-approve loans, card limits, tiers, rates, or product enrollment
 - No customer-facing pre-approved loan offers
 - No Discord bot integration
 - Customer copy: positive, opportunity-oriented — no “credit score”, “rejected”, or risk grades

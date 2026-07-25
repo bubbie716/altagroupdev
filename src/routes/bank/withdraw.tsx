@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { BankWithdrawForm } from "@/components/bank/bank-withdraw-form";
+import { BankActionPageSurface } from "@/components/bank/actions/bank-action-page-surface";
+import { WithdrawActionFlow } from "@/components/bank/actions/flows/withdraw-action-flow";
 import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
-import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
 import { fetchActiveBankAccounts, fetchUserBankRequestsInProgress } from "@/lib/bank/bank.functions";
 import { WITHDRAW_PAGE_DESCRIPTION } from "@/lib/bank/bank-shared-copy";
 import { authBeforeLoad } from "@/lib/auth/guards";
@@ -31,28 +30,22 @@ export const Route = createFileRoute("/bank/withdraw")({
 function BankWithdrawPage() {
   const { accounts, requestsInProgress } = Route.useLoaderData();
   const { accountId } = Route.useSearch();
-  const [highlightReferenceCode, setHighlightReferenceCode] = useState<string | null>(null);
-
-  function handleSubmissionSuccess(result: BankRequestSubmissionResult) {
-    setHighlightReferenceCode(result.referenceCode);
-  }
 
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Withdrawals"
-      title="Request a Withdrawal"
-      description={WITHDRAW_PAGE_DESCRIPTION}
-     />
-<BankWithdrawForm
-        accounts={accounts}
-        defaultAccountId={accountId}
-        onSubmissionSuccess={handleSubmissionSuccess}
+        eyebrow="Alta Bank · Withdrawals"
+        title="Request a Withdrawal"
+        description={WITHDRAW_PAGE_DESCRIPTION}
       />
-      <BankRequestsInProgress
-        requests={requestsInProgress}
-        highlightReferenceCode={highlightReferenceCode}
-      />
+      <BankActionPageSurface>
+        {(ctrl) => (
+          <WithdrawActionFlow accounts={accounts} defaultAccountId={accountId} {...ctrl} />
+        )}
+      </BankActionPageSurface>
+      <div className="mt-10">
+        <BankRequestsInProgress requests={requestsInProgress} />
+      </div>
     </>
   );
 }

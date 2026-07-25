@@ -5,6 +5,14 @@ import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { generateAccountStatementsBatch } from "@/lib/bank/statement.functions";
 import type { StatementGeneratableAccount } from "@/lib/bank/statement-types";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
@@ -16,9 +24,12 @@ const fieldClass =
 export function StatementCenterGenerateForm({
   accounts,
   defaultPeriod,
+  onGenerated,
 }: {
   accounts: StatementGeneratableAccount[];
   defaultPeriod?: { periodStart: string; periodEnd: string };
+  /** Fired after a successful generate — used to dismiss the modal host. */
+  onGenerated?: () => void;
 }) {
   const router = useRouter();
   const generate = useServerFn(generateAccountStatementsBatch);
@@ -85,6 +96,7 @@ export function StatementCenterGenerateForm({
       await router.invalidate();
 
       if (!allAccounts && selected.size === 1 && batch.statements.length === 1 && batch.errors.length === 0) {
+        onGenerated?.();
         await router.navigate({
           to: "/bank/statements/$statementId",
           params: { statementId: batch.statements[0]!.id },
@@ -101,6 +113,8 @@ export function StatementCenterGenerateForm({
       setResult(parts.join(", ") + ".");
       if (batch.errors.length > 0) {
         setError(batch.errors.map((e) => `${e.label}: ${e.message}`).join(" · "));
+      } else {
+        onGenerated?.();
       }
     } catch (err) {
       const message =
@@ -213,10 +227,47 @@ export function StatementCenterGenerateForm({
       <button
         type="submit"
         disabled={pending || (!allAccounts && selected.size === 0)}
-        className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
+        className="min-h-11 w-full rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pending ? SUBMITTING_COPY.generating : "Generate statement(s)"}
       </button>
     </form>
+  );
+}
+
+/** "Generate statement" entry point — keeps the Statement Center list uncluttered. */
+export function StatementCenterGenerateDialog({
+  accounts,
+  defaultPeriod,
+}: {
+  accounts: StatementGeneratableAccount[];
+  defaultPeriod?: { periodStart: string; periodEnd: string };
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
+        >
+          Generate statement
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Generate statement</DialogTitle>
+          <DialogDescription>
+            Choose the accounts and period to generate statements for.
+          </DialogDescription>
+        </DialogHeader>
+        <StatementCenterGenerateForm
+          accounts={accounts}
+          defaultPeriod={defaultPeriod}
+          onGenerated={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

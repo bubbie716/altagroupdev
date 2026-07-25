@@ -9,6 +9,7 @@ import {
   AltaGoldCardHighlight,
 } from "@/components/bank/alta-card/alta-card-landing-hero";
 import { AltaCardTierComparison } from "@/components/bank/alta-card/alta-card-tier-comparison";
+import { ALTA_CARD_TIER_LABELS } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { fetchUserAltaCard, fetchAltaCardDetail } from "@/lib/bank/alta-card.functions";
@@ -51,15 +52,15 @@ function BankAltaCardIndex() {
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Alta Card"
-      title={card ? cardholderName : "Alta Card"}
-      description={
-        card
-          ? undefined
-          : "Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
-      }
-    />
-{pendingApplication && !card ? (
+        eyebrow="Alta Bank · Alta Card"
+        title={card ? ALTA_CARD_TIER_LABELS[card.tier] : "Alta Card"}
+        description={
+          card
+            ? undefined
+            : "Revolving credit for your Alta relationship — personal lines, business credit, and authorized employee cards."
+        }
+      />
+      {pendingApplication && !card ? (
         <div className="mb-8">
           <AltaCardPendingApplicationBanner
             statusLabel={ALTA_CARD_APPLICATION_STATUS_LABELS[pendingApplication.status]}

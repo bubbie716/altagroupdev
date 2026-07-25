@@ -138,7 +138,7 @@ export async function recordBotPermissionDeniedBestEffort(input: {
 /** Records a failed invitation response from the Discord bot. */
 export async function recordBotInvitationActionFailedBestEffort(input: {
   userId: string;
-  kind: "private" | "company";
+  kind: "company";
   action: "accept" | "decline";
   invitationId: string;
   reason: string;

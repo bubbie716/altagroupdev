@@ -32,6 +32,7 @@ export type RecommendationReasonPayload = {
 export function recommendedAltaCardTierFromRelationship(
   relationshipTier: RelationshipTierCode,
 ): AltaCardTierCode {
+  // Legacy stored tiers (DB-only) map to Gold the same way Premier-band clients did historically.
   if (relationshipTier === "PRIVATE_CLIENT" || relationshipTier === "PRIVATE_ELIGIBLE") {
     return "gold";
   }

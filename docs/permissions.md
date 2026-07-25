@@ -88,7 +88,6 @@ Throw `FORBIDDEN` when the session user lacks permission:
 
 - `requireAdmin()`
 - `requireOperator()` — internal access (admin or operator)
-- `requirePrivateClient()`
 - `requireDeveloper()`
 - `requireIssuerPortalAccess(ticker)`
 

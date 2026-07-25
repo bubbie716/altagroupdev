@@ -6,15 +6,27 @@ export const RELATIONSHIP_SCORE_MAX = 1000;
 export const RELATIONSHIP_SCORE_BASE = 100;
 
 export const RELATIONSHIP_TIER_THRESHOLDS: Record<
-  Exclude<RelationshipTierCode, "PRIVATE_CLIENT">,
+  Exclude<RelationshipTierCode, "PRIVATE_CLIENT" | "PRIVATE_ELIGIBLE">,
   number
 > = {
   NEW: 0,
   STANDARD: 250,
   PREFERRED: 500,
   PREMIER: 700,
-  /** Top score band; no longer assigned as a tier, kept as the Premier progress ceiling. */
-  PRIVATE_ELIGIBLE: 850,
+};
+
+/** Premier progress-bar ceiling (score band formerly stored as PRIVATE_ELIGIBLE). */
+export const RELATIONSHIP_PREMIER_PROGRESS_CEILING = 850;
+
+/**
+ * Score floors for comparing stored tier codes, including retired DB values that
+ * still appear on historical RelationshipProfile / timeline rows.
+ */
+export const RELATIONSHIP_TIER_SCORE_FLOORS: Record<string, number> = {
+  ...RELATIONSHIP_TIER_THRESHOLDS,
+  /** Legacy DB-only tier codes — no current product meaning. */
+  PRIVATE_ELIGIBLE: RELATIONSHIP_PREMIER_PROGRESS_CEILING,
+  PRIVATE_CLIENT: RELATIONSHIP_PREMIER_PROGRESS_CEILING,
 };
 
 /** Minimum total Alta assets (USD) for top-band relationship recommendations. */

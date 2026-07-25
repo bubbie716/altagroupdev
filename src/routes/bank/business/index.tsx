@@ -1,70 +1,191 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { RouteButton } from "@/components/bank/route-button";
-import { EditorialCtaStrip } from "@/components/bank/editorial-cta-strip";
+import { BankStatStrip } from "@/components/bank/bank-stat-strip";
+import { BankActionLauncher } from "@/components/bank/actions/bank-action-launcher";
+import {
+  BusinessCompanyPicker,
+  BusinessPermissionBadge,
+} from "@/components/bank/business-company-picker";
+import { EmptyState } from "@/components/data/empty-state";
+import { florin } from "@/lib/bank/api";
+import { fetchBusinessBankingOverview } from "@/lib/bank/business-banking.functions";
+import { canAccessBusinessModule } from "@/lib/bank/business-account-access";
+import { authBeforeLoad } from "@/lib/auth/guards";
+import type { BusinessTreasuryCompany } from "@/lib/bank/business-banking-types";
 
 export const Route = createFileRoute("/bank/business/")({
+  beforeLoad: authBeforeLoad,
+  loaderDeps: ({ search }) => ({ companyId: search.companyId }),
+  loader: async ({ deps }) => fetchBusinessBankingOverview({ data: deps.companyId }),
   head: () => ({ meta: [{ title: "Business Banking — Alta Bank" }] }),
-  component: BusinessBankingMarketingPage,
+  component: BusinessBankingHubPage,
 });
 
-function BusinessBankingMarketingPage() {
+const QUICK_LINKS = [
+  {
+    module: "payments" as const,
+    to: "/bank/account/$accountId/payments" as const,
+    label: "Payments",
+    description: "Treasury queue and Alta Pay received",
+  },
+  {
+    module: "payroll" as const,
+    to: "/bank/account/$accountId/payroll" as const,
+    label: "Payroll",
+    description: "Employee registry and payroll batches",
+  },
+  {
+    module: "activity" as const,
+    to: "/bank/account/$accountId/activity" as const,
+    label: "Activity",
+    description: "Approved transaction history",
+  },
+  {
+    module: "statements" as const,
+    to: "/bank/account/$accountId/statements" as const,
+    label: "Statements",
+    description: "Monthly operating account statements",
+  },
+  {
+    module: "representatives" as const,
+    to: "/bank/account/$accountId/representatives" as const,
+    label: "Representatives",
+    description: "Role-based treasury permissions",
+  },
+  {
+    module: "settings" as const,
+    to: "/bank/account/$accountId/settings" as const,
+    label: "Account settings",
+    description: "Operating account preferences",
+  },
+];
+
+function BusinessBankingHubPage() {
+  const { companies, selectedCompanyId } = Route.useLoaderData();
+  const selected =
+    companies.find((company) => company.companyId === selectedCompanyId) ?? companies[0] ?? null;
+
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Business"
-      title="Business Banking"
-      description="Treasury, payroll, and Alta Pay for verified Newport companies — operated from your Business Operating Account."
-     />
-<EditorialCtaStrip
-        eyebrow="Business Operating Account"
-        title="Account-scoped treasury."
-        description="Payroll, scheduled transfers, Alta Pay received, authorized representatives, and statements all live on your company's Business Operating Account — never a separate global tab."
-        actions={
-          <>
-            <RouteButton
-              to="/bank/open"
-              className="rounded-md bg-foreground px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background hover:bg-foreground/90"
+        eyebrow="Alta Bank · Business"
+        title="Business Banking"
+        description="Treasury for the verified Newport companies you represent."
+        action={
+          selected ? (
+            <Link
+              to="/bank/account/$accountId"
+              params={{ accountId: selected.operatingAccount.id }}
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
             >
+              Open operating account
+            </Link>
+          ) : (
+            <BankActionLauncher action="open-account" variant="default">
               Open Operating Account
-            </RouteButton>
-            <RouteButton
-              to="/bank"
-              className="rounded-md border border-border bg-surface-2/60 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground hover:bg-surface-2"
-            >
-              Go to dashboard
-            </RouteButton>
-          </>
+            </BankActionLauncher>
+          )
         }
-        stats={[
-          { label: "Verification", value: "Required" },
-          { label: "Access model", value: "Role-based" },
-          { label: "Separation", value: "Per company" },
-          { label: "Review", value: "Manual" },
-        ]}
       />
 
-      <Section title="What's included" className="mt-12">
-        <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
-          {[
-            ["Payments", "Alta Pay received and outbound treasury queues"],
-            ["Payroll", "Employee registry and payroll batch submission"],
-            ["Scheduled", "Future-dated and recurring treasury transfers"],
-            ["Representatives", "Role-based treasury permissions"],
-            ["Statements", "Monthly operating account statements"],
-            ["Activity", "Approved transaction history"],
-          ].map(([title, desc], i) => (
-            <div key={title} className="bg-surface-1 p-6">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-                {String(i + 1).padStart(2, "0")}
-              </div>
-              <h3 className="mt-3 font-serif text-[18px] leading-tight tracking-tight">{title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
+      {!selected ? (
+        <EmptyState
+          eyebrow="Alta Bank"
+          title="No business operating account yet."
+          description="Payments, payroll, representatives, and statements unlock once a verified company you represent has an active Business Operating Account."
+        />
+      ) : (
+        <>
+          <BusinessCompanyPicker companies={companies} selectedCompanyId={selected.companyId} />
+          <BusinessPermissionBadge permissions={selected.permissions} />
+
+          <BankStatStrip
+            items={[
+              { label: "Operating balance", value: florin(selected.operatingAccount.balance) },
+              { label: "Account", value: selected.operatingAccount.accountNumber },
+              { label: "Company", value: selected.companyName },
+            ]}
+          />
+
+          <Section title="Quick links" className="mt-8">
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1">
+              {QUICK_LINKS.filter((link) =>
+                canAccessBusinessModule(selected.permissions.role, link.module),
+              ).map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.to}
+                    params={{ accountId: selected.operatingAccount.id }}
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--menu-item-hover)]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-medium">{link.label}</p>
+                      <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+                        {link.description}
+                      </p>
+                    </div>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+
+          {companies.length > 1 ? (
+            <Section title="Your companies" className="mt-8">
+              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-1">
+                {companies.map((company) => (
+                  <CompanyRow
+                    key={company.companyId}
+                    company={company}
+                    selected={company.companyId === selected.companyId}
+                  />
+                ))}
+              </ul>
+            </Section>
+          ) : null}
+        </>
+      )}
     </>
+  );
+}
+
+function CompanyRow({
+  company,
+  selected,
+}: {
+  company: BusinessTreasuryCompany;
+  selected: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        to="/bank/account/$accountId"
+        params={{ accountId: company.operatingAccount.id }}
+        className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--menu-item-hover)]"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="min-w-0 max-w-full truncate text-[14px] font-medium">
+              {company.companyName}
+            </p>
+            {selected ? (
+              <span className="rounded-full border border-gold/30 bg-gold/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
+                Selected
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+            {company.permissions.roleLabel} · {company.operatingAccount.accountNumber}
+          </p>
+        </div>
+        <p className="shrink-0 text-[14px] font-medium tabular-nums">
+          {florin(company.operatingAccount.balance)}
+        </p>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      </Link>
+    </li>
   );
 }
