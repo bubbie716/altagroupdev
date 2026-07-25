@@ -7,23 +7,24 @@ const TAG_ALIASES: Record<string, UserTag> = {
   corporate_admin: UserTag.CORPORATE_ADMIN,
   bank_admin: UserTag.BANK_ADMIN,
   terminal_admin: UserTag.TERMINAL_ADMIN,
-  private_client: UserTag.PRIVATE_CLIENT,
-  private: UserTag.PRIVATE_CLIENT,
 };
 
-const TAG_LABELS: Record<UserTag, string> = {
+const TAG_LABELS: Partial<Record<UserTag, string>> = {
   [UserTag.CORPORATE_ADMIN]: "corporate_admin",
   [UserTag.BANK_ADMIN]: "bank_admin",
   [UserTag.TERMINAL_ADMIN]: "terminal_admin",
-  [UserTag.PRIVATE_CLIENT]: "private_client",
 };
+
+function tagLabel(tag: UserTag): string {
+  return TAG_LABELS[tag] ?? tag.toLowerCase();
+}
 
 function parseTag(value: string): UserTag {
   const normalized = value.trim().toLowerCase();
   const tag = TAG_ALIASES[normalized];
   if (!tag) {
     throw new Error(
-      `Unknown tag "${value}". Use: corporate_admin, bank_admin, terminal_admin, private_client (admin → corporate_admin)`,
+      `Unknown tag "${value}". Use: corporate_admin, bank_admin, terminal_admin (admin → corporate_admin)`,
     );
   }
   return tag;
@@ -38,7 +39,7 @@ async function listUserTags(userId: string): Promise<UserTag[]> {
 }
 
 function formatTagList(tags: UserTag[]): string {
-  return tags.length === 0 ? "(none)" : tags.map((tag) => TAG_LABELS[tag]).join(", ");
+  return tags.length === 0 ? "(none)" : tags.map(tagLabel).join(", ");
 }
 
 async function main() {
@@ -51,8 +52,8 @@ async function main() {
 
   if (!discordId || tagArgs.length === 0) {
     console.error("Usage: npm run db:grant-tag -- <discordId> <tag> [tag2 ...] [--remove]");
-    console.error("Example: npm run db:grant-tag -- 123456789012345678 corporate_admin private_client");
-    console.error("Tags: corporate_admin, bank_admin, terminal_admin, private_client (admin aliases corporate_admin)");
+    console.error("Example: npm run db:grant-tag -- 123456789012345678 corporate_admin bank_admin");
+    console.error("Tags: corporate_admin, bank_admin, terminal_admin (admin aliases corporate_admin)");
     process.exit(1);
   }
 
@@ -68,19 +69,9 @@ async function main() {
       where: { userId: user.id, tag: { in: tags } },
     });
 
-    if (tags.includes(UserTag.PRIVATE_CLIENT)) {
-      const { liquidatePrivateBankingOnAccessRevoked } = await import("../src/server/bank.service");
-      const result = await liquidatePrivateBankingOnAccessRevoked(user.id);
-      if (result.accountsClosed > 0) {
-        console.log(
-          `Liquidated ${result.accountsClosed} private account(s); transferred ${result.totalTransferred} FLR.`,
-        );
-      }
-    }
-
     const remaining = await listUserTags(user.id);
     console.log(
-      `Removed ${tags.map((tag) => TAG_LABELS[tag]).join(", ")} from ${user.discordUsername} (${discordId})`,
+      `Removed ${tags.map(tagLabel).join(", ")} from ${user.discordUsername} (${discordId})`,
     );
     console.log(`Current tags: ${formatTagList(remaining)}`);
     return;
@@ -94,16 +85,9 @@ async function main() {
     });
   }
 
-  if (tags.includes(UserTag.PRIVATE_CLIENT)) {
-    const { finalizeAltaPrivateMembershipActivation } = await import(
-      "../src/server/alta-private-timeline.service"
-    );
-    await finalizeAltaPrivateMembershipActivation(user.id);
-  }
-
   const current = await listUserTags(user.id);
   console.log(
-    `Granted ${tags.map((tag) => TAG_LABELS[tag]).join(", ")} to ${user.discordUsername} (${discordId})`,
+    `Granted ${tags.map(tagLabel).join(", ")} to ${user.discordUsername} (${discordId})`,
   );
   console.log(`Current tags: ${formatTagList(current)}`);
 }

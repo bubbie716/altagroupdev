@@ -13,9 +13,6 @@ import {
   formatBankAccountOpenedCopy,
   formatDepositMilestoneCopy,
   formatLoanPaidOffCopy,
-  formatPrivateBankingClientCopy,
-  formatPrivateBankingEligibleCopy,
-  formatAltaPrivateInvitedCopy,
   formatRelationshipEstablishedCopy,
   formatTotalAltaAssetsMilestoneCopy,
   formatWithdrawalMilestoneCopy,
@@ -71,8 +68,6 @@ const PRODUCT_EVENT_TYPES = new Set<RelationshipTimelineEventTypeCode>([
   "LOAN_ACCEPTED",
   "LOAN_FUNDED",
   "LOAN_PAID_OFF",
-  "PRIVATE_BANKING_CLIENT",
-  "ALTA_PRIVATE_INVITED",
 ]);
 
 const MILESTONE_EVENT_TYPES = new Set<RelationshipTimelineEventTypeCode>([
@@ -1125,74 +1120,6 @@ export async function backfillRelationshipTimelineCore(
 
   created += await syncPersonalLoanTimelineEvents(userId, profileId);
 
-  const privateTag = await prisma.userTagAssignment.findFirst({
-    where: { userId, tag: "PRIVATE_CLIENT" },
-  });
-  if (privateTag) {
-    const privateCopy = formatPrivateBankingClientCopy("personal");
-    const event = await createRelationshipTimelineEvent({
-      userId,
-      profileId,
-      eventType: "PRIVATE_BANKING_CLIENT",
-      title: privateCopy.title,
-      description: privateCopy.description,
-      occurredAt: privateTag.createdAt,
-      relatedEntityType: "USER",
-      relatedEntityId: userId,
-      dedupeKey: "private:client",
-      skipAudit: true,
-    });
-    if (event) created += 1;
-  }
-
-  const altaPrivateInvitations = await prisma.altaPrivateInvitation.findMany({
-    where: { userId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, createdAt: true },
-  });
-  for (const invitation of altaPrivateInvitations) {
-    const invitedCopy = formatAltaPrivateInvitedCopy("personal");
-    const event = await createRelationshipTimelineEvent({
-      userId,
-      profileId,
-      eventType: "ALTA_PRIVATE_INVITED",
-      title: invitedCopy.title,
-      description: invitedCopy.description,
-      occurredAt: invitation.createdAt,
-      relatedEntityType: "USER",
-      relatedEntityId: invitation.id,
-      metadata: { invitationId: invitation.id },
-      dedupeKey: `private:invited:${invitation.id}`,
-      skipAudit: true,
-    });
-    if (event) created += 1;
-  }
-
-  const eligibleAudit = (
-    await prisma.auditLog.findMany({
-      where: { targetUserId: userId, action: "PRIVATE_BANKING_ELIGIBILITY_CHANGED" },
-      orderBy: { createdAt: "asc" },
-      select: { createdAt: true, metadata: true },
-    })
-  ).find((audit) => {
-    const meta = audit.metadata as Record<string, unknown> | null;
-    return meta?.newEligible === true;
-  });
-  if (eligibleAudit) {
-    const eligibleCopy = formatPrivateBankingEligibleCopy("personal");
-    const event = await createRelationshipTimelineEvent({
-      userId,
-      profileId,
-      eventType: "PRIVATE_BANKING_ELIGIBLE",
-      title: eligibleCopy.title,
-      description: eligibleCopy.description,
-      occurredAt: eligibleAudit.createdAt,
-      dedupeKey: "private:eligible",
-      skipAudit: true,
-    });
-    if (event) created += 1;
-  }
-
   const relationshipTierAudits = await prisma.auditLog.findMany({
     where: { targetUserId: userId, action: "RELATIONSHIP_TIER_CHANGED" },
     orderBy: { createdAt: "asc" },
@@ -1298,8 +1225,6 @@ export async function syncRelationshipProfileTimelineEvents(input: {
   newScore: number;
   oldTier?: string | null;
   newTier: string;
-  oldPrivateEligible?: boolean;
-  newPrivateEligible: boolean;
 }): Promise<void> {
   const now = new Date();
   if (input.oldScore != null && input.oldScore !== input.newScore) {
@@ -1332,18 +1257,6 @@ export async function syncRelationshipProfileTimelineEvents(input: {
       occurredAt: now,
       metadata: { oldTier: input.oldTier, newTier: input.newTier },
       dedupeKey: `tier:${input.oldTier}->${input.newTier}`,
-      actorUserId: input.actorUserId,
-    });
-  }
-  if (input.oldPrivateEligible === false && input.newPrivateEligible) {
-    const eligibleCopy = formatPrivateBankingEligibleCopy("personal");
-    await recordRelationshipTimelineEvent({
-      userId: input.userId,
-      eventType: "PRIVATE_BANKING_ELIGIBLE",
-      title: eligibleCopy.title,
-      description: eligibleCopy.description,
-      occurredAt: now,
-      dedupeKey: "private:eligible",
       actorUserId: input.actorUserId,
     });
   }

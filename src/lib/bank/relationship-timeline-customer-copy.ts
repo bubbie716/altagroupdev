@@ -273,43 +273,25 @@ export function formatLoanPaidOffCopy(scope: CustomerTimelineScope): TimelineCop
   };
 }
 
-export function formatPrivateBankingEligibleCopy(scope: CustomerTimelineScope): TimelineCopy {
+/** Personal-scope fallback for legacy program rows that no longer have their own copy. */
+function formatRelationshipMilestoneCopy(scope: CustomerTimelineScope): TimelineCopy {
+  return {
+    title: "Relationship Milestone Reached",
+    description:
+      scope === "business"
+        ? "Your company's relationship reached a new milestone."
+        : "Your relationship reached a new milestone.",
+  };
+}
+
+export function formatCommercialBankingEligibleCopy(scope: CustomerTimelineScope): TimelineCopy {
   if (scope === "business") {
     return {
       title: "Commercial Banking Invitation Sent",
       description: "Your company is now eligible for Alta commercial banking.",
     };
   }
-  return {
-    title: "Eligible for Alta Private",
-    description: "You may qualify for Alta Private over time.",
-  };
-}
-
-export function formatAltaPrivateInvitedCopy(scope: CustomerTimelineScope): TimelineCopy {
-  if (scope === "business") {
-    return {
-      title: "Invited to Alta Private",
-      description: "Your company contact was invited to Alta Private.",
-    };
-  }
-  return {
-    title: "Invited to Alta Private",
-    description: "You were invited to join Alta Private.",
-  };
-}
-
-export function formatPrivateBankingClientCopy(scope: CustomerTimelineScope): TimelineCopy {
-  if (scope === "business") {
-    return {
-      title: "Commercial Banking Activated",
-      description: "Your company's commercial banking relationship is now active.",
-    };
-  }
-  return {
-    title: "Alta Private Activated",
-    description: "Welcome to Alta Private.",
-  };
+  return formatRelationshipMilestoneCopy(scope);
 }
 
 export function formatAltaCardOpenedCopy(scope: CustomerTimelineScope): TimelineCopy {
@@ -494,11 +476,10 @@ export function formatRelationshipTierOutcomeCopy(
 
   switch (newTier) {
     case "PRIVATE_CLIENT":
-      return formatPrivateBankingClientCopy(scope);
     case "PRIVATE_ELIGIBLE":
-      return formatPrivateBankingEligibleCopy(scope);
+      return formatRelationshipMilestoneCopy(scope);
     case "COMMERCIAL_ELIGIBLE":
-      return formatPrivateBankingEligibleCopy("business");
+      return formatCommercialBankingEligibleCopy("business");
     case "PREMIER":
       return {
         title: "Premier Status Reached",
@@ -578,9 +559,7 @@ function normalizeLegacyTitle(title: string, scope: CustomerTimelineScope): stri
     [/^Business loan approved \(.+/i, "Business Loan Approved"],
     [/^Alta Card opened \(.+/i, "Alta Card Opened"],
     [/^Business Alta Card opened \(.+/i, "Business Alta Card Opened"],
-    [/^Private banking eligibility reached$/i, "Private Banking Invitation Sent"],
     [/^Commercial banking eligibility reached$/i, "Commercial Banking Invitation Sent"],
-    [/^Became Alta Private client$/i, "Alta Private Activated"],
     [/^Relationship tier (changed|upgraded) to/i, "Relationship tier upgraded to"],
     [/^Company relationship tier (changed|upgraded) to/i, "Company relationship tier upgraded to"],
     [/^Relationship Tier (Upgraded|Updated) to/i, "Relationship tier upgraded to"],
@@ -629,17 +608,8 @@ function inferCustomerTimelineDescription(
   if (/^Relationship Established$/i.test(title)) {
     return formatRelationshipEstablishedCopy(scope).description;
   }
-  if (/^Alta Private Activated$/i.test(title)) {
-    return formatPrivateBankingClientCopy(scope).description;
-  }
-  if (/^Invited to Alta Private$/i.test(title) || /^Alta Private Invitation Sent$/i.test(title)) {
-    return formatAltaPrivateInvitedCopy(scope).description;
-  }
-  if (/^Eligible for Alta Private$/i.test(title) || /^Private Banking Invitation Sent$/i.test(title)) {
-    return formatPrivateBankingEligibleCopy(scope).description;
-  }
   if (/^Commercial Banking Invitation Sent$/i.test(title)) {
-    return formatPrivateBankingEligibleCopy("business").description;
+    return formatCommercialBankingEligibleCopy("business").description;
   }
   if (/^Loan Fully Repaid$/i.test(title) || /^Business Loan Fully Repaid$/i.test(title)) {
     return formatLoanPaidOffCopy(scope).description;
@@ -747,12 +717,8 @@ export function resolveCustomerTimelineCopy(
 
     case "RELATIONSHIP_TIER_CHANGED": {
       const newTier = extractNewRelationshipTier(row, tierLabels);
-      if (newTier === "PRIVATE_CLIENT") {
-        copy = formatPrivateBankingClientCopy(scope);
-        break;
-      }
-      if (newTier === "PRIVATE_ELIGIBLE") {
-        copy = formatPrivateBankingEligibleCopy(scope);
+      if (newTier === "PRIVATE_CLIENT" || newTier === "PRIVATE_ELIGIBLE") {
+        copy = formatRelationshipMilestoneCopy(scope);
         break;
       }
       copy = newTier
@@ -761,17 +727,14 @@ export function resolveCustomerTimelineCopy(
       break;
     }
 
-    case "PRIVATE_BANKING_ELIGIBLE":
     case "COMMERCIAL_BANKING_ELIGIBLE":
-      copy = formatPrivateBankingEligibleCopy(scope);
+      copy = formatCommercialBankingEligibleCopy(scope);
       break;
 
+    case "PRIVATE_BANKING_ELIGIBLE":
     case "ALTA_PRIVATE_INVITED":
-      copy = formatAltaPrivateInvitedCopy(scope);
-      break;
-
     case "PRIVATE_BANKING_CLIENT":
-      copy = formatPrivateBankingClientCopy(scope);
+      copy = formatRelationshipMilestoneCopy(scope);
       break;
 
     default:
@@ -803,15 +766,6 @@ function normalizeLegacyCustomerTimelineCopy(
 
   if (/^Relationship Established$/i.test(title)) {
     return formatRelationshipEstablishedCopy(scope);
-  }
-  if (/^Alta Private Activated$/i.test(title)) {
-    return formatPrivateBankingClientCopy(scope);
-  }
-  if (/^Invited to Alta Private$/i.test(title) || /^Alta Private Invitation Sent$/i.test(title)) {
-    return formatAltaPrivateInvitedCopy(scope);
-  }
-  if (/^Eligible for Alta Private$/i.test(title) || /^Private Banking Invitation Sent$/i.test(title)) {
-    return formatPrivateBankingEligibleCopy(scope);
   }
   if (/^Loan Fully Repaid$/i.test(title) || /^Business Loan Fully Repaid$/i.test(title)) {
     return formatLoanPaidOffCopy(scope);

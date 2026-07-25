@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
   Dialog,
@@ -25,11 +25,17 @@ export function SecurityPortfolioTrigger({
   onClick,
   compact = false,
   className,
+  expanded = false,
+  dropdown = false,
 }: {
   label: string | null;
   onClick: () => void;
   compact?: boolean;
   className?: string;
+  /** When true, chevron indicates an open dropdown. */
+  expanded?: boolean;
+  /** Use listbox semantics + down-chevron (Quick Trade). */
+  dropdown?: boolean;
 }) {
   return (
     <button
@@ -42,7 +48,8 @@ export function SecurityPortfolioTrigger({
         compact ? "min-h-11 px-2.5 py-2" : "min-h-11 px-3 py-2.5",
         className,
       )}
-      aria-haspopup="dialog"
+      aria-haspopup={dropdown ? "listbox" : "dialog"}
+      aria-expanded={dropdown ? expanded : undefined}
       aria-label={
         label
           ? `Trading portfolio: ${label}. Change portfolio.`
@@ -67,11 +74,78 @@ export function SecurityPortfolioTrigger({
           {label ?? "Choose a portfolio"}
         </span>
       </span>
-      <ChevronRight
-        className="size-4 shrink-0 text-[var(--terminal-muted)] transition-transform group-hover:translate-x-0.5"
-        aria-hidden
-      />
+      {dropdown ? (
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-[var(--terminal-muted)] transition-transform",
+            expanded && "rotate-180",
+          )}
+          aria-hidden
+        />
+      ) : (
+        <ChevronRight
+          className="size-4 shrink-0 text-[var(--terminal-muted)] transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      )}
     </button>
+  );
+}
+
+/**
+ * Inline dropdown for Quick Trade — stays inside the parent dialog (no nested modal).
+ */
+export function SecurityPortfolioDropdown({
+  open,
+  onOpenChange,
+  label,
+  portfolios,
+  selectedId,
+  securitySymbol,
+  onSelect,
+  compact = true,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  label: string | null;
+  portfolios: SecurityPortfolioOption[];
+  selectedId: string | null;
+  securitySymbol: string;
+  onSelect: (portfolioId: string) => void;
+  compact?: boolean;
+}) {
+  const { personal, company } = groupSecurityPortfolios(portfolios);
+
+  return (
+    <div className="relative">
+      <SecurityPortfolioTrigger
+        label={label}
+        compact={compact}
+        dropdown
+        expanded={open}
+        onClick={() => onOpenChange(!open)}
+      />
+      {open ? (
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded-md border border-[var(--terminal-border)] bg-[var(--menu-surface)] shadow-lg"
+          role="presentation"
+        >
+          <div className="max-h-[min(50dvh,18rem)] overflow-y-auto overscroll-contain px-1 py-2">
+            <PortfolioPickerBody
+              personal={personal}
+              company={company}
+              selectedId={selectedId}
+              securitySymbol={securitySymbol}
+              onSelect={(id) => {
+                onSelect(id);
+                onOpenChange(false);
+              }}
+              onManage={() => onOpenChange(false)}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

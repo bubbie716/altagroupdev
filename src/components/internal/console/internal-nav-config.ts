@@ -53,11 +53,6 @@ export const INTERNAL_NAV_GROUPS: InternalNavGroup[] = [
       },
       { to: "/internal/queues/deal-rooms", label: "Deal Rooms", match: "/internal/queues/deal-rooms" },
       { to: "/internal/queues/exceptions", label: "Exceptions", match: "/internal/queues/exceptions" },
-      {
-        to: "/internal/queues/private-banking",
-        label: "Private Banking",
-        match: "/internal/queues/private-banking",
-      },
     ],
   },
   {

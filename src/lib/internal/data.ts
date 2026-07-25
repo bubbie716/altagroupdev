@@ -69,7 +69,7 @@ export const internalUsers: InternalUser[] = [
     username: "vaultseeker",
     discordId: "284719384712345678",
     minecraftUsername: "VaultSeeker",
-    tags: ["corporate_admin", "private_client"],
+    tags: ["corporate_admin"],
     accountStatus: "Active",
     lastActive: "2026-06-22 21:08",
     companyMemberships: [
@@ -81,7 +81,7 @@ export const internalUsers: InternalUser[] = [
     username: "harborline",
     discordId: "193847562839102938",
     minecraftUsername: "HarborLine",
-    tags: ["private_client"],
+    tags: [],
     accountStatus: "Active",
     lastActive: "2026-06-22 20:55",
     companyMemberships: [
@@ -104,7 +104,7 @@ export const internalUsers: InternalUser[] = [
     username: "meridian_founder",
     discordId: "562938471029384756",
     minecraftUsername: "MeridianCEO",
-    tags: ["corporate_admin", "private_client"],
+    tags: ["corporate_admin"],
     accountStatus: "Active",
     lastActive: "2026-06-22 19:22",
     companyMemberships: [
@@ -152,7 +152,7 @@ export const internalUsers: InternalUser[] = [
     username: "terminal_power",
     discordId: "102938475629103847",
     minecraftUsername: "TermPower",
-    tags: ["private_client"],
+    tags: [],
     accountStatus: "Active",
     lastActive: "2026-06-22 21:02",
     companyMemberships: [
@@ -296,14 +296,13 @@ export const bankOpsSummary: BankOpsSummary = {
   pendingWithdrawals: 0,
   transfersInReview: 0,
   lendingQueue: 0,
-  privateInvitesPending: 0,
   frozenAccounts: 0,
 };
 
 export const bankOpsAccounts: BankOpsAccount[] = [
   { id: "ALT-CHK-88421", holder: "vaultseeker", product: "Alta Checking", balance: "ƒ284,220", status: "Active" },
-  { id: "ALT-PRV-00291", holder: "harborline", product: "Alta Private", balance: "ƒ4.2M", status: "Active" },
-  { id: "ALT-OPS-44102", holder: "frozen_case", product: "Reserve Account by Alta Private", balance: "ƒ88,410", status: "Frozen" },
+  { id: "ALT-PRV-00291", holder: "harborline", product: "Alta Money Market", balance: "ƒ4.2M", status: "Active" },
+  { id: "ALT-OPS-44102", holder: "frozen_case", product: "Reserve Account", balance: "ƒ88,410", status: "Frozen" },
   { id: "ALT-CHK-77219", holder: "meridian_founder", product: "Alta Checking", balance: "ƒ1.1M", status: "Active" },
 ];
 

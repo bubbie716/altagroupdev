@@ -90,10 +90,6 @@ export function isAdmin(user: AltaUser): boolean {
   return isCorporateAdmin(user);
 }
 
-export function isPrivateClient(user: AltaUser): boolean {
-  return hasTag(user, "private_client");
-}
-
 /** Approved developer access workflow on the user record (legacy Exchange field). */
 export function isDeveloper(user: AltaUser): boolean {
   return user.developerAccess;

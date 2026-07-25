@@ -35,6 +35,9 @@ import {
   TransferContactScope,
   UserTag,
   VerificationStatus,
+  AltaCardTier,
+  AltaCardType,
+  AltaCardStatus,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -103,11 +106,10 @@ const ACCOUNTS = [
   { id: "BA-LAB-ACCESS", number: "AB-1000-100001", type: BankAccountType.ALTA_ACCESS,        name: "Carter — Alta Access",       balance: "12450.75",   companyId: null },
   { id: "BA-LAB-CHK",    number: "AB-2000-100002", type: BankAccountType.CHECKING,           name: "Carter — Everyday Checking", balance: "38214.20",   companyId: null },
   { id: "BA-LAB-SAV",    number: "AB-3000-100003", type: BankAccountType.SAVINGS,            name: "Carter — High-Yield Savings",balance: "127500.00",  companyId: null },
-  { id: "BA-LAB-RSV",    number: "AB-4000-100004", type: BankAccountType.RESERVE,            name: "Carter — Reserve",           balance: "5000.00",    companyId: null },
-  { id: "BA-LAB-PRV",    number: "AB-9000-100005", type: BankAccountType.PRIVATE,            name: "Carter — Alta Private",      balance: "1842500.00", companyId: null },
+  { id: "BA-LAB-MM",     number: "AB-6000-100004", type: BankAccountType.MONEY_MARKET,      name: "Carter — Money Market",      balance: "5000.00",    companyId: null },
   // Business
   { id: "BA-LAB-NPC-OP", number: "AB-5000-100010", type: BankAccountType.BUSINESS_OPERATING, name: "Newport Petroleum — Operating", balance: "2480300.55", companyId: "CO-NPC" },
-  { id: "BA-LAB-NPC-RSV",number: "AB-4000-100011", type: BankAccountType.RESERVE,            name: "Newport Petroleum — Reserve",   balance: "750000.00",  companyId: "CO-NPC" },
+  { id: "BA-LAB-NPC-MM", number: "AB-6000-100011", type: BankAccountType.MONEY_MARKET,      name: "Newport Petroleum — Money Market", balance: "750000.00", companyId: "CO-NPC" },
   { id: "BA-LAB-ALTG-OP",number: "AB-5000-100020", type: BankAccountType.BUSINESS_OPERATING, name: "Alta Group — Treasury",         balance: "9912450.00", companyId: "CO-ALTG" },
 ] as const;
 
@@ -135,7 +137,7 @@ async function upsertUser() {
       developerAccessStatus: "APPROVED",
     },
   });
-  for (const tag of [UserTag.CORPORATE_ADMIN, UserTag.PRIVATE_CLIENT]) {
+  for (const tag of [UserTag.CORPORATE_ADMIN]) {
     await prisma.userTagAssignment.upsert({
       where: { userId_tag: { userId: USER_ID, tag } },
       create: { userId: USER_ID, tag },
@@ -162,6 +164,10 @@ async function upsertCompanies() {
 }
 
 async function upsertAccounts() {
+  // Retire retired Private Banking account fixtures from earlier UI Lab seeds.
+  await prisma.bankAccount.deleteMany({
+    where: { id: { in: ["BA-LAB-RSV", "BA-LAB-NPC-RSV"] } },
+  });
   for (const a of ACCOUNTS) {
     await prisma.bankAccount.upsert({
       where: { id: a.id },
@@ -178,6 +184,8 @@ async function upsertAccounts() {
       },
       update: {
         accountName: a.name,
+        accountType: a.type,
+        accountNumber: a.number,
         balance: a.balance,
         status: BankAccountStatus.ACTIVE,
         companyId: a.companyId,
@@ -193,7 +201,6 @@ async function upsertTransactions() {
     { id: "TX-LAB-3", acc: "BA-LAB-CHK",    type: BankTransactionType.WITHDRAWAL, status: BankTransactionStatus.PENDING,  amt: "2800.00", desc: "Wire — Port Haven invoice",   ref: "TXLAB000003", days: 0 },
     { id: "TX-LAB-4", acc: "BA-LAB-CHK",    type: BankTransactionType.DEPOSIT,    status: BankTransactionStatus.DENIED,   amt: "950.00",  desc: "Returned check",              ref: "TXLAB000004", days: 5 },
     { id: "TX-LAB-5", acc: "BA-LAB-SAV",    type: BankTransactionType.DEPOSIT,    status: BankTransactionStatus.APPROVED, amt: "25000.00",desc: "Quarterly savings transfer",  ref: "TXLAB000005", days: 14 },
-    { id: "TX-LAB-6", acc: "BA-LAB-PRV",    type: BankTransactionType.DEPOSIT,    status: BankTransactionStatus.APPROVED, amt: "500000.00",desc: "Private Client deposit",     ref: "TXLAB000006", days: 30 },
     { id: "TX-LAB-7", acc: "BA-LAB-NPC-OP", type: BankTransactionType.DEPOSIT,    status: BankTransactionStatus.APPROVED, amt: "180000.00",desc: "Oil sales — Q2",             ref: "TXLAB000007", days: 7 },
     { id: "TX-LAB-8", acc: "BA-LAB-NPC-OP", type: BankTransactionType.WITHDRAWAL, status: BankTransactionStatus.APPROVED, amt: "62000.00",desc: "Drilling equipment vendor",   ref: "TXLAB000008", days: 8 },
     { id: "TX-LAB-9", acc: "BA-LAB-NPC-OP", type: BankTransactionType.WITHDRAWAL, status: BankTransactionStatus.PENDING,  amt: "15500.00",desc: "Vendor payment — pending review", ref: "TXLAB000009", days: 0 },
@@ -464,29 +471,38 @@ async function upsertLoans() {
     update: { outstandingBalance: "440000.00", principalOutstanding: "440000.00", status: LoanStatus.ACTIVE },
   });
 
-  // 6) Private liquidity line — active
-  await prisma.loanApplication.upsert({
-    where: { id: "LA-LAB-PRV" },
+}
+
+async function upsertAltaGoldCard() {
+  await prisma.altaCard.upsert({
+    where: { id: "AC-LAB-GOLD" },
     create: {
-      id: "LA-LAB-PRV", applicantUserId: USER_ID, productType: LoanProductType.PRIVATE_LIQUIDITY_LINE,
-      requestedAmount: "250000.00", termMonths: 12, purpose: "Liquidity bridge against private portfolio",
-      repaymentPlan: "Interest-only", linkedBankAccountId: "BA-LAB-PRV",
-      status: LoanApplicationStatus.APPROVED, reviewedById: USER_ID, reviewedAt: daysAgo(30),
+      id: "AC-LAB-GOLD",
+      ownerUserId: USER_ID,
+      tier: AltaCardTier.GOLD,
+      cardType: AltaCardType.PERSONAL,
+      status: AltaCardStatus.ACTIVE,
+      creditLimit: "250000.00",
+      availableCredit: "238450.00",
+      currentBalance: "11550.00",
+      statementBalance: "11550.00",
+      minimumPaymentDue: "350.00",
+      interestRate: "0.0999",
+      cardLastFour: "8842",
+      openedAt: daysAgo(120),
+      billingCycleDay: 15,
     },
-    update: {},
-  });
-  await prisma.loan.upsert({
-    where: { id: "LN-LAB-PRV" },
-    create: {
-      id: "LN-LAB-PRV", loanApplicationId: "LA-LAB-PRV", borrowerUserId: USER_ID,
-      productType: LoanProductType.PRIVATE_LIQUIDITY_LINE,
-      principalAmount: "250000.00", outstandingBalance: "250000.00", principalOutstanding: "250000.00",
-      interestRate: "0.65", interestRateType: LoanInterestRateType.MONTHLY_PERCENT,
-      termMonths: 12, status: LoanStatus.ACTIVE,
-      linkedBankAccountId: "BA-LAB-PRV",
-      approvedById: USER_ID, approvedAt: daysAgo(30),
+    update: {
+      tier: AltaCardTier.GOLD,
+      status: AltaCardStatus.ACTIVE,
+      creditLimit: "250000.00",
+      availableCredit: "238450.00",
+      currentBalance: "11550.00",
+      statementBalance: "11550.00",
+      minimumPaymentDue: "350.00",
+      interestRate: "0.0999",
+      cardLastFour: "8842",
     },
-    update: { status: LoanStatus.ACTIVE },
   });
 }
 
@@ -501,6 +517,7 @@ async function main() {
   await upsertPayroll();
   await upsertStatements();
   await upsertLoans();
+  await upsertAltaGoldCard();
   console.log("[ui-lab] done. Mock user:", USER_ID);
 }
 

@@ -9,7 +9,7 @@ Authorization for Alta Bank, Alta Exchange, Alta Terminal, and Internal uses **e
 Tags are granted through the internal portal at **`/internal/users`** (admin and operator access required). The CLI remains available for bootstrap and automation:
 
 ```bash
-npm run db:grant-tag -- DISCORD_ID admin private_client
+npm run db:grant-tag -- DISCORD_ID admin bank_admin
 npm run db:grant-tag -- DISCORD_ID operator
 npm run db:grant-tag -- DISCORD_ID admin --remove
 ```
@@ -18,7 +18,6 @@ npm run db:grant-tag -- DISCORD_ID admin --remove
 |-----------|---------|---------|
 | `admin` | `ADMIN` | Full internal access; admin-only staff tag management |
 | `operator` | `OPERATOR` | Internal console access; cannot manage staff tags |
-| `private_client` | `PRIVATE_CLIENT` | Alta Private banking surfaces |
 | `developer` | `DEVELOPER` | Exchange API documentation and keys |
 | `issuer` | `ISSUER` | May submit new listing applications |
 
@@ -26,8 +25,8 @@ npm run db:grant-tag -- DISCORD_ID admin --remove
 
 | Actor | View users | Grant/revoke tags |
 |-------|------------|-------------------|
-| **Admin** | Yes | All tags (`admin`, `operator`, `private_client`, `developer`, `issuer`) |
-| **Operator** | Yes | `private_client`, `developer`, `issuer` only — **not** `admin` or `operator` |
+| **Admin** | Yes | All tags (`admin`, `operator`, `developer`, `issuer`) |
+| **Operator** | Yes | `developer`, `issuer` only — **not** `admin` or `operator` |
 | **Everyone else** | No | No access to `/internal/users` |
 
 **Safety rules (enforced server-side):**
@@ -72,7 +71,6 @@ Companies do not log in. Representatives act on behalf of a company through memb
 
 - `isAdmin(user)` — `admin` tag
 - `isOperator(user)` — `operator` tag
-- `isPrivateClient(user)` — `private_client` tag
 - `isDeveloper(user)` — `developer` tag or approved `developerAccessStatus`
 - `isIssuer(user)` — `issuer` tag
 - `canAccessInternal(user)` — admin **or** operator
@@ -101,7 +99,6 @@ Use these in server functions, loaders, and future API routes.
 | Guard | Routes |
 |-------|--------|
 | `internalBeforeLoad` | `/internal/*` |
-| `privateClientBeforeLoad` | `/bank/private` |
 | `developerBeforeLoad` | `/exchange/api` |
 | `issuerPortalBeforeLoad` | `/exchange/company/$ticker/owner` |
 
@@ -114,7 +111,6 @@ Unauthenticated users redirect to `/login`. Authenticated but unauthorized users
 | Internal console (`/internal`) | Admin **or** operator | Yes |
 | Internal user & tag management (`/internal/users`) | Admin **or** operator (tag writes limited by role) | Yes |
 | Admin-only tag actions (admin/operator tags) | Admin only | Server-enforced in `internal-user-management.service.ts` |
-| Alta Private (`/bank/private`) | `private_client` tag | Yes |
 | Exchange API (`/exchange/api`) | Developer tag or approved developer status | Yes |
 | Issuer portal (`/exchange/company/[ticker]/owner`) | Company membership + issuer portal role | Yes |
 | Listing applications (`/exchange/apply`) | `issuer` tag | Not yet route-guarded |
@@ -147,7 +143,7 @@ Permission checks are pure functions on `AltaUser` (loaded with tags and enriche
 1. **Per-route admin enforcement** — Split internal pages so sensitive actions call `requireAdmin()` while operators use read-only or operational views.
 2. **Listing application guard** — Add `issuerBeforeLoad` on `/exchange/apply` using `requireIssuer()` / `isIssuer()`.
 3. **Terminal entitlements** — Map account tiers and market data licenses without new auth models.
-4. **Bank product scopes** — Layer product flags on top of `private_client` when real banking ships.
+4. **Bank product scopes** — Layer per-product entitlement flags on top of global tags when real banking ships.
 5. **Audit logging** — Record tag grants/revokes and account status changes in an append-only `AuditLog` table (TODO in internal user management service).
 6. **Discord role sync** — Propagate staff tags to Discord guild roles on grant/revoke.
 7. **Resource-level ACLs** — Fine-grained permissions per filing, API key, or account when backends go live.

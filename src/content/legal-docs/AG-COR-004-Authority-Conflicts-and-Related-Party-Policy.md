@@ -82,7 +82,7 @@ Related-party transactions require documented approval by a disinterested author
 
 Staff must not grant preferential account, credit, merchant, brokerage, fee, enforcement, or dispute treatment solely because of personal relationships, status, or pressure from an interested party.
 
-Permitted relationship-based products, including Alta Private, must follow published eligibility and approval procedures.
+Permitted relationship-based products must follow published eligibility and approval procedures.
 
 ## 9. Gifts and Benefits
 

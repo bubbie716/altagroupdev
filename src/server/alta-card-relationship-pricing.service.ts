@@ -9,9 +9,8 @@ import {
   getTierDefaultLimit,
   getTierDefaultRate,
 } from "@/lib/bank/alta-card-tier-config";
-import { isPrivateClient } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
-import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
+import { userWithMembershipsInclude } from "@/server/user-mapper";
 
 export type { AltaCardRelationshipRecommendation, RelationshipFactor };
 
@@ -19,8 +18,8 @@ function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function tierFromScore(score: number, isPrivate: boolean): AltaCardTierCode {
-  if (isPrivate && score >= 70) return "gold";
+function tierFromScore(score: number): AltaCardTierCode {
+  if (score >= 70) return "gold";
   if (score >= 65) return "black";
   if (score >= 40) return "navy";
   return "white";
@@ -36,8 +35,6 @@ export async function getAltaCardRelationshipRecommendation(
   });
   if (!user) throw new Error("NOT_FOUND");
 
-  const altaUser = mapDbUserToAltaUser(user);
-  const isPrivate = isPrivateClient(altaUser);
   const isBusiness = Boolean(companyId);
   const factors: RelationshipFactor[] = [];
   let score = 20;
@@ -163,16 +160,6 @@ export async function getAltaCardRelationshipRecommendation(
     }, null);
   }
 
-  if (isPrivate) {
-    factors.push({
-      key: "private_client",
-      label: "Alta Private client",
-      value: "Yes",
-      impact: 20,
-    });
-    score += 20;
-  }
-
   if (oldestRelationshipAccount) {
     const months =
       (Date.now() - oldestRelationshipAccount.getTime()) / (1000 * 60 * 60 * 24 * 30);
@@ -197,7 +184,7 @@ export async function getAltaCardRelationshipRecommendation(
 
   score = Math.max(0, Math.min(100, score));
 
-  const recommendedTier = tierFromScore(score, isPrivate);
+  const recommendedTier = tierFromScore(score);
   const tierLimit = getTierDefaultLimit(recommendedTier);
   const tierRate = getTierDefaultRate(recommendedTier);
 

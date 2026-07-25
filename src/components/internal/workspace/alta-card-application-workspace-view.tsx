@@ -70,7 +70,6 @@ export function AltaCardApplicationWorkspaceView({
   const [rate, setRate] = useState(String(app.approvedInterestRate ?? 19.99));
   const [notesText, setNotesText] = useState(app.reviewNote ?? "");
   const [denialReason, setDenialReason] = useState("");
-  const [goldOverride, setGoldOverride] = useState(false);
   const [activateNow, setActivateNow] = useState(false);
 
   const relatedRecords: RelatedRecord[] = [
@@ -144,12 +143,6 @@ export function AltaCardApplicationWorkspaceView({
           className="w-full rounded border border-border px-2 py-1 text-[13px]"
           rows={2}
         />
-        {tier === "gold" && admin ? (
-          <label className="flex items-center gap-2 text-[12px]">
-            <input type="checkbox" checked={goldOverride} onChange={(e) => setGoldOverride(e.target.checked)} />
-            Gold override (non–private client)
-          </label>
-        ) : null}
         {admin ? (
           <label className="flex items-center gap-2 text-[12px]">
             <input type="checkbox" checked={activateNow} onChange={(e) => setActivateNow(e.target.checked)} />
@@ -170,7 +163,6 @@ export function AltaCardApplicationWorkspaceView({
                 interestRate: Number(rate),
                 tier,
                 reviewNote: notesText.trim() || reason,
-                goldOverride: goldOverride || undefined,
                 approveAndActivate: activateNow || undefined,
               },
             });

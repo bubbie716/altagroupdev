@@ -13,7 +13,6 @@ export const BANK_STATIC_ROUTES = [
   "/bank/deposits",
   "/bank/open",
   "/bank/accounts",
-  "/bank/private",
   "/bank/lending",
   "/bank/lending/apply",
   "/bank/lending/applications",
@@ -75,7 +74,6 @@ export const INTERNAL_STATIC_ROUTES = [
   "/internal/queues/alta-card-reviews",
   "/internal/queues/deal-rooms",
   "/internal/queues/exceptions",
-  "/internal/queues/private-banking",
 ] as const;
 
 export function bankAccountRoute(accountId: string): string {

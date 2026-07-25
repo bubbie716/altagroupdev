@@ -23,7 +23,6 @@ export type RelationshipProductsHeld = {
   paidOffLoans: number;
   businessCompanies: number;
   verifiedCompanies: number;
-  isPrivateClient: boolean;
 };
 
 export type RelationshipProfileRow = {
@@ -32,8 +31,6 @@ export type RelationshipProfileRow = {
   relationshipSince: string;
   relationshipScore: number;
   relationshipTier: RelationshipTierCode;
-  privateBankingEligible: boolean;
-  privateBankingClient: boolean;
   totalBankAssets: number;
   totalInvestments: number;
   totalAltaAssets: number;
@@ -62,7 +59,6 @@ export type RelationshipProfileSnapshotRow = {
   totalBankAssets: number;
   totalAltaAssets: number;
   currentCreditExposure: number;
-  privateBankingEligible: boolean;
   calculatedAt: string;
   metadata: Record<string, unknown> | null;
 };
@@ -73,8 +69,6 @@ export type RelationshipProfileSummary = Pick<
   | "relationshipSince"
   | "relationshipScore"
   | "relationshipTier"
-  | "privateBankingEligible"
-  | "privateBankingClient"
   | "totalAltaAssets"
   | "productsHeld"
   | "lastCalculatedAt"
@@ -85,7 +79,6 @@ export type RelationshipRecommendationTypeCode =
   | "ALTA_CARD_LIMIT"
   | "ALTA_CARD_RATE"
   | "LOAN_PRE_APPROVAL"
-  | "PRIVATE_BANKING_INVITE"
   | "PRODUCT_OPPORTUNITY";
 
 export type CustomerRelationshipOpportunity = {
@@ -98,7 +91,6 @@ export type CustomerRelationshipView = {
   relationshipSince: string;
   relationshipTier: RelationshipTierCode;
   relationshipTierLabel: string;
-  altaPrivateStatusLabel: string;
   relationshipProgress: {
     currentTierLabel: string;
     nextTierLabel: string | null;
@@ -111,15 +103,12 @@ export type CustomerRelationshipView = {
   lifetimeInterestPaid: number;
   lifetimeAltaPayVolume: number;
   productsHeld: RelationshipProductsHeld;
-  privateBankingEligible: boolean;
-  privateBankingClient: boolean;
   opportunities: CustomerRelationshipOpportunity[];
   timeline: CustomerRelationshipTimelineEntry[];
 };
 
 export type RelationshipIntelligenceDashboard = {
   totalProfiles: number;
-  privateEligibleCount: number;
   preferredOrPremierCount: number;
   topByAssets: Array<{
     userId: string;
@@ -236,11 +225,7 @@ export type CustomerRelationshipTimelineEntry = Pick<
   "id" | "eventType" | "title" | "description" | "occurredAt"
 >;
 
-export type RelationshipIntegrationContext =
-  | "ALTA_CARD"
-  | "LENDING"
-  | "PRIVATE_BANKING"
-  | "CUSTOMER_PROFILE";
+export type RelationshipIntegrationContext = "ALTA_CARD" | "LENDING" | "CUSTOMER_PROFILE";
 
 export type ProductHoldingsDetail = {
   bankAccountsTotal: number;
@@ -253,7 +238,6 @@ export type ProductHoldingsDetail = {
   paidOffLoans: number;
   companyMemberships: number;
   verifiedCompanies: number;
-  isPrivateClient: boolean;
   exchangePlaceholder: boolean;
   terminalPlaceholder: boolean;
 };
@@ -272,8 +256,6 @@ export type RelationshipIntelligencePanelData = {
   relationshipSince: string;
   relationshipScore: number;
   relationshipTier: RelationshipTierCode;
-  privateBankingEligible: boolean;
-  privateBankingClient: boolean;
   totalBankAssets: number;
   totalAltaAssets: number;
   totalInvestments: number;

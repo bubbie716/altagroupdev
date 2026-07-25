@@ -10,13 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { isPrivateClient } from "@/lib/auth/permissions";
 import { openBankAccountRecord } from "@/lib/bank/bank.functions";
 import {
   defaultBankAccountTypeForOwnership,
   getBankAccountTypeOptionsForOpening,
   isInstantApprovalAccountType,
-  isPrivateBankingAccountType,
   type BankAccountTypeCode,
   type OpenBankAccountInput,
   type OpenBankAccountResult,
@@ -24,11 +22,10 @@ import {
 
 const fieldLabel = "type-meta";
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
 
 export function BankAccountOpenForm() {
   const user = useCurrentUser();
-  const hasPrivateAccess = user ? isPrivateClient(user) : false;
 
   const [ownership, setOwnership] = useState<"personal" | "company">("personal");
   const [accountType, setAccountType] = useState<BankAccountTypeCode>("alta_access");
@@ -38,7 +35,7 @@ export function BankAccountOpenForm() {
   const [error, setError] = useState<string | null>(null);
   const [createdAccount, setCreatedAccount] = useState<OpenBankAccountResult | null>(null);
 
-  const accountTypeOptions = getBankAccountTypeOptionsForOpening(ownership, hasPrivateAccess);
+  const accountTypeOptions = getBankAccountTypeOptionsForOpening(ownership);
   const selectedAccountType =
     accountTypeOptions.find((option) => option.value === accountType) ?? accountTypeOptions[0];
   const resolvedAccountType = selectedAccountType?.value ?? "alta_access";
@@ -49,7 +46,6 @@ export function BankAccountOpenForm() {
   const instant =
     selectedAccountType &&
     (isInstantApprovalAccountType(selectedAccountType.value) ||
-      (hasPrivateAccess && isPrivateBankingAccountType(selectedAccountType.value)) ||
       (selectedAccountType.value === "business_operating" &&
         verifiedCompanies.some((company) => company.companyId === companyId)));
 

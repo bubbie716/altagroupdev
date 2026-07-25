@@ -14,7 +14,7 @@ import { prisma } from "@/server/db";
 import {
   fromDbAccountStatus,
   fromDbCompanyRole,
-  fromDbUserTag,
+  fromDbUserTags,
   toDbAccountStatus,
   toDbUserTag,
 } from "@/server/enum-map";
@@ -110,7 +110,7 @@ function buildTagCapabilities(actor: AltaUser, targetTags: UserTag[]): InternalU
     result[tag] = {
       canGrant: adminActor && !hasTag,
       canRevoke: adminActor && hasTag,
-      requiresConfirm: STAFF_TAGS.includes(tag) || tag === "private_client",
+      requiresConfirm: STAFF_TAGS.includes(tag),
       danger: STAFF_TAGS.includes(tag),
     };
   }
@@ -151,7 +151,7 @@ function mapListRow(user: {
     email: user.email,
     minecraftUsername: user.minecraftUsername,
     accountStatus: fromDbAccountStatus(user.accountStatus),
-    tags: user.tags.map((t) => fromDbUserTag(t.tag)),
+    tags: fromDbUserTags(user.tags),
     companyCount: user._count.companyMemberships,
     bankAccountCount: user._count.bankAccounts,
     totalBankBalance:
@@ -166,10 +166,9 @@ function mapListRow(user: {
 export async function queryInternalAccessMetrics(): Promise<InternalAccessMetrics> {
   await requireOperator();
 
-  const [totalUsers, admins, privateClients, restrictedUsers, frozenUsers] = await Promise.all([
+  const [totalUsers, admins, restrictedUsers, frozenUsers] = await Promise.all([
     prisma.user.count(),
     prisma.userTagAssignment.count({ where: { tag: "CORPORATE_ADMIN" } }),
-    prisma.userTagAssignment.count({ where: { tag: "PRIVATE_CLIENT" } }),
     prisma.user.count({ where: { accountStatus: "RESTRICTED" } }),
     prisma.user.count({ where: { accountStatus: "FROZEN" } }),
   ]);
@@ -177,7 +176,6 @@ export async function queryInternalAccessMetrics(): Promise<InternalAccessMetric
   return {
     totalUsers,
     admins,
-    privateClients,
     restrictedUsers,
     frozenUsers,
   };
@@ -229,7 +227,7 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
 
   if (!user) notFound();
 
-  const tags = user.tags.map((t) => fromDbUserTag(t.tag));
+  const tags = fromDbUserTags(user.tags);
 
   const recentTransactions = await prisma.bankTransaction.findMany({
     where: {
@@ -354,23 +352,6 @@ export async function grantInternalUserTag(
     metadata: { tag },
   });
 
-  if (tag === "private_client") {
-    await writeAuditLog({
-      actorUserId,
-      action: "PRIVATE_BANKING_CLIENT_MARKED",
-      entityType: "USER",
-      entityId: targetUserId,
-      targetUserId,
-      description: "Alta Private membership activated",
-      metadata: { userId: targetUserId, actorUserId, before: false, after: true },
-    });
-
-    const { finalizeAltaPrivateMembershipActivation } = await import(
-      "@/server/alta-private-timeline.service"
-    );
-    await finalizeAltaPrivateMembershipActivation(targetUserId, actorUserId);
-  }
-
   return getInternalUserDetail(targetUserId);
 }
 
@@ -378,7 +359,6 @@ export async function revokeInternalUserTag(
   actorUserId: string,
   targetUserId: string,
   tag: UserTag,
-  reason?: string,
 ): Promise<InternalUserDetail> {
   const actorRecord = await prisma.user.findUnique({
     where: { id: actorUserId },
@@ -395,42 +375,6 @@ export async function revokeInternalUserTag(
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) notFound();
-
-  if (tag === "private_client") {
-    const { requireOperatorReason } = await import("@/server/operator-reason.service");
-    const trimmedReason = requireOperatorReason(reason, "Revocation reason");
-    if (trimmedReason.length < 5) badRequest("Revocation reason must be at least 5 characters.");
-
-    const { liquidatePrivateBankingOnAccessRevoked } = await import("@/server/bank.service");
-    await liquidatePrivateBankingOnAccessRevoked(targetUserId);
-
-    await prisma.userTagAssignment.deleteMany({
-      where: { userId: targetUserId, tag: toDbUserTag(tag) },
-    });
-
-    const { writeAuditLog } = await import("@/server/audit.service");
-    await writeAuditLog({
-      actorUserId,
-      action: "USER_TAG_REVOKED",
-      entityType: "USER",
-      entityId: targetUserId,
-      targetUserId,
-      description: `Revoked ${formatUserTag(tag)} tag`,
-      metadata: { tag, reason: trimmedReason },
-    });
-
-    await writeAuditLog({
-      actorUserId,
-      action: "PRIVATE_BANKING_CLIENT_REMOVED",
-      entityType: "USER",
-      entityId: targetUserId,
-      targetUserId,
-      description: "Alta Private membership removed",
-      metadata: { userId: targetUserId, actorUserId, reason: trimmedReason, before: true, after: false },
-    });
-
-    return getInternalUserDetail(targetUserId);
-  }
 
   await prisma.userTagAssignment.deleteMany({
     where: { userId: targetUserId, tag: toDbUserTag(tag) },

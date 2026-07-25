@@ -35,11 +35,11 @@ export const grantInternalUserTagRecord = createServerFn({ method: "POST" })
   });
 
 export const revokeInternalUserTagRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { userId: string; tag: UserTag; reason?: string }) => input)
+  .inputValidator((input: { userId: string; tag: UserTag }) => input)
   .handler(async ({ data }) => {
     const { revokeInternalUserTag } = await import("@/server/internal-user-management.service");
     const id = await actorId();
-    return revokeInternalUserTag(id, data.userId, data.tag, data.reason);
+    return revokeInternalUserTag(id, data.userId, data.tag);
   });
 
 export const updateInternalUserAccountStatusRecord = createServerFn({ method: "POST" })

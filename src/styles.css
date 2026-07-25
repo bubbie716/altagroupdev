@@ -457,13 +457,29 @@
     color: var(--danger);
   }
 
-  /* Global focus ring — institutional, subtle. */
+  /* Global focus ring for non-field controls — institutional, subtle. */
   *:focus-visible {
     outline: none;
     box-shadow:
       0 0 0 2px var(--background),
       0 0 0 3px var(--gold);
     border-radius: 6px;
+  }
+
+  /*
+    Typing fields: one border on focus — never stack a ring/offset on top of
+    the field border (that reads as a double outline site-wide).
+  */
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="image"]):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="combobox"]:focus-visible {
+    outline: none;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-ring-offset-shadow: 0 0 #0000;
+    box-shadow: none;
+    border-radius: inherit;
+    border-color: color-mix(in oklab, var(--gold) 55%, var(--border));
   }
 
   /* Financial data table rows — quiet hover, tabular columns. */
@@ -924,6 +940,17 @@
   box-shadow:
     0 0 0 2px var(--terminal-bg),
     0 0 0 3px var(--terminal-green);
+}
+
+.terminal-shell
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="image"]):focus-visible,
+.terminal-shell textarea:focus-visible,
+.terminal-shell select:focus-visible,
+.terminal-shell [role="combobox"]:focus-visible {
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  box-shadow: none;
+  border-color: var(--terminal-green);
 }
 
 .terminal-shell .ticker-up {

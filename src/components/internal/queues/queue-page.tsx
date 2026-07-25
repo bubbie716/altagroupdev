@@ -91,7 +91,7 @@ export function QueuePage({
               value={search ?? ""}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-8 w-full rounded-sm border border-border/70 bg-surface-1 pl-7 pr-2.5 text-[12px] outline-none transition-colors focus:border-gold focus:ring-1 focus:ring-gold/30"
+              className="h-8 w-full rounded-sm border border-border/70 bg-surface-1 pl-7 pr-2.5 text-[12px] outline-none transition-colors focus:border-gold focus:ring-0 focus:shadow-none"
             />
           </div>
         ) : null}

@@ -251,7 +251,6 @@ export function mapAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardA
     employeeCardsNeeded: row.employeeCardsNeeded,
     reviewNote: null,
     denialReason: null,
-    goldOverride: row.goldOverride,
     reviewedById: row.reviewedById,
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
     acceptedAt: row.acceptedAt?.toISOString() ?? null,

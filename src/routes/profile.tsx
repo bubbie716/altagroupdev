@@ -78,7 +78,6 @@ function ProfilePage() {
     .join("")
     .toUpperCase();
 
-  const isPrivate = user.tags.includes("private_client");
   const isAdminUser = user.tags.includes("corporate_admin");
 
   const memberSinceLabel = user.createdAt.slice(0, 10);
@@ -114,7 +113,6 @@ function ProfilePage() {
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <StatusBadge status={formatAccountStatus(user.accountStatus)} />
-                  {isPrivate ? <StatusBadge status="Private Client" /> : null}
                   {isAdminUser ? <StatusBadge status="Corporate Admin" tone="gold" /> : null}
                 </div>
               </div>
@@ -137,7 +135,7 @@ function ProfilePage() {
         snapshot={
           <RelationshipSnapshotAside
             rows={[
-              { label: "Standing", value: isPrivate ? "Founding Client" : "Standard" },
+              { label: "Standing", value: "Standard" },
               { label: "Total balance", value: <Florin value={bankSummary.totalBalance} /> },
               { label: "Active accounts", value: String(bankSummary.activeAccountCount) },
               { label: "Linked companies", value: String(user.companyMemberships.length) },

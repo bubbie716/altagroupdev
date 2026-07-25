@@ -6,7 +6,6 @@ export type AltaCardTierConfig = {
   description: string;
   defaultCreditLimit: number | null;
   defaultInterestRateApr: number | null;
-  isPrivateOnly: boolean;
   sortOrder: number;
 };
 
@@ -18,7 +17,6 @@ export const ALTA_CARD_TIER_CONFIG: Record<AltaCardTierCode, AltaCardTierConfig>
     description: "Entry card · lowest limits · highest standard rate",
     defaultCreditLimit: 5_000,
     defaultInterestRateApr: 24.99,
-    isPrivateOnly: false,
     sortOrder: 1,
   },
   navy: {
@@ -27,25 +25,22 @@ export const ALTA_CARD_TIER_CONFIG: Record<AltaCardTierCode, AltaCardTierConfig>
     description: "Standard relationship card · medium limits · better rate",
     defaultCreditLimit: 15_000,
     defaultInterestRateApr: 19.99,
-    isPrivateOnly: false,
     sortOrder: 2,
   },
   black: {
     code: "black",
     label: "Alta Black",
-    description: "Premium public card · higher limits · best public rate",
+    description: "Premium card · higher limits · best standard rate",
     defaultCreditLimit: 50_000,
     defaultInterestRateApr: 15.99,
-    isPrivateOnly: false,
     sortOrder: 3,
   },
   gold: {
     code: "gold",
     label: "Alta Gold",
-    description: "Private banking · negotiable limit and rate · Alta Private",
+    description: "Flagship Alta Bank card · negotiable limit and rate",
     defaultCreditLimit: null,
     defaultInterestRateApr: null,
-    isPrivateOnly: true,
     sortOrder: 4,
   },
 };

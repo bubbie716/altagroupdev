@@ -11,7 +11,6 @@ const QUEUE_ROUTES = [
   "/internal/queues/alta-card-reviews",
   "/internal/queues/deal-rooms",
   "/internal/queues/exceptions",
-  "/internal/queues/private-banking",
 ] as const;
 
 test.describe("Internal queues", () => {

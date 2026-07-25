@@ -10,8 +10,6 @@ export type SnapshotMaterialChangeInput = {
   newTotalAssets: number;
   oldCreditExposure: number | null;
   newCreditExposure: number;
-  oldPrivateEligible?: boolean | null;
-  newPrivateEligible?: boolean;
   oldCommercialEligible?: boolean | null;
   newCommercialEligible?: boolean;
 };
@@ -32,13 +30,6 @@ export function shouldWriteRelationshipSnapshot(input: SnapshotMaterialChangeInp
   if (
     input.oldCreditExposure != null &&
     Math.abs(input.newCreditExposure - input.oldCreditExposure) >= EXPOSURE_CHANGE_THRESHOLD
-  ) {
-    return true;
-  }
-  if (
-    input.oldPrivateEligible != null &&
-    input.newPrivateEligible != null &&
-    input.oldPrivateEligible !== input.newPrivateEligible
   ) {
     return true;
   }

@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { useAltaPrivateClientContext } from "@/hooks/use-alta-private-client-context";
 import { RouteButton } from "@/components/bank/route-button";
 import { getLendingProducts } from "@/lib/bank/api";
 import { fetchLendingDeskStats } from "@/lib/bank/lending.functions";
@@ -20,7 +19,6 @@ export const Route = createFileRoute("/bank/lending/")({
 function BankLendingOverview() {
   const lendingProducts = getLendingProducts();
   const user = useCurrentUser();
-  const privateClient = useAltaPrivateClientContext();
   const creditDeskNav = useCreditDeskCustomerNav();
   const deskStats = Route.useLoaderData();
   const showApply = creditDeskNav.showApplyEntryPoints;
@@ -37,14 +35,8 @@ function BankLendingOverview() {
       <BankPageMeta
         eyebrow="Alta Bank · Credit Desk"
         title="Lending"
-        subtitle={privateClient.isMember ? "Alta Private Client" : undefined}
         description="Relationship-led credit facilities for Newport citizens, founders, and institutions — every application manually reviewed through your Secure Deal Room."
       />
-      {privateClient.isMember ? (
-        <p className="-mt-4 mb-10 max-w-2xl text-[14px] text-muted-foreground">
-          As an Alta Private client, lending requests may receive relationship pricing and priority review. Terms remain subject to underwriting.
-        </p>
-      ) : null}
 {/* Editorial CTA strip */}
       {showApply ? (
       <div className="mb-12 overflow-hidden rounded-xl border border-border bg-surface-1/80">
@@ -57,7 +49,7 @@ function BankLendingOverview() {
               Request a credit facility.
             </h2>
             <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
-              Personal, business, and private liquidity lines structured one
+              Personal and business credit facilities structured one
               facility at a time. No automated decisioning — after submission, your application enters review and a Secure Deal Room opens for communication with Alta.
             </p>
           </div>

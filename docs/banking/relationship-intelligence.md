@@ -2,7 +2,7 @@
 
 Relationship Intelligence is Alta’s read-only customer relationship profile system. It aggregates real platform data into a single score, tier, and factor breakdown for staff review and a limited customer-facing summary.
 
-**V1 is intelligence only.** It does not auto-approve products, change Alta Card limits, modify loan decisions, or enroll customers in Alta Private.
+**V1 is intelligence only.** It does not auto-approve products, change Alta Card limits, or modify loan decisions.
 
 ---
 
@@ -15,13 +15,11 @@ Every Alta user can have a **Relationship Profile** that consolidates:
 - Loan balances and repayment behavior
 - Alta Pay volume (bank transaction descriptions)
 - Business banking and company verification
-- Alta Private client status (tag-based)
 
 This profile supports:
 
 - Relationship score (0–1000, not a credit score)
 - Relationship tier
-- Private banking eligibility signal
 - Admin/customer relationship overview
 - Future pre-approval and recommendation surfaces
 + V2 read-only product recommendations (see below)
@@ -84,7 +82,7 @@ Widgets on internal Alta Card detail, card application/review, lending applicati
 
 ### Customer-facing opportunities
 
-`/bank/relationship` shows limited messages (e.g. eligible for Alta Private review). **Never** shows confidence, negative factors, or formulas.
+`/bank/relationship` shows limited messages only. **Never** shows confidence, negative factors, or formulas.
 
 ### V2 audit events
 
@@ -103,7 +101,7 @@ Widgets on internal Alta Card detail, card application/review, lending applicati
 
 One row per user (`userId` unique). Stores latest aggregated metrics and score/tier.
 
-Key fields: `relationshipSince`, `relationshipScore`, `relationshipTier`, `privateBankingEligible`, `privateBankingClient`, asset/lifetime totals, active balances, `currentCreditExposure`, `lastCalculatedAt`.
+Key fields: `relationshipSince`, `relationshipScore`, `relationshipTier`, asset/lifetime totals, active balances, `currentCreditExposure`, `lastCalculatedAt`.
 
 ### `RelationshipProfileSnapshot`
 
@@ -117,8 +115,8 @@ Historical snapshot written on each refresh for trend/changelog analysis. Option
 | `STANDARD` | 250–499 |
 | `PREFERRED` | 500–699 |
 | `PREMIER` | 700–849 |
-| `PRIVATE_ELIGIBLE` | Score ≥ 850 and assets threshold met |
-| `PRIVATE_CLIENT` | User has `private_client` tag (overrides display tier) |
+| `PRIVATE_ELIGIBLE` | Retired code — historical rows only, displays as Premier |
+| `PRIVATE_CLIENT` | Retired code — historical rows only, displays as Premier |
 
 ---
 
@@ -137,8 +135,6 @@ All calculations use **existing Prisma data only**:
 | Loan / card payments | `LoanPayment` totals, Alta Card `PAYMENT` transactions |
 | Active balances | Active/frozen/delinquent loans and Alta Cards |
 | Relationship since | Earliest of user signup, first account, loan, card, or application |
-| Private client | `UserTag.PRIVATE_CLIENT` via `isPrivateClient()` |
-| Private eligible | Score ≥ 850 **and** total Alta assets ≥ $250,000 (configurable) |
 
 Negative factors: delinquent cards, defaulted loans, overdue installments, failed autopay, restricted/frozen personal accounts, non-active user status.
 
@@ -197,7 +193,6 @@ Scheduler hook: `refreshRelationshipProfilesScheduled()` in `src/server/relation
 | `RELATIONSHIP_PROFILE_REFRESHED` | Every refresh |
 | `RELATIONSHIP_SCORE_CHANGED` | Score delta |
 | `RELATIONSHIP_TIER_CHANGED` | Tier delta |
-| `PRIVATE_BANKING_ELIGIBILITY_CHANGED` | Eligibility delta |
 
 Metadata includes `userId`, `oldScore`, `newScore`, `oldTier`, `newTier`, `actorUserId` or `SYSTEM`.
 
@@ -206,7 +201,6 @@ Metadata includes `userId`, `oldScore`, `newScore`, `oldTier`, `newTier`, `actor
 ## Safety
 
 - Read-only intelligence — no automatic product changes
-- Private client status read from tag; never auto-granted
 - Idempotent refresh (upsert by `userId`)
 - Graceful handling for users with no banking/card/loan data
 
@@ -228,7 +222,7 @@ Relationship Intelligence V3 adds a **Relationship Timeline** — a chronologica
 
 ### Event types
 
-`RELATIONSHIP_STARTED`, `BANK_ACCOUNT_OPENED`, `BUSINESS_ACCOUNT_OPENED`, deposit/withdrawal/Alta Pay milestones, Alta Card events, lending lifecycle events, private banking events, relationship score/tier changes, `MANUAL_NOTE`.
+`RELATIONSHIP_STARTED`, `BANK_ACCOUNT_OPENED`, `BUSINESS_ACCOUNT_OPENED`, deposit/withdrawal/Alta Pay milestones, Alta Card events, lending lifecycle events, relationship score/tier changes, `MANUAL_NOTE`.
 
 ### Service API
 
@@ -249,7 +243,7 @@ Relationship Intelligence V3 adds a **Relationship Timeline** — a chronologica
 
 ### Backfill behavior
 
-Backfill uses **real records only** — user signup, bank accounts, Alta Cards, audit tier changes, loan applications/loans, private client tags, profile snapshots. Skips events when source data is unavailable. Idempotent via `dedupeKey` metadata.
+Backfill uses **real records only** — user signup, bank accounts, Alta Cards, audit tier changes, loan applications/loans, profile snapshots. Skips events when source data is unavailable. Idempotent via `dedupeKey` metadata.
 
 ### Milestone rules
 
@@ -288,7 +282,6 @@ Relationship Intelligence V4 surfaces the profile, recommendations, and product 
 |---------|--------|---------|
 | `ALTA_CARD` | Card detail, applications, reviews | Tier/limit/rate review, Gold eligibility |
 | `LENDING` | Lending queue, application thread, loan detail | Manual underwriting, pricing, exposure |
-| `PRIVATE_BANKING` | `/bank/private`, internal relationship profile | Eligibility + private client review |
 | `CUSTOMER_PROFILE` | `/internal/users/$userId` | Central operator view |
 
 Context filters live in `src/lib/bank/relationship-integration-config.ts`.
@@ -322,16 +315,6 @@ Suggested tier, limit, rate, reasons, and confidence shown when recommendations 
 
 **Future Pre-Approval Readiness** section shows eligible / not eligible / needs review via `getPreApprovalReadiness(userId)`. No loan offers generated.
 
-### Alta Private integration
-
-**Customer** (`/bank/private`):
-
-- Private client → “Alta Private Client”
-- Eligible → “You may be eligible for Alta Private review.”
-- Not eligible → aspirational copy only (no rejection/risk factors)
-
-**Internal** — eligibility factors, assets, score, tier, product mix, recommended action on relationship profile and user detail. Private client tag changes audit `PRIVATE_BANKING_CLIENT_MARKED` / `PRIVATE_BANKING_CLIENT_REMOVED` (requires confirmation + reason).
-
 ### Internal customer profile
 
 `/internal/users/$userId` — `RelationshipIntelligenceOperatorPanel` with:
@@ -342,7 +325,7 @@ Suggested tier, limit, rate, reasons, and confidence shown when recommendations 
 
 ### Product holdings
 
-`getProductHoldingsSummary(userId)` — real data: bank accounts, Alta Card status/tier, business cards, active/paid-off loans, company memberships, private client status. Exchange/Terminal placeholders only.
+`getProductHoldingsSummary(userId)` — real data: bank accounts, Alta Card status/tier, business cards, active/paid-off loans, company memberships. Exchange/Terminal placeholders only.
 
 ### Service API (V4)
 
@@ -364,8 +347,6 @@ Suggested tier, limit, rate, reasons, and confidence shown when recommendations 
 |--------|------|
 | `RELATIONSHIP_RECOMMENDATION_USED` | Admin clicked Use Recommendation |
 | `RELATIONSHIP_PREAPPROVAL_READINESS_VIEWED` | Explicit readiness panel action |
-| `PRIVATE_BANKING_CLIENT_MARKED` | Private client tag granted |
-| `PRIVATE_BANKING_CLIENT_REMOVED` | Private client tag revoked |
 
 `RELATIONSHIP_INTELLIGENCE_VIEWED` is **not** logged on every page load (too noisy).
 

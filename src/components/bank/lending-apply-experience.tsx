@@ -27,17 +27,12 @@ import {
   LOAN_TERM_MONTHS_MIN,
   computeLoanTermEstimate,
 } from "@/lib/bank/lending-types";
-import {
-  LOAN_APPLICATION_WHAT_HAPPENS_NEXT,
-  LOAN_PRIVATE_CLIENT_LENDING_NOTE,
-} from "@/lib/bank/lending-application-status-copy";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { isPrivateClient } from "@/lib/auth/permissions";
+import { LOAN_APPLICATION_WHAT_HAPPENS_NEXT } from "@/lib/bank/lending-application-status-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { cn } from "@/lib/utils";
 
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
 const labelClass =
   "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
@@ -65,15 +60,13 @@ export function LendingApplyExperience({
   companies: CompanyLendingOption[];
   initialProduct?: LoanProductTypeCode;
 }) {
-  const user = useCurrentUser();
   const router = useRouter();
   const submit = useServerFn(submitLoanApplication);
 
-  const productOptions = useMemo(() => {
-    const options: LoanProductTypeCode[] = ["personal_credit_line", "business_credit_line"];
-    if (user && isPrivateClient(user)) options.push("private_liquidity_line");
-    return options;
-  }, [user]);
+  const productOptions = useMemo<LoanProductTypeCode[]>(
+    () => ["personal_credit_line", "business_credit_line"],
+    [],
+  );
 
   const [productType, setProductType] = useState<LoanProductTypeCode>(
     initialProduct && productOptions.includes(initialProduct) ? initialProduct : productOptions[0],
@@ -254,9 +247,6 @@ export function LendingApplyExperience({
                 Reviewed manually by Alta Bank credit operations. Indicative rate {indicativeRate} ·
                 Repayment {LOAN_PRODUCT_REPAYMENT_GUIDANCE[productType]}
               </p>
-              {productType === "private_liquidity_line" && (
-                <p className="mt-2 text-[12px] text-muted-foreground">{LOAN_PRIVATE_CLIENT_LENDING_NOTE}</p>
-              )}
             </div>
 
             {productType === "business_credit_line" && (
@@ -357,15 +347,6 @@ export function LendingApplyExperience({
                 </Select>
               )}
             </div>
-
-            {productType === "private_liquidity_line" &&
-              monthsNum > 0 &&
-              principalNum > 0 &&
-              !termEstimate && (
-                <p className="text-[12px] text-muted-foreground">
-                  Total outstanding estimate is available after Alta Private sets your negotiated monthly rate at approval.
-                </p>
-              )}
           </Fieldset>
 
           <Fieldset

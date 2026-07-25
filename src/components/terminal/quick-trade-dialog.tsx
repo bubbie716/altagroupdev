@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -14,8 +14,7 @@ import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { MarketStatusBadge, SecurityStatusBadge } from "@/components/terminal/market-status";
 import { OrderTicket } from "@/components/terminal/order-ticket";
 import {
-  SecurityPortfolioPicker,
-  SecurityPortfolioTrigger,
+  SecurityPortfolioDropdown,
 } from "@/components/terminal/security-portfolio-picker";
 import { SymbolAutocomplete } from "@/components/terminal/symbol-autocomplete";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
@@ -26,7 +25,7 @@ import {
   type SecurityPortfolioOption,
 } from "@/lib/terminal/security-portfolio-picker";
 import { resetQuickTradeFields } from "@/lib/terminal/quick-trade";
-import { fetchQuickTradeContext } from "@/lib/terminal/terminal.functions";
+import { fetchQuickTradeContext, selectTerminalPortfolioFn } from "@/lib/terminal/terminal.functions";
 import type {
   Holding,
   MarketStatusSnapshot,
@@ -54,37 +53,55 @@ type Phase = "form" | "success";
 
 /**
  * Reusable Quick Trade surface: desktop modal / mobile bottom sheet via one Dialog tree
- * (SSR-safe CSS, matching SecurityPortfolioPicker). Optional `initialSymbol` for
- * movers/watchlist/holdings entry points.
+ * (SSR-safe CSS). Portfolio choice uses an inline dropdown (not a nested modal).
+ * Optional `initialSymbol` for movers/watchlist/holdings entry points.
  */
 export function QuickTradeDialog({
   open,
   onOpenChange,
   initialSymbol,
+  initialPortfolios,
   onCloseAutoFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Prefill ticker when opening from movers/watchlists/holdings (future). */
   initialSymbol?: string;
+  /** Home/dashboard portfolios for an instant picker (enriched on fetch). */
+  initialPortfolios?: TerminalPortfolioSummary[];
   onCloseAutoFocus?: () => void;
 }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fetchCtx = useServerFn(fetchQuickTradeContext);
+  const rememberPortfolio = useServerFn(selectTerminalPortfolioFn);
+
+  const seedPortfolios = useMemo(
+    () =>
+      (initialPortfolios ?? []).map(
+        (portfolio): SecurityPortfolioOption => ({
+          ...portfolio,
+          buyingPower: 0,
+          holdingQuantity: 0,
+        }),
+      ),
+    [initialPortfolios],
+  );
 
   const [phase, setPhase] = useState<Phase>("form");
   const [lastOrder, setLastOrder] = useState<OrderRecord | null>(null);
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
   const [symbol, setSymbol] = useState<string | null>(null);
   const [ctx, setCtx] = useState<QuickTradeContext | null>(null);
+  const [portfolios, setPortfolios] = useState<SecurityPortfolioOption[]>(seedPortfolios);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const suppressCloseRef = useRef(false);
-  const lastPickerTriggerRef = useRef<HTMLElement | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   const navigatingAwayRef = useRef(false);
   const openPathRef = useRef<string | null>(null);
+  /** Skip the redundant fetch after applying server-resolved portfolioId. */
+  const skipFetchForHydratedPortfolioRef = useRef(false);
 
   const security = ctx?.security ?? null;
   const draft = useOrderTicketDraft(security?.lastPrice ?? 0);
@@ -104,9 +121,21 @@ export function QuickTradeDialog({
     }
   }, [open, pathname, onOpenChange]);
 
+  // Seed picker from Home the moment Quick Trade opens.
+  useEffect(() => {
+    if (!open) return;
+    if (seedPortfolios.length > 0) {
+      setPortfolios((prev) => (prev.length > 0 ? prev : seedPortfolios));
+    }
+  }, [open, seedPortfolios]);
+
   // Load / refresh context when open, portfolio, or symbol changes.
   useEffect(() => {
     if (!open) return;
+    if (skipFetchForHydratedPortfolioRef.current) {
+      skipFetchForHydratedPortfolioRef.current = false;
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
@@ -119,7 +148,9 @@ export function QuickTradeDialog({
       .then((next) => {
         if (cancelled) return;
         setCtx(next);
+        setPortfolios(next.portfolios);
         if (!portfolioId && next.selectedPortfolio?.id) {
+          skipFetchForHydratedPortfolioRef.current = true;
           setPortfolioId(next.selectedPortfolio.id);
         }
       })
@@ -149,8 +180,11 @@ export function QuickTradeDialog({
     setSymbol(null);
     setPortfolioId(null);
     setCtx(null);
+    setPortfolios(seedPortfolios);
     setLoadError(null);
     setPickerOpen(false);
+    setReviewing(false);
+    skipFetchForHydratedPortfolioRef.current = false;
     const fields = resetQuickTradeFields();
     draft.setSide(fields.side);
     draft.setType(fields.type);
@@ -159,8 +193,8 @@ export function QuickTradeDialog({
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next && (pickerOpen || suppressCloseRef.current)) return;
     if (!next) {
+      setPickerOpen(false);
       onOpenChange(false);
       // Reset after close so reopen is fresh; portfolio preference stays server-side.
       resetAll();
@@ -169,28 +203,26 @@ export function QuickTradeDialog({
     onOpenChange(true);
   }
 
-  function openPicker() {
-    const active = document.activeElement;
-    lastPickerTriggerRef.current = active instanceof HTMLElement ? active : null;
-    suppressCloseRef.current = true;
-    setPickerOpen(true);
-  }
-
-  function restorePickerTriggerFocus() {
-    const trigger = lastPickerTriggerRef.current;
-    if (trigger && trigger.isConnected) {
-      trigger.focus({ preventScroll: true });
-    }
-    suppressCloseRef.current = false;
-  }
-
   function selectPortfolio(nextId: string) {
-    closeThenRun(
-      () => setPickerOpen(false),
-      () => {
-        setPortfolioId(nextId);
-      },
-    );
+    // Optimistic update so the trigger/dropdown feel instant; light refresh follows.
+    const option = portfolios.find((p) => p.id === nextId) ?? null;
+    if (option) {
+      setCtx((prev) =>
+        prev
+          ? {
+              ...prev,
+              selectedPortfolio: option,
+              buyingPower: option.buyingPower || prev.buyingPower,
+            }
+          : prev,
+      );
+    }
+    setPickerOpen(false);
+    setPortfolioId(nextId);
+    // Persist as last-used immediately (also done again by context fetch).
+    void rememberPortfolio({ data: nextId }).catch(() => {
+      /* context refresh will retry remember */
+    });
   }
 
   function tradeAnother() {
@@ -198,6 +230,7 @@ export function QuickTradeDialog({
     setLastOrder(null);
     setSymbol(null);
     setLoadError(null);
+    setReviewing(false);
     const fields = resetQuickTradeFields();
     draft.setSide(fields.side);
     draft.setType(fields.type);
@@ -242,7 +275,6 @@ export function QuickTradeDialog({
     );
   }
 
-  const portfolios = (ctx?.portfolios ?? []) as SecurityPortfolioOption[];
   const selectedOption = portfolios.find((p) => p.id === portfolioId) ?? null;
   const portfolioLabel = formatPortfolioTicketLabel(
     selectedOption ?? ctx?.selectedPortfolio ?? null,
@@ -270,6 +302,17 @@ export function QuickTradeDialog({
             event.preventDefault();
             focusDialogCloseButton(event.currentTarget);
           }}
+          onEscapeKeyDown={(event) => {
+            if (pickerOpen) {
+              event.preventDefault();
+              setPickerOpen(false);
+              return;
+            }
+            if (reviewing) {
+              event.preventDefault();
+              setReviewing(false);
+            }
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             onCloseAutoFocus?.();
@@ -277,12 +320,18 @@ export function QuickTradeDialog({
         >
           <DialogHeader className="border-b border-[var(--terminal-border)] px-4 py-3 pr-14 text-left sm:px-5 sm:py-4">
             <DialogTitle className="text-[16px] font-medium">
-              {phase === "success" ? "Order placed" : "Quick Trade"}
+              {phase === "success"
+                ? "Order placed"
+                : reviewing
+                  ? "Review order"
+                  : "Quick Trade"}
             </DialogTitle>
             <DialogDescription className="text-[12px] text-[var(--terminal-muted)]">
               {phase === "success"
                 ? "Your order was submitted."
-                : "Choose a portfolio and security, then review before submitting."}
+                : reviewing
+                  ? "Confirm details before submitting. Back keeps your entries."
+                  : "Choose a portfolio and security, then review before submitting."}
             </DialogDescription>
           </DialogHeader>
 
@@ -302,105 +351,100 @@ export function QuickTradeDialog({
               />
             ) : (
               <div className="space-y-4">
-                <SecurityPortfolioTrigger
-                  label={portfolioLabel}
-                  onClick={openPicker}
+                {!reviewing ? (
+                  <>
+                    <div data-portfolio-dropdown="">
+                      <SecurityPortfolioDropdown
+                        open={pickerOpen}
+                        onOpenChange={setPickerOpen}
+                        label={portfolioLabel}
+                        portfolios={portfolios}
+                        selectedId={portfolioId}
+                        securitySymbol={security?.symbol ?? "this trade"}
+                        onSelect={selectPortfolio}
+                        compact
+                      />
+                    </div>
+
+                    <SymbolAutocomplete
+                      selected={
+                        security
+                          ? { symbol: security.symbol, name: security.name }
+                          : null
+                      }
+                      onSelect={(row: SecuritySummary) => {
+                        setPickerOpen(false);
+                        setSymbol(row.symbol);
+                        draft.setLimitPrice(String(row.lastPrice));
+                      }}
+                      onClear={() => {
+                        setSymbol(null);
+                      }}
+                      disabled={loading}
+                    />
+
+                    {security && ctx?.marketStatus ? (
+                      <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <MoneyValue value={security.lastPrice} asPrice size="sm" />
+                          <PriceChange
+                            amount={security.dayChange}
+                            percent={security.dayChangePercent}
+                          />
+                          <SecurityStatusBadge status={security.tradingStatus} />
+                        </div>
+                        <div className="mt-2">
+                          <MarketStatusBadge
+                            status={ctx.marketStatus.status}
+                            label={ctx.marketStatus.label}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {loadError ? (
+                      <p className="text-[12px] text-[var(--terminal-red)]" role="alert">
+                        {loadError}
+                      </p>
+                    ) : null}
+
+                    {loading && !ctx ? (
+                      <p className="text-[13px] text-[var(--terminal-muted)]">Loading…</p>
+                    ) : null}
+                  </>
+                ) : null}
+
+                <OrderTicket
+                  security={security}
+                  buyingPower={ctx?.buyingPower ?? selectedOption?.buyingPower ?? 0}
+                  position={ctx?.position ?? null}
+                  mode={ctx?.mode ?? mode}
+                  marketClosed={marketClosed}
+                  marketStatus={ctx?.marketStatus.status}
+                  portfolioId={portfolioId}
+                  portfolioLabel={portfolioLabel}
+                  canTradeSelected={!blockedReason}
+                  tradeBlockedReason={blockedReason}
+                  onRequestPortfolioChange={() => setPickerOpen(true)}
+                  hidePortfolioControl
+                  suppressInlineSuccess
+                  confirmPresentation="inline"
+                  confirmOpen={reviewing}
+                  onConfirmOpenChange={setReviewing}
+                  draft={draft}
                   compact
-                />
-
-                <SymbolAutocomplete
-                  selected={
-                    security
-                      ? { symbol: security.symbol, name: security.name }
-                      : null
-                  }
-                  onSelect={(row: SecuritySummary) => {
-                    setSymbol(row.symbol);
-                    draft.setLimitPrice(String(row.lastPrice));
+                  className="border-0 bg-transparent p-0"
+                  onSubmitted={({ order }) => {
+                    setReviewing(false);
+                    setLastOrder(order);
+                    setPhase("success");
                   }}
-                  onClear={() => {
-                    setSymbol(null);
-                  }}
-                  disabled={loading}
                 />
-
-                {security && ctx?.marketStatus ? (
-                  <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <MoneyValue value={security.lastPrice} asPrice size="sm" />
-                      <PriceChange
-                        amount={security.dayChange}
-                        percent={security.dayChangePercent}
-                      />
-                      <SecurityStatusBadge status={security.tradingStatus} />
-                    </div>
-                    <div className="mt-2">
-                      <MarketStatusBadge
-                        status={ctx.marketStatus.status}
-                        label={ctx.marketStatus.label}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {loadError ? (
-                  <p className="text-[12px] text-[var(--terminal-red)]" role="alert">
-                    {loadError}
-                  </p>
-                ) : null}
-
-                {loading && !ctx ? (
-                  <p className="text-[13px] text-[var(--terminal-muted)]">Loading…</p>
-                ) : null}
-
-                {security && ctx ? (
-                  <OrderTicket
-                    security={security}
-                    buyingPower={ctx.buyingPower}
-                    position={ctx.position}
-                    mode={ctx.mode}
-                    marketClosed={marketClosed}
-                    marketStatus={ctx.marketStatus.status}
-                    portfolioId={portfolioId}
-                    portfolioLabel={portfolioLabel}
-                    canTradeSelected={!blockedReason}
-                    tradeBlockedReason={blockedReason}
-                    onRequestPortfolioChange={openPicker}
-                    hidePortfolioControl
-                    suppressInlineSuccess
-                    draft={draft}
-                    compact
-                    className="border-0 bg-transparent p-0"
-                    onSubmitted={({ order }) => {
-                      setLastOrder(order);
-                      setPhase("success");
-                    }}
-                  />
-                ) : (
-                  <p className="text-[13px] text-[var(--terminal-muted)]">
-                    Search and select a ticker to continue.
-                  </p>
-                )}
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
-
-      <SecurityPortfolioPicker
-        open={pickerOpen}
-        onOpenChange={(next) => {
-          setPickerOpen(next);
-          if (!next) restorePickerTriggerFocus();
-        }}
-        onCloseAutoFocus={() => {
-          restorePickerTriggerFocus();
-        }}
-        portfolios={portfolios}
-        selectedId={portfolioId}
-        securitySymbol={security?.symbol ?? "this trade"}
-        onSelect={selectPortfolio}
-      />
     </>
   );
 }
@@ -445,7 +489,7 @@ function SuccessPanel({
           onClick={onTradeAnother}
           className="min-h-11 w-full rounded-md border border-[var(--terminal-border)] text-[14px] text-[var(--terminal-text)]"
         >
-          Trade another
+          New order
         </button>
         <button
           type="button"

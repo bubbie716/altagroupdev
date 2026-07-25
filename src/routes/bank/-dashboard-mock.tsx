@@ -17,7 +17,6 @@ export function BankDashboardMockContent() {
         density="emphasized"
         items={[
           { label: "Total balance", value: florin(d.totalRelationshipValue) },
-          { label: "Private status", value: d.privateStatus },
           { label: "MTD change", value: "+2.14%", sub: "Portfolio assets", accent: true },
           { label: "Accounts", value: String(bankAccounts.length) },
         ]}
@@ -25,13 +24,7 @@ export function BankDashboardMockContent() {
       <BankStatStrip
         className="mt-3"
         density="emphasized"
-        items={buildBankBalanceStripItems(
-          {
-            ...d,
-            enrolledInPrivate: d.privateStatus === "Enrolled",
-          },
-          florin,
-        )}
+        items={buildBankBalanceStripItems(d, florin)}
       />
 
       <Section title="Balance Trend" className="mt-10">

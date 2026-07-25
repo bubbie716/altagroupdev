@@ -25,6 +25,7 @@ describe("Home Quick Trade entry points", () => {
       home,
       /QuickAction href="\/terminal\/markets" label="Trade"/,
     );
+    assert.match(home, /initialPortfolios=\{portfolios\}/);
     assert.match(home, /tradeButtonRef/);
     assert.match(home, /onCloseAutoFocus/);
   });
@@ -40,14 +41,15 @@ describe("Quick Trade architecture contracts", () => {
     assert.match(dialog, /initialSymbol\?/);
     assert.match(dialog, /OrderTicket/);
     assert.match(dialog, /previewTerminalOrder|suppressInlineSuccess/);
-    assert.match(dialog, /SecurityPortfolioPicker/);
+    assert.match(dialog, /SecurityPortfolioDropdown/);
+    assert.doesNotMatch(dialog, /<SecurityPortfolioPicker/);
     assert.match(dialog, /SymbolAutocomplete/);
     assert.match(dialog, /fetchQuickTradeContext/);
     assert.match(dialog, /closeThenRun/);
     assert.match(dialog, /data-\[state=closed\]:pointer-events-none/);
     assert.match(dialog, /max-lg:bottom-\[calc\(3\.25rem\+env\(safe-area-inset-bottom/);
     assert.doesNotMatch(dialog, /useMediaQueryMax/);
-    assert.match(dialog, /Trade another/);
+    assert.match(dialog, /New order/);
     assert.match(dialog, /View order/);
     assert.match(dialog, /Done/);
     assert.match(dialog, /pathname !== openPathRef/);
@@ -228,6 +230,30 @@ describe("Quick Trade field helpers", () => {
       }),
       ["Market connection unavailable"],
     );
+  });
+  it("always renders order fields before a ticker is selected", () => {
+    const dialog = readFileSync(
+      join(root, "components/terminal/quick-trade-dialog.tsx"),
+      "utf8",
+    );
+    const ticket = readFileSync(join(root, "components/terminal/order-ticket.tsx"), "utf8");
+    const fns = readFileSync(join(root, "lib/terminal/terminal.functions.ts"), "utf8");
+    assert.match(ticket, /security: SecurityDetail \| null/);
+    assert.match(ticket, /Select a security to review an order/);
+    assert.doesNotMatch(dialog, /Search and select a ticker to continue/);
+    // OrderTicket is mounted unconditionally in the form phase (not gated on security && ctx)
+    assert.match(dialog, /<OrderTicket[\s\S]*security=\{security\}/);
+    assert.match(dialog, /initialPortfolios/);
+    assert.match(dialog, /skipFetchForHydratedPortfolioRef/);
+    assert.match(fns, /basePortfolios/);
+    assert.doesNotMatch(
+      fns.slice(fns.indexOf("fetchQuickTradeContext")),
+      /enrichSecurityPortfolioOptions/,
+    );
+    assert.match(ticket, /confirmPresentation/);
+    assert.match(ticket, /"inline"/);
+    assert.match(dialog, /confirmPresentation="inline"/);
+    assert.match(dialog, /setReviewing/);
   });
 });
 

@@ -17,11 +17,7 @@ export const Route = createFileRoute("/bank/lending/apply")({
   },
   validateSearch: (search: Record<string, unknown>): ApplySearch => {
     const product = search.product;
-    if (
-      product === "personal_credit_line" ||
-      product === "business_credit_line" ||
-      product === "private_liquidity_line"
-    ) {
+    if (product === "personal_credit_line" || product === "business_credit_line") {
       return { product };
     }
     return {};

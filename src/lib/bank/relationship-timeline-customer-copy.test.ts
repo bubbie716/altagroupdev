@@ -3,10 +3,8 @@ import { describe, it } from "node:test";
 import {
   formatDepositMilestoneCopy,
   extractBankAccountName,
-  formatAltaPrivateInvitedCopy,
   formatBankAccountOpenedCopy,
-  formatPrivateBankingClientCopy,
-  formatPrivateBankingEligibleCopy,
+  formatCommercialBankingEligibleCopy,
   formatRelationshipEstablishedCopy,
   formatRelationshipTierOutcomeCopy,
   polishCustomerTimelineCopy,
@@ -94,43 +92,20 @@ describe("relationship timeline customer copy", () => {
     assert.doesNotMatch(copy.description ?? "", /from Standard|Previously/i);
   });
 
-  it("describes Alta Private as a welcome, not a tier change", () => {
+  it("reduces legacy stored tier codes to a neutral milestone", () => {
     const copy = formatRelationshipTierOutcomeCopy(
       "PRIVATE_CLIENT",
       RELATIONSHIP_TIER_LABELS,
       "personal",
     );
-    assert.equal(copy.title, "Alta Private Activated");
-    assert.equal(copy.description, "Welcome to Alta Private.");
+    assert.equal(copy.title, "Relationship Milestone Reached");
+    assert.equal(copy.description, "Your relationship reached a new milestone.");
   });
 
-  it("separates Alta Private invitation from score-based eligibility", () => {
-    const invited = formatAltaPrivateInvitedCopy("personal");
-    assert.equal(invited.title, "Invited to Alta Private");
-    assert.equal(invited.description, "You were invited to join Alta Private.");
-
-    const eligible = formatPrivateBankingEligibleCopy("personal");
-    assert.equal(eligible.title, "Eligible for Alta Private");
-    assert.equal(eligible.description, "You may qualify for Alta Private over time.");
-
-    const activated = formatPrivateBankingClientCopy("personal");
-    assert.equal(activated.title, "Alta Private Activated");
-  });
-
-  it("rewrites legacy invitation-sent rows to the invited copy", () => {
-    const copy = resolveCustomerTimelineCopy(
-      {
-        eventType: "ALTA_PRIVATE_INVITED",
-        title: "Alta Private Invitation Sent",
-        description: "You are now eligible to join Alta Private.",
-        occurredAt: new Date().toISOString(),
-        relatedEntityId: "inv-1",
-        metadata: null,
-      },
-      "personal",
-    );
-    assert.equal(copy.title, "Invited to Alta Private");
-    assert.equal(copy.description, "You were invited to join Alta Private.");
+  it("keeps commercial banking eligibility copy for business scope", () => {
+    const copy = formatCommercialBankingEligibleCopy("business");
+    assert.equal(copy.title, "Commercial Banking Invitation Sent");
+    assert.equal(copy.description, "Your company is now eligible for Alta commercial banking.");
   });
 
   it("describes Alta Card upgrades by outcome only", () => {

@@ -186,7 +186,6 @@ export function AltaCardReviewForm({
   const [loading, setLoading] = useState(false);
 
   const eligibility = context.eligibility;
-  const showGoldUpsell = context.card.tier === "black" && !context.isPrivateClient;
 
   function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
@@ -224,10 +223,6 @@ export function AltaCardReviewForm({
     }
     if (requestTier && !requestedTier) {
       setError("Select a tier upgrade option.");
-      return;
-    }
-    if (requestTier && requestedTier === "gold" && !context.isPrivateClient) {
-      setError("Alta Gold is available exclusively through Alta Private.");
       return;
     }
 
@@ -392,23 +387,6 @@ export function AltaCardReviewForm({
             </span>
           </label>
         ) : null}
-
-        {showGoldUpsell ? (
-          <div className="rounded-lg border border-border bg-surface-2/60 p-4 text-[13px]">
-            <p className="font-medium">Alta Gold is available exclusively through Alta Private.</p>
-            <p className="mt-2 text-muted-foreground">
-              Alta Private clients receive relationship-based pricing, negotiated credit facilities,
-              and dedicated banking services.
-            </p>
-            <Link
-              to="/bank/private"
-              className="mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-gold hover:underline"
-            >
-              Learn more
-            </Link>
-          </div>
-        ) : null}
-
       </section>
 
       <section className="rounded-xl border border-border bg-surface-1/80 p-6 space-y-4">

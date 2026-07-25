@@ -1,11 +1,7 @@
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_TIER_CONFIG, getTierDefaultLimit, getTierDefaultRate } from "@/lib/bank/alta-card-tier-config";
 import type { RelationshipTierCode } from "@/lib/bank/relationship-intelligence-types";
-import {
-  PRIVATE_BANKING_ELIGIBILITY_MIN_ASSETS,
-  RELATIONSHIP_SCORE_MAX,
-  RELATIONSHIP_TIER_THRESHOLDS,
-} from "@/lib/bank/relationship-intelligence-config";
+import { RELATIONSHIP_SCORE_MAX } from "@/lib/bank/relationship-intelligence-config";
 
 export const RELATIONSHIP_RECOMMENDATIONS_JOB_KEY = "relationship_recommendations";
 
@@ -35,9 +31,8 @@ export type RecommendationReasonPayload = {
 
 export function recommendedAltaCardTierFromRelationship(
   relationshipTier: RelationshipTierCode,
-  isPrivateClient: boolean,
 ): AltaCardTierCode {
-  if (isPrivateClient || relationshipTier === "PRIVATE_CLIENT" || relationshipTier === "PRIVATE_ELIGIBLE") {
+  if (relationshipTier === "PRIVATE_CLIENT" || relationshipTier === "PRIVATE_ELIGIBLE") {
     return "gold";
   }
   if (relationshipTier === "PREMIER") return "black";
@@ -62,10 +57,9 @@ export function computeRecommendedCreditLimit(input: {
 export function computeRecommendedInterestRate(input: {
   recommendedTier: AltaCardTierCode;
   relationshipScore: number;
-  isPrivateClient: boolean;
 }): number {
   const baseRate = getTierDefaultRate(input.recommendedTier) ?? 14.99;
-  if (input.recommendedTier === "gold" || input.isPrivateClient) {
+  if (input.recommendedTier === "gold") {
     return Math.max(9.99, baseRate * 0.85);
   }
   const discount = Math.min(input.relationshipScore / RELATIONSHIP_SCORE_MAX, 0.18);
@@ -106,46 +100,6 @@ export function qualifiesForLoanPreApproval(input: {
   );
 }
 
-export function computePrivateBankingInviteConfidence(input: {
-  relationshipScore: number;
-  totalAltaAssets: number;
-  privateBankingEligible: boolean;
-  hasBusinessAccounts: boolean;
-  lifetimeAltaPayVolume: number;
-}): number {
-  if (input.privateBankingEligible) return 88;
-  let confidence = 50;
-  if (input.relationshipScore >= RELATIONSHIP_TIER_THRESHOLDS.PRIVATE_ELIGIBLE) confidence += 25;
-  if (input.totalAltaAssets >= PRIVATE_BANKING_ELIGIBILITY_MIN_ASSETS) confidence += 15;
-  if (input.hasBusinessAccounts && input.lifetimeAltaPayVolume >= BUSINESS_ALTA_PAY_OPPORTUNITY_VOLUME) {
-    confidence += 10;
-  }
-  return Math.max(0, Math.min(100, confidence));
-}
-
-export function qualifiesForPrivateBankingInvite(input: {
-  privateBankingEligible: boolean;
-  privateBankingClient: boolean;
-  relationshipScore: number;
-  totalAltaAssets: number;
-  hasBusinessAccounts: boolean;
-  lifetimeAltaPayVolume: number;
-}): boolean {
-  if (input.privateBankingClient) return false;
-  if (input.privateBankingEligible) return true;
-  if (
-    input.relationshipScore >= RELATIONSHIP_TIER_THRESHOLDS.PRIVATE_ELIGIBLE &&
-    input.totalAltaAssets >= PRIVATE_BANKING_ELIGIBILITY_MIN_ASSETS
-  ) {
-    return true;
-  }
-  return (
-    input.hasBusinessAccounts &&
-    input.lifetimeAltaPayVolume >= BUSINESS_ALTA_PAY_OPPORTUNITY_VOLUME &&
-    input.relationshipScore >= RELATIONSHIP_TIER_THRESHOLDS.PREMIER
-  );
-}
-
 export function tierLabel(tier: AltaCardTierCode): string {
   return ALTA_CARD_TIER_CONFIG[tier].label;
 }
@@ -155,12 +109,10 @@ export const RECOMMENDATION_TYPE_LABELS = {
   ALTA_CARD_LIMIT: "Alta Card limit",
   ALTA_CARD_RATE: "Alta Card rate",
   LOAN_PRE_APPROVAL: "Loan pre-approval",
-  PRIVATE_BANKING_INVITE: "Private banking",
   PRODUCT_OPPORTUNITY: "Product opportunity",
 } as const;
 
 export const CUSTOMER_OPPORTUNITY_COPY: Record<string, string> = {
-  PRIVATE_BANKING_INVITE: "You may be eligible for Alta Private review.",
   ALTA_CARD_TIER: "You may be eligible to request an Alta Card account review.",
   ALTA_CARD_LIMIT: "You may be eligible to request an Alta Card limit review.",
   ALTA_CARD_RATE: "You may be eligible to request improved Alta Card pricing.",

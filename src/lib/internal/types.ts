@@ -1,8 +1,4 @@
-export type InternalUserTag =
-  | "corporate_admin"
-  | "bank_admin"
-  | "terminal_admin"
-  | "private_client";
+export type InternalUserTag = "corporate_admin" | "bank_admin" | "terminal_admin";
 
 /** Per-company role for authorized representatives (future membership model). */
 export type CompanyRole =
@@ -129,7 +125,6 @@ export interface BankOpsSummary {
   pendingWithdrawals: number;
   transfersInReview: number;
   lendingQueue: number;
-  privateInvitesPending: number;
   frozenAccounts: number;
 }
 

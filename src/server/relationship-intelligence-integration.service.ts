@@ -78,7 +78,6 @@ async function buildProductHoldingsDetail(
     paidOffLoans: productsHeld.paidOffLoans,
     companyMemberships: memberships.length,
     verifiedCompanies: memberships.filter((m) => m.company.verificationStatus === "VERIFIED").length,
-    isPrivateClient: productsHeld.isPrivateClient,
     exchangePlaceholder: true,
     terminalPlaceholder: true,
   };
@@ -152,8 +151,6 @@ export async function getRelationshipIntelligencePanel(
     relationshipSince: source.relationshipSince,
     relationshipScore: source.relationshipScore,
     relationshipTier: source.relationshipTier,
-    privateBankingEligible: source.privateBankingEligible,
-    privateBankingClient: source.privateBankingClient,
     totalBankAssets: source.totalBankAssets,
     totalAltaAssets: source.totalAltaAssets,
     totalInvestments: source.totalInvestments,

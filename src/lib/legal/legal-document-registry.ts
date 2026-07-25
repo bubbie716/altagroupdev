@@ -178,18 +178,6 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     showInEntityFooter: true,
   },
   {
-    id: "AB-LEGAL-009",
-    title: "Alta Private Terms",
-    label: "Alta Private Terms",
-    slug: "bank/alta-private-terms",
-    entity: "bank",
-    version: "1.0",
-    lastUpdated: "July 2026",
-    footerOrder: 8,
-    showInGlobalFooter: false,
-    showInEntityFooter: true,
-  },
-  {
     id: "AT-LEGAL-001",
     title: "Alta Terminal Customer Agreement",
     label: "Customer Agreement",
@@ -341,7 +329,6 @@ const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
     "AB-LEGAL-008",
     "AB-LEGAL-006",
     "AB-LEGAL-007",
-    "AB-LEGAL-009",
     "AB-LEGAL-005",
   ],
   /** Legacy host — same Terminal agreement as terminal site. */

@@ -7,7 +7,7 @@ import type {
   SecurityDetail,
 } from "@/lib/terminal/types";
 
-/** Trade-specific fields reset by “Trade another” — portfolio is preserved. */
+/** Trade-specific fields reset by “New order” — portfolio is preserved. */
 export type QuickTradeFields = {
   symbol: string | null;
   side: OrderSide;

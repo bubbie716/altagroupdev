@@ -5,6 +5,7 @@ import type { LoanApplicationThreadStatusCode } from "@/lib/bank/loan-applicatio
 export type LoanProductTypeCode =
   | "personal_credit_line"
   | "business_credit_line"
+  /** Retained for existing loan records; not available for new applications. */
   | "private_liquidity_line";
 
 export type LoanApplicationStatusCode =
@@ -93,15 +94,6 @@ export const LENDING_V1_PRODUCTS: LendingProductInfo[] = [
     repayment: LOAN_PRODUCT_REPAYMENT_CARD.business_credit_line,
     summary: "Operating credit lines for verified Newport companies with institutional cash flow.",
     status: "Apply",
-  },
-  {
-    code: "private_liquidity_line",
-    name: "Private Liquidity Line",
-    limit: "Up to ƒ25M",
-    rate: "Negotiated monthly",
-    repayment: LOAN_PRODUCT_REPAYMENT_CARD.private_liquidity_line,
-    summary: "Alta Private clients may receive relationship-based pricing, negotiated lending terms, and dedicated banker support.",
-    status: "Alta Private",
   },
 ];
 
@@ -365,7 +357,8 @@ export interface DenyLoanApplicationInput {
 export const LOAN_PRODUCT_LABELS: Record<LoanProductTypeCode, string> = {
   personal_credit_line: "Personal Credit Line",
   business_credit_line: "Business Credit Line",
-  private_liquidity_line: "Private Liquidity Line",
+  /** Retained for existing loan records; not available for new applications. */
+  private_liquidity_line: "Negotiated Liquidity Line",
 };
 
 export type LendingDeskStats = {

@@ -60,8 +60,6 @@ export function AltaCardApplyForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const visibleTiers = ALTA_CARD_TIER_ORDER.filter((t) => t !== "gold" || context.isPrivateClient);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -224,7 +222,7 @@ export function AltaCardApplyForm({
             Tier
           </p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {visibleTiers.map((t) => (
+            {ALTA_CARD_TIER_ORDER.map((t) => (
               <button
                 key={t}
                 type="button"
@@ -238,8 +236,8 @@ export function AltaCardApplyForm({
                   {ALTA_CARD_TIER_CONFIG[t].description}
                 </p>
                 <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-                  {defaultLimit != null
-                    ? `Typical line ${defaultLimit.toLocaleString()}`
+                  {ALTA_CARD_TIER_CONFIG[t].defaultCreditLimit != null
+                    ? `Typical line ${ALTA_CARD_TIER_CONFIG[t].defaultCreditLimit.toLocaleString()}`
                     : "Negotiable limit & rate"}
                   {ALTA_CARD_TIER_CONFIG[t].defaultInterestRateApr != null
                     ? ` · ${ALTA_CARD_TIER_CONFIG[t].defaultInterestRateApr}% APR`
@@ -247,15 +245,6 @@ export function AltaCardApplyForm({
                 </p>
               </button>
             ))}
-            {!context.isPrivateClient ? (
-              <div className="rounded-lg border border-dashed border-gold/40 bg-gold/5 p-3 text-[12px]">
-                <p className="font-medium text-gold">Alta Gold</p>
-                <p className="mt-1 text-muted-foreground">
-                  Private banking tier · Alta Private invitation only. Relationship pricing managed
-                  through your private banker.
-                </p>
-              </div>
-            ) : null}
           </div>
         </div>
 

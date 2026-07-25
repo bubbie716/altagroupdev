@@ -6,7 +6,6 @@ import {
   fetchCurrentUser,
   verifyDeveloperAccess,
   verifyIssuerPortalAccess,
-  verifyPrivateClientAccess,
 } from "@/lib/auth/auth.functions";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
@@ -63,10 +62,6 @@ export async function internalBeforeLoad(context: GuardContext) {
   if (!canAccessInternalForSite(user, site.key)) {
     throw redirect({ to: "/access-restricted" });
   }
-}
-
-export async function privateClientBeforeLoad(context: GuardContext) {
-  await requireAccess(context, verifyPrivateClientAccess);
 }
 
 export async function developerBeforeLoad(context: GuardContext) {

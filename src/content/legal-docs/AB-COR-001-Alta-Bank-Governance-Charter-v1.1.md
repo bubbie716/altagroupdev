@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-Alta Bank is a subsidiary of Alta Group N.V. responsible for operating banking, payments, commercial banking, lending, card, private banking, and related financial services within the Alta ecosystem.
+Alta Bank is a subsidiary of Alta Group N.V. responsible for operating banking, payments, commercial banking, lending, card, and related financial services within the Alta ecosystem.
 
 Alta Bank may operate services including:
 
@@ -25,7 +25,6 @@ Alta Bank may operate services including:
 - payment links;
 - merchant services;
 - commercial banking;
-- private banking;
 - lending products;
 - card products;
 - account verification;
@@ -89,7 +88,7 @@ The Chairman of Alta Group may remove or replace the Director at any time.
 
 The Director may appoint officers, managers, employees, contractors, operators, support agents, loan officers, or other agents as needed to support Alta Bank operations, subject to Alta Group authority.
 
-Titles such as President, Chief Executive Officer, Chief Operating Officer, Chief Financial Officer, Head of Commercial Banking, Head of Private Banking, Loan Officer, Support Agent, or similar titles may be created for operational purposes.
+Titles such as President, Chief Executive Officer, Chief Operating Officer, Chief Financial Officer, Head of Commercial Banking, Loan Officer, Support Agent, or similar titles may be created for operational purposes.
 
 The **President of Alta Bank** is **Culls**.
 
@@ -108,7 +107,6 @@ Subject to Alta Group oversight, Alta Bank may:
 - operate Alta Pay and payment services;
 - provide merchant invoices and payment links;
 - provide commercial banking services;
-- provide private banking services;
 - review customer activity;
 - investigate suspicious or unsafe activity;
 - set account limits;

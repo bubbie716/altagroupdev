@@ -13,11 +13,7 @@ import {
   LOAN_FUNDING_DESCRIPTION,
   LOAN_INTEREST_CHARGE_DESCRIPTION,
 } from "@/lib/bank/customer-transaction-copy";
-import {
-  canAccessBankInternal,
-  canViewCompanyDealRoom,
-  isPrivateClient,
-} from "@/lib/auth/permissions";
+import { canAccessBankInternal, canViewCompanyDealRoom } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import {
   createLoanInterestScheduleInTx,
@@ -182,14 +178,10 @@ export async function executeLoanFromExecutedAgreement(
     badRequest("Destination disbursement account must be selected during underwriting.");
   }
 
-  const applicant = mapDbUserToAltaUser(application.applicantUser);
   if (terms.productType === "BUSINESS_CREDIT_LINE") {
     if (!room.companyId || application.company?.verificationStatus !== "VERIFIED") {
       badRequest("Business loans require a verified company.");
     }
-  }
-  if (terms.productType === "PRIVATE_LIQUIDITY_LINE" && !isPrivateClient(applicant)) {
-    badRequest("Applicant must have Alta Private client status.");
   }
 
   const now = new Date();

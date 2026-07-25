@@ -19,7 +19,7 @@ Order: **White** < **Navy** < **Black** < **Gold**
 | Alta White | ƒ5,000 | 24.99% | Entry tier |
 | Alta Navy | ƒ15,000 | 19.99% | |
 | Alta Black | ƒ50,000 | 15.99% | |
-| Alta Gold | Negotiable | Negotiable | Alta Private only (`private_client` tag) |
+| Alta Gold | Negotiable | Negotiable | Negotiated relationship pricing |
 
 Admins may override tier, limit, and rate on approval or after issuance.
 
@@ -32,9 +32,9 @@ Centralized defaults — **recommendation only**. Approved limit and rate are st
 | Alta White | Entry | ƒ5,000 | 24.99% |
 | Alta Navy | Standard | ƒ15,000 | 19.99% |
 | Alta Black | Premium public | ƒ50,000 | 15.99% |
-| Alta Gold | Private banking | Negotiable | Negotiable |
+| Alta Gold | Negotiated | Negotiable | Negotiable |
 
-Gold is `private_client` only unless admin override. Changing tier does not change limit/rate unless admin selects **Apply tier defaults**.
+Gold is open to any Alta Card applicant; limit and rate are set manually on review. Changing tier does not change limit/rate unless admin selects **Apply tier defaults**.
 
 ## Relationship pricing
 
@@ -44,7 +44,7 @@ Gold is `private_client` only unless admin override. Changing tier does not chan
 
 - `recommendedTier`, `recommendedCreditLimit`, `recommendedInterestRate`
 - `relationshipScore` (0–100)
-- `relationshipFactors` (bank balances, deposit activity, loan history, company verification, private client, account age, etc.)
+- `relationshipFactors` (bank balances, deposit activity, loan history, company verification, account age, etc.)
 
 **Recommendation only** — never auto-approves applications. Shown on internal card detail and application review. Audit: `ALTA_CARD_RELATIONSHIP_RECOMMENDATION_VIEWED`.
 
@@ -176,7 +176,7 @@ Treasury managers submit company application with expected spend and employee ca
 
 - Admin approves tier, limit, rate, billing cycle day
 - Applicant **Accept card** creates active card (unless admin used approve-and-activate)
-- Gold requires admin; non–private Gold requires override audit
+- Gold approvals remain manual and are audited like any other tier change
 
 Routes: `/bank/alta-card/applications/$applicationId`, `/bank/alta-card/applications/$applicationId/thread`, `/internal/alta-card/applications/$applicationId`, `/internal/alta-card/applications/$applicationId/thread`
 
@@ -360,7 +360,7 @@ Updates `amountPaid`, `feesPaid`, `interestPaid`, `principalPaid`, `remainingBal
 | Alta White | 24.99% (highest) |
 | Alta Navy | 19.99% |
 | Alta Black | 15.99% |
-| Alta Gold | Manual / negotiable (private banking) |
+| Alta Gold | Manual / negotiable |
 
 Admins can override via `updateAltaCardRate`. Audit: `ALTA_CARD_RATE_CHANGED`.
 
@@ -706,7 +706,7 @@ Server functions: `src/lib/bank/alta-card.functions.ts`
 ## UI
 
 - Card visuals: `src/components/bank/alta-card/alta-card-visual.tsx` (Untitled UI `CreditCard` asset)
-- Dashboard: tier benefits, utilization, rate, limits, relationship note (Gold → Alta Private)
+- Dashboard: tier benefits, utilization, rate, limits, relationship note
 - Business page: company limit, balance, employee utilization, company transactions
 - Internal: all transactions, adjustments, reversals, linked bank/Alta Pay refs
 
@@ -766,10 +766,8 @@ One open review per card (`SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFORMATION`).
 
 ### Gold eligibility
 
-- Alta Gold is **Alta Private-only** — see [Alta Private banking](./private-banking.md)
-- Alta Gold is **not** publicly selectable
-- Non–Private clients at Black tier see Alta Private upsell (`/bank/private`)
-- Private clients may request Black→Gold via Request Account Review; approvals remain manual
+- Alta Gold is selectable by any Alta Card applicant
+- Any cardholder may request Black→Gold via Request Account Review; approvals remain manual
 - Negotiated limits and rates are subject to relationship review — not guaranteed
 
 ### Review workflow

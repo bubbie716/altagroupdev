@@ -11,8 +11,8 @@ Monthly interest accrual for eligible **deposit** accounts only. This is separat
 | Alta Savings | Yes | 0.50% monthly (0.005) |
 | Alta Money Market | Yes | 0.85% monthly (0.0085) |
 | Business Operating Account | No | 0% |
-| Reserve Account by Alta Private | No | 0% |
-| Summit Money Market by Alta Private (`PRIVATE`) | Yes | 1.10% monthly (0.011) |
+| Reserve (`RESERVE`, retired for new opens) | No | 0% |
+| Legacy money market (`PRIVATE`, retired for new opens) | Yes | 1.10% monthly (0.011) |
 
 Rates are stored per account (`interestRate`, `interestRatePeriod`) so admins can override later; new accounts receive product defaults on open.
 

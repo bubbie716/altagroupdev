@@ -38,7 +38,7 @@ type EngineTab = "now" | "scheduled" | "recurring" | "autopay";
 export type AltaPayEngineTab = EngineTab;
 
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
 
 const ALTA_PAY_SELF_COMPANY_BLOCKED = "Companies cannot send Alta Pay to themselves.";
 

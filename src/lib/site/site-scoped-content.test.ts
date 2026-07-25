@@ -21,7 +21,7 @@ describe("site-scoped-content", () => {
     assert.ok(docs.some((doc) => doc.id.startsWith("AB-")));
     assert.equal(docs.some((doc) => doc.id.startsWith("AE-")), false);
     assert.equal(docs.some((doc) => doc.id.startsWith("AT-")), false);
-    for (const id of ["AB-LEGAL-008", "AB-LEGAL-009"]) {
+    for (const id of ["AB-LEGAL-008"]) {
       assert.ok(docs.some((doc) => doc.id === id), `missing ${id}`);
     }
   });

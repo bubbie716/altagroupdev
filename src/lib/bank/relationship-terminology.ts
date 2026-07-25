@@ -1,7 +1,7 @@
 import type { RelationshipTierCode } from "@/lib/bank/relationship-intelligence-types";
 import { RELATIONSHIP_TIER_THRESHOLDS } from "@/lib/bank/relationship-intelligence-config";
 
-/** Customer-facing relationship tiers — Alta Private is not included. */
+/** Customer-facing relationship tiers. */
 export type DisplayRelationshipTierCode = "STANDARD" | "PREFERRED" | "PREMIER";
 
 export const DISPLAY_RELATIONSHIP_TIER_LABELS: Record<DisplayRelationshipTierCode, string> = {
@@ -12,11 +12,12 @@ export const DISPLAY_RELATIONSHIP_TIER_LABELS: Record<DisplayRelationshipTierCod
 
 const DISPLAY_TIER_LADDER: DisplayRelationshipTierCode[] = ["STANDARD", "PREFERRED", "PREMIER"];
 
-export function isAltaPrivateProgramTier(tier: RelationshipTierCode): boolean {
+/** Legacy stored tier codes that are no longer assigned and have no display tier of their own. */
+function isLegacyStoredTier(tier: RelationshipTierCode): boolean {
   return tier === "PRIVATE_CLIENT" || tier === "PRIVATE_ELIGIBLE";
 }
 
-/** Derive the published relationship tier from score (ignores Alta Private membership). */
+/** Derive the published relationship tier from score. */
 export function displayRelationshipTierFromScore(
   relationshipScore: number,
 ): DisplayRelationshipTierCode {
@@ -29,7 +30,7 @@ export function displayRelationshipTierCode(
   storedTier: RelationshipTierCode,
   relationshipScore: number,
 ): DisplayRelationshipTierCode {
-  if (isAltaPrivateProgramTier(storedTier) || storedTier === "NEW") {
+  if (isLegacyStoredTier(storedTier) || storedTier === "NEW") {
     return displayRelationshipTierFromScore(relationshipScore);
   }
   if (storedTier === "STANDARD" || storedTier === "PREFERRED" || storedTier === "PREMIER") {
@@ -57,19 +58,6 @@ export function displayRelationshipTierLabelFromCode(tier: string): string {
     return DISPLAY_RELATIONSHIP_TIER_LABELS[tier];
   }
   return tier;
-}
-
-export function altaPrivateStatusLabel(
-  privateBankingClient: boolean,
-  privateBankingEligible: boolean,
-): string {
-  if (privateBankingClient) return "Active";
-  if (privateBankingEligible) return "Eligible";
-  return "Not a Member";
-}
-
-export function altaPrivateMembershipLabel(privateBankingClient: boolean): string | null {
-  return privateBankingClient ? "Alta Private Member" : null;
 }
 
 export function computeDisplayRelationshipProgress(

@@ -2,7 +2,6 @@
 
 export const INTERNAL_USER_WORKSPACE_SEARCH = {
   tab: "overview" as const,
-  privateReview: false as const,
 };
 
 export const INTERNAL_COMPANY_WORKSPACE_SEARCH = {

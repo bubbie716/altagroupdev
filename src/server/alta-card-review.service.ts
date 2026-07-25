@@ -4,7 +4,6 @@ import { canAccessBankInternal,
   canManageBusinessTreasury,
   canManageCompanyAltaCard,
   isAdmin,
-  isPrivateClient,
 } from "@/lib/auth/permissions";
 import type {
   AltaCardReviewFormContext,
@@ -354,7 +353,6 @@ export async function getReviewFormContext(
   ]);
 
   const tier = toAltaCardTierCode(card.tier);
-  const privateClient = isPrivateClient(user);
 
   return {
     card: {
@@ -367,8 +365,7 @@ export async function getReviewFormContext(
       companyId: card.companyId,
     },
     relationship,
-    isPrivateClient: privateClient,
-    eligibleTierUpgrades: getEligibleTierUpgrades(tier, privateClient),
+    eligibleTierUpgrades: getEligibleTierUpgrades(tier),
     eligibility,
     reviewHistory,
     hasOpenReview: eligibility.hasActiveReview,
@@ -404,16 +401,12 @@ export async function submitReviewRequest(
   }
 
   const tier = toAltaCardTierCode(card.tier);
-  const privateClient = isPrivateClient(user);
 
   if (input.requestTierUpgrade) {
     if (!input.requestedTier) badRequest("Select a tier upgrade option");
-    const eligible = getEligibleTierUpgrades(tier, privateClient);
+    const eligible = getEligibleTierUpgrades(tier);
     if (!eligible.includes(input.requestedTier)) {
       badRequest("Selected tier upgrade is not eligible");
-    }
-    if (input.requestedTier === "gold" && !privateClient) {
-      badRequest("Alta Gold is available exclusively through Alta Private");
     }
   }
 
@@ -778,7 +771,6 @@ export async function processReviewDecision(
       tier: tierCode,
       reason: `Account review approval: ${input.reason.trim()}`,
       applyTierDefaults: false,
-      goldOverride: input.goldOverride,
     });
     approvedTier = toDbAltaCardTier(tierCode);
     await writeAuditLog({

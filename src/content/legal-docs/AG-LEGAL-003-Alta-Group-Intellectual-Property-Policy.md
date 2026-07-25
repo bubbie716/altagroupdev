@@ -136,7 +136,6 @@ This includes, but is not limited to:
 - Alta Terminal;
 - Alta Pay;
 - Alta Commercial;
-- Alta Private;
 - any related logos, marks, or product names.
 
 Alta may allow limited use of branding for approved partners, subsidiaries, documents, websites, Discord servers, marketing materials, or platform integrations.

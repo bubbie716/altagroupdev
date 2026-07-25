@@ -31,8 +31,6 @@
     "db:backfill-relationship-timelines": "tsx prisma/backfill-relationship-timelines.ts",
     "db:backfill-company-relationship-timelines": "tsx prisma/backfill-company-relationship-timelines.ts",
     "db:backfill-transaction-descriptions": "tsx prisma/backfill-transaction-descriptions.ts",
-    "db:activate-pending-private-accounts": "tsx prisma/activate-pending-private-accounts.ts",
-    "db:liquidate-revoked-private-banking": "tsx prisma/liquidate-revoked-private-banking.ts",
     "db:migrate-account-numbers": "tsx prisma/migrate-legacy-account-numbers.ts",
     "postinstall": "prisma generate",
     "test:e2e": "npm run test:e2e:auth && playwright test",

@@ -112,7 +112,6 @@ describe("footer links", () => {
         "Transfer Terms",
         "Alta Card Agreement",
         "Lending Agreement",
-        "Alta Private Terms",
         "Fee Schedule",
       ],
     );

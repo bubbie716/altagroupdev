@@ -132,12 +132,9 @@ export interface UserBankDashboard {
   totalRelationshipValue: number;
   checkingBalance: number;
   savingsBalance: number;
-  privateBalance: number;
   moneyMarketBalance: number;
   businessBalance: number;
   creditAvailable: number;
-  privateStatus: string;
-  enrolledInPrivate: boolean;
   accountCount: number;
   pendingDeposits: number;
   pendingWithdrawals: number;
@@ -271,7 +268,6 @@ export interface InternalBankOpsSummary {
   frozenAccounts: number;
   lendingQueue: number;
   transfersInReview: number;
-  privateInvitesPending: number;
   altaPayCountThisMonth: number;
   altaPayVolumeThisMonth: number;
 }
@@ -329,8 +325,8 @@ export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountTypeCode; label: str
   },
   {
     value: "reserve",
-    label: "Reserve Account by Alta Private",
-    description: "Ultra-secure reserve account — Alta Private members only.",
+    label: "Reserve Account",
+    description: "Ultra-secure reserve account — review required.",
   },
   {
     value: "business_operating",
@@ -339,38 +335,23 @@ export const BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountTypeCode; label: str
   },
   {
     value: "private",
-    label: "Summit Money Market by Alta Private",
-    description: "Yield-focused money market — invitation and review required.",
+    label: "Summit Money Market",
+    description: "Yield-focused money market — review required.",
   },
 ];
 
+/** Openable personal types; `reserve` and `private` remain valid for existing accounts only. */
 const PERSONAL_ACCOUNT_TYPES: BankAccountTypeCode[] = [
   "alta_access",
   "checking",
   "savings",
   "money_market",
-  "reserve",
-  "private",
 ];
 
 const COMPANY_ACCOUNT_TYPES: BankAccountTypeCode[] = ["business_operating"];
 
-const PRIVATE_BANKING_ACCOUNT_TYPES: BankAccountTypeCode[] = ["reserve", "private"];
-
-export function isPrivateBankingAccountType(type: BankAccountTypeCode): boolean {
-  return PRIVATE_BANKING_ACCOUNT_TYPES.includes(type);
-}
-
-export function getBankAccountTypeOptionsForOpening(
-  ownership: "personal" | "company",
-  isPrivateClient: boolean,
-) {
-  const allowed =
-    ownership === "company"
-      ? COMPANY_ACCOUNT_TYPES
-      : PERSONAL_ACCOUNT_TYPES.filter(
-          (type) => isPrivateClient || !isPrivateBankingAccountType(type),
-        );
+export function getBankAccountTypeOptionsForOpening(ownership: "personal" | "company") {
+  const allowed = ownership === "company" ? COMPANY_ACCOUNT_TYPES : PERSONAL_ACCOUNT_TYPES;
 
   return BANK_ACCOUNT_TYPE_OPTIONS.filter((option) => allowed.includes(option.value));
 }

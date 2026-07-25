@@ -15,13 +15,10 @@ export async function getInternalCustomer360(
     includeTimeline ? buildUniversalCustomerTimeline(userId, 60) : Promise.resolve([]),
   ]);
 
-  const isPrivateClient = user.tags.includes("private_client");
-
   return {
     user,
     notes,
     timeline,
-    isPrivateClient,
     altaPayActivity: [] as Array<{
       id: string;
       accountId: string;

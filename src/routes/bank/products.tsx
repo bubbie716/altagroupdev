@@ -21,10 +21,6 @@ const PRODUCT_SECTIONS: Array<{ id: BankProductCategory; description: string }> 
     id: "Business Banking",
     description: "Treasury and operating accounts for verified Newport companies.",
   },
-  {
-    id: "Alta Private",
-    description: "Invitation-only private banking tiers for qualifying clients.",
-  },
 ];
 
 function BankProducts() {
@@ -35,7 +31,7 @@ function BankProducts() {
       <BankPageMeta
       eyebrow="Alta Bank · Products"
       title="Bank Products"
-      description="Alta Bank's retail, business, and Alta Private deposit products — public banking for Newport, with invitation-only private tiers."
+      description="Alta Bank's retail and business deposit products for Newport citizens and verified companies."
      />
 {PRODUCT_SECTIONS.map((section, index) => {
         const sectionProducts = products.filter((p) => p.category === section.id);

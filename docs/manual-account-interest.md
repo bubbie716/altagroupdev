@@ -8,7 +8,7 @@ Operators and admins sometimes need to:
 
 - Run promotional interest campaigns across a product line
 - Credit a fixed total amount split across all accounts in a category
-- Apply a one-time private banking adjustment
+- Apply a one-time relationship adjustment
 
 Manual interest creates permanent `INTEREST_CREDIT` bank transactions. Reversal is only via a separate admin debit/adjustment — records are never deleted.
 
@@ -21,8 +21,8 @@ Manual interest creates permanent `INTEREST_CREDIT` bank transactions. Reversal 
 | Alta Savings | `savings` |
 | Alta Money Market | `money_market` |
 | Business Operating Account | `business_operating` |
-| Reserve Account by Alta Private | `reserve` |
-| Summit Money Market by Alta Private | `private` |
+| Reserve (retired for new opens) | `reserve` |
+| Legacy money market (retired for new opens) | `private` |
 | All Categories | All of the above |
 
 Admins may select one category, multiple categories, or **All Categories**. When All Categories is selected, individual category checkboxes are disabled.

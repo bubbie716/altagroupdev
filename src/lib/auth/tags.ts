@@ -29,7 +29,6 @@ const USER_TAG_LABELS: Record<UserTag, string> = {
   corporate_admin: "Corporate Admin",
   bank_admin: "Bank Admin",
   terminal_admin: "Terminal Admin",
-  private_client: "Private Client",
 };
 
 export function formatUserTag(tag: UserTag): string {

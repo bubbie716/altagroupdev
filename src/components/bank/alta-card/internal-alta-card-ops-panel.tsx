@@ -77,7 +77,6 @@ export function InternalAltaCardOpsPanel({
   const [rate, setRate] = useState(String(card.interestRate));
   const [tier, setTier] = useState(card.tier);
   const [applyTierDefaults, setApplyTierDefaults] = useState(false);
-  const [goldOverride, setGoldOverride] = useState(false);
   const [manualPaymentAmount, setManualPaymentAmount] = useState("");
   const [manualFeeAmount, setManualFeeAmount] = useState("");
   const [adjKind, setAdjKind] = useState<"credit" | "debit">("credit");
@@ -379,16 +378,6 @@ export function InternalAltaCardOpsPanel({
             />
             Apply tier defaults
           </label>
-          {tier === "gold" && admin ? (
-            <label className="flex items-center gap-2 text-[12px]">
-              <input
-                type="checkbox"
-                checked={goldOverride}
-                onChange={(e) => setGoldOverride(e.target.checked)}
-              />
-              Gold override
-            </label>
-          ) : null}
           <BankReviewButton
             label="Change tier"
             onAction={async () => {
@@ -398,7 +387,6 @@ export function InternalAltaCardOpsPanel({
                   tier,
                   reason: actionReason.trim() || "Tier change",
                   applyTierDefaults,
-                  goldOverride,
                 },
               });
               await onRefresh();

@@ -1,11 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { LoanStatus as DbLoanStatus, Prisma } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
-import {
-  canManageBusinessTreasury,
-  canViewBusinessTreasury,
-  isPrivateClient,
-} from "@/lib/auth/permissions";
+import { canManageBusinessTreasury, canViewBusinessTreasury } from "@/lib/auth/permissions";
 import { canUserPayLoan, canUserViewLoan } from "@/lib/bank/loan-permissions";
 import {
   addMonths,
@@ -1134,14 +1130,10 @@ export async function approveLoanApplication(
   if (interestRate <= 0) badRequest("Monthly interest rate must be greater than zero");
   if (principalAmount <= 0) badRequest("Principal amount must be greater than zero");
 
-  const applicant = mapDbUserToAltaUser(application.applicantUser);
   if (application.productType === "BUSINESS_CREDIT_LINE") {
     if (!application.companyId || application.company?.verificationStatus !== "VERIFIED") {
       badRequest("Business loans require a verified company");
     }
-  }
-  if (application.productType === "PRIVATE_LIQUIDITY_LINE" && !isPrivateClient(applicant)) {
-    badRequest("Applicant must have Alta Private client status");
   }
   if (application.linkedBankAccountId) {
     const account = await prisma.bankAccount.findUnique({

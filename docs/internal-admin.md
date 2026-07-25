@@ -54,8 +54,7 @@ UI: `InternalNotePanel` on user and account detail pages.
 2. **Server-side permission checks** on every mutation (`requireOperator`, tag rules, admin-only overdraft).
 3. **Cannot remove the last admin** — enforced in `internal-user-management.service.ts`.
 4. **Operators cannot modify admin/operator tags.**
-5. **Revoking `private_client`** liquidates personal reserve/private balances and closes those accounts.
-6. **Account close** requires zero balance.
+5. **Account close** requires zero balance.
 
 ## User management
 

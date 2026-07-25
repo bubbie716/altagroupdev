@@ -110,7 +110,7 @@ export function OpenAccountCard() {
           Open an account
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          Personal, savings, business, and private banking products.
+          Personal, savings, and business banking products.
         </p>
       </div>
       <RouteButton

@@ -108,7 +108,7 @@ Access is granted only when the signed-in user has the `admin` tag in Postgres. 
 ### Public (no login)
 
 - `/`, `/governance`, `/login`
-- `/bank`, `/bank/products`, `/bank/lending`, `/bank/business`, `/bank/private`
+- `/bank`, `/bank/products`, `/bank/lending`, `/bank/business`
 - `/exchange`, `/exchange/listings`, `/exchange/company/*`, `/exchange/ipo`, `/exchange/apply`, `/exchange/research`
 - `/terminal/news`, `/terminal/research`, `/terminal/ipo`, `/terminal/leaderboard` (marketing/preview pages)
 
@@ -116,28 +116,27 @@ Access is granted only when the signed-in user has the `admin` tag in Postgres. 
 
 ### Backend tags (`UserTagAssignment`)
 
-Users can hold **multiple tags at once** (e.g. `admin` and `private_client`). Each tag is a separate row in `UserTagAssignment`. Tags are not shown as “roles” in the public UI — they drive backend access only.
+Users can hold **multiple tags at once** (e.g. `admin` and `developer`). Each tag is a separate row in `UserTagAssignment`. Tags are not shown as “roles” in the public UI — they drive backend access only.
 
 | Tag | Purpose |
 |-----|---------|
 | `admin` | Full internal ops access |
 | `operator` | Internal ops (non-admin actions) |
-| `private_client` | Alta Private relationship |
 | `developer` | Exchange API access |
 | `issuer` | Submit listing applications |
 
 Grant one or more tags after first login:
 
 ```bash
-npm run db:grant-tag -- DISCORD_ID admin private_client
+npm run db:grant-tag -- DISCORD_ID admin bank_admin
 npm run db:grant-tag -- DISCORD_ID admin
-npm run db:grant-tag -- DISCORD_ID private_client
+npm run db:grant-tag -- DISCORD_ID bank_admin
 ```
 
 Remove specific tags with `--remove` (other tags are kept):
 
 ```bash
-npm run db:grant-tag -- DISCORD_ID private_client --remove
+npm run db:grant-tag -- DISCORD_ID bank_admin --remove
 ```
 
 ### Account statuses

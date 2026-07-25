@@ -10,17 +10,15 @@ import {
   ALTA_CARD_TIER_RANK,
   BUSINESS_ALTA_PAY_OPPORTUNITY_VOLUME,
   CUSTOMER_OPPORTUNITY_COPY,
-  RECOMMENDATION_TYPE_LABELS,
   computeLoanPreApprovalConfidence,
-  computePrivateBankingInviteConfidence,
   computeRecommendedCreditLimit,
   computeRecommendedInterestRate,
   qualifiesForLoanPreApproval,
-  qualifiesForPrivateBankingInvite,
   recommendedAltaCardTierFromRelationship,
   tierLabel,
   type RecommendationReasonPayload,
 } from "@/lib/bank/relationship-recommendation-config";
+import { recommendationTypeLabel } from "@/lib/bank/relationship-recommendation-display";
 import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import type {
   CustomerRelationshipOpportunity,
@@ -178,10 +176,7 @@ function buildDraftRecommendations(input: {
   userId: string;
 }): DraftRecommendation[] {
   const { profile, primaryCard, userId } = input;
-  const recommendedTier = recommendedAltaCardTierFromRelationship(
-    profile.relationshipTier,
-    profile.privateBankingClient,
-  );
+  const recommendedTier = recommendedAltaCardTierFromRelationship(profile.relationshipTier);
   const recommendedLimit = computeRecommendedCreditLimit({
     recommendedTier,
     totalBankAssets: profile.totalBankAssets,
@@ -191,7 +186,6 @@ function buildDraftRecommendations(input: {
   const recommendedRate = computeRecommendedInterestRate({
     recommendedTier,
     relationshipScore: profile.relationshipScore,
-    isPrivateClient: profile.privateBankingClient,
   });
 
   const hasBusinessAccounts = profile.productsHeld.businessCompanies > 0;
@@ -204,12 +198,7 @@ function buildDraftRecommendations(input: {
   const tierUpgradeNeeded =
     !currentTier || ALTA_CARD_TIER_RANK[recommendedTier] > ALTA_CARD_TIER_RANK[currentTier];
   if (tierUpgradeNeeded) {
-    const confidence = Math.min(
-      95,
-      55 +
-        Math.floor(profile.relationshipScore / 20) +
-        (profile.privateBankingClient ? 15 : 0),
-    );
+    const confidence = Math.min(95, 55 + Math.floor(profile.relationshipScore / 20));
     drafts.push({
       recommendationType: "ALTA_CARD_TIER",
       title: `Recommend ${tierLabel(recommendedTier)} tier`,
@@ -224,9 +213,7 @@ function buildDraftRecommendations(input: {
           `Relationship tier: ${displayRelationshipTierLabel(profile.relationshipTier, profile.relationshipScore)}`,
           `Relationship score: ${profile.relationshipScore}`,
           `Total Alta assets: ${formatAltaCardCurrency(profile.totalAltaAssets)}`,
-          profile.privateBankingClient
-            ? "Alta Private member — Gold Card available by request"
-            : "Tier mapped from relationship standing",
+          "Tier mapped from relationship standing",
         ],
         actionPath: primaryCard
           ? buildAltaCardActionPath(primaryCard.id, "pending", { tier: recommendedTier })
@@ -283,10 +270,7 @@ function buildDraftRecommendations(input: {
   const rateReductionNeeded =
     !currentRate || recommendedRate < currentRate - 0.25;
   if (rateReductionNeeded) {
-    const confidence = Math.min(
-      90,
-      48 + Math.floor(profile.relationshipScore / 16) + (profile.privateBankingClient ? 12 : 0),
-    );
+    const confidence = Math.min(90, 48 + Math.floor(profile.relationshipScore / 16));
     drafts.push({
       recommendationType: "ALTA_CARD_RATE",
       title: `Recommend ${formatAltaCardRate(recommendedRate)} APR`,
@@ -300,9 +284,7 @@ function buildDraftRecommendations(input: {
       reasons: {
         bullets: [
           `Relationship score: ${profile.relationshipScore}`,
-          profile.privateBankingClient
-            ? "Alta Private member — negotiable relationship pricing"
-            : "Score-based relationship pricing discount applied",
+          "Score-based relationship pricing discount applied",
           `Recommended tier context: ${tierLabel(recommendedTier)}`,
         ],
         actionPath: primaryCard
@@ -359,49 +341,6 @@ function buildDraftRecommendations(input: {
         actionPath: {
           to: "/internal/lending",
           search: { preApprovalUserId: userId },
-        },
-      },
-    });
-  }
-
-  if (
-    qualifiesForPrivateBankingInvite({
-      privateBankingEligible: profile.privateBankingEligible,
-      privateBankingClient: profile.privateBankingClient,
-      relationshipScore: profile.relationshipScore,
-      totalAltaAssets: profile.totalAltaAssets,
-      hasBusinessAccounts,
-      lifetimeAltaPayVolume: profile.lifetimeAltaPayVolume,
-    })
-  ) {
-    const confidence = computePrivateBankingInviteConfidence({
-      relationshipScore: profile.relationshipScore,
-      totalAltaAssets: profile.totalAltaAssets,
-      privateBankingEligible: profile.privateBankingEligible,
-      hasBusinessAccounts,
-      lifetimeAltaPayVolume: profile.lifetimeAltaPayVolume,
-    });
-    drafts.push({
-      recommendationType: "PRIVATE_BANKING_INVITE",
-      title: "Private banking invitation recommended",
-      summary:
-        "Customer meets relationship thresholds for Alta Private review. Enrollment requires explicit admin approval.",
-      recommendedProduct: "PRIVATE_BANKING",
-      confidenceScore: confidence,
-      reasons: {
-        bullets: [
-          profile.privateBankingEligible
-            ? "Marked private banking eligible on relationship profile"
-            : "High relationship score and asset threshold met",
-          `Total Alta assets: ${formatAltaCardCurrency(profile.totalAltaAssets)}`,
-          hasBusinessAccounts
-            ? `Business relationship with Alta Pay volume ${formatAltaCardCurrency(profile.lifetimeAltaPayVolume)}`
-            : "Personal relationship strength supports private review",
-        ],
-        actionPath: {
-          to: "/internal/users/$userId",
-          params: { userId },
-          search: { privateReview: true },
         },
       },
     });
@@ -596,7 +535,6 @@ export async function getCustomerRelationshipOpportunities(
           "ALTA_CARD_LIMIT",
           "ALTA_CARD_RATE",
           "LOAN_PRE_APPROVAL",
-          "PRIVATE_BANKING_INVITE",
           "PRODUCT_OPPORTUNITY",
         ],
       },
@@ -650,7 +588,7 @@ export async function dismissRelationshipRecommendation(
     action: "RELATIONSHIP_RECOMMENDATION_DISMISSED",
     entityType: "USER",
     entityId: row.id,
-    description: `Dismissed ${RECOMMENDATION_TYPE_LABELS[typeToCode(row.recommendationType)]} recommendation`,
+    description: `Dismissed ${recommendationTypeLabel(typeToCode(row.recommendationType))} recommendation`,
     metadata: {
       recommendationId: id,
       userId: row.userId,
@@ -685,7 +623,7 @@ export async function markRecommendationReviewed(
     action: "RELATIONSHIP_RECOMMENDATION_REVIEWED",
     entityType: "USER",
     entityId: row.id,
-    description: `Reviewed ${RECOMMENDATION_TYPE_LABELS[typeToCode(row.recommendationType)]} recommendation`,
+    description: `Reviewed ${recommendationTypeLabel(typeToCode(row.recommendationType))} recommendation`,
     metadata: {
       recommendationId: id,
       userId: row.userId,
@@ -718,7 +656,7 @@ export async function acceptRelationshipRecommendation(
     action: "RELATIONSHIP_RECOMMENDATION_ACCEPTED",
     entityType: "USER",
     entityId: row.id,
-    description: `Accepted ${RECOMMENDATION_TYPE_LABELS[typeToCode(row.recommendationType)]} recommendation (admin follow-up required)`,
+    description: `Accepted ${recommendationTypeLabel(typeToCode(row.recommendationType))} recommendation (admin follow-up required)`,
     metadata: {
       recommendationId: id,
       userId: row.userId,

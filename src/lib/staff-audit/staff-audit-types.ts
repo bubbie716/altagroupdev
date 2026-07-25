@@ -5,7 +5,6 @@ export type StaffAuditSource = "website" | "discord_bot" | "cron" | "system";
 export type StaffAuditProduct =
   | "Alta Bank"
   | "Alta Pay"
-  | "Alta Private"
   | "Alta Ops"
   | "Alta Card"
   | "Companies"

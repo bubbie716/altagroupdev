@@ -357,7 +357,7 @@ export const searchTerminalSymbols = createServerFn({ method: "GET" })
     return getTseClient({ userId }).listSecurities(query);
   });
 
-/** Lean context for Quick Trade — no chart history. */
+/** Lean context for Quick Trade — no chart history, no N+1 portfolio snapshots. */
 export const fetchQuickTradeContext = createServerFn({ method: "GET" })
   .inputValidator((input?: { symbol?: string; portfolioId?: string }) => input ?? {})
   .handler(async ({ data }) => {
@@ -375,14 +375,18 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
     const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
     const marketStatus = await client.getMarketStatus();
 
+    // Picker list stays cheap: use summaries only. Snapshot the selected portfolio once.
+    const basePortfolios = listed.map((portfolio) => ({
+      ...portfolio,
+      buyingPower: 0,
+      holdingQuantity: 0,
+    }));
+
     if (!portfolioId) {
-      const portfolios = symbol
-        ? await enrichSecurityPortfolioOptions(client, listed, symbol)
-        : listed.map((p) => ({ ...p, buyingPower: 0, holdingQuantity: 0 }));
       return {
         mode: client.mode,
         marketStatus,
-        portfolios,
+        portfolios: basePortfolios,
         selectedPortfolio: null,
         security: symbol ? await client.getSecurity(symbol) : null,
         position: null,
@@ -391,28 +395,8 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
     }
 
     await rememberSelectedTerminalPortfolio(user, portfolioId);
-    const selectedPortfolio = await getTerminalPortfolioForUser(user, portfolioId);
-    const portfolios = symbol
-      ? await enrichSecurityPortfolioOptions(client, listed, symbol)
-      : await Promise.all(
-          listed.map(async (portfolio) => {
-            try {
-              const snapshot = await client.getPortfolio(portfolio.id);
-              return {
-                ...portfolio,
-                totalValue: snapshot.totalValue,
-                dayChange: snapshot.dayChange,
-                dayChangePercent: snapshot.dayChangePercent,
-                buyingPower: snapshot.buyingPower,
-                holdingQuantity: 0,
-              };
-            } catch {
-              return { ...portfolio, buyingPower: 0, holdingQuantity: 0 };
-            }
-          }),
-        );
-
-    const [security, portfolio] = await Promise.all([
+    const [selectedPortfolio, security, portfolio] = await Promise.all([
+      getTerminalPortfolioForUser(user, portfolioId),
       symbol ? client.getSecurity(symbol) : Promise.resolve(null),
       client.getPortfolio(portfolioId),
     ]);
@@ -420,6 +404,19 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
       security && portfolio
         ? (portfolio.holdings.find((h) => h.symbol === security.symbol) ?? null)
         : null;
+
+    const portfolios = basePortfolios.map((row) =>
+      row.id === portfolioId
+        ? {
+            ...row,
+            totalValue: portfolio.totalValue,
+            dayChange: portfolio.dayChange,
+            dayChangePercent: portfolio.dayChangePercent,
+            buyingPower: portfolio.buyingPower,
+            holdingQuantity: position?.quantity ?? 0,
+          }
+        : row,
+    );
 
     return {
       mode: client.mode,

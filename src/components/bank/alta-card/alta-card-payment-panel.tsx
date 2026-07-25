@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-60";
 
 type FormView = "compose" | "review" | "success" | "error";
 type PaymentKind = "minimum" | "statement" | "current" | "custom";

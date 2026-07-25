@@ -2,10 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { florin } from "@/lib/bank/api";
-import {
-  altaPrivateStatusLabel,
-  displayRelationshipTierLabel,
-} from "@/lib/bank/relationship-terminology";
+import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import type {
   RelationshipIntegrationContext,
   RelationshipIntelligencePanelData,
@@ -70,24 +67,10 @@ export function RelationshipIntelligencePanel({
             <Metric label="Credit exposure" value={florin(panel.currentCreditExposure)} />
             <Metric label="Active card balance" value={florin(panel.activeCardBalance)} />
             <Metric label="Active loan balance" value={florin(panel.activeLoanBalance)} />
-            <Metric
-              label="Alta Private eligibility"
-              value={panel.privateBankingEligible ? "Eligible" : "Not eligible"}
-            />
-            <Metric
-              label="Alta Private membership"
-              value={altaPrivateStatusLabel(panel.privateBankingClient, panel.privateBankingEligible)}
-            />
             <Metric label="Lifetime loan payments" value={florin(panel.lifetimeLoanPayments)} />
           </>
         ) : (
-          <>
-            <Metric label="Credit exposure" value={florin(panel.currentCreditExposure)} />
-            <Metric
-              label="Alta Private"
-              value={altaPrivateStatusLabel(panel.privateBankingClient, panel.privateBankingEligible)}
-            />
-          </>
+          <Metric label="Credit exposure" value={florin(panel.currentCreditExposure)} />
         )}
       </dl>
 

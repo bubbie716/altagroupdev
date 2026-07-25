@@ -7,7 +7,7 @@ import type {
 import { RECOMMENDATION_TYPE_LABELS, tierLabel } from "@/lib/bank/relationship-recommendation-config";
 
 export function recommendationTypeLabel(type: RelationshipRecommendationTypeCode): string {
-  return RECOMMENDATION_TYPE_LABELS[type];
+  return RECOMMENDATION_TYPE_LABELS[type] ?? "Relationship recommendation";
 }
 
 export function formatRecommendedAction(rec: RelationshipRecommendationRow): string {

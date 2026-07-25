@@ -1,47 +1,11 @@
 import type {
   DocumentSubjectType,
-  PrivateBankingRelationshipStatus,
   Prisma,
   StaffAssignmentStatus,
   StaffAssignmentSubjectType,
   StaffAssignmentType,
 } from "@prisma/client";
 import { prisma } from "@/server/db";
-
-export async function assignPrivateBanker(input: {
-  customerUserId: string;
-  bankerUserId: string;
-  assignedByUserId?: string;
-  notes?: string;
-  metadata?: Record<string, unknown>;
-}) {
-  await prisma.privateBankingRelationship.updateMany({
-    where: { customerUserId: input.customerUserId, status: "ACTIVE" },
-    data: { status: "INACTIVE", updatedAt: new Date() },
-  });
-
-  return prisma.privateBankingRelationship.create({
-    data: {
-      customerUserId: input.customerUserId,
-      bankerUserId: input.bankerUserId,
-      assignedByUserId: input.assignedByUserId ?? null,
-      notes: input.notes ?? null,
-      status: "ACTIVE",
-      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
-    },
-  });
-}
-
-export async function getActivePrivateBankingRelationship(customerUserId: string) {
-  return prisma.privateBankingRelationship.findFirst({
-    where: { customerUserId, status: "ACTIVE" },
-    include: {
-      banker: { select: { id: true, discordUsername: true } },
-      customer: { select: { id: true, discordUsername: true } },
-    },
-    orderBy: { assignedAt: "desc" },
-  });
-}
 
 export async function createStaffAssignment(input: {
   staffUserId: string;
@@ -107,5 +71,3 @@ export async function createDocumentRecord(input: {
     },
   });
 }
-
-export type PrivateBankingRelationshipStatusFilter = PrivateBankingRelationshipStatus;

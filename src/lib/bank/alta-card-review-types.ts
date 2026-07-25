@@ -114,7 +114,6 @@ export type AltaCardReviewFormContext = {
     companyId: string | null;
   };
   relationship: AltaCardRelationshipRecommendation | null;
-  isPrivateClient: boolean;
   eligibleTierUpgrades: AltaCardTierCode[];
   eligibility: AltaCardReviewEligibility;
   reviewHistory: AltaCardReviewHistoryRow[];
@@ -144,7 +143,6 @@ export type ProcessAltaCardReviewDecisionInput = {
   approvedRate?: number;
   approveTierUpgrade?: boolean;
   approvedTier?: AltaCardTierCode;
-  goldOverride?: boolean;
 };
 
 export type InternalAltaCardReviewDetail = {

@@ -14,14 +14,6 @@ export const verifyInternalAccess = createServerFn({ method: "GET" }).handler(as
   return user ? canAccessAnyInternal(user) : false;
 });
 
-/** True when the session user has the private_client tag. */
-export const verifyPrivateClientAccess = createServerFn({ method: "GET" }).handler(async () => {
-  const { readCurrentUser } = await import("@/server/auth.service");
-  const { isPrivateClient } = await import("@/lib/auth/permissions");
-  const user = await readCurrentUser();
-  return user ? isPrivateClient(user) : false;
-});
-
 /** True when the session user has developer access (tag or approved workflow). */
 export const verifyDeveloperAccess = createServerFn({ method: "GET" }).handler(async () => {
   const { readCurrentUser } = await import("@/server/auth.service");

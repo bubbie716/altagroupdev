@@ -37,7 +37,7 @@ export function OpsFilterBar({
 }
 
 export const OPS_FILTER_FIELD_CLASS =
-  "h-8 w-full rounded-sm border border-border/70 bg-surface-1 px-2.5 text-[12px] outline-none transition-colors focus:border-gold focus:ring-1 focus:ring-gold/30";
+  "h-8 w-full rounded-sm border border-border/70 bg-surface-1 px-2.5 text-[12px] outline-none transition-colors focus:border-gold focus:ring-0 focus:shadow-none";
 
 export const OPS_FILTER_LABEL_CLASS =
   "mb-1 block font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground";

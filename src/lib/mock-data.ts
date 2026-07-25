@@ -75,7 +75,7 @@ export const orders = [
 ];
 
 export const accounts = [
-  { id: "ALTA-PRIV-0021", name: "Alta Private Wealth", type: "Private", balance: 4_812_440.22, currency: "ƒ" },
+  { id: "ALTA-WLT-0021", name: "Alta Wealth Management", type: "Wealth", balance: 4_812_440.22, currency: "ƒ" },
   { id: "ALTA-CHK-1187", name: "Alta Checking", type: "Personal", balance: 184_220.15, currency: "ƒ" },
   { id: "ALTA-SAV-7740", name: "Alta High-Yield Reserve", type: "Savings", balance: 1_240_500.00, currency: "ƒ" },
   { id: "ALTA-BIZ-4402", name: "Meridian Holdings Operating", type: "Business", balance: 2_390_115.84, currency: "ƒ" },

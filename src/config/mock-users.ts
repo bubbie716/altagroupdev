@@ -18,13 +18,13 @@ export interface MockUserOverride {
 export const MOCK_USER_OVERRIDES: Record<string, MockUserOverride> = {
   /** Demo overrides for local testing (memberships, tags, statuses). */
   "000000000000000001": {
-    tags: ["corporate_admin", "private_client"],
+    tags: ["corporate_admin"],
     minecraftUsername: "VaultSeeker",
     developerAccess: true,
     companyMemberships: [{ companyId: "CO-NPC", role: "finance_manager" }],
   },
   "000000000000000002": {
-    tags: ["private_client"],
+    tags: [],
     minecraftUsername: "HarborLine",
     companyMemberships: [
       { companyId: "CO-PRTH", role: "executive" },
@@ -43,7 +43,7 @@ export const MOCK_USER_OVERRIDES: Record<string, MockUserOverride> = {
     companyMemberships: [{ companyId: "CO-HLXD", role: "owner" }],
   },
   "000000000000000005": {
-    tags: ["private_client"],
+    tags: [],
     minecraftUsername: "MeridianCEO",
     companyMemberships: [{ companyId: "CO-PRTH", role: "owner" }],
   },

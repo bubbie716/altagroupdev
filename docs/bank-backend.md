@@ -41,7 +41,7 @@ Manual-review banking for Alta Group: account opening, deposit requests, and wit
 
 - `ALTA_ACCESS`, `CHECKING`, `SAVINGS`, `MONEY_MARKET` → `ACTIVE` immediately
 - `BUSINESS_OPERATING` → `ACTIVE` immediately when linked company is `VERIFIED`
-- `RESERVE`, `PRIVATE` → require `private_client` tag; **ACTIVE** immediately when enrolled (no manual review). Revoking `private_client` transfers remaining private balances to the user's oldest active personal account and closes reserve/private accounts.
+- `RESERVE`, `PRIVATE` → retired types. Existing accounts keep working; neither is offered for new account opening.
 
 ### `BankTransaction`
 

@@ -98,17 +98,11 @@ export type InternalUserLoanSummary = {
 export type InternalAccessMetrics = {
   totalUsers: number;
   admins: number;
-  privateClients: number;
   restrictedUsers: number;
   frozenUsers: number;
 };
 
-export const ALL_USER_TAGS: UserTag[] = [
-  "corporate_admin",
-  "bank_admin",
-  "terminal_admin",
-  "private_client",
-];
+export const ALL_USER_TAGS: UserTag[] = ["corporate_admin", "bank_admin", "terminal_admin"];
 
 export const ALL_ACCOUNT_STATUSES: AccountStatus[] = [
   "active",

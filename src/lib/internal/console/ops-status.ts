@@ -83,7 +83,6 @@ export const OPS_STATUS_TONE_MAP: Record<string, OpsStatusTone> = {
   generated: "success",
   executed: "success",
   paused: "warning",
-  private_client: "gold",
 };
 
 export function resolveOpsStatusTone(status: string, explicit?: OpsStatusTone): OpsStatusTone {

@@ -293,6 +293,7 @@ export async function resolveTerminalPortfolioId(
     return match.id;
   }
 
+  // Prefer the last portfolio the user actually selected (DB, then in-memory).
   if (await isPortfolioDatabaseAvailable()) {
     try {
       const { prisma } = await import("@/server/db");
@@ -306,14 +307,12 @@ export async function resolveTerminalPortfolioId(
         const { isUiLabMode } = await import("@/lib/auth/ui-lab");
         if (!isUiLabMode()) throw error;
       }
-      const store = getMemoryStore(user);
-      const recentId = store.lastSelectedByUser.get(user.id);
-      if (recentId && accessible.some((p) => p.id === recentId)) return recentId;
     }
-  } else {
-    const store = getMemoryStore(user);
-    const recentId = store.lastSelectedByUser.get(user.id);
-    if (recentId && accessible.some((p) => p.id === recentId)) return recentId;
+  }
+
+  const memoryRecentId = getMemoryStore(user).lastSelectedByUser.get(user.id);
+  if (memoryRecentId && accessible.some((p) => p.id === memoryRecentId)) {
+    return memoryRecentId;
   }
 
   const defaultPortfolio = accessible.find((p) => p.isDefault);
@@ -327,6 +326,10 @@ export async function rememberSelectedTerminalPortfolio(user: AltaUser, portfoli
     throw new Error("Portfolio not found or access denied");
   }
 
+  // Always keep an in-memory copy so resolve stays correct when DB settings
+  // are missing (e.g. UI Lab) or temporarily unavailable.
+  getMemoryStore(user).lastSelectedByUser.set(user.id, portfolioId);
+
   if (await isPortfolioDatabaseAvailable()) {
     try {
       const { prisma } = await import("@/server/db");
@@ -335,7 +338,6 @@ export async function rememberSelectedTerminalPortfolio(user: AltaUser, portfoli
         create: { userId: user.id, lastSelectedPortfolioId: portfolioId },
         update: { lastSelectedPortfolioId: portfolioId },
       });
-      return;
     } catch (error) {
       if (!isMissingTerminalPortfolioTable(error)) {
         const { isUiLabMode } = await import("@/lib/auth/ui-lab");
@@ -343,8 +345,6 @@ export async function rememberSelectedTerminalPortfolio(user: AltaUser, portfoli
       }
     }
   }
-
-  getMemoryStore(user).lastSelectedByUser.set(user.id, portfolioId);
 }
 
 export async function getTerminalPortfolioForUser(

@@ -15,7 +15,6 @@ import {
   RELATIONSHIP_SCORE_MAX,
   RELATIONSHIP_SCORE_WEIGHTS,
   RELATIONSHIP_TIER_LABELS,
-  computePrivateBankingEligible,
   relationshipTierFromScore,
 } from "@/lib/bank/relationship-intelligence-config";
 import { formatAltaCardCurrency } from "@/lib/bank/alta-card-types";
@@ -25,12 +24,11 @@ import {
   pruneRelationshipProfileSnapshots,
   shouldWriteRelationshipSnapshot,
 } from "@/lib/bank/relationship-snapshot-policy";
-import { isPrivateClient } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { requireAuth } from "@/server/auth.service";
 import { requireOperator } from "@/server/permissions.service";
-import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
+import { userWithMembershipsInclude } from "@/server/user-mapper";
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
@@ -307,7 +305,6 @@ async function aggregateRelationshipInputs(userId: string): Promise<AggregatedIn
   );
 
   const hasBusinessAccounts = bankAccounts.some((account) => account.companyId != null);
-  const privateClient = user.tags.some((assignment) => assignment.tag === "PRIVATE_CLIENT");
 
   const productsHeld: RelationshipProductsHeld = {
     activeBankAccounts: bankAccounts.length,
@@ -316,7 +313,6 @@ async function aggregateRelationshipInputs(userId: string): Promise<AggregatedIn
     paidOffLoans: paidOffLoans.length,
     businessCompanies: ownedCompanyIds.length,
     verifiedCompanies,
-    isPrivateClient: privateClient,
   };
 
   const relationshipDates = [
@@ -362,7 +358,6 @@ async function aggregateRelationshipInputs(userId: string): Promise<AggregatedIn
 
 function computeScoreFromInputs(
   inputs: AggregatedInputs,
-  isPrivateClientFlag: boolean,
 ): { score: number; factors: RelationshipFactor[] } {
   const factors: RelationshipFactor[] = [];
   let score = RELATIONSHIP_SCORE_BASE;
@@ -487,17 +482,6 @@ function computeScoreFromInputs(
     score += RELATIONSHIP_SCORE_WEIGHTS.verifiedCompany;
   }
 
-  if (isPrivateClientFlag) {
-    factors.push({
-      key: "private_client",
-      label: "Alta Private membership",
-      value: "Yes",
-      impact: RELATIONSHIP_SCORE_WEIGHTS.privateClientBonus,
-      impactType: "positive",
-    });
-    score += RELATIONSHIP_SCORE_WEIGHTS.privateClientBonus;
-  }
-
   if (inputs.delinquentCards > 0) {
     factors.push({
       key: "delinquent_cards",
@@ -582,8 +566,6 @@ function mapProfileRow(
     relationshipSince: row.relationshipSince.toISOString(),
     relationshipScore: row.relationshipScore,
     relationshipTier: tierToCode(row.relationshipTier),
-    privateBankingEligible: row.privateBankingEligible,
-    privateBankingClient: row.privateBankingClient,
     totalBankAssets: decimalToNumber(row.totalBankAssets),
     totalInvestments: decimalToNumber(row.totalInvestments),
     totalAltaAssets: decimalToNumber(row.totalAltaAssets),
@@ -611,21 +593,16 @@ export async function calculateRelationshipProfile(userId: string): Promise<Calc
   });
   if (!user) throw new Error("NOT_FOUND");
 
-  const altaUser = mapDbUserToAltaUser(user);
-  const privateClient = isPrivateClient(altaUser);
   const inputs = await aggregateRelationshipInputs(userId);
-  const { score, factors } = computeScoreFromInputs(inputs, privateClient);
+  const { score, factors } = computeScoreFromInputs(inputs);
   const totalAltaAssets = roundMoney(inputs.totalBankAssets + inputs.totalInvestments);
   const currentCreditExposure = roundMoney(inputs.activeLoanBalance + inputs.activeCardBalance);
-  const relationshipTier = relationshipTierFromScore(score, privateClient);
-  const privateBankingEligible = computePrivateBankingEligible(score, totalAltaAssets, privateClient);
+  const relationshipTier = relationshipTierFromScore(score);
 
   return {
     relationshipSince: inputs.relationshipSince.toISOString(),
     relationshipScore: score,
     relationshipTier,
-    privateBankingEligible,
-    privateBankingClient: privateClient,
     totalBankAssets: inputs.totalBankAssets,
     totalInvestments: inputs.totalInvestments,
     totalAltaAssets,
@@ -667,7 +644,6 @@ export async function getRelationshipProfile(userId: string): Promise<Relationsh
     paidOffLoans: 0,
     businessCompanies: 0,
     verifiedCompanies: 0,
-    isPrivateClient: row.privateBankingClient,
   };
   if (
     snapshot?.metadata &&
@@ -696,7 +672,6 @@ export async function getRelationshipSnapshot(userId: string): Promise<Relations
     totalBankAssets: decimalToNumber(snapshot.totalBankAssets),
     totalAltaAssets: decimalToNumber(snapshot.totalAltaAssets),
     currentCreditExposure: decimalToNumber(snapshot.currentCreditExposure),
-    privateBankingEligible: snapshot.privateBankingEligible,
     calculatedAt: snapshot.calculatedAt.toISOString(),
     metadata:
       snapshot.metadata && typeof snapshot.metadata === "object" && !Array.isArray(snapshot.metadata)
@@ -725,8 +700,6 @@ export async function refreshRelationshipProfile(
     relationshipSince: new Date(calculated.relationshipSince),
     relationshipScore: calculated.relationshipScore,
     relationshipTier: tierToDb(calculated.relationshipTier),
-    privateBankingEligible: calculated.privateBankingEligible,
-    privateBankingClient: calculated.privateBankingClient,
     totalBankAssets: calculated.totalBankAssets,
     totalInvestments: calculated.totalInvestments,
     totalAltaAssets: calculated.totalAltaAssets,
@@ -757,8 +730,6 @@ export async function refreshRelationshipProfile(
       newTotalAssets: calculated.totalAltaAssets,
       oldCreditExposure: existing ? decimalToNumber(existing.currentCreditExposure) : null,
       newCreditExposure: calculated.currentCreditExposure,
-      oldPrivateEligible: existing?.privateBankingEligible ?? null,
-      newPrivateEligible: calculated.privateBankingEligible,
     })
   ) {
     await prisma.relationshipProfileSnapshot.create({
@@ -770,7 +741,6 @@ export async function refreshRelationshipProfile(
         totalBankAssets: calculated.totalBankAssets,
         totalAltaAssets: calculated.totalAltaAssets,
         currentCreditExposure: calculated.currentCreditExposure,
-        privateBankingEligible: calculated.privateBankingEligible,
         metadata: {
           factorCount: calculated.factors.length,
           productsHeld: calculated.productsHeld,
@@ -850,26 +820,6 @@ export async function refreshRelationshipProfile(
     });
   }
 
-  if (
-    existing &&
-    existing.privateBankingEligible !== calculated.privateBankingEligible
-  ) {
-    await writeAuditLog({
-      actorUserId: actor,
-      targetUserId: userId,
-      action: "PRIVATE_BANKING_ELIGIBILITY_CHANGED",
-      entityType: "USER",
-      entityId: profile.id,
-      description: "Private banking eligibility changed",
-      metadata: {
-        userId,
-        oldEligible: existing.privateBankingEligible,
-        newEligible: calculated.privateBankingEligible,
-        actorUserId: actorUserId ?? "SYSTEM",
-      },
-    });
-  }
-
   if (!options?.skipRecommendations) {
     try {
       const { generateRelationshipRecommendations } = await import(
@@ -892,8 +842,6 @@ export async function refreshRelationshipProfile(
       newScore: calculated.relationshipScore,
       oldTier: existing ? tierToCode(existing.relationshipTier) : null,
       newTier: calculated.relationshipTier,
-      oldPrivateEligible: existing?.privateBankingEligible ?? false,
-      newPrivateEligible: calculated.privateBankingEligible,
     });
   } catch {
     // Timeline sync is best-effort after profile refresh.
@@ -973,22 +921,12 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
   } catch {
     // Profile refresh is best-effort on customer view load.
   }
-  try {
-    const { ensurePrivateClientTimelineEventIfMissing } = await import(
-      "@/server/alta-private-timeline.service"
-    );
-    await ensurePrivateClientTimelineEventIfMissing(userId);
-  } catch {
-    // Alta Private activation timeline is best-effort on customer view load.
-  }
   const timeline = await getCustomerRelationshipTimeline(userId);
 
   const { computeCustomerRelationshipProgress } = await import(
     "@/lib/bank/customer-relationship-display"
   );
-  const { displayRelationshipTierLabel, altaPrivateStatusLabel } = await import(
-    "@/lib/bank/relationship-terminology"
-  );
+  const { displayRelationshipTierLabel } = await import("@/lib/bank/relationship-terminology");
 
   return {
     relationshipSince: calculated.relationshipSince,
@@ -996,10 +934,6 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
     relationshipTierLabel: displayRelationshipTierLabel(
       calculated.relationshipTier,
       calculated.relationshipScore,
-    ),
-    altaPrivateStatusLabel: altaPrivateStatusLabel(
-      calculated.privateBankingClient,
-      calculated.privateBankingEligible,
     ),
     relationshipProgress: computeCustomerRelationshipProgress(
       calculated.relationshipScore,
@@ -1012,8 +946,6 @@ export async function getCustomerRelationshipView(userId: string): Promise<Custo
     lifetimeInterestPaid: calculated.lifetimeInterestPaid,
     lifetimeAltaPayVolume: calculated.lifetimeAltaPayVolume,
     productsHeld: calculated.productsHeld,
-    privateBankingEligible: calculated.privateBankingEligible,
-    privateBankingClient: calculated.privateBankingClient,
     opportunities,
     timeline,
   };
@@ -1028,8 +960,6 @@ export async function getRelationshipProfileSummary(userId: string): Promise<Rel
     relationshipSince: row.relationshipSince.toISOString(),
     relationshipScore: row.relationshipScore,
     relationshipTier: tierToCode(row.relationshipTier),
-    privateBankingEligible: row.privateBankingEligible,
-    privateBankingClient: row.privateBankingClient,
     totalAltaAssets: decimalToNumber(row.totalAltaAssets),
     productsHeld: {
       activeBankAccounts: 0,
@@ -1038,7 +968,6 @@ export async function getRelationshipProfileSummary(userId: string): Promise<Rel
       paidOffLoans: 0,
       businessCompanies: 0,
       verifiedCompanies: 0,
-      isPrivateClient: row.privateBankingClient,
     },
     lastCalculatedAt: row.lastCalculatedAt.toISOString(),
   };
@@ -1062,8 +991,6 @@ export async function getRelationshipProfileSummariesForUsers(
       relationshipSince: row.relationshipSince.toISOString(),
       relationshipScore: row.relationshipScore,
       relationshipTier: tierToCode(row.relationshipTier),
-      privateBankingEligible: row.privateBankingEligible,
-      privateBankingClient: row.privateBankingClient,
       totalAltaAssets: decimalToNumber(row.totalAltaAssets),
       productsHeld: {
         activeBankAccounts: 0,
@@ -1072,7 +999,6 @@ export async function getRelationshipProfileSummariesForUsers(
         paidOffLoans: 0,
         businessCompanies: 0,
         verifiedCompanies: 0,
-        isPrivateClient: row.privateBankingClient,
       },
       lastCalculatedAt: row.lastCalculatedAt.toISOString(),
     };
@@ -1083,10 +1009,9 @@ export async function getRelationshipProfileSummariesForUsers(
 export async function getRelationshipIntelligenceDashboard(): Promise<RelationshipIntelligenceDashboard> {
   await requireOperator();
 
-  const [totalProfiles, privateEligibleCount, preferredOrPremierCount, topByAssets, recentSnapshots] =
+  const [totalProfiles, preferredOrPremierCount, topByAssets, recentSnapshots] =
     await Promise.all([
       prisma.relationshipProfile.count(),
-      prisma.relationshipProfile.count({ where: { privateBankingEligible: true } }),
       prisma.relationshipProfile.count({
         where: { relationshipTier: { in: ["PREFERRED", "PREMIER", "PRIVATE_ELIGIBLE"] } },
       }),
@@ -1128,7 +1053,6 @@ export async function getRelationshipIntelligenceDashboard(): Promise<Relationsh
 
   return {
     totalProfiles,
-    privateEligibleCount,
     preferredOrPremierCount,
     topByAssets: topByAssets.map((row) => ({
       userId: row.userId,

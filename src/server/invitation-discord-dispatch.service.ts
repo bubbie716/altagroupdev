@@ -1,4 +1,4 @@
-export type InvitationKind = "private" | "company";
+export type InvitationKind = "company";
 
 function logDispatch(message: string, meta?: Record<string, unknown>): void {
   if (process.env.NODE_ENV === "test") return;
@@ -58,18 +58,8 @@ async function tryBotDelivery(kind: InvitationKind, invitationId: string): Promi
   }
 }
 
-async function directDelivery(
-  kind: InvitationKind,
-  invitationId: string,
-): Promise<{ sent: boolean; reason?: string }> {
-  const { deliverAltaPrivateInvitationDm, deliverCompanyInvitationDm } = await import(
-    "@/server/bot-invitation-delivery.service"
-  );
-
-  if (kind === "private") {
-    return deliverAltaPrivateInvitationDm(invitationId);
-  }
-
+async function directDelivery(invitationId: string): Promise<{ sent: boolean; reason?: string }> {
+  const { deliverCompanyInvitationDm } = await import("@/server/bot-invitation-delivery.service");
   return deliverCompanyInvitationDm(invitationId);
 }
 
@@ -78,7 +68,7 @@ export async function dispatchInvitationDm(
   invitationId: string,
 ): Promise<{ sent: boolean; via: "bot" | "direct" | "none"; reason?: string }> {
   try {
-    const direct = await directDelivery(kind, invitationId);
+    const direct = await directDelivery(invitationId);
     if (direct.sent) {
       logDispatch("direct delivery sent", { kind, invitationId });
       return { sent: true, via: "direct" };

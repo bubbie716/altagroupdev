@@ -3,16 +3,9 @@ import type { BankProduct } from "@/lib/bank/api";
 import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: BankProduct }) {
-  const isPrivate = product.isPrivate ?? product.category === "Alta Private";
-
   return (
-    <Card className={cn(isPrivate && "border-gold/25 bg-surface-1")}>
+    <Card>
       <div className="type-meta-accent">{product.name}</div>
-      {isPrivate && (
-        <span className="mt-2 inline-flex rounded-full border border-gold/30 px-2 py-0.5 type-meta-sm text-gold">
-          Invitation only
-        </span>
-      )}
       <div className="mt-2 type-meta-sm">
         {product.category}
       </div>

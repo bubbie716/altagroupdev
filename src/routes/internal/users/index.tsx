@@ -29,8 +29,7 @@ export const Route = createFileRoute("/internal/users/")({
     tag:
       search.tag === "corporate_admin" ||
       search.tag === "bank_admin" ||
-      search.tag === "terminal_admin" ||
-      search.tag === "private_client"
+      search.tag === "terminal_admin"
         ? search.tag
         : undefined,
     accountStatus:

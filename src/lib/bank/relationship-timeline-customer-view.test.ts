@@ -7,15 +7,29 @@ import {
 } from "./relationship-timeline-customer-view.ts";
 
 describe("relationship timeline customer view", () => {
-  it("hides Alta Private tier changes in favor of program events", () => {
+  it("hides legacy program tier changes from the customer timeline", () => {
     assert.equal(
       shouldIncludeCustomerTimelineRow({
         id: "1",
         eventType: "RELATIONSHIP_TIER_CHANGED",
-        title: "Alta Private Invitation Sent",
+        title: "Relationship Status Updated",
         description: null,
         occurredAt: "2026-01-01T00:00:00.000Z",
         metadata: { newTier: "PRIVATE_ELIGIBLE", oldTier: "PREMIER" },
+      }),
+      false,
+    );
+  });
+
+  it("hides retired program events entirely", () => {
+    assert.equal(
+      shouldIncludeCustomerTimelineRow({
+        id: "2",
+        eventType: "PRIVATE_BANKING_CLIENT",
+        title: "Legacy program event",
+        description: null,
+        occurredAt: "2026-01-01T00:00:00.000Z",
+        metadata: null,
       }),
       false,
     );

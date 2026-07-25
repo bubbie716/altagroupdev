@@ -147,7 +147,7 @@ export function WorkspaceSidebar({
   return <>{sections}</>;
 }
 
-/** Map RI tier code to customer-facing relationship tier label (Alta Private is separate). */
+/** Map RI tier code to customer-facing relationship tier label. */
 export function formatRelationshipTier(tier: string): string {
   return displayRelationshipTierLabelFromCode(tier);
 }

@@ -211,27 +211,6 @@ export function staffAuditUserStatusChanged(input: {
   });
 }
 
-export function staffAuditAltaPrivateInvitation(input: {
-  action: string;
-  actorUserId: string;
-  targetUserId: string;
-  invitationId?: string;
-  severity?: "INFO" | "ACTION" | "WARNING";
-  source?: StaffAuditSource;
-}): void {
-  sendStaffAuditMessage({
-    product: "Alta Private",
-    action: input.action,
-    actorUserId: input.actorUserId,
-    internalUrl: internalUserUrl(input.targetUserId),
-    severity: input.severity ?? "ACTION",
-    source: input.source,
-    dedupeKey: input.invitationId
-      ? `alta-private:${input.invitationId}:${input.action}`
-      : `alta-private:${input.targetUserId}:${input.action}`,
-  });
-}
-
 export function staffAuditCompanyInvitation(input: {
   action: string;
   actorUserId: string;

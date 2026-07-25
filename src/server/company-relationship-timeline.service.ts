@@ -19,7 +19,7 @@ import {
   formatBankAccountOpenedCopy,
   formatDepositMilestoneCopy,
   formatLoanPaidOffCopy,
-  formatPrivateBankingEligibleCopy,
+  formatCommercialBankingEligibleCopy,
   formatRelationshipEstablishedCopy,
   formatTotalAssetsMilestoneCopy,
 } from "@/lib/bank/relationship-timeline-customer-copy";
@@ -436,7 +436,7 @@ export async function syncCompanyRelationshipProfileTimelineEvents(input: {
     });
   }
   if (input.oldCommercialEligible === false && input.newCommercialEligible) {
-    const eligibleCopy = formatPrivateBankingEligibleCopy("business");
+    const eligibleCopy = formatCommercialBankingEligibleCopy("business");
     await recordCompanyRelationshipTimelineEvent({
       companyId: input.companyId,
       eventType: "COMMERCIAL_BANKING_ELIGIBLE",
@@ -744,7 +744,7 @@ export async function syncCompanyRelationshipTimelineFromPlatform(
     return meta?.eligible === true;
   });
   if (eligibleAudit) {
-    const eligibleCopy = formatPrivateBankingEligibleCopy("business");
+    const eligibleCopy = formatCommercialBankingEligibleCopy("business");
     await add({
       companyId,
       profileId,

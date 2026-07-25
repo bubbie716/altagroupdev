@@ -6,11 +6,7 @@
  */
 
 /** Backend permission tags — a user may have multiple. */
-export type UserTag =
-  | "corporate_admin"
-  | "bank_admin"
-  | "terminal_admin"
-  | "private_client";
+export type UserTag = "corporate_admin" | "bank_admin" | "terminal_admin";
 
 export type AccountStatus = "active" | "restricted" | "frozen" | "pending_review";
 
@@ -56,7 +52,7 @@ export interface AltaUser {
   avatarUrl: string | null;
   email: string | null;
   minecraftUsername: string | null;
-  /** Backend tags (admin, private_client, …). Not shown as “roles” in the UI. */
+  /** Backend tags (bank_admin, terminal_admin, …). Not shown as “roles” in the UI. */
   tags: UserTag[];
   accountStatus: AccountStatus;
   developerAccessStatus: DeveloperAccessStatus;

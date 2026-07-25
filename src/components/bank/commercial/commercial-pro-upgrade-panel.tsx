@@ -37,7 +37,7 @@ import {
 
 const fieldLabel = "type-meta";
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-60";
 
 const UPGRADE_DESCRIPTION =
   "Upgrade to Alta Commercial Pro for unlimited invoices, payment links, and team members.";

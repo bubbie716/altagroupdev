@@ -58,7 +58,7 @@ export const UI_LAB_MOCK_USER: AltaUser = {
   avatarUrl: null,
   email: "carter.townshend@ui-lab.local",
   minecraftUsername: "carter",
-  tags: ["corporate_admin", "private_client"],
+  tags: ["corporate_admin"],
   accountStatus: "active",
   developerAccessStatus: "approved",
   developerAccess: true,

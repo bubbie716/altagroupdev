@@ -4,7 +4,6 @@ import type {
   AltaCardDetail,
   AltaCardRow,
   AltaCardStatusCode,
-  AltaCardTierCode,
   AltaEmployeeCardRow,
   ApproveAltaCardApplicationInput,
   ChangeAltaCardTierInput,
@@ -28,7 +27,6 @@ import { canAccessBankInternal,
   canViewBusinessTreasury,
   canViewCompanyAltaCard,
   canManageCompanyAltaCard,
-  isPrivateClient,
 } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
@@ -179,12 +177,6 @@ async function getAltaUser(userId: string): Promise<AltaUser> {
 
 function assertOperatorOrAdmin(user: AltaUser): void {
   if (!canAccessBankInternal(user)) forbidden();
-}
-
-function assertGoldTierAllowed(user: AltaUser, tier: AltaCardTierCode): void {
-  if (tier === "gold" && !isPrivateClient(user)) {
-    badRequest("Alta Gold requires Alta Private eligibility");
-  }
 }
 
 async function auditCardEvent(
@@ -385,9 +377,6 @@ export async function createPersonalAltaCardApplication(
 
   const user = await getAltaUser(userId);
   if (!input.acknowledged) badRequest("You must acknowledge the application terms");
-  if (input.requestedTier === "gold" && !isPrivateClient(user)) {
-    badRequest("Alta Gold is invitation only — contact Alta Private");
-  }
 
   const existingCard = await prisma.altaCard.findFirst({
     where: {
@@ -454,9 +443,6 @@ export async function createBusinessAltaCardApplication(
   const user = await getAltaUser(userId);
   if (!input.acknowledged) badRequest("You must acknowledge the application terms");
   if (!canManageBusinessTreasury(user, { companyId: input.companyId })) forbidden();
-  if (input.requestedTier === "gold" && !isPrivateClient(user)) {
-    badRequest("Alta Gold is invitation only — contact Alta Private");
-  }
 
   const company = await prisma.company.findUnique({ where: { id: input.companyId } });
   if (!company) notFound();
@@ -980,7 +966,6 @@ export async function getAltaCardApplyContext(userId: string): Promise<{
   pendingPersonalApplication: AltaCardApplicationRow | null;
   businessCompanies: { id: string; name: string; hasCard: boolean; hasPendingApplication: boolean }[];
   paymentSourceAccounts: { id: string; accountName: string; accountNumber: string }[];
-  isPrivateClient: boolean;
   defaultLimits: typeof ALTA_CARD_DEFAULT_LIMITS;
   defaultRates: typeof ALTA_CARD_DEFAULT_RATES;
 }> {
@@ -1050,7 +1035,6 @@ export async function getAltaCardApplyContext(userId: string): Promise<{
       : null,
     businessCompanies,
     paymentSourceAccounts,
-    isPrivateClient: isPrivateClient(user),
     defaultLimits: ALTA_CARD_DEFAULT_LIMITS,
     defaultRates: ALTA_CARD_DEFAULT_RATES,
   };

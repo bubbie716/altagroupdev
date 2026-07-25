@@ -25,14 +25,12 @@ import { generateAccountNumber, isValidAltaAccountNumber } from "@/lib/bank/acco
 import { getRoutingNumber } from "@/lib/bank/routing";
 import {
   countsTowardMoneyMarketCard,
-  countsTowardPrivateBankCard,
   countsTowardSavingsCard,
 } from "@/lib/bank/dashboard-balances";
 import {
   formatBankAccountTypeLabel,
   getBankAccountTypeOptionsForOpening,
   isInstantApprovalAccountType,
-  isPrivateBankingAccountType,
 } from "@/lib/bank/backend-types";
 import { formatBankAccountOpenedCopy } from "@/lib/bank/relationship-timeline-customer-copy";
 import { getProofFileUrl, hasStoredProof } from "@/lib/storage/proof-upload.constants";
@@ -55,7 +53,7 @@ import {
 } from "@/lib/bank/bank-request-status-copy";
 import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-types";
 import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
-import { isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
+import { canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import { prisma } from "@/server/db";
 import {
@@ -146,7 +144,7 @@ async function generateUniqueAccountNumber(
   throw new Error("ACCOUNT_NUMBER_GENERATION_FAILED");
 }
 
-function generateReferenceCode(type: "DEP" | "WDR" | "TRF" | "PVR"): string {
+function generateReferenceCode(type: "DEP" | "WDR" | "TRF"): string {
   const suffix = randomBytes(3).toString("hex").toUpperCase();
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return `${type}-${date}-${suffix}`;
@@ -170,13 +168,9 @@ function proofData(proof: BankProofInput) {
 function initialAccountStatus(
   accountType: OpenBankAccountInput["accountType"],
   companyVerificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED",
-  privateClient = false,
 ): "PENDING" | "ACTIVE" {
   if (accountType === "business_operating") {
     return companyVerificationStatus === "VERIFIED" ? "ACTIVE" : "PENDING";
-  }
-  if (privateClient && isPrivateBankingAccountType(accountType)) {
-    return "ACTIVE";
   }
   return isInstantApprovalAccountType(accountType) ? "ACTIVE" : "PENDING";
 }
@@ -260,13 +254,9 @@ export async function listUserBankAccountsForUser(user: AltaUser): Promise<UserB
   });
 }
 
-function buildUserBankDashboardMetrics(
-  user: AltaUser,
-  accounts: UserBankAccount[],
-): UserBankDashboard {
+function buildUserBankDashboardMetrics(accounts: UserBankAccount[]): UserBankDashboard {
   let checkingBalance = 0;
   let savingsBalance = 0;
-  let privateBalance = 0;
   let moneyMarketBalance = 0;
   let businessBalance = 0;
   let totalRelationshipValue = 0;
@@ -278,45 +268,28 @@ function buildUserBankDashboardMetrics(
       checkingBalance += account.balance;
     }
     if (countsTowardSavingsCard(account)) savingsBalance += account.balance;
-    if (countsTowardPrivateBankCard(account)) privateBalance += account.balance;
     if (countsTowardMoneyMarketCard(account)) moneyMarketBalance += account.balance;
     if (account.accountType === "business_operating") businessBalance += account.balance;
   }
-
-  const enrolledInPrivate = isPrivateClient(user);
 
   return {
     totalRelationshipValue,
     checkingBalance,
     savingsBalance,
-    privateBalance,
     moneyMarketBalance,
     businessBalance,
     creditAvailable: 0,
-    privateStatus: enrolledInPrivate ? "Alta Private Client" : "Not enrolled",
-    enrolledInPrivate,
     accountCount: accounts.length,
     pendingDeposits: 0,
     pendingWithdrawals: 0,
   };
 }
 
-async function resolvePrivateDashboardStatus(user: AltaUser): Promise<string> {
-  if (isPrivateClient(user)) return "Alta Private Client";
-  const { countPendingAltaPrivateInvitations } = await import(
-    "@/server/alta-private-invitation.service"
-  );
-  const pending = await countPendingAltaPrivateInvitations(user.id);
-  if (pending > 0) return "Invitation pending";
-  return "Not enrolled";
-}
-
 async function fetchBankDashboardAncillary(user: AltaUser): Promise<{
   pendingDeposits: number;
   pendingWithdrawals: number;
-  privateStatus: string;
 }> {
-  const [pendingDeposits, pendingWithdrawals, privateStatus] = await Promise.all([
+  const [pendingDeposits, pendingWithdrawals] = await Promise.all([
     prisma.bankTransaction.count({
       where: {
         type: "DEPOSIT",
@@ -331,10 +304,9 @@ async function fetchBankDashboardAncillary(user: AltaUser): Promise<{
         bankAccount: bankAccountAccessWhere(user, "view"),
       },
     }),
-    resolvePrivateDashboardStatus(user),
   ]);
 
-  return { pendingDeposits, pendingWithdrawals, privateStatus };
+  return { pendingDeposits, pendingWithdrawals };
 }
 
 export async function getUserBankDashboardFromAccounts(
@@ -344,7 +316,7 @@ export async function getUserBankDashboardFromAccounts(
   const ancillary = await fetchBankDashboardAncillary(user);
 
   return {
-    ...buildUserBankDashboardMetrics(user, accounts),
+    ...buildUserBankDashboardMetrics(accounts),
     ...ancillary,
   };
 }
@@ -361,7 +333,7 @@ export async function getUserBankDashboardBundle(userId: string): Promise<{
     fetchBankDashboardAncillary(user),
   ]);
   const dashboard: UserBankDashboard = {
-    ...buildUserBankDashboardMetrics(user, accounts),
+    ...buildUserBankDashboardMetrics(accounts),
     ...ancillary,
   };
   return { dashboard, accounts, transactions };
@@ -675,10 +647,7 @@ export async function openBankAccount(
   if (!userRecord) forbidden();
 
   const user = mapDbUserToAltaUser(userRecord);
-  const allowedTypes = getBankAccountTypeOptionsForOpening(
-    input.ownership,
-    isPrivateClient(user),
-  );
+  const allowedTypes = getBankAccountTypeOptionsForOpening(input.ownership);
   if (!allowedTypes.some((option) => option.value === input.accountType)) {
     badRequest("Invalid account type for the selected ownership");
   }
@@ -703,11 +672,7 @@ export async function openBankAccount(
   }
 
   const accountNumber = await generateUniqueAccountNumber(input.accountType);
-  const status = initialAccountStatus(
-    input.accountType,
-    companyVerificationStatus,
-    isPrivateClient(user),
-  );
+  const status = initialAccountStatus(input.accountType, companyVerificationStatus);
   const instant = status === "ACTIVE";
 
   const { buildInterestInitializationData } = await import("@/lib/bank/account-interest-service");
@@ -1340,7 +1305,6 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     frozenAccounts,
     lendingQueue,
     altaPayVolume,
-    pendingPrivateInvites,
   ] = await Promise.all([
     prisma.bankAccount.count(),
     prisma.bankAccount.count({ where: { status: "PENDING" } }),
@@ -1349,7 +1313,6 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     prisma.bankAccount.count({ where: { status: "FROZEN" } }),
     import("@/server/lending.service").then((m) => m.countPendingLoanApplications()),
     import("@/server/alta-pay.service").then((m) => m.getAltaPayVolumeSummary()),
-    prisma.altaPrivateInvitation.count({ where: { status: "PENDING" } }),
   ]);
 
   return {
@@ -1360,7 +1323,6 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     frozenAccounts,
     lendingQueue,
     transfersInReview: 0,
-    privateInvitesPending: pendingPrivateInvites,
     altaPayCountThisMonth: altaPayVolume.countThisMonth,
     altaPayVolumeThisMonth: altaPayVolume.volumeThisMonth,
   };
@@ -1794,138 +1756,6 @@ export async function denyWithdrawal(
       ...auditMetadata,
     },
   });
-}
-
-function appendAccountNote(existing: string | null | undefined, note: string): string {
-  return existing ? `${existing}\n${note}` : note;
-}
-
-export type PrivateBankingLiquidationResult = {
-  accountsClosed: number;
-  totalTransferred: number;
-  destinationAccountId: string | null;
-};
-
-/** Move personal reserve/private balances to the oldest active personal account, then close them. */
-export async function liquidatePrivateBankingOnAccessRevoked(
-  userId: string,
-): Promise<PrivateBankingLiquidationResult> {
-  const privateAccounts = await prisma.bankAccount.findMany({
-    where: {
-      userId,
-      companyId: null,
-      accountType: { in: ["RESERVE", "PRIVATE"] },
-      status: { not: "CLOSED" },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  if (privateAccounts.length === 0) {
-    return { accountsClosed: 0, totalTransferred: 0, destinationAccountId: null };
-  }
-
-  const totalToMove = privateAccounts.reduce((sum, account) => sum + decimalToNumber(account.balance), 0);
-
-  let destination: { id: string; accountName: string; accountNumber: string } | null = null;
-  if (totalToMove > 0) {
-    destination = await prisma.bankAccount.findFirst({
-      where: {
-        userId,
-        companyId: null,
-        status: "ACTIVE",
-        accountType: { notIn: ["RESERVE", "PRIVATE"] },
-      },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, accountName: true, accountNumber: true },
-    });
-
-    if (!destination) {
-      badRequest(
-        "Cannot revoke Alta Private access while private accounts hold funds and no other active personal account exists to receive the balance.",
-      );
-    }
-  }
-
-  let totalTransferred = 0;
-  const closedNote = `Closed ${new Date().toISOString()}: Alta Private access revoked.`;
-
-  await prisma.$transaction(async (tx) => {
-    for (const privateAccount of privateAccounts) {
-      const balance = decimalToNumber(privateAccount.balance);
-
-      if (balance > 0 && destination) {
-        const referenceBase = generateReferenceCode("PVR");
-        const outReference = `${referenceBase}-OUT`;
-        const inReference = `${referenceBase}-IN`;
-
-        await tx.bankAccount.update({
-          where: { id: privateAccount.id },
-          data: { balance: { decrement: balance } },
-        });
-        await tx.bankAccount.update({
-          where: { id: destination.id },
-          data: { balance: { increment: balance } },
-        });
-
-        await tx.bankTransaction.create({
-          data: {
-            bankAccountId: privateAccount.id,
-            type: "WITHDRAWAL",
-            amount: balance,
-            status: "APPROVED",
-            description: transferToDescription(destination.accountName),
-            referenceCode: outReference,
-            proofImageUrl: null,
-          },
-        });
-
-        await tx.bankTransaction.create({
-          data: {
-            bankAccountId: destination.id,
-            type: "DEPOSIT",
-            amount: balance,
-            status: "APPROVED",
-            description: transferFromDescription(privateAccount.accountName),
-            referenceCode: inReference,
-            proofImageUrl: null,
-          },
-        });
-
-        totalTransferred += balance;
-      }
-
-      await tx.bankAccount.update({
-        where: { id: privateAccount.id },
-        data: {
-          status: "CLOSED",
-          balance: 0,
-          openingNotes: appendAccountNote(privateAccount.openingNotes, closedNote),
-        },
-      });
-    }
-  });
-
-  return {
-    accountsClosed: privateAccounts.length,
-    totalTransferred,
-    destinationAccountId: destination?.id ?? null,
-  };
-}
-
-export async function activatePendingPrivateBankAccounts(): Promise<{ updated: number }> {
-  const result = await prisma.bankAccount.updateMany({
-    where: {
-      status: "PENDING",
-      accountType: { in: ["RESERVE", "PRIVATE"] },
-      user: {
-        tags: {
-          some: { tag: "PRIVATE_CLIENT" },
-        },
-      },
-    },
-    data: { status: "ACTIVE" },
-  });
-  return { updated: result.count };
 }
 
 export async function approveBankAccount(adminId: string, accountId: string, reviewNote?: string) {

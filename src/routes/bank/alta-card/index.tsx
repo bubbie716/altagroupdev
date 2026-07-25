@@ -6,6 +6,7 @@ import {
   AltaCardLandingHero,
   AltaCardPendingApplicationBanner,
   AltaCardPersonalVsBusiness,
+  AltaGoldCardHighlight,
 } from "@/components/bank/alta-card/alta-card-landing-hero";
 import { AltaCardTierComparison } from "@/components/bank/alta-card/alta-card-tier-comparison";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
@@ -85,11 +86,12 @@ function BankAltaCardIndex() {
           <div>
             <h3 className="mb-2 font-serif text-[22px]">Compare tiers</h3>
             <p className="mb-6 max-w-2xl text-[14px] text-muted-foreground">
-              Four tiers from entry revolving credit to Alta Private. Limits and rates reflect your
+              Four tiers from entry revolving credit to Alta Gold. Limits and rates reflect your
               relationship with Alta Bank.
             </p>
             <AltaCardTierComparison />
           </div>
+          <AltaGoldCardHighlight />
           <div>
             <h3 className="mb-4 font-serif text-[20px]">Personal & business</h3>
             <AltaCardPersonalVsBusiness />

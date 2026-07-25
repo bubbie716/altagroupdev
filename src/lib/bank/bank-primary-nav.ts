@@ -2,7 +2,6 @@ import type { SiteNavLink } from "@/config/sites";
 import type { CreditDeskCustomerNav } from "@/lib/platform/credit-desk-types";
 
 export type BankPrimaryNavOptions = {
-  isPrivateMember: boolean;
   creditDesk: CreditDeskCustomerNav;
 };
 
@@ -28,16 +27,10 @@ const STATIC_BANK_PRIMARY_LINKS: SiteNavLink[] = [
   },
   { label: "Statements", to: "/bank/statements", match: "/bank/statements" },
   { label: "Settings", to: "/bank/settings", match: "/bank/settings" },
-  { label: "Alta Private", to: "/bank/private", match: "/bank/private" },
 ];
 
-export function buildBankPrimaryNavLinks({
-  isPrivateMember,
-  creditDesk,
-}: BankPrimaryNavOptions): SiteNavLink[] {
+export function buildBankPrimaryNavLinks({ creditDesk }: BankPrimaryNavOptions): SiteNavLink[] {
   return STATIC_BANK_PRIMARY_LINKS.flatMap((link) => {
-    if (link.label === "Alta Private" && !isPrivateMember) return [];
-
     if (link.label === "Lending") {
       if (!creditDesk.showLendingNav) return [];
       if (creditDesk.creditDeskClosed) {

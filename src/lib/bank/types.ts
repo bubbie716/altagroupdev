@@ -12,7 +12,7 @@ export interface BankAccount {
   recentActivity: string;
 }
 
-export type BankProductCategory = "Retail Banking" | "Business Banking" | "Alta Private";
+export type BankProductCategory = "Retail Banking" | "Business Banking";
 
 export interface BankProduct {
   name: string;
@@ -21,8 +21,6 @@ export interface BankProduct {
   bestFor: string;
   benefits: string[];
   availability: string;
-  /** Alta Private products — invitation-only visual treatment */
-  isPrivate?: boolean;
 }
 
 export interface LendingProduct {
@@ -31,7 +29,7 @@ export interface LendingProduct {
   rate: string;
   repayment: string;
   summary: string;
-  status: "Available" | "By invitation" | "Under review" | "Apply" | "Alta Private";
+  status: "Available" | "Under review" | "Apply";
 }
 
 export interface TransferRecord {
@@ -51,7 +49,6 @@ export interface AdminClient {
   tier: string;
   relationshipValue: number;
   accountStatus: BankAccountStatus;
-  privateInvite: "Extended" | "None" | "Pending";
 }
 
 export interface AdminLoanRequest {

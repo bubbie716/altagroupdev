@@ -21,7 +21,7 @@ AB-[PRODUCT CODE]-[UNIQUE NUMBER]
 - `AB-3000-938144` — Savings
 - `AB-3500-552811` — Alta Money Market
 - `AB-5000-774120` — Business Operating
-- `AB-9000-118742` — Alta Private
+- `AB-9000-118742` — Legacy money market (retired)
 
 ### Design principles
 
@@ -49,7 +49,7 @@ Validation pattern: `/^AB-\d{4}-\d{6}$/`
 | `3500` | Alta Money Market | `MONEY_MARKET` |
 | `4000` | Reserve | `RESERVE` |
 | `5000` | Business Operating | `BUSINESS_OPERATING` |
-| `9000` | Alta Private | `PRIVATE` |
+| `9000` | Legacy money market (retired) | `PRIVATE` |
 
 Product codes are embedded in the account number so account type can be inferred from the number without a database lookup (useful for support, statements, and future rails).
 

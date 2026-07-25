@@ -48,7 +48,7 @@ Defined in `src/lib/auth/ui-lab.ts` as `UI_LAB_MOCK_USER`:
 | Field           | Value                                                     |
 | --------------- | --------------------------------------------------------- |
 | Discord username| `Carter`                                                  |
-| Tags            | `admin`, `operator`, `private_client`, `developer`, `issuer` |
+| Tags            | `admin`, `operator`, `developer`, `issuer`                |
 | Account status  | `active`                                                  |
 | Companies       | Alta Group N.V. (owner), Newport Petroleum Corp. (executive) |
 

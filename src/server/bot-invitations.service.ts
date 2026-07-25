@@ -1,8 +1,4 @@
 import {
-  acceptAltaPrivateInvitation,
-  declineAltaPrivateInvitation,
-} from "@/server/alta-private-invitation.service";
-import {
   acceptCompanyInvitation,
   declineCompanyInvitation,
   listUserPendingInvitations,
@@ -30,14 +26,6 @@ export async function listBotCompanyInvitations(userId: string) {
 const BOT_STAFF_AUDIT: import("@/lib/staff-audit/staff-audit-types").BankingStaffAuditContext = {
   source: "discord_bot",
 };
-
-export async function acceptBotAltaPrivateInvitation(userId: string, invitationId: string) {
-  return acceptAltaPrivateInvitation(userId, invitationId, BOT_STAFF_AUDIT);
-}
-
-export async function declineBotAltaPrivateInvitation(userId: string, invitationId: string) {
-  return declineAltaPrivateInvitation(userId, invitationId, BOT_STAFF_AUDIT);
-}
 
 export async function acceptBotCompanyInvitation(userId: string, invitationId: string) {
   const invitation = await prisma.companyInvitation.findUnique({

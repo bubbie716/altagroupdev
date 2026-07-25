@@ -260,24 +260,12 @@ export const fetchRelationshipOperatorPanel = createServerFn({ method: "GET" })
       "@/server/relationship-intelligence-integration.service"
     );
     const { getRelationshipTimeline } = await import("@/server/relationship-timeline.service");
-    const { getInternalAltaPrivateSummary } = await import(
-      "@/server/alta-private-invitation.service"
-    );
-    const { requireAuth } = await import("@/server/auth.service");
-    const { mapDbUserToAltaUser, userWithMembershipsInclude } = await import("@/server/user-mapper");
-    const { isAdmin } = await import("@/lib/auth/permissions");
     const { prisma } = await import("@/server/db");
     const { requireOperator } = await import("@/server/permissions.service");
     await requireOperator();
-    const actorRecord = await prisma.user.findUnique({
-      where: { id: (await requireAuth()).id },
-      include: userWithMembershipsInclude,
-    });
-    const actor = actorRecord ? mapDbUserToAltaUser(actorRecord) : null;
-    const [bundle, timeline, altaPrivateSummary] = await Promise.all([
+    const [bundle, timeline] = await Promise.all([
       getRelationshipIntegrationBundle(userId, "CUSTOMER_PROFILE"),
       getRelationshipTimeline(userId),
-      getInternalAltaPrivateSummary(userId),
     ]);
     const card = await prisma.altaCard.findFirst({
       where: { ownerUserId: userId, status: { notIn: ["CLOSED", "EXPIRED"] } },
@@ -288,8 +276,6 @@ export const fetchRelationshipOperatorPanel = createServerFn({ method: "GET" })
       ...bundle,
       timelinePreview: timeline.slice(0, 8),
       altaCardId: card?.id ?? null,
-      altaPrivateSummary,
-      canManageInvitations: actor ? isAdmin(actor) : false,
     };
   });
 
@@ -317,7 +303,6 @@ export const fetchRelationshipWorkspaceChrome = createServerFn({ method: "GET" }
       paidOffLoans: 0,
       businessCompanies: 0,
       verifiedCompanies: 0,
-      isPrivateClient: row?.privateBankingClient ?? false,
     };
     const emptyProductHoldings = {
       bankAccountsTotal: 0,
@@ -330,7 +315,6 @@ export const fetchRelationshipWorkspaceChrome = createServerFn({ method: "GET" }
       paidOffLoans: 0,
       companyMemberships: 0,
       verifiedCompanies: 0,
-      isPrivateClient: row?.privateBankingClient ?? false,
       exchangePlaceholder: true,
       terminalPlaceholder: true,
     };
@@ -355,8 +339,6 @@ export const fetchRelationshipWorkspaceChrome = createServerFn({ method: "GET" }
             | "PREMIER"
             | "PRIVATE_ELIGIBLE"
             | "PRIVATE_CLIENT",
-          privateBankingEligible: row.privateBankingEligible,
-          privateBankingClient: row.privateBankingClient,
           totalBankAssets: Number(row.totalBankAssets.toString()),
           totalAltaAssets: Number(row.totalAltaAssets.toString()),
           totalInvestments: Number(row.totalInvestments.toString()),
@@ -382,7 +364,6 @@ export const fetchRelationshipWorkspaceChrome = createServerFn({ method: "GET" }
       timelinePreview: [],
       preApprovalReadiness: null,
       altaCardId: card?.id ?? null,
-      canManageInvitations: false,
     };
   });
 

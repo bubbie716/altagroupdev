@@ -22,7 +22,6 @@ At servicing, each approved loan accrues **monthly interest** on outstanding bal
 |---------|----------------|
 | Personal Credit Line | Signed-in Alta user |
 | Business Credit Line | Verified company + Owner / Executive / Finance Manager |
-| Private Liquidity Line | `PRIVATE_CLIENT` tag |
 
 ## Lifecycle
 

@@ -20,9 +20,8 @@ function InternalRelationshipsIndexPage() {
       title="Relationship Intelligence"
       description="Central relationship profiles across Alta Bank, Card, lending, and business banking."
     >
-      <div className="mb-8 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid min-w-0 gap-4 sm:grid-cols-3">
         <InternalStatCard label="Profiles on file" value={String(data.totalProfiles)} />
-        <InternalStatCard label="Eligible for Alta Private" value={String(data.privateEligibleCount)} />
         <InternalStatCard label="Preferred / Premier" value={String(data.preferredOrPremierCount)} />
         <InternalStatCard label="Top tracked" value={String(data.topByAssets.length)} />
       </div>

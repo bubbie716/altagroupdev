@@ -8,7 +8,7 @@ import {
   fromDbAccountStatus,
   fromDbCompanyRole,
   fromDbDeveloperAccessStatus,
-  fromDbUserTag,
+  fromDbUserTags,
 } from "@/server/enum-map";
 
 type UserWithRelations = Prisma.UserGetPayload<{
@@ -21,7 +21,7 @@ function discordAvatarUrl(discordId: string, avatar: string | null | undefined):
 }
 
 function mapTags(user: UserWithRelations): UserTag[] {
-  return user.tags.map((assignment) => fromDbUserTag(assignment.tag));
+  return fromDbUserTags(user.tags);
 }
 
 function mapMemberships(user: UserWithRelations): EnrichedCompanyMembership[] {

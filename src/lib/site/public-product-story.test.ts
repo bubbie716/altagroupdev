@@ -96,7 +96,7 @@ describe("public product story excludes Alta Exchange and NCC", () => {
     for (const id of ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"]) {
       assert.ok(legalDocFiles.some((name) => name.startsWith(id)), `missing ${id}`);
     }
-    for (const id of ["AG-COR-004", "AG-LEGAL-004", "AG-LEGAL-005", "AB-LEGAL-008", "AB-LEGAL-009"]) {
+    for (const id of ["AG-COR-004", "AG-LEGAL-004", "AG-LEGAL-005", "AB-LEGAL-008"]) {
       assert.ok(legalDocFiles.some((name) => name.startsWith(id)), `missing ${id}`);
     }
 

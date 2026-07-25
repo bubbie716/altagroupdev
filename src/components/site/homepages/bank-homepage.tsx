@@ -38,9 +38,9 @@ export function BankHomepage() {
             to: "/bank/commercial",
           },
           {
-            title: "Alta Private",
-            description: "Private banking services for qualified clients.",
-            to: "/bank/private",
+            title: "Lending",
+            description: "Personal and business credit facilities reviewed by the Alta credit desk.",
+            to: "/bank/lending",
           },
         ]}
       />

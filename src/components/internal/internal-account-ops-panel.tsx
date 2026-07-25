@@ -15,7 +15,7 @@ import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { florin } from "@/lib/bank/api";
 
 const fieldClass =
-  "w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40";
+  "w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
 
 type HoldRow = {
   id: string;

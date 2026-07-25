@@ -1,11 +1,9 @@
 "use client";
 
 import { florin } from "@/lib/bank/api";
-import {
-  altaPrivateStatusLabel,
-  displayRelationshipTierLabel,
-} from "@/lib/bank/relationship-terminology";
+import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import type {
+  PreApprovalReadiness,
   RelationshipIntelligencePanelData,
   RelationshipRecommendationRow,
   RelationshipTimelineEventRow,
@@ -21,38 +19,18 @@ import {
   INTERNAL_USER_WORKSPACE_SEARCH,
   internalWorkspaceTabSearch,
 } from "@/lib/internal/internal-route-search";
-import { AltaPrivateAdminPanel } from "@/components/internal/alta-private-admin-panel";
-import type { AltaPrivateInternalSummary } from "@/lib/bank/alta-private-types";
 
-export function PrivateBankingIntelligencePanel({
+export function RelationshipProgramSummaryPanel({
   panel,
-  recommendations,
 }: {
   panel: RelationshipIntelligencePanelData;
-  recommendations: RelationshipRecommendationRow[];
 }) {
-  const invite = recommendations.find((r) => r.recommendationType === "PRIVATE_BANKING_INVITE");
-
   return (
     <section className="rounded-xl border border-gold/30 bg-gold/5 p-5">
       <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        Alta Private — program status
+        Relationship standing
       </h3>
       <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-[14px]">
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-            Alta Private eligibility
-          </dt>
-          <dd className="mt-1 font-medium">{panel.privateBankingEligible ? "Eligible" : "Not eligible"}</dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-            Alta Private membership
-          </dt>
-          <dd className="mt-1 font-medium">
-            {altaPrivateStatusLabel(panel.privateBankingClient, panel.privateBankingEligible)}
-          </dd>
-        </div>
         <div>
           <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Relationship score</dt>
           <dd className="mt-1 tabular-nums">{panel.relationshipScore}</dd>
@@ -81,11 +59,6 @@ export function PrivateBankingIntelligencePanel({
           </dd>
         </div>
       </dl>
-      {invite ? (
-        <p className="mt-4 text-[13px] text-muted-foreground">
-          Relationship Intelligence recommendation: {invite.title} ({invite.confidenceScore}% confidence)
-        </p>
-      ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
           to="/internal/users/$userId"
@@ -93,7 +66,7 @@ export function PrivateBankingIntelligencePanel({
           search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, ...internalWorkspaceTabSearch("relationship") }}
           className="rounded border border-gold/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:bg-gold/10"
         >
-          Alta Private membership panel
+          Relationship workspace
         </Link>
         <Link
           to="/internal/relationships/$userId"
@@ -103,9 +76,6 @@ export function PrivateBankingIntelligencePanel({
           Relationship history →
         </Link>
       </div>
-      <p className="mt-3 text-[12px] text-muted-foreground">
-        Alta Private membership is invitation-only. Send invitations from the Relationship tab after review.
-      </p>
     </section>
   );
 }
@@ -117,8 +87,6 @@ export function RelationshipIntelligenceOperatorPanel({
   timelinePreview,
   preApprovalReadiness,
   altaCardId,
-  altaPrivateSummary,
-  canManageInvitations,
 }: {
   userId: string;
   panel: RelationshipIntelligencePanelData;
@@ -126,8 +94,6 @@ export function RelationshipIntelligenceOperatorPanel({
   timelinePreview: RelationshipTimelineEventRow[];
   preApprovalReadiness: PreApprovalReadiness | null;
   altaCardId?: string | null;
-  altaPrivateSummary?: AltaPrivateInternalSummary;
-  canManageInvitations?: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -145,15 +111,7 @@ export function RelationshipIntelligenceOperatorPanel({
 
       {preApprovalReadiness ? <PreApprovalReadinessPanel readiness={preApprovalReadiness} /> : null}
 
-      <PrivateBankingIntelligencePanel panel={panel} recommendations={recommendations} />
-
-      {altaPrivateSummary ? (
-        <AltaPrivateAdminPanel
-          userId={userId}
-          summary={altaPrivateSummary}
-          canManageInvitations={canManageInvitations ?? false}
-        />
-      ) : null}
+      <RelationshipProgramSummaryPanel panel={panel} />
 
       <section className="rounded-xl border border-border bg-surface-1/80 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -205,9 +163,6 @@ export function RelationshipIntelligenceOperatorPanel({
           </Link>
           <Link to="/internal/bank/alta-pay" className="text-gold hover:underline">
             Alta Pay
-          </Link>
-          <Link to="/internal/users/$userId" params={{ userId }} search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, privateReview: true }} className="text-gold hover:underline">
-            Alta Private review
           </Link>
         </div>
       </section>

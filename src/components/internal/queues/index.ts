@@ -10,5 +10,4 @@ export { DealRoomsInboxView, buildDealRoomInboxRows } from "./deal-rooms-inbox-v
 export type { DealRoomInboxRow } from "./deal-rooms-inbox-view";
 export { ExceptionsQueueView } from "./exceptions-queue-view";
 export type { ExceptionQueueItem } from "./exceptions-queue-view";
-export { PrivateBankingQueueView } from "./private-banking-queue-view";
 export * from "./queue-utils";

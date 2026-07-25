@@ -15,8 +15,6 @@ import {
   type TimelineRowForEnrichment,
 } from "@/lib/bank/relationship-timeline-historical";
 import {
-  formatPrivateBankingClientCopy,
-  formatPrivateBankingEligibleCopy,
   extractBankAccountName,
   extractLimitPairFromTimelineRow,
   extractRatePairFromTimelineRow,
@@ -172,14 +170,6 @@ export function resolveEnrichedCustomerTimelineCopy(
     case "RELATIONSHIP_TIER_CHANGED": {
       const tierLabels = business ? COMPANY_RELATIONSHIP_TIER_LABELS : RELATIONSHIP_TIER_LABELS;
       const newTier = extractNewRelationshipTier(row, tierLabels);
-      if (newTier === "PRIVATE_CLIENT") {
-        copy = formatPrivateBankingClientCopy(scope);
-        break;
-      }
-      if (newTier === "PRIVATE_ELIGIBLE") {
-        copy = formatPrivateBankingEligibleCopy(scope);
-        break;
-      }
       copy = newTier
         ? formatRelationshipTierChangedCustomerCopy(null, newTier, tierLabels, { business })
         : resolveCustomerTimelineCopy(row, scope);

@@ -2543,7 +2543,8 @@ model RelationshipProfileSnapshot {
   totalBankAssets        Decimal          @db.Decimal(18, 2)
   totalAltaAssets        Decimal          @db.Decimal(18, 2)
   currentCreditExposure  Decimal          @db.Decimal(18, 2)
-  privateBankingEligible Boolean
+  /// Retired column — no longer written by the application.
+  privateBankingEligible Boolean          @default(false)
   calculatedAt           DateTime         @default(now())
   metadata               Json?
 

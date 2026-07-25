@@ -9,7 +9,7 @@ const TIER_HIGHLIGHTS: Record<AltaCardTierCode, string[]> = {
   white: ["Entry revolving credit", "Standard relationship rate", "Lower credit limits"],
   navy: ["Relationship card", "Better limits & rate", "For established Alta clients"],
   black: ["Premium tier", "Highest standard limits", "Preferred standard rate"],
-  gold: ["Alta Private banking", "Negotiated terms", "Invitation only"],
+  gold: ["Flagship Alta Bank card", "Negotiated limit & rate", "Dedicated credit desk review"],
 };
 
 export function AltaCardTierComparison({
@@ -56,7 +56,7 @@ export function AltaCardTierComparison({
                   <dd className="font-mono tabular-nums">
                     {config.defaultInterestRateApr != null
                       ? formatAltaCardRate(config.defaultInterestRateApr)
-                      : "Private terms"}
+                      : "Negotiable"}
                   </dd>
                 </div>
               </dl>
@@ -70,7 +70,7 @@ export function AltaCardTierComparison({
               </ul>
               {isGold ? (
                 <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
-                  Alta Private · by invitation
+                  Terms set by the Alta credit desk
                 </p>
               ) : null}
             </div>

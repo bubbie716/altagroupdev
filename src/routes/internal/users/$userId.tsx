@@ -23,7 +23,6 @@ const TABS = [
 export const Route = createFileRoute("/internal/users/$userId")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-    privateReview: search.privateReview === true || search.privateReview === "true",
   }),
   loaderDeps: ({ search }) => ({ tab: search.tab }),
   loader: async ({ params, deps }) => {
@@ -47,6 +46,6 @@ export const Route = createFileRoute("/internal/users/$userId")({
 
 function CustomerWorkspaceRoute() {
   const data = Route.useLoaderData();
-  const { tab, privateReview } = Route.useSearch();
-  return <CustomerWorkspaceView data={data} activeTab={tab} privateReview={privateReview} />;
+  const { tab } = Route.useSearch();
+  return <CustomerWorkspaceView data={data} activeTab={tab} />;
 }

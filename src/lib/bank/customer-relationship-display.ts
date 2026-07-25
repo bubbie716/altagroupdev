@@ -48,7 +48,6 @@ export function customerProductLabels(products: RelationshipProductsHeld): strin
   if (products.activeAltaCards > 0) labels.push("Alta Card");
   if (products.activeLoans > 0) labels.push("Lending");
   if (products.businessCompanies > 0) labels.push("Business Banking");
-  if (products.isPrivateClient) labels.push("Alta Private");
   return labels;
 }
 

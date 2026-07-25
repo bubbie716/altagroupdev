@@ -6,7 +6,7 @@ function accountText(
   return `${account.accountName} ${account.name} ${account.product}`.toLowerCase();
 }
 
-/** Summit Money Market by Alta Private (`private` type or Summit-branded name). */
+/** Summit Money Market (`private` type or Summit-branded name). */
 export function isSummitMoneyMarketAccount(
   account: Pick<UserBankAccount, "accountType" | "accountName" | "name" | "product">,
 ): boolean {
@@ -38,18 +38,11 @@ export function isAltaSavingsAccount(
   return account.accountType === "savings" && !isRetailAltaMoneyMarketAccount(account);
 }
 
-/** Savings card: Alta Savings + Reserve Account by Alta Private. */
+/** Savings card: Alta Savings + Reserve Account. */
 export function countsTowardSavingsCard(
   account: Pick<UserBankAccount, "accountType" | "accountName" | "name" | "product">,
 ): boolean {
   return isAltaSavingsAccount(account) || isReserveAccount(account);
-}
-
-/** Private bank card: Reserve + Summit. */
-export function countsTowardPrivateBankCard(
-  account: Pick<UserBankAccount, "accountType" | "accountName" | "name" | "product">,
-): boolean {
-  return isReserveAccount(account) || isSummitMoneyMarketAccount(account);
 }
 
 /** Money market card: Summit + retail Alta Money Market. */
@@ -61,29 +54,18 @@ export function countsTowardMoneyMarketCard(
 
 export type BankBalanceStripBalances = Pick<
   UserBankDashboard,
-  | "checkingBalance"
-  | "savingsBalance"
-  | "moneyMarketBalance"
-  | "privateBalance"
-  | "businessBalance"
-  | "enrolledInPrivate"
+  "checkingBalance" | "savingsBalance" | "moneyMarketBalance" | "businessBalance"
 >;
 
-/** Balance strip: checking → savings → money market → private bank (if enrolled) → business. */
+/** Balance strip: checking → savings → money market → business. */
 export function buildBankBalanceStripItems<T>(
   balances: BankBalanceStripBalances,
   formatValue: (amount: number) => T,
 ): { label: string; value: T }[] {
-  const items = [
+  return [
     { label: "Checking", value: formatValue(balances.checkingBalance) },
     { label: "Savings", value: formatValue(balances.savingsBalance) },
     { label: "Money market", value: formatValue(balances.moneyMarketBalance) },
+    { label: "Business", value: formatValue(balances.businessBalance) },
   ];
-
-  if (balances.enrolledInPrivate) {
-    items.push({ label: "Private bank", value: formatValue(balances.privateBalance) });
-  }
-
-  items.push({ label: "Business", value: formatValue(balances.businessBalance) });
-  return items;
 }

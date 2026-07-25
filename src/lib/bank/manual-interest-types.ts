@@ -77,8 +77,8 @@ export const MANUAL_INTEREST_CATEGORY_OPTIONS: {
   { value: "savings", label: "Alta Savings" },
   { value: "money_market", label: "Alta Money Market" },
   { value: "business_operating", label: "Business Operating Account" },
-  { value: "reserve", label: "Reserve Account by Alta Private" },
-  { value: "private", label: "Summit Money Market by Alta Private" },
+  { value: "reserve", label: "Reserve Account" },
+  { value: "private", label: "Summit Money Market" },
 ];
 
 export const MANUAL_INTEREST_CONFIRMATION_PHRASE = "APPLY INTEREST";

@@ -1,10 +1,8 @@
-import type { AltaPrivateCustomerPageState } from "@/lib/bank/alta-private-types";
 import type {
   UserBankAccount,
   UserBankSummary,
   UserBankTransaction,
 } from "@/lib/bank/backend-types";
-import { getCustomerAltaPrivatePageState } from "@/server/alta-private-invitation.service";
 import { bankAccountAccessWhere, loadAltaUserOrThrow } from "@/server/bank-account-access.service";
 import {
   getUserBankAccountDetail,
@@ -35,7 +33,6 @@ export type BotHubContext = {
   summary: UserBankSummary;
   accounts: UserBankAccount[];
   recentTransactions: UserBankTransaction[];
-  privateState: AltaPrivateCustomerPageState;
   pendingRequests: BotPendingRequest[];
   recentUpdates: BotRecentUpdate[];
 };
@@ -76,21 +73,18 @@ export async function listBotRecentUpdates(userId: string, limit = 3): Promise<B
 }
 
 export async function getBotHubContext(userId: string): Promise<BotHubContext> {
-  const [summary, accounts, recentTransactions, privateState, pendingRequests, recentUpdates] =
-    await Promise.all([
-      getUserBankSummary(userId),
-      listUserBankAccounts(userId),
-      listUserRecentTransactions(userId, 8),
-      getCustomerAltaPrivatePageState(userId),
-      listBotPendingRequests(userId),
-      listBotRecentUpdates(userId, 3),
-    ]);
+  const [summary, accounts, recentTransactions, pendingRequests, recentUpdates] = await Promise.all([
+    getUserBankSummary(userId),
+    listUserBankAccounts(userId),
+    listUserRecentTransactions(userId, 8),
+    listBotPendingRequests(userId),
+    listBotRecentUpdates(userId, 3),
+  ]);
 
   return {
     summary,
     accounts,
     recentTransactions,
-    privateState,
     pendingRequests,
     recentUpdates,
   };
@@ -98,8 +92,4 @@ export async function getBotHubContext(userId: string): Promise<BotHubContext> {
 
 export async function getBotHubAccountDetail(userId: string, accountId: string) {
   return getUserBankAccountDetail(userId, accountId);
-}
-
-export function shouldShowAltaPrivateNav(state: AltaPrivateCustomerPageState): boolean {
-  return state.kind === "member" || state.kind === "invited";
 }

@@ -37,34 +37,26 @@ export async function runQueueEscalationJob(now = new Date()): Promise<QueueEsca
   const escalations: QueueEscalationItem[] = [];
   const expired: QueueEscalationItem[] = [];
 
-  const [
-    pendingDeposits,
-    pendingWithdrawals,
-    pendingInterbank,
-    pendingCompanies,
-    pendingPrivateInvites,
-  ] = await Promise.all([
-    prisma.bankTransaction.findMany({
-      where: { type: "DEPOSIT", status: "PENDING" },
-      select: { id: true, referenceCode: true, createdAt: true },
-    }),
-    prisma.bankTransaction.findMany({
-      where: { type: "WITHDRAWAL", status: "PENDING" },
-      select: { id: true, referenceCode: true, createdAt: true },
-    }),
-    prisma.scheduledPayment.findMany({
-      where: { transferScope: "INTERBANK", status: "PENDING_REVIEW" },
-      select: { id: true, label: true, createdAt: true },
-    }),
-    prisma.company.findMany({
-      where: { verificationStatus: { in: ["UNVERIFIED", "PENDING"] } },
-      select: { id: true, name: true, updatedAt: true },
-    }),
-    prisma.altaPrivateInvitation.findMany({
-      where: { status: "PENDING" },
-      select: { id: true, createdAt: true },
-    }),
-  ]);
+
+  const [pendingDeposits, pendingWithdrawals, pendingInterbank, pendingCompanies] =
+    await Promise.all([
+      prisma.bankTransaction.findMany({
+        where: { type: "DEPOSIT", status: "PENDING" },
+        select: { id: true, referenceCode: true, createdAt: true },
+      }),
+      prisma.bankTransaction.findMany({
+        where: { type: "WITHDRAWAL", status: "PENDING" },
+        select: { id: true, referenceCode: true, createdAt: true },
+      }),
+      prisma.scheduledPayment.findMany({
+        where: { transferScope: "INTERBANK", status: "PENDING_REVIEW" },
+        select: { id: true, label: true, createdAt: true },
+      }),
+      prisma.company.findMany({
+        where: { verificationStatus: { in: ["UNVERIFIED", "PENDING"] } },
+        select: { id: true, name: true, updatedAt: true },
+      }),
+    ]);
 
   const moneyMovementQueues = [
     ...pendingDeposits.map((r) => ({
@@ -112,29 +104,6 @@ export async function runQueueEscalationJob(now = new Date()): Promise<QueueEsca
     };
     if (level === "warning") warnings.push({ ...base, level: "warning" });
     else if (level === "escalation") escalations.push({ ...base, level: "escalation" });
-  }
-
-  for (const invite of pendingPrivateInvites) {
-    const level = classifyAge(invite.createdAt, now);
-    const days = ageDays(invite.createdAt, now);
-    const base = {
-      queue: "alta_private_invitation",
-      entityId: invite.id,
-      ageDays: days,
-      description: `Pending Alta Private invitation`,
-      internalLink: `/internal/queues/private-banking`,
-    };
-    if (level === "warning") warnings.push({ ...base, level: "warning" });
-    else if (level === "escalation") {
-      escalations.push({ ...base, level: "escalation" });
-      if (days >= ESCALATION_DAYS) {
-        await prisma.altaPrivateInvitation.updateMany({
-          where: { id: invite.id, status: "PENDING" },
-          data: { status: "EXPIRED", updatedAt: now },
-        });
-        expired.push({ ...base, level: "escalation" });
-      }
-    }
   }
 
   if (warnings.length > 0 || escalations.length > 0) {

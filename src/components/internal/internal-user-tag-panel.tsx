@@ -33,8 +33,6 @@ const TAG_DESCRIPTIONS: Partial<Record<UserTag, string>> = {
   corporate_admin: "Full access to all Alta internal panels and group settings.",
   bank_admin: "Bank internal panel and bank operations only.",
   terminal_admin: "Terminal internal panel (and legacy exchange host settings) only.",
-  private_client:
-    "Alta Private membership is invitation-only. Use the Relationship tab to send invitations; corporate admins may override here in exceptional cases.",
 };
 
 export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
@@ -42,7 +40,6 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
   const grantTag = useServerFn(grantInternalUserTagRecord);
   const revokeTag = useServerFn(revokeInternalUserTagRecord);
   const [pending, setPending] = useState<PendingAction | null>(null);
-  const [revokeReason, setRevokeReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -56,17 +53,10 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
         await grantTag({ data: { userId: user.id, tag: action.tag } });
         setMessage(`${formatUserTag(action.tag)} granted.`);
       } else {
-        await revokeTag({
-          data: {
-            userId: user.id,
-            tag: action.tag,
-            reason: action.tag === "private_client" ? revokeReason : undefined,
-          },
-        });
+        await revokeTag({ data: { userId: user.id, tag: action.tag } });
         setMessage(`${formatUserTag(action.tag)} revoked.`);
       }
       setPending(null);
-      setRevokeReason("");
       await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Action failed.");
@@ -80,12 +70,7 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
     if (kind === "grant" && !action.canGrant) return;
     if (kind === "revoke" && !action.canRevoke) return;
 
-    const needsConfirm =
-      STAFF_TAGS.includes(tag) ||
-      (tag === "private_client" && (kind === "grant" || kind === "revoke"));
-
-    if (needsConfirm) {
-      setRevokeReason("");
+    if (STAFF_TAGS.includes(tag)) {
       setPending({ kind, tag });
       return;
     }
@@ -178,43 +163,20 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
             <DialogDescription>
               {pending?.tag === "corporate_admin"
                 ? "Corporate admin grants full internal control across all Alta sites. Confirm only for trusted staff."
-                : pending?.tag === "private_client"
-                  ? "Direct Alta Private membership changes bypass the invitation flow. Use only for exceptional admin overrides."
-                  : "This change takes effect immediately."}
+                : "This change takes effect immediately."}
             </DialogDescription>
           </DialogHeader>
-          {pending?.kind === "revoke" && pending.tag === "private_client" && (
-            <label className="block space-y-2">
-              <span className="text-[12px] font-medium text-foreground">Revocation reason</span>
-              <textarea
-                value={revokeReason}
-                onChange={(e) => setRevokeReason(e.target.value)}
-                rows={3}
-                className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm"
-                placeholder="Document why Alta Private access is being removed."
-              />
-            </label>
-          )}
           <DialogFooter className="gap-2 sm:gap-0">
             <button
               type="button"
-              onClick={() => {
-                setPending(null);
-                setRevokeReason("");
-              }}
+              onClick={() => setPending(null)}
               className="rounded-md border border-border px-4 py-2 text-sm"
             >
               Cancel
             </button>
             <button
               type="button"
-              disabled={
-                submitting ||
-                !pending ||
-                (pending.kind === "revoke" &&
-                  pending.tag === "private_client" &&
-                  revokeReason.trim().length < 5)
-              }
+              disabled={submitting || !pending}
               onClick={() => pending && void runAction(pending)}
               className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-50"
             >

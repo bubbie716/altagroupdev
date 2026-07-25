@@ -28,9 +28,6 @@ export const LOAN_APPLICATION_WHAT_HAPPENS_NEXT = [
   "If Alta needs more information, you'll be notified to respond in your Secure Deal Room.",
 ] as const;
 
-export const LOAN_PRIVATE_CLIENT_LENDING_NOTE =
-  "Alta Private clients may receive relationship-based pricing, negotiated lending terms, and dedicated banker support. Approval is never guaranteed.";
-
 export function formatTerminalApplicationStatus(
   status: LoanApplicationStatusCode,
 ): StandardLoanApplicationDisplayStatus | null {

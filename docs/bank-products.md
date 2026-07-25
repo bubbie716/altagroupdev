@@ -19,22 +19,11 @@ Public product catalog for `/bank/products`. Marketing and copy only — no back
 |---------|-----------------|--------------|
 | Business Operating Account | ƒ2,500 | Requires verified company |
 
-### Alta Private
-
-Invitation-only. Requires `private_client` tag for account opening where mapped.
-
-| Product | Minimum balance | Availability |
-|---------|-----------------|--------------|
-| Reserve Account by Alta Private | ƒ50,000 | Alta Private only |
-| Summit Money Market by Alta Private | ƒ100,000 | Alta Private only |
-
 ## Removed products
 
 The following legacy catalog items are no longer shown:
 
 - Alta Certificates of Deposit
-- Alta Private Deposit Program
-- Private Negotiated CDs
 - Structured / Citadel-era deposit products
 
 ## Data source
@@ -57,8 +46,9 @@ Account opening (`/bank/accounts/open`) uses backend account types, not every ca
 | Alta Savings | `savings` |
 | Alta Money Market | `money_market` |
 | Business Operating Account | `business_operating` |
-| Reserve Account by Alta Private | `reserve` |
-| Summit Money Market by Alta Private | `private` |
+
+The `reserve` and `private` account types remain in the Prisma enum for existing accounts but are
+not offered for new account opening.
 
 ## Routes
 

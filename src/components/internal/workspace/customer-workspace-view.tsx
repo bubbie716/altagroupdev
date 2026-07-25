@@ -34,13 +34,11 @@ import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import type { TimelineEvent } from "@/lib/internal/ops-types";
-import type { AltaPrivateInternalSummary } from "@/lib/bank/alta-private-types";
 
 type CustomerWorkspaceData = {
   user: InternalUserDetail;
   notes: Array<{ id: string; body: string; authorUsername: string; createdAt: string }>;
   timeline: TimelineEvent[];
-  isPrivateClient: boolean;
   altaPayActivity: Array<{
     id: string;
     accountId: string;
@@ -57,8 +55,6 @@ type CustomerWorkspaceData = {
     timelinePreview: Parameters<typeof RelationshipIntelligenceOperatorPanel>[0]["timelinePreview"];
     preApprovalReadiness: Parameters<typeof RelationshipIntelligenceOperatorPanel>[0]["preApprovalReadiness"];
     altaCardId: string | null;
-    altaPrivateSummary?: AltaPrivateInternalSummary;
-    canManageInvitations?: boolean;
   };
   reviewFlags?: OpsReviewFlagRow[];
 };
@@ -66,13 +62,11 @@ type CustomerWorkspaceData = {
 export function CustomerWorkspaceView({
   data,
   activeTab,
-  privateReview,
 }: {
   data: CustomerWorkspaceData;
   activeTab: string;
-  privateReview?: boolean;
 }) {
-  const { user, notes, timeline, isPrivateClient, altaPayActivity, operatorPanel, reviewFlags = [] } = data;
+  const { user, notes, timeline, altaPayActivity, operatorPanel, reviewFlags = [] } = data;
   const creditExposure = user.activeLoans.reduce((s, l) => s + l.currentPayoffAmount, 0);
 
   const relatedRecords: RelatedRecord[] = [
@@ -106,7 +100,7 @@ export function CustomerWorkspaceView({
   }));
 
   const tabs: WorkspaceTab[] = [
-    { id: "overview", label: "Overview", content: overviewTab(user, creditExposure, isPrivateClient, privateReview) },
+    { id: "overview", label: "Overview", content: overviewTab(user, creditExposure) },
     { id: "accounts", label: "Accounts", content: accountsTab(user) },
     { id: "alta-card", label: "Alta Card", content: altaCardTab(operatorPanel.altaCardId, user) },
     { id: "lending", label: "Lending", content: lendingTab(user) },
@@ -121,8 +115,6 @@ export function CustomerWorkspaceView({
           timelinePreview={operatorPanel.timelinePreview}
           preApprovalReadiness={operatorPanel.preApprovalReadiness}
           altaCardId={operatorPanel.altaCardId}
-          altaPrivateSummary={operatorPanel.altaPrivateSummary}
-          canManageInvitations={operatorPanel.canManageInvitations}
         />
       ),
     },
@@ -192,12 +184,7 @@ export function CustomerWorkspaceView({
   );
 }
 
-function overviewTab(
-  user: InternalUserDetail,
-  creditExposure: number,
-  isPrivateClient: boolean,
-  privateReview?: boolean,
-) {
+function overviewTab(user: InternalUserDetail, creditExposure: number) {
   const activeProducts = [
     user.bankAccounts.length > 0 ? "Banking" : null,
     user.activeLoans.length > 0 ? "Lending" : null,
@@ -206,11 +193,6 @@ function overviewTab(
 
   return (
     <div className="space-y-3">
-      {privateReview ? (
-        <p className="rounded border border-gold/30 bg-gold/5 px-3 py-2 text-[12px]">
-          Alta Private invitation review — send an invitation from the Relationship tab. Membership activates only after the customer accepts.
-        </p>
-      ) : null}
       <WorkspaceSection title="Identity">
         <WorkspaceFieldGrid>
           <WorkspaceField label="Discord">{user.discordUsername}</WorkspaceField>
@@ -234,11 +216,6 @@ function overviewTab(
             <span className="type-finance tabular-nums">{florin(creditExposure)}</span>
           </WorkspaceField>
           <WorkspaceField label="Active products">{activeProducts.join(" · ") || "—"}</WorkspaceField>
-          {isPrivateClient ? (
-            <WorkspaceField label="Alta Private">
-              <span className="text-gold">Active membership</span>
-            </WorkspaceField>
-          ) : null}
         </WorkspaceFieldGrid>
       </WorkspaceSection>
       <div className="grid gap-3 lg:grid-cols-2">

@@ -16,7 +16,7 @@ import type {
 } from "@/lib/bank/alta-card-types";
 import { altaCardPaymentDescription } from "@/lib/bank/customer-transaction-copy";
 import { getTierDefaultLimit, getTierDefaultRate } from "@/lib/bank/alta-card-tier-config";
-import { canAccessBankInternal, isAdmin, isPrivateClient } from "@/lib/auth/permissions";
+import { canAccessBankInternal, isAdmin } from "@/lib/auth/permissions";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import {
@@ -139,7 +139,6 @@ export type UpdateCardRateAdminInput = UpdateAltaCardRateInput & AdminCardAction
 export type ChangeCardTierAdminInput = ChangeAltaCardTierInput &
   AdminCardActionInput & {
     applyTierDefaults?: boolean;
-    goldOverride?: boolean;
   };
 
 export type AdminManualPaymentInput = AdminCardActionInput & {
@@ -439,15 +438,7 @@ export async function changeAltaCardTierAdmin(
   const card = await getCardOrThrow(input.cardId);
   const previousTier = card.tier.toLowerCase() as AltaCardTierCode;
 
-  if (input.tier === "gold") {
-    if (!canAccessBankInternal(admin)) forbidden();
-    if (card.ownerUserId) {
-      const owner = await getAltaUser(card.ownerUserId);
-      if (!isPrivateClient(owner) && !input.goldOverride) {
-        badRequest("Gold tier requires private client status or admin override");
-      }
-    }
-  }
+  if (input.tier === "gold" && !canAccessBankInternal(admin)) forbidden();
 
   const updateData: Prisma.AltaCardUpdateInput = {
     tier: toDbAltaCardTier(input.tier),
@@ -484,7 +475,6 @@ export async function changeAltaCardTierAdmin(
       newTier: input.tier,
       applyTierDefaults: input.applyTierDefaults ?? false,
       reason: input.reason.trim(),
-      goldOverride: input.goldOverride ?? false,
     },
     card.ownerUserId,
     card.companyId,

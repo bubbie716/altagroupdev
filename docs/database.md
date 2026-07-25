@@ -71,7 +71,7 @@ Persisted Alta identity from Discord login:
 - `email` (optional — not collected with current `identify` scope)
 - `minecraftUsername` (optional)
 - `accountStatus`, `developerAccessStatus`
-- Tags via `UserTagAssignment` (`admin`, `private_client`, …)
+- Tags via `UserTagAssignment` (`admin`, `bank_admin`, …)
 - `createdAt`, `updatedAt`, `lastLoginAt`
 
 ### Company
@@ -109,13 +109,12 @@ Server-side session store:
 
 ## Tags & Admin Access
 
-Backend tags (`ADMIN`, `PRIVATE_CLIENT`, …) are stored in `UserTagAssignment`. A user may have multiple tags. Login does not change tags — grant or revoke them directly in the database.
+Backend tags (`ADMIN`, `BANK_ADMIN`, …) are stored in `UserTagAssignment`. `PRIVATE_CLIENT` remains in the Prisma enum for historical rows but has no application meaning. A user may have multiple tags. Login does not change tags — grant or revoke them directly in the database.
 
 After a user signs in for the first time:
 
 ```bash
 npm run db:grant-tag -- DISCORD_ID admin
-npm run db:grant-tag -- DISCORD_ID private_client
 npm run db:grant-tag -- DISCORD_ID admin --remove
 ```
 

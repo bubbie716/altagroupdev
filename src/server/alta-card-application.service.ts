@@ -10,7 +10,7 @@ import type {
   InternalAltaCardApplicationFilters,
   InternalAltaCardApplicationReviewContext,
 } from "@/lib/bank/alta-card-types";
-import { canAccessBankInternal, isAdmin, isPrivateClient, canManageBusinessTreasury } from "@/lib/auth/permissions";
+import { canAccessBankInternal, isAdmin, canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import {
   buildAltaCardApplicationAcceptedSystemMessage,
@@ -127,17 +127,9 @@ function assertOperatorOrAdmin(user: AltaUser): void {
   if (!canAccessBankInternal(user)) forbidden();
 }
 
-function assertCanApproveTier(
-  admin: AltaUser,
-  tier: AltaCardTierCode,
-  applicant: AltaUser,
-  goldOverride?: boolean,
-): void {
+function assertCanApproveTier(admin: AltaUser, tier: AltaCardTierCode): void {
   if (tier === "gold") {
     if (!canAccessBankInternal(admin)) forbidden();
-    if (!isPrivateClient(applicant) && !goldOverride) {
-      badRequest("Gold approval requires Alta Private eligibility or admin override");
-    }
   } else {
     assertOperatorOrAdmin(admin);
   }
@@ -260,32 +252,18 @@ export async function approveAltaCardApplication(
 
   const application = await prisma.altaCardApplication.findUnique({
     where: { id: input.applicationId },
-    include: { applicant: { include: userWithMembershipsInclude } },
   });
   if (!application || !OPEN_ALTA_CARD_APPLICATION_STATUSES.includes(application.status as (typeof OPEN_ALTA_CARD_APPLICATION_STATUSES)[number])) {
     notFound();
   }
 
-  const applicant = mapDbUserToAltaUser(application.applicant);
   const tier = input.tier ?? (application.requestedTier.toLowerCase() as AltaCardTierCode);
-  assertCanApproveTier(admin, tier, applicant, input.goldOverride);
+  assertCanApproveTier(admin, tier);
 
   if (input.approvedLimit <= 0) badRequest("Approved limit must be greater than zero");
   if (input.interestRate < 0) badRequest("Interest rate cannot be negative");
 
   await assertNoOpenAltaCardForApplication(application);
-
-  if (input.goldOverride && tier === "gold" && !isPrivateClient(applicant)) {
-    await auditApplicationEvent(
-      adminUserId,
-      "ALTA_CARD_GOLD_OVERRIDE",
-      "Gold tier approved with admin override",
-      application.id,
-      { applicantUserId: application.applicantUserId, approvedTier: tier },
-      application.applicantUserId,
-      application.companyId,
-    );
-  }
 
   const activate = input.approveAndActivate === true;
 
@@ -298,7 +276,6 @@ export async function approveAltaCardApplication(
         approvedLimit: toDecimal(input.approvedLimit),
         approvedInterestRate: toDecimal(input.interestRate),
         reviewNote: input.reviewNote,
-        goldOverride: input.goldOverride ?? false,
         reviewedById: adminUserId,
         reviewedAt: new Date(),
         acceptedAt: activate ? new Date() : null,

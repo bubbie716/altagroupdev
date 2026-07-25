@@ -27,9 +27,6 @@ export const RELATIONSHIP_TIMELINE_EVENT_LABELS = {
   LOAN_FUNDED: "Loan Approved",
   LOAN_PAYMENT_MADE: "Loan Payment Received",
   LOAN_PAID_OFF: "Loan Fully Repaid",
-  PRIVATE_BANKING_ELIGIBLE: "Eligible for Alta Private",
-  ALTA_PRIVATE_INVITED: "Invited to Alta Private",
-  PRIVATE_BANKING_CLIENT: "Alta Private Activated",
   RELATIONSHIP_SCORE_CHANGED: "Relationship Score Updated",
   RELATIONSHIP_TIER_CHANGED: "Relationship Status Updated",
   MANUAL_NOTE: "Relationship Note",
@@ -48,9 +45,6 @@ export const CUSTOMER_VISIBLE_TIMELINE_EVENT_TYPES = new Set([
   "ALTA_CARD_PAID_ON_TIME",
   "LOAN_FUNDED",
   "LOAN_PAID_OFF",
-  "PRIVATE_BANKING_ELIGIBLE",
-  "ALTA_PRIVATE_INVITED",
-  "PRIVATE_BANKING_CLIENT",
   "RELATIONSHIP_TIER_CHANGED",
 ] as const);
 

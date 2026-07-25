@@ -18,14 +18,14 @@ const USER_TAG_TO_DB: Record<UserTag, DbUserTag> = {
   corporate_admin: "CORPORATE_ADMIN",
   bank_admin: "BANK_ADMIN",
   terminal_admin: "TERMINAL_ADMIN",
-  private_client: "PRIVATE_CLIENT",
 };
 
-const USER_TAG_FROM_DB: Record<DbUserTag, UserTag> = {
+/** PRIVATE_CLIENT is a retired DB-only value with no application meaning. */
+const USER_TAG_FROM_DB: Record<DbUserTag, UserTag | null> = {
   CORPORATE_ADMIN: "corporate_admin",
   BANK_ADMIN: "bank_admin",
   TERMINAL_ADMIN: "terminal_admin",
-  PRIVATE_CLIENT: "private_client",
+  PRIVATE_CLIENT: null,
 };
 
 const ACCOUNT_STATUS_TO_DB: Record<AccountStatus, DbAccountStatus> = {
@@ -76,8 +76,15 @@ export function toDbUserTag(tag: UserTag): DbUserTag {
   return USER_TAG_TO_DB[tag];
 }
 
-export function fromDbUserTag(tag: DbUserTag): UserTag {
+export function fromDbUserTag(tag: DbUserTag): UserTag | null {
   return USER_TAG_FROM_DB[tag];
+}
+
+export function fromDbUserTags(tags: { tag: DbUserTag }[]): UserTag[] {
+  return tags.flatMap((assignment) => {
+    const mapped = fromDbUserTag(assignment.tag);
+    return mapped ? [mapped] : [];
+  });
 }
 
 export function toDbAccountStatus(status: AccountStatus): DbAccountStatus {

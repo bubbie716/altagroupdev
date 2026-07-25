@@ -36,7 +36,7 @@ type FormView = "compose" | "review" | "success" | "draft_saved" | "error";
 
 const fieldLabel = "type-meta";
 const inputClass =
-  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-60";
 
 const resultCardClass =
   "mx-auto w-full max-w-sm rounded-2xl border border-border/70 bg-surface-1 px-7 py-9 text-center shadow-[0_10px_40px_-16px_hsl(var(--foreground)/0.14)]";

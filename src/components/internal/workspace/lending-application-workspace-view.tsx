@@ -298,7 +298,7 @@ export function LendingApplicationWorkspaceView({
         <Link
           to="/internal/users/$userId"
           params={{ userId: application.applicantUserId }}
-          search={{ tab: "overview", privateReview: false }}
+          search={{ tab: "overview" }}
           className="text-[11px] text-gold hover:underline"
         >
           Customer →

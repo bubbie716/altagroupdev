@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -46,8 +45,12 @@ export function OrderTicket({
   className,
   compact = false,
   hidePortfolioControl = false,
+  confirmPresentation = "dialog",
+  confirmOpen: confirmOpenProp,
+  onConfirmOpenChange,
 }: {
-  security: SecurityDetail;
+  /** Null while Quick Trade waits for a ticker — order fields still render. */
+  security: SecurityDetail | null;
   buyingPower: number;
   position: Holding | null;
   mode: TseDataSourceMode;
@@ -68,15 +71,31 @@ export function OrderTicket({
   compact?: boolean;
   /** Parent already renders the portfolio control (Quick Trade). */
   hidePortfolioControl?: boolean;
+  /**
+   * How to present the post-preview confirmation.
+   * - dialog: nested modal (security page)
+   * - inline: in-place review step (Quick Trade — no modal stacking)
+   */
+  confirmPresentation?: "dialog" | "inline";
+  /** Controlled confirm/review open state (Quick Trade Escape handling). */
+  confirmOpen?: boolean;
+  onConfirmOpenChange?: (open: boolean) => void;
 }) {
   const previewFn = useServerFn(previewTerminalOrder);
   const submitFn = useServerFn(submitTerminalOrder);
   const [localSide, setLocalSide] = useState<OrderSide>("buy");
   const [localType, setLocalType] = useState<OrderType>("market");
   const [localQuantity, setLocalQuantity] = useState("1");
-  const [localLimitPrice, setLocalLimitPrice] = useState(String(security.lastPrice));
+  const [localLimitPrice, setLocalLimitPrice] = useState(() =>
+    security ? String(security.lastPrice) : "",
+  );
   const [preview, setPreview] = useState<OrderPreviewResult | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [uncontrolledConfirmOpen, setUncontrolledConfirmOpen] = useState(false);
+  const confirmOpen = confirmOpenProp ?? uncontrolledConfirmOpen;
+  const setConfirmOpen = (open: boolean) => {
+    onConfirmOpenChange?.(open);
+    if (confirmOpenProp === undefined) setUncontrolledConfirmOpen(open);
+  };
   const [submitting, setSubmitting] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,24 +116,28 @@ export function OrderTicket({
     setConfirmOpen(false);
     setError(null);
     setResultMessage(null);
-  }, [portfolioId]);
+    // Intentionally omit setConfirmOpen — only invalidate on portfolio/symbol change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portfolioId, security?.symbol]);
 
   const missingPortfolio = !portfolioId;
+  const missingSecurity = !security;
   const sessionStatus: MarketSessionStatus =
-    marketStatus ??
-    (marketClosed ? "closed" : "open");
+    marketStatus ?? (marketClosed ? "closed" : "open");
   const disabled =
     mode === "unavailable" ||
-    security.tradingStatus === "halted" ||
+    missingSecurity ||
+    security?.tradingStatus === "halted" ||
     marketClosed ||
     missingPortfolio ||
     !canTradeSelected;
 
   const qty = Number(quantity);
   const est = useMemo(() => {
-    const price = type === "limit" ? Number(limitPrice) || 0 : security.lastPrice;
+    const lastPrice = security?.lastPrice ?? 0;
+    const price = type === "limit" ? Number(limitPrice) || 0 : lastPrice;
     return Number(((Number.isFinite(qty) ? qty : 0) * price).toFixed(2));
-  }, [qty, type, limitPrice, security.lastPrice]);
+  }, [qty, type, limitPrice, security?.lastPrice]);
 
   const clientValidation = useMemo(() => {
     if (mode === "unavailable") {
@@ -128,6 +151,9 @@ export function OrderTicket({
         ok: false as const,
         errors: [tradeBlockedReason ?? "This portfolio cannot place orders"],
       };
+    }
+    if (!security) {
+      return { ok: false as const, errors: ["Select a security"] };
     }
     return validateOrderPreview({
       order: {
@@ -160,8 +186,11 @@ export function OrderTicket({
 
   const reviewBlocked = disabled || !clientValidation.ok;
   const inlineValidationError =
-    !clientValidation.ok && portfolioId && canTradeSelected && mode !== "unavailable"
-      ? clientValidation.errors[0] ?? null
+    !clientValidation.ok &&
+    portfolioId &&
+    canTradeSelected &&
+    mode !== "unavailable"
+      ? (clientValidation.errors[0] ?? null)
       : null;
 
   async function handlePreview() {
@@ -170,6 +199,10 @@ export function OrderTicket({
     if (!portfolioId) {
       setError("Select a portfolio before trading");
       onRequestPortfolioChange?.();
+      return;
+    }
+    if (!security) {
+      setError("Select a security");
       return;
     }
     if (!canTradeSelected) {
@@ -200,7 +233,7 @@ export function OrderTicket({
   }
 
   async function handleConfirm() {
-    if (!preview?.ok || !portfolioId || submitting) return;
+    if (!preview?.ok || !portfolioId || !security || submitting) return;
     if (!canTradeSelected) {
       setError(tradeBlockedReason ?? "This portfolio cannot place orders");
       return;
@@ -239,6 +272,42 @@ export function OrderTicket({
     }
   }
 
+  const confirmSummary = preview ? (
+    <OrderConfirmSummary
+      preview={preview}
+      portfolioLabel={portfolioLabel}
+      side={side}
+      submitting={submitting}
+      canConfirm={Boolean(preview.ok && portfolioId && security && canTradeSelected)}
+      onBack={() => setConfirmOpen(false)}
+      onConfirm={() => void handleConfirm()}
+    />
+  ) : null;
+
+  if (confirmPresentation === "inline" && confirmOpen) {
+    return (
+      <div
+        className={cn(
+          "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
+          className,
+        )}
+      >
+        <div className="space-y-1">
+          <h2 className="text-[15px] font-medium text-[var(--terminal-text)]">Review order</h2>
+          <p className="text-[12px] text-[var(--terminal-muted)]">
+            Confirm this {side} of {security?.symbol ?? "—"} before submitting.
+          </p>
+        </div>
+        {error ? (
+          <p className="mt-3 text-[12px] text-[var(--terminal-red)]" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <div className="mt-4">{confirmSummary}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -269,7 +338,12 @@ export function OrderTicket({
         </div>
       ) : null}
 
-      <div className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-[var(--terminal-surface-2)] p-1">
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-1 rounded-md bg-[var(--terminal-surface-2)] p-1",
+          hidePortfolioControl ? "mt-0" : "mt-3",
+        )}
+      >
         {(["buy", "sell"] as const).map((value) => (
           <button
             key={value}
@@ -356,13 +430,15 @@ export function OrderTicket({
         <p className="mt-3 text-[12px] text-[var(--terminal-red)]">
           {mode === "unavailable"
             ? "Market connection unavailable"
-            : security.tradingStatus === "halted"
-              ? "Security is halted"
-              : marketClosed
-                ? "Market is closed"
-                : missingPortfolio
-                  ? "Choose a portfolio to review an order"
-                  : (tradeBlockedReason ?? "Trading is not available for this portfolio")}
+            : missingSecurity
+              ? "Select a security to review an order"
+              : security?.tradingStatus === "halted"
+                ? "Security is halted"
+                : marketClosed
+                  ? "Market is closed"
+                  : missingPortfolio
+                    ? "Choose a portfolio to review an order"
+                    : (tradeBlockedReason ?? "Trading is not available for this portfolio")}
         </p>
       ) : inlineValidationError ? (
         <p className="mt-3 text-[12px] text-[var(--terminal-red)]" role="alert">
@@ -393,70 +469,85 @@ export function OrderTicket({
         Review {side}
       </button>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="z-[140] border-[var(--terminal-border)] bg-[var(--terminal-surface)] text-[var(--terminal-text)] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm order</DialogTitle>
-            <DialogDescription className="text-[var(--terminal-muted)]">
-              Review this {side} order for {security.symbol} before submitting.
-            </DialogDescription>
-          </DialogHeader>
-          {preview ? (
-            <div className="space-y-2 text-[13px]">
-              <Row label="Portfolio" value={portfolioLabel ?? "—"} />
-              <Row label="Side" value={preview.side.toUpperCase()} />
-              <Row label="Type" value={preview.type} />
-              <Row label="Quantity" value={String(preview.quantity)} />
-              {preview.limitPrice != null ? (
-                <Row
-                  label="Limit"
-                  value={<MoneyValue value={preview.limitPrice} asPrice size="sm" />}
-                />
-              ) : null}
-              <Row
-                label="Est. value"
-                value={<MoneyValue value={preview.estimatedValue} size="sm" />}
-              />
-              <Row
-                label="Est. fees"
-                value={<MoneyValue value={preview.estimatedFees} size="sm" />}
-              />
-              {preview.warnings.map((w) => (
-                <p key={w} className="text-[12px] text-[var(--terminal-muted)]">
-                  {w}
-                </p>
-              ))}
-              {preview.errors.map((e) => (
-                <p key={e} className="text-[12px] text-[var(--terminal-red)]">
-                  {e}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          <DialogFooter className="gap-2 sm:gap-2">
-            <button
-              type="button"
-              className="min-h-11 rounded-md border border-[var(--terminal-border)] px-4 text-[13px]"
-              onClick={() => setConfirmOpen(false)}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              disabled={!preview?.ok || submitting || !portfolioId || !canTradeSelected}
-              onClick={() => void handleConfirm()}
-              className={cn(
-                "min-h-11 rounded-md px-4 text-[13px] font-medium disabled:opacity-40",
-                side === "buy"
-                  ? "bg-[var(--terminal-green)] text-black"
-                  : "bg-[var(--terminal-red)] text-white",
-              )}
-            >
-              {submitting ? "Submitting…" : "Confirm order"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {confirmPresentation === "dialog" ? (
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent className="z-[140] border-[var(--terminal-border)] bg-[var(--terminal-surface)] text-[var(--terminal-text)] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirm order</DialogTitle>
+              <DialogDescription className="text-[var(--terminal-muted)]">
+                Review this {side} order for {security?.symbol ?? "—"} before submitting.
+              </DialogDescription>
+            </DialogHeader>
+            {confirmSummary}
+          </DialogContent>
+        </Dialog>
+      ) : null}
+    </div>
+  );
+}
+
+function OrderConfirmSummary({
+  preview,
+  portfolioLabel,
+  side,
+  submitting,
+  canConfirm,
+  onBack,
+  onConfirm,
+}: {
+  preview: OrderPreviewResult;
+  portfolioLabel?: string | null;
+  side: OrderSide;
+  submitting: boolean;
+  canConfirm: boolean;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2 text-[13px]">
+        <Row label="Portfolio" value={portfolioLabel ?? "—"} />
+        <Row label="Side" value={preview.side.toUpperCase()} />
+        <Row label="Type" value={preview.type} />
+        <Row label="Quantity" value={String(preview.quantity)} />
+        {preview.limitPrice != null ? (
+          <Row label="Limit" value={<MoneyValue value={preview.limitPrice} asPrice size="sm" />} />
+        ) : null}
+        <Row label="Est. value" value={<MoneyValue value={preview.estimatedValue} size="sm" />} />
+        <Row label="Est. fees" value={<MoneyValue value={preview.estimatedFees} size="sm" />} />
+        {preview.warnings.map((w) => (
+          <p key={w} className="text-[12px] text-[var(--terminal-muted)]">
+            {w}
+          </p>
+        ))}
+        {preview.errors.map((e) => (
+          <p key={e} className="text-[12px] text-[var(--terminal-red)]">
+            {e}
+          </p>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          className="min-h-11 rounded-md border border-[var(--terminal-border)] px-4 text-[13px] sm:min-w-[5.5rem]"
+          onClick={onBack}
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          disabled={!canConfirm || submitting}
+          onClick={onConfirm}
+          className={cn(
+            "min-h-11 rounded-md px-4 text-[13px] font-medium disabled:opacity-40 sm:min-w-[8rem]",
+            side === "buy"
+              ? "bg-[var(--terminal-green)] text-black"
+              : "bg-[var(--terminal-red)] text-white",
+          )}
+        >
+          {submitting ? "Submitting…" : "Confirm order"}
+        </button>
+      </div>
     </div>
   );
 }

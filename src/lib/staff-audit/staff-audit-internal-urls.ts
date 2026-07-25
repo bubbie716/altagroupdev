@@ -30,10 +30,6 @@ export function internalJobsUrl(): string {
   return "/internal/jobs";
 }
 
-export function internalPrivateBankingQueueUrl(): string {
-  return "/internal/queues/private-banking";
-}
-
 export function internalCompanyVerificationsQueueUrl(): string {
   return "/internal/queues/company-verifications";
 }

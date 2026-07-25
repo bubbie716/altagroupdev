@@ -21,10 +21,7 @@ import {
   toDbLoanProductType,
 } from "@/server/lending-mapper";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
-import {
-  canManageBusinessTreasury,
-  isPrivateClient,
-} from "@/lib/auth/permissions";
+import { canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 
 export {
@@ -116,8 +113,7 @@ function validateProductEligibility(user: AltaUser, input: CreateLoanApplication
     return;
   }
   if (input.productType === "private_liquidity_line") {
-    if (!isPrivateClient(user)) badRequest("Private liquidity lines require Alta Private client status");
-    if (input.companyId) badRequest("Private liquidity lines are issued to individuals, not companies");
+    badRequest("Invalid credit product");
   }
 }
 

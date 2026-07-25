@@ -113,7 +113,7 @@ The specific terms of the Alta Card established pursuant to this Agreement are a
 | **Card Currency** | [e.g., Newport Florins (ƒ) / RMD / other] |
 | **Cardholder Name** | [CARDHOLDER NAME] |
 | **Cardholder Type** | [Individual / Business / Company / Institution] |
-| **Card Product** | [Alta Card / Alta Business Card / Alta Private Card / Other] |
+| **Card Product** | [Alta Card / Alta Business Card / Alta Gold Card / Other] |
 | **Card Type** | [Secured / Unsecured] |
 | **Credit Limit** | [AMOUNT] |
 | **Starting Available Credit** | [AMOUNT] |

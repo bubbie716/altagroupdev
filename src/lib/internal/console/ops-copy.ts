@@ -54,7 +54,6 @@ const STATUS_LABELS: Record<string, string> = {
   voided: "Voided",
   executed: "Executed",
   paused: "Paused",
-  private_client: "Private Client",
 };
 
 /** Normalize raw status strings to consistent operator copy. */

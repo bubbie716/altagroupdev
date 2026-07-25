@@ -66,19 +66,14 @@ export function formatReviewDeniedThreadMessage(_reason: string): string {
   ].join("\n\n");
 }
 
-/** Eligible tier targets for account review (strictly higher tiers; Black/Gold have no upgrade path here). */
-export function getEligibleTierUpgrades(
-  currentTier: AltaCardTierCode,
-  isPrivateClient: boolean,
-): AltaCardTierCode[] {
-  if (currentTier === "black" || currentTier === "gold") return [];
+/** Eligible tier targets for account review (strictly higher tiers; Gold is the top tier). */
+export function getEligibleTierUpgrades(currentTier: AltaCardTierCode): AltaCardTierCode[] {
+  if (currentTier === "gold") return [];
 
   const currentOrder = ALTA_CARD_TIER_CONFIG[currentTier].sortOrder;
-  return ALTA_CARD_TIER_ORDER.filter((tier) => {
-    if (ALTA_CARD_TIER_CONFIG[tier].sortOrder <= currentOrder) return false;
-    if (ALTA_CARD_TIER_CONFIG[tier].isPrivateOnly && !isPrivateClient) return false;
-    return true;
-  });
+  return ALTA_CARD_TIER_ORDER.filter(
+    (tier) => ALTA_CARD_TIER_CONFIG[tier].sortOrder > currentOrder,
+  );
 }
 
 export function formatReviewChangesSummary(review: {

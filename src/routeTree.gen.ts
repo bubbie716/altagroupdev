@@ -78,7 +78,6 @@ import { Route as CompaniesCreateRouteImport } from './routes/companies/create'
 import { Route as BankWithdrawRouteImport } from './routes/bank/withdraw'
 import { Route as BankSettingsRouteImport } from './routes/bank/settings'
 import { Route as BankProductsRouteImport } from './routes/bank/products'
-import { Route as BankPrivateRouteImport } from './routes/bank/private'
 import { Route as BankOpenRouteImport } from './routes/bank/open'
 import { Route as BankDepositsRouteImport } from './routes/bank/deposits'
 import { Route as BankDepositRouteImport } from './routes/bank/deposit'
@@ -116,7 +115,6 @@ import { Route as InternalUsersUserIdRouteImport } from './routes/internal/users
 import { Route as InternalTerminalSettingsRouteImport } from './routes/internal/terminal/settings'
 import { Route as InternalRelationshipsUserIdRouteImport } from './routes/internal/relationships/$userId'
 import { Route as InternalQueuesWithdrawalsRouteImport } from './routes/internal/queues/withdrawals'
-import { Route as InternalQueuesPrivateBankingRouteImport } from './routes/internal/queues/private-banking'
 import { Route as InternalQueuesLendingApplicationsRouteImport } from './routes/internal/queues/lending-applications'
 import { Route as InternalQueuesExceptionsRouteImport } from './routes/internal/queues/exceptions'
 import { Route as InternalQueuesDepositsRouteImport } from './routes/internal/queues/deposits'
@@ -152,7 +150,6 @@ import { Route as BankBusinessPayrollRouteImport } from './routes/bank/business/
 import { Route as BankBusinessPaymentsRouteImport } from './routes/bank/business/payments'
 import { Route as BankBusinessInvoicesRouteImport } from './routes/bank/business/invoices'
 import { Route as BankAltaCardApplyRouteImport } from './routes/bank/alta-card/apply'
-import { Route as BankAdminPrivateRouteImport } from './routes/bank/admin/private'
 import { Route as BankAdminLoansRouteImport } from './routes/bank/admin/loans'
 import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/clients'
 import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
@@ -199,7 +196,6 @@ import { Route as InternalCompaniesCompanyIdRelationshipRouteImport } from './ro
 import { Route as InternalBankTransactionsTransactionIdRouteImport } from './routes/internal/bank/transactions/$transactionId'
 import { Route as InternalBankAccountsAccountIdRouteImport } from './routes/internal/bank/accounts/$accountId'
 import { Route as ExchangeCompanyTickerOwnerRouteImport } from './routes/exchange/company/$ticker/owner'
-import { Route as BankPrivateInvitationInvitationIdRouteImport } from './routes/bank/private/invitation/$invitationId'
 import { Route as BankPayInvoicesInvoiceIdRouteImport } from './routes/bank/pay/invoices/$invoiceId'
 import { Route as BankLendingLoansLoanIdRouteImport } from './routes/bank/lending/loans/$loanId'
 import { Route as BankLendingDealRoomsDealRoomIdRouteImport } from './routes/bank/lending/deal-rooms/$dealRoomId'
@@ -625,11 +621,6 @@ const BankProductsRoute = BankProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => BankRouteRoute,
 } as any)
-const BankPrivateRoute = BankPrivateRouteImport.update({
-  id: '/private',
-  path: '/private',
-  getParentRoute: () => BankRouteRoute,
-} as any)
 const BankOpenRoute = BankOpenRouteImport.update({
   id: '/open',
   path: '/open',
@@ -821,12 +812,6 @@ const InternalQueuesWithdrawalsRoute =
     path: '/queues/withdrawals',
     getParentRoute: () => InternalRouteRoute,
   } as any)
-const InternalQueuesPrivateBankingRoute =
-  InternalQueuesPrivateBankingRouteImport.update({
-    id: '/queues/private-banking',
-    path: '/queues/private-banking',
-    getParentRoute: () => InternalRouteRoute,
-  } as any)
 const InternalQueuesLendingApplicationsRoute =
   InternalQueuesLendingApplicationsRouteImport.update({
     id: '/queues/lending-applications',
@@ -1013,11 +998,6 @@ const BankBusinessInvoicesRoute = BankBusinessInvoicesRouteImport.update({
 const BankAltaCardApplyRoute = BankAltaCardApplyRouteImport.update({
   id: '/alta-card/apply',
   path: '/alta-card/apply',
-  getParentRoute: () => BankRouteRoute,
-} as any)
-const BankAdminPrivateRoute = BankAdminPrivateRouteImport.update({
-  id: '/admin/private',
-  path: '/admin/private',
   getParentRoute: () => BankRouteRoute,
 } as any)
 const BankAdminLoansRoute = BankAdminLoansRouteImport.update({
@@ -1281,12 +1261,6 @@ const ExchangeCompanyTickerOwnerRoute =
     id: '/owner',
     path: '/owner',
     getParentRoute: () => ExchangeCompanyTickerRouteRoute,
-  } as any)
-const BankPrivateInvitationInvitationIdRoute =
-  BankPrivateInvitationInvitationIdRouteImport.update({
-    id: '/invitation/$invitationId',
-    path: '/invitation/$invitationId',
-    getParentRoute: () => BankPrivateRoute,
   } as any)
 const BankPayInvoicesInvoiceIdRoute =
   BankPayInvoicesInvoiceIdRouteImport.update({
@@ -1793,7 +1767,6 @@ export interface FileRoutesByFullPath {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -1871,7 +1844,6 @@ export interface FileRoutesByFullPath {
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
-  '/bank/admin/private': typeof BankAdminPrivateRoute
   '/bank/alta-card/apply': typeof BankAltaCardApplyRoute
   '/bank/business/invoices': typeof BankBusinessInvoicesRoute
   '/bank/business/payments': typeof BankBusinessPaymentsRoute
@@ -1907,7 +1879,6 @@ export interface FileRoutesByFullPath {
   '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
   '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
   '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
-  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
   '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
@@ -1967,7 +1938,6 @@ export interface FileRoutesByFullPath {
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
-  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -2051,7 +2021,6 @@ export interface FileRoutesByTo {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -2120,7 +2089,6 @@ export interface FileRoutesByTo {
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
-  '/bank/admin/private': typeof BankAdminPrivateRoute
   '/bank/alta-card/apply': typeof BankAltaCardApplyRoute
   '/bank/business/invoices': typeof BankBusinessInvoicesRoute
   '/bank/business/payments': typeof BankBusinessPaymentsRoute
@@ -2156,7 +2124,6 @@ export interface FileRoutesByTo {
   '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
   '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
   '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
-  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
   '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
@@ -2212,7 +2179,6 @@ export interface FileRoutesByTo {
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
-  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -2310,7 +2276,6 @@ export interface FileRoutesById {
   '/bank/deposit': typeof BankDepositRoute
   '/bank/deposits': typeof BankDepositsRoute
   '/bank/open': typeof BankOpenRoute
-  '/bank/private': typeof BankPrivateRouteWithChildren
   '/bank/products': typeof BankProductsRoute
   '/bank/settings': typeof BankSettingsRoute
   '/bank/withdraw': typeof BankWithdrawRoute
@@ -2388,7 +2353,6 @@ export interface FileRoutesById {
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
-  '/bank/admin/private': typeof BankAdminPrivateRoute
   '/bank/alta-card/apply': typeof BankAltaCardApplyRoute
   '/bank/business/invoices': typeof BankBusinessInvoicesRoute
   '/bank/business/payments': typeof BankBusinessPaymentsRoute
@@ -2424,7 +2388,6 @@ export interface FileRoutesById {
   '/internal/queues/deposits': typeof InternalQueuesDepositsRoute
   '/internal/queues/exceptions': typeof InternalQueuesExceptionsRoute
   '/internal/queues/lending-applications': typeof InternalQueuesLendingApplicationsRoute
-  '/internal/queues/private-banking': typeof InternalQueuesPrivateBankingRoute
   '/internal/queues/withdrawals': typeof InternalQueuesWithdrawalsRoute
   '/internal/relationships/$userId': typeof InternalRelationshipsUserIdRoute
   '/internal/terminal/settings': typeof InternalTerminalSettingsRoute
@@ -2484,7 +2447,6 @@ export interface FileRoutesById {
   '/bank/lending/deal-rooms/$dealRoomId': typeof BankLendingDealRoomsDealRoomIdRoute
   '/bank/lending/loans/$loanId': typeof BankLendingLoansLoanIdRoute
   '/bank/pay/invoices/$invoiceId': typeof BankPayInvoicesInvoiceIdRoute
-  '/bank/private/invitation/$invitationId': typeof BankPrivateInvitationInvitationIdRoute
   '/exchange/company/$ticker/owner': typeof ExchangeCompanyTickerOwnerRoute
   '/internal/bank/accounts/$accountId': typeof InternalBankAccountsAccountIdRoute
   '/internal/bank/transactions/$transactionId': typeof InternalBankTransactionsTransactionIdRoute
@@ -2584,7 +2546,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
     | '/bank/withdraw'
@@ -2662,7 +2623,6 @@ export interface FileRouteTypes {
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
-    | '/bank/admin/private'
     | '/bank/alta-card/apply'
     | '/bank/business/invoices'
     | '/bank/business/payments'
@@ -2698,7 +2658,6 @@ export interface FileRouteTypes {
     | '/internal/queues/deposits'
     | '/internal/queues/exceptions'
     | '/internal/queues/lending-applications'
-    | '/internal/queues/private-banking'
     | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
@@ -2758,7 +2717,6 @@ export interface FileRouteTypes {
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/pay/invoices/$invoiceId'
-    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -2842,7 +2800,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
     | '/bank/withdraw'
@@ -2911,7 +2868,6 @@ export interface FileRouteTypes {
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
-    | '/bank/admin/private'
     | '/bank/alta-card/apply'
     | '/bank/business/invoices'
     | '/bank/business/payments'
@@ -2947,7 +2903,6 @@ export interface FileRouteTypes {
     | '/internal/queues/deposits'
     | '/internal/queues/exceptions'
     | '/internal/queues/lending-applications'
-    | '/internal/queues/private-banking'
     | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
@@ -3003,7 +2958,6 @@ export interface FileRouteTypes {
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/pay/invoices/$invoiceId'
-    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -3100,7 +3054,6 @@ export interface FileRouteTypes {
     | '/bank/deposit'
     | '/bank/deposits'
     | '/bank/open'
-    | '/bank/private'
     | '/bank/products'
     | '/bank/settings'
     | '/bank/withdraw'
@@ -3178,7 +3131,6 @@ export interface FileRouteTypes {
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
-    | '/bank/admin/private'
     | '/bank/alta-card/apply'
     | '/bank/business/invoices'
     | '/bank/business/payments'
@@ -3214,7 +3166,6 @@ export interface FileRouteTypes {
     | '/internal/queues/deposits'
     | '/internal/queues/exceptions'
     | '/internal/queues/lending-applications'
-    | '/internal/queues/private-banking'
     | '/internal/queues/withdrawals'
     | '/internal/relationships/$userId'
     | '/internal/terminal/settings'
@@ -3274,7 +3225,6 @@ export interface FileRouteTypes {
     | '/bank/lending/deal-rooms/$dealRoomId'
     | '/bank/lending/loans/$loanId'
     | '/bank/pay/invoices/$invoiceId'
-    | '/bank/private/invitation/$invitationId'
     | '/exchange/company/$ticker/owner'
     | '/internal/bank/accounts/$accountId'
     | '/internal/bank/transactions/$transactionId'
@@ -3881,13 +3831,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankProductsRouteImport
       parentRoute: typeof BankRouteRoute
     }
-    '/bank/private': {
-      id: '/bank/private'
-      path: '/private'
-      fullPath: '/bank/private'
-      preLoaderRoute: typeof BankPrivateRouteImport
-      parentRoute: typeof BankRouteRoute
-    }
     '/bank/open': {
       id: '/bank/open'
       path: '/open'
@@ -4147,13 +4090,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalQueuesWithdrawalsRouteImport
       parentRoute: typeof InternalRouteRoute
     }
-    '/internal/queues/private-banking': {
-      id: '/internal/queues/private-banking'
-      path: '/queues/private-banking'
-      fullPath: '/internal/queues/private-banking'
-      preLoaderRoute: typeof InternalQueuesPrivateBankingRouteImport
-      parentRoute: typeof InternalRouteRoute
-    }
     '/internal/queues/lending-applications': {
       id: '/internal/queues/lending-applications'
       path: '/queues/lending-applications'
@@ -4397,13 +4333,6 @@ declare module '@tanstack/react-router' {
       path: '/alta-card/apply'
       fullPath: '/bank/alta-card/apply'
       preLoaderRoute: typeof BankAltaCardApplyRouteImport
-      parentRoute: typeof BankRouteRoute
-    }
-    '/bank/admin/private': {
-      id: '/bank/admin/private'
-      path: '/admin/private'
-      fullPath: '/bank/admin/private'
-      preLoaderRoute: typeof BankAdminPrivateRouteImport
       parentRoute: typeof BankRouteRoute
     }
     '/bank/admin/loans': {
@@ -4727,13 +4656,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/exchange/company/$ticker/owner'
       preLoaderRoute: typeof ExchangeCompanyTickerOwnerRouteImport
       parentRoute: typeof ExchangeCompanyTickerRouteRoute
-    }
-    '/bank/private/invitation/$invitationId': {
-      id: '/bank/private/invitation/$invitationId'
-      path: '/invitation/$invitationId'
-      fullPath: '/bank/private/invitation/$invitationId'
-      preLoaderRoute: typeof BankPrivateInvitationInvitationIdRouteImport
-      parentRoute: typeof BankPrivateRoute
     }
     '/bank/pay/invoices/$invoiceId': {
       id: '/bank/pay/invoices/$invoiceId'
@@ -5429,19 +5351,6 @@ const BankAccountsRouteWithChildren = BankAccountsRoute._addFileChildren(
   BankAccountsRouteChildren,
 )
 
-interface BankPrivateRouteChildren {
-  BankPrivateInvitationInvitationIdRoute: typeof BankPrivateInvitationInvitationIdRoute
-}
-
-const BankPrivateRouteChildren: BankPrivateRouteChildren = {
-  BankPrivateInvitationInvitationIdRoute:
-    BankPrivateInvitationInvitationIdRoute,
-}
-
-const BankPrivateRouteWithChildren = BankPrivateRoute._addFileChildren(
-  BankPrivateRouteChildren,
-)
-
 interface BankAccountAccountIdCommercialInvoicesInvoiceIdRouteChildren {
   BankAccountAccountIdCommercialInvoicesInvoiceIdEditRoute: typeof BankAccountAccountIdCommercialInvoicesInvoiceIdEditRoute
 }
@@ -5689,7 +5598,6 @@ interface BankRouteRouteChildren {
   BankDepositRoute: typeof BankDepositRoute
   BankDepositsRoute: typeof BankDepositsRoute
   BankOpenRoute: typeof BankOpenRoute
-  BankPrivateRoute: typeof BankPrivateRouteWithChildren
   BankProductsRoute: typeof BankProductsRoute
   BankSettingsRoute: typeof BankSettingsRoute
   BankWithdrawRoute: typeof BankWithdrawRoute
@@ -5701,7 +5609,6 @@ interface BankRouteRouteChildren {
   BankLendingLoansRouteRoute: typeof BankLendingLoansRouteRouteWithChildren
   BankAdminClientsRoute: typeof BankAdminClientsRoute
   BankAdminLoansRoute: typeof BankAdminLoansRoute
-  BankAdminPrivateRoute: typeof BankAdminPrivateRoute
   BankAltaCardApplyRoute: typeof BankAltaCardApplyRoute
   BankInvoicesInvoiceIdRoute: typeof BankInvoicesInvoiceIdRoute
   BankLendingApplyRoute: typeof BankLendingApplyRoute
@@ -5729,7 +5636,6 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankDepositRoute: BankDepositRoute,
   BankDepositsRoute: BankDepositsRoute,
   BankOpenRoute: BankOpenRoute,
-  BankPrivateRoute: BankPrivateRouteWithChildren,
   BankProductsRoute: BankProductsRoute,
   BankSettingsRoute: BankSettingsRoute,
   BankWithdrawRoute: BankWithdrawRoute,
@@ -5742,7 +5648,6 @@ const BankRouteRouteChildren: BankRouteRouteChildren = {
   BankLendingLoansRouteRoute: BankLendingLoansRouteRouteWithChildren,
   BankAdminClientsRoute: BankAdminClientsRoute,
   BankAdminLoansRoute: BankAdminLoansRoute,
-  BankAdminPrivateRoute: BankAdminPrivateRoute,
   BankAltaCardApplyRoute: BankAltaCardApplyRoute,
   BankInvoicesInvoiceIdRoute: BankInvoicesInvoiceIdRoute,
   BankLendingApplyRoute: BankLendingApplyRoute,
@@ -6025,7 +5930,6 @@ interface InternalRouteRouteChildren {
   InternalQueuesDepositsRoute: typeof InternalQueuesDepositsRoute
   InternalQueuesExceptionsRoute: typeof InternalQueuesExceptionsRoute
   InternalQueuesLendingApplicationsRoute: typeof InternalQueuesLendingApplicationsRoute
-  InternalQueuesPrivateBankingRoute: typeof InternalQueuesPrivateBankingRoute
   InternalQueuesWithdrawalsRoute: typeof InternalQueuesWithdrawalsRoute
   InternalRelationshipsUserIdRoute: typeof InternalRelationshipsUserIdRoute
   InternalUsersUserIdRoute: typeof InternalUsersUserIdRoute
@@ -6070,7 +5974,6 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalQueuesExceptionsRoute: InternalQueuesExceptionsRoute,
   InternalQueuesLendingApplicationsRoute:
     InternalQueuesLendingApplicationsRoute,
-  InternalQueuesPrivateBankingRoute: InternalQueuesPrivateBankingRoute,
   InternalQueuesWithdrawalsRoute: InternalQueuesWithdrawalsRoute,
   InternalRelationshipsUserIdRoute: InternalRelationshipsUserIdRoute,
   InternalUsersUserIdRoute: InternalUsersUserIdRoute,

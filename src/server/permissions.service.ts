@@ -4,7 +4,6 @@ import {
   canAccessIssuerPortal,
   isAdmin,
   isDeveloper,
-  isPrivateClient,
   isCorporateAdmin,
   isTerminalAdmin,
 } from "@/lib/auth/permissions";
@@ -32,12 +31,6 @@ export async function requireOperator(): Promise<AltaUser> {
 export async function requireTerminalAdmin(): Promise<AltaUser> {
   const user = await requireAuth();
   if (!isCorporateAdmin(user) && !isTerminalAdmin(user)) forbid();
-  return user;
-}
-
-export async function requirePrivateClient(): Promise<AltaUser> {
-  const user = await requireAuth();
-  if (!isPrivateClient(user)) forbid();
   return user;
 }
 

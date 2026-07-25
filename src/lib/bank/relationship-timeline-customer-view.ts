@@ -1,11 +1,18 @@
 import type { RelationshipTimelineEventTypeCode } from "@/lib/bank/relationship-intelligence-types";
 import { sortTimelineEventsNewestFirst } from "@/lib/bank/relationship-timeline-display";
 
-/** Internal tiers that have dedicated program events — not shown as relationship tier changes. */
+/** Legacy or internal-only tier codes that are never shown as customer tier changes. */
 const PROGRAM_TIER_CODES = new Set([
   "PRIVATE_ELIGIBLE",
   "PRIVATE_CLIENT",
   "COMMERCIAL_ELIGIBLE",
+]);
+
+/** Legacy event types retained in the database that are no longer surfaced to customers. */
+const RETIRED_EVENT_TYPES = new Set([
+  "PRIVATE_BANKING_ELIGIBLE",
+  "PRIVATE_BANKING_CLIENT",
+  "ALTA_PRIVATE_INVITED",
 ]);
 
 export type CustomerTimelineRow = {
@@ -88,6 +95,7 @@ export function customerTimelineSemanticKey(row: CustomerTimelineRow): string {
 }
 
 export function shouldIncludeCustomerTimelineRow(row: CustomerTimelineRow): boolean {
+  if (RETIRED_EVENT_TYPES.has(row.eventType)) return false;
   if (row.eventType !== "RELATIONSHIP_TIER_CHANGED") return true;
 
   const { newTier } = tierPairFromMetadata(row.metadata ?? null);
@@ -107,9 +115,6 @@ function duplicateRowRank(row: CustomerTimelineRow): number {
   }
 
   switch (row.eventType as RelationshipTimelineEventTypeCode) {
-    case "PRIVATE_BANKING_CLIENT":
-    case "PRIVATE_BANKING_ELIGIBLE":
-    case "ALTA_PRIVATE_INVITED":
     case "COMMERCIAL_BANKING_ELIGIBLE":
       return 4;
     case "RELATIONSHIP_TIER_CHANGED":

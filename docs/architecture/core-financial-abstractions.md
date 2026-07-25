@@ -105,26 +105,6 @@ Existing company accounts are backfilled to `ownershipType = COMPANY` in migrati
 
 ---
 
-## PrivateBankingRelationship
-
-**Table:** `PrivateBankingRelationship`
-
-Replaces hardcoded Alta Private banker config with a durable assignment record.
-
-| Field | Purpose |
-|-------|---------|
-| `customerUserId`, `bankerUserId` | Relationship parties |
-| `status` | `ACTIVE`, `INACTIVE`, `PENDING` |
-| `assignedAt`, `assignedByUserId`, `notes` | Assignment audit |
-
-**Service:** `src/server/relationship-assignment.service.ts` — `assignPrivateBanker()`, `getActivePrivateBankingRelationship()`
-
-**Future use:** Alta Private UI, relationship timeline, staff workload, Commercial RM parity.
-
-**Not migrated:** Existing `private_client` tag and static banker copy remain authoritative until a later sprint.
-
----
-
 ## Document
 
 **Table:** `Document`
@@ -154,7 +134,7 @@ One assignment model for staff ↔ subject relationships.
 |-------|---------|
 | `staffUserId` | Assigned operator |
 | `subjectType`, `subjectId` | `USER`, `COMPANY`, `LOAN_APPLICATION`, `DEAL_ROOM`, … |
-| `assignmentType` | `ALTA_PRIVATE_BANKER`, `CREDIT_DESK`, `DEAL_ROOM_OFFICER`, … |
+| `assignmentType` | `CREDIT_DESK`, `DEAL_ROOM_OFFICER`, … |
 | `status`, `assignedAt`, `assignedByUserId` | Lifecycle |
 
 **Not migrated:** Thread `assignedStaffId`, Deal Room officer FKs remain.
@@ -196,6 +176,6 @@ Seeds Alta Bank institution and routing number. Backfills `ownershipType` for ex
 | `prisma/schema.prisma` | Entity definitions |
 | `src/server/payment-entity.service.ts` | Payment + TransferGroup writers |
 | `src/server/financial-institution.service.ts` | Institution seed + lookup |
-| `src/server/relationship-assignment.service.ts` | Private banking + staff assignment + Document |
+| `src/server/relationship-assignment.service.ts` | Staff assignment + Document |
 | `src/lib/bank/account-ownership.ts` | Ownership helpers |
 | `src/lib/bank/schema-foundation.test.ts` | Unit tests |

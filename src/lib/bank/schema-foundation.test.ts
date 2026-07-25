@@ -54,8 +54,8 @@ describe("schema foundation services", () => {
 
   it("exports relationship and assignment helpers", async () => {
     const mod = await import("../../server/relationship-assignment.service.ts");
-    assert.equal(typeof mod.assignPrivateBanker, "function");
     assert.equal(typeof mod.createStaffAssignment, "function");
+    assert.equal(typeof mod.listActiveStaffAssignments, "function");
     assert.equal(typeof mod.createDocumentRecord, "function");
   });
 });

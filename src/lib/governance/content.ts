@@ -71,7 +71,7 @@ export const entityOverviewItems: EntityOverviewItem[] = [
     code: "ALT-BNK",
     status: "Operational",
     description:
-      "Full-service banking for Newport — personal accounts, business treasury, lending, and Alta Private invitation tiers.",
+      "Full-service banking for Newport — personal accounts, business treasury, lending, and the Alta Card.",
     services: ["Deposits", "Business Banking", "Lending", "Treasury Services", "Alta Pay"],
   },
   {

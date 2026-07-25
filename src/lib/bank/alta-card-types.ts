@@ -191,7 +191,6 @@ export type AltaCardApplicationRow = {
   employeeCardsNeeded: boolean | null;
   reviewNote: string | null;
   denialReason: string | null;
-  goldOverride: boolean;
   reviewedById: string | null;
   reviewedAt: string | null;
   acceptedAt: string | null;
@@ -282,7 +281,6 @@ export type ApproveAltaCardApplicationInput = {
   tier?: AltaCardTierCode;
   reviewNote?: string;
   approveAndActivate?: boolean;
-  goldOverride?: boolean;
 };
 
 export type DenyAltaCardApplicationInput = {

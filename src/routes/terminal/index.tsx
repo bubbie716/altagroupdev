@@ -105,13 +105,6 @@ function TerminalHomePage() {
       <section>
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <h2 className="text-[15px] font-medium">Portfolios</h2>
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
-            className="text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-green)]"
-          >
-            New
-          </button>
         </div>
         {emptyPortfolios ? (
           <div className="rounded-lg border border-[var(--terminal-border)] px-4 py-8">
@@ -186,6 +179,7 @@ function TerminalHomePage() {
       <QuickTradeDialog
         open={quickTradeOpen}
         onOpenChange={setQuickTradeOpen}
+        initialPortfolios={portfolios}
         onCloseAutoFocus={() => {
           tradeButtonRef.current?.focus({ preventScroll: true });
         }}

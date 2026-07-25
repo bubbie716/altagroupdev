@@ -37,7 +37,7 @@ const Textarea = React.forwardRef<
   return (
     <textarea
       className={cn(
-        "flex min-h-[60px] w-full resize-none rounded-md border border-border bg-surface-1 px-3.5 py-2.5 text-base transition-[border-color,box-shadow] placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-1 focus-visible:ring-gold/40 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "flex min-h-[60px] w-full resize-none rounded-md border border-border bg-surface-1 px-3.5 py-2.5 text-base transition-[border-color] placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
         autoResize && "overflow-hidden",
         className,
       )}

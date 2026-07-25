@@ -89,12 +89,13 @@ function parseTransfer(
     return { counterparty: matchPlain[2].trim(), scope };
   }
 
-  const privateTransfer = new RegExp(
+  // Retired program wording still present on historical rows — normalize to a plain transfer.
+  const retiredProgramTransfer = new RegExp(
     `^Alta Private access ended — transfer ${direction} (.+?) · `,
   );
-  const matchPrivate = description.match(privateTransfer);
-  if (matchPrivate) {
-    return { counterparty: matchPrivate[1].trim(), scope: "intrabank" };
+  const matchRetiredProgram = description.match(retiredProgramTransfer);
+  if (matchRetiredProgram) {
+    return { counterparty: matchRetiredProgram[1].trim(), scope: "intrabank" };
   }
 
   const generic = new RegExp(`^Transfer ${direction} (.+)$`);

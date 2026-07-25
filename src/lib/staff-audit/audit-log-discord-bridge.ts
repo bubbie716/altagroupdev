@@ -111,11 +111,6 @@ const ACTION_LABELS: Record<string, string> = {
   MERCHANT_PAYMENT_RECEIVED: "Merchant payment received",
   MERCHANT_PAYMENT_FAILED: "Merchant payment failed",
   ALTA_CARD_ALTA_PAY_CHARGED: "Alta Pay sent (card-funded)",
-  ALTA_PRIVATE_INVITATION_SENT: "Alta Private invitation sent",
-  ALTA_PRIVATE_INVITATION_REVOKED: "Alta Private invitation revoked",
-  ALTA_PRIVATE_INVITATION_ACCEPTED: "Alta Private invitation accepted",
-  ALTA_PRIVATE_INVITATION_DECLINED: "Alta Private invitation declined",
-  ALTA_PRIVATE_ACTIVATED: "Alta Private membership activated",
   COMPANY_CREATED: "Company created",
   COMPANY_VERIFIED: "Company verified",
   COMPANY_REJECTED: "Company verification rejected",
@@ -170,7 +165,6 @@ const ACTION_LABELS: Record<string, string> = {
   BANK_PAYMENT_BLOCKED: "Payment blocked",
   BANK_PAYMENT_REVERSED: "Payment reversed",
   DEAL_ROOM_DISCORD_SYNC_FAILED: "Deal Room Discord sync failed",
-  PRIVATE_BANKING_CLIENT_MARKED: "Alta Private client marked",
 };
 
 function humanizeAction(action: string): string {
@@ -230,7 +224,6 @@ function inferSeverity(action: string, metadata: Record<string, unknown> | undef
 function productFor(input: WriteAuditLogInput): StaffAuditProduct {
   const { action, entityType } = input;
   if (action.startsWith("ALTA_CARD") || action.startsWith("ALTA_EMPLOYEE_CARD")) return "Alta Card";
-  if (action.startsWith("ALTA_PRIVATE") || action.startsWith("PRIVATE_BANKING")) return "Alta Private";
   if (action.startsWith("COMPANY_") || action === "BUSINESS_ACCOUNT_OPENED") return "Companies";
   if (action.startsWith("ALTA_PAY") || action === "ALTA_CARD_ALTA_PAY_CHARGED") return "Alta Pay";
   if (action.startsWith("MERCHANT_INVOICE") || entityType === "MERCHANT_INVOICE") return "Alta Bank";

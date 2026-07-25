@@ -49,12 +49,10 @@ describe("maintenance guard", () => {
 
   it("keeps signed-in non-admins behind maintenance", () => {
     const member = userWithTags([]);
-    const privateClient = userWithTags(["private_client"]);
     const bankAdmin = userWithTags(["bank_admin"]);
     assert.equal(shouldEnforceMaintenance("/", member), true);
     assert.equal(shouldEnforceMaintenance("/bank", member), true);
-    assert.equal(shouldEnforceMaintenance("/", privateClient), true);
-    assert.equal(shouldEnforceMaintenance("/internal", privateClient), true);
+    assert.equal(shouldEnforceMaintenance("/internal", member), true);
     assert.equal(shouldEnforceMaintenance("/bank", bankAdmin), true);
   });
 

@@ -16,7 +16,6 @@ export {
   isCorporateAdmin,
   isBankAdmin,
   isTerminalAdmin,
-  isPrivateClient,
   isDeveloper,
   canAccessAnyInternal,
   canAccessBankInternal,
@@ -34,7 +33,6 @@ export type { CompanyScope } from "./permissions";
 export {
   authBeforeLoad,
   internalBeforeLoad,
-  privateClientBeforeLoad,
   developerBeforeLoad,
   issuerPortalBeforeLoad,
 } from "./guards";

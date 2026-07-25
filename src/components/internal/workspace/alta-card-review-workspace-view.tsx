@@ -81,7 +81,6 @@ export function AltaCardReviewWorkspaceView({
   const [approvedTier, setApprovedTier] = useState<AltaCardTierCode>(
     review.requestedTier ?? rel?.recommendedTier ?? review.currentTier,
   );
-  const [goldOverride, setGoldOverride] = useState(false);
 
   async function submitDecision(
     input: Omit<ProcessAltaCardReviewDecisionInput, "reviewId" | "reason">,
@@ -152,12 +151,6 @@ export function AltaCardReviewWorkspaceView({
             ))}
           </select>
         ) : null}
-        {admin && approvedTier === "gold" ? (
-          <label className="flex items-center gap-2 text-[12px]">
-            <input type="checkbox" checked={goldOverride} onChange={(e) => setGoldOverride(e.target.checked)} />
-            Gold override (non-private)
-          </label>
-        ) : null}
         <div className="flex flex-wrap gap-1 pt-2">
           <OpsAction
             label="Approve"
@@ -177,7 +170,6 @@ export function AltaCardReviewWorkspaceView({
                   approvedRate: approveRate ? Number(approvedRate) : undefined,
                   approveTierUpgrade: approveTier,
                   approvedTier: approveTier ? approvedTier : undefined,
-                  goldOverride,
                 },
                 reason,
               );
