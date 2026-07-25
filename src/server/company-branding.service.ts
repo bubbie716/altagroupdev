@@ -1,6 +1,6 @@
 import type { AltaUser } from "@/lib/auth/types";
 import { canManageMerchantInvoices, canAccessBankInternal, canViewMerchantInvoices } from "@/lib/auth/permissions";
-import type { CompanyBrandingInput, CompanyBrandingSettingsView } from "@/lib/bank/company-branding-types";
+import type { CompanyBrandingInput, CompanyBrandingRow, CompanyBrandingSettingsView } from "@/lib/bank/company-branding-types";
 import {
   DEFAULT_ACCENT_COLOR,
   DEFAULT_BRAND_COLOR,
@@ -108,7 +108,7 @@ export async function getCompanyBrandingSettings(
       rejectedAt: null,
       rejectedReason: null,
       updatedAt: new Date(0).toISOString(),
-    } satisfies CompanyBrandingSettingsView);
+    } satisfies CompanyBrandingRow);
 
   const canPublish = canPublishInvoiceBranding(plan);
   const publicBranding = resolveCustomerFacingBranding({

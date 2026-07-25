@@ -16,13 +16,55 @@ import { useRequireCurrentUser } from "@/hooks/use-current-user";
 import { fetchUserBankSummary } from "@/lib/bank/bank.functions";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: authBeforeLoad,
   loader: () => fetchUserBankSummary(),
+  pendingComponent: () => <RoutePendingFallback label="Loading profile" />,
+  errorComponent: ProfilePageError,
   head: () => ({ meta: [{ title: "Profile — Alta Group" }] }),
   component: ProfilePage,
 });
+
+function ProfilePageError({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <PageShell
+      eyebrow="Alta Account"
+      title="Profile unavailable"
+      description="We couldn’t load your profile right now. Your session is still signed in — try again in a moment."
+    >
+      <div className="mx-auto max-w-lg rounded-lg border border-border bg-surface-1 p-8 text-center">
+        <p className="text-[13px] text-muted-foreground">
+          {error.message === "FORBIDDEN"
+            ? "You don’t have access to this profile summary."
+            : "Please try again. If this keeps happening, contact Alta support."}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={reset}
+            className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background"
+          >
+            Try again
+          </button>
+          <Link
+            to="/"
+            className="rounded-md border border-border px-5 py-2.5 text-[13px] font-medium tracking-wide"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
 
 function ProfilePage() {
   const user = useRequireCurrentUser();

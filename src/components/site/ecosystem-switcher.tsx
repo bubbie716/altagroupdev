@@ -17,6 +17,7 @@ import {
   getCurrentEcosystemEntry,
   getEcosystemSwitcherLinks,
 } from "@/lib/site/ecosystem-config";
+import { readRequestHost } from "@/lib/site/site-context";
 
 function EcosystemLinkRow({
   name,
@@ -60,7 +61,7 @@ export function EcosystemSwitcher({
   variant?: "text" | "branded";
 }) {
   const current = getCurrentEcosystemEntry(siteKey);
-  const links = getEcosystemSwitcherLinks(siteKey);
+  const links = getEcosystemSwitcherLinks(siteKey, readRequestHost());
   const isTerminal = siteKey === "terminal";
   const menu = useControlledMenu();
 
@@ -121,8 +122,7 @@ export function EcosystemSwitcher({
               <DropdownMenuItem
                 key={link.key}
                 className="cursor-pointer items-start rounded-md bg-[var(--menu-item-selected)] px-2 py-2"
-                onSelect={(event) => {
-                  event.preventDefault();
+                onSelect={() => {
                   menu.close();
                 }}
               >
@@ -144,8 +144,7 @@ export function EcosystemSwitcher({
             <DropdownMenuItem
               key={link.key}
               className="cursor-pointer items-start rounded-md px-2 py-2"
-              onSelect={(event) => {
-                event.preventDefault();
+              onSelect={() => {
                 if (menu.isNavigating()) return;
                 menu.runAfterClose(() => {
                   window.location.assign(link.href);
@@ -171,7 +170,7 @@ export function EcosystemSwitcherMobileSection({
   onNavigate?: () => void;
   className?: string;
 }) {
-  const links = getEcosystemSwitcherLinks(siteKey);
+  const links = getEcosystemSwitcherLinks(siteKey, readRequestHost());
 
   return (
     <div className={cn("border-b border-border/60 px-4 py-4", className)}>

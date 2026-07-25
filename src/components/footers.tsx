@@ -22,6 +22,7 @@ import {
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 import type { FooterVariant } from "@/lib/platform/footer-variant";
 import type { SiteKey } from "@/config/sites";
+import { readRequestHost } from "@/lib/site/site-context";
 import { cn } from "@/lib/utils";
 
 // Re-export for callers that import legal helpers from footers
@@ -81,7 +82,7 @@ function FooterLegalCenterLink({
 }
 
 function FooterEcosystemColumn({ siteKey }: { siteKey: SiteKey }) {
-  const links = getFooterEcosystemLinks(siteKey);
+  const links = getFooterEcosystemLinks(siteKey, readRequestHost());
 
   return (
     <FooterColumn title="Alta Ecosystem">

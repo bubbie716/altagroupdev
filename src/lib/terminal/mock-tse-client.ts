@@ -15,7 +15,6 @@ import {
   FIXTURE_EMPTY_CASH,
   FIXTURE_INITIAL_WATCHLIST,
   FIXTURE_MARKET_STATUS,
-  buildEmptyFixturePortfolio,
   getFixturePriceHistory,
   getFixtureSecurity,
   listFixtureSecurities,
@@ -168,7 +167,6 @@ export class MockTseClient implements TseClient {
       realizedGainLoss: 0,
     };
     if (state.lots.length === 0) {
-      const empty = buildEmptyFixturePortfolio(state.cash, portfolioId);
       return buildSnapshotFromLedger(portfolioId, applied, {
         ...profile,
         seriesSeed: state.seriesSeed,

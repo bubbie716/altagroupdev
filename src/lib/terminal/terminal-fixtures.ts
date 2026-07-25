@@ -23,14 +23,64 @@ export function buildDeterministicSeries(
   endTime = Date.UTC(2026, 6, 21, 16, 0, 0),
 ): PricePoint[] {
   const out: PricePoint[] = [];
-  let price = base * (1 - volatility * 0.35);
+  const safeBase = Math.max(base, 0);
+  // Relative floor — never collapse a large portfolio to ~$0.50.
+  const floor = Math.max(safeBase * 0.55, 0);
+  let price = safeBase * (1 - Math.min(volatility, 0.2) * 0.35);
   const stepMs = Math.max(60_000, Math.floor((6.5 * 60 * 60 * 1000) / Math.max(points - 1, 1)));
   for (let i = 0; i < points; i++) {
-    const drift = (hash01(seed + i * 17) - 0.48) * volatility * base;
-    price = Math.max(0.5, price + drift);
+    const drift = (hash01(seed + i * 17) - 0.48) * volatility * Math.max(safeBase, 1);
+    price = Math.max(floor, price + drift);
     out.push({ t: endTime - (points - 1 - i) * stepMs, v: Number(price.toFixed(2)) });
   }
-  if (out.length) out[out.length - 1] = { ...out[out.length - 1]!, v: Number(base.toFixed(2)) };
+  if (out.length) out[out.length - 1] = { ...out[out.length - 1]!, v: Number(safeBase.toFixed(2)) };
+  return out;
+}
+
+/**
+ * Build a performance path from startValue → endValue with mild deterministic texture.
+ * Timestamps are strictly increasing; values stay within a relative band of the anchors.
+ */
+export function buildAnchoredSeries(opts: {
+  seed: number;
+  startValue: number;
+  endValue: number;
+  points: number;
+  volatility: number;
+  endTime?: number;
+}): PricePoint[] {
+  const {
+    seed,
+    startValue,
+    endValue,
+    points,
+    volatility,
+    endTime = Date.UTC(2026, 6, 21, 16, 0, 0),
+  } = opts;
+  const n = Math.max(2, points);
+  const stepMs = Math.max(60_000, Math.floor((6.5 * 60 * 60 * 1000) / Math.max(n - 1, 1)));
+  const mid = (startValue + endValue) / 2;
+  const band =
+    volatility <= 0
+      ? 0
+      : Math.max(Math.abs(mid) * Math.min(Math.max(volatility, 0.002), 0.18), 0.01);
+  const floor = Math.max(0, Math.min(startValue, endValue) - band);
+  const ceiling = Math.max(startValue, endValue) + band;
+  const out: PricePoint[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const t = endTime - (n - 1 - i) * stepMs;
+    const progress = i / (n - 1);
+    const linear = startValue + (endValue - startValue) * progress;
+    const wobble =
+      band === 0 || i === 0 || i === n - 1
+        ? 0
+        : (hash01(seed + i * 19) - 0.5) * 2 * band * 0.85;
+    const v = Math.min(ceiling, Math.max(floor, linear + wobble));
+    out.push({ t, v: Number(v.toFixed(2)) });
+  }
+  out[0] = { t: out[0]!.t, v: Number(startValue.toFixed(2)) };
+  out[n - 1] = { t: out[n - 1]!.t, v: Number(endValue.toFixed(2)) };
   return out;
 }
 
@@ -330,10 +380,10 @@ export function buildFixturePortfolioFromLots(
   }
 
   const dayChange = holdings.reduce((sum, h) => sum + h.dayReturn, 0);
-  const priorEquity = equity - dayChange;
   const totalCost = lots.reduce((sum, lot) => sum + lot.quantity * lot.averageCost, 0);
   const totalReturn = equity - totalCost;
   const totalValue = equity + cash;
+  const priorTotal = totalValue - dayChange;
 
   return {
     portfolioId,
@@ -342,7 +392,10 @@ export function buildFixturePortfolioFromLots(
     buyingPower: cash,
     totalValue: Number(totalValue.toFixed(2)),
     dayChange: Number(dayChange.toFixed(2)),
-    dayChangePercent: priorEquity > 0 ? Number(((dayChange / priorEquity) * 100).toFixed(2)) : 0,
+    dayChangePercent:
+      Math.abs(priorTotal) > 0.005
+        ? Number(((dayChange / Math.abs(priorTotal)) * 100).toFixed(2))
+        : 0,
     totalReturn: Number(totalReturn.toFixed(2)),
     totalReturnPercent: totalCost > 0 ? Number(((totalReturn / totalCost) * 100).toFixed(2)) : 0,
     unrealizedReturn: Number(totalReturn.toFixed(2)),
@@ -371,7 +424,13 @@ export function buildEmptyFixturePortfolio(
   cash = FIXTURE_EMPTY_CASH,
   portfolioId = "tp_personal_growth",
 ): PortfolioSnapshot {
-  const flat = buildDeterministicSeries(42, cash, 40, 0.002);
+  const flat = buildAnchoredSeries({
+    seed: 42,
+    startValue: cash,
+    endValue: cash,
+    points: 40,
+    volatility: 0,
+  });
   const series = {
     "1D": flat,
     "1W": flat,

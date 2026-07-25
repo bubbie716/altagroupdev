@@ -79,6 +79,11 @@ export const fetchUserBankDashboard = createServerFn({ method: "GET" }).handler(
 });
 
 export const fetchUserBankSummary = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabBankSummary } = await import("@/lib/auth/ui-lab-fixtures");
+    return getUiLabBankSummary();
+  }
   const { getUserBankSummary } = await import("@/server/bank.service");
   const userId = await actorId();
   return getUserBankSummary(userId);

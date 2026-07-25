@@ -25,8 +25,11 @@ export type FooterEcosystemLink =
   | { label: string; href: string; current: boolean; external: true };
 
 /** Cross-entity navigation — current site is marked for emphasis. */
-export function getFooterEcosystemLinks(currentSiteKey: SiteKey): FooterEcosystemLink[] {
-  return getEcosystemSwitcherLinks(currentSiteKey).map((link) => {
+export function getFooterEcosystemLinks(
+  currentSiteKey: SiteKey,
+  requestHost?: string,
+): FooterEcosystemLink[] {
+  return getEcosystemSwitcherLinks(currentSiteKey, requestHost).map((link) => {
     const homePath = ECOSYSTEM_ENTRIES.find((entry) => entry.key === link.key)?.homePath ?? "/";
     if (link.current) {
       return { label: link.name, to: homePath, current: true, external: false as const };
@@ -39,8 +42,8 @@ export function getFooterEcosystemLinks(currentSiteKey: SiteKey): FooterEcosyste
 export type FooterCompanyLink = FooterEcosystemLink;
 
 /** @deprecated Use getFooterEcosystemLinks */
-export function getFooterCompanyLinks(): FooterEcosystemLink[] {
-  return getFooterEcosystemLinks("corporate");
+export function getFooterCompanyLinks(requestHost?: string): FooterEcosystemLink[] {
+  return getFooterEcosystemLinks("corporate", requestHost);
 }
 
 export const FOOTER_CORPORATE_SECTION_LINKS = [

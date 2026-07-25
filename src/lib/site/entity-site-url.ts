@@ -1,6 +1,5 @@
 import { getSiteConfig, type SiteKey } from "@/config/sites";
 import {
-  devSiteSearchParams,
   isPlainLocalDevHost,
   siteKeyForEntityPath,
 } from "@/lib/site/local-dev-site";
@@ -51,14 +50,35 @@ function resolveLocalDevUrl(
   return sub ? `http://${sub}.localhost${portSuffix}${path}` : `http://localhost${portSuffix}${path}`;
 }
 
-function resolveRequestHost(requestHost?: string): string | undefined {
-  if (requestHost) return requestHost;
-  if (typeof window === "undefined") return undefined;
+/**
+ * Stable same-app relative URLs when request origin is unknown.
+ * Prefer passing an explicit request host so SSR and the browser match.
+ */
+export function resolveRelativeEntitySiteUrl(siteKey: SiteKey, path = "/"): string {
+  const normalizedPath = normalizePath(path);
+  if (siteKey === "corporate") {
+    return normalizedPath;
+  }
+  if (normalizedPath === "/") {
+    return `/?site=${siteKey}`;
+  }
+  if (siteKeyForEntityPath(normalizedPath) === siteKey) {
+    return normalizedPath;
+  }
+  const params = new URLSearchParams({ site: siteKey });
+  return `${normalizedPath}?${params.toString()}`;
+}
 
-  const { host, hostname, port } = window.location;
-  if (host) return host;
-  if (!hostname) return undefined;
-  return port ? `${hostname}:${port}` : hostname;
+function portSuffixFromHost(host: string): string {
+  return host.includes(":") ? `:${host.split(":").slice(1).join(":")}` : "";
+}
+
+function hostnameFromHost(host: string): string {
+  return host.split(":")[0].toLowerCase();
+}
+
+function isLocalDevHostname(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
 }
 
 /** Absolute URL for an Alta entity site (subdomain in prod, localhost/?site= in plain local dev). */
@@ -68,40 +88,30 @@ export function resolveEntitySiteUrl(
   requestHost?: string,
 ): string {
   const normalizedPath = normalizePath(path);
-  const host = resolveEntitySiteHostname(siteKey);
-  const resolvedHost = resolveRequestHost(requestHost);
+  const productionHost = resolveEntitySiteHostname(siteKey);
 
-  if (resolvedHost) {
-    const portSuffix = resolvedHost.includes(":")
-      ? `:${resolvedHost.split(":").slice(1).join(":")}`
-      : "";
-    const hostname = resolvedHost.split(":")[0].toLowerCase();
-
-    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost")) {
-      return resolveLocalDevUrl(siteKey, normalizedPath, portSuffix, hostname);
+  if (!requestHost) {
+    // No origin context — keep markup stable with relative same-app URLs.
+    // Callers that need absolute production URLs must pass the request host.
+    if (process.env.NODE_ENV === "production") {
+      return `https://${productionHost}${normalizedPath}`;
     }
+    return resolveRelativeEntitySiteUrl(siteKey, normalizedPath);
+  }
 
-    const secure =
-      typeof window !== "undefined" ? window.location.protocol === "https:" : process.env.NODE_ENV === "production";
-    return `${secure ? "https" : "http"}://${host}${normalizedPath}`;
+  const portSuffix = portSuffixFromHost(requestHost);
+  const hostname = hostnameFromHost(requestHost);
+
+  if (isLocalDevHostname(hostname)) {
+    return resolveLocalDevUrl(siteKey, normalizedPath, portSuffix, hostname);
   }
 
   const secure = process.env.NODE_ENV === "production";
-  if (!secure && siteKey !== "corporate") {
-    if (process.env.NODE_ENV !== "production") {
-      return resolveLocalDevUrl(siteKey, normalizedPath, "", "localhost");
-    }
-    const sub = getSiteConfig(siteKey).localSubdomain;
-    if (sub) {
-      return `http://${sub}.localhost${normalizedPath}`;
-    }
-  }
-
-  return `${secure ? "https" : "http"}://${host}${normalizedPath}`;
+  return `${secure ? "https" : "http"}://${productionHost}${normalizedPath}`;
 }
 
-export function resolveCorporateSiteUrl(path = "/"): string {
-  return resolveEntitySiteUrl("corporate", path);
+export function resolveCorporateSiteUrl(path = "/", requestHost?: string): string {
+  return resolveEntitySiteUrl("corporate", path, requestHost);
 }
 
 /** Hostname label for external subsidiary links (e.g. bank.altagroup.dev). */
@@ -109,4 +119,4 @@ export function resolveEntitySiteLabel(siteKey: SiteKey): string {
   return resolveEntitySiteHostname(siteKey);
 }
 
-export { devSiteSearchParams };
+export { devSiteSearchParams } from "@/lib/site/local-dev-site";

@@ -86,7 +86,11 @@ export function PortfolioSwitcher({
         onSelect(id);
         return;
       }
-      void navigate({ to: "/terminal/portfolio/$portfolioId", params: { portfolioId: id } });
+      void navigate({
+        to: "/terminal/portfolio/$portfolioId",
+        params: { portfolioId: id },
+        search: { range: "1D" },
+      });
     });
   }
 
@@ -100,6 +104,7 @@ export function PortfolioSwitcher({
     void navigate({
       to: "/terminal/portfolio/$portfolioId",
       params: { portfolioId: portfolio.id },
+      search: { range: "1D" },
     });
   }
 
@@ -108,8 +113,9 @@ export function PortfolioSwitcher({
       <DropdownMenu open={menu.open} onOpenChange={menu.setOpen}>
         <DropdownMenuTrigger
           className={cn(
-            "inline-flex max-w-full items-center gap-1.5 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-2.5 py-1.5 text-left outline-none",
+            "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-2.5 text-left outline-none",
             "hover:bg-[var(--menu-item-hover)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
+            compact ? "py-1.5" : "py-2",
             className,
           )}
           aria-label={
@@ -212,8 +218,8 @@ function PortfolioMenuItem({
         "cursor-pointer items-start rounded-md px-2 py-2",
         current && "bg-[var(--menu-item-selected)]",
       )}
-      onSelect={(event) => {
-        event.preventDefault();
+      onSelect={() => {
+        // Do not preventDefault — that keeps Radix menus open.
         onSelect();
       }}
     >
@@ -450,6 +456,7 @@ export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioS
     <Link
       to="/terminal/portfolio/$portfolioId"
       params={{ portfolioId: portfolio.id }}
+      search={{ range: "1D" }}
       className="block rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 transition-colors hover:border-[var(--terminal-green)]/40"
     >
       <div className="flex items-start justify-between gap-2">

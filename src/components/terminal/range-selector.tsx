@@ -16,7 +16,7 @@ export function RangeSelector({
 }) {
   return (
     <div
-      className={cn("inline-flex flex-wrap gap-1", className)}
+      className={cn("inline-flex flex-wrap gap-0.5", className)}
       role="group"
       aria-label="Chart range"
     >
@@ -29,7 +29,7 @@ export function RangeSelector({
             onClick={() => onChange(range)}
             aria-pressed={active}
             className={cn(
-              "rounded-md px-2.5 py-1 text-[11px] font-medium tracking-wide transition-colors",
+              "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2.5 text-[11px] font-medium tracking-wide transition-colors max-[359px]:min-h-9 max-[359px]:min-w-9 max-[359px]:px-1.5 max-[359px]:text-[10px]",
               active
                 ? "bg-[var(--terminal-green)]/15 text-[var(--terminal-green)]"
                 : "text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]",

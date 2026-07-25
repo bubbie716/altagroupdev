@@ -1,20 +1,27 @@
 import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { SecurityChart } from "@/components/terminal/portfolio-chart";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { SecurityStatusBadge } from "@/components/terminal/market-status";
 import { OrderTicket } from "@/components/terminal/order-ticket";
+import { MobileOrderEntry } from "@/components/terminal/mobile-order-entry";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
-import { PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
+import { SecurityPortfolioPicker } from "@/components/terminal/security-portfolio-picker";
 import {
   addTerminalWatchlistSymbol,
-  fetchEligibleTerminalCompanies,
   fetchTerminalSecurity,
   removeTerminalWatchlistSymbol,
 } from "@/lib/terminal/terminal.functions";
 import { formatCompactVolume, formatMarketCap, formatTerminalMoney } from "@/lib/terminal/format";
-import type { TerminalChartRange } from "@/lib/terminal/types";
+import {
+  formatPortfolioTicketLabel,
+  tradeBlockReason,
+  type SecurityPortfolioOption,
+} from "@/lib/terminal/security-portfolio-picker";
+import type { OrderSide, TerminalChartRange } from "@/lib/terminal/types";
+import { useOrderTicketDraft } from "@/hooks/use-order-ticket-draft";
+import { closeThenRun } from "@/lib/ui/close-then-run";
 import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 
 export const Route = createFileRoute("/terminal/security/$symbol")({
@@ -26,20 +33,17 @@ export const Route = createFileRoute("/terminal/security/$symbol")({
         : ("1D" as TerminalChartRange),
     portfolioId: typeof search.portfolioId === "string" ? search.portfolioId : undefined,
   }),
-  // Only portfolio changes should reload the route — chart ranges switch client-side.
+  // Only portfolio changes should reload the route — chart ranges are URL client state.
   loaderDeps: ({ search }) => ({ portfolioId: search.portfolioId }),
   loader: async ({ params, deps }) => {
-    const [data, eligibleCompanies] = await Promise.all([
-      fetchTerminalSecurity({
-        data: {
-          symbol: params.symbol,
-          portfolioId: deps.portfolioId,
-        },
-      }),
-      fetchEligibleTerminalCompanies(),
-    ]);
+    const data = await fetchTerminalSecurity({
+      data: {
+        symbol: params.symbol,
+        portfolioId: deps.portfolioId,
+      },
+    });
     if (!data.security && data.mode !== "unavailable") throw notFound();
-    return { ...data, eligibleCompanies };
+    return data;
   },
   head: ({ loaderData, params }) => ({
     meta: [
@@ -55,12 +59,32 @@ export const Route = createFileRoute("/terminal/security/$symbol")({
 
 function TerminalSecurityPage() {
   const data = Route.useLoaderData();
-  const { range: initialRange } = Route.useSearch();
+  const { range } = Route.useSearch();
   const navigate = Route.useNavigate();
   const router = useRouter();
   const addWatch = useServerFn(addTerminalWatchlistSymbol);
   const removeWatch = useServerFn(removeTerminalWatchlistSymbol);
   const [watchBusy, setWatchBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [orderSheetOpen, setOrderSheetOpen] = useState(false);
+  const lastPickerTriggerRef = useRef<HTMLElement | null>(null);
+  const pendingTradeFocusSideRef = useRef<OrderSide | null>(null);
+  const suppressOrderSheetCloseRef = useRef(false);
+  const positionHeadingId = useId();
+  const draft = useOrderTicketDraft(data.security?.lastPrice ?? 0);
+
+  useEffect(() => {
+    if (orderSheetOpen) return;
+    const side = pendingTradeFocusSideRef.current;
+    if (!side) return;
+    pendingTradeFocusSideRef.current = null;
+    const id = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(`[data-trade-side="${side}"]`)
+        ?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [orderSheetOpen]);
 
   if (data.mode === "unavailable") {
     return <TerminalUnavailableState />;
@@ -80,47 +104,96 @@ function TerminalSecurityPage() {
 
   const marketClosed =
     data.marketStatus.status === "closed" || data.marketStatus.status === "holiday";
+  const portfolios = data.portfolios as SecurityPortfolioOption[];
   const portfolioId = data.selectedPortfolio?.id ?? null;
-  const portfolioLabel = data.selectedPortfolio
-    ? `${data.selectedPortfolio.name} · ${data.selectedPortfolio.ownerLabel}`
-    : null;
+  const portfolioLabel = formatPortfolioTicketLabel(data.selectedPortfolio);
+  const selectedOption = portfolios.find((p) => p.id === portfolioId) ?? null;
+  const blockedReason = selectedOption ? tradeBlockReason(selectedOption) : null;
+
+  function openPicker() {
+    const active = document.activeElement;
+    lastPickerTriggerRef.current =
+      active instanceof HTMLElement ? active : null;
+    suppressOrderSheetCloseRef.current = true;
+    setPickerOpen(true);
+  }
+
+  function restorePickerTriggerFocus() {
+    const trigger = lastPickerTriggerRef.current;
+    if (trigger && trigger.isConnected) {
+      trigger.focus({ preventScroll: true });
+    }
+    suppressOrderSheetCloseRef.current = false;
+  }
+
+  function selectPortfolio(nextId: string) {
+    closeThenRun(
+      () => setPickerOpen(false),
+      () => {
+        // Close-autofocus already returned focus to the opener; navigate after paint.
+        void navigate({
+          search: (prev) => ({
+            ...prev,
+            portfolioId: nextId,
+          }),
+        });
+      },
+    );
+  }
+
+  function setChartRange(next: TerminalChartRange) {
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        range: next,
+      }),
+    });
+  }
+
+  function openOrderSheet(side: OrderSide) {
+    pendingTradeFocusSideRef.current = side;
+    draft.setSide(side);
+    setOrderSheetOpen(true);
+  }
+
+  const ticketProps = {
+    security,
+    buyingPower: data.buyingPower,
+    position: data.position,
+    mode: data.mode,
+    marketClosed,
+    portfolioId,
+    portfolioLabel,
+    canTradeSelected: !blockedReason,
+    tradeBlockedReason: blockedReason,
+    onRequestPortfolioChange: openPicker,
+    onSubmitted: () => {
+      setOrderSheetOpen(false);
+      void invalidateRouteData(router);
+    },
+    draft,
+  };
 
   return (
-    <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0">
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+    <div className="space-y-5 pb-[5.25rem] max-[359px]:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 lg:pb-0">
+      <div className="space-y-5 max-[359px]:space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-2 max-[359px]:gap-1.5 sm:gap-3">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[28px] font-medium tracking-tight sm:text-[34px]">
+              <h1 className="text-[24px] font-medium tracking-tight max-[359px]:text-[20px] sm:text-[34px]">
                 {security.symbol}
               </h1>
               <SecurityStatusBadge status={security.tradingStatus} />
             </div>
-            <p className="mt-1 text-[14px] text-[var(--terminal-muted)]">{security.name}</p>
-            <div className="mt-3 flex flex-wrap items-end gap-3">
+            <p className="mt-0.5 truncate text-[13px] text-[var(--terminal-muted)] max-[359px]:text-[12px]">
+              {security.name}
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-2 max-[359px]:mt-1.5 sm:gap-3">
               <MoneyValue value={security.lastPrice} asPrice size="lg" />
               <PriceChange amount={security.dayChange} percent={security.dayChangePercent} />
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <PortfolioSwitcher
-              portfolios={data.portfolios}
-              selectedId={portfolioId}
-              eligibleCompanies={data.eligibleCompanies}
-              compact
-              onSelect={(id) => {
-                void navigate({
-                  search: (prev) => ({ ...prev, portfolioId: id }),
-                  replace: true,
-                });
-              }}
-              onCreated={(p) => {
-                void navigate({
-                  search: (prev) => ({ ...prev, portfolioId: p.id }),
-                  replace: true,
-                });
-              }}
-            />
             <button
               type="button"
               disabled={watchBusy}
@@ -134,17 +207,24 @@ function TerminalSecurityPage() {
                   .then(() => invalidateRouteData(router))
                   .finally(() => setWatchBusy(false));
               }}
-              className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+              className="min-h-11 rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
             >
-              {data.onWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+              <span className="max-[359px]:hidden">
+                {data.onWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+              </span>
+              <span className="min-[360px]:hidden">
+                {data.onWatchlist ? "Remove" : "Watch"}
+              </span>
             </button>
           </div>
         </div>
 
         <SecurityChart
           seriesByRange={data.historyByRange}
-          initialRange={initialRange}
+          range={range}
+          onRangeChange={setChartRange}
           positive={security.dayChange >= 0}
+          className="max-[359px]:space-y-1"
         />
 
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -156,9 +236,34 @@ function TerminalSecurityPage() {
           <Stat label="Market cap" value={formatMarketCap(security.marketCap)} />
         </dl>
 
-        {data.position ? (
-          <section className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4">
-            <h2 className="text-[13px] text-[var(--terminal-muted)]">Your position</h2>
+        <section
+          className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4"
+          aria-labelledby={positionHeadingId}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2
+                id={positionHeadingId}
+                className="text-[13px] text-[var(--terminal-muted)]"
+              >
+                Your position
+              </h2>
+              <button
+                type="button"
+                onClick={openPicker}
+                className="mt-1 min-h-11 rounded-sm text-left text-[13px] font-medium text-[var(--terminal-text)] outline-none hover:underline focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40"
+                aria-haspopup="dialog"
+                aria-label={
+                  portfolioLabel
+                    ? `Position portfolio: ${portfolioLabel}. Change portfolio.`
+                    : "Choose a portfolio to view your position"
+                }
+              >
+                {portfolioLabel ?? "Choose a portfolio"}
+              </button>
+            </div>
+          </div>
+          {data.position ? (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Stat label="Shares" value={String(data.position.quantity)} />
               <Stat label="Avg cost" value={formatTerminalMoney(data.position.averageCost)} />
@@ -168,8 +273,12 @@ function TerminalSecurityPage() {
                 value={`${formatTerminalMoney(data.position.totalReturn, { signed: true })} (${data.position.totalReturnPercent.toFixed(2)}%)`}
               />
             </div>
-          </section>
-        ) : null}
+          ) : (
+            <p className="mt-3 text-[13px] text-[var(--terminal-muted)]">
+              No position in this portfolio
+            </p>
+          )}
+        </section>
 
         <section>
           <h2 className="text-[15px] font-medium">About</h2>
@@ -182,32 +291,37 @@ function TerminalSecurityPage() {
         </section>
       </div>
 
+      {/*
+        Both presentations stay in the SSR tree. CSS toggles visibility so
+        server and client markup match; display:none keeps the inactive branch
+        out of focus/a11y. Shared `draft` lives above both.
+      */}
       <aside className="hidden lg:sticky lg:top-20 lg:block">
-        <OrderTicket
-          security={security}
-          buyingPower={data.buyingPower}
-          position={data.position}
-          mode={data.mode}
-          marketClosed={marketClosed}
-          portfolioId={portfolioId}
-          portfolioLabel={portfolioLabel}
-          onSubmitted={() => void invalidateRouteData(router)}
-        />
+        <OrderTicket {...ticketProps} />
       </aside>
 
-      <div className="fixed inset-x-0 bottom-[52px] z-30 border-t border-[var(--terminal-border)] bg-[var(--terminal-bg)] p-3 md:bottom-0 lg:hidden">
-        <OrderTicket
-          security={security}
-          buyingPower={data.buyingPower}
-          position={data.position}
-          mode={data.mode}
-          marketClosed={marketClosed}
-          portfolioId={portfolioId}
-          portfolioLabel={portfolioLabel}
-          compact
-          onSubmitted={() => void invalidateRouteData(router)}
-        />
-      </div>
+      <MobileOrderEntry
+        className="lg:hidden"
+        open={orderSheetOpen}
+        onOpenChange={(open) => {
+          if (!open && (pickerOpen || suppressOrderSheetCloseRef.current)) return;
+          setOrderSheetOpen(open);
+        }}
+        onTrade={openOrderSheet}
+        ticketProps={ticketProps}
+      />
+
+      <SecurityPortfolioPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onCloseAutoFocus={() => {
+          restorePickerTriggerFocus();
+        }}
+        portfolios={portfolios}
+        selectedId={portfolioId}
+        securitySymbol={security.symbol}
+        onSelect={selectPortfolio}
+      />
     </div>
   );
 }

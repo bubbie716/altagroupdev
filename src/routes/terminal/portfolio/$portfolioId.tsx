@@ -20,8 +20,16 @@ import {
   renameTerminalPortfolioFn,
 } from "@/lib/terminal/terminal.functions";
 import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import type { TerminalChartRange } from "@/lib/terminal/types";
 
 export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    range:
+      typeof search.range === "string" &&
+      ["1D", "1W", "1M", "3M", "1Y", "ALL"].includes(search.range)
+        ? (search.range as TerminalChartRange)
+        : ("1D" as TerminalChartRange),
+  }),
   loader: async ({ params }) => {
     if (params.portfolioId === "new") {
       const data = await fetchTerminalPortfolio({ data: {} });
@@ -47,6 +55,7 @@ export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
 
 function TerminalPortfolioDetailPage() {
   const data = Route.useLoaderData();
+  const { range } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate();
   const renameFn = useServerFn(renameTerminalPortfolioFn);
@@ -105,6 +114,7 @@ function TerminalPortfolioDetailPage() {
             void navigate({
               to: "/terminal/portfolio/$portfolioId",
               params: { portfolioId: p.id },
+              search: { range: "1D" },
             });
           }}
         />
@@ -157,6 +167,14 @@ function TerminalPortfolioDetailPage() {
         equityValue={portfolio.totalValue}
         dayChange={portfolio.dayChange}
         dayChangePercent={portfolio.dayChangePercent}
+        range={range}
+        onRangeChange={(next) => {
+          void navigate({
+            to: "/terminal/portfolio/$portfolioId",
+            params: { portfolioId: selectedPortfolio.id },
+            search: (prev) => ({ ...prev, range: next }),
+          });
+        }}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -216,7 +234,7 @@ function TerminalPortfolioDetailPage() {
           <h2 className="text-[15px] font-medium">Orders</h2>
           <Link
             to="/terminal/orders"
-            search={{ portfolioId: selectedPortfolio.id }}
+            search={{ portfolioId: selectedPortfolio.id, status: "all", side: "all" }}
             className="text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-green)]"
           >
             View all

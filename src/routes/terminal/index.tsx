@@ -168,6 +168,7 @@ function TerminalHomePage() {
           void navigate({
             to: "/terminal/portfolio/$portfolioId",
             params: { portfolioId: p.id },
+            search: { range: "1D" },
           });
         }}
       />

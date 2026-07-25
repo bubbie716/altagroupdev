@@ -8,6 +8,7 @@ export const Route = createFileRoute("/terminal/portfolio/")({
     throw redirect({
       to: "/terminal/portfolio/$portfolioId",
       params: { portfolioId: data.selectedPortfolio?.id ?? "new" },
+      search: { range: "1D" },
     });
   },
 });

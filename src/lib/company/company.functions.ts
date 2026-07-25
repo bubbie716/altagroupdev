@@ -14,12 +14,24 @@ async function actorId(): Promise<string> {
 }
 
 export const fetchUserCompanies = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabCompaniesDashboard } = await import("@/lib/auth/ui-lab-fixtures");
+    const lab = getUiLabCompaniesDashboard();
+    if (lab) return lab.companies;
+  }
   const { listUserCompanies } = await import("@/server/company.service");
   const userId = await actorId();
   return listUserCompanies(userId);
 });
 
 export const fetchCompaniesDashboard = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabCompaniesDashboard } = await import("@/lib/auth/ui-lab-fixtures");
+    const lab = getUiLabCompaniesDashboard();
+    if (lab) return lab;
+  }
   const { getCompaniesDashboard } = await import("@/server/company.service");
   const { requireAuth } = await import("@/server/auth.service");
   const user = await requireAuth();

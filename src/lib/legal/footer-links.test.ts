@@ -57,7 +57,7 @@ describe("footer links", () => {
 
   it("lists ecosystem destinations with one current site", () => {
     for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
-      const links = getFooterEcosystemLinks(siteKey);
+      const links = getFooterEcosystemLinks(siteKey, "localhost:3000");
       assert.equal(links.length, 3);
       assert.equal(
         links.some((link) => link.label === "Alta Exchange"),
@@ -69,13 +69,17 @@ describe("footer links", () => {
       for (const link of links) {
         if ("external" in link && link.external) {
           assert.ok(link.href.startsWith("http"));
+          assert.ok(link.href.includes("localhost:3000"));
         } else {
           assert.ok(link.to.startsWith("/"));
         }
       }
     }
 
-    assert.deepEqual(getFooterCompanyLinks(), getFooterEcosystemLinks("corporate"));
+    assert.deepEqual(
+      getFooterCompanyLinks("localhost:3000"),
+      getFooterEcosystemLinks("corporate", "localhost:3000"),
+    );
   });
 
   it("lists support destinations for every site", () => {

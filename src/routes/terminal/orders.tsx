@@ -25,9 +25,35 @@ import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { cn } from "@/lib/utils";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
+const ORDER_STATUSES = ["all", "open", "filled", "cancelled", "rejected", "partial"] as const;
+const ORDER_SIDES = ["all", "buy", "sell"] as const;
+
+type OrdersStatusFilter = (typeof ORDER_STATUSES)[number];
+type OrdersSideFilter = (typeof ORDER_SIDES)[number];
+
+function parseStatus(value: unknown): OrdersStatusFilter {
+  return typeof value === "string" && (ORDER_STATUSES as readonly string[]).includes(value)
+    ? (value as OrdersStatusFilter)
+    : "all";
+}
+
+function parseSide(value: unknown): OrdersSideFilter {
+  return typeof value === "string" && (ORDER_SIDES as readonly string[]).includes(value)
+    ? (value as OrdersSideFilter)
+    : "all";
+}
+
+export type TerminalOrdersSearch = {
+  portfolioId?: string;
+  status: OrdersStatusFilter;
+  side: OrdersSideFilter;
+};
+
 export const Route = createFileRoute("/terminal/orders")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): TerminalOrdersSearch => ({
     portfolioId: typeof search.portfolioId === "string" ? search.portfolioId : undefined,
+    status: parseStatus(search.status),
+    side: parseSide(search.side),
   }),
   loaderDeps: ({ search }) => ({ portfolioId: search.portfolioId }),
   loader: async ({ deps }) => {
@@ -44,14 +70,25 @@ export const Route = createFileRoute("/terminal/orders")({
 
 function TerminalOrdersPage() {
   const { mode, orders, portfolios, selectedPortfolio, eligibleCompanies } = Route.useLoaderData();
+  const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const router = useRouter();
   const cancelFn = useServerFn(cancelTerminalOrder);
-  const [status, setStatus] = useState<OrderStatus | "all">("all");
-  const [side, setSide] = useState<OrderSide | "all">("all");
   const [selected, setSelected] = useState<OrderRecord | null>(null);
 
+  const status = search.status;
+  const side = search.side;
   const filtered = useMemo(() => filterOrders(orders, { status, side }), [orders, status, side]);
+
+  function updateSearch(patch: Partial<TerminalOrdersSearch>) {
+    void navigate({
+      search: (prev) => ({
+        portfolioId: patch.portfolioId !== undefined ? patch.portfolioId : prev.portfolioId,
+        status: patch.status ?? prev.status ?? "all",
+        side: patch.side ?? prev.side ?? "all",
+      }),
+    });
+  }
 
   if (mode === "unavailable") {
     return <TerminalUnavailableState />;
@@ -71,12 +108,8 @@ function TerminalOrdersPage() {
           portfolios={portfolios}
           selectedId={selectedPortfolio?.id ?? null}
           eligibleCompanies={eligibleCompanies}
-          onSelect={(id) => {
-            void navigate({ search: { portfolioId: id }, replace: true });
-          }}
-          onCreated={(p) => {
-            void navigate({ search: { portfolioId: p.id }, replace: true });
-          }}
+          onSelect={(id) => updateSearch({ portfolioId: id })}
+          onCreated={(p) => updateSearch({ portfolioId: p.id })}
         />
       </div>
 
@@ -85,13 +118,13 @@ function TerminalOrdersPage() {
           label="Status"
           value={status}
           options={["all", "open", "filled", "cancelled", "rejected"]}
-          onChange={(v) => setStatus(v as OrderStatus | "all")}
+          onChange={(v) => updateSearch({ status: v as OrdersStatusFilter })}
         />
         <FilterGroup
           label="Side"
           value={side}
           options={["all", "buy", "sell"]}
-          onChange={(v) => setSide(v as OrderSide | "all")}
+          onChange={(v) => updateSearch({ side: v as OrdersSideFilter })}
         />
       </div>
 
@@ -178,7 +211,7 @@ function FilterGroup({
           type="button"
           onClick={() => onChange(option)}
           className={cn(
-            "rounded-md px-2.5 py-1.5 text-[12px] capitalize",
+            "rounded-md px-2.5 text-[12px] capitalize min-h-11 inline-flex items-center",
             value === option
               ? "bg-[var(--terminal-surface-2)] text-[var(--terminal-text)]"
               : "text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]",

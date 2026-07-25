@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useHiddenClosedAccounts } from "@/hooks/use-hidden-closed-accounts";
+import { useNavigatingSelect } from "@/hooks/use-navigating-select";
 import { findCompanyMembership } from "@/lib/auth/permissions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { resolveAccountSwitchSuffix } from "@/lib/bank/account-switch-path";
@@ -42,9 +43,7 @@ export function AccountPageToolbar({
     [accounts, currentAccountId, hiddenIds],
   );
 
-  function handleAccountChange(nextAccountId: string) {
-    if (nextAccountId === currentAccountId) return;
-
+  const accountSelect = useNavigatingSelect(currentAccountId, (nextAccountId) => {
     const nextAccount = switcherAccounts.find((account) => account.id === nextAccountId);
     if (!nextAccount) return;
 
@@ -60,11 +59,11 @@ export function AccountPageToolbar({
       companyRole,
     );
 
-    navigate({
+    void navigate({
       to: `/bank/account/$accountId${suffix}` as "/bank/account/$accountId",
       params: { accountId: nextAccountId },
     });
-  }
+  });
 
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -76,10 +75,13 @@ export function AccountPageToolbar({
       </RouteButton>
 
       <div className="min-w-0 sm:ml-auto sm:max-w-lg">
-        <div className="mb-2 type-meta">
-          Account
-        </div>
-        <Select value={currentAccountId} onValueChange={handleAccountChange}>
+        <div className="mb-2 type-meta">Account</div>
+        <Select
+          value={accountSelect.value}
+          open={accountSelect.open}
+          onOpenChange={accountSelect.onOpenChange}
+          onValueChange={accountSelect.onValueChange}
+        >
           <SelectTrigger className="w-full font-mono text-[12px] shadow-none">
             <SelectValue placeholder="Select account" />
           </SelectTrigger>

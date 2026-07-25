@@ -19,6 +19,7 @@ import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import { useServerFn } from "@tanstack/react-start";
 import { getAccountMenuItems } from "@/lib/account/account-menu-config";
 import { resolveSiteInternalLink } from "@/components/site/site-internal-link";
+import { readRequestHost } from "@/lib/site/site-context";
 
 export function AuthUserMenu() {
   const user = useCurrentUser();
@@ -53,7 +54,7 @@ export function AuthUserMenu() {
 
   function navigateToAccountItem(to: string) {
     if (menu.isNavigating()) return;
-    const target = resolveSiteInternalLink(site.key, to);
+    const target = resolveSiteInternalLink(site.key, to, { host: readRequestHost() });
     menu.runAfterClose(() => {
       if (target.kind === "url") {
         window.location.assign(target.href);
@@ -91,8 +92,7 @@ export function AuthUserMenu() {
             <DropdownMenuItem
               key={item.to}
               className="cursor-pointer"
-              onSelect={(event) => {
-                event.preventDefault();
+              onSelect={() => {
                 navigateToAccountItem(item.to);
               }}
             >
@@ -103,8 +103,7 @@ export function AuthUserMenu() {
         })}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={(event) => {
-            event.preventDefault();
+          onSelect={() => {
             void handleLogout();
           }}
           className="cursor-pointer text-destructive focus:text-destructive data-[highlighted]:bg-[var(--menu-item-destructive-hover)] data-[highlighted]:text-destructive"

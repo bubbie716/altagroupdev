@@ -6,7 +6,7 @@ import {
   Scripts,
   redirect,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -36,6 +36,7 @@ import { resolveRetiredExchangeRedirect } from "@/lib/site/exchange-retirement-r
 import { FooterProvider } from "@/lib/platform/footer-context";
 import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
+import { TransientOverlayRouteGuard } from "@/components/ui/transient-overlay-route-guard";
 
 function NotFoundComponent() {
   return (
@@ -232,6 +233,7 @@ function RootComponent() {
       <RouteTransitionProvider>
         <FooterProvider>
           <NumberInputScrollGuard />
+          <TransientOverlayRouteGuard />
           {isUiLabMode() && <UiLabBanner />}
           <SiteReturnPathTracker />
           <div className="flex min-h-screen flex-col bg-background">
@@ -249,9 +251,35 @@ function RootComponent() {
 
 /** UI LAB ONLY — DO NOT ENABLE IN PRODUCTION */
 function UiLabBanner() {
+  return <UiLabBannerClient />;
+}
+
+function UiLabBannerClient() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty("--ui-lab-banner-height", `${el.offsetHeight}px`);
+      root.dataset.uiLabBanner = "true";
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.setProperty("--ui-lab-banner-height", "0px");
+      delete root.dataset.uiLabBanner;
+    };
+  }, []);
+
   return (
     <div
+      ref={ref}
       role="status"
+      data-ui-lab-banner=""
       style={{
         position: "sticky",
         top: 0,

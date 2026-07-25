@@ -44,20 +44,23 @@ export type EcosystemSwitcherLink = {
   current: boolean;
 };
 
-function resolveEcosystemHref(entry: EcosystemEntry): string {
+function resolveEcosystemHref(entry: EcosystemEntry, requestHost?: string): string {
   if (entry.key === "corporate") {
-    return resolveCorporateSiteUrl(entry.homePath);
+    return resolveCorporateSiteUrl(entry.homePath, requestHost);
   }
-  return resolveEntitySiteUrl(entry.key, entry.homePath);
+  return resolveEntitySiteUrl(entry.key, entry.homePath, requestHost);
 }
 
-export function getEcosystemSwitcherLinks(currentSiteKey: SiteKey): EcosystemSwitcherLink[] {
+export function getEcosystemSwitcherLinks(
+  currentSiteKey: SiteKey,
+  requestHost?: string,
+): EcosystemSwitcherLink[] {
   return ECOSYSTEM_ENTRIES.map((entry) => ({
     key: entry.key,
     name: entry.name,
     shortName: entry.shortName,
     description: entry.description,
-    href: resolveEcosystemHref(entry),
+    href: resolveEcosystemHref(entry, requestHost),
     current: entry.key === currentSiteKey,
   }));
 }

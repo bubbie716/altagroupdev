@@ -27,6 +27,43 @@ async function enrichPortfolioSummaries(
   );
 }
 
+async function enrichSecurityPortfolioOptions(
+  client: TseClient,
+  portfolios: TerminalPortfolioSummary[],
+  symbol: string,
+): Promise<
+  Array<
+    TerminalPortfolioSummary & {
+      buyingPower: number;
+      holdingQuantity: number;
+    }
+  >
+> {
+  const upper = symbol.toUpperCase();
+  return Promise.all(
+    portfolios.map(async (portfolio) => {
+      try {
+        const snapshot = await client.getPortfolio(portfolio.id);
+        const holding = snapshot.holdings.find((h) => h.symbol === upper);
+        return {
+          ...portfolio,
+          totalValue: snapshot.totalValue,
+          dayChange: snapshot.dayChange,
+          dayChangePercent: snapshot.dayChangePercent,
+          buyingPower: snapshot.buyingPower,
+          holdingQuantity: holding?.quantity ?? 0,
+        };
+      } catch {
+        return {
+          ...portfolio,
+          buyingPower: 0,
+          holdingQuantity: 0,
+        };
+      }
+    }),
+  );
+}
+
 async function requireTerminalUser() {
   const { isUiLabMode, getUiLabUserIfEnabled } = await import("@/lib/auth/ui-lab");
   if (isUiLabMode()) {
@@ -78,18 +115,17 @@ export const fetchTerminalSecurity = createServerFn({ method: "GET" })
     } = await import("@/lib/terminal/terminal-portfolio.service");
     const { getTseClient } = await import("@/lib/terminal/tse-client");
     const client = getTseClient({ userId: user.id });
-    const portfolios = await enrichPortfolioSummaries(
-      client,
-      await listAccessibleTerminalPortfolios(user),
-    );
+    const listed = await listAccessibleTerminalPortfolios(user);
     const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
+    const symbol = data.symbol.toUpperCase();
+    const portfolios = await enrichSecurityPortfolioOptions(client, listed, symbol);
     const ranges = ["1D", "1W", "1M", "3M", "1Y", "ALL"] as const;
 
     if (!portfolioId) {
-      const security = await client.getSecurity(data.symbol.toUpperCase());
+      const security = await client.getSecurity(symbol);
       const historyByRange = Object.fromEntries(
         await Promise.all(
-          ranges.map(async (range) => [range, await client.getPriceHistory(data.symbol.toUpperCase(), range)]),
+          ranges.map(async (range) => [range, await client.getPriceHistory(symbol, range)]),
         ),
       ) as Record<(typeof ranges)[number], Awaited<ReturnType<typeof client.getPriceHistory>>>;
       return {
@@ -106,7 +142,6 @@ export const fetchTerminalSecurity = createServerFn({ method: "GET" })
     }
     await rememberSelectedTerminalPortfolio(user, portfolioId);
     const selectedPortfolio = await getTerminalPortfolioForUser(user, portfolioId);
-    const symbol = data.symbol.toUpperCase();
     const [security, portfolio, watchlist, marketStatus, ...histories] = await Promise.all([
       client.getSecurity(symbol),
       client.getPortfolio(portfolioId),

@@ -118,12 +118,22 @@ function InteractiveTerminalChart({
   useEffect(() => {
     const node = chartContainerRef.current;
     if (!node) return;
-    const updateSize = () =>
-      setContainerSize({ width: node.clientWidth, height: node.clientHeight });
+    const updateSize = () => {
+      const width = Math.max(0, Math.floor(node.clientWidth));
+      const height = Math.max(0, Math.floor(node.clientHeight));
+      setContainerSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height },
+      );
+    };
     updateSize();
+    // Capture once after layout so the first paint isn’t stuck at 0×0.
+    const raf = window.requestAnimationFrame(updateSize);
     const observer = new ResizeObserver(updateSize);
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -191,7 +201,12 @@ function InteractiveTerminalChart({
         <div className="flex h-full items-center justify-center text-[13px] text-[var(--terminal-muted)]">
           Chart unavailable
         </div>
-      ) : null}
+      ) : (
+        <div
+          className="h-full w-full animate-pulse rounded-md bg-[var(--terminal-surface-2)]"
+          aria-hidden
+        />
+      )}
     </div>
   );
 }
@@ -202,14 +217,20 @@ export function PortfolioChart({
   dayChange,
   dayChangePercent,
   className,
+  range: controlledRange,
+  onRangeChange,
 }: {
   seriesByRange: Record<TerminalChartRange, PricePoint[]>;
   equityValue: number;
   dayChange: number;
   dayChangePercent: number;
   className?: string;
+  range?: TerminalChartRange;
+  onRangeChange?: (range: TerminalChartRange) => void;
 }) {
-  const [range, setRange] = useState<TerminalChartRange>("1D");
+  const [localRange, setLocalRange] = useState<TerminalChartRange>("1D");
+  const range = controlledRange ?? localRange;
+  const setRange = onRangeChange ?? setLocalRange;
   const data = useMemo(() => seriesByRange[range] ?? [], [range, seriesByRange]);
   const rangeChange = useMemo(() => {
     const start = data[0]?.v;
@@ -248,27 +269,37 @@ export function SecurityChart({
   seriesByRange,
   positive,
   className,
+  range,
+  onRangeChange,
+  /** @deprecated Prefer controlled `range` + `onRangeChange` (URL-synced). */
   initialRange = "1D",
 }: {
   seriesByRange: Record<TerminalChartRange, PricePoint[]>;
   positive: boolean;
   className?: string;
+  range?: TerminalChartRange;
+  onRangeChange?: (range: TerminalChartRange) => void;
   initialRange?: TerminalChartRange;
 }) {
-  const [range, setRange] = useState<TerminalChartRange>(initialRange);
-  const data = useMemo(() => seriesByRange[range] ?? [], [range, seriesByRange]);
+  const [localRange, setLocalRange] = useState<TerminalChartRange>(initialRange);
+  const activeRange = range ?? localRange;
+  const setRange = onRangeChange ?? setLocalRange;
+  const data = useMemo(
+    () => seriesByRange[activeRange] ?? [],
+    [activeRange, seriesByRange],
+  );
 
   return (
     <section className={cn("min-w-0 space-y-3", className)} aria-label="Price history">
       <div className="flex justify-end">
-        <RangeSelector value={range} onChange={setRange} />
+        <RangeSelector value={activeRange} onChange={setRange} />
       </div>
       <InteractiveTerminalChart
         data={data}
-        range={range}
+        range={activeRange}
         positive={positive}
-        heightClass="h-[240px] sm:h-[320px]"
-        ariaLabel={`Price history ${range}`}
+        heightClass="max-[359px]:h-[min(148px,calc(100svh-29rem))] h-[148px] min-[360px]:h-[188px] min-[375px]:h-[220px] sm:h-[320px]"
+        ariaLabel={`Price history ${activeRange}`}
       />
     </section>
   );

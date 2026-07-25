@@ -132,7 +132,10 @@ export const SiteNav = memo(function SiteNav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-[100] border-b border-border/60 bg-background/95 backdrop-blur-md">
+      <header
+        className="fixed inset-x-0 z-[100] border-b border-border/60 bg-background/95 backdrop-blur-md"
+        style={{ top: "var(--ui-lab-banner-height, 0px)" }}
+      >
         <div
           className={`mx-auto flex ${NAV_HEIGHT_CLASS} max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6`}
         >
@@ -169,7 +172,7 @@ export const SiteNav = memo(function SiteNav() {
             <button
               onClick={toggle}
               aria-label="Toggle theme"
-              className="rounded-md border border-border bg-surface-2/60 p-2 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong"
+              className="inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong"
             >
               {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </button>
@@ -181,7 +184,7 @@ export const SiteNav = memo(function SiteNav() {
                 <button
                   aria-label="Open menu"
                   className={cn(
-                    "rounded-md border border-border bg-surface-2/60 p-2 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong",
+                    "inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong",
                     mobileMenuClass,
                   )}
                 >
@@ -231,7 +234,11 @@ export const SiteNav = memo(function SiteNav() {
           </div>
         </div>
       </header>
-      <div className={NAV_HEIGHT_CLASS} aria-hidden="true" />
+      <div
+        className={NAV_HEIGHT_CLASS}
+        style={{ marginTop: "var(--ui-lab-banner-height, 0px)" }}
+        aria-hidden="true"
+      />
     </>
   );
 });

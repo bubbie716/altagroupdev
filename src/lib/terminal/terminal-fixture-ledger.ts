@@ -11,7 +11,7 @@ import type {
   TerminalChartRange,
 } from "@/lib/terminal/types";
 import {
-  buildDeterministicSeries,
+  buildAnchoredSeries,
   buildEmptyFixturePortfolio,
   buildFixturePortfolioFromLots,
   getFixtureSecurity,
@@ -736,13 +736,23 @@ export function buildLedgerChartSeries(
   applied: AppliedFixtureLedger,
   seriesSeed: number,
   volatility: number,
+  opts: { totalValue: number; dayChange: number },
 ): Record<TerminalChartRange, PricePoint[]> {
   const end = Date.UTC(2026, 6, 21, 16, 0, 0);
-  const lastMark = applied.equityMarks[applied.equityMarks.length - 1];
-  const baseTotal = lastMark ? lastMark.equity + lastMark.cash : applied.cash;
+  const totalValue = money(opts.totalValue);
+  const dayChange = money(opts.dayChange);
+  const start1d = money(totalValue - dayChange);
 
-  if (applied.lots.length === 0) {
-    const flat = buildDeterministicSeries(seriesSeed, Math.max(applied.cash, 1), 40, 0.001, end);
+  // Empty / cash-only with no day move → flat charts.
+  if (applied.lots.length === 0 && Math.abs(dayChange) < 0.005) {
+    const flat = buildAnchoredSeries({
+      seed: seriesSeed,
+      startValue: totalValue,
+      endValue: totalValue,
+      points: 40,
+      volatility: 0,
+      endTime: end,
+    });
     return {
       "1D": flat,
       "1W": flat,
@@ -753,9 +763,6 @@ export function buildLedgerChartSeries(
     };
   }
 
-  // Shape a performance path around current total using profile-specific volatility,
-  // then anchor the endpoint to the reconciled total value.
-  const ranges: TerminalChartRange[] = ["1D", "1W", "1M", "3M", "1Y", "ALL"];
   const pointsByRange: Record<TerminalChartRange, number> = {
     "1D": 78,
     "1W": 48,
@@ -764,35 +771,59 @@ export function buildLedgerChartSeries(
     "1Y": 52,
     ALL: 72,
   };
+
+  // Longer ranges get distinct prior levels (not day change) so shapes differ.
+  const priorByRange: Record<TerminalChartRange, number> = {
+    "1D": start1d,
+    "1W": money(totalValue - dayChange * 2.4 - totalValue * volatility * 0.4),
+    "1M": money(totalValue - dayChange * 4.1 - totalValue * volatility * 1.1),
+    "3M": money(totalValue - dayChange * 5.5 - totalValue * volatility * 2.2),
+    "1Y": money(totalValue - dayChange * 7.2 - totalValue * volatility * 4.5),
+    ALL: money(totalValue - dayChange * 8.5 - totalValue * volatility * 6.5),
+  };
+
   const out = {} as Record<TerminalChartRange, PricePoint[]>;
-  ranges.forEach((range, idx) => {
-    const series = buildDeterministicSeries(
-      seriesSeed + idx * 17,
-      baseTotal,
-      pointsByRange[range],
-      volatility * (0.4 + idx * 0.12),
-      end,
-    );
-    // Mild drawdowns / flat stretches: dampen middle third for income-like profiles.
-    if (volatility < 0.005) {
-      for (let i = Math.floor(series.length * 0.35); i < Math.floor(series.length * 0.65); i++) {
-        const pt = series[i];
-        if (!pt) continue;
-        series[i] = { ...pt, v: money(pt.v * 0.998 + baseTotal * 0.002) };
-      }
-    }
-    // Growth: inject a sharper dip then recovery in the second quarter of the series.
-    if (volatility > 0.012) {
+  (Object.keys(pointsByRange) as TerminalChartRange[]).forEach((range, idx) => {
+    const startValue = Math.max(0, priorByRange[range]);
+    const series = buildAnchoredSeries({
+      seed: seriesSeed + idx * 17,
+      startValue,
+      endValue: totalValue,
+      points: pointsByRange[range],
+      volatility: volatility * (0.5 + idx * 0.15),
+      endTime: end,
+    });
+    // Mild mid-range texture per profile — never a near-zero plunge.
+    if (volatility > 0.01 && range !== "1D") {
       const dipAt = Math.floor(series.length * 0.45);
       const dip = series[dipAt];
-      if (dip) series[dipAt] = { ...dip, v: money(dip.v * 0.92) };
+      if (dip) {
+        const dipped = money(Math.max(startValue * 0.92, dip.v * 0.97));
+        series[dipAt] = { ...dip, v: dipped };
+      }
     }
-    if (series.length) {
-      series[series.length - 1] = { t: end, v: money(baseTotal) };
-    }
-    out[range] = series;
+    out[range] = sanitizeSeries(series, totalValue);
   });
   return out;
+}
+
+function sanitizeSeries(series: PricePoint[], endValue: number): PricePoint[] {
+  const cleaned: PricePoint[] = [];
+  for (const point of series) {
+    if (!Number.isFinite(point.t) || !Number.isFinite(point.v) || point.v < 0) continue;
+    const last = cleaned[cleaned.length - 1];
+    if (last && point.t <= last.t) continue;
+    cleaned.push({ t: point.t, v: money(point.v) });
+  }
+  if (cleaned.length === 0) {
+    const t = Date.UTC(2026, 6, 21, 16, 0, 0);
+    return [
+      { t: t - 60_000, v: money(endValue) },
+      { t, v: money(endValue) },
+    ];
+  }
+  cleaned[cleaned.length - 1] = { ...cleaned[cleaned.length - 1]!, v: money(endValue) };
+  return cleaned;
 }
 
 export function buildSnapshotFromLedger(
@@ -804,7 +835,10 @@ export function buildSnapshotFromLedger(
     const empty = buildEmptyFixturePortfolio(applied.cash, portfolioId);
     return {
       ...empty,
-      seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility),
+      seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility, {
+        totalValue: empty.totalValue,
+        dayChange: empty.dayChange,
+      }),
     };
   }
   const snap = buildFixturePortfolioFromLots(
@@ -815,8 +849,46 @@ export function buildSnapshotFromLedger(
   );
   return {
     ...snap,
-    seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility),
+    seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility, {
+      totalValue: snap.totalValue,
+      dayChange: snap.dayChange,
+    }),
   };
+}
+
+/** Chart series invariants for tests and fixture validation. */
+export function assertChartSeriesHealthy(
+  series: PricePoint[],
+  opts?: { endValue?: number; startValue?: number; maxSingleStepRatio?: number },
+): void {
+  if (series.length < 2) throw new Error("Series too short");
+  for (let i = 0; i < series.length; i++) {
+    const point = series[i]!;
+    if (!Number.isFinite(point.t) || !Number.isFinite(point.v) || point.v < 0) {
+      throw new Error(`Invalid point at ${i}`);
+    }
+    if (i > 0 && point.t <= series[i - 1]!.t) {
+      throw new Error(`Non-increasing timestamp at ${i}`);
+    }
+    if (i > 0 && opts?.maxSingleStepRatio) {
+      const prev = series[i - 1]!.v;
+      if (prev > 1 && Math.abs(point.v - prev) / prev > opts.maxSingleStepRatio) {
+        throw new Error(`Unexplained jump at ${i}: ${prev} → ${point.v}`);
+      }
+    }
+  }
+  if (opts?.endValue != null) {
+    const end = series[series.length - 1]!.v;
+    if (Math.abs(end - opts.endValue) > 0.02) {
+      throw new Error(`End value ${end} != ${opts.endValue}`);
+    }
+  }
+  if (opts?.startValue != null) {
+    const start = series[0]!.v;
+    if (Math.abs(start - opts.startValue) > 0.02) {
+      throw new Error(`Start value ${start} != ${opts.startValue}`);
+    }
+  }
 }
 
 /** Invariant helpers for tests. */

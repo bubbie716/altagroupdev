@@ -1,23 +1,36 @@
 /**
- * Close a menu/dialog first, then run a side effect (usually navigation).
- * Keeps Radix portals from lingering over the destination page during SPA transitions.
+ * Close a transient overlay, wait until the closed state has painted, then run
+ * an action (usually navigation). Ensures Radix portals are gone before the
+ * destination route renders.
  */
+import { flushSync } from "react-dom";
+
+function afterPaint(fn: () => void): void {
+  if (typeof requestAnimationFrame === "undefined") {
+    queueMicrotask(fn);
+    return;
+  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(fn);
+  });
+}
+
 export function closeThenRun(close: () => void, action: () => void): void {
-  close();
-  queueMicrotask(action);
+  flushSync(() => {
+    close();
+  });
+  afterPaint(action);
 }
 
 /**
- * Radix `onSelect` helper: close controlled menu state, then navigate.
- * Call from DropdownMenuItem `onSelect` — do not use with `asChild` + Link
- * unless you also prevent the default link navigation and run it here.
+ * Radix DropdownMenuItem `onSelect` helper for navigation menus.
+ * Does not call preventDefault on the select event (that would keep the menu open).
+ * Focus restoration is blocked separately via `onCloseAutoFocus`.
  */
 export function selectThenNavigate(
-  event: Event,
+  _event: Event,
   close: () => void,
   navigate: () => void,
 ): void {
-  // Prevent Radix from restoring focus to the trigger mid-navigation.
-  event.preventDefault();
   closeThenRun(close, navigate);
 }

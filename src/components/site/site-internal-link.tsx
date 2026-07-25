@@ -6,7 +6,7 @@ import {
   needsDevSiteSearchParam,
   usesLocalhostSiteParam,
 } from "@/lib/site/local-dev-site";
-import { resolveSiteKeyFromHost } from "@/lib/site/site-context";
+import { resolveSiteKeyFromHost, readRequestHost } from "@/lib/site/site-context";
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
 
 export type SiteInternalLinkTarget =
@@ -41,9 +41,7 @@ export function resolveSiteInternalLink(
   to: string,
   options?: { search?: Record<string, unknown>; host?: string },
 ): SiteInternalLinkTarget {
-  const host =
-    options?.host ??
-    (typeof window !== "undefined" ? window.location.host : "localhost");
+  const host = options?.host ?? readRequestHost();
 
   if (siteKey === "corporate" || resolveSiteKeyFromHost(host) === siteKey) {
     return {

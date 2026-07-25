@@ -59,7 +59,7 @@ export function WatchlistPanel({
           {onRemove ? (
             <button
               type="button"
-              className="rounded-md px-2 py-1 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-2 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
               onClick={() => onRemove(item.symbol)}
               disabled={busySymbol === item.symbol}
               aria-label={`Remove ${item.symbol} from watchlist`}

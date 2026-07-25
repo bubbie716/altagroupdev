@@ -471,13 +471,19 @@ describe("terminal ecosystem and production urls", () => {
   it("points Terminal ecosystem home at /terminal", () => {
     const entry = ECOSYSTEM_ENTRIES.find((e) => e.key === "terminal");
     assert.equal(entry?.homePath, "/terminal");
-    const links = getEcosystemSwitcherLinks("terminal");
+    const links = getEcosystemSwitcherLinks("terminal", "localhost:3000");
     assert.ok(links.find((l) => l.key === "terminal")?.href.includes("/terminal"));
   });
 
   it("does not resolve production Terminal links to localhost", () => {
-    const href = resolveEntitySiteUrl("terminal", "/terminal", "terminal.altagroup.dev");
-    assert.ok(href.includes("terminal.altagroup.dev"));
-    assert.equal(href.includes("localhost"), false);
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const href = resolveEntitySiteUrl("terminal", "/terminal", "terminal.altagroup.dev");
+      assert.ok(href.includes("terminal.altagroup.dev"));
+      assert.equal(href.includes("localhost"), false);
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
   });
 });

@@ -17,6 +17,7 @@ import {
   resolveEntitySiteLabel,
   resolveEntitySiteUrl,
 } from "@/lib/site/entity-site-url";
+import { readRequestHost } from "@/lib/site/site-context";
 import type { SiteKey } from "@/config/sites";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 
@@ -191,7 +192,7 @@ function Hero({ snapshot }: { snapshot: HomePortfolioSnapshot | null }) {
 }
 
 function DivisionCard({ division, index }: { division: Division; index: number }) {
-  const href = resolveEntitySiteUrl(division.siteKey);
+  const href = resolveEntitySiteUrl(division.siteKey, "/", readRequestHost());
   const hostLabel = resolveEntitySiteLabel(division.siteKey);
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog,
@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MoneyValue } from "@/components/terminal/money-value";
+import { SecurityPortfolioTrigger } from "@/components/terminal/security-portfolio-picker";
+import type { OrderTicketDraft } from "@/hooks/use-order-ticket-draft";
 import { previewTerminalOrder, submitTerminalOrder } from "@/lib/terminal/terminal.functions";
 import type {
   Holding,
@@ -30,7 +32,11 @@ export function OrderTicket({
   marketClosed,
   portfolioId,
   portfolioLabel,
+  canTradeSelected = true,
+  tradeBlockedReason = null,
+  onRequestPortfolioChange,
   onSubmitted,
+  draft,
   className,
   compact = false,
 }: {
@@ -41,27 +47,52 @@ export function OrderTicket({
   marketClosed?: boolean;
   portfolioId: string | null;
   portfolioLabel?: string | null;
+  canTradeSelected?: boolean;
+  tradeBlockedReason?: string | null;
+  onRequestPortfolioChange?: () => void;
   onSubmitted?: () => void;
+  /** When provided, order inputs are controlled by the parent (mobile sheet + desktop share). */
+  draft?: OrderTicketDraft;
   className?: string;
   compact?: boolean;
 }) {
   const previewFn = useServerFn(previewTerminalOrder);
   const submitFn = useServerFn(submitTerminalOrder);
-  const [side, setSide] = useState<OrderSide>("buy");
-  const [type, setType] = useState<OrderType>("market");
-  const [quantity, setQuantity] = useState("1");
-  const [limitPrice, setLimitPrice] = useState(String(security.lastPrice));
+  const [localSide, setLocalSide] = useState<OrderSide>("buy");
+  const [localType, setLocalType] = useState<OrderType>("market");
+  const [localQuantity, setLocalQuantity] = useState("1");
+  const [localLimitPrice, setLocalLimitPrice] = useState(String(security.lastPrice));
   const [preview, setPreview] = useState<OrderPreviewResult | null>(null);
-  const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const side = draft?.side ?? localSide;
+  const type = draft?.type ?? localType;
+  const quantity = draft?.quantity ?? localQuantity;
+  const limitPrice = draft?.limitPrice ?? localLimitPrice;
+  const setSide = draft?.setSide ?? setLocalSide;
+  const setType = draft?.setType ?? setLocalType;
+  const setQuantity = draft?.setQuantity ?? setLocalQuantity;
+  const setLimitPrice = draft?.setLimitPrice ?? setLocalLimitPrice;
+
+  // Recalculate against the newly selected portfolio; drop stale preview/confirm.
+  // Keep side/type/qty/limit intact.
+  useEffect(() => {
+    setPreview(null);
+    setConfirmOpen(false);
+    setError(null);
+    setResultMessage(null);
+  }, [portfolioId]);
+
+  const missingPortfolio = !portfolioId;
   const disabled =
     mode === "unavailable" ||
     security.tradingStatus === "halted" ||
     marketClosed ||
-    !portfolioId;
+    missingPortfolio ||
+    !canTradeSelected;
 
   const qty = Number(quantity);
   const est = useMemo(() => {
@@ -74,6 +105,11 @@ export function OrderTicket({
     setResultMessage(null);
     if (!portfolioId) {
       setError("Select a portfolio before trading");
+      onRequestPortfolioChange?.();
+      return;
+    }
+    if (!canTradeSelected) {
+      setError(tradeBlockedReason ?? "This portfolio cannot place orders");
       return;
     }
     try {
@@ -88,7 +124,7 @@ export function OrderTicket({
         },
       });
       setPreview(next);
-      setOpen(true);
+      setConfirmOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to preview order");
     }
@@ -96,6 +132,10 @@ export function OrderTicket({
 
   async function handleConfirm() {
     if (!preview?.ok || !portfolioId) return;
+    if (!canTradeSelected) {
+      setError(tradeBlockedReason ?? "This portfolio cannot place orders");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -115,9 +155,10 @@ export function OrderTicket({
       }
       setResultMessage(
         result.order.status === "filled"
-          ? `Order filled · ${result.order.quantity} ${security.symbol}`
-          : `Order accepted · ${result.order.id}`,
+          ? `Order filled · ${result.order.quantity} ${security.symbol} · ${portfolioLabel ?? "portfolio"}`
+          : `Order accepted · ${result.order.id} · ${portfolioLabel ?? "portfolio"}`,
       );
+      setConfirmOpen(false);
       onSubmitted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Order submission failed");
@@ -133,24 +174,26 @@ export function OrderTicket({
         className,
       )}
     >
-      {!compact ? (
-        <div>
+      <div className={cn(compact ? "mb-2 space-y-1.5" : "space-y-2")}>
+        {!compact ? (
           <h2 className="text-[13px] font-medium tracking-wide text-[var(--terminal-muted)]">
             Order
           </h2>
-          {portfolioLabel ? (
-            <p className="mt-1 text-[12px] text-[var(--terminal-text)]">
-              Trading from <span className="font-medium">{portfolioLabel}</span>
-            </p>
-          ) : (
-            <p className="mt-1 text-[12px] text-[var(--terminal-red)]">No portfolio selected</p>
-          )}
-        </div>
-      ) : portfolioLabel ? (
-        <p className="mb-2 text-[11px] text-[var(--terminal-muted)]">
-          From <span className="text-[var(--terminal-text)]">{portfolioLabel}</span>
-        </p>
-      ) : null}
+        ) : null}
+        {onRequestPortfolioChange ? (
+          <SecurityPortfolioTrigger
+            label={portfolioLabel ?? null}
+            onClick={onRequestPortfolioChange}
+            compact={compact}
+          />
+        ) : portfolioLabel ? (
+          <p className="text-[12px] text-[var(--terminal-text)]">
+            Trading from <span className="font-medium">{portfolioLabel}</span>
+          </p>
+        ) : (
+          <p className="text-[12px] text-[var(--terminal-red)]">Choose a portfolio</p>
+        )}
+      </div>
 
       <div className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-[var(--terminal-surface-2)] p-1">
         {(["buy", "sell"] as const).map((value) => (
@@ -159,7 +202,7 @@ export function OrderTicket({
             type="button"
             onClick={() => setSide(value)}
             className={cn(
-              "rounded-md py-2 text-[13px] font-medium capitalize",
+              "min-h-11 rounded-md text-[13px] font-medium capitalize",
               side === value
                 ? value === "buy"
                   ? "bg-[var(--terminal-green)] text-black"
@@ -179,7 +222,7 @@ export function OrderTicket({
             type="button"
             onClick={() => setType(value)}
             className={cn(
-              "rounded-md py-2 text-[12px] font-medium capitalize",
+              "min-h-11 rounded-md text-[12px] font-medium capitalize",
               type === value
                 ? "bg-[var(--terminal-bg)] text-[var(--terminal-text)]"
                 : "text-[var(--terminal-muted)]",
@@ -199,7 +242,7 @@ export function OrderTicket({
           inputMode="numeric"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-          className="mt-1.5 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5 text-[15px] tabular-nums text-[var(--terminal-text)] outline-none focus:border-[var(--terminal-green)]"
+          className="mt-1.5 min-h-11 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5 text-[15px] tabular-nums text-[var(--terminal-text)] outline-none focus:border-[var(--terminal-green)]"
         />
       </label>
 
@@ -213,7 +256,7 @@ export function OrderTicket({
             inputMode="decimal"
             value={limitPrice}
             onChange={(e) => setLimitPrice(e.target.value)}
-            className="mt-1.5 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5 text-[15px] tabular-nums text-[var(--terminal-text)] outline-none focus:border-[var(--terminal-green)]"
+            className="mt-1.5 min-h-11 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5 text-[15px] tabular-nums text-[var(--terminal-text)] outline-none focus:border-[var(--terminal-green)]"
           />
         </label>
       ) : null}
@@ -227,12 +270,12 @@ export function OrderTicket({
           <span>Buying power</span>
           <MoneyValue value={buyingPower} size="sm" />
         </div>
-        {position ? (
-          <div className="flex justify-between">
-            <span>Shares held</span>
-            <span className="tabular-nums text-[var(--terminal-text)]">{position.quantity}</span>
-          </div>
-        ) : null}
+        <div className="flex justify-between">
+          <span>Shares held</span>
+          <span className="tabular-nums text-[var(--terminal-text)]">
+            {position ? position.quantity : 0}
+          </span>
+        </div>
       </div>
 
       {disabled ? (
@@ -241,7 +284,11 @@ export function OrderTicket({
             ? "Market connection unavailable"
             : security.tradingStatus === "halted"
               ? "Security is halted"
-              : "Market is closed"}
+              : marketClosed
+                ? "Market is closed"
+                : missingPortfolio
+                  ? "Choose a portfolio to review an order"
+                  : (tradeBlockedReason ?? "Trading is not available for this portfolio")}
         </p>
       ) : null}
 
@@ -255,7 +302,7 @@ export function OrderTicket({
         disabled={disabled}
         onClick={() => void handlePreview()}
         className={cn(
-          "mt-4 w-full rounded-md py-2.5 text-[14px] font-medium capitalize disabled:cursor-not-allowed disabled:opacity-40",
+          "mt-4 min-h-11 w-full rounded-md text-[14px] font-medium capitalize disabled:cursor-not-allowed disabled:opacity-40",
           side === "buy"
             ? "bg-[var(--terminal-green)] text-black"
             : "bg-[var(--terminal-red)] text-white",
@@ -264,13 +311,12 @@ export function OrderTicket({
         Review {side}
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="border-[var(--terminal-border)] bg-[var(--terminal-surface)] text-[var(--terminal-text)] sm:max-w-md">
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="z-[140] border-[var(--terminal-border)] bg-[var(--terminal-surface)] text-[var(--terminal-text)] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirm order</DialogTitle>
             <DialogDescription className="text-[var(--terminal-muted)]">
-              Review this {side} order for {security.symbol}
-              {portfolioLabel ? ` from ${portfolioLabel}` : ""} before submitting.
+              Review this {side} order for {security.symbol} before submitting.
             </DialogDescription>
           </DialogHeader>
           {preview ? (
@@ -308,17 +354,17 @@ export function OrderTicket({
           <DialogFooter className="gap-2 sm:gap-2">
             <button
               type="button"
-              className="rounded-md border border-[var(--terminal-border)] px-4 py-2 text-[13px]"
-              onClick={() => setOpen(false)}
+              className="min-h-11 rounded-md border border-[var(--terminal-border)] px-4 text-[13px]"
+              onClick={() => setConfirmOpen(false)}
             >
               Back
             </button>
             <button
               type="button"
-              disabled={!preview?.ok || submitting}
+              disabled={!preview?.ok || submitting || !portfolioId || !canTradeSelected}
               onClick={() => void handleConfirm()}
               className={cn(
-                "rounded-md px-4 py-2 text-[13px] font-medium disabled:opacity-40",
+                "min-h-11 rounded-md px-4 text-[13px] font-medium disabled:opacity-40",
                 side === "buy"
                   ? "bg-[var(--terminal-green)] text-black"
                   : "bg-[var(--terminal-red)] text-white",
