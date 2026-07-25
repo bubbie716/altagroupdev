@@ -357,6 +357,81 @@ export const searchTerminalSymbols = createServerFn({ method: "GET" })
     return getTseClient({ userId }).listSecurities(query);
   });
 
+/** Lean context for Quick Trade — no chart history. */
+export const fetchQuickTradeContext = createServerFn({ method: "GET" })
+  .inputValidator((input?: { symbol?: string; portfolioId?: string }) => input ?? {})
+  .handler(async ({ data }) => {
+    const user = await requireTerminalUser();
+    const {
+      listAccessibleTerminalPortfolios,
+      resolveTerminalPortfolioId,
+      rememberSelectedTerminalPortfolio,
+      getTerminalPortfolioForUser,
+    } = await import("@/lib/terminal/terminal-portfolio.service");
+    const { getTseClient } = await import("@/lib/terminal/tse-client");
+    const client = getTseClient({ userId: user.id });
+    const listed = await listAccessibleTerminalPortfolios(user);
+    const symbol = data.symbol?.trim() ? data.symbol.trim().toUpperCase() : null;
+    const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
+    const marketStatus = await client.getMarketStatus();
+
+    if (!portfolioId) {
+      const portfolios = symbol
+        ? await enrichSecurityPortfolioOptions(client, listed, symbol)
+        : listed.map((p) => ({ ...p, buyingPower: 0, holdingQuantity: 0 }));
+      return {
+        mode: client.mode,
+        marketStatus,
+        portfolios,
+        selectedPortfolio: null,
+        security: symbol ? await client.getSecurity(symbol) : null,
+        position: null,
+        buyingPower: 0,
+      };
+    }
+
+    await rememberSelectedTerminalPortfolio(user, portfolioId);
+    const selectedPortfolio = await getTerminalPortfolioForUser(user, portfolioId);
+    const portfolios = symbol
+      ? await enrichSecurityPortfolioOptions(client, listed, symbol)
+      : await Promise.all(
+          listed.map(async (portfolio) => {
+            try {
+              const snapshot = await client.getPortfolio(portfolio.id);
+              return {
+                ...portfolio,
+                totalValue: snapshot.totalValue,
+                dayChange: snapshot.dayChange,
+                dayChangePercent: snapshot.dayChangePercent,
+                buyingPower: snapshot.buyingPower,
+                holdingQuantity: 0,
+              };
+            } catch {
+              return { ...portfolio, buyingPower: 0, holdingQuantity: 0 };
+            }
+          }),
+        );
+
+    const [security, portfolio] = await Promise.all([
+      symbol ? client.getSecurity(symbol) : Promise.resolve(null),
+      client.getPortfolio(portfolioId),
+    ]);
+    const position =
+      security && portfolio
+        ? (portfolio.holdings.find((h) => h.symbol === security.symbol) ?? null)
+        : null;
+
+    return {
+      mode: client.mode,
+      marketStatus,
+      portfolios,
+      selectedPortfolio,
+      security,
+      position,
+      buyingPower: portfolio.buyingPower,
+    };
+  });
+
 export const createTerminalPortfolioFn = createServerFn({ method: "POST" })
   .inputValidator((input: CreateTerminalPortfolioInput) => input)
   .handler(async ({ data }) => {

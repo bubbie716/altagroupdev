@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { Settings2 } from "lucide-react";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { AllocationBars, HoldingsTable } from "@/components/terminal/holdings-table";
@@ -143,9 +144,12 @@ function TerminalPortfolioDetailPage() {
               setError(null);
               setSettingsOpen(true);
             }}
-            className="min-h-11 shrink-0 rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md border border-[var(--terminal-border)] text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)] sm:h-11 sm:w-auto sm:px-3"
+            aria-label="Portfolio settings"
+            title="Portfolio settings"
           >
-            Portfolio settings
+            <Settings2 className="size-4 sm:hidden" aria-hidden />
+            <span className="hidden sm:inline">Portfolio settings</span>
           </button>
         ) : null}
       </div>

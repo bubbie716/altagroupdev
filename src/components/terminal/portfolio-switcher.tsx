@@ -147,9 +147,10 @@ export function PortfolioSwitcher({
     });
   }
 
+  const ariaOwnerLine = ownerLine.trim().replace(/[.!?]+$/, "");
   const ariaLabel = selected
     ? variant === "heading"
-      ? `Current portfolio: ${selected.name} · ${ownerLine}. Change portfolio.`
+      ? `Current portfolio: ${selected.name} · ${ariaOwnerLine}. Change portfolio.`
       : `Portfolio switcher — currently ${selected.name}`
     : variant === "heading"
       ? "Choose a portfolio"

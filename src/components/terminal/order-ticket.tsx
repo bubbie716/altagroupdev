@@ -13,10 +13,14 @@ import {
 import { MoneyValue } from "@/components/terminal/money-value";
 import { SecurityPortfolioTrigger } from "@/components/terminal/security-portfolio-picker";
 import type { OrderTicketDraft } from "@/hooks/use-order-ticket-draft";
+import { validateOrderPreview } from "@/lib/terminal/order-validation";
+import { requireExplicitPortfolioId } from "@/lib/terminal/quick-trade";
 import { previewTerminalOrder, submitTerminalOrder } from "@/lib/terminal/terminal.functions";
 import type {
   Holding,
+  MarketSessionStatus,
   OrderPreviewResult,
+  OrderRecord,
   OrderSide,
   OrderType,
   SecurityDetail,
@@ -30,31 +34,40 @@ export function OrderTicket({
   position,
   mode,
   marketClosed,
+  marketStatus,
   portfolioId,
   portfolioLabel,
   canTradeSelected = true,
   tradeBlockedReason = null,
   onRequestPortfolioChange,
   onSubmitted,
+  suppressInlineSuccess = false,
   draft,
   className,
   compact = false,
+  hidePortfolioControl = false,
 }: {
   security: SecurityDetail;
   buyingPower: number;
   position: Holding | null;
   mode: TseDataSourceMode;
   marketClosed?: boolean;
+  /** When set, client Review gating uses full session validation. */
+  marketStatus?: MarketSessionStatus;
   portfolioId: string | null;
   portfolioLabel?: string | null;
   canTradeSelected?: boolean;
   tradeBlockedReason?: string | null;
   onRequestPortfolioChange?: () => void;
-  onSubmitted?: () => void;
+  onSubmitted?: (result: { order: OrderRecord }) => void;
+  /** Parent shows success UI (e.g. Quick Trade) — skip inline green message. */
+  suppressInlineSuccess?: boolean;
   /** When provided, order inputs are controlled by the parent (mobile sheet + desktop share). */
   draft?: OrderTicketDraft;
   className?: string;
   compact?: boolean;
+  /** Parent already renders the portfolio control (Quick Trade). */
+  hidePortfolioControl?: boolean;
 }) {
   const previewFn = useServerFn(previewTerminalOrder);
   const submitFn = useServerFn(submitTerminalOrder);
@@ -87,6 +100,9 @@ export function OrderTicket({
   }, [portfolioId]);
 
   const missingPortfolio = !portfolioId;
+  const sessionStatus: MarketSessionStatus =
+    marketStatus ??
+    (marketClosed ? "closed" : "open");
   const disabled =
     mode === "unavailable" ||
     security.tradingStatus === "halted" ||
@@ -100,6 +116,54 @@ export function OrderTicket({
     return Number(((Number.isFinite(qty) ? qty : 0) * price).toFixed(2));
   }, [qty, type, limitPrice, security.lastPrice]);
 
+  const clientValidation = useMemo(() => {
+    if (mode === "unavailable") {
+      return { ok: false as const, errors: ["Market connection unavailable"] };
+    }
+    if (!portfolioId) {
+      return { ok: false as const, errors: ["Select a portfolio before trading"] };
+    }
+    if (!canTradeSelected) {
+      return {
+        ok: false as const,
+        errors: [tradeBlockedReason ?? "This portfolio cannot place orders"],
+      };
+    }
+    return validateOrderPreview({
+      order: {
+        portfolioId,
+        symbol: security.symbol,
+        side,
+        type,
+        quantity: Number.isFinite(qty) ? qty : NaN,
+        limitPrice: type === "limit" ? Number(limitPrice) : null,
+      },
+      security,
+      marketStatus: sessionStatus,
+      buyingPower,
+      holding: position,
+    });
+  }, [
+    mode,
+    portfolioId,
+    canTradeSelected,
+    tradeBlockedReason,
+    security,
+    side,
+    type,
+    qty,
+    limitPrice,
+    sessionStatus,
+    buyingPower,
+    position,
+  ]);
+
+  const reviewBlocked = disabled || !clientValidation.ok;
+  const inlineValidationError =
+    !clientValidation.ok && portfolioId && canTradeSelected && mode !== "unavailable"
+      ? clientValidation.errors[0] ?? null
+      : null;
+
   async function handlePreview() {
     setError(null);
     setResultMessage(null);
@@ -112,10 +176,15 @@ export function OrderTicket({
       setError(tradeBlockedReason ?? "This portfolio cannot place orders");
       return;
     }
+    if (!clientValidation.ok) {
+      setError(clientValidation.errors[0] ?? "Order is not valid");
+      return;
+    }
     try {
+      const explicitPortfolioId = requireExplicitPortfolioId(portfolioId);
       const next = await previewFn({
         data: {
-          portfolioId,
+          portfolioId: explicitPortfolioId,
           symbol: security.symbol,
           side,
           type,
@@ -131,7 +200,7 @@ export function OrderTicket({
   }
 
   async function handleConfirm() {
-    if (!preview?.ok || !portfolioId) return;
+    if (!preview?.ok || !portfolioId || submitting) return;
     if (!canTradeSelected) {
       setError(tradeBlockedReason ?? "This portfolio cannot place orders");
       return;
@@ -139,9 +208,10 @@ export function OrderTicket({
     setSubmitting(true);
     setError(null);
     try {
+      const explicitPortfolioId = requireExplicitPortfolioId(portfolioId);
       const result = await submitFn({
         data: {
-          portfolioId,
+          portfolioId: explicitPortfolioId,
           symbol: security.symbol,
           side,
           type,
@@ -153,13 +223,15 @@ export function OrderTicket({
         setError(result.errors.join(". "));
         return;
       }
-      setResultMessage(
-        result.order.status === "filled"
-          ? `Order filled · ${result.order.quantity} ${security.symbol} · ${portfolioLabel ?? "portfolio"}`
-          : `Order accepted · ${result.order.id} · ${portfolioLabel ?? "portfolio"}`,
-      );
+      if (!suppressInlineSuccess) {
+        setResultMessage(
+          result.order.status === "filled"
+            ? `Order filled · ${result.order.quantity} ${security.symbol} · ${portfolioLabel ?? "portfolio"}`
+            : `Order accepted · ${result.order.id} · ${portfolioLabel ?? "portfolio"}`,
+        );
+      }
       setConfirmOpen(false);
-      onSubmitted?.();
+      onSubmitted?.({ order: result.order });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Order submission failed");
     } finally {
@@ -174,26 +246,28 @@ export function OrderTicket({
         className,
       )}
     >
-      <div className={cn(compact ? "mb-2 space-y-1.5" : "space-y-2")}>
-        {!compact ? (
-          <h2 className="text-[13px] font-medium tracking-wide text-[var(--terminal-muted)]">
-            Order
-          </h2>
-        ) : null}
-        {onRequestPortfolioChange ? (
-          <SecurityPortfolioTrigger
-            label={portfolioLabel ?? null}
-            onClick={onRequestPortfolioChange}
-            compact={compact}
-          />
-        ) : portfolioLabel ? (
-          <p className="text-[12px] text-[var(--terminal-text)]">
-            Trading from <span className="font-medium">{portfolioLabel}</span>
-          </p>
-        ) : (
-          <p className="text-[12px] text-[var(--terminal-red)]">Choose a portfolio</p>
-        )}
-      </div>
+      {!hidePortfolioControl ? (
+        <div className={cn(compact ? "mb-2 space-y-1.5" : "space-y-2")}>
+          {!compact ? (
+            <h2 className="text-[13px] font-medium tracking-wide text-[var(--terminal-muted)]">
+              Order
+            </h2>
+          ) : null}
+          {onRequestPortfolioChange ? (
+            <SecurityPortfolioTrigger
+              label={portfolioLabel ?? null}
+              onClick={onRequestPortfolioChange}
+              compact={compact}
+            />
+          ) : portfolioLabel ? (
+            <p className="text-[12px] text-[var(--terminal-text)]">
+              Trading from <span className="font-medium">{portfolioLabel}</span>
+            </p>
+          ) : (
+            <p className="text-[12px] text-[var(--terminal-red)]">Choose a portfolio</p>
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-[var(--terminal-surface-2)] p-1">
         {(["buy", "sell"] as const).map((value) => (
@@ -290,16 +364,24 @@ export function OrderTicket({
                   ? "Choose a portfolio to review an order"
                   : (tradeBlockedReason ?? "Trading is not available for this portfolio")}
         </p>
+      ) : inlineValidationError ? (
+        <p className="mt-3 text-[12px] text-[var(--terminal-red)]" role="alert">
+          {inlineValidationError}
+        </p>
       ) : null}
 
-      {error ? <p className="mt-3 text-[12px] text-[var(--terminal-red)]">{error}</p> : null}
+      {error ? (
+        <p className="mt-3 text-[12px] text-[var(--terminal-red)]" role="alert">
+          {error}
+        </p>
+      ) : null}
       {resultMessage ? (
         <p className="mt-3 text-[12px] text-[var(--terminal-green)]">{resultMessage}</p>
       ) : null}
 
       <button
         type="button"
-        disabled={disabled}
+        disabled={reviewBlocked || submitting}
         onClick={() => void handlePreview()}
         className={cn(
           "mt-4 min-h-11 w-full rounded-md text-[14px] font-medium capitalize disabled:cursor-not-allowed disabled:opacity-40",

@@ -263,7 +263,12 @@ export async function listAccessibleTerminalPortfolios(
       const records = await listFromDb(user);
       return records.filter((r) => userCanAccessRecord(user, r)).map((r) => toSummary(r, user));
     } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
+      if (!isMissingTerminalPortfolioTable(error)) {
+        // UI Lab mock user is not a real Prisma User — FK seed fails when DATABASE_URL is set.
+        // Fall back to the in-memory fixture store so mock Terminal remains previewable.
+        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+        if (!isUiLabMode()) throw error;
+      }
     }
   }
 
@@ -297,7 +302,10 @@ export async function resolveTerminalPortfolioId(
         if (recent) return recent.id;
       }
     } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
+      if (!isMissingTerminalPortfolioTable(error)) {
+        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+        if (!isUiLabMode()) throw error;
+      }
       const store = getMemoryStore(user);
       const recentId = store.lastSelectedByUser.get(user.id);
       if (recentId && accessible.some((p) => p.id === recentId)) return recentId;
@@ -329,7 +337,10 @@ export async function rememberSelectedTerminalPortfolio(user: AltaUser, portfoli
       });
       return;
     } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
+      if (!isMissingTerminalPortfolioTable(error)) {
+        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+        if (!isUiLabMode()) throw error;
+      }
     }
   }
 

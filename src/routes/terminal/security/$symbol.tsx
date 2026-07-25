@@ -162,6 +162,7 @@ function TerminalSecurityPage() {
     position: data.position,
     mode: data.mode,
     marketClosed,
+    marketStatus: data.marketStatus.status,
     portfolioId,
     portfolioLabel,
     canTradeSelected: !blockedReason,

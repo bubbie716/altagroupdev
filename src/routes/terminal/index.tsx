@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { WatchlistPanel } from "@/components/terminal/watchlist";
 import { OrdersList } from "@/components/terminal/orders-list";
@@ -9,6 +9,7 @@ import {
   CreatePortfolioDialog,
   HomePortfolioCard,
 } from "@/components/terminal/portfolio-switcher";
+import { QuickTradeDialog } from "@/components/terminal/quick-trade-dialog";
 import { fetchTerminalHome, fetchEligibleTerminalCompanies } from "@/lib/terminal/terminal.functions";
 import { MarketStatusBadge } from "@/components/terminal/market-status";
 import { Route as TerminalLayoutRoute } from "./route";
@@ -32,6 +33,8 @@ function TerminalHomePage() {
   const layout = TerminalLayoutRoute.useLoaderData();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
+  const [quickTradeOpen, setQuickTradeOpen] = useState(false);
+  const tradeButtonRef = useRef<HTMLButtonElement>(null);
 
   if (mode === "unavailable" && layout.mode === "unavailable") {
     return <TerminalUnavailableState />;
@@ -81,12 +84,19 @@ function TerminalHomePage() {
       </section>
 
       <section className="flex flex-wrap gap-2">
-        <QuickAction href="/terminal/markets" label="Trade" primary />
+        <button
+          ref={tradeButtonRef}
+          type="button"
+          onClick={() => setQuickTradeOpen(true)}
+          className="min-h-11 rounded-md bg-[var(--terminal-green)] px-3.5 py-2 text-[13px] font-medium text-black"
+        >
+          Trade
+        </button>
         <QuickAction href="/terminal/markets" label="View markets" />
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
+          className="min-h-11 rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
         >
           Create portfolio
         </button>
@@ -172,6 +182,14 @@ function TerminalHomePage() {
           });
         }}
       />
+
+      <QuickTradeDialog
+        open={quickTradeOpen}
+        onOpenChange={setQuickTradeOpen}
+        onCloseAutoFocus={() => {
+          tradeButtonRef.current?.focus({ preventScroll: true });
+        }}
+      />
     </div>
   );
 }
@@ -191,8 +209,8 @@ function QuickAction({
       search={href.includes("/markets") ? { q: "", filter: "all" } : undefined}
       className={
         primary
-          ? "rounded-md bg-[var(--terminal-green)] px-3.5 py-2 text-[13px] font-medium text-black"
-          : "rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
+          ? "inline-flex min-h-11 items-center rounded-md bg-[var(--terminal-green)] px-3.5 py-2 text-[13px] font-medium text-black"
+          : "inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
       }
     >
       {label}
