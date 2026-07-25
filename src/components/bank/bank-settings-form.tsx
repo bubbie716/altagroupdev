@@ -128,7 +128,7 @@ function NotificationSwitch({
       disabled={disabled}
       onCheckedChange={onCheckedChange}
       aria-label={label}
-      className="inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-0 bg-muted-foreground/25 p-0.5 shadow-none outline-none transition-[background-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary"
+      className="inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-0 bg-muted-foreground/25 p-0.5 shadow-none outline-none transition-[background-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary"
     >
       <SwitchPrimitives.Thumb
         className="block size-4 shrink-0 rounded-full bg-white shadow-sm outline-none transition-transform duration-200 ease-out will-change-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
@@ -323,9 +323,21 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
   const [saved, setSaved] = useState(false);
   /** Remembers the category selection while the master switch is off. */
   const suspendedPrefs = useRef<DiscordNotificationPrefs | null>(null);
+  const appliedSettings = useRef(initialSettings);
 
+  // `router.invalidate()` after a save hands back a new object with identical
+  // values; resetting on that would clear the save confirmation, so only rebuild
+  // the form when the server values themselves changed.
   useEffect(() => {
+    if (appliedSettings.current === initialSettings) return;
+    appliedSettings.current = initialSettings;
+
     const nextBaseline = baselineFromSettings(initialSettings);
+    if (!settingsAreDirty(nextBaseline, baseline)) {
+      setBaseline(nextBaseline);
+      return;
+    }
+
     setBaseline(nextBaseline);
     setReceiveAccountId(receiveAccountSelectValue(initialSettings));
     setFundingAccountId(nextBaseline.fundingAccountId);
@@ -334,7 +346,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
     setPresetChoice(null);
     suspendedPrefs.current = null;
     setSaved(false);
-  }, [initialSettings]);
+  }, [initialSettings, baseline]);
 
   const isDirty = useMemo(
     () =>
@@ -423,11 +435,6 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    await saveChanges();
-  }
-
   const categoriesDisabled = saving || !discordEnabled;
 
   return (
@@ -438,7 +445,9 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
         onSave={() => void saveChanges()}
       />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Not a <form>: Radix Switch mirrors itself into a hidden checkbox inside
+          forms, which would double every preference control in the a11y tree. */}
+      <div className="space-y-6">
         <Card className="space-y-5 !p-6">
           <h2 className="type-section-title">Alta Pay</h2>
 
@@ -600,31 +609,6 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
                   })}
                 </div>
               ) : null}
-
-              <Disclosure
-                title="Payment engine alerts"
-                summary="Scheduled, recurring, AutoPay"
-              >
-                {PAYMENT_ENGINE_NOTIFICATION_OPTIONS.map((option, index) => (
-                  <SwitchRow
-                    key={option.key}
-                    id={`payment-engine-notification-${option.key}`}
-                    label={option.label}
-                    first={index === 0}
-                    checked={
-                      (engineNotificationPrefs[option.key] ??
-                        DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS[option.key]) !== false
-                    }
-                    disabled={saving}
-                    onCheckedChange={(checked) =>
-                      setEngineNotificationPrefs((current) => ({
-                        ...current,
-                        [option.key]: checked,
-                      }))
-                    }
-                  />
-                ))}
-              </Disclosure>
             </>
           ) : (
             <p className="text-[13px] text-muted-foreground">
@@ -633,13 +617,45 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
           )}
         </Card>
 
+        <Card className="space-y-5 !p-6">
+          <div>
+            <h2 className="type-section-title">Payment engine alerts</h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+              Alta Pay schedules, recurring payments, and merchant AutoPay.
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-border/60 bg-surface-2/40">
+            {PAYMENT_ENGINE_NOTIFICATION_OPTIONS.map((option, index) => (
+              <SwitchRow
+                key={option.key}
+                id={`payment-engine-notification-${option.key}`}
+                label={option.label}
+                first={index === 0}
+                checked={
+                  (engineNotificationPrefs[option.key] ??
+                    DEFAULT_PAYMENT_ENGINE_NOTIFICATION_PREFS[option.key]) !== false
+                }
+                disabled={saving}
+                onCheckedChange={(checked) =>
+                  setEngineNotificationPrefs((current) => ({
+                    ...current,
+                    [option.key]: checked,
+                  }))
+                }
+              />
+            ))}
+          </div>
+        </Card>
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex items-center gap-3">
           <button
-            type="submit"
+            type="button"
             disabled={saving || !isDirty}
-            className="rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium text-background disabled:opacity-50"
+            onClick={() => void saveChanges()}
+            className="min-h-11 rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium text-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? SUBMITTING_COPY.saving : "Save settings"}
           </button>
@@ -654,7 +670,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
             </p>
           ) : null}
         </div>
-      </form>
+      </div>
     </>
   );
 }
