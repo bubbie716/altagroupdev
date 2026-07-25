@@ -10,7 +10,6 @@ import { ActivityList } from "@/components/terminal/activity-list";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
 import {
   CreatePortfolioDialog,
-  PortfolioOwnerBadge,
   PortfolioSwitcher,
 } from "@/components/terminal/portfolio-switcher";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
@@ -127,25 +126,14 @@ function TerminalPortfolioDetailPage() {
 
   return (
     <div className="space-y-8" key={selectedPortfolio.id}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
           <PortfolioSwitcher
+            variant="heading"
             portfolios={portfolios}
             selectedId={selectedPortfolio.id}
             eligibleCompanies={eligibleCompanies}
           />
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[26px] font-medium tracking-tight sm:text-[30px]">
-                {selectedPortfolio.name}
-              </h1>
-              <PortfolioOwnerBadge portfolio={selectedPortfolio} />
-            </div>
-            <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
-              {selectedPortfolio.ownerLabel}
-              {selectedPortfolio.isDefault ? " · Default" : ""}
-            </p>
-          </div>
         </div>
         {selectedPortfolio.capabilities.canRename || selectedPortfolio.capabilities.canArchive ? (
           <button
@@ -155,7 +143,7 @@ function TerminalPortfolioDetailPage() {
               setError(null);
               setSettingsOpen(true);
             }}
-            className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+            className="min-h-11 shrink-0 rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
           >
             Portfolio settings
           </button>

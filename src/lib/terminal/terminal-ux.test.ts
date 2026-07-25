@@ -62,6 +62,35 @@ describe("home vs portfolio separation", () => {
     assert.match(detail, /PortfolioChart/);
     assert.match(detail, /HoldingsTable/);
     assert.match(detail, /PortfolioSwitcher/);
+    assert.match(detail, /variant="heading"/);
+    assert.doesNotMatch(detail, /PortfolioOwnerBadge/);
     assert.match(detail, /AllocationBars/);
+  });
+});
+
+describe("portfolio detail heading switcher", () => {
+  it("uses a single heading trigger without a duplicate title stack", () => {
+    const detail = readFileSync(
+      join(root, "routes/terminal/portfolio/$portfolioId.tsx"),
+      "utf8",
+    );
+    const switcher = readFileSync(
+      join(root, "components/terminal/portfolio-switcher.tsx"),
+      "utf8",
+    );
+    // Exactly one JSX switcher on the loaded detail header; no owner badge.
+    assert.equal((detail.match(/<PortfolioSwitcher[\s\n]/g) ?? []).length, 1);
+    assert.doesNotMatch(detail, /PortfolioOwnerBadge/);
+    // Main success branch: switcher owns the title — no sibling h1 next to it.
+    assert.doesNotMatch(
+      detail,
+      /<PortfolioSwitcher[\s\S]*?<\/div>\s*<h1[\s>]/,
+    );
+    assert.match(switcher, /variant === "heading"/);
+    assert.match(switcher, /Current portfolio:/);
+    assert.match(switcher, /<h1 /);
+    assert.match(switcher, /pendingHeadingFocusId/);
+    assert.match(switcher, /asChild/);
+    assert.match(switcher, /variant === "heading"[\s\S]*?triggerRef\.current\?\.focus/);
   });
 });

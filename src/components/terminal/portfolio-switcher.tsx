@@ -30,6 +30,13 @@ type EligibleCompany = { id: string; name: string; ticker: string | null };
 
 const DEFAULT_CREATE_NAME = "New portfolio";
 
+/**
+ * Survives portfolio-detail remounts (`key={selectedPortfolio.id}`) so focus can
+ * return to the heading trigger after navigation settles. Stores the target id so
+ * the pre-navigation instance does not steal/clear the pending focus.
+ */
+let pendingHeadingFocusId: string | null = null;
+
 export function PortfolioSwitcher({
   portfolios,
   selectedId,
@@ -38,6 +45,7 @@ export function PortfolioSwitcher({
   onSelect,
   className,
   compact = false,
+  variant = "default",
 }: {
   portfolios: TerminalPortfolioSummary[];
   selectedId: string | null;
@@ -52,6 +60,8 @@ export function PortfolioSwitcher({
   onSelect?: (portfolioId: string) => void;
   className?: string;
   compact?: boolean;
+  /** `heading` = page-title trigger (portfolio detail). `default` = bordered control. */
+  variant?: "default" | "heading";
 }) {
   const navigate = useNavigate();
   const isRoutePending = useRouterState({ select: (s) => s.status === "pending" });
@@ -59,14 +69,41 @@ export function PortfolioSwitcher({
   const [createOpen, setCreateOpen] = useState(false);
   /** Optimistic label while a switch/create navigation is in flight. */
   const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const selected = portfolios.find((p) => p.id === selectedId) ?? null;
   const displayName = pendingLabel ?? selected?.name ?? "Select portfolio";
-  const displayOwner = pendingLabel ? "Switching…" : (selected?.ownerLabel ?? "—");
+  const ownerLine = selected
+    ? selected.ownerType === "personal"
+      ? "Personal"
+      : selected.ownerLabel
+    : "—";
+  const displayOwner = pendingLabel ? "Switching…" : ownerLine;
 
   useEffect(() => {
     if (!isRoutePending) setPendingLabel(null);
   }, [isRoutePending, selectedId]);
+
+  useEffect(() => {
+    if (variant !== "heading") return;
+    if (!pendingHeadingFocusId || pendingHeadingFocusId !== selectedId) return;
+    if (isRoutePending) return;
+
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (cancelled || pendingHeadingFocusId !== selectedId) return;
+        const el = triggerRef.current;
+        if (!el?.isConnected) return;
+        pendingHeadingFocusId = null;
+        el.focus({ preventScroll: true });
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [variant, selectedId, isRoutePending, displayName]);
 
   const personal = useMemo(
     () => portfolios.filter((p) => p.ownerType === "personal"),
@@ -81,6 +118,7 @@ export function PortfolioSwitcher({
     if (menu.isNavigating()) return;
     const name = label ?? portfolios.find((p) => p.id === id)?.name ?? null;
     if (name) setPendingLabel(name);
+    if (variant === "heading") pendingHeadingFocusId = id;
     menu.runAfterClose(() => {
       if (onSelect) {
         onSelect(id);
@@ -96,6 +134,7 @@ export function PortfolioSwitcher({
 
   function handleCreated(portfolio: TerminalPortfolioSummary) {
     setPendingLabel(portfolio.name);
+    if (variant === "heading") pendingHeadingFocusId = portfolio.id;
     // Parent owns navigation when onCreated is provided — never also call onSelect/goToPortfolio.
     if (onCreated) {
       onCreated(portfolio);
@@ -108,39 +147,92 @@ export function PortfolioSwitcher({
     });
   }
 
+  const ariaLabel = selected
+    ? variant === "heading"
+      ? `Current portfolio: ${selected.name} · ${ownerLine}. Change portfolio.`
+      : `Portfolio switcher — currently ${selected.name}`
+    : variant === "heading"
+      ? "Choose a portfolio"
+      : "Portfolio switcher — no portfolio selected";
+
   return (
     <>
       <DropdownMenu open={menu.open} onOpenChange={menu.setOpen}>
-        <DropdownMenuTrigger
-          className={cn(
-            "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-2.5 text-left outline-none",
-            "hover:bg-[var(--menu-item-hover)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
-            compact ? "py-1.5" : "py-2",
-            className,
-          )}
-          aria-label={
-            selected
-              ? `Portfolio switcher — currently ${selected.name}`
-              : "Portfolio switcher — no portfolio selected"
-          }
-        >
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium text-[var(--terminal-text)]">
-              {displayName}
-            </span>
-            {!compact ? (
-              <span className="block truncate text-[11px] text-[var(--terminal-muted)]">
+        <DropdownMenuTrigger asChild>
+          {variant === "heading" ? (
+            <button
+              ref={triggerRef}
+              type="button"
+              className={cn(
+                "group -mx-1 max-w-full rounded-md px-1 py-1 text-left outline-none transition-colors",
+                "min-h-11 hover:bg-[var(--menu-item-hover)]/50",
+                "focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
+                className,
+              )}
+              aria-label={ariaLabel}
+            >
+              <span className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <h1 className="min-w-0 truncate text-[26px] font-medium tracking-tight text-[var(--terminal-text)] sm:text-[30px]">
+                  {displayName}
+                </h1>
+                <ChevronDown
+                  className={cn(
+                    "size-5 shrink-0 text-[var(--terminal-muted)] transition-transform duration-200 sm:size-6",
+                    menu.open && "rotate-180",
+                  )}
+                  aria-hidden
+                />
+              </span>
+              <span className="mt-0.5 block truncate text-[13px] text-[var(--terminal-muted)]">
                 {displayOwner}
               </span>
-            ) : null}
-          </span>
-          <ChevronDown className="size-3.5 shrink-0 text-[var(--terminal-muted)]" aria-hidden />
+            </button>
+          ) : (
+            <button
+              ref={triggerRef}
+              type="button"
+              className={cn(
+                "inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-2.5 text-left outline-none",
+                "hover:bg-[var(--menu-item-hover)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
+                compact ? "py-1.5" : "py-2",
+                className,
+              )}
+              aria-label={ariaLabel}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-medium text-[var(--terminal-text)]">
+                  {displayName}
+                </span>
+                {!compact ? (
+                  <span className="block truncate text-[11px] text-[var(--terminal-muted)]">
+                    {displayOwner}
+                  </span>
+                ) : null}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "size-3.5 shrink-0 text-[var(--terminal-muted)] transition-transform duration-200",
+                  menu.open && "rotate-180",
+                )}
+                aria-hidden
+              />
+            </button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
           className="w-[min(calc(100vw-2rem),18rem)] rounded-lg border-[var(--terminal-border)] bg-[var(--menu-surface)] p-1.5 text-[var(--terminal-text)]"
           onCloseAutoFocus={(event) => {
-            if (menu.isNavigating()) event.preventDefault();
+            // While navigating away, skip restoring the soon-to-unmount trigger;
+            // the heading variant refocuses the new page trigger after settle.
+            if (menu.isNavigating()) {
+              event.preventDefault();
+              return;
+            }
+            if (variant === "heading") {
+              event.preventDefault();
+              triggerRef.current?.focus({ preventScroll: true });
+            }
           }}
         >
           {personal.length > 0 ? (
