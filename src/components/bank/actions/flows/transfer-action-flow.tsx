@@ -27,6 +27,7 @@ import {
   mockBankActionSubmission,
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
+import { isTransferFormDirty } from "@/lib/bank/bank-action-dirty";
 import { submitBankInternalTransfer } from "@/lib/bank/bank.functions";
 import { createUserScheduledTransferRecord } from "@/lib/bank/scheduled-transfer.functions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
@@ -105,11 +106,27 @@ export function TransferActionFlow({
   const idempotencyKeyRef = useRef<string | null>(null);
   const submittingLockRef = useRef(false);
 
+  const initialFormRef = useRef({
+    amount: "",
+    memo: "",
+    timing: initialTiming,
+    fromAccountId: initialPair.fromAccountId,
+    toAccountId: initialPair.toAccountId,
+    scheduledDate: "",
+    scheduledTime: DEFAULT_SCHEDULED_TIME_ET,
+    frequency: "monthly" as PaymentFrequencyCode,
+  });
+
   // Keep From in scoped set when context accounts load/change.
   useEffect(() => {
     if (!fromAccountId || !sourceAccounts.some((a) => a.id === fromAccountId)) {
       setFromAccountId(initialPair.fromAccountId);
       setToAccountId(initialPair.toAccountId);
+      initialFormRef.current = {
+        ...initialFormRef.current,
+        fromAccountId: initialPair.fromAccountId,
+        toAccountId: initialPair.toAccountId,
+      };
     }
   }, [fromAccountId, sourceAccounts, initialPair]);
 
@@ -130,13 +147,17 @@ export function TransferActionFlow({
     }
   }, [destinations, toAccountId]);
 
-  const dirty =
-    Boolean(amount.trim()) ||
-    Boolean(memo.trim()) ||
-    timing !== initialTiming ||
-    Boolean(scheduledDate) ||
-    fromAccountId !== initialPair.fromAccountId ||
-    toAccountId !== initialPair.toAccountId;
+  const dirty = isTransferFormDirty({
+    amount,
+    memo,
+    timing,
+    fromAccountId,
+    toAccountId,
+    scheduledDate,
+    scheduledTime,
+    frequency,
+    initial: initialFormRef.current,
+  });
 
   useEffect(() => {
     setDirty(dirty && phase !== "success" && phase !== "submitting");

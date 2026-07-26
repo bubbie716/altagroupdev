@@ -71,7 +71,7 @@ export function BankActionPageSurface({
       </div>
       <div className="pb-24 md:pb-8">{children(ctrl)}</div>
       {footer ? (
-        <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-10 border-t border-border bg-background/95 px-0 py-3 backdrop-blur md:static md:border-0 md:bg-transparent md:backdrop-blur-none">
+        <div className="sticky bottom-[var(--bank-mobile-nav-offset)] z-10 border-t border-border bg-background/95 px-0 py-3 backdrop-blur md:static md:border-0 md:bg-transparent md:backdrop-blur-none">
           {footer}
         </div>
       ) : null}

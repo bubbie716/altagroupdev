@@ -1,7 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useBankActionLauncher } from "@/components/bank/actions/use-bank-action-launcher";
+import {
+  useBankActionLauncher,
+  type BankActionLaunchExtras,
+} from "@/components/bank/actions/use-bank-action-launcher";
 import type { BankActionId } from "@/lib/bank/bank-action-ids";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +15,7 @@ export function BankActionLauncher({
   cardId,
   companyId,
   scope,
+  accountType,
   disabled,
   className,
   variant = "outline",
@@ -23,6 +27,7 @@ export function BankActionLauncher({
   cardId?: string;
   companyId?: string;
   scope?: "personal" | "all";
+  accountType?: BankActionLaunchExtras["accountType"];
   disabled?: boolean;
   className?: string;
   variant?: "default" | "outline" | "ghost" | "secondary" | "link" | "gold" | "institutional" | "destructive";
@@ -41,7 +46,7 @@ export function BankActionLauncher({
       onClick={(event) => {
         openAction(
           action,
-          { accountId, cardId, companyId, scope },
+          { accountId, cardId, companyId, scope, accountType },
           { fromElement: event.currentTarget },
         );
       }}

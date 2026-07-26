@@ -36,6 +36,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { closeAllBankWorkflows, registerBankWorkflow } from "@/lib/ui/bank-workflow-registry";
+import { registerTransientOverlay } from "@/lib/ui/transient-overlay-registry";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
@@ -115,6 +117,8 @@ export function AltaCardPaymentPanel({
   }
 
   async function openPanel() {
+    // Close any other Bank workflow (Freeze sheet, cash advance, etc.) first.
+    closeAllBankWorkflows();
     setOpen(true);
     setView("compose");
     setComposeError(null);
@@ -142,6 +146,22 @@ export function AltaCardPaymentPanel({
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!open || !isModal) return;
+    const forceClose = () => {
+      setOpen(false);
+      resetForm();
+    };
+    const unsubWorkflow = registerBankWorkflow(forceClose);
+    const unsubTransient = registerTransientOverlay(forceClose);
+    return () => {
+      unsubWorkflow();
+      unsubTransient();
+    };
+    // resetForm is stable enough for force-close; omit to avoid re-register churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isModal]);
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -475,15 +495,17 @@ export function AltaCardPaymentPanel({
         <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogContent
             className={cn(
-              "max-w-lg gap-0 overflow-hidden border-border bg-surface-1 p-0",
-              "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] max-md:max-h-[min(88dvh,calc(100dvh-5.5rem))] max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
+              "flex max-w-lg flex-col gap-0 overflow-hidden border-border bg-surface-1 p-0",
+              "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[var(--bank-mobile-nav-offset)] max-md:max-h-[var(--bank-mobile-sheet-max-height)] max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
             )}
+            onPointerDownOutside={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}
           >
             <DialogHeader className="border-b border-border px-4 py-3 pr-14 text-left sm:px-5">
               <DialogTitle className="text-[16px] font-semibold">Make a payment</DialogTitle>
               <DialogDescription>{paymentDescription}</DialogDescription>
             </DialogHeader>
-            <div className="overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
               {renderContent()}
             </div>
           </DialogContent>

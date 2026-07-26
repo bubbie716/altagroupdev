@@ -25,6 +25,7 @@ import {
   mockBankActionSubmission,
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
+import { isWithdrawFormDirty } from "@/lib/bank/bank-action-dirty";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import {
   formatBankActionError,
@@ -88,21 +89,29 @@ export function WithdrawActionFlow({
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [referenceCode, setReferenceCode] = useState<string | null>(null);
   const submittingLockRef = useRef(false);
+  const initialBankAccountIdRef = useRef(preferredAccountId ?? "");
   const selected = withdrawAccounts.find((a) => a.id === bankAccountId);
   const availableBalance = selected?.availableBalance ?? selected?.balance ?? 0;
 
   // Keep the source inside the eligible scope when context accounts load/change.
   useEffect(() => {
     if (!bankAccountId || !withdrawAccounts.some((a) => a.id === bankAccountId)) {
-      setBankAccountId(preferredAccountId ?? "");
+      const next = preferredAccountId ?? "";
+      setBankAccountId(next);
+      initialBankAccountIdRef.current = next;
     }
   }, [bankAccountId, withdrawAccounts, preferredAccountId]);
 
+  const dirty = isWithdrawFormDirty({
+    amount,
+    destination,
+    bankAccountId,
+    initialBankAccountId: initialBankAccountIdRef.current,
+  });
+
   useEffect(() => {
-    setDirty(
-      Boolean(amount || destination) && phase !== "success" && phase !== "submitting",
-    );
-  }, [amount, destination, phase, setDirty]);
+    setDirty(dirty && phase !== "success" && phase !== "submitting");
+  }, [dirty, phase, setDirty]);
 
   // Promote selection → details when nested under another chooser.
   useEffect(() => {

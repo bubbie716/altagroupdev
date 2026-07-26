@@ -27,6 +27,12 @@ export function overlayZClass(layer: OverlayLayer): string {
   return `z-[${OVERLAY_LAYER[layer]}]`;
 }
 
+/**
+ * Shared dialog/sheet scrim. Calmer than /80 so a single overlay stays
+ * readable and nested stacks (a bug) are less catastrophic.
+ */
+export const OVERLAY_SCRIM_CLASS = "bg-black/50";
+
 /** Mark portaled menu surfaces so parent dialogs can ignore outside events. */
 export const NESTED_OVERLAY_ATTR = "data-alta-overlay";
 export const NESTED_OVERLAY_VALUE = "nested";

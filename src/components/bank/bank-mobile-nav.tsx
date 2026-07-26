@@ -79,8 +79,13 @@ export function BankMobileBottomNav() {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 backdrop-blur-md md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Keep CSS var in sync with the measured content row (h-16).
+        ["--bank-mobile-nav-height" as string]: "4rem",
+      }}
       aria-label="Bank mobile"
+      data-bank-mobile-nav=""
     >
       <div className="mx-auto grid h-16 max-w-[1120px] grid-cols-4">
         {BANK_MOBILE_NAV_ITEMS.map((item) => {

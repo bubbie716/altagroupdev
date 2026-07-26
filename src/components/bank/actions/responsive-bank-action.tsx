@@ -14,8 +14,10 @@ import { focusDialogCloseButton } from "@/lib/ui/focus-dialog-close";
 import {
   hasOpenNestedOverlay,
   isNestedOverlayElement,
+  OVERLAY_SCRIM_CLASS,
   overlayZClass,
 } from "@/lib/ui/overlay-layers";
+import { registerBankWorkflow } from "@/lib/ui/bank-workflow-registry";
 import { registerTransientOverlay } from "@/lib/ui/transient-overlay-registry";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +26,9 @@ const CLOSE_RESET_MS = 320;
 /**
  * One responsive tree: centered dialog on desktop, bottom sheet on mobile
  * (SSR-safe CSS — no matchMedia branch / dual form mounts).
+ *
+ * Financial workflows never dismiss from backdrop clicks. Only X/Close,
+ * Cancel, Done, Discard, or Escape (after nested menus) may close them.
  */
 export function ResponsiveBankAction({
   open,
@@ -63,9 +68,17 @@ export function ResponsiveBankAction({
 
   useEffect(() => {
     if (!open) return;
-    return registerTransientOverlay(() => {
+    // Force-close when another Bank workflow takes over or the route leaves.
+    // Calls the prop directly (bypasses dirty confirm).
+    const forceClose = () => {
       if (dismissible) onOpenChange(false);
-    });
+    };
+    const unsubWorkflow = registerBankWorkflow(forceClose);
+    const unsubTransient = registerTransientOverlay(forceClose);
+    return () => {
+      unsubWorkflow();
+      unsubTransient();
+    };
   }, [open, dismissible, onOpenChange]);
 
   useEffect(() => {
@@ -114,7 +127,8 @@ export function ResponsiveBankAction({
       <DialogContent
         overlayClassName={cn(
           overlayZClass("bankAction"),
-          "bg-black/80 data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0",
+          OVERLAY_SCRIM_CLASS,
+          "data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0",
           "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
         )}
         className={cn(
@@ -123,9 +137,11 @@ export function ResponsiveBankAction({
           "data-[state=closed]:pointer-events-none",
           "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
           maxWidth,
-          // Mobile bottom sheet above Bank mobile nav + safe area
-          "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] max-md:max-h-[min(88dvh,calc(100dvh-5.5rem))] max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
-          "md:max-h-[min(90dvh,calc(100dvh-4rem))]",
+          // Mobile bottom sheet: sit above Bank mobile nav + safe area; bound to available viewport.
+          "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[var(--bank-mobile-nav-offset)]",
+          "max-md:h-auto max-md:max-h-[var(--bank-mobile-sheet-max-height)] max-md:w-full max-md:max-w-none",
+          "max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
+          "md:max-h-[min(90dvh,calc(100dvh-4rem-var(--ui-lab-banner-height,0px)))]",
           contentClassName,
         )}
         onOpenAutoFocus={(event) => {
@@ -147,20 +163,19 @@ export function ResponsiveBankAction({
             setConfirmClose(false);
             return;
           }
-          if (showBack && onBack && phase !== "success" && phase !== "selection") {
-            event.preventDefault();
-            onBack();
-          }
+          // Same controlled close path as X (dirty confirm / dismiss) — not step Back.
+          event.preventDefault();
+          requestClose();
         }}
         onPointerDownOutside={(event) => {
-          if (!dismissible || isNestedOverlayElement(event.target)) {
-            event.preventDefault();
-          }
+          // Financial workflows never dismiss from backdrop / outside clicks.
+          // Nested Select/Dropdown/Popover portals remain usable.
+          event.preventDefault();
+          if (isNestedOverlayElement(event.target)) return;
         }}
         onInteractOutside={(event) => {
-          if (!dismissible || isNestedOverlayElement(event.target)) {
-            event.preventDefault();
-          }
+          event.preventDefault();
+          if (isNestedOverlayElement(event.target)) return;
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
@@ -223,12 +238,16 @@ export function ResponsiveBankAction({
           <>
             <div
               key={contentKeyRef.current}
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
+              data-bank-action-scroll=""
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-6 sm:px-5"
             >
               {children}
             </div>
             {footer ? (
-              <div className="shrink-0 border-t border-border bg-surface-1 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-5">
+              <div
+                data-bank-action-footer=""
+                className="shrink-0 border-t border-border bg-surface-1 px-4 py-3 sm:px-5"
+              >
                 {footer}
               </div>
             ) : null}

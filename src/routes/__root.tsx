@@ -179,7 +179,7 @@ export const Route = createRootRouteWithContext<{
     return {
       meta: [
         { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "viewport", content: "width=device-width, initial-scale=1, interactive-widget=resizes-content" },
         { title: site.seo.title },
         { name: "description", content: site.seo.description },
         { name: "author", content: site.displayName },

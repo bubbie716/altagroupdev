@@ -4,6 +4,15 @@
 
 :root {
   --ui-lab-banner-height: 0px;
+  /* Bank mobile bottom nav: h-16 content row + safe-area padding on the nav itself. */
+  --bank-mobile-nav-height: 4rem;
+  --bank-mobile-nav-offset: calc(
+    var(--bank-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+  );
+  /* Available height for Bank action bottom sheets above nav + UI Lab banner. */
+  --bank-mobile-sheet-max-height: calc(
+    100dvh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px)
+  );
 }
 
 /*

@@ -52,26 +52,36 @@ describe("bank action URL contract", () => {
       cardId: undefined,
       companyId: undefined,
       scope: undefined,
+      accountType: undefined,
     });
     assert.equal(parseBankActionSearch({ action: "nope" }).action, null);
+    assert.equal(
+      parseBankActionSearch("?action=open-account&accountType=alta_access").accountType,
+      "alta_access",
+    );
   });
 
   it("strips only action-related keys", () => {
     const next = stripBankActionSearch({
       action: "deposit",
       accountId: "a1",
+      accountType: "checking",
       tab: "now",
       companyId: "c1",
     });
     assert.equal("action" in next, false);
     assert.equal("accountId" in next, false);
+    assert.equal("accountType" in next, false);
     assert.equal(next.tab, "now");
   });
 
   it("merges action params without inventing empty ids", () => {
-    const next = mergeBankActionSearch({ tab: "scheduled" }, { action: "pay", accountId: "a1" });
-    assert.equal(next.action, "pay");
-    assert.equal(next.accountId, "a1");
+    const next = mergeBankActionSearch(
+      { tab: "scheduled" },
+      { action: "open-account", accountType: "savings" },
+    );
+    assert.equal(next.action, "open-account");
+    assert.equal(next.accountType, "savings");
     assert.equal(next.tab, "scheduled");
     assert.equal("cardId" in next, false);
   });
@@ -80,6 +90,15 @@ describe("bank action URL contract", () => {
     const next = sanitizeBankActionSearch({ action: "wire-fantasy", foo: "1" });
     assert.equal("action" in next, false);
     assert.equal(next.foo, "1");
+  });
+
+  it("sanitizes invalid accountType values", () => {
+    const next = sanitizeBankActionSearch({
+      action: "open-account",
+      accountType: "not-a-type",
+    });
+    assert.equal(next.action, "open-account");
+    assert.equal("accountType" in next, false);
   });
 });
 
@@ -109,18 +128,20 @@ describe("responsive bank action architecture", () => {
   it("uses one dialog tree with mobile bottom-sheet CSS", () => {
     const shell = read("components/bank/actions/responsive-bank-action.tsx");
     assert.match(shell, /ResponsiveBankAction/);
-    assert.match(shell, /max-md:bottom-/);
-    assert.match(shell, /safe-area-inset-bottom/);
+    assert.match(shell, /--bank-mobile-nav-offset/);
+    assert.match(shell, /--bank-mobile-sheet-max-height/);
     assert.match(shell, /motion-reduce/);
     assert.doesNotMatch(shell, /useMediaQueryMax/);
     assert.match(shell, /CLOSE_RESET_MS/);
     assert.match(shell, /Discard this draft/);
+    assert.match(shell, /event\.preventDefault\(\)/);
   });
 
   it("hosts a single active overlay from Bank chrome", () => {
     const host = read("components/bank/actions/bank-action-host.tsx");
     const layout = read("components/bank/bank-page-layout.tsx");
     assert.match(host, /Mounts at most one active Bank action overlay/);
+    assert.match(host, /initialAccountType=\{accountType\}/);
     assert.match(layout, /BankActionHost/);
   });
 

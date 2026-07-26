@@ -8,7 +8,17 @@ import {
   stripBankActionSearch,
 } from "@/lib/bank/bank-action-url";
 import type { BankActionId } from "@/lib/bank/bank-action-ids";
+import type { BankAccountTypeCode } from "@/lib/bank/backend-types";
+import { closeAllBankWorkflows } from "@/lib/ui/bank-workflow-registry";
 import { closeAllTransientOverlays } from "@/lib/ui/transient-overlay-registry";
+
+export type BankActionLaunchExtras = {
+  accountId?: string;
+  cardId?: string;
+  companyId?: string;
+  scope?: "personal" | "all";
+  accountType?: BankAccountTypeCode;
+};
 
 /**
  * Opens / closes Bank action overlays via URL search params.
@@ -27,14 +37,10 @@ export function useBankActionLauncher() {
   const openAction = useCallback(
     (
       action: BankActionId,
-      extras?: {
-        accountId?: string;
-        cardId?: string;
-        companyId?: string;
-        scope?: "personal" | "all";
-      },
+      extras?: BankActionLaunchExtras,
       options?: { fromElement?: HTMLElement | null },
     ) => {
+      closeAllBankWorkflows();
       closeAllTransientOverlays();
       if (options?.fromElement) launchTargetRef.current = options.fromElement;
       else if (typeof document !== "undefined") {
@@ -46,6 +52,7 @@ export function useBankActionLauncher() {
         cardId: extras?.cardId,
         companyId: extras?.companyId,
         scope: extras?.scope,
+        accountType: extras?.accountType,
       });
       void router.navigate({
         to: pathname,
@@ -80,6 +87,7 @@ export function useBankActionLauncher() {
     cardId: parsed.cardId,
     companyId: parsed.companyId,
     scope: parsed.scope,
+    accountType: parsed.accountType,
     openAction,
     closeAction,
     restoreLaunchFocus,

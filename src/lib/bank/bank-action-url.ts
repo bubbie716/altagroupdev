@@ -3,6 +3,8 @@ import {
   parseBankActionId,
   type BankActionId,
 } from "@/lib/bank/bank-action-ids";
+import type { BankAccountTypeCode } from "@/lib/bank/backend-types";
+import { parseBankAccountTypeCode } from "@/lib/bank/bank-product-account-type";
 
 /**
  * Query-driven Bank action overlays.
@@ -12,6 +14,7 @@ import {
  *   /bank?action=withdraw&accountId=…
  *   /bank?action=move-money
  *   /bank?action=pay
+ *   /bank?action=open-account&accountType=alta_access
  *   /bank?action=card-payment&cardId=…
  *
  * Choice: query params on the current Bank path (not nested modal routes).
@@ -27,6 +30,7 @@ export const BANK_ACTION_SEARCH_KEYS = [
   "cardId",
   "companyId",
   "scope",
+  "accountType",
 ] as const;
 
 export type BankActionSearch = {
@@ -35,6 +39,7 @@ export type BankActionSearch = {
   cardId?: string;
   companyId?: string;
   scope?: "personal" | "all";
+  accountType?: BankAccountTypeCode;
 };
 
 export function parseBankActionSearch(
@@ -54,12 +59,17 @@ export function parseBankActionSearch(
     cardId: typeof params.cardId === "string" ? params.cardId : undefined,
     companyId: typeof params.companyId === "string" ? params.companyId : undefined,
     scope,
+    accountType: parseBankAccountTypeCode(params.accountType),
   };
 }
 
 export function stripBankActionSearch<T extends Record<string, unknown>>(
   search: T,
-): Omit<T, "action" | "accountId" | "cardId" | "companyId"> & Record<string, unknown> {
+): Omit<
+  T,
+  "action" | "accountId" | "cardId" | "companyId" | "scope" | "accountType"
+> &
+  Record<string, unknown> {
   const next = { ...search } as Record<string, unknown>;
   for (const key of BANK_ACTION_SEARCH_KEYS) {
     delete next[key];
@@ -75,6 +85,7 @@ export function mergeBankActionSearch(
     cardId?: string;
     companyId?: string;
     scope?: "personal" | "all";
+    accountType?: BankAccountTypeCode;
   },
 ): Record<string, unknown> {
   const next = { ...current, action: patch.action };
@@ -86,16 +97,23 @@ export function mergeBankActionSearch(
   else delete next.companyId;
   if (patch.scope) next.scope = patch.scope;
   else delete next.scope;
+  if (patch.accountType) next.accountType = patch.accountType;
+  else delete next.accountType;
   return next;
 }
 
-/** Drop invalid `action` values while keeping unrelated params. */
+/** Drop invalid `action` / `accountType` values while keeping unrelated params. */
 export function sanitizeBankActionSearch(
   search: Record<string, unknown>,
 ): Record<string, unknown> {
-  if (search.action == null) return search;
-  if (isBankActionId(search.action)) return search;
-  const next = { ...search };
-  delete next.action;
+  let next = search;
+  if (search.action != null && !isBankActionId(search.action)) {
+    next = { ...next };
+    delete next.action;
+  }
+  if (next.accountType != null && !parseBankAccountTypeCode(next.accountType)) {
+    next = next === search ? { ...next } : next;
+    delete next.accountType;
+  }
   return next;
 }

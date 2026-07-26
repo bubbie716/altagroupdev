@@ -32,6 +32,7 @@ import {
   shouldUseBankActionUiLabMock,
   getUiLabPayableRecipients,
 } from "@/lib/bank/bank-action-ui-lab";
+import { isPayFormDirty } from "@/lib/bank/bank-action-dirty";
 import {
   searchPayableRecipientsForPay,
   submitAltaPay,
@@ -191,14 +192,13 @@ export function PayActionFlow({
   const availableBalance = selectedFunding?.availableBalance ?? 0;
   const blockedSelfPayCompanyId = selfPayBlockedCompanyIdForFunding(selectedFunding);
 
-  const dirty =
-    Boolean(amount.trim()) ||
-    Boolean(memo.trim()) ||
-    Boolean(selectedRecipient) ||
-    Boolean(recipientQuery.trim()) ||
-    (Boolean(fundingKeyValue) &&
-      Boolean(initialFundingKeyRef.current) &&
-      fundingKeyValue !== initialFundingKeyRef.current);
+  const dirty = isPayFormDirty({
+    amount,
+    memo,
+    hasSelectedRecipient: Boolean(selectedRecipient),
+    fundingKey: fundingKeyValue,
+    initialFundingKey: initialFundingKeyRef.current,
+  });
 
   useEffect(() => {
     setDirty(dirty && phase !== "success" && phase !== "submitting");

@@ -25,6 +25,7 @@ import {
   mockBankActionSubmission,
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
+import { isDepositFormDirty } from "@/lib/bank/bank-action-dirty";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { depositBlockedReason, formatBankActionError } from "@/lib/bank/account-status-copy";
 import { MAX_PROOF_BYTES, ACCEPTED_PROOF_INPUT } from "@/lib/storage/proof-upload.constants";
@@ -88,20 +89,28 @@ export function DepositActionFlow({
   const [referenceCode, setReferenceCode] = useState<string | null>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const submittingLockRef = useRef(false);
+  const initialBankAccountIdRef = useRef(preferredAccountId ?? "");
   const selected = depositAccounts.find((a) => a.id === bankAccountId);
 
   // Keep the destination inside the eligible scope when context accounts load/change.
   useEffect(() => {
     if (!bankAccountId || !depositAccounts.some((a) => a.id === bankAccountId)) {
-      setBankAccountId(preferredAccountId ?? "");
+      const next = preferredAccountId ?? "";
+      setBankAccountId(next);
+      initialBankAccountIdRef.current = next;
     }
   }, [bankAccountId, depositAccounts, preferredAccountId]);
 
+  const dirty = isDepositFormDirty({
+    amount,
+    hasProofFile: Boolean(proofFile),
+    bankAccountId,
+    initialBankAccountId: initialBankAccountIdRef.current,
+  });
+
   useEffect(() => {
-    setDirty(
-      Boolean(amount || proofFile) && phase !== "success" && phase !== "submitting",
-    );
-  }, [amount, proofFile, phase, setDirty]);
+    setDirty(dirty && phase !== "success" && phase !== "submitting");
+  }, [dirty, phase, setDirty]);
 
   // Promote selection → details when nested under another chooser.
   useEffect(() => {

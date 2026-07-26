@@ -20,6 +20,7 @@ import {
   mockBankActionSubmission,
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
+import { isOpenAccountFormDirty } from "@/lib/bank/bank-action-dirty";
 import {
   defaultBankAccountTypeForOwnership,
   getBankAccountTypeOptionsForOpening,
@@ -49,16 +50,28 @@ export function OpenAccountActionFlow({
   setFooter,
   registerBack,
   onDone,
-}: BankActionFlowController) {
+  initialAccountType,
+}: BankActionFlowController & {
+  initialAccountType?: BankAccountTypeCode;
+}) {
   const user = useCurrentUser();
-  const [ownership, setOwnership] = useState<"personal" | "company">("personal");
-  const [accountType, setAccountType] = useState<BankAccountTypeCode>("alta_access");
+  const seededType = initialAccountType ?? "alta_access";
+  const seededOwnership =
+    seededType === "business_operating" ? ("company" as const) : ("personal" as const);
+  const [ownership, setOwnership] = useState<"personal" | "company">(seededOwnership);
+  const [accountType, setAccountType] = useState<BankAccountTypeCode>(seededType);
   const [accountName, setAccountName] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<OpenBankAccountResult | null>(null);
   const submittingLockRef = useRef(false);
+  const initialFormRef = useRef({
+    accountName: "",
+    ownership: seededOwnership,
+    accountType: seededType,
+    companyId: "",
+  });
 
   const accountTypeOptions = getBankAccountTypeOptionsForOpening(ownership);
   const selectedAccountType =
@@ -72,11 +85,17 @@ export function OpenAccountActionFlow({
       (selectedAccountType.value === "business_operating" &&
         verifiedCompanies.some((company) => company.companyId === companyId)));
 
+  const dirty = isOpenAccountFormDirty({
+    accountName,
+    ownership,
+    accountType,
+    companyId,
+    initial: initialFormRef.current,
+  });
+
   useEffect(() => {
-    setDirty(
-      Boolean(accountName.trim()) && phase !== "success" && phase !== "submitting",
-    );
-  }, [accountName, phase, setDirty]);
+    setDirty(dirty && phase !== "success" && phase !== "submitting");
+  }, [dirty, phase, setDirty]);
 
   useEffect(() => {
     if (phase === "success") {

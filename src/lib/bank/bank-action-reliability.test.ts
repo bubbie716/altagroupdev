@@ -15,6 +15,7 @@ import {
   hasOpenNestedOverlay,
   isNestedOverlayElement,
   OVERLAY_LAYER,
+  OVERLAY_SCRIM_CLASS,
   overlayZClass,
 } from "../ui/overlay-layers.ts";
 import type { UserBankAccount } from "./backend-types.ts";
@@ -75,6 +76,13 @@ describe("overlay layering", () => {
     assert.equal(overlayZClass("nestedPortal"), "z-[140]");
   });
 
+  it("uses a shared calmer overlay scrim", () => {
+    assert.equal(OVERLAY_SCRIM_CLASS, "bg-black/50");
+    assert.match(read("components/ui/dialog.tsx"), /OVERLAY_SCRIM_CLASS/);
+    assert.match(read("components/bank/actions/responsive-bank-action.tsx"), /OVERLAY_SCRIM_CLASS/);
+    assert.doesNotMatch(read("components/ui/dialog.tsx"), /bg-black\/80/);
+  });
+
   it("marks select/dropdown/popover content as nested overlays", () => {
     assert.match(read("components/ui/select.tsx"), /data-alta-overlay="nested"/);
     assert.match(read("components/ui/select.tsx"), /overlayZClass\("nestedPortal"\)/);
@@ -82,15 +90,86 @@ describe("overlay layering", () => {
     assert.match(read("components/ui/popover.tsx"), /data-alta-overlay="nested"/);
   });
 
-  it("ignores nested overlay outside interactions on bank actions", () => {
+  it("always prevents outside dismiss on bank action workflows", () => {
     const shell = read("components/bank/actions/responsive-bank-action.tsx");
     assert.match(shell, /isNestedOverlayElement/);
     assert.match(shell, /hasOpenNestedOverlay/);
+    assert.match(shell, /onPointerDownOutside=\{\(event\) => \{/);
+    assert.match(shell, /onInteractOutside=\{\(event\) => \{/);
+    assert.match(shell, /Financial workflows never dismiss from backdrop/);
+    assert.equal((shell.match(/event\.preventDefault\(\)/g) ?? []).length >= 4, true);
+  });
+
+  it("registers Bank workflows so card dialogs and action sheets cannot stack", () => {
+    const shell = read("components/bank/actions/responsive-bank-action.tsx");
+    const payment = read("components/bank/alta-card/alta-card-payment-panel.tsx");
+    const advance = read("components/bank/alta-card/alta-card-cash-advance-panel.tsx");
+    const launcher = read("components/bank/actions/use-bank-action-launcher.ts");
+    assert.match(shell, /registerBankWorkflow/);
+    assert.match(payment, /closeAllBankWorkflows/);
+    assert.match(payment, /registerBankWorkflow/);
+    assert.match(advance, /closeAllBankWorkflows/);
+    assert.match(advance, /registerBankWorkflow/);
+    assert.match(launcher, /closeAllBankWorkflows/);
+  });
+
+  it("pay dirty state uses the shared form-value helper", () => {
+    const pay = read("components/bank/actions/flows/pay-action-flow.tsx");
+    assert.match(pay, /isPayFormDirty/);
+    assert.match(pay, /hasSelectedRecipient: Boolean\(selectedRecipient\)/);
   });
 
   it("detects nested overlay elements", () => {
     assert.equal(isNestedOverlayElement(null), false);
     assert.equal(hasOpenNestedOverlay(), false);
+  });
+});
+
+describe("product details to open-account transition", () => {
+  it("closes details before launching open-account and preserves product type", () => {
+    const comparison = read("components/bank/bank-product-comparison.tsx");
+    assert.match(comparison, /closeThenRun/);
+    assert.match(comparison, /onRequestCloseDetails/);
+    assert.match(comparison, /OpenAccountFromProductDetails/);
+    assert.match(comparison, /resolveBankAccountTypeFromProductName/);
+    assert.match(comparison, /openAction\(\s*"open-account"/);
+    // Dialog mounts only while a product is selected (full unmount, no exit stack).
+    assert.match(comparison, /\{activeProduct \? \(/);
+    // Details dialog CTA must not nest BankActionLauncher (that stacks overlays).
+    const detailsBlock = comparison.slice(comparison.indexOf("OpenAccountFromProductDetails"));
+    assert.match(detailsBlock, /closeThenRun\(onRequestCloseDetails/);
+    assert.doesNotMatch(detailsBlock, /<BankActionLauncher/);
+  });
+
+  it("maps catalog product names to account types", async () => {
+    const {
+      resolveBankAccountTypeFromProductName,
+      ownershipForAccountType,
+    } = await import("./bank-product-account-type.ts");
+    assert.equal(resolveBankAccountTypeFromProductName("Alta Access"), "alta_access");
+    assert.equal(resolveBankAccountTypeFromProductName("Alta Checking"), "checking");
+    assert.equal(
+      resolveBankAccountTypeFromProductName("Business Operating Account"),
+      "business_operating",
+    );
+    assert.equal(ownershipForAccountType("business_operating"), "company");
+    assert.equal(ownershipForAccountType("alta_access"), "personal");
+  });
+});
+
+describe("mobile bank action sheet structure", () => {
+  it("uses shared nav offset tokens and a single scroll body", () => {
+    const shell = read("components/bank/actions/responsive-bank-action.tsx");
+    const styles = read("styles.css");
+    assert.match(styles, /--bank-mobile-nav-offset/);
+    assert.match(styles, /--bank-mobile-sheet-max-height/);
+    assert.match(shell, /--bank-mobile-nav-offset/);
+    assert.match(shell, /--bank-mobile-sheet-max-height/);
+    assert.match(shell, /data-bank-action-scroll/);
+    assert.match(shell, /data-bank-action-footer/);
+    assert.match(shell, /overflow-y-auto/);
+    assert.doesNotMatch(shell, /4\.25rem/);
+    assert.doesNotMatch(shell, /useMediaQueryMax/);
   });
 });
 

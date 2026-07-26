@@ -6,7 +6,7 @@ import { useBankActionLauncher } from "@/components/bank/actions/use-bank-action
 import { BANK_ACTION_LABELS, type BankActionId } from "@/lib/bank/bank-action-ids";
 import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
 import { fetchActiveBankAccounts } from "@/lib/bank/bank.functions";
-import type { UserBankAccount } from "@/lib/bank/backend-types";
+import type { UserBankAccount, BankAccountTypeCode } from "@/lib/bank/backend-types";
 import { MoveMoneyActionFlow } from "@/components/bank/actions/flows/move-money-action-flow";
 import { DepositActionFlow } from "@/components/bank/actions/flows/deposit-action-flow";
 import { WithdrawActionFlow } from "@/components/bank/actions/flows/withdraw-action-flow";
@@ -22,8 +22,16 @@ import { useServerFn } from "@tanstack/react-start";
  * Form state remounts via `key` when action identity changes.
  */
 export function BankActionHost() {
-  const { action, accountId, cardId, companyId, scope, closeAction, restoreLaunchFocus } =
-    useBankActionLauncher();
+  const {
+    action,
+    accountId,
+    cardId,
+    companyId,
+    scope,
+    accountType,
+    closeAction,
+    restoreLaunchFocus,
+  } = useBankActionLauncher();
   const loadAccounts = useServerFn(fetchActiveBankAccounts);
   const [accounts, setAccounts] = useState<UserBankAccount[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -70,10 +78,11 @@ export function BankActionHost() {
 
   return (
     <BankActionFlowShell
-      key={`${action}:${accountId ?? ""}:${cardId ?? ""}:${companyId ?? ""}:${scope ?? ""}`}
+      key={`${action}:${accountId ?? ""}:${cardId ?? ""}:${companyId ?? ""}:${scope ?? ""}:${accountType ?? ""}`}
       action={action}
       accountId={accountId}
       cardId={cardId}
+      accountType={accountType}
       accountContext={accountContext}
       accounts={accounts}
       loadError={loadError}
@@ -89,6 +98,7 @@ function BankActionFlowShell({
   action,
   accountId,
   cardId,
+  accountType,
   accountContext,
   accounts,
   loadError,
@@ -97,6 +107,7 @@ function BankActionFlowShell({
   action: BankActionId;
   accountId?: string;
   cardId?: string;
+  accountType?: BankAccountTypeCode;
   accountContext: {
     accountId?: string;
     companyId?: string;
@@ -238,6 +249,7 @@ function BankActionFlowShell({
           backHandlerRef.current = fn;
         }}
         onDone={onClose}
+        initialAccountType={accountType}
       />
     );
   } else if (action === "card-freeze" || action === "card-unfreeze") {
