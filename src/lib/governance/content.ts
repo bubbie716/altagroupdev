@@ -123,12 +123,14 @@ export const executiveLeadership: LeadershipCard[] = [
   },
   {
     title: "Chief Operating Officer",
-    status: "Vacant",
+    name: "Musclebound",
+    status: "Appointed",
     responsibility: "Operating standards, service delivery, and cross-division execution.",
   },
   {
     title: "Chief Financial Officer",
-    status: "Vacant",
+    name: "Inceee",
+    status: "Appointed",
     responsibility: "Financial planning, treasury oversight, and institutional reporting.",
   },
 ];
