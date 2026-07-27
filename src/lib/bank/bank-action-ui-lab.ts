@@ -5,6 +5,12 @@
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import type { BankRequestSubmissionResult } from "@/components/bank/bank-request-submission-ui";
 import type { PayableRecipient } from "@/lib/bank/alta-pay-types";
+import type { MerchantInvoiceRecipientOption } from "@/lib/bank/merchant-invoice-types";
+import {
+  searchUiLabInvoiceRecipients,
+  searchUiLabPayableRecipients,
+  UI_LAB_PAYABLE_RECIPIENTS,
+} from "@/lib/bank/ui-lab-commercial-fixtures";
 
 export type BankActionUiLabScenario =
   | "success"
@@ -15,40 +21,8 @@ export type BankActionUiLabScenario =
 
 const SCENARIO_STORAGE_KEY = "alta.bank.action.uiLabScenario";
 
-const UI_LAB_RECIPIENTS: PayableRecipient[] = [
-  {
-    kind: "person",
-    id: "ui-lab-person-ava",
-    name: "Ava Chen",
-    subtitle: "@ava",
-    destinationLabel: "Personal · AB-5000-100001",
-    canReceive: true,
-  },
-  {
-    kind: "person",
-    id: "ui-lab-person-noah",
-    name: "Noah Patel",
-    subtitle: "@noah",
-    destinationLabel: "Personal · AB-5000-100002",
-    canReceive: true,
-  },
-  {
-    kind: "company",
-    id: "CO-ALTG",
-    name: "Alta Group N.V.",
-    subtitle: "Verified company · ALTG",
-    destinationLabel: "Business Operating · AB-3500-200001",
-    canReceive: true,
-  },
-  {
-    kind: "company",
-    id: "CO-NPC",
-    name: "Newport Petroleum Corp.",
-    subtitle: "Verified company · NPC",
-    destinationLabel: "Business Operating · AB-3500-200002",
-    canReceive: true,
-  },
-];
+/** @deprecated Prefer UI_LAB_PAYABLE_RECIPIENTS from ui-lab-commercial-fixtures. */
+export const UI_LAB_RECIPIENTS: PayableRecipient[] = UI_LAB_PAYABLE_RECIPIENTS;
 
 export function getBankActionUiLabScenario(): BankActionUiLabScenario {
   if (!isUiLabMode() || typeof window === "undefined") return "success";
@@ -82,15 +56,12 @@ export function shouldUseBankActionUiLabMock(): boolean {
 }
 
 export function getUiLabPayableRecipients(query: string): PayableRecipient[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  if (q === "zzz" || q === "no-match") return [];
-  return UI_LAB_RECIPIENTS.filter(
-    (recipient) =>
-      recipient.name.toLowerCase().includes(q) ||
-      recipient.subtitle?.toLowerCase().includes(q) ||
-      recipient.id.toLowerCase().includes(q),
-  );
+  return searchUiLabPayableRecipients(query);
+}
+
+/** UI Lab invoice recipients (people + verified companies), same catalog as Alta Pay. */
+export function getUiLabInvoiceRecipients(query: string): MerchantInvoiceRecipientOption[] {
+  return searchUiLabInvoiceRecipients(query);
 }
 
 export function mockBankActionSubmission(options: {

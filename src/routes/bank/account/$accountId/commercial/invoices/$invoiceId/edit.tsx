@@ -1,6 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
-import { MerchantInvoiceForm } from "@/components/bank/merchant-invoices/merchant-invoice-form";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { MerchantInvoiceWorkflow } from "@/components/bank/merchant-invoices/merchant-invoice-workflow";
 import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchMerchantInvoiceDetail } from "@/lib/bank/merchant-invoice.functions";
@@ -26,12 +25,27 @@ export const Route = createFileRoute(
 });
 
 function AccountCommercialEditInvoicePage() {
+  const router = useRouter();
   const { accountId } = Route.useParams();
   const { invoice, companyId } = Route.useLoaderData();
 
+  function leave() {
+    void router.navigate({
+      to: accountCommercialRoutes.invoiceDetail,
+      params: { accountId, invoiceId: invoice.id },
+    });
+  }
+
   return (
-    <Section title={invoice.referenceCode}>
-      <MerchantInvoiceForm companyId={companyId} accountId={accountId} initialInvoice={invoice} />
-    </Section>
+    <MerchantInvoiceWorkflow
+      open
+      onOpenChange={(open) => {
+        if (!open) leave();
+      }}
+      onDone={leave}
+      companyId={companyId}
+      accountId={accountId}
+      initialInvoice={invoice}
+    />
   );
 }

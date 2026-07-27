@@ -1,6 +1,7 @@
 import type { UserNotificationType as DbNotificationType } from "@prisma/client";
 import type { NotificationDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
+import { assertLiveNotificationTransportAllowed } from "@/server/notification-test-transport";
 
 function logDelivery(message: string, meta?: Record<string, unknown>): void {
   if (process.env.NODE_ENV === "test") return;
@@ -59,6 +60,7 @@ async function markDiscordDelivered(notificationId: string): Promise<void> {
 export async function deliverCustomerNotificationDm(
   input: DeliverCustomerNotificationDmInput,
 ): Promise<{ sent: boolean; reason?: string; skipped?: boolean }> {
+  assertLiveNotificationTransportAllowed("deliverCustomerNotificationDm");
   try {
     const { isDiscordNotificationEnabled } = await import("@/server/bank-settings.service");
     const { isMandatoryDiscordNotification } = await import("@/lib/bank/notification-pref-rules");

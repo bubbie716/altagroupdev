@@ -1,8 +1,12 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import type { MerchantInvoiceDashboard } from "@/lib/bank/merchant-invoice-types";
 import { MerchantInvoiceStatusBadge } from "@/components/bank/merchant-invoices/merchant-invoice-status-badge";
+import { MerchantInvoiceWorkflow } from "@/components/bank/merchant-invoices/merchant-invoice-workflow";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export function MerchantInvoiceDashboardPanel({
@@ -11,13 +15,41 @@ export function MerchantInvoiceDashboardPanel({
   accountId,
   canCreate = true,
   createLimitMessage,
+  autoOpenCreate = false,
 }: {
   dashboard: MerchantInvoiceDashboard;
   companyId: string;
   accountId: string;
   canCreate?: boolean;
   createLimitMessage?: string;
+  autoOpenCreate?: boolean;
 }) {
+  const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (canCreate && autoOpenCreate) {
+      setCreateOpen(true);
+    }
+  }, [canCreate, autoOpenCreate]);
+
+  function openCreate() {
+    if (!canCreate) return;
+    setCreateOpen(true);
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    setCreateOpen(open);
+    if (!open && autoOpenCreate) {
+      void navigate({
+        to: accountCommercialRoutes.invoices,
+        params: { accountId },
+        search: {},
+        replace: true,
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -47,13 +79,13 @@ export function MerchantInvoiceDashboardPanel({
               Payment links
             </Link>
             {canCreate ? (
-              <Link
-                to={accountCommercialRoutes.invoicesNew}
-                params={{ accountId }}
+              <button
+                type="button"
+                onClick={openCreate}
                 className="inline-flex items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
               >
                 New invoice
-              </Link>
+              </button>
             ) : (
               <button
                 type="button"
@@ -92,6 +124,15 @@ export function MerchantInvoiceDashboardPanel({
           </div>
         )}
       </Card>
+
+      {canCreate ? (
+        <MerchantInvoiceWorkflow
+          open={createOpen}
+          onOpenChange={handleCreateOpenChange}
+          companyId={companyId}
+          accountId={accountId}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authBeforeLoad } from "@/lib/auth/guards";
-import type { BusinessBankingSearch } from "./route";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export const Route = createFileRoute("/bank/business/payments")({
   beforeLoad: async (ctx) => {
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/bank/business/payments")({
     });
     if (!resolved) throw redirect({ to: "/bank/business" });
     throw redirect({
-      to: "/bank/account/$accountId/commercial",
+      to: accountCommercialRoutes.payments,
       params: { accountId: resolved.accountId },
     });
   },

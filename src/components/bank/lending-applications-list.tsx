@@ -51,8 +51,8 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
     return (
       <EmptyState
         tag="No applications"
-        title="No facility requests on file"
-        description="When you submit a credit application it appears here with review status and a link to your Secure Deal Room."
+        title="No credit applications yet"
+        description="Submitted applications appear here with review status."
         action={
           creditDeskNav.showApplyEntryPoints ? (
           <RouteButton
@@ -104,7 +104,7 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
         <EmptyState
           tag="No matches"
           title="No applications match this filter"
-          description="Adjust the filter above to see other facility requests."
+          description="Adjust the filter above to see other applications."
           size="compact"
         />
       ) : (

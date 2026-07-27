@@ -10,6 +10,7 @@ type RouteButtonProps = {
   children: ReactNode;
   disabled?: boolean;
   type?: "button" | "submit";
+  "aria-label"?: string;
 };
 
 /** In-app navigation without rendering an anchor/hyperlink. */
@@ -21,6 +22,7 @@ export function RouteButton({
   children,
   disabled,
   type = "button",
+  "aria-label": ariaLabel,
 }: RouteButtonProps) {
   const navigate = useNavigate();
 
@@ -28,6 +30,7 @@ export function RouteButton({
     <button
       type={type}
       disabled={disabled}
+      aria-label={ariaLabel}
       className={cn("cursor-pointer", className)}
       onClick={() => {
         void navigate({ to, params, search });

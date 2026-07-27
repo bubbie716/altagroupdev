@@ -7,11 +7,25 @@ import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-b
 import { fetchPaymentLinkDashboard } from "@/lib/bank/payment-link.functions";
 import { Route as CommercialRoute } from "../route";
 
+type PaymentLinksSearch = {
+  create?: 1;
+};
+
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/")({
+  validateSearch: (search: Record<string, unknown>): PaymentLinksSearch => {
+    if (search.create === 1 || search.create === "1") return { create: 1 };
+    return {};
+  },
   loader: async ({ context }) => {
     const commercial = requireCommercialFromRouteContext(context);
     if (!commercial.isVerified) {
-      return { dashboard: null, canCreate: true, createLimitMessage: undefined };
+      return {
+        dashboard: null,
+        canCreate: true,
+        createLimitMessage: undefined,
+        paymentLinksThisMonth: undefined,
+        paymentLinkMonthlyLimit: undefined,
+      };
     }
 
     const [dashboard, limits] = await Promise.all([
@@ -23,6 +37,8 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/paymen
       dashboard,
       canCreate: limits.canCreatePaymentLink,
       createLimitMessage: limits.paymentLinkLimitMessage,
+      paymentLinksThisMonth: limits.paymentLinksThisMonth,
+      paymentLinkMonthlyLimit: limits.paymentLinkMonthlyLimit,
     };
   },
   head: () => ({ meta: [{ title: "Payment Links — Business Account" }] }),
@@ -31,8 +47,15 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/paymen
 
 function AccountCommercialPaymentLinksPage() {
   const { accountId } = Route.useParams();
+  const { create } = Route.useSearch();
   const { context } = CommercialRoute.useLoaderData();
-  const { dashboard, canCreate, createLimitMessage } = Route.useLoaderData();
+  const {
+    dashboard,
+    canCreate,
+    createLimitMessage,
+    paymentLinksThisMonth,
+    paymentLinkMonthlyLimit,
+  } = Route.useLoaderData();
 
   if (!context) return null;
 
@@ -46,6 +69,9 @@ function AccountCommercialPaymentLinksPage() {
             accountId={accountId}
             canCreate={canCreate}
             createLimitMessage={createLimitMessage}
+            paymentLinksThisMonth={paymentLinksThisMonth}
+            paymentLinkMonthlyLimit={paymentLinkMonthlyLimit}
+            autoOpenCreate={create === 1}
           />
         </Section>
       ) : null}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowDownLeft, ArrowUpRight, CreditCard, Send } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CreditCard } from "lucide-react";
 import { MoveMoneyChooser } from "@/components/bank/move-money-chooser";
 import { BankActionLauncher } from "@/components/bank/actions/bank-action-launcher";
 import { florin } from "@/lib/bank/api";
@@ -265,7 +265,7 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <MoveMoneyChooser
             disabled={!canTransact}
             accountId={preferredAccountId}
@@ -299,18 +299,6 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
           >
             <ArrowUpRight className="size-4" aria-hidden />
             Withdraw
-          </BankActionLauncher>
-          <BankActionLauncher
-            action="pay"
-            accountId={preferredAccountId}
-            companyId={actionCompanyId}
-            scope={actionScope}
-            disabled={!canTransact}
-            variant="outline"
-            className="h-12 w-full justify-center gap-2"
-          >
-            <Send className="size-4" aria-hidden />
-            Pay
           </BankActionLauncher>
         </div>
         {!canTransact && scopedAccounts.length > 0 ? (

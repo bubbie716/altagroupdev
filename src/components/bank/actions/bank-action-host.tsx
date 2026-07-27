@@ -295,6 +295,7 @@ function BankActionFlowShell({
       showBack={showBack}
       onBack={() => backHandlerRef.current?.()}
       footer={footer}
+      scrollResetKey={phase}
     >
       {body}
     </ResponsiveBankAction>

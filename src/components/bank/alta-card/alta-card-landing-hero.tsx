@@ -50,7 +50,7 @@ const ALTA_GOLD_BENEFITS = [
   "Negotiated interest rates",
   "Relationship pricing across your Alta accounts",
   "Priority servicing on card requests",
-  "Reviewed by the Alta credit desk",
+  "Reviewed with your Alta relationship",
   "Terms revisited through Request Account Review",
 ];
 
@@ -71,12 +71,12 @@ export function AltaGoldCardHighlight({ cardId }: { cardId?: string | null }) {
             Alta Gold Card
           </h2>
           <p className="mt-2 font-serif text-[17px] text-foreground/90">
-            The flagship Alta Card tier, priced to your full Alta Bank relationship.
+            The highest Alta Card tier, with limits and rates negotiated to your Alta Bank relationship.
           </p>
           <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-muted-foreground">
-            Alta Gold has no published limit or rate. Terms are set by the Alta credit desk based on
-            your balances, loan history, and payment record — and can be revisited at any time
-            through Request Account Review.
+            Alta Gold sits alongside White, Navy, and Black. It has no published limit or rate — terms
+            are set from your balances, loan history, and payment record, and can be revisited through
+            Request Account Review.
           </p>
 
           <ul className="mt-6 grid gap-2 sm:grid-cols-2">

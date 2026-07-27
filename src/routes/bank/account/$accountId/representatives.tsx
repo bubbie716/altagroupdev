@@ -3,7 +3,6 @@ import { Section } from "@/components/page-shell";
 import { BusinessRepresentativesPanel } from "@/components/bank/business-representatives-panel";
 import { fetchBusinessAccountContextForModule } from "@/lib/bank/business-account.functions";
 import { fetchBusinessRepresentatives } from "@/lib/bank/business-banking.functions";
-import { Route as AccountRoute } from "./route";
 
 export const Route = createFileRoute("/bank/account/$accountId/representatives")({
   loader: async ({ params }) => {
@@ -11,18 +10,26 @@ export const Route = createFileRoute("/bank/account/$accountId/representatives")
       data: { accountId: params.accountId, module: "representatives" },
     });
     const representatives = await fetchBusinessRepresentatives({ data: ctx.companyId });
-    return { representatives };
+    return {
+      representatives,
+      companyId: ctx.companyId,
+      companyName: ctx.companyName,
+    };
   },
-  head: () => ({ meta: [{ title: "Representatives — Business Account" }] }),
-  component: BusinessAccountRepresentativesPage,
+  head: () => ({ meta: [{ title: "Team & permissions — Business Account" }] }),
+  component: BusinessAccountTeamPage,
 });
 
-function BusinessAccountRepresentativesPage() {
-  const { representatives } = Route.useLoaderData();
+function BusinessAccountTeamPage() {
+  const { representatives, companyId, companyName } = Route.useLoaderData();
 
   return (
-    <Section title="Authorized representatives">
-      <BusinessRepresentativesPanel representatives={representatives} />
+    <Section title="Team & permissions">
+      <BusinessRepresentativesPanel
+        representatives={representatives}
+        companyId={companyId}
+        companyName={companyName}
+      />
     </Section>
   );
 }

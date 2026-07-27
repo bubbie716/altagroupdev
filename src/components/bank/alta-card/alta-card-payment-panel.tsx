@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -12,11 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  BankRequestErrorCard,
   BankRequestSubmitButton,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
-import { BankProcessResult } from "@/components/bank/actions/bank-process-ui";
+import { BankActionProcessing } from "@/components/bank/actions/bank-action-chrome";
+import { BankProcessError, BankProcessResult } from "@/components/bank/actions/bank-process-ui";
 import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
 import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
@@ -38,13 +38,19 @@ import {
 } from "@/components/ui/dialog";
 import { closeAllBankWorkflows, registerBankWorkflow } from "@/lib/ui/bank-workflow-registry";
 import { registerTransientOverlay } from "@/lib/ui/transient-overlay-registry";
+import {
+  mockBankActionSubmission,
+  shouldUseBankActionUiLabMock,
+} from "@/lib/bank/bank-action-ui-lab";
+import { applyUiLabAltaCardPayment } from "@/lib/bank/ui-lab-alta-card-state";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-60";
 
-type FormView = "compose" | "review" | "success" | "error";
+type FormView = "compose" | "review" | "submitting" | "success" | "error";
 type PaymentKind = "minimum" | "statement" | "current" | "custom";
 
 const PAYMENT_KIND_LABELS: Record<Exclude<PaymentKind, "custom">, string> = {
@@ -84,6 +90,7 @@ export function AltaCardPaymentPanel({
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
   const loadedRef = useRef(false);
+  const submittingLockRef = useRef(false);
 
   const disabled = card.currentBalance <= 0 || card.status === "closed";
 
@@ -107,16 +114,18 @@ export function AltaCardPaymentPanel({
     else if (kind === "current") setAmount(String(ctx.currentBalance));
   }
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     setView("compose");
     setComposeError(null);
     setErrorReason(null);
     setSubmission(null);
     setPaymentKind("current");
     applyPaymentKind("current", balances);
-  }
+    setSubmitting(false);
+    submittingLockRef.current = false;
+  }, [balances]);
 
-  async function openPanel() {
+  const openPanel = useCallback(async () => {
     // Close any other Bank workflow (Freeze sheet, cash advance, etc.) first.
     closeAllBankWorkflows();
     setOpen(true);
@@ -126,16 +135,36 @@ export function AltaCardPaymentPanel({
     setSubmission(null);
     setLoading(true);
     try {
-      const ctx = await loadContext({ data: card.id });
-      setAccounts(ctx.sourceAccounts);
-      setSourceAccountId(ctx.sourceAccounts[0]?.id ?? "");
-      const nextBalances = {
-        minimumPayment: ctx.minimumPayment,
-        statementBalance: ctx.statementBalance,
-        currentBalance: ctx.currentBalance,
-      };
-      setBalances(nextBalances);
-      applyPaymentKind("current", nextBalances);
+      if (shouldUseBankActionUiLabMock()) {
+        const mockAccounts = [
+          {
+            id: "ui-lab-checking",
+            accountName: "UI Lab Checking",
+            accountNumber: "AB-5000-000001",
+            availableBalance: 12_000,
+          },
+        ];
+        setAccounts(mockAccounts);
+        setSourceAccountId(mockAccounts[0].id);
+        const nextBalances = {
+          minimumPayment: Math.max(25, Math.round(card.currentBalance * 0.02 * 100) / 100),
+          statementBalance: card.statementBalance,
+          currentBalance: card.currentBalance,
+        };
+        setBalances(nextBalances);
+        applyPaymentKind("current", nextBalances);
+      } else {
+        const ctx = await loadContext({ data: card.id });
+        setAccounts(ctx.sourceAccounts);
+        setSourceAccountId(ctx.sourceAccounts[0]?.id ?? "");
+        const nextBalances = {
+          minimumPayment: ctx.minimumPayment,
+          statementBalance: ctx.statementBalance,
+          currentBalance: ctx.currentBalance,
+        };
+        setBalances(nextBalances);
+        applyPaymentKind("current", nextBalances);
+      }
     } catch (err) {
       setComposeError(
         err instanceof Error
@@ -145,7 +174,7 @@ export function AltaCardPaymentPanel({
     } finally {
       setLoading(false);
     }
-  }
+  }, [card.id, card.currentBalance, card.statementBalance, loadContext]);
 
   useEffect(() => {
     if (!open || !isModal) return;
@@ -159,11 +188,10 @@ export function AltaCardPaymentPanel({
       unsubWorkflow();
       unsubTransient();
     };
-    // resetForm is stable enough for force-close; omit to avoid re-register churn.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isModal]);
+  }, [open, isModal, resetForm]);
 
   function handleOpenChange(next: boolean) {
+    if (!next && (view === "submitting" || submittingLockRef.current)) return;
     setOpen(next);
     if (!next) {
       resetForm();
@@ -175,7 +203,7 @@ export function AltaCardPaymentPanel({
       loadedRef.current = true;
       void openPanel();
     }
-  }, [variant]);
+  }, [variant, openPanel]);
 
   function goToReview() {
     setComposeError(null);
@@ -197,24 +225,44 @@ export function AltaCardPaymentPanel({
 
   async function submitPayment(e: React.FormEvent) {
     e.preventDefault();
-    if (!sourceAccountId || submitting) return;
+    if (!sourceAccountId || submittingLockRef.current || view === "submitting") return;
 
+    submittingLockRef.current = true;
     setSubmitting(true);
+    setView("submitting");
+    setErrorReason(null);
     const startedAt = Date.now();
 
     try {
-      const res = (await submit({
-        data: {
-          cardId: card.id,
-          sourceAccountId,
+      let referenceCode: string;
+
+      if (shouldUseBankActionUiLabMock()) {
+        const mock = mockBankActionSubmission({
+          kind: "card_payment",
           amount: payAmount,
-          paymentKind,
-          memo: undefined,
-        },
-      })) as { referenceCode: string };
+          accountName: selectedAccount?.accountName,
+          accountNumber: selectedAccount?.accountNumber,
+        });
+        referenceCode = mock.referenceCode;
+        applyUiLabAltaCardPayment(card.id, payAmount);
+      } else {
+        const res = (await submit({
+          data: {
+            cardId: card.id,
+            sourceAccountId,
+            amount: payAmount,
+            paymentKind,
+            memo: undefined,
+          },
+        })) as { referenceCode: string };
+        referenceCode = res.referenceCode;
+        if (isUiLabMode()) {
+          applyUiLabAltaCardPayment(card.id, payAmount);
+        }
+      }
 
       const submitted: BankRequestSubmissionResult = {
-        referenceCode: res.referenceCode,
+        referenceCode,
         amount: payAmount,
         submittedAt: new Date().toISOString(),
         accountName: selectedAccount?.accountName ?? "—",
@@ -224,18 +272,25 @@ export function AltaCardPaymentPanel({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmission(submitted);
       setView("success");
-      await router.invalidate();
+      if (!shouldUseBankActionUiLabMock()) {
+        await router.invalidate();
+      }
     } catch (err) {
       setErrorReason(formatCustomerActionError(err, "card_payment"));
       setView("error");
     } finally {
       setSubmitting(false);
+      submittingLockRef.current = false;
     }
   }
 
   function renderContent() {
     if (loading) {
       return <SkeletonFormPanel fields={4} label={LOADING_COPY.paymentOptions} />;
+    }
+
+    if (view === "submitting") {
+      return <BankActionProcessing label="Processing payment…" />;
     }
 
     if (view === "success" && submission) {
@@ -265,12 +320,14 @@ export function AltaCardPaymentPanel({
 
     if (view === "error") {
       return (
-        <BankRequestErrorCard
-          reason={errorReason}
-          onTryAgain={() => {
+        <BankProcessError
+          title="Payment failed"
+          message={errorReason ?? "Your card payment could not be completed."}
+          onRetry={() => {
             setErrorReason(null);
             setView("review");
           }}
+          retryLabel="Try again"
         />
       );
     }
@@ -340,7 +397,8 @@ export function AltaCardPaymentPanel({
               </button>
               <BankRequestSubmitButton
                 kind="card_payment"
-                submitting={submitting}
+                submitting={false}
+                disabled={submitting}
                 showContainer={false}
               />
             </fieldset>

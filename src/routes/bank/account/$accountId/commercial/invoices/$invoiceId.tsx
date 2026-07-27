@@ -35,7 +35,7 @@ function AccountCommercialInvoiceDetailPage() {
         <ChevronLeft className="size-4 shrink-0" aria-hidden />
         Back to all invoices
       </Link>
-      <Section title={invoice.referenceCode}>
+      <Section title="Invoice">
         <MerchantInvoiceDetailPanel
           invoice={invoice}
           companyId={companyId}

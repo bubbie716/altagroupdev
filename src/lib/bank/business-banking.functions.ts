@@ -14,6 +14,13 @@ async function actor() {
 export const fetchBusinessBankingOverview = createServerFn({ method: "GET" })
   .inputValidator((companyId: string | undefined) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabBusinessBankingOverview } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      return getUiLabBusinessBankingOverview(companyId);
+    }
     const { getBusinessBankingOverview } = await import("@/server/business-banking.service");
     const user = await actor();
     return getBusinessBankingOverview(user, companyId);
@@ -22,6 +29,11 @@ export const fetchBusinessBankingOverview = createServerFn({ method: "GET" })
 export const fetchScheduledPayments = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabScheduledPayments } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabScheduledPayments(companyId);
+    }
     const { listScheduledPayments } = await import("@/server/business-banking.service");
     const user = await actor();
     return listScheduledPayments(user, companyId);
@@ -46,6 +58,11 @@ export const cancelScheduledPaymentRecord = createServerFn({ method: "POST" })
 export const fetchPayrollEmployees = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabPayrollEmployees } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabPayrollEmployees(companyId);
+    }
     const { listPayrollEmployees } = await import("@/server/business-banking.service");
     const user = await actor();
     return listPayrollEmployees(user, companyId);
@@ -78,6 +95,11 @@ export const deactivatePayrollEmployeeRecord = createServerFn({ method: "POST" }
 export const fetchPayrollRuns = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabPayrollRuns } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabPayrollRuns(companyId);
+    }
     const { listPayrollRuns } = await import("@/server/business-banking.service");
     const user = await actor();
     return listPayrollRuns(user, companyId);
@@ -94,6 +116,11 @@ export const createPayrollRunRecord = createServerFn({ method: "POST" })
 export const fetchBusinessRepresentatives = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabRepresentatives } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabRepresentatives(companyId);
+    }
     const { listBusinessRepresentatives } = await import("@/server/business-banking.service");
     const user = await actor();
     return listBusinessRepresentatives(user, companyId);

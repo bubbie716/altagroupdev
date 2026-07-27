@@ -1,6 +1,7 @@
 import { buildNotificationDmPayload } from "@/lib/discord/notification-dm";
 import { sendDiscordNotificationDm } from "@/server/discord-dm.service";
 import { prisma } from "@/server/db";
+import { assertLiveNotificationTransportAllowed } from "@/server/notification-test-transport";
 
 function logDelivery(message: string, meta?: Record<string, unknown>): void {
   if (process.env.NODE_ENV === "test") return;
@@ -19,6 +20,7 @@ export type UserNotificationDmInput = {
 export async function deliverUserNotificationDm(
   input: UserNotificationDmInput,
 ): Promise<{ sent: boolean; reason?: string }> {
+  assertLiveNotificationTransportAllowed("deliverUserNotificationDm");
   const user = await prisma.user.findUnique({
     where: { id: input.userId },
     select: { discordId: true },

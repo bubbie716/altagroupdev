@@ -7,6 +7,10 @@ import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-b
 import { fetchRecurringInvoiceSchedules } from "@/lib/bank/payments-engine.functions";
 import { isCommercialProActive } from "@/lib/bank/commercial-banking-types";
 
+/**
+ * Thin wrapper: Core plans redirect to the invoice list modal (`?create=1`).
+ * Pro keeps this page for one-time vs recurring mode selection.
+ */
 export const Route = createFileRoute("/bank/account/$accountId/commercial/invoices/new")({
   loader: async ({ context, params }) => {
     const commercial = requireCommercialFromRouteContext(context);
@@ -18,9 +22,16 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/invoic
         params: { accountId: params.accountId },
       });
     }
-    const recurringSchedules = canUseRecurringInvoices
-      ? await fetchRecurringInvoiceSchedules({ data: commercial.companyId })
-      : [];
+    if (!canUseRecurringInvoices) {
+      throw redirect({
+        to: accountCommercialRoutes.invoices,
+        params: { accountId: params.accountId },
+        search: { create: 1 },
+      });
+    }
+    const recurringSchedules = await fetchRecurringInvoiceSchedules({
+      data: commercial.companyId,
+    });
     return { companyId: commercial.companyId, canUseRecurringInvoices, recurringSchedules };
   },
   head: () => ({ meta: [{ title: "New Invoice — Business Account" }] }),

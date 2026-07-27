@@ -69,7 +69,7 @@ describe("private banking absence", () => {
   it("keeps Alta Gold as a standalone card tier", () => {
     assert.ok(ALTA_CARD_TIER_ORDER.includes("gold"));
     assert.equal(ALTA_CARD_TIER_CONFIG.gold.label, "Alta Gold");
-    assert.match(ALTA_CARD_TIER_CONFIG.gold.description, /Alta Bank/i);
+    assert.match(ALTA_CARD_TIER_CONFIG.gold.description, /Alta Card/i);
     assert.doesNotMatch(ALTA_CARD_TIER_CONFIG.gold.description, /Private/i);
     assert.equal("isPrivateOnly" in ALTA_CARD_TIER_CONFIG.gold, false);
   });
@@ -90,7 +90,9 @@ describe("private banking absence", () => {
     assert.ok(links.some((l) => l.to === "/bank"));
     assert.ok(links.some((l) => l.to === "/bank/accounts"));
     assert.ok(links.some((l) => l.to === "/bank/activity"));
-    assert.equal(links.length, 3);
+    assert.ok(links.some((l) => l.to === "/bank/alta-card"));
+    assert.ok(links.some((l) => l.to === "/bank/lending"));
+    assert.equal(links.length, 5);
   });
 
   it("does not label retained loan enum as Private Banking", () => {

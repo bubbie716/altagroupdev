@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { AltaCardApplyForm } from "@/components/bank/alta-card/alta-card-apply-form";
+import { AltaCardApplyWorkflow } from "@/components/bank/alta-card/alta-card-apply-workflow";
 import { AltaCardTierComparison } from "@/components/bank/alta-card/alta-card-tier-comparison";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
@@ -19,16 +19,25 @@ export const Route = createFileRoute("/bank/alta-card/apply")({
 });
 
 function BankAltaCardApply() {
+  const router = useRouter();
   const context = Route.useLoaderData();
 
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Alta Card"
-      title="Apply for Alta Card"
-      description="Submit a personal revolving credit application. Terms are set at approval based on your Alta relationship."
-     />
-<AltaCardApplyForm context={context} kind="personal" />
+        eyebrow="Alta Bank · Alta Card"
+        title="Apply for Alta Card"
+        description="Submit a personal revolving credit application. Terms are set at approval based on your Alta relationship."
+      />
+      <AltaCardApplyWorkflow
+        open
+        context={context}
+        kind="personal"
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) void router.navigate({ to: "/bank/alta-card" });
+        }}
+        onDone={() => void router.navigate({ to: "/bank/alta-card" })}
+      />
       <div className="mt-12 border-t border-border pt-10">
         <h3 className="mb-4 font-serif text-[20px]">Tier overview</h3>
         <AltaCardTierComparison showApplyLink={false} compact />

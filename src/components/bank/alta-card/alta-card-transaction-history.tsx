@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { AltaCardTransactionRow } from "@/lib/bank/alta-card-types";
 import {
   altaCardEmployeeTransactionAttribution,
@@ -111,9 +114,12 @@ export function AltaCardTransactionHistory({
   description?: string;
   limit?: number;
 }) {
-  const rows = limit != null ? transactions.slice(0, limit) : transactions;
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = limit != null && transactions.length > limit;
+  const rows =
+    limit != null && !expanded ? transactions.slice(0, limit) : transactions;
 
-  if (rows.length === 0) {
+  if (transactions.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-surface-1/40 p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -126,10 +132,21 @@ export function AltaCardTransactionHistory({
 
   return (
     <section className="min-w-0 space-y-3">
-      <div>
-        <h3 className="font-serif text-[18px]">{title}</h3>
-        {description ? (
-          <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-serif text-[18px]">{title}</h3>
+          {description ? (
+            <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+        {hasMore && !expanded ? (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            View all
+          </button>
         ) : null}
       </div>
 

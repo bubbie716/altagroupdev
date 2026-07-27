@@ -9,7 +9,7 @@ const TIER_HIGHLIGHTS: Record<AltaCardTierCode, string[]> = {
   white: ["Entry revolving credit", "Standard relationship rate", "Lower credit limits"],
   navy: ["Relationship card", "Better limits & rate", "For established Alta clients"],
   black: ["Premium tier", "Highest standard limits", "Preferred standard rate"],
-  gold: ["Flagship Alta Bank card", "Negotiated limit & rate", "Dedicated credit desk review"],
+  gold: ["Top Alta Card tier", "Negotiated limit & rate", "Credit desk review"],
 };
 
 export function AltaCardTierComparison({
@@ -70,7 +70,7 @@ export function AltaCardTierComparison({
               </ul>
               {isGold ? (
                 <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
-                  Terms set by the Alta credit desk
+                  Negotiated terms
                 </p>
               ) : null}
             </div>
@@ -80,8 +80,7 @@ export function AltaCardTierComparison({
       {showApplyLink ? (
         <div className="md:col-span-2 xl:col-span-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border bg-surface-1/40 px-5 py-4">
           <p className="text-[13px] text-muted-foreground">
-            Alta Card is revolving credit — separate from term lending. Terms are set at approval
-            based on your Alta relationship.
+            Alta Card is revolving credit subject to approval.
           </p>
           <Link
             to="/bank/alta-card/apply"

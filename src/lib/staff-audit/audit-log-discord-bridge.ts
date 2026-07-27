@@ -1,5 +1,6 @@
 import type { AuditEntityType } from "@prisma/client";
 import type { WriteAuditLogInput } from "@/lib/internal/audit.types";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import {
   internalAccountUrl,
   internalAltaPayOpsUrl,
@@ -335,10 +336,13 @@ export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
   });
 }
 
-/** True when Discord staff-audit delivery must be skipped (tests / explicit disable). */
+/** True when Discord staff-audit delivery must be skipped (tests / UI Lab / explicit disable). */
 export function isAuditDiscordDisabled(): boolean {
   if (process.env.NODE_ENV === "test") return true;
   if (process.env.STAFF_AUDIT_DISCORD_DISABLED === "1") return true;
   if (process.env.VITEST === "true") return true;
+  // Explicit UI Lab gate — do not rely only on missing Discord env vars.
+  if (isUiLabMode()) return true;
+  if (process.env.VITE_UI_LAB_MODE === "true") return true;
   return false;
 }

@@ -16,6 +16,37 @@ async function actor() {
 }
 
 export const fetchBankDashboardBundle = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabBankAccounts, getUiLabBankAccountDetail } = await import(
+      "@/lib/bank/ui-lab-commercial-fixtures"
+    );
+    const { getUiLabBankSummary } = await import("@/lib/auth/ui-lab-fixtures");
+    const accounts = getUiLabBankAccounts();
+    const summary = getUiLabBankSummary();
+    const transactions = accounts.flatMap((account) => {
+      const detail = getUiLabBankAccountDetail(account.id);
+      return detail?.recentTransactions ?? [];
+    });
+    return {
+      dashboard: {
+        totalRelationshipValue: summary.totalBalance,
+        checkingBalance: 0,
+        savingsBalance: 0,
+        moneyMarketBalance: 0,
+        businessBalance: accounts.reduce((sum, account) => sum + account.balance, 0),
+        creditAvailable: 0,
+        accountCount: accounts.length,
+        pendingDeposits: 0,
+        pendingWithdrawals: 0,
+      },
+      accounts,
+      transactions,
+      pendingRequests: [],
+      personalCard: null,
+      companyCards: [],
+    };
+  }
   const { getUserBankDashboardBundle } = await import("@/server/bank.service");
   const userId = await actorId();
   return getUserBankDashboardBundle(userId);
@@ -24,6 +55,36 @@ export const fetchBankDashboardBundle = createServerFn({ method: "GET" }).handle
 export const fetchAccountPageBundle = createServerFn({ method: "GET" })
   .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const {
+        getUiLabBankAccounts,
+        getUiLabBankAccountDetail,
+        getUiLabBusinessAccountContext,
+        getUiLabCommercialSettings,
+      } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const { canAccessCommercialPayroll } = await import("@/lib/bank/commercial-banking-types");
+      const accounts = getUiLabBankAccounts();
+      const account = getUiLabBankAccountDetail(accountId);
+      if (!account) throw new Error("NOT_FOUND");
+      const isBusinessOperating = account.accountType === "business_operating";
+      const businessContext = isBusinessOperating
+        ? getUiLabBusinessAccountContext(accountId)
+        : null;
+      const settings = businessContext
+        ? getUiLabCommercialSettings(businessContext.companyId)
+        : null;
+      const commercialPayrollEnabled = settings
+        ? canAccessCommercialPayroll(settings)
+        : false;
+      return {
+        account,
+        accounts,
+        businessContext,
+        isBusinessOperating,
+        commercialPayrollEnabled,
+      };
+    }
     const { getUserBankAccountDetail, listUserBankAccounts } = await import("@/server/bank.service");
     const { resolveBusinessAccountContext } = await import(
       "@/server/business-account-context.service"
@@ -53,6 +114,11 @@ export const fetchAccountPageBundle = createServerFn({ method: "GET" })
   });
 
 export const fetchUserBankAccounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabBankAccounts } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+    return getUiLabBankAccounts();
+  }
   const { listUserBankAccounts } = await import("@/server/bank.service");
   const userId = await actorId();
   return listUserBankAccounts(userId);
@@ -61,6 +127,13 @@ export const fetchUserBankAccounts = createServerFn({ method: "GET" }).handler(a
 export const fetchUserBankAccountDetail = createServerFn({ method: "GET" })
   .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabBankAccountDetail } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const detail = getUiLabBankAccountDetail(accountId);
+      if (!detail) throw new Error("NOT_FOUND");
+      return detail;
+    }
     const { getUserBankAccountDetail } = await import("@/server/bank.service");
     const userId = await actorId();
     return getUserBankAccountDetail(userId, accountId);

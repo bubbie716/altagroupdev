@@ -7,7 +7,7 @@ import { MoveMoneyChooser } from "@/components/bank/move-money-chooser";
 import { EcosystemSwitcher } from "@/components/site/ecosystem-switcher";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 import { useTheme } from "@/components/theme";
-import { BANK_HOME_PRIMARY_LINKS } from "@/lib/bank/bank-primary-nav";
+import { useBankPrimaryNavLinks } from "@/hooks/use-bank-primary-nav";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { cn } from "@/lib/utils";
 import type { SiteNavLink } from "@/config/sites";
@@ -37,6 +37,7 @@ export function BankTopNav() {
   const site = useSiteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
+  const primaryLinks = useBankPrimaryNavLinks();
 
   return (
     <header
@@ -50,7 +51,7 @@ export function BankTopNav() {
           className="ml-1 hidden min-w-0 flex-1 items-center gap-0.5 md:flex"
           aria-label="Bank primary"
         >
-          {BANK_HOME_PRIMARY_LINKS.map((link) => {
+          {primaryLinks.map((link) => {
             const active = isNavLinkActive(pathname, link);
             return (
               <SiteInternalLink

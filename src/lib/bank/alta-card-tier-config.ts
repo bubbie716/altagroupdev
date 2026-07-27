@@ -38,7 +38,7 @@ export const ALTA_CARD_TIER_CONFIG: Record<AltaCardTierCode, AltaCardTierConfig>
   gold: {
     code: "gold",
     label: "Alta Gold",
-    description: "Flagship Alta Bank card · negotiable limit and rate",
+    description: "Highest Alta Card tier · negotiated limit and rate",
     defaultCreditLimit: null,
     defaultInterestRateApr: null,
     sortOrder: 4,

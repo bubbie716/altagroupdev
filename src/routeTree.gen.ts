@@ -250,6 +250,7 @@ import { Route as BankAltaCardApplicationsApplicationIdThreadRouteImport } from 
 import { Route as BankAltaCardCardIdStatementsStatementIdRouteImport } from './routes/bank/alta-card/$cardId/statements/$statementId'
 import { Route as BankAccountAccountIdCommercialSettingsRouteImport } from './routes/bank/account/$accountId/commercial/settings'
 import { Route as BankAccountAccountIdCommercialPayrollRouteImport } from './routes/bank/account/$accountId/commercial/payroll'
+import { Route as BankAccountAccountIdCommercialPaymentsRouteImport } from './routes/bank/account/$accountId/commercial/payments'
 import { Route as BankAccountAccountIdCommercialBrandingRouteImport } from './routes/bank/account/$accountId/commercial/branding'
 import { Route as BankAccountAccountIdCommercialAnalyticsRouteImport } from './routes/bank/account/$accountId/commercial/analytics'
 import { Route as ApiDealRoomsDocumentsDocumentIdDownloadRouteImport } from './routes/api/deal-rooms/documents/$documentId/download'
@@ -1582,6 +1583,12 @@ const BankAccountAccountIdCommercialPayrollRoute =
     path: '/payroll',
     getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
   } as any)
+const BankAccountAccountIdCommercialPaymentsRoute =
+  BankAccountAccountIdCommercialPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => BankAccountAccountIdCommercialRouteRoute,
+  } as any)
 const BankAccountAccountIdCommercialBrandingRoute =
   BankAccountAccountIdCommercialBrandingRouteImport.update({
     id: '/branding',
@@ -1976,6 +1983,7 @@ export interface FileRoutesByFullPath {
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
+  '/bank/account/$accountId/commercial/payments': typeof BankAccountAccountIdCommercialPaymentsRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -2217,6 +2225,7 @@ export interface FileRoutesByTo {
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
+  '/bank/account/$accountId/commercial/payments': typeof BankAccountAccountIdCommercialPaymentsRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -2487,6 +2496,7 @@ export interface FileRoutesById {
   '/api/deal-rooms/documents/$documentId/download': typeof ApiDealRoomsDocumentsDocumentIdDownloadRoute
   '/bank/account/$accountId/commercial/analytics': typeof BankAccountAccountIdCommercialAnalyticsRoute
   '/bank/account/$accountId/commercial/branding': typeof BankAccountAccountIdCommercialBrandingRoute
+  '/bank/account/$accountId/commercial/payments': typeof BankAccountAccountIdCommercialPaymentsRoute
   '/bank/account/$accountId/commercial/payroll': typeof BankAccountAccountIdCommercialPayrollRoute
   '/bank/account/$accountId/commercial/settings': typeof BankAccountAccountIdCommercialSettingsRoute
   '/bank/alta-card/$cardId/statements/$statementId': typeof BankAltaCardCardIdStatementsStatementIdRoute
@@ -2758,6 +2768,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
+    | '/bank/account/$accountId/commercial/payments'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -2999,6 +3010,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
+    | '/bank/account/$accountId/commercial/payments'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -3268,6 +3280,7 @@ export interface FileRouteTypes {
     | '/api/deal-rooms/documents/$documentId/download'
     | '/bank/account/$accountId/commercial/analytics'
     | '/bank/account/$accountId/commercial/branding'
+    | '/bank/account/$accountId/commercial/payments'
     | '/bank/account/$accountId/commercial/payroll'
     | '/bank/account/$accountId/commercial/settings'
     | '/bank/alta-card/$cardId/statements/$statementId'
@@ -5047,6 +5060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdCommercialPayrollRouteImport
       parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
     }
+    '/bank/account/$accountId/commercial/payments': {
+      id: '/bank/account/$accountId/commercial/payments'
+      path: '/payments'
+      fullPath: '/bank/account/$accountId/commercial/payments'
+      preLoaderRoute: typeof BankAccountAccountIdCommercialPaymentsRouteImport
+      parentRoute: typeof BankAccountAccountIdCommercialRouteRoute
+    }
     '/bank/account/$accountId/commercial/branding': {
       id: '/bank/account/$accountId/commercial/branding'
       path: '/branding'
@@ -5388,6 +5408,7 @@ const BankAccountAccountIdCommercialInvoicesInvoiceIdRouteWithChildren =
 interface BankAccountAccountIdCommercialRouteRouteChildren {
   BankAccountAccountIdCommercialAnalyticsRoute: typeof BankAccountAccountIdCommercialAnalyticsRoute
   BankAccountAccountIdCommercialBrandingRoute: typeof BankAccountAccountIdCommercialBrandingRoute
+  BankAccountAccountIdCommercialPaymentsRoute: typeof BankAccountAccountIdCommercialPaymentsRoute
   BankAccountAccountIdCommercialPayrollRoute: typeof BankAccountAccountIdCommercialPayrollRoute
   BankAccountAccountIdCommercialSettingsRoute: typeof BankAccountAccountIdCommercialSettingsRoute
   BankAccountAccountIdCommercialIndexRoute: typeof BankAccountAccountIdCommercialIndexRoute
@@ -5405,6 +5426,8 @@ const BankAccountAccountIdCommercialRouteRouteChildren: BankAccountAccountIdComm
       BankAccountAccountIdCommercialAnalyticsRoute,
     BankAccountAccountIdCommercialBrandingRoute:
       BankAccountAccountIdCommercialBrandingRoute,
+    BankAccountAccountIdCommercialPaymentsRoute:
+      BankAccountAccountIdCommercialPaymentsRoute,
     BankAccountAccountIdCommercialPayrollRoute:
       BankAccountAccountIdCommercialPayrollRoute,
     BankAccountAccountIdCommercialSettingsRoute:

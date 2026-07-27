@@ -4,6 +4,10 @@ import {
   DEFAULT_COMMERCIAL_FEATURES,
   MERCHANT_ANALYTICS_RANGES,
 } from "@/lib/bank/commercial-banking-types";
+import { enableTestNotificationTransport } from "@/server/notification-test-transport";
+
+enableTestNotificationTransport();
+
 import {
   canAccessCommercialPayroll,
   canAccessMerchantAnalytics,

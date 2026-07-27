@@ -14,6 +14,14 @@ async function actor() {
 export const fetchCommercialBankingContext = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabCommercialContext } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const user = await actor();
+      const context = getUiLabCommercialContext(user, companyId);
+      if (!context) throw new Error("FORBIDDEN");
+      return context;
+    }
     const { resolveCommercialBankingContext } = await import("@/server/commercial-plan.service");
     const user = await actor();
     return resolveCommercialBankingContext(user, companyId);
@@ -22,6 +30,11 @@ export const fetchCommercialBankingContext = createServerFn({ method: "GET" })
 export const fetchCommercialDashboard = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabCommercialDashboard } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabCommercialDashboard(companyId);
+    }
     const { getCommercialDashboard } = await import("@/server/merchant-analytics.service");
     const user = await actor();
     return getCommercialDashboard(user, companyId);
@@ -30,6 +43,11 @@ export const fetchCommercialDashboard = createServerFn({ method: "GET" })
 export const fetchMerchantAnalytics = createServerFn({ method: "GET" })
   .inputValidator((input: { companyId: string; range?: MerchantAnalyticsRange }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabMerchantAnalytics } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabMerchantAnalytics(data.companyId);
+    }
     const { getMerchantAnalytics } = await import("@/server/merchant-analytics.service");
     const user = await actor();
     return getMerchantAnalytics(user, data.companyId, data.range ?? "30D");
@@ -38,6 +56,16 @@ export const fetchMerchantAnalytics = createServerFn({ method: "GET" })
 export const fetchBasicMerchantAnalytics = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabMerchantAnalytics } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const analytics = getUiLabMerchantAnalytics(companyId);
+      return {
+        revenueThisMonth: analytics.netVolume,
+        outstandingInvoiceTotal: analytics.outstandingInvoiceTotal,
+        recentPayments: analytics.recentPayments,
+      };
+    }
     const { getBasicMerchantAnalytics } = await import("@/server/merchant-analytics.service");
     const user = await actor();
     return getBasicMerchantAnalytics(user, companyId);
@@ -46,6 +74,13 @@ export const fetchBasicMerchantAnalytics = createServerFn({ method: "GET" })
 export const fetchCommercialReceivableCreationLimits = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabReceivableCreationLimits } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      return getUiLabReceivableCreationLimits(companyId);
+    }
     const {
       getCommercialUsageSummary,
       canCreateCommercialPaymentLink,
@@ -57,6 +92,11 @@ export const fetchCommercialReceivableCreationLimits = createServerFn({ method: 
     return {
       canCreatePaymentLink: canCreateCommercialPaymentLink(usage),
       canCreateInvoice: canCreateCommercialInvoice(usage),
+      paymentLinksThisMonth: usage.paymentLinksThisMonth,
+      paymentLinkMonthlyLimit: usage.limits.corePaymentLinkMonthlyLimit,
+      invoicesThisMonth: usage.invoicesThisMonth,
+      invoiceMonthlyLimit: usage.limits.coreInvoiceMonthlyLimit,
+      isPro: usage.isPro,
       paymentLinkLimitMessage: commercialLimitMessage(
         "payment links",
         usage.limits.corePaymentLinkMonthlyLimit,
@@ -73,6 +113,11 @@ export const fetchCommercialReceivableCreationLimits = createServerFn({ method: 
 export const fetchCommercialSettings = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabCommercialSettings } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabCommercialSettings(companyId);
+    }
     const {
       loadCommercialPlanSettings,
       canManageCommercialPlan,
@@ -98,6 +143,7 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
         commercialProSubscribedAt: true,
         commercialProGrantSource: true,
         commercialProExpiresAt: true,
+        commercialDowngradeScheduledAt: true,
       },
     });
 
@@ -113,6 +159,7 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
       nextBillingAt: company?.commercialNextBillingAt?.toISOString() ?? null,
       pastDueAt: company?.commercialPastDueAt?.toISOString() ?? null,
       proSubscribedAt: company?.commercialProSubscribedAt?.toISOString() ?? null,
+      downgradeScheduledAt: company?.commercialDowngradeScheduledAt?.toISOString() ?? null,
       grantSource: company?.commercialProGrantSource ?? null,
       expiresAt: company?.commercialProExpiresAt?.toISOString() ?? null,
       usage: {
@@ -133,6 +180,11 @@ export const fetchCommercialSettings = createServerFn({ method: "GET" })
 export const fetchCommercialBillingAccounts = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabBillingPreview } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabBillingPreview(companyId).billingAccounts;
+    }
     const { listCommercialBillingAccounts } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return listCommercialBillingAccounts(user, companyId);
@@ -141,6 +193,11 @@ export const fetchCommercialBillingAccounts = createServerFn({ method: "GET" })
 export const fetchCommercialBillingPreview = createServerFn({ method: "GET" })
   .inputValidator((input: { companyId: string; billingAccountId?: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabBillingPreview } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabBillingPreview(data.companyId);
+    }
     const { getCommercialBillingPreview } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return getCommercialBillingPreview(user, data.companyId, data.billingAccountId);
@@ -149,6 +206,11 @@ export const fetchCommercialBillingPreview = createServerFn({ method: "GET" })
 export const purchaseCommercialProPlan = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; billingAccountId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { purchaseUiLabCommercialPro } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return purchaseUiLabCommercialPro(data);
+    }
     const { purchaseCommercialPro } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return purchaseCommercialPro(user, data);
@@ -157,25 +219,85 @@ export const purchaseCommercialProPlan = createServerFn({ method: "POST" })
 export const fetchCommercialDowngradePreview = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabDowngradePreview } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabDowngradePreview(companyId);
+    }
     const { getCommercialDowngradePreview } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return getCommercialDowngradePreview(user, companyId);
   });
 
 export const downgradeCommercialProPlan = createServerFn({ method: "POST" })
-  .inputValidator((input: { companyId: string }) => input)
+  .inputValidator(
+    (input: {
+      companyId: string;
+      mode?: "period_end" | "immediate";
+      acknowledgeImmediateCleanup?: boolean;
+    }) => input,
+  )
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { downgradeUiLabCommercialPro } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return downgradeUiLabCommercialPro(data);
+    }
     const { downgradeCommercialProByCustomer } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return downgradeCommercialProByCustomer(user, data);
   });
 
+export const cancelScheduledCommercialProDowngradeFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { companyId: string }) => input)
+  .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { cancelUiLabScheduledDowngrade } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return cancelUiLabScheduledDowngrade(data.companyId);
+    }
+    const { cancelScheduledCommercialProDowngrade } = await import(
+      "@/server/commercial-billing.service"
+    );
+    const user = await actor();
+    return cancelScheduledCommercialProDowngrade(user, data.companyId);
+  });
+
 export const updateCommercialBillingAccountFn = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; billingAccountId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { updateUiLabBillingAccount } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return updateUiLabBillingAccount(data);
+    }
     const { updateCommercialBillingAccount } = await import("@/server/commercial-billing.service");
     const user = await actor();
     return updateCommercialBillingAccount(user, data);
+  });
+
+export const fetchCommercialSubscriptionBillingHistory = createServerFn({ method: "GET" })
+  .inputValidator((input: { companyId: string; limit?: number }) => input)
+  .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabSubscriptionChargeHistory, getUiLabCommercialSettings } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      const settings = getUiLabCommercialSettings(data.companyId);
+      return {
+        companyId: data.companyId,
+        nextBillingAt: settings.nextBillingAt,
+        charges: [...getUiLabSubscriptionChargeHistory(data.companyId)],
+      };
+    }
+    const { listCommercialSubscriptionBillingHistory } = await import(
+      "@/server/commercial-billing-history.service"
+    );
+    const user = await actor();
+    return listCommercialSubscriptionBillingHistory(user, data.companyId, {
+      limit: data.limit,
+    });
   });
 
 export const updateCommercialSettings = createServerFn({ method: "POST" })
@@ -200,6 +322,25 @@ export const updateCommercialSettings = createServerFn({ method: "POST" })
 export const resolveCommercialCompanyContext = createServerFn({ method: "GET" })
   .inputValidator((companyId: string | undefined) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const {
+        getUiLabBusinessBankingOverview,
+        getUiLabCommercialContext,
+        resolveUiLabOperatingAccountId,
+      } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const user = await actor();
+      const overview = getUiLabBusinessBankingOverview(companyId);
+      const activeCompanyId =
+        companyId ?? overview.selectedCompanyId ?? overview.companies[0]?.companyId;
+      if (!activeCompanyId) return null;
+      const context = getUiLabCommercialContext(user, activeCompanyId);
+      if (!context) return null;
+      return {
+        ...context,
+        accountId: resolveUiLabOperatingAccountId(activeCompanyId) ?? context.accountId,
+      };
+    }
     const { getBusinessBankingOverview } = await import("@/server/business-banking.service");
     const { resolveCommercialBankingContext } = await import("@/server/commercial-plan.service");
     const { resolveOperatingAccountIdForCompany } = await import(

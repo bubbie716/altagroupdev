@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
 import { canManageBusinessTreasury, canManageCompany } from "@/lib/auth/permissions";
 import type {
@@ -6,17 +5,25 @@ import type {
   AdminCommercialProGrantResult,
   CommercialBillingAccountOption,
   CommercialBillingPreview,
+  CommercialDowngradeInput,
+  CommercialDowngradeMode,
   CommercialDowngradePreview,
   CommercialDowngradeResult,
   CommercialPurchaseResult,
 } from "@/lib/bank/commercial-billing-types";
 import { DEFAULT_COMMERCIAL_FEATURES } from "@/lib/bank/commercial-banking-types";
 import { prisma } from "@/server/db";
-import { debitBankAccountInTx } from "@/server/financial-integrity.service";
 import { getCommercialPlatformSettings } from "@/server/commercial-platform-settings.service";
 import { loadCommercialPlanSettings } from "@/server/commercial-plan.service";
 import { getAccountAvailableBalance } from "@/server/account-balance.service";
 import { requireAdmin } from "@/server/permissions.service";
+import {
+  executeCommercialSubscriptionChargeInTx,
+  initialPurchaseBillingPeriod,
+  lockCompanyRowForBilling,
+  newCommercialBillingCycleId,
+  renewalBillingPeriod,
+} from "@/server/commercial-subscription-charge.service";
 
 function badRequest(message: string): never {
   throw new Error(`BAD_REQUEST:${message}`);
@@ -39,16 +46,29 @@ async function runCommercialCustomerNotifications(
   });
 }
 
-function generateCommercialBillingReference(): string {
-  const suffix = randomBytes(3).toString("hex").toUpperCase();
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `CMP-${date}-${suffix}`;
-}
-
 export function addBillingMonths(date: Date, months = 1): Date {
-  const result = new Date(date);
-  result.setUTCMonth(result.getUTCMonth() + months);
-  return result;
+  if (!Number.isFinite(months)) {
+    throw new Error("BAD_REQUEST:Billing month offset must be a finite number.");
+  }
+
+  const sourceYear = date.getUTCFullYear();
+  const sourceMonth = date.getUTCMonth();
+  const sourceDay = date.getUTCDate();
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
+  const seconds = date.getUTCSeconds();
+  const milliseconds = date.getUTCMilliseconds();
+
+  // Absolute month index avoids JS Date month overflow (Jan 31 + 1 → Mar).
+  const absoluteMonth = sourceYear * 12 + sourceMonth + Math.trunc(months);
+  const targetYear = Math.floor(absoluteMonth / 12);
+  const targetMonth = ((absoluteMonth % 12) + 12) % 12;
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const targetDay = Math.min(sourceDay, daysInTargetMonth);
+
+  return new Date(
+    Date.UTC(targetYear, targetMonth, targetDay, hours, minutes, seconds, milliseconds),
+  );
 }
 
 export function isPastGracePeriod(
@@ -102,6 +122,25 @@ async function assertUserCanAccessBillingAccount(
 ) {
   if (!canManageBusinessTreasury(user, { companyId })) forbidden();
   return loadBillingAccountForCompany(companyId, billingAccountId);
+}
+
+function resolvePeriodEndAt(company: {
+  commercialNextBillingAt: Date | null;
+  commercialProExpiresAt: Date | null;
+}): Date | null {
+  return company.commercialNextBillingAt ?? company.commercialProExpiresAt ?? null;
+}
+
+function cleanupWouldCancelItems(cleanup: {
+  payrollRunsCancelled: number;
+  paymentLinksCancelled: number;
+  invoicesCancelled: number;
+}): boolean {
+  return (
+    cleanup.payrollRunsCancelled > 0 ||
+    cleanup.paymentLinksCancelled > 0 ||
+    cleanup.invoicesCancelled > 0
+  );
 }
 
 export function resolveAdminGrantExpiresAt(input: {
@@ -169,6 +208,8 @@ export async function adminGrantCommercialPro(
       commercialBillingAccountId: null,
       commercialNextBillingAt: null,
       commercialPastDueAt: null,
+      commercialBillingCycleId: null,
+      commercialDowngradeScheduledAt: null,
     },
   });
 
@@ -227,7 +268,9 @@ export async function adminDowngradeCommercialProToCore(
     badRequest("This company is not on Alta Commercial Pro.");
   }
 
-  await downgradeCommercialProToCore(input.companyId, actorUserId, reason, source);
+  await downgradeCommercialProToCore(input.companyId, actorUserId, reason, source, {
+    cancelReceivables: true,
+  });
 
   return {
     companyId: company.id,
@@ -304,51 +347,16 @@ export async function getCommercialBillingPreview(
   };
 }
 
-type ChargeResult = {
+export type CommercialRenewalResult = {
+  status: "billed" | "reconciled";
   transactionId: string;
   referenceCode: string;
-};
-
-export async function chargeCommercialProFee(input: {
-  companyId: string;
-  billingAccountId: string;
   amount: number;
-  description: string;
-}): Promise<ChargeResult> {
-  if (input.amount <= 0) badRequest("Billing amount must be greater than zero.");
-
-  const account = await loadBillingAccountForCompany(input.companyId, input.billingAccountId);
-  const referenceCode = generateCommercialBillingReference();
-
-  try {
-    const transaction = await prisma.$transaction(async (tx) => {
-      await debitBankAccountInTx(tx, account.id, input.amount, {
-        message: input.description,
-      });
-      return tx.bankTransaction.create({
-        data: {
-          bankAccountId: account.id,
-          type: "ADJUSTMENT",
-          amount: input.amount,
-          status: "APPROVED",
-          description: input.description,
-          referenceCode,
-          reviewedAt: new Date(),
-          reviewNote: "Alta Commercial Pro subscription",
-        },
-      });
-    });
-    return { transactionId: transaction.id, referenceCode };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("INSUFFICIENT") || message.includes("available balance")) {
-      badRequest(
-        "Insufficient funds in the selected billing account. Add funds and try again.",
-      );
-    }
-    throw error;
-  }
-}
+  billingAccountId: string;
+  nextBillingAt: Date;
+  billingPeriod: string;
+  billingCycleId: string;
+};
 
 export async function purchaseCommercialPro(
   user: AltaUser,
@@ -357,17 +365,12 @@ export async function purchaseCommercialPro(
 ): Promise<CommercialPurchaseResult> {
   if (!canPurchaseCommercialPro(user, input.companyId)) forbidden();
 
-  const company = await assertCompanyVerified(input.companyId);
-  const plan = await loadCommercialPlanSettings(input.companyId);
-  if (plan.commercialPlan === "PRO" && plan.planStatus === "ACTIVE") {
-    badRequest("This company is already on Alta Commercial Pro.");
-  }
-
+  await assertCompanyVerified(input.companyId);
   await assertUserCanAccessBillingAccount(user, input.companyId, input.billingAccountId);
+
   const platformSettings = await getCommercialPlatformSettings();
   const monthlyFee = platformSettings.proMonthlyFee;
   const now = new Date();
-  const nextBillingAt = addBillingMonths(now, 1);
 
   const {
     recordCommercialProPurchaseFailedAudit,
@@ -375,72 +378,270 @@ export async function purchaseCommercialPro(
   } = await import("@/server/commercial-audit.service");
   const { notifyCommercialProActivated } = await import("@/server/banking-notification.service");
 
-  let charge: ChargeResult;
+  let purchase: CommercialPurchaseResult & { reconciled: boolean };
   try {
-    charge = await chargeCommercialProFee({
-      companyId: input.companyId,
-      billingAccountId: input.billingAccountId,
-      amount: monthlyFee,
-      description: `Alta Commercial Pro · First month`,
+    purchase = await prisma.$transaction(async (tx) => {
+      await lockCompanyRowForBilling(tx, input.companyId);
+
+      const company = await tx.company.findUnique({ where: { id: input.companyId } });
+      if (!company) notFound();
+
+      if (company.commercialPlan === "PRO" && company.planStatus === "ACTIVE") {
+        const cycleId = company.commercialBillingCycleId;
+        if (cycleId) {
+          const existing = await tx.commercialSubscriptionCharge.findUnique({
+            where: {
+              companyId_billingPeriod_chargeType: {
+                companyId: input.companyId,
+                billingPeriod: initialPurchaseBillingPeriod(cycleId),
+                chargeType: "INITIAL_PURCHASE",
+              },
+            },
+          });
+          if (
+            existing?.status === "SUCCEEDED" &&
+            existing.bankTransactionId &&
+            existing.referenceCode &&
+            company.commercialNextBillingAt
+          ) {
+            return {
+              commercialPlan: "PRO" as const,
+              billingStatus: "CURRENT" as const,
+              monthlyFee: company.commercialMonthlyFee
+                ? Number(company.commercialMonthlyFee.toString())
+                : monthlyFee,
+              billingAccountId:
+                company.commercialBillingAccountId ?? input.billingAccountId,
+              nextBillingAt: company.commercialNextBillingAt.toISOString(),
+              transactionId: existing.bankTransactionId,
+              referenceCode: existing.referenceCode,
+              reconciled: true,
+            };
+          }
+        }
+        badRequest("This company is already on Alta Commercial Pro.");
+      }
+
+      const cycleId = newCommercialBillingCycleId();
+      const billingPeriod = initialPurchaseBillingPeriod(cycleId);
+      const nextBillingAt = addBillingMonths(now, 1);
+
+      const charge = await executeCommercialSubscriptionChargeInTx(tx, {
+        companyId: input.companyId,
+        billingAccountId: input.billingAccountId,
+        amount: monthlyFee,
+        description: "Alta Commercial Pro · First month",
+        chargeType: "INITIAL_PURCHASE",
+        billingPeriod,
+        billingCycleId: cycleId,
+      });
+
+      const resolvedNextBillingAt =
+        charge.reconciled && company.commercialNextBillingAt
+          ? company.commercialNextBillingAt
+          : nextBillingAt;
+
+      await tx.company.update({
+        where: { id: input.companyId },
+        data: {
+          commercialPlan: "PRO",
+          planStatus: "ACTIVE",
+          billingStatus: "CURRENT",
+          commercialMonthlyFee: monthlyFee,
+          commercialEnabledFeatures: DEFAULT_COMMERCIAL_FEATURES.PRO,
+          commercialBillingAccountId: input.billingAccountId,
+          commercialNextBillingAt: resolvedNextBillingAt,
+          commercialPastDueAt: null,
+          commercialProSubscribedAt: company.commercialProSubscribedAt ?? now,
+          commercialProGrantSource: "PURCHASED",
+          commercialProExpiresAt: null,
+          commercialBillingCycleId: cycleId,
+          commercialDowngradeScheduledAt: null,
+        },
+      });
+
+      return {
+        commercialPlan: "PRO" as const,
+        billingStatus: "CURRENT" as const,
+        monthlyFee,
+        billingAccountId: input.billingAccountId,
+        nextBillingAt: resolvedNextBillingAt.toISOString(),
+        transactionId: charge.transactionId,
+        referenceCode: charge.referenceCode,
+        reconciled: charge.reconciled,
+      };
     });
   } catch (error) {
-    await recordCommercialProPurchaseFailedAudit({
-      actorUserId: user.id,
-      companyId: input.companyId,
-      billingAccountId: input.billingAccountId,
-      amount: monthlyFee,
-      reason: error instanceof Error ? error.message : String(error),
-      source,
-    });
+    const reason = error instanceof Error ? error.message : String(error);
+    if (!reason.includes("already on Alta Commercial Pro")) {
+      await recordCommercialProPurchaseFailedAudit({
+        actorUserId: user.id,
+        companyId: input.companyId,
+        billingAccountId: input.billingAccountId,
+        amount: monthlyFee,
+        reason,
+        source,
+      });
+    }
     throw error;
   }
 
+  if (!purchase.reconciled) {
+    await recordCommercialProPurchasedAudit({
+      actorUserId: user.id,
+      companyId: input.companyId,
+      billingAccountId: purchase.billingAccountId,
+      amount: purchase.monthlyFee,
+      transactionId: purchase.transactionId,
+      referenceCode: purchase.referenceCode,
+      nextBillingAt: purchase.nextBillingAt,
+      source,
+    });
+
+    await runCommercialCustomerNotifications("pro activated", () =>
+      notifyCommercialProActivated({
+        companyId: input.companyId,
+        monthlyFee: purchase.monthlyFee,
+        nextBillingAt: purchase.nextBillingAt,
+        billingAccountId: purchase.billingAccountId,
+      }),
+    );
+  }
+
+  const { reconciled: _reconciled, ...result } = purchase;
+  return result;
+}
+
+export async function renewCommercialProSubscription(input: {
+  companyId: string;
+  now?: Date;
+}): Promise<CommercialRenewalResult> {
+  const now = input.now ?? new Date();
+  const platformSettings = await getCommercialPlatformSettings();
+
+  return prisma.$transaction(async (tx) => {
+    await lockCompanyRowForBilling(tx, input.companyId);
+
+    const company = await tx.company.findUnique({ where: { id: input.companyId } });
+    if (!company || company.commercialPlan !== "PRO") {
+      badRequest("Company is not on Alta Commercial Pro.");
+    }
+    if (company.commercialDowngradeScheduledAt) {
+      badRequest("A Pro downgrade is already scheduled; renewal is skipped.");
+    }
+    if (company.commercialProGrantSource === "ADMIN_GRANT") {
+      badRequest("Admin-granted Commercial Pro is not billed.");
+    }
+
+    const billingAccountId = company.commercialBillingAccountId;
+    if (!billingAccountId) {
+      badRequest("Missing billing account for Commercial Pro renewal.");
+    }
+
+    const amount = company.commercialMonthlyFee
+      ? Number(company.commercialMonthlyFee.toString())
+      : platformSettings.proMonthlyFee;
+
+    const cycleId = company.commercialBillingCycleId ?? newCommercialBillingCycleId();
+
+    // Concurrent renewals: the first caller advances commercialNextBillingAt past `now`.
+    // The second must reconcile that result instead of billing the newly advanced period.
+    if (
+      company.commercialNextBillingAt &&
+      company.commercialNextBillingAt.getTime() > now.getTime()
+    ) {
+      const latestRenewal = await tx.commercialSubscriptionCharge.findFirst({
+        where: {
+          companyId: input.companyId,
+          chargeType: "MONTHLY_RENEWAL",
+          status: "SUCCEEDED",
+          ...(company.commercialBillingCycleId
+            ? { billingCycleId: company.commercialBillingCycleId }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (
+        latestRenewal?.bankTransactionId &&
+        latestRenewal.referenceCode &&
+        company.commercialNextBillingAt
+      ) {
+        return {
+          status: "reconciled" as const,
+          transactionId: latestRenewal.bankTransactionId,
+          referenceCode: latestRenewal.referenceCode,
+          amount: Number(latestRenewal.amount.toString()),
+          billingAccountId: latestRenewal.billingAccountId,
+          nextBillingAt: company.commercialNextBillingAt,
+          billingPeriod: latestRenewal.billingPeriod,
+          billingCycleId: latestRenewal.billingCycleId ?? cycleId,
+        };
+      }
+      badRequest("Commercial Pro renewal is not due yet.");
+    }
+
+    const dueAt = company.commercialNextBillingAt ?? now;
+    const billingPeriod = renewalBillingPeriod(cycleId, dueAt);
+
+    const charge = await executeCommercialSubscriptionChargeInTx(tx, {
+      companyId: input.companyId,
+      billingAccountId,
+      amount,
+      description: "Alta Commercial Pro · Monthly subscription",
+      chargeType: "MONTHLY_RENEWAL",
+      billingPeriod,
+      billingCycleId: cycleId,
+    });
+
+    const advancedNextBillingAt = addBillingMonths(dueAt, 1);
+    const nextBillingAt =
+      charge.reconciled &&
+      company.commercialNextBillingAt &&
+      company.commercialNextBillingAt.getTime() > dueAt.getTime()
+        ? company.commercialNextBillingAt
+        : advancedNextBillingAt;
+
+    await tx.company.update({
+      where: { id: input.companyId },
+      data: {
+        billingStatus: "CURRENT",
+        commercialPastDueAt: null,
+        commercialNextBillingAt: nextBillingAt,
+        commercialMonthlyFee: amount,
+        commercialBillingCycleId: cycleId,
+      },
+    });
+
+    return {
+      status: charge.reconciled ? ("reconciled" as const) : ("billed" as const),
+      transactionId: charge.transactionId,
+      referenceCode: charge.referenceCode,
+      amount,
+      billingAccountId,
+      nextBillingAt,
+      billingPeriod,
+      billingCycleId: cycleId,
+    };
+  });
+}
+
+export async function markCommercialProPastDue(
+  companyId: string,
+  pastDueAt = new Date(),
+): Promise<void> {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { commercialPastDueAt: true },
+  });
+  if (!company) return;
+
   await prisma.company.update({
-    where: { id: input.companyId },
+    where: { id: companyId },
     data: {
-      commercialPlan: "PRO",
-      planStatus: "ACTIVE",
-      billingStatus: "CURRENT",
-      commercialMonthlyFee: monthlyFee,
-      commercialEnabledFeatures: DEFAULT_COMMERCIAL_FEATURES.PRO,
-      commercialBillingAccountId: input.billingAccountId,
-      commercialNextBillingAt: nextBillingAt,
-      commercialPastDueAt: null,
-      commercialProSubscribedAt: now,
-      commercialProGrantSource: "PURCHASED",
-      commercialProExpiresAt: null,
+      billingStatus: "PAST_DUE",
+      commercialPastDueAt: company.commercialPastDueAt ?? pastDueAt,
     },
   });
-
-  await recordCommercialProPurchasedAudit({
-    actorUserId: user.id,
-    companyId: input.companyId,
-    billingAccountId: input.billingAccountId,
-    amount: monthlyFee,
-    transactionId: charge.transactionId,
-    referenceCode: charge.referenceCode,
-    nextBillingAt: nextBillingAt.toISOString(),
-    source,
-  });
-
-  await runCommercialCustomerNotifications("pro activated", () =>
-    notifyCommercialProActivated({
-      companyId: input.companyId,
-      monthlyFee,
-      nextBillingAt: nextBillingAt.toISOString(),
-      billingAccountId: input.billingAccountId,
-    }),
-  );
-
-  return {
-    commercialPlan: "PRO",
-    billingStatus: "CURRENT",
-    monthlyFee,
-    billingAccountId: input.billingAccountId,
-    nextBillingAt: nextBillingAt.toISOString(),
-    transactionId: charge.transactionId,
-    referenceCode: charge.referenceCode,
-  };
 }
 
 export async function updateCommercialBillingAccount(
@@ -506,6 +707,7 @@ export async function getCommercialDowngradePreview(
   );
   const platformSettings = await getCommercialPlatformSettings();
   const cleanup = await previewCommercialCoreDowngradeCleanup(companyId);
+  const periodEndAt = resolvePeriodEndAt(company);
 
   return {
     companyId,
@@ -517,6 +719,9 @@ export async function getCommercialDowngradePreview(
       ? Number(company.commercialMonthlyFee.toString())
       : null,
     canDowngrade: true,
+    periodEndAt: periodEndAt?.toISOString() ?? null,
+    downgradeAlreadyScheduled: Boolean(company.commercialDowngradeScheduledAt),
+    scheduledDowngradeAt: company.commercialDowngradeScheduledAt?.toISOString() ?? null,
     cleanup,
     coreLimits: {
       coreInvoiceMonthlyLimit: platformSettings.coreInvoiceMonthlyLimit,
@@ -526,14 +731,14 @@ export async function getCommercialDowngradePreview(
   };
 }
 
-export async function downgradeCommercialProByCustomer(
+export async function scheduleCommercialProDowngrade(
   user: AltaUser,
-  input: { companyId: string },
-  source = "website",
+  companyId: string,
+  _source = "website",
 ): Promise<CommercialDowngradeResult> {
-  if (!canDowngradeCommercialPro(user, input.companyId)) forbidden();
+  if (!canDowngradeCommercialPro(user, companyId)) forbidden();
 
-  const company = await assertCompanyVerified(input.companyId);
+  const company = await assertCompanyVerified(companyId);
   if (company.commercialPlan !== "PRO") {
     badRequest("This company is not on Alta Commercial Pro.");
   }
@@ -541,19 +746,108 @@ export async function downgradeCommercialProByCustomer(
   const { previewCommercialCoreDowngradeCleanup } = await import(
     "@/server/commercial-downgrade-cleanup.service"
   );
+  const cleanupPreview = await previewCommercialCoreDowngradeCleanup(companyId);
+
+  if (company.commercialDowngradeScheduledAt) {
+    return {
+      companyId: company.id,
+      companyName: company.name,
+      commercialPlan: "PRO",
+      mode: "period_end",
+      effectiveAt: company.commercialDowngradeScheduledAt.toISOString(),
+      cleanup: cleanupPreview,
+    };
+  }
+
+  const periodEndAt = resolvePeriodEndAt(company);
+  if (!periodEndAt) {
+    badRequest("No billing period end date is available to schedule a downgrade.");
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { commercialDowngradeScheduledAt: periodEndAt },
+  });
+
+  return {
+    companyId: company.id,
+    companyName: company.name,
+    commercialPlan: "PRO",
+    mode: "period_end",
+    effectiveAt: periodEndAt.toISOString(),
+    cleanup: cleanupPreview,
+  };
+}
+
+export async function cancelScheduledCommercialProDowngrade(
+  user: AltaUser,
+  companyId: string,
+  _source = "website",
+): Promise<{ companyId: string; cancelled: boolean }> {
+  if (!canDowngradeCommercialPro(user, companyId)) forbidden();
+
+  const company = await assertCompanyVerified(companyId);
+  if (company.commercialPlan !== "PRO") {
+    badRequest("This company is not on Alta Commercial Pro.");
+  }
+  if (!company.commercialDowngradeScheduledAt) {
+    return { companyId, cancelled: false };
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { commercialDowngradeScheduledAt: null },
+  });
+
+  return { companyId, cancelled: true };
+}
+
+export async function downgradeCommercialProByCustomer(
+  user: AltaUser,
+  input: CommercialDowngradeInput,
+  source = "website",
+): Promise<CommercialDowngradeResult> {
+  if (!canDowngradeCommercialPro(user, input.companyId)) forbidden();
+
+  const mode: CommercialDowngradeMode = input.mode ?? "period_end";
+  const company = await assertCompanyVerified(input.companyId);
+  if (company.commercialPlan !== "PRO") {
+    badRequest("This company is not on Alta Commercial Pro.");
+  }
+
+  if (mode === "period_end") {
+    return scheduleCommercialProDowngrade(user, input.companyId, source);
+  }
+
+  const { previewCommercialCoreDowngradeCleanup } = await import(
+    "@/server/commercial-downgrade-cleanup.service"
+  );
   const cleanupPreview = await previewCommercialCoreDowngradeCleanup(input.companyId);
 
+  if (
+    cleanupWouldCancelItems(cleanupPreview) &&
+    input.acknowledgeImmediateCleanup !== true
+  ) {
+    badRequest(
+      "Immediate downgrade would cancel payroll or receivables. Pass acknowledgeImmediateCleanup to confirm.",
+    );
+  }
+
+  const now = new Date();
   await downgradeCommercialProToCore(
     input.companyId,
     user.id,
     "Downgraded from Commercial settings.",
     source,
+    { cancelReceivables: true },
   );
 
   return {
     companyId: company.id,
     companyName: company.name,
     commercialPlan: "CORE",
+    mode: "immediate",
+    effectiveAt: now.toISOString(),
     cleanup: cleanupPreview,
   };
 }
@@ -563,14 +857,16 @@ export async function downgradeCommercialProToCore(
   actorUserId: string,
   reason: string,
   source = "system",
+  options?: { cancelReceivables?: boolean },
 ): Promise<void> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company || company.commercialPlan !== "PRO") return;
 
-  const { applyCommercialCoreDowngradeCleanup } = await import(
-    "@/server/commercial-downgrade-cleanup.service"
-  );
-  const cleanup = await applyCommercialCoreDowngradeCleanup(companyId, actorUserId, source);
+  const cancelReceivables = options?.cancelReceivables !== false;
+  const cleanupModule = await import("@/server/commercial-downgrade-cleanup.service");
+  const cleanup = cancelReceivables
+    ? await cleanupModule.applyCommercialCoreDowngradeCleanup(companyId, actorUserId, source)
+    : await cleanupModule.applyCommercialCoreDowngradePayrollOnly(companyId);
 
   await prisma.company.update({
     where: { id: companyId },
@@ -585,6 +881,8 @@ export async function downgradeCommercialProToCore(
       commercialPastDueAt: null,
       commercialProGrantSource: null,
       commercialProExpiresAt: null,
+      commercialBillingCycleId: null,
+      commercialDowngradeScheduledAt: null,
     },
   });
 
@@ -596,7 +894,11 @@ export async function downgradeCommercialProToCore(
     companyId,
     reason,
     source,
-    cleanup,
+    cleanup: {
+      payrollRunsCancelled: cleanup.payrollRunsCancelled,
+      paymentLinksCancelled: cleanup.paymentLinksCancelled,
+      invoicesCancelled: cleanup.invoicesCancelled,
+    },
   });
 
   await runCommercialCustomerNotifications("pro downgraded", () =>

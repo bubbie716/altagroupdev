@@ -19,6 +19,16 @@ export const fetchStatementCenterStatements = createServerFn({ method: "GET" }).
 export const fetchAccountStatements = createServerFn({ method: "GET" })
   .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabAccountStatements, isUiLabCommercialAccount } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      if (isUiLabCommercialAccount(accountId)) {
+        return getUiLabAccountStatements(accountId);
+      }
+      return [];
+    }
     const { listAccountStatements } = await import("@/server/statement.service");
     return listAccountStatements(await actorId(), accountId);
   });
@@ -26,6 +36,14 @@ export const fetchAccountStatements = createServerFn({ method: "GET" })
 export const fetchBusinessStatements = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabAccountStatements, resolveUiLabOperatingAccountId } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      const accountId = resolveUiLabOperatingAccountId(companyId);
+      return accountId ? getUiLabAccountStatements(accountId) : [];
+    }
     const { listBusinessStatements } = await import("@/server/statement.service");
     const { requireAuth } = await import("@/server/auth.service");
     const user = await requireAuth();
@@ -35,6 +53,13 @@ export const fetchBusinessStatements = createServerFn({ method: "GET" })
 export const fetchStatementDetail = createServerFn({ method: "GET" })
   .inputValidator((statementId: string) => statementId)
   .handler(async ({ data: statementId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabStatementDetail } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const detail = getUiLabStatementDetail(statementId);
+      if (!detail) throw new Error("Statement not found.");
+      return detail;
+    }
     const { getStatementDetail } = await import("@/server/statement.service");
     return getStatementDetail(await actorId(), statementId);
   });
@@ -42,6 +67,11 @@ export const fetchStatementDetail = createServerFn({ method: "GET" })
 export const generateAccountStatement = createServerFn({ method: "POST" })
   .inputValidator((input: GenerateStatementInput) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { generateUiLabAccountStatement } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return generateUiLabAccountStatement(data);
+    }
     const { generateStatementForUser } = await import("@/server/statement.service");
     return generateStatementForUser(await actorId(), data);
   });

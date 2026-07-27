@@ -313,7 +313,7 @@ export async function payPaymentLink(
       });
 
       return { locked, settlement, resolvedPayerLabel, paidAt: now };
-    });
+    }, { timeout: 20_000 });
 
     await recordPaymentLinkPaidAudit({
       actorUserId: user.id,

@@ -34,6 +34,35 @@ const defaultMeta: BankPageMetaProps = {
   hideTitle: false,
 };
 
+function normalizeBankPath(pathname: string): string {
+  return pathname.replace(/\/$/, "") || "/";
+}
+
+function defaultMetaForPath(pathname: string): BankPageMetaProps {
+  const path = normalizeBankPath(pathname);
+
+  if (path.startsWith("/bank/lending")) {
+    return { eyebrow: "Alta Bank · Lending", title: "Lending", hideTitle: false };
+  }
+  if (path === "/bank/alta-card/business") {
+    return { eyebrow: "Alta Bank", title: "Business Alta Cards", hideTitle: false };
+  }
+  if (path.startsWith("/bank/alta-card")) {
+    return { eyebrow: "Alta Bank", title: "Alta Card", hideTitle: false };
+  }
+  if (path.startsWith("/bank/pay")) {
+    return { eyebrow: "Alta Bank", title: "Alta Pay", hideTitle: false };
+  }
+  if (path.includes("/commercial/payments")) {
+    return { eyebrow: "Alta Bank · Commercial", title: "Payments", hideTitle: false };
+  }
+  if (path.includes("/bank/account/")) {
+    return { eyebrow: "Alta Bank", title: "Account", hideTitle: false };
+  }
+
+  return defaultMeta;
+}
+
 function metaFieldsEqual(a: BankPageMetaProps, b: BankPageMetaProps): boolean {
   return (
     a.eyebrow === b.eyebrow &&
@@ -53,22 +82,38 @@ type BankPageLayoutContextValue = {
 const BankPageLayoutContext = createContext<BankPageLayoutContextValue | null>(null);
 
 /** Registers page metadata for the persistent /bank layout shell. */
-export function BankPageMeta(props: BankPageMetaProps) {
+export function BankPageMeta({
+  eyebrow,
+  title,
+  description,
+  subtitle,
+  action,
+  printDocument,
+  hideTitle,
+}: BankPageMetaProps) {
   const ctx = useContext(BankPageLayoutContext);
   useLayoutEffect(() => {
-    ctx?.setMeta(props);
+    ctx?.setMeta({
+      eyebrow,
+      title,
+      description,
+      subtitle,
+      action,
+      printDocument,
+      hideTitle,
+    });
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     }
   }, [
     ctx,
-    props.eyebrow,
-    props.title,
-    props.description,
-    props.subtitle,
-    props.action,
-    props.printDocument,
-    props.hideTitle,
+    eyebrow,
+    title,
+    description,
+    subtitle,
+    action,
+    printDocument,
+    hideTitle,
   ]);
 
   return null;
@@ -88,6 +133,7 @@ export function isFullScreenBankPath(pathname: string): boolean {
 
 function shouldShowSectionSubNav(pathname: string): boolean {
   if (isChromelessBankPath(pathname)) return false;
+  if (normalizeBankPath(pathname) === "/bank/lending") return false;
   return (
     pathname.startsWith("/bank/lending") ||
     pathname.startsWith("/bank/alta-card") ||
@@ -98,12 +144,17 @@ function shouldShowSectionSubNav(pathname: string): boolean {
 }
 
 function BankChromeLayout() {
-  const [meta, setMetaState] = useState<BankPageMetaProps>(defaultMeta);
+  const resolvedPathname = useResolvedPathname();
+  const [meta, setMetaState] = useState<BankPageMetaProps>(() => defaultMetaForPath(resolvedPathname));
   const setMeta = useCallback((next: BankPageMetaProps) => {
     setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
-  const resolvedPathname = useResolvedPathname();
+
+  useLayoutEffect(() => {
+    setMetaState(defaultMetaForPath(resolvedPathname));
+  }, [resolvedPathname]);
+
   const showSubNav = shouldShowSectionSubNav(resolvedPathname);
   const showTitle = !meta.hideTitle && Boolean(meta.title);
 
@@ -134,15 +185,17 @@ function BankChromeLayout() {
               )}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 overflow-hidden">
                   {meta.eyebrow ? (
-                    <div className="text-[12px] font-medium text-muted-foreground">{meta.eyebrow}</div>
+                    <div className="truncate text-[12px] font-medium text-muted-foreground">
+                      {meta.eyebrow}
+                    </div>
                   ) : null}
-                  <h1 className="mt-1 break-words text-[1.5rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
+                  <h1 className="mt-1 truncate text-[1.5rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
                     {meta.title}
                   </h1>
                   {meta.description ? (
-                    <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+                    <p className="mt-2 max-w-2xl min-w-0 break-all text-[14px] leading-relaxed text-muted-foreground sm:break-words">
                       {meta.description}
                     </p>
                   ) : null}

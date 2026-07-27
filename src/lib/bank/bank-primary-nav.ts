@@ -15,7 +15,55 @@ export type BankPrimaryNavOptions = {
   creditDesk: CreditDeskCustomerNav;
 };
 
-/** Primary destinations — Home, Accounts, Activity only. */
+/**
+ * Desktop Bank primary destinations.
+ * Alta Card / Lending are gated by credit-desk customer nav permissions.
+ */
+export function buildBankDesktopPrimaryLinks(
+  creditDesk: CreditDeskCustomerNav,
+): SiteNavLink[] {
+  const links: SiteNavLink[] = [
+    {
+      label: "Home",
+      to: "/bank",
+      exact: true,
+      match: "/bank",
+    },
+    {
+      label: "Accounts",
+      to: "/bank/accounts",
+      match: "/bank/accounts",
+      activePaths: ["/bank/account", "/bank/open"],
+    },
+    {
+      label: "Activity",
+      to: "/bank/activity",
+      match: "/bank/activity",
+    },
+  ];
+
+  if (creditDesk.showAltaCardNav) {
+    links.push({
+      label: "Alta Card",
+      to: "/bank/alta-card",
+      match: "/bank/alta-card",
+      activePaths: ["/bank/alta-card"],
+    });
+  }
+
+  if (creditDesk.showLendingNav) {
+    links.push({
+      label: creditDesk.creditDeskClosed ? "Loans" : "Lending",
+      to: creditDesk.creditDeskClosed ? "/bank/lending/loans" : "/bank/lending",
+      match: "/bank/lending",
+      activePaths: ["/bank/lending"],
+    });
+  }
+
+  return links;
+}
+
+/** @deprecated Use buildBankDesktopPrimaryLinks — kept for static fallbacks. */
 export const BANK_HOME_PRIMARY_LINKS: SiteNavLink[] = [
   {
     label: "Home",
@@ -86,9 +134,9 @@ export function buildBankSecondaryNavItems(options: {
   return items;
 }
 
-/** @deprecated Prefer BANK_HOME_PRIMARY_LINKS; kept for SiteNav fallback callers. */
-export function buildBankPrimaryNavLinks(_options: BankPrimaryNavOptions): SiteNavLink[] {
-  return BANK_HOME_PRIMARY_LINKS;
+/** @deprecated Prefer buildBankDesktopPrimaryLinks. */
+export function buildBankPrimaryNavLinks(options: BankPrimaryNavOptions): SiteNavLink[] {
+  return buildBankDesktopPrimaryLinks(options.creditDesk);
 }
 
 export type BankMobileNavItem = {

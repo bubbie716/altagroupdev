@@ -13,11 +13,15 @@ import { useNavigatingSelect } from "@/hooks/use-navigating-select";
 import { findCompanyMembership } from "@/lib/auth/permissions";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { resolveAccountSwitchSuffix } from "@/lib/bank/account-switch-path";
-import { florin } from "@/lib/bank/api";
 import { cn } from "@/lib/utils";
 
 function accountOptionLabel(account: UserBankAccount): string {
-  return `${account.accountName} · ${account.accountNumber} · ${florin(account.balance)}`;
+  return `${account.accountName} · ${account.accountNumber}`;
+}
+
+function accountTriggerLabel(account: UserBankAccount | undefined): string {
+  if (!account) return "Switch account";
+  return account.accountNumber;
 }
 
 export function AccountPageToolbar({
@@ -45,6 +49,8 @@ export function AccountPageToolbar({
     [accounts, currentAccountId, hiddenIds],
   );
 
+  const currentAccount = switcherAccounts.find((account) => account.id === currentAccountId);
+
   const accountSelect = useNavigatingSelect(currentAccountId, (nextAccountId) => {
     const nextAccount = switcherAccounts.find((account) => account.id === nextAccountId);
     if (!nextAccount) return;
@@ -68,9 +74,9 @@ export function AccountPageToolbar({
   });
 
   return (
-    <div className={cn("min-w-0 w-full sm:max-w-md sm:shrink-0", className)}>
+    <div className={cn("min-w-0 w-full sm:max-w-xs sm:shrink-0", className)}>
       <label className="sr-only" htmlFor="account-page-switcher">
-        Account
+        Switch account
       </label>
       <Select
         value={accountSelect.value}
@@ -80,9 +86,12 @@ export function AccountPageToolbar({
       >
         <SelectTrigger
           id="account-page-switcher"
-          className="h-10 w-full bg-surface-1 font-mono text-[12px] shadow-none"
+          aria-label="Switch account"
+          className="h-11 w-full bg-surface-1 font-mono text-[12px] shadow-none"
         >
-          <SelectValue placeholder="Select account" />
+          <SelectValue placeholder="Switch account">
+            {accountTriggerLabel(currentAccount)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-[var(--menu-surface)]">
           {switcherAccounts.map((account) => (

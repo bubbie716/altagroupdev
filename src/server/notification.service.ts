@@ -1,6 +1,10 @@
 import type { UserNotificationType as DbNotificationType } from "@prisma/client";
 import type { NotificationDmPayload } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
+import {
+  isTestNotificationTransportActive,
+  recordTestNotificationMessage,
+} from "@/server/notification-test-transport";
 
 export type CreateNotificationInput = {
   userId: string;
@@ -45,6 +49,19 @@ function scheduleDiscordForNotification(
   notificationId: string,
   input: CreateNotificationInput,
 ): void {
+  if (isTestNotificationTransportActive()) {
+    recordTestNotificationMessage({
+      notificationId,
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      linkLabel: input.linkLabel,
+    });
+    return;
+  }
+
   void dispatchDiscordForNotification(notificationId, input).catch((error) => {
     console.error("[notification] background Discord DM failed", {
       notificationId,

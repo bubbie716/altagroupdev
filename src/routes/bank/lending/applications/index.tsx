@@ -19,7 +19,7 @@ function BankLendingApplications() {
       <BankPageMeta
       eyebrow="Alta Bank · Lending"
       title="Applications"
-      description="Track submitted credit facility requests, review status, and Secure Deal Room communication."
+      description="Track credit applications and review status."
      />
 <LendingApplicationsList applications={applications} />
     </>

@@ -122,6 +122,18 @@ Set the same value in **Vercel → Project → Environment Variables**.
 
 **Daily banking automation:** Add two separate once-daily jobs for `/api/cron/daily-servicing` and `/api/cron/relationship-intelligence` (stagger by a few minutes). Do **not** bundle daily work into the transfers job — it exceeds cron-job.org's 30-second timeout.
 
+### Daily servicing includes Commercial Pro billing
+
+`/api/cron/daily-servicing` runs loan servicing, Alta Card, bank statements, deposit interest, and **commercial Pro billing** in parallel. The commercial sub-job handles:
+
+- Pro renewals / charges
+- Past-due marking and renewal reminders
+- Grace-period downgrade to Core
+- Admin-grant expiration
+- Customer-scheduled Pro → Core downgrades (including payroll cancellation)
+
+See [operations/daily-servicing.md](./operations/daily-servicing.md) for the exact timer, curl test (non-prod), systemd Mini-PC example (docs only — do not edit `/opt` from this repo), and `commercialBilling` response shape.
+
 Standalone endpoints (`/api/cron/loan-interest`, `/api/cron/alta-card-*`, `/api/cron/bank-statements`) remain available for isolated testing.
 
 ## cron-job.org setup (recommended)

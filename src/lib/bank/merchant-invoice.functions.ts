@@ -28,6 +28,11 @@ function rethrowServiceError(error: unknown): never {
 export const searchInvoiceRecipientsForMerchant = createServerFn({ method: "GET" })
   .inputValidator((input: { query: string; companyId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { searchUiLabInvoiceRecipients } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return searchUiLabInvoiceRecipients(data.query);
+    }
     const user = await actor();
     const { canManageMerchantInvoices } = await import("@/lib/auth/permissions");
     if (!canManageMerchantInvoices(user, data.companyId)) {
@@ -40,6 +45,11 @@ export const searchInvoiceRecipientsForMerchant = createServerFn({ method: "GET"
 export const fetchMerchantInvoiceDashboard = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInvoiceDashboard } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabInvoiceDashboard(companyId);
+    }
     const { getMerchantInvoiceDashboard } = await import("@/server/merchant-invoice.service");
     try {
       return await getMerchantInvoiceDashboard(await actor(), companyId);
@@ -51,6 +61,11 @@ export const fetchMerchantInvoiceDashboard = createServerFn({ method: "GET" })
 export const fetchMerchantInvoices = createServerFn({ method: "GET" })
   .inputValidator((input: { companyId: string; status?: MerchantInvoiceStatus }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { listUiLabInvoices } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return listUiLabInvoices(data.companyId, data.status);
+    }
     const { listMerchantInvoices } = await import("@/server/merchant-invoice.service");
     try {
       return await listMerchantInvoices(await actor(), data.companyId, data.status);
@@ -62,6 +77,13 @@ export const fetchMerchantInvoices = createServerFn({ method: "GET" })
 export const fetchMerchantInvoiceDetail = createServerFn({ method: "GET" })
   .inputValidator((input: { companyId: string; invoiceId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInvoiceDetail } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const detail = getUiLabInvoiceDetail(data.companyId, data.invoiceId);
+      if (!detail) throw new Error("Invoice not found.");
+      return detail;
+    }
     const { getMerchantInvoiceDetail } = await import("@/server/merchant-invoice.service");
     try {
       return await getMerchantInvoiceDetail(await actor(), data.companyId, data.invoiceId);
@@ -73,6 +95,11 @@ export const fetchMerchantInvoiceDetail = createServerFn({ method: "GET" })
 export const createMerchantInvoiceDraftRecord = createServerFn({ method: "POST" })
   .inputValidator((input: CreateMerchantInvoiceInput) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { createUiLabInvoiceDraft } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return createUiLabInvoiceDraft(data);
+    }
     const { createMerchantInvoiceDraft } = await import("@/server/merchant-invoice.service");
     try {
       return await createMerchantInvoiceDraft(await actor(), data);
@@ -84,6 +111,11 @@ export const createMerchantInvoiceDraftRecord = createServerFn({ method: "POST" 
 export const updateMerchantInvoiceDraftRecord = createServerFn({ method: "POST" })
   .inputValidator((input: UpdateMerchantInvoiceDraftInput) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { updateUiLabInvoiceDraft } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return updateUiLabInvoiceDraft(data);
+    }
     const { updateMerchantInvoiceDraft } = await import("@/server/merchant-invoice.service");
     try {
       return await updateMerchantInvoiceDraft(await actor(), data);
@@ -95,6 +127,11 @@ export const updateMerchantInvoiceDraftRecord = createServerFn({ method: "POST" 
 export const sendMerchantInvoiceRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; invoiceId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { sendUiLabInvoice } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return sendUiLabInvoice(data.companyId, data.invoiceId);
+    }
     const { sendMerchantInvoice } = await import("@/server/merchant-invoice.service");
     try {
       return await sendMerchantInvoice(await actor(), data.companyId, data.invoiceId);
@@ -106,6 +143,11 @@ export const sendMerchantInvoiceRecord = createServerFn({ method: "POST" })
 export const cancelMerchantInvoiceRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; invoiceId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { cancelUiLabInvoice } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return cancelUiLabInvoice(data.companyId, data.invoiceId);
+    }
     const { cancelMerchantInvoice } = await import("@/server/merchant-invoice.service");
     try {
       return await cancelMerchantInvoice(await actor(), data.companyId, data.invoiceId);
@@ -117,6 +159,11 @@ export const cancelMerchantInvoiceRecord = createServerFn({ method: "POST" })
 export const remindMerchantInvoiceRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; invoiceId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { remindUiLabInvoice } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return remindUiLabInvoice(data.companyId, data.invoiceId);
+    }
     const { sendMerchantInvoiceReminder } = await import("@/server/merchant-invoice.service");
     try {
       return await sendMerchantInvoiceReminder(await actor(), data.companyId, data.invoiceId);

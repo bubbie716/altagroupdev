@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { MerchantInvoiceForm } from "@/components/bank/merchant-invoices/merchant-invoice-form";
+import { useRouter } from "@tanstack/react-router";
+import { MerchantInvoiceWorkflow } from "@/components/bank/merchant-invoices/merchant-invoice-workflow";
 import { MerchantRecurringInvoiceForm } from "@/components/bank/merchant-invoices/merchant-recurring-invoice-form";
 import type { RecurringInvoiceScheduleRow } from "@/lib/bank/payments-engine-types";
+import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 type CreateMode = "one_time" | "recurring";
 
@@ -23,10 +25,19 @@ export function MerchantInvoiceCreatePanel({
   canUseRecurringInvoices: boolean;
   recurringSchedules: RecurringInvoiceScheduleRow[];
 }) {
+  const router = useRouter();
   const [mode, setMode] = useState<CreateMode>("one_time");
+  const [oneTimeOpen, setOneTimeOpen] = useState(true);
   const visibleModes = canUseRecurringInvoices
     ? modes
     : modes.filter((item) => item.id === "one_time");
+
+  function leaveToList() {
+    void router.navigate({
+      to: accountCommercialRoutes.invoices,
+      params: { accountId },
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -36,7 +47,10 @@ export function MerchantInvoiceCreatePanel({
             <button
               key={item.id}
               type="button"
-              onClick={() => setMode(item.id)}
+              onClick={() => {
+                setMode(item.id);
+                if (item.id === "one_time") setOneTimeOpen(true);
+              }}
               className={`rounded-md px-3 py-2 text-[13px] font-medium transition-colors ${
                 mode === item.id
                   ? "bg-foreground text-background"
@@ -50,7 +64,16 @@ export function MerchantInvoiceCreatePanel({
       ) : null}
 
       {mode === "one_time" || !canUseRecurringInvoices ? (
-        <MerchantInvoiceForm companyId={companyId} accountId={accountId} />
+        <MerchantInvoiceWorkflow
+          open={oneTimeOpen}
+          onOpenChange={(open) => {
+            setOneTimeOpen(open);
+            if (!open) leaveToList();
+          }}
+          onDone={leaveToList}
+          companyId={companyId}
+          accountId={accountId}
+        />
       ) : (
         <MerchantRecurringInvoiceForm
           companyId={companyId}

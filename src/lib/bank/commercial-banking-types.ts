@@ -26,18 +26,35 @@ export type CommercialFeatureKey =
   | "merchant_analytics"
   | "priority_support"
   | "payroll"
-  | "invoice_branding"
-  | "treasury";
+  | "invoice_branding";
 
 export const COMMERCIAL_PLAN_LABELS: Record<CommercialPlan, string> = {
   CORE: "Core",
   PRO: "Pro",
 };
 
+export const COMMERCIAL_BILLING_STATUS_LABELS: Record<CommercialBillingStatus, string> = {
+  NOT_BILLED: "Not billed",
+  CURRENT: "Current",
+  PAST_DUE: "Past due",
+};
+
+export const COMMERCIAL_FEATURE_LABELS: Record<CommercialFeatureKey, string> = {
+  invoices: "Invoices",
+  payment_links: "Payment links",
+  merchant_analytics: "Advanced analytics",
+  priority_support: "Priority support",
+  payroll: "Payroll",
+  invoice_branding: "Custom branding",
+};
+
 export const COMMERCIAL_PLAN_DESCRIPTIONS: Record<CommercialPlan, string> = {
   CORE: "Business banking, basic invoices, payment links, and basic analytics.",
   PRO: "Unlimited invoices and payment links, advanced analytics, payroll, custom branding, and priority support.",
 };
+
+/** Default Pro monthly fee in florins (platform settings may override). */
+export const DEFAULT_COMMERCIAL_PRO_MONTHLY_FEE = 10_000;
 
 export const DEFAULT_COMMERCIAL_FEATURES: Record<CommercialPlan, CommercialFeatureKey[]> = {
   CORE: ["invoices", "payment_links"],
@@ -63,8 +80,48 @@ export function isCommercialProActive(plan: CommercialPlanSettings): boolean {
   return plan.commercialPlan === "PRO" && plan.planStatus === "ACTIVE";
 }
 
+export function canAccessCommercialPayroll(plan: CommercialPlanSettings): boolean {
+  return isCommercialProActive(plan) && plan.enabledFeatures.includes("payroll");
+}
+
 export function canPublishInvoiceBranding(plan: CommercialPlanSettings): boolean {
   return isCommercialProActive(plan) && plan.enabledFeatures.includes("invoice_branding");
+}
+
+/** UI / loader classification for the Commercial payroll page. */
+export type CommercialPayrollPageMode = "active" | "upgrade" | "forbidden" | "error";
+
+export function classifyCommercialPayrollPageAccess(input: {
+  roleCanAccessPayroll: boolean;
+  plan: CommercialPlanSettings | null;
+  errorMessage?: string | null;
+}): { mode: CommercialPayrollPageMode; customerMessage: string | null } {
+  const raw = (input.errorMessage ?? "").trim();
+  if (raw === "FORBIDDEN" || raw.startsWith("FORBIDDEN")) {
+    return {
+      mode: "forbidden",
+      customerMessage:
+        "You do not have permission to view payroll for this business account. Ask a company owner or executive to update your role.",
+    };
+  }
+  if (raw) {
+    return {
+      mode: "error",
+      customerMessage:
+        "Payroll could not be loaded right now. Refresh the page or try again in a few minutes.",
+    };
+  }
+  if (!input.roleCanAccessPayroll) {
+    return {
+      mode: "forbidden",
+      customerMessage:
+        "You do not have permission to view payroll for this business account. Ask a company owner or executive to update your role.",
+    };
+  }
+  if (!input.plan || !canAccessCommercialPayroll(input.plan)) {
+    return { mode: "upgrade", customerMessage: null };
+  }
+  return { mode: "active", customerMessage: null };
 }
 
 export type CommercialBankingContext = {
@@ -148,7 +205,12 @@ export type MerchantAnalytics = {
   overdueInvoiceTotal: number;
   paidInvoicesCount: number;
   averagePaymentSize: number;
+  /**
+   * Whole percentage points in [0, 100] (e.g. 97 = 97%).
+   * Never a 0–1 fraction. See formatMerchantAnalyticsPercent.
+   */
   paymentSuccessRate: number;
+  /** Whole percentage points in [0, 100]. See paymentSuccessRate. */
   paymentFailureRate: number;
   successfulPayments: number;
   failedPayments: number;
@@ -169,6 +231,7 @@ export type CommercialSettingsView = CommercialPlanSettings & {
   nextBillingAt: string | null;
   pastDueAt: string | null;
   proSubscribedAt: string | null;
+  downgradeScheduledAt: string | null;
   grantSource: "PURCHASED" | "ADMIN_GRANT" | null;
   expiresAt: string | null;
   usage: {

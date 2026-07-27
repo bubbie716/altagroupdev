@@ -11,8 +11,10 @@ import {
   formatPortfolioChartSelectionRange,
   formatSelectionAmountLabel,
   formatSelectionPercentLabel,
+  isPointerDragPastThreshold,
   isSelectionVisible,
   normalizeBucketSelectionIndices,
+  PORTFOLIO_CHART_DRAG_THRESHOLD_PX,
   resolveBucketIndexAtPointer,
   selectionValuesStableWithinBucket,
 } from "./portfolio-chart-range-selection.ts";
@@ -149,5 +151,23 @@ describe("portfolio chart drag selection lifecycle", () => {
     const first = buildChartBucketsForRange(dailySeries(30), "1W", NOW);
     const second = buildChartBucketsForRange(dailySeries(30), "1M", NOW);
     assert.notEqual(first.length, second.length);
+  });
+});
+
+describe("portfolio chart tap vs drag threshold", () => {
+  it("treats sub-threshold movement as a tap", () => {
+    assert.equal(isPointerDragPastThreshold(100, 100, 104, 103), false);
+    assert.equal(
+      isPointerDragPastThreshold(0, 0, PORTFOLIO_CHART_DRAG_THRESHOLD_PX - 1, 0),
+      false,
+    );
+  });
+
+  it("promotes movement at or beyond the threshold into a drag", () => {
+    assert.equal(
+      isPointerDragPastThreshold(0, 0, PORTFOLIO_CHART_DRAG_THRESHOLD_PX, 0),
+      true,
+    );
+    assert.equal(isPointerDragPastThreshold(50, 50, 60, 58), true);
   });
 });

@@ -40,9 +40,27 @@ function isNavLinkActive(pathname: string, link: SiteNavLink): boolean {
   return path === normalizedPrefix || path.startsWith(`${normalizedPrefix}/`);
 }
 
-const NAV_HEIGHT_CLASS = "h-14 sm:h-16";
+/** Match authenticated BankTopNav (`h-14` / 1120px). Other sites keep the taller marketing chrome. */
+const BANK_NAV_HEIGHT_CLASS = "h-14";
+const SITE_NAV_HEIGHT_CLASS = "h-14 sm:h-16";
 
-function SiteBrandCluster({ site }: { site: SiteConfig }) {
+function SiteBrandCluster({
+  site,
+  matchBankChrome,
+}: {
+  site: SiteConfig;
+  matchBankChrome: boolean;
+}) {
+  if (matchBankChrome) {
+    return (
+      <EcosystemSwitcher
+        siteKey={site.key}
+        variant="branded"
+        className="shrink-0"
+      />
+    );
+  }
+
   return (
     <div className="flex min-w-0 items-center gap-0.5 sm:gap-1">
       <SiteInternalLink
@@ -110,17 +128,28 @@ export const SiteNav = memo(function SiteNav() {
 
   const navLinks = site.key === "bank" ? bankNavLinks : resolveSiteNavLinks(site.key);
 
-  const isDenseNav = site.key === "bank" || site.key === "exchange" || site.key === "terminal";
-  const desktopNavClass = isDenseNav ? "xl:flex" : "lg:flex";
-  const mobileMenuClass = isDenseNav ? "xl:hidden" : "lg:hidden";
+  /** Bank marketing/login chrome mirrors authenticated BankTopNav size + spacing. */
+  const matchBankChrome = site.key === "bank";
+  const isDenseNav = site.key === "exchange" || site.key === "terminal";
+  const navHeightClass = matchBankChrome ? BANK_NAV_HEIGHT_CLASS : SITE_NAV_HEIGHT_CLASS;
+  const desktopNavClass = matchBankChrome ? "md:flex" : isDenseNav ? "xl:flex" : "lg:flex";
+  const mobileMenuClass = matchBankChrome ? "md:hidden" : isDenseNav ? "xl:hidden" : "lg:hidden";
 
   const desktopLinkClass = (active: boolean) =>
-    cn(
-      "type-nav relative shrink-0 whitespace-nowrap rounded-md py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
-      isDenseNav ? "px-2 text-[12px]" : "px-3",
-      active &&
-        "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
-    );
+    matchBankChrome
+      ? cn(
+          "rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+          active
+            ? "bg-surface-2 text-foreground"
+            : "text-muted-foreground hover:bg-[var(--menu-item-hover)] hover:text-foreground",
+        )
+      : cn(
+          "type-nav relative shrink-0 whitespace-nowrap rounded-md py-1.5 text-muted-foreground transition-colors duration-200 hover:text-foreground",
+          isDenseNav ? "px-2 text-[12px]" : "px-3",
+          active &&
+            "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[17px] after:h-[2px] after:rounded-full after:bg-gold",
+        );
 
   const mobileLinkClass = (active: boolean) =>
     cn(
@@ -133,18 +162,29 @@ export const SiteNav = memo(function SiteNav() {
   return (
     <>
       <header
-        className="fixed inset-x-0 z-[100] border-b border-border/60 bg-background/95 backdrop-blur-md"
+        className={cn(
+          "fixed inset-x-0 z-[100] bg-background/95 backdrop-blur-md",
+          matchBankChrome ? "border-b border-border/70" : "border-b border-border/60",
+        )}
         style={{ top: "var(--ui-lab-banner-height, 0px)" }}
       >
         <div
-          className={`mx-auto flex ${NAV_HEIGHT_CLASS} max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6`}
+          className={cn(
+            "mx-auto flex items-center",
+            navHeightClass,
+            matchBankChrome
+              ? "max-w-[1120px] gap-2 px-3 sm:gap-3 sm:px-6"
+              : "max-w-[1400px] justify-between gap-3 px-4 sm:px-6",
+          )}
         >
-          <SiteBrandCluster site={site} />
+          <SiteBrandCluster site={site} matchBankChrome={matchBankChrome} />
           <nav
             className={cn(
-              "hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-hidden px-1",
+              "hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-hidden",
+              matchBankChrome ? "ml-1" : "justify-center px-1",
               desktopNavClass,
             )}
+            aria-label={matchBankChrome ? "Bank primary" : undefined}
           >
             {navLinks.map((link) => {
               const active = isNavLinkActive(pathname, link);
@@ -159,12 +199,22 @@ export const SiteNav = memo(function SiteNav() {
               );
             })}
           </nav>
-          <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "flex items-center",
+              matchBankChrome ? "ml-auto gap-1.5 sm:gap-2" : "gap-2",
+            )}
+          >
             {site.ctaLabel && site.ctaRoute ? (
               <SiteInternalLink
                 siteKey={site.key}
                 to={site.ctaRoute}
-                className="hidden rounded-md bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex"
+                className={cn(
+                  "hidden font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex",
+                  matchBankChrome
+                    ? "rounded-md bg-primary px-3 py-2 text-[13px]"
+                    : "rounded-md bg-primary px-3 py-1.5 text-[12px]",
+                )}
               >
                 {site.ctaLabel}
               </SiteInternalLink>
@@ -172,7 +222,11 @@ export const SiteNav = memo(function SiteNav() {
             <button
               onClick={toggle}
               aria-label="Toggle theme"
-              className="inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong"
+              className={cn(
+                "inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground",
+                matchBankChrome &&
+                  "hover:bg-[var(--menu-item-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+              )}
             >
               {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </button>
@@ -184,7 +238,7 @@ export const SiteNav = memo(function SiteNav() {
                 <button
                   aria-label="Open menu"
                   className={cn(
-                    "inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:text-foreground hover:border-border-strong",
+                    "inline-flex size-11 items-center justify-center rounded-md border border-border bg-surface-2/60 text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground",
                     mobileMenuClass,
                   )}
                 >
@@ -235,7 +289,7 @@ export const SiteNav = memo(function SiteNav() {
         </div>
       </header>
       <div
-        className={NAV_HEIGHT_CLASS}
+        className={navHeightClass}
         style={{ marginTop: "var(--ui-lab-banner-height, 0px)" }}
         aria-hidden="true"
       />

@@ -162,11 +162,8 @@ function AccountOverviewPage() {
       <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-stretch">
         <Section title="Account information" className="flex h-full min-h-0 flex-col">
           <Card className="flex min-h-0 flex-1 flex-col divide-y divide-border/50 !p-0">
-            <ProfileRow label="Account name" value={account.accountName} />
             <ProfileRow label="Account number" value={account.accountNumber} />
             <ProfileRow label="Routing number" value={account.routingNumber} />
-            <ProfileRow label="Account type" value={account.accountTypeLabel} />
-            <ProfileRow label="Owner" value={account.ownerLabel} />
             <ProfileRow
               label="Status"
               value={account.statusLabel}

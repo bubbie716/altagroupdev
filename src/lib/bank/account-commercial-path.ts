@@ -1,5 +1,6 @@
 export type AccountCommercialSegment =
   | ""
+  | "payments"
   | "invoices"
   | "payment-links"
   | "analytics"
@@ -25,8 +26,14 @@ export function isAccountCommercialPath(pathname: string, accountId: string): bo
   return pathname.startsWith(accountCommercialBase(accountId));
 }
 
+/** Absolute path helpers used by redirects and unit tests. */
+export function accountCommercialPaymentsPath(accountId: string): string {
+  return accountCommercialPath(accountId, "payments");
+}
+
 export const accountCommercialRoutes = {
   overview: "/bank/account/$accountId/commercial",
+  payments: "/bank/account/$accountId/commercial/payments",
   invoices: "/bank/account/$accountId/commercial/invoices",
   invoicesNew: "/bank/account/$accountId/commercial/invoices/new",
   invoiceDetail: "/bank/account/$accountId/commercial/invoices/$invoiceId",
@@ -39,3 +46,10 @@ export const accountCommercialRoutes = {
   branding: "/bank/account/$accountId/commercial/branding",
   payroll: "/bank/account/$accountId/commercial/payroll",
 } as const;
+
+/** Legacy `/bank/account/$accountId/payments` must land on payments, not commercial overview. */
+export function legacyAccountPaymentsRedirectTarget(
+  accountId: string,
+): string {
+  return accountCommercialPaymentsPath(accountId);
+}

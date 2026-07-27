@@ -1,3 +1,9 @@
+/**
+ * Background relationship-intelligence scheduling boundary.
+ *
+ * Production: fire-and-forget (non-blocking money paths).
+ * Tests: disable scheduling and/or drain pending work before fixture teardown.
+ */
 import { prisma } from "@/server/db";
 
 async function resolveSystemActorId(): Promise<string | undefined> {
@@ -14,6 +20,38 @@ function logRefreshFailure(scope: string, id: string, reason: string, error: unk
   console.error(`[relationship-intelligence] ${scope} refresh failed (${reason})`, { id, message });
 }
 
+let backgroundRefreshDisabled = false;
+const pendingRefreshTasks = new Set<Promise<void>>();
+
+/** Test-only: skip scheduling nonessential relationship background work. */
+export function disableRelationshipBackgroundRefresh(): void {
+  backgroundRefreshDisabled = true;
+}
+
+/** Test-only: re-enable background scheduling after a suite. */
+export function enableRelationshipBackgroundRefresh(): void {
+  backgroundRefreshDisabled = false;
+}
+
+export function isRelationshipBackgroundRefreshDisabled(): boolean {
+  return backgroundRefreshDisabled;
+}
+
+export function getPendingRelationshipRefreshTaskCount(): number {
+  return pendingRefreshTasks.size;
+}
+
+/**
+ * Await every relationship refresh scheduled since the last drain.
+ * Call before deleting ephemeral integration fixtures.
+ */
+export async function drainRelationshipRefreshTasks(): Promise<void> {
+  while (pendingRefreshTasks.size > 0) {
+    const batch = [...pendingRefreshTasks];
+    await Promise.allSettled(batch);
+  }
+}
+
 /**
  * Schedule relationship work without blocking the caller.
  * Admin money-movement and ops mutations must not wait on scoring / recommendations.
@@ -24,7 +62,14 @@ function scheduleRelationshipRefresh(
   reason: string,
   work: () => Promise<void>,
 ): void {
-  void work().catch((error) => logRefreshFailure(scope, id, reason, error));
+  if (backgroundRefreshDisabled) return;
+
+  const task = work()
+    .catch((error) => logRefreshFailure(scope, id, reason, error))
+    .finally(() => {
+      pendingRefreshTasks.delete(task);
+    });
+  pendingRefreshTasks.add(task);
 }
 
 /** Best-effort user profile refresh. Returns immediately; work continues in the background. */

@@ -6,7 +6,7 @@ import type {
   LendingDeskStats,
   LoanApplicationRow,
 } from "@/lib/bank/lending-types";
-import { LOAN_TERM_MONTHS_MAX, LOAN_TERM_MONTHS_MIN } from "@/lib/bank/lending-types";
+import { loanTermMonthsForProduct } from "@/lib/bank/lending-types";
 import { florin } from "@/lib/bank/api";
 import { prisma } from "@/server/db";
 import {
@@ -176,12 +176,9 @@ export async function createLoanApplication(
 
   const user = await getAltaUser(userId);
   if (input.requestedAmount <= 0) badRequest("Requested amount must be greater than zero");
-  if (
-    !Number.isInteger(input.termMonths) ||
-    input.termMonths < LOAN_TERM_MONTHS_MIN ||
-    input.termMonths > LOAN_TERM_MONTHS_MAX
-  ) {
-    badRequest(`Loan term must be between ${LOAN_TERM_MONTHS_MIN} and ${LOAN_TERM_MONTHS_MAX} months`);
+  const { min: termMin, max: termMax } = loanTermMonthsForProduct(input.productType);
+  if (!Number.isInteger(input.termMonths) || input.termMonths < termMin || input.termMonths > termMax) {
+    badRequest(`Loan term must be between ${termMin} and ${termMax} months`);
   }
   if (!input.purpose.trim()) badRequest("Purpose is required");
   if (!input.repaymentPlan.trim()) badRequest("Repayment plan is required");

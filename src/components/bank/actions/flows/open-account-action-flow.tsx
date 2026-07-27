@@ -369,9 +369,6 @@ export function OpenAccountActionFlow({
             ))}
           </SelectContent>
         </Select>
-        <p className="mt-1.5 text-[12px] text-muted-foreground">
-          Alta Gold is not a deposit account, so it is not offered here.
-        </p>
       </label>
 
       <label className="block">

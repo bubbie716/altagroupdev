@@ -108,13 +108,8 @@ export async function assertBusinessAccountAccess(
 ): Promise<BusinessAccountContext> {
   const ctx = await resolveBusinessAccountContext(user, accountId, module);
   if (!canAccessBusinessModule(ctx.role, module)) forbidden();
-  if (module === "payroll") {
-    const { loadCommercialPlanSettings, canAccessCommercialPayroll } = await import(
-      "@/server/commercial-plan.service"
-    );
-    const plan = await loadCommercialPlanSettings(ctx.companyId);
-    if (!canAccessCommercialPayroll(plan)) forbidden();
-  }
+  // Payroll Pro gating is handled in the payroll route UI (upgrade preview),
+  // not as a silent FORBIDDEN — API mutations still require Pro via requireCommercialPayroll.
   return ctx;
 }
 

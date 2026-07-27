@@ -14,12 +14,17 @@ import {
 } from "@/components/ui/select";
 import { CommercialProUpgradePanel } from "@/components/bank/commercial/commercial-pro-upgrade-panel";
 import { CommercialProDowngradePanel } from "@/components/bank/commercial/commercial-pro-downgrade-panel";
+import { CommercialSubscriptionBillingHistoryPanel } from "@/components/bank/commercial/commercial-subscription-billing-history-panel";
 import type { CommercialBillingAccountOption } from "@/lib/bank/commercial-billing-types";
 import type { CommercialSettingsView } from "@/lib/bank/commercial-banking-types";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import {
+  COMMERCIAL_BILLING_STATUS_LABELS,
+  COMMERCIAL_FEATURE_LABELS,
   COMMERCIAL_PLAN_DESCRIPTIONS,
   COMMERCIAL_PLAN_LABELS,
+  DEFAULT_COMMERCIAL_PRO_MONTHLY_FEE,
+  type CommercialFeatureKey,
 } from "@/lib/bank/commercial-banking-types";
 import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
@@ -27,6 +32,25 @@ import {
   fetchCommercialBillingAccounts,
   updateCommercialBillingAccountFn,
 } from "@/lib/bank/commercial-banking.functions";
+
+const CORE_COMPARISON = [
+  "10 invoices / month",
+  "5 payment links / month",
+  "3 team members",
+] as const;
+
+const PRO_COMPARISON = [
+  "Unlimited invoices & payment links",
+  "Unlimited team members",
+  "Payroll",
+  "Advanced analytics",
+  "Custom branding",
+  "Priority support",
+] as const;
+
+function isCommercialFeatureKey(value: string): value is CommercialFeatureKey {
+  return value in COMMERCIAL_FEATURE_LABELS;
+}
 
 export function CommercialSettingsPanel({
   settings,
@@ -50,6 +74,8 @@ export function CommercialSettingsPanel({
 
   const isPro = settings.commercialPlan === "PRO";
   const usage = settings.usage;
+  const proMonthlyFee = settings.monthlyFee ?? DEFAULT_COMMERCIAL_PRO_MONTHLY_FEE;
+  const enabledFeatures = settings.enabledFeatures.filter(isCommercialFeatureKey);
 
   useEffect(() => {
     if (!settings.canManageBillingAccount) return;
@@ -103,6 +129,17 @@ export function CommercialSettingsPanel({
         <p className="mt-2 text-[13px] text-muted-foreground">
           {COMMERCIAL_PLAN_DESCRIPTIONS[settings.commercialPlan]}
         </p>
+
+        {settings.downgradeScheduledAt ? (
+          <p className="mt-4 rounded-md border border-border/70 bg-surface-2/40 px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
+            Downgrade to Core is scheduled for{" "}
+            <span className="font-medium text-foreground">
+              {formatActivityDateTime(settings.downgradeScheduledAt)}
+            </span>
+            . Pro features stay available until then.
+          </p>
+        ) : null}
+
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-foreground bg-surface-2/50 p-5">
             <p className="font-medium">{COMMERCIAL_PLAN_LABELS[settings.commercialPlan]}</p>
@@ -117,6 +154,14 @@ export function CommercialSettingsPanel({
                     : "Active Pro subscription"
                 : "Free business banking with Core limits"}
             </p>
+            <ul className="mt-4 space-y-1.5 text-[13px] text-muted-foreground">
+              {(isPro ? PRO_COMPARISON : CORE_COMPARISON).map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span aria-hidden="true">·</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
             {settings.billingStatus === "PAST_DUE" ? (
               <p className="mt-3 text-[13px] text-destructive">
                 Billing is past due. Add funds to your billing account to avoid downgrade.
@@ -124,12 +169,20 @@ export function CommercialSettingsPanel({
             ) : null}
           </div>
           {!isPro && settings.canPurchasePro ? (
-            <div className="rounded-lg border border-border p-5">
+            <div className="min-w-0 rounded-lg border border-border p-5">
               <p className="font-medium">Upgrade to Pro</p>
-              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Unlimited invoices, payment links, and team members. Advanced analytics, payroll,
-                custom branding, and priority support.
+              <p className="mt-1 type-finance-nums text-[15px] font-medium tracking-tight">
+                {florin(proMonthlyFee)}
+                <span className="text-[13px] font-normal text-muted-foreground">/month</span>
               </p>
+              <ul className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                {PRO_COMPARISON.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span aria-hidden="true">·</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
               <CommercialProUpgradePanel companyId={settings.companyId} onCompleted={onUpdated}>
                 {({ open, loading }) => (
                   <button
@@ -144,21 +197,29 @@ export function CommercialSettingsPanel({
               </CommercialProUpgradePanel>
             </div>
           ) : isPro && settings.canDowngradePro ? (
-            <div className="rounded-lg border border-border p-5">
+            <div className="min-w-0 rounded-lg border border-border p-5">
               <p className="font-medium">Downgrade to Core</p>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Stop Pro billing and return to Core limits. Pending payroll and excess receivables
-                created this month may be cancelled.
+                Schedule Core for period end by default. Immediate downgrade requires confirming
+                payroll and excess receivable cleanup.
               </p>
+              <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
+                {CORE_COMPARISON.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span aria-hidden="true">·</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
               <CommercialProDowngradePanel companyId={settings.companyId} onCompleted={onUpdated}>
                 {({ open, loading }) => (
                   <button
                     type="button"
-                    disabled={loading || saving}
+                    disabled={loading || saving || Boolean(settings.downgradeScheduledAt)}
                     onClick={() => void open()}
                     className="mt-4 inline-flex rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5 disabled:opacity-60"
                   >
-                    Downgrade to Core
+                    {settings.downgradeScheduledAt ? "Downgrade scheduled" : "Downgrade to Core"}
                   </button>
                 )}
               </CommercialProDowngradePanel>
@@ -196,7 +257,9 @@ export function CommercialSettingsPanel({
           <dl className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <dt className="text-xs text-muted-foreground">Billing status</dt>
-              <dd className="mt-1 text-sm font-medium">{settings.billingStatus}</dd>
+              <dd className="mt-1 text-sm font-medium">
+                {COMMERCIAL_BILLING_STATUS_LABELS[settings.billingStatus]}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">Monthly fee</dt>
@@ -220,16 +283,24 @@ export function CommercialSettingsPanel({
                   : "—"}
               </dd>
             </div>
+            {settings.downgradeScheduledAt ? (
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-muted-foreground">Scheduled downgrade</dt>
+                <dd className="mt-1 text-sm font-medium">
+                  {formatActivityDateTime(settings.downgradeScheduledAt)}
+                </dd>
+              </div>
+            ) : null}
           </dl>
           {settings.canManageBillingAccount && billingAccounts.length > 0 ? (
             <div className="mt-6 flex flex-wrap items-end gap-3">
-              <label className="block min-w-[16rem] flex-1">
+              <label className="block min-w-0 w-full flex-1 sm:min-w-[16rem]">
                 <span className="text-xs text-muted-foreground">Billing account</span>
                 <BillingAccountSelect
                   accounts={billingAccounts}
                   value={billingAccountId}
                   onValueChange={setBillingAccountId}
-                  className="mt-1"
+                  className="mt-1 min-w-0"
                 />
               </label>
               <button
@@ -245,6 +316,15 @@ export function CommercialSettingsPanel({
         </Card>
       ) : null}
 
+      {(settings.canManagePlan || settings.canManageBillingAccount) && (
+        <CommercialSubscriptionBillingHistoryPanel
+          companyId={settings.companyId}
+          canView={settings.canManagePlan || settings.canManageBillingAccount}
+          isPro={isPro}
+          nextBillingAtHint={settings.nextBillingAt}
+        />
+      )}
+
       <Card className="!p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
           Invoice & payment link branding
@@ -252,18 +332,16 @@ export function CommercialSettingsPanel({
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
           Customize customer-facing invoices, payment links, and receipts with your logo and colors.
           {isPro
-            ? " Your branding is live on customer checkout pages."
-            : " Available on Alta Commercial Pro."}
+            ? " Your published branding is live on customer checkout pages."
+            : " Core can preview designs; publishing requires Alta Commercial Pro. Until then, checkout uses Alta branding."}
         </p>
-        {isPro ? (
-          <RouteButton
-            to={accountCommercialRoutes.branding}
-            params={{ accountId }}
-            className="mt-4 inline-block rounded-md border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2/60"
-          >
-            Manage branding
-          </RouteButton>
-        ) : null}
+        <RouteButton
+          to={accountCommercialRoutes.branding}
+          params={{ accountId }}
+          className="mt-4 inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm font-medium transition hover:bg-surface-2/60"
+        >
+          {isPro ? "Manage branding" : "Preview branding"}
+        </RouteButton>
       </Card>
 
       <Card className="!p-6">
@@ -271,9 +349,9 @@ export function CommercialSettingsPanel({
           Enabled features
         </p>
         <ul className="mt-4 space-y-2 text-sm">
-          {settings.enabledFeatures.map((feature) => (
+          {enabledFeatures.map((feature) => (
             <li key={feature} className="flex items-center justify-between gap-3">
-              <span className="capitalize">{feature.replace(/_/g, " ")}</span>
+              <span>{COMMERCIAL_FEATURE_LABELS[feature]}</span>
               <span className="text-xs text-muted-foreground">Active</span>
             </li>
           ))}
@@ -326,10 +404,10 @@ function BillingAccountSelect({
       <SelectTrigger className={className}>
         <SelectValue placeholder="Select billing account" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="max-w-[min(100vw-2rem,24rem)]">
         {accounts.map((account) => (
-          <SelectItem key={account.id} value={account.id}>
-            {formatBillingAccountLabel(account)}
+          <SelectItem key={account.id} value={account.id} className="min-w-0">
+            <span className="block min-w-0 truncate">{formatBillingAccountLabel(account)}</span>
           </SelectItem>
         ))}
       </SelectContent>

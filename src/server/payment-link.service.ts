@@ -13,6 +13,10 @@ import {
   type PaymentLinkSummaryRow,
   type UpdatePaymentLinkInput,
 } from "@/lib/bank/payment-link-types";
+import {
+  validatePaymentLinkExpiration,
+  validatePaymentLinkMinMax,
+} from "@/lib/bank/payment-link-validation";
 import type { PaymentLinkStatus } from "@prisma/client";
 import { prisma } from "@/server/db";
 import {
@@ -94,14 +98,17 @@ function validateCreateInput(input: CreatePaymentLinkInput): void {
     }
   } else {
     if (input.amount != null && input.amount <= 0) badRequest("Amount must be greater than zero.");
-    const min = input.minAmount ?? null;
-    const max = input.maxAmount ?? null;
-    if (min != null && min <= 0) badRequest("Minimum amount must be greater than zero.");
-    if (max != null && max <= 0) badRequest("Maximum amount must be greater than zero.");
-    if (min != null && max != null && min > max) {
-      badRequest("Minimum amount cannot exceed maximum amount.");
-    }
+    const minMaxError = validatePaymentLinkMinMax(input.minAmount, input.maxAmount);
+    if (minMaxError) badRequest(minMaxError);
   }
+  const expirationError = validatePaymentLinkExpiration(input.expiresAt ?? null);
+  if (expirationError) badRequest(expirationError);
+}
+
+function validateUpdateExpiration(input: UpdatePaymentLinkInput): void {
+  if (input.expiresAt === undefined) return;
+  const expirationError = validatePaymentLinkExpiration(input.expiresAt);
+  if (expirationError) badRequest(expirationError);
 }
 
 export async function resolvePaymentLinkEffectiveStatus(link: {
@@ -337,6 +344,26 @@ export async function updatePaymentLink(
   if (!["ACTIVE", "PAUSED"].includes(existing.status)) {
     badRequest("Only active or paused links can be edited.");
   }
+
+  if (existing.amountType === "OPEN") {
+    const nextMin =
+      input.minAmount !== undefined
+        ? input.minAmount
+        : existing.minAmount != null
+          ? Number(existing.minAmount.toString())
+          : null;
+    const nextMax =
+      input.maxAmount !== undefined
+        ? input.maxAmount
+        : existing.maxAmount != null
+          ? Number(existing.maxAmount.toString())
+          : null;
+    if (input.minAmount !== undefined || input.maxAmount !== undefined) {
+      const minMaxError = validatePaymentLinkMinMax(nextMin, nextMax);
+      if (minMaxError) badRequest(minMaxError);
+    }
+  }
+  validateUpdateExpiration(input);
 
   const link = await prisma.paymentLink.update({
     where: { id: existing.id },

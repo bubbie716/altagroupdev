@@ -26,15 +26,33 @@ export const Route = createFileRoute("/bank/business/")({
 const QUICK_LINKS = [
   {
     module: "payments" as const,
-    to: "/bank/account/$accountId/payments" as const,
+    to: "/bank/account/$accountId/commercial/payments" as const,
     label: "Payments",
     description: "Treasury queue and Alta Pay received",
   },
   {
+    module: "payments" as const,
+    to: "/bank/account/$accountId/commercial/invoices" as const,
+    label: "Invoices",
+    description: "Create and track customer invoices",
+  },
+  {
+    module: "payments" as const,
+    to: "/bank/account/$accountId/commercial/payment-links" as const,
+    label: "Payment links",
+    description: "Share checkout links for collections",
+  },
+  {
     module: "payroll" as const,
-    to: "/bank/account/$accountId/payroll" as const,
+    to: "/bank/account/$accountId/commercial/payroll" as const,
     label: "Payroll",
     description: "Employee registry and payroll batches",
+  },
+  {
+    module: "payments" as const,
+    to: "/bank/account/$accountId/commercial/analytics" as const,
+    label: "Analytics",
+    description: "Collections, success rates, and trends",
   },
   {
     module: "activity" as const,
@@ -51,14 +69,14 @@ const QUICK_LINKS = [
   {
     module: "representatives" as const,
     to: "/bank/account/$accountId/representatives" as const,
-    label: "Representatives",
+    label: "Team",
     description: "Role-based treasury permissions",
   },
   {
     module: "settings" as const,
-    to: "/bank/account/$accountId/settings" as const,
-    label: "Account settings",
-    description: "Operating account preferences",
+    to: "/bank/account/$accountId/commercial/settings" as const,
+    label: "Commercial settings",
+    description: "Plan, billing, and subscription history",
   },
 ];
 

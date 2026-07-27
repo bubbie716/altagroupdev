@@ -16,6 +16,7 @@ import {
   type UpdateMerchantInvoiceDraftInput,
   UNPAID_INVOICE_STATUSES,
 } from "@/lib/bank/merchant-invoice-types";
+import { validateInvoiceDueDate } from "@/lib/bank/merchant-invoice-validation";
 import type { MerchantInvoiceStatus } from "@prisma/client";
 import { prisma } from "@/server/db";
 import {
@@ -348,6 +349,8 @@ export async function createMerchantInvoiceDraft(
   requireMerchantManage(user, input.companyId);
   if (input.amount <= 0) badRequest("Amount must be greater than zero.");
   if (!input.description.trim()) badRequest("Description is required.");
+  const dueDateError = validateInvoiceDueDate(input.dueDate);
+  if (dueDateError) badRequest(dueDateError);
 
   const { assertCommercialInvoiceLimit } = await import("@/server/commercial-limits.service");
   await assertCommercialInvoiceLimit(input.companyId);
@@ -424,6 +427,10 @@ export async function updateMerchantInvoiceDraft(
   });
   if (!existing) notFound();
   if (existing.status !== "DRAFT") badRequest("Only draft invoices can be edited.");
+  if (input.dueDate !== undefined) {
+    const dueDateError = validateInvoiceDueDate(input.dueDate);
+    if (dueDateError) badRequest(dueDateError);
+  }
 
   if (input.recipientUserId !== undefined || input.recipientCompanyId !== undefined) {
     const hasUser = !!input.recipientUserId?.trim();

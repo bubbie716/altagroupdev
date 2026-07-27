@@ -7,7 +7,15 @@ import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-b
 import { fetchMerchantInvoiceDashboard } from "@/lib/bank/merchant-invoice.functions";
 import { Route as CommercialRoute } from "../route";
 
+type InvoicesSearch = {
+  create?: 1;
+};
+
 export const Route = createFileRoute("/bank/account/$accountId/commercial/invoices/")({
+  validateSearch: (search: Record<string, unknown>): InvoicesSearch => {
+    if (search.create === 1 || search.create === "1") return { create: 1 };
+    return {};
+  },
   loader: async ({ context }) => {
     const commercial = requireCommercialFromRouteContext(context);
     if (!commercial.isVerified) {
@@ -35,6 +43,7 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/invoic
 
 function AccountCommercialInvoicesPage() {
   const { accountId } = Route.useParams();
+  const { create } = Route.useSearch();
   const { context } = CommercialRoute.useLoaderData();
   const { dashboard, canCreate, createLimitMessage } = Route.useLoaderData();
 
@@ -50,6 +59,7 @@ function AccountCommercialInvoicesPage() {
             accountId={accountId}
             canCreate={canCreate}
             createLimitMessage={createLimitMessage}
+            autoOpenCreate={create === 1}
           />
         </Section>
       ) : null}

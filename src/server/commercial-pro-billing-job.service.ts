@@ -1,8 +1,8 @@
 import {
-  addBillingMonths,
-  chargeCommercialProFee,
   downgradeCommercialProToCore,
   isPastGracePeriod,
+  markCommercialProPastDue,
+  renewCommercialProSubscription,
 } from "@/server/commercial-billing.service";
 import { prisma } from "@/server/db";
 import { getCommercialPlatformSettings } from "@/server/commercial-platform-settings.service";
@@ -16,6 +16,10 @@ export type CommercialProBillingJobResult = {
   billedCount: number;
   failedCount: number;
   downgradedCount: number;
+  remindersSent: number;
+  pastDueMarked: number;
+  scheduledDowngradesApplied: number;
+  adminGrantsExpired: number;
   failures: Array<{ companyId: string; error: string }>;
 };
 
@@ -39,6 +43,7 @@ async function processRenewalReminders(now: Date): Promise<number> {
       commercialNextBillingAt: { gte: reminderStart, lt: reminderEnd },
       commercialProGrantSource: { not: "ADMIN_GRANT" },
       commercialBillingAccountId: { not: null },
+      commercialDowngradeScheduledAt: null,
     },
     select: {
       id: true,
@@ -121,7 +126,7 @@ async function processDueBilling(
   },
   actorUserId: string,
   now: Date,
-): Promise<"billed" | "failed"> {
+): Promise<"billed" | "reconciled" | "failed"> {
   const billingAccountId = company.commercialBillingAccountId;
   if (!billingAccountId) {
     throw new Error("Missing billing account");
@@ -150,40 +155,31 @@ async function processDueBilling(
   } = await import("@/server/banking-notification.service");
 
   try {
-    const charge = await chargeCommercialProFee({
+    const renewal = await renewCommercialProSubscription({
       companyId: company.id,
-      billingAccountId,
-      amount,
-      description: "Alta Commercial Pro · Monthly subscription",
+      now,
     });
 
-    const nextBillingAt = addBillingMonths(company.commercialNextBillingAt ?? now, 1);
-    await prisma.company.update({
-      where: { id: company.id },
-      data: {
-        billingStatus: "CURRENT",
-        commercialPastDueAt: null,
-        commercialNextBillingAt: nextBillingAt,
-        commercialMonthlyFee: amount,
-      },
-    });
+    if (renewal.status === "reconciled") {
+      return "reconciled";
+    }
 
     await recordCommercialProBillingSucceededAudit({
       actorUserId,
       companyId: company.id,
-      billingAccountId,
-      amount,
-      transactionId: charge.transactionId,
-      referenceCode: charge.referenceCode,
-      nextBillingAt: nextBillingAt.toISOString(),
+      billingAccountId: renewal.billingAccountId,
+      amount: renewal.amount,
+      transactionId: renewal.transactionId,
+      referenceCode: renewal.referenceCode,
+      nextBillingAt: renewal.nextBillingAt.toISOString(),
       source: "cron",
     });
 
     await notifyCommercialProBillingSucceeded({
       companyId: company.id,
-      amount,
-      nextBillingAt: nextBillingAt.toISOString(),
-      billingAccountId,
+      amount: renewal.amount,
+      nextBillingAt: renewal.nextBillingAt.toISOString(),
+      billingAccountId: renewal.billingAccountId,
     });
 
     return "billed";
@@ -191,13 +187,7 @@ async function processDueBilling(
     const reason = errorMessage(error);
     const pastDueAt = now;
 
-    await prisma.company.update({
-      where: { id: company.id },
-      data: {
-        billingStatus: "PAST_DUE",
-        commercialPastDueAt: pastDueAt,
-      },
-    });
+    await markCommercialProPastDue(company.id, pastDueAt);
 
     await recordCommercialProBillingFailedAudit({
       actorUserId,
@@ -244,6 +234,7 @@ async function processGraceDowngrades(
       planStatus: "ACTIVE",
       billingStatus: "PAST_DUE",
       commercialPastDueAt: { not: null },
+      commercialDowngradeScheduledAt: null,
     },
     select: {
       id: true,
@@ -259,10 +250,34 @@ async function processGraceDowngrades(
       actorUserId,
       `Pro billing unpaid for ${gracePeriodDays} days`,
       "cron",
+      { cancelReceivables: true },
     );
     downgradedCount += 1;
   }
   return downgradedCount;
+}
+
+async function processScheduledDowngrades(actorUserId: string, now: Date): Promise<number> {
+  const companies = await prisma.company.findMany({
+    where: {
+      commercialPlan: "PRO",
+      commercialDowngradeScheduledAt: { lte: now },
+    },
+    select: { id: true },
+  });
+
+  let applied = 0;
+  for (const company of companies) {
+    await downgradeCommercialProToCore(
+      company.id,
+      actorUserId,
+      "Scheduled Commercial Pro downgrade at period end",
+      "cron",
+      { cancelReceivables: false },
+    );
+    applied += 1;
+  }
+  return applied;
 }
 
 async function processExpiredAdminGrants(actorUserId: string, now: Date): Promise<number> {
@@ -283,6 +298,7 @@ async function processExpiredAdminGrants(actorUserId: string, now: Date): Promis
       actorUserId,
       "Admin-granted Commercial Pro expired",
       "cron",
+      { cancelReceivables: true },
     );
     downgradedCount += 1;
   }
@@ -299,7 +315,7 @@ export async function runCommercialProBillingJob(options?: {
   const now = new Date();
   const platformSettings = await getCommercialPlatformSettings();
 
-  await processRenewalReminders(now);
+  const remindersSent = await processRenewalReminders(now);
 
   const dueCompanies = await prisma.company.findMany({
     where: {
@@ -307,6 +323,7 @@ export async function runCommercialProBillingJob(options?: {
       planStatus: "ACTIVE",
       commercialNextBillingAt: { lte: now },
       commercialProGrantSource: { not: "ADMIN_GRANT" },
+      commercialDowngradeScheduledAt: null,
     },
     select: {
       id: true,
@@ -318,25 +335,32 @@ export async function runCommercialProBillingJob(options?: {
 
   let billedCount = 0;
   let failedCount = 0;
+  let pastDueMarked = 0;
   const failures: CommercialProBillingJobResult["failures"] = [];
 
   for (const company of dueCompanies) {
     try {
       const outcome = await processDueBilling(company, actorUserId, now);
       if (outcome === "billed") billedCount += 1;
-      else failedCount += 1;
+      else if (outcome === "failed") {
+        failedCount += 1;
+        pastDueMarked += 1;
+      }
+      // reconciled: success without duplicate notify / billedCount
     } catch (error) {
       failedCount += 1;
       failures.push({ companyId: company.id, error: errorMessage(error) });
     }
   }
 
-  const downgradedCount =
-    (await processGraceDowngrades(
-      actorUserId,
-      platformSettings.proBillingGracePeriodDays,
-      now,
-    )) + (await processExpiredAdminGrants(actorUserId, now));
+  const scheduledDowngradesApplied = await processScheduledDowngrades(actorUserId, now);
+  const graceDowngraded = await processGraceDowngrades(
+    actorUserId,
+    platformSettings.proBillingGracePeriodDays,
+    now,
+  );
+  const adminGrantsExpired = await processExpiredAdminGrants(actorUserId, now);
+  const downgradedCount = graceDowngraded + scheduledDowngradesApplied + adminGrantsExpired;
 
   const completedAt = new Date();
   const result: CommercialProBillingJobResult = {
@@ -345,6 +369,10 @@ export async function runCommercialProBillingJob(options?: {
     billedCount,
     failedCount,
     downgradedCount,
+    remindersSent,
+    pastDueMarked,
+    scheduledDowngradesApplied,
+    adminGrantsExpired,
     failures,
   };
 
@@ -361,7 +389,15 @@ export async function runCommercialProBillingJob(options?: {
       successCount: billedCount,
       failureCount: failedCount + failures.length,
       errorSummary: failures[0]?.error ?? null,
-      details: { trigger, downgradedCount, failures },
+      details: {
+        trigger,
+        remindersSent,
+        pastDueMarked,
+        scheduledDowngradesApplied,
+        adminGrantsExpired,
+        downgradedCount,
+        failures,
+      },
     },
   );
 

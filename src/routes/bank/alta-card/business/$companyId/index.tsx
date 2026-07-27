@@ -8,6 +8,7 @@ import { fetchCompanyAltaCards } from "@/lib/bank/alta-card.functions";
 import { fetchCompanyBillingSummaryRecord } from "@/lib/bank/alta-card-interest.functions";
 import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
 import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
+import { resolveCompanyDisplayName } from "@/lib/bank/ui-lab-alta-card-state";
 
 export const Route = createFileRoute("/bank/alta-card/business/$companyId/")({
   beforeLoad: authBeforeLoad,
@@ -40,8 +41,10 @@ function BankAltaCardBusinessDetail() {
   const { businessCard, employeeCards, companyTransactions, pendingApplication, billingSummary, autopayContext, reviewEligibility, employeeMemberOptions, canManageTreasury, hasMultipleBusinessCards } =
     Route.useLoaderData();
   const router = useRouter();
-  const companyName =
-    businessCard?.companyName ?? pendingApplication?.companyName ?? "Company";
+  const companyName = resolveCompanyDisplayName(companyId, {
+    cardCompanyName: businessCard?.companyName,
+    pendingCompanyName: pendingApplication?.companyName,
+  });
 
   return (
     <>

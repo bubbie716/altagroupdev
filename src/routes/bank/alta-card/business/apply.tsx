@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { AltaCardApplyForm } from "@/components/bank/alta-card/alta-card-apply-form";
+import { AltaCardApplyWorkflow } from "@/components/bank/alta-card/alta-card-apply-workflow";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchAltaCardApplyContext } from "@/lib/bank/alta-card.functions";
@@ -24,17 +24,27 @@ export const Route = createFileRoute("/bank/alta-card/business/apply")({
 });
 
 function BankBusinessAltaCardApply() {
+  const router = useRouter();
   const context = Route.useLoaderData();
   const { companyId } = Route.useSearch();
 
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Alta Card"
-      title="Apply for business Alta Card"
-      description="Company owners and treasury managers may apply for a business credit line."
-     />
-<AltaCardApplyForm context={context} kind="business" defaultCompanyId={companyId} />
+        eyebrow="Alta Bank · Alta Card"
+        title="Apply for business Alta Card"
+        description="Company owners and treasury managers may apply for a business credit line."
+      />
+      <AltaCardApplyWorkflow
+        open
+        context={context}
+        kind="business"
+        defaultCompanyId={companyId}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) void router.navigate({ to: "/bank/alta-card/business" });
+        }}
+        onDone={() => void router.navigate({ to: "/bank/alta-card/business" })}
+      />
     </>
   );
 }

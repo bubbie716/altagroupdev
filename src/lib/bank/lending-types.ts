@@ -40,8 +40,26 @@ export const LOAN_PRODUCT_DEFAULT_MONTHLY_RATES: Record<LoanProductTypeCode, num
   private_liquidity_line: null,
 };
 
+/** @deprecated Prefer loanTermMonthsForProduct(productType) for apply flows. */
 export const LOAN_TERM_MONTHS_MIN = 1;
+/** @deprecated Prefer loanTermMonthsForProduct(productType) for apply flows. */
 export const LOAN_TERM_MONTHS_MAX = 120;
+
+export type LoanTermMonthsLimits = {
+  min: number;
+  max: number;
+  defaultMonths: number;
+};
+
+const LOAN_TERM_MONTHS_BY_PRODUCT: Record<LoanProductTypeCode, LoanTermMonthsLimits> = {
+  personal_credit_line: { min: 1, max: 6, defaultMonths: 6 },
+  business_credit_line: { min: 1, max: 8, defaultMonths: 8 },
+  private_liquidity_line: { min: 1, max: 120, defaultMonths: 12 },
+};
+
+export function loanTermMonthsForProduct(productType: LoanProductTypeCode): LoanTermMonthsLimits {
+  return LOAN_TERM_MONTHS_BY_PRODUCT[productType];
+}
 
 export function computeLoanTermEstimate(
   productType: LoanProductTypeCode,
@@ -63,15 +81,20 @@ export const LOAN_PRODUCT_REPAYMENT_CARD: Record<LoanProductTypeCode, string> = 
 /** Full repayment guidance for apply flows and help text. */
 export const LOAN_PRODUCT_REPAYMENT_GUIDANCE: Record<LoanProductTypeCode, string> = {
   personal_credit_line:
-    "Typical repayment term: up to 6 months. Final repayment schedule is determined during underwriting.",
+    "Typical repayment term: up to 6 months. Final terms are determined during underwriting.",
   business_credit_line:
-    "Typical repayment term: up to 8 months. Final repayment schedule is determined during underwriting.",
+    "Typical repayment term: up to 8 months. Final terms are determined during underwriting.",
   private_liquidity_line:
-    "Negotiated terms. Final repayment schedule is determined during underwriting.",
+    "Negotiated terms. Final terms are determined during underwriting.",
 };
 
-export const LOAN_TERM_MONTHS_HELP =
-  "Requested term in months (1–120). Product pages show typical ranges only — final repayment schedule is determined during underwriting.";
+export function loanTermMonthsHelp(productType: LoanProductTypeCode): string {
+  const { min, max } = loanTermMonthsForProduct(productType);
+  return `Requested term in months (${min}–${max}). Final terms are determined during underwriting.`;
+}
+
+/** @deprecated Prefer loanTermMonthsHelp(productType) */
+export const LOAN_TERM_MONTHS_HELP = loanTermMonthsHelp("personal_credit_line");
 
 /** @deprecated Use LOAN_PRODUCT_REPAYMENT_CARD or LOAN_PRODUCT_REPAYMENT_GUIDANCE */
 export const LOAN_PRODUCT_REPAYMENT_TERMS = LOAN_PRODUCT_REPAYMENT_CARD;

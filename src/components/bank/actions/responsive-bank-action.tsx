@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { canDismissBankAction, type BankActionPhase } from "@/lib/bank/bank-action-flow";
+import { bankActionFallbackDescription } from "@/lib/bank/bank-action-fallback-description";
 import { closeThenRun } from "@/lib/ui/close-then-run";
 import { focusDialogCloseButton } from "@/lib/ui/focus-dialog-close";
 import {
@@ -37,6 +38,7 @@ export function ResponsiveBankAction({
   description,
   phase,
   dirty = false,
+  pendingSuccess = false,
   size = "md",
   children,
   footer,
@@ -44,6 +46,8 @@ export function ResponsiveBankAction({
   showBack = false,
   onCloseAutoFocus,
   contentClassName,
+  /** Change when advancing/returning between workflow steps so the body scrolls to top. */
+  scrollResetKey,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,6 +56,8 @@ export function ResponsiveBankAction({
   phase: BankActionPhase;
   /** When true, closing prompts for unsaved work confirmation. */
   dirty?: boolean;
+  /** When phase is success, prefer pending-review accessibility copy. */
+  pendingSuccess?: boolean;
   size?: "sm" | "md" | "lg";
   children: ReactNode;
   footer?: ReactNode;
@@ -59,11 +65,13 @@ export function ResponsiveBankAction({
   showBack?: boolean;
   onCloseAutoFocus?: () => void;
   contentClassName?: string;
+  scrollResetKey?: string | number;
 }) {
   const dismissible = canDismissBankAction(phase);
   const [confirmClose, setConfirmClose] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentKeyRef = useRef(0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [mountedContent, setMountedContent] = useState(open);
 
   useEffect(() => {
@@ -102,6 +110,14 @@ export function ResponsiveBankAction({
     };
   }, [open]);
 
+  // Reset scroll after the step/phase view has committed — never before the content swap.
+  useEffect(() => {
+    if (!open || !mountedContent || confirmClose) return;
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollTop = 0;
+  }, [open, mountedContent, confirmClose, scrollResetKey, phase, title]);
+
   function requestClose() {
     if (!dismissible) return;
     if (dirty && phase !== "success" && !confirmClose) {
@@ -133,15 +149,20 @@ export function ResponsiveBankAction({
         )}
         className={cn(
           overlayZClass("bankAction"),
+          // Override DialogContent defaults (grid, overflow-y-auto, unscoped max-h) so the
+          // sheet is a bounded flex column: sticky header/footer + independently scrolling body.
           "flex flex-col gap-0 overflow-hidden border-border bg-surface-1 p-0 text-foreground",
           "data-[state=closed]:pointer-events-none",
           "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
           maxWidth,
-          // Mobile bottom sheet: sit above Bank mobile nav + safe area; bound to available viewport.
-          "max-md:left-0 max-md:right-0 max-md:top-auto max-md:bottom-[var(--bank-mobile-nav-offset)]",
-          "max-md:h-auto max-md:max-h-[var(--bank-mobile-sheet-max-height)] max-md:w-full max-md:max-w-none",
-          "max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
+          // Replace DialogContent's unscoped max-h via the same utility group (tw-merge).
+          // Mobile: fit above fixed Bank nav + safe-area; desktop: centered dialog cap.
+          "max-h-[var(--bank-mobile-sheet-max-height)]",
           "md:max-h-[min(90dvh,calc(100dvh-4rem-var(--ui-lab-banner-height,0px)))]",
+          // Mobile bottom sheet: sit above Bank mobile nav; grow upward within the viewport.
+          "max-md:inset-x-0 max-md:top-auto max-md:bottom-[var(--bank-mobile-nav-offset)]",
+          "max-md:left-0 max-md:right-0 max-md:h-auto max-md:min-h-0 max-md:w-full max-md:max-w-none",
+          "max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
           contentClassName,
         )}
         onOpenAutoFocus={(event) => {
@@ -202,7 +223,7 @@ export function ResponsiveBankAction({
                 </DialogDescription>
               ) : (
                 <DialogDescription className="sr-only">
-                  {title}. Complete the steps, then confirm.
+                  {bankActionFallbackDescription(phase, { pendingSuccess })}
                 </DialogDescription>
               )}
             </div>
@@ -237,7 +258,8 @@ export function ResponsiveBankAction({
         ) : mountedContent ? (
           <>
             <div
-              key={contentKeyRef.current}
+              key={`${contentKeyRef.current}:${String(scrollResetKey ?? "")}:${phase}`}
+              ref={scrollRef}
               data-bank-action-scroll=""
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-6 sm:px-5"
             >

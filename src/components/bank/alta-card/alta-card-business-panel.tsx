@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useSyncExternalStore } from "react";
 import { Link } from "@tanstack/react-router";
 import type {
   AltaCardApplicationRow,
@@ -7,11 +10,9 @@ import type {
   AltaEmployeeCardRow,
   CompanyEmployeeCardMemberOption,
 } from "@/lib/bank/alta-card-types";
-import { ALTA_CARD_BILLING_HELPER_TEXT, formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
 import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
-  formatAltaCardRate,
   ALTA_CARD_TIER_LABELS,
 } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
@@ -19,7 +20,6 @@ import { AltaCardPendingApplicationBanner } from "@/components/bank/alta-card/al
 import { AltaCardVisual, AltaCardMiniChip } from "@/components/bank/alta-card/alta-card-visual";
 import {
   AltaCardMetric,
-  AltaCardSection,
   AltaCardUtilizationBar,
 } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { AltaCardQuickActions } from "@/components/bank/alta-card/alta-card-quick-actions";
@@ -27,10 +27,18 @@ import { AdminDataTable, type AdminTableColumn } from "@/components/internal/adm
 import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
 import { AltaCardEmployeeCardManageButton } from "@/components/bank/alta-card/alta-card-employee-limit-editor";
 import { AltaCardEmployeeCardCreateForm } from "@/components/bank/alta-card/alta-card-employee-card-create-form";
-import { AltaCardAutopayPanel } from "@/components/bank/alta-card/alta-card-autopay-panel";
+import { AltaCardStatementSummary } from "@/components/bank/alta-card/alta-card-statement-summary";
+import { AltaCardAutopayStatusRow } from "@/components/bank/alta-card/alta-card-autopay-status-row";
+import { AltaCardManageSheet } from "@/components/bank/alta-card/alta-card-manage-sheet";
 import type { AltaCardAutopayContext } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import {
+  getUiLabAltaCardOverlay,
+  getUiLabAltaCardOverlayRevision,
+  mergeUiLabAltaCardRow,
+  subscribeUiLabAltaCardOverlays,
+} from "@/lib/bank/ui-lab-alta-card-state";
 
 type BusinessViewProps = {
   companyId: string;
@@ -46,24 +54,6 @@ type BusinessViewProps = {
   canManageTreasury?: boolean;
   hasMultipleBusinessCards?: boolean;
 };
-
-function paymentDueLabel(
-  card: AltaCardRow,
-  billingSummary?: AltaCardBillingSummary | null,
-): string {
-  return formatAltaCardBillingDate(
-    billingSummary?.paymentDueDate ?? card.paymentDueDate ?? card.dueDate,
-  );
-}
-
-function nextStatementLabel(
-  card: AltaCardRow,
-  billingSummary?: AltaCardBillingSummary | null,
-): string {
-  return formatAltaCardBillingDate(
-    billingSummary?.nextStatementDate ?? card.nextStatementDate,
-  );
-}
 
 function employeeColumns(
   companyId: string,
@@ -120,8 +110,24 @@ export function AltaCardBusinessPanel({
   onRefresh,
 }: BusinessViewProps & { onRefresh: () => Promise<void> }) {
   const creditDeskNav = useCreditDeskCustomerNav();
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageView, setManageView] = useState<"menu" | "autopay">("menu");
+  useSyncExternalStore(
+    subscribeUiLabAltaCardOverlays,
+    getUiLabAltaCardOverlayRevision,
+    getUiLabAltaCardOverlayRevision,
+  );
+  const displayCard = businessCard ? mergeUiLabAltaCardRow(businessCard) : null;
+  const overlay = businessCard ? getUiLabAltaCardOverlay(businessCard.id) : null;
+  const autopayEnabled =
+    overlay?.autopayEnabled ?? autopayContext?.settings.enabled ?? false;
 
-  if (!businessCard && pendingApplication) {
+  function openManage(view: "menu" | "autopay" = "menu") {
+    setManageView(view);
+    setManageOpen(true);
+  }
+
+  if (!displayCard && pendingApplication) {
     return (
       <AltaCardPendingApplicationBanner
         statusLabel={ALTA_CARD_APPLICATION_STATUS_LABELS[pendingApplication.status]}
@@ -133,7 +139,7 @@ export function AltaCardBusinessPanel({
     );
   }
 
-  if (!businessCard) {
+  if (!displayCard) {
     return (
       <div className="rounded-xl border border-border bg-surface-1/80 p-8">
         <p className="font-serif text-[20px]">{companyName}</p>
@@ -167,8 +173,8 @@ export function AltaCardBusinessPanel({
       <div className="flex min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:items-start">
         <div className="mx-auto w-full min-w-0 max-w-[360px] lg:mx-0">
           <AltaCardVisual
-            tier={businessCard.tier}
-            cardLastFour={businessCard.cardLastFour}
+            tier={displayCard.tier}
+            cardLastFour={displayCard.cardLastFour}
             cardHolder={companyName}
             responsive
           />
@@ -177,21 +183,20 @@ export function AltaCardBusinessPanel({
           <div className="min-w-0">
             <p className="break-words font-serif text-[24px] tracking-tight">{companyName}</p>
             <p className="mt-1 break-words text-[13px] text-muted-foreground">
-              {ALTA_CARD_TIER_LABELS[businessCard.tier]} ·{" "}
-              {altaCardStatusLabel(businessCard.status)} · Business credit line
+              {altaCardStatusLabel(displayCard.status)}
             </p>
           </div>
           <AltaCardUtilizationBar
             utilization={
-              businessCard.creditLimit > 0
-                ? (businessCard.currentBalance / businessCard.creditLimit) * 100
+              displayCard.creditLimit > 0
+                ? (displayCard.currentBalance / displayCard.creditLimit) * 100
                 : 0
             }
           />
           <dl className="grid min-w-0 gap-3 sm:grid-cols-3">
-            <AltaCardMetric label="Credit limit" value={formatAltaCardCurrency(businessCard.creditLimit)} />
-            <AltaCardMetric label="Current balance" value={formatAltaCardCurrency(businessCard.currentBalance)} emphasis />
-            <AltaCardMetric label="Available credit" value={formatAltaCardCurrency(businessCard.availableCredit)} emphasis />
+            <AltaCardMetric label="Credit limit" value={formatAltaCardCurrency(displayCard.creditLimit)} dense />
+            <AltaCardMetric label="Current balance" value={formatAltaCardCurrency(displayCard.currentBalance)} emphasis dense />
+            <AltaCardMetric label="Available credit" value={formatAltaCardCurrency(displayCard.availableCredit)} emphasis dense />
           </dl>
         </div>
       </div>
@@ -202,36 +207,34 @@ export function AltaCardBusinessPanel({
         </div>
       ) : null}
 
-      <dl className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <AltaCardMetric label="Statement balance" value={formatAltaCardCurrency(businessCard.statementBalance)} />
-        <AltaCardMetric label="Minimum payment" value={formatAltaCardCurrency(businessCard.minimumPaymentDue)} />
-        <AltaCardMetric label="Payment due" value={paymentDueLabel(businessCard, billingSummary)} />
-        <AltaCardMetric
-          label="Next statement date"
-          value={nextStatementLabel(businessCard, billingSummary)}
-        />
-        <AltaCardMetric label="Interest rate" value={formatAltaCardRate(businessCard.interestRate)} />
-      </dl>
-      <p className="text-[13px] text-muted-foreground">{ALTA_CARD_BILLING_HELPER_TEXT}</p>
+      <AltaCardStatementSummary card={displayCard} billingSummary={billingSummary} />
 
-      <AltaCardSection title="Quick actions" description="Manage the company credit line.">
-        {canManageTreasury ? (
-          <AltaCardQuickActions card={businessCard} reviewEligibility={reviewEligibility} />
-        ) : (
-          <p className="text-[13px] text-muted-foreground">
-            You have view-only access to this company Alta Card.
-          </p>
-        )}
-      </AltaCardSection>
+      {canManageTreasury ? (
+        <>
+          <AltaCardQuickActions card={displayCard} onManage={() => openManage("menu")} />
 
-      {businessCard ? (
-        <AltaCardSection
-          title="Autopay"
-          description="Automatically pay the company statement from a business operating account on the payment due date."
-        >
-          <AltaCardAutopayPanel card={businessCard} initialContext={autopayContext ?? undefined} />
-        </AltaCardSection>
-      ) : null}
+          {displayCard.status !== "closed" ? (
+            <AltaCardAutopayStatusRow
+              autopayContext={autopayContext}
+              autopayEnabled={autopayEnabled}
+              onManage={() => openManage("autopay")}
+            />
+          ) : null}
+
+          <AltaCardManageSheet
+            card={displayCard}
+            reviewEligibility={reviewEligibility}
+            autopayContext={autopayContext}
+            open={manageOpen}
+            onOpenChange={setManageOpen}
+            initialView={manageView}
+          />
+        </>
+      ) : (
+        <p className="text-[13px] text-muted-foreground">
+          You have view-only access to this company Alta Card.
+        </p>
+      )}
 
       <section className="min-w-0 space-y-4">
         <h3 className="font-serif text-[18px]">Employee cards</h3>
@@ -239,7 +242,7 @@ export function AltaCardBusinessPanel({
           {employeeCards.map((row) => (
             <div key={row.id} className="rounded-xl border border-border bg-surface-1/80 p-4">
               <AltaCardMiniChip
-                tier={businessCard.tier}
+                tier={displayCard.tier}
                 label={row.authorizedUsername}
                 lastFour={row.cardLastFour}
               />
@@ -276,11 +279,11 @@ export function AltaCardBusinessPanel({
 
       <AltaCardTransactionHistory
         transactions={companyTransactions}
-        title="Company card transactions"
-        description="Includes company-line activity and spends from employee cards issued on this credit line."
+        title="Recent transactions"
+        limit={5}
       />
 
-      {canManageTreasury && businessCard.status === "active" ? (
+      {canManageTreasury && displayCard.status === "active" ? (
         <section className="rounded-xl border border-border bg-surface-1/80 p-6">
           <h3 className="font-serif text-[18px]">Create employee card</h3>
           <p className="mt-1 text-[13px] text-muted-foreground">

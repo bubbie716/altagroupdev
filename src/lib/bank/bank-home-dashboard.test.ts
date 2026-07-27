@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   BANK_HOME_PRIMARY_LINKS,
   BANK_MOBILE_NAV_ITEMS,
+  buildBankDesktopPrimaryLinks,
   buildBankSecondaryNavItems,
 } from "./bank-primary-nav.ts";
 import {
@@ -59,7 +60,45 @@ function account(partial: Partial<UserBankAccount> & Pick<UserBankAccount, "id">
 }
 
 describe("bank home navigation", () => {
-  it("limits primary nav to Home, Accounts, and Activity", () => {
+  it("includes Alta Card and Lending on desktop when credit desk permits", () => {
+    const open = buildBankDesktopPrimaryLinks({
+      showLendingNav: true,
+      showAltaCardNav: true,
+      creditDeskClosed: false,
+      showApplyEntryPoints: true,
+    });
+    assert.deepEqual(
+      open.map((l) => l.label),
+      ["Home", "Accounts", "Activity", "Alta Card", "Lending"],
+    );
+  });
+
+  it("hides Alta Card and Lending when credit desk gates them off", () => {
+    const closed = buildBankDesktopPrimaryLinks({
+      showLendingNav: false,
+      showAltaCardNav: false,
+      creditDeskClosed: true,
+      showApplyEntryPoints: false,
+    });
+    assert.deepEqual(
+      closed.map((l) => l.label),
+      ["Home", "Accounts", "Activity"],
+    );
+  });
+
+  it("labels Loans and routes to loans when credit desk is closed but loans exist", () => {
+    const links = buildBankDesktopPrimaryLinks({
+      showLendingNav: true,
+      showAltaCardNav: false,
+      creditDeskClosed: true,
+      showApplyEntryPoints: false,
+    });
+    const lending = links.find((l) => l.label === "Loans");
+    assert.ok(lending);
+    assert.equal(lending?.to, "/bank/lending/loans");
+  });
+
+  it("keeps core Home Accounts Activity as the ungated baseline", () => {
     assert.deepEqual(
       BANK_HOME_PRIMARY_LINKS.map((l) => l.label),
       ["Home", "Accounts", "Activity"],
@@ -88,6 +127,10 @@ describe("bank home navigation", () => {
   it("keeps mobile nav to four slots including More", () => {
     assert.equal(BANK_MOBILE_NAV_ITEMS.length, 4);
     assert.ok(BANK_MOBILE_NAV_ITEMS.some((i) => i.kind === "more"));
+    assert.deepEqual(
+      BANK_MOBILE_NAV_ITEMS.filter((i) => i.kind === "link").map((i) => i.label),
+      ["Home", "Accounts", "Activity"],
+    );
   });
 });
 

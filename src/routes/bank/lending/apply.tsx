@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { LendingApplyExperience } from "@/components/bank/lending-apply-experience";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { LendingApplyWorkflow } from "@/components/bank/lending-apply-workflow";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
@@ -30,17 +29,20 @@ export const Route = createFileRoute("/bank/lending/apply")({
 });
 
 function BankLendingApply() {
+  const router = useRouter();
   const { product } = Route.useSearch();
   const { accounts, companies } = Route.useLoaderData();
 
   return (
-    <>
-      <BankPageMeta
-      eyebrow="Alta Bank · Lending"
-      title="Apply for credit"
-      description="Submit a facility request for manual review. After submission, your application enters review and a Secure Deal Room opens for communication with Alta."
-     />
-<LendingApplyExperience accounts={accounts} companies={companies} initialProduct={product} />
-    </>
+    <LendingApplyWorkflow
+      open
+      accounts={accounts}
+      companies={companies}
+      initialProduct={product}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) void router.navigate({ to: "/bank/lending" });
+      }}
+      onDone={() => void router.navigate({ to: "/bank/lending" })}
+    />
   );
 }

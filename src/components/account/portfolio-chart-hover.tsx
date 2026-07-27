@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { isPointerDragPastThreshold } from "@/lib/account/portfolio-chart-range-selection";
 import {
   computeHoverChangePercent,
   dedupeTimestamps,
@@ -171,6 +172,14 @@ export function usePortfolioChartHover({
   const pendingRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const periodStartRef = useRef(periodStartValue);
   const periodEndRef = useRef(periodEndValue);
+  /** When true, keep the tapped point visible until another interaction or range-drag. */
+  const stickyRef = useRef(false);
+  const pressRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    dragged: boolean;
+  } | null>(null);
 
   const sortedDisplay = useMemo(
     () => dedupeTimestamps(ensureSortedSeries(displaySeries)),
@@ -185,9 +194,23 @@ export function usePortfolioChartHover({
   periodStartRef.current = periodStartValue;
   periodEndRef.current = periodEndValue;
 
-  useEffect(() => {
+  const clearHover = useCallback(() => {
+    stickyRef.current = false;
+    pendingRef.current = null;
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     setHover(null);
-  }, [buckets, sortedDisplay, periodStartValue, periodEndValue]);
+  }, []);
+
+  useEffect(() => {
+    clearHover();
+  }, [buckets, sortedDisplay, periodStartValue, periodEndValue, clearHover]);
+
+  useEffect(() => {
+    if (suppressHover) clearHover();
+  }, [suppressHover, clearHover]);
 
   useEffect(() => {
     return () => {
@@ -228,12 +251,9 @@ export function usePortfolioChartHover({
     [buckets, margin, sortedDisplay.length, valueBounds],
   );
 
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element || disabled || suppressHover) return;
-
-    const handlePointerMove = (event: PointerEvent) => {
-      pendingRef.current = { clientX: event.clientX, clientY: event.clientY };
+  const scheduleHoverUpdate = useCallback(
+    (clientX: number, clientY: number) => {
+      pendingRef.current = { clientX, clientY };
       if (rafRef.current != null) return;
 
       rafRef.current = requestAnimationFrame(() => {
@@ -243,25 +263,96 @@ export function usePortfolioChartHover({
         if (!pending || !node) return;
         updateHover(pending.clientX, node.getBoundingClientRect());
       });
+    },
+    [containerRef, updateHover],
+  );
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element || disabled || suppressHover) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      pressRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        dragged: false,
+      };
+      stickyRef.current = false;
+      const node = containerRef.current;
+      if (node) updateHover(event.clientX, node.getBoundingClientRect());
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const press = pressRef.current;
+      if (press && press.pointerId === event.pointerId) {
+        if (
+          !press.dragged &&
+          isPointerDragPastThreshold(press.startX, press.startY, event.clientX, event.clientY)
+        ) {
+          press.dragged = true;
+          stickyRef.current = false;
+          // Range selection owns the gesture from here — hide point tooltip.
+          clearHover();
+          return;
+        }
+        if (press.dragged) return;
+      }
+
+      // Mouse hover (no active press) or press that has not become a drag yet.
+      if (!press || press.pointerId !== event.pointerId || !press.dragged) {
+        if (press && press.pointerId === event.pointerId) {
+          // Finger still down but under threshold — keep the pressed point.
+          return;
+        }
+        stickyRef.current = false;
+        scheduleHoverUpdate(event.clientX, event.clientY);
+      }
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const press = pressRef.current;
+      if (!press || press.pointerId !== event.pointerId) return;
+      pressRef.current = null;
+
+      if (press.dragged) return;
+
+      const node = containerRef.current;
+      if (!node) return;
+      updateHover(event.clientX, node.getBoundingClientRect());
+      stickyRef.current = true;
+    };
+
+    const handlePointerCancel = (event: PointerEvent) => {
+      const press = pressRef.current;
+      if (press && press.pointerId === event.pointerId) {
+        pressRef.current = null;
+      }
+      if (!stickyRef.current) clearHover();
     };
 
     const handlePointerLeave = () => {
-      pendingRef.current = null;
-      if (rafRef.current != null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      setHover(null);
+      // Sticky tap tooltips must survive finger lift / pointerleave on touch.
+      if (stickyRef.current) return;
+      if (pressRef.current) return;
+      clearHover();
     };
 
+    element.addEventListener("pointerdown", handlePointerDown);
     element.addEventListener("pointermove", handlePointerMove);
+    element.addEventListener("pointerup", handlePointerUp);
+    element.addEventListener("pointercancel", handlePointerCancel);
     element.addEventListener("pointerleave", handlePointerLeave);
 
     return () => {
+      element.removeEventListener("pointerdown", handlePointerDown);
       element.removeEventListener("pointermove", handlePointerMove);
+      element.removeEventListener("pointerup", handlePointerUp);
+      element.removeEventListener("pointercancel", handlePointerCancel);
       element.removeEventListener("pointerleave", handlePointerLeave);
     };
-  }, [containerRef, disabled, suppressHover, updateHover]);
+  }, [clearHover, containerRef, disabled, scheduleHoverUpdate, suppressHover, updateHover]);
 
   return { hover };
 }

@@ -8,6 +8,21 @@ import {
 
 const PERCENT_BASIS_EPSILON = 0.01;
 
+/** Movement past this distance (px) promotes a press into range-drag; below it is a tap. */
+export const PORTFOLIO_CHART_DRAG_THRESHOLD_PX = 10;
+
+export function isPointerDragPastThreshold(
+  startX: number,
+  startY: number,
+  currentX: number,
+  currentY: number,
+  thresholdPx = PORTFOLIO_CHART_DRAG_THRESHOLD_PX,
+): boolean {
+  const dx = currentX - startX;
+  const dy = currentY - startY;
+  return dx * dx + dy * dy >= thresholdPx * thresholdPx;
+}
+
 export type PortfolioChartSelectionIndices = {
   startIndex: number;
   endIndex: number;

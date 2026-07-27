@@ -11,8 +11,8 @@ const PERSONAL_ACCOUNT_SUFFIXES = new Set(["", "/activity", "/statements", "/set
 const BUSINESS_MODULE_SUFFIX: Record<BusinessAccountModule, string> = {
   overview: "",
   activity: "/activity",
-  payments: "/payments",
-  payroll: "/payroll",
+  payments: "/commercial/payments",
+  payroll: "/commercial/payroll",
   statements: "/statements",
   representatives: "/representatives",
   settings: "/settings",
@@ -35,7 +35,7 @@ export function extractAccountPathSuffix(pathname: string, accountId: string): s
   const rest = pathname.slice(base.length);
   if (!rest || rest === "/") return "";
   if (rest.startsWith("/commercial")) return rest;
-  if (rest === "/payments" || rest.startsWith("/payments/")) return "/commercial";
+  if (rest === "/payments" || rest.startsWith("/payments/")) return "/commercial/payments";
   if (rest === "/payroll" || rest.startsWith("/payroll/")) return "/commercial/payroll";
   const segmentMatch = rest.match(/^\/[^/]+/);
   return segmentMatch ? segmentMatch[0] : "";
@@ -56,6 +56,9 @@ function suffixAllowedForAccount(
     if (!companyRole) return false;
     if (suffix === "/commercial/payroll" || suffix.startsWith("/commercial/payroll/")) {
       return canAccessBusinessModule(companyRole, "payroll");
+    }
+    if (suffix === "/commercial/payments" || suffix.startsWith("/commercial/payments/")) {
+      return canAccessBusinessModule(companyRole, "payments");
     }
     return true;
   }

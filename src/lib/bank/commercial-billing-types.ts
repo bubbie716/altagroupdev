@@ -60,6 +60,8 @@ export type CommercialPurchaseResult = {
   referenceCode: string;
 };
 
+export type CommercialDowngradeMode = "period_end" | "immediate";
+
 export type CommercialDowngradePreview = {
   companyId: string;
   companyName: string;
@@ -68,6 +70,9 @@ export type CommercialDowngradePreview = {
   grantSource: "PURCHASED" | "ADMIN_GRANT" | null;
   monthlyFee: number | null;
   canDowngrade: boolean;
+  periodEndAt: string | null;
+  downgradeAlreadyScheduled: boolean;
+  scheduledDowngradeAt: string | null;
   cleanup: CommercialDowngradeCleanupPreview;
   coreLimits: {
     coreInvoiceMonthlyLimit: number;
@@ -79,8 +84,16 @@ export type CommercialDowngradePreview = {
 export type CommercialDowngradeResult = {
   companyId: string;
   companyName: string;
-  commercialPlan: "CORE";
+  commercialPlan: "CORE" | "PRO";
+  mode: CommercialDowngradeMode;
+  effectiveAt: string;
   cleanup: CommercialDowngradeCleanupPreview;
+};
+
+export type CommercialDowngradeInput = {
+  companyId: string;
+  mode?: CommercialDowngradeMode;
+  acknowledgeImmediateCleanup?: boolean;
 };
 
 export type AdminCommercialProGrantResult = {
@@ -102,6 +115,7 @@ export type CommercialSettingsBillingView = {
   nextBillingAt: string | null;
   pastDueAt: string | null;
   proSubscribedAt: string | null;
+  downgradeScheduledAt: string | null;
   canPurchasePro: boolean;
   canManageBillingAccount: boolean;
   usage: {

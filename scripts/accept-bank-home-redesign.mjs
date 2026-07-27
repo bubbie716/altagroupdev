@@ -55,6 +55,7 @@ async function main() {
         console.log("FAIL primary nav missing core links");
         ok = false;
       }
+      // Alta Card / Lending may appear when credit desk permits — do not require them.
       if (ok) console.log("ok");
       else failed += 1;
     } catch (err) {

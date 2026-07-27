@@ -5,6 +5,7 @@ import { florin } from "@/lib/bank/api";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { MerchantAnalytics, MerchantAnalyticsRange, MerchantAnalyticsRecentPayment } from "@/lib/bank/commercial-banking-types";
 import { MERCHANT_ANALYTICS_RANGES, MERCHANT_ANALYTICS_RANGE_LABELS } from "@/lib/bank/commercial-banking-types";
+import { formatMerchantAnalyticsPercent } from "@/lib/bank/merchant-analytics-percent";
 import {
   BankMobileStack,
   BankMobileStackField,
@@ -34,39 +35,45 @@ export function MerchantAnalyticsPanel({
   const [activeRange, setActiveRange] = useState(analytics.range);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap gap-2">
-        {MERCHANT_ANALYTICS_RANGES.map((range) => (
-          <button
-            key={range}
-            type="button"
-            onClick={() => {
-              setActiveRange(range);
-              onRangeChange(range);
-            }}
-            className={cn(
-              "rounded-md border px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
-              activeRange === range
-                ? "border-foreground bg-foreground text-background"
-                : "border-border text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {MERCHANT_ANALYTICS_RANGE_LABELS[range]}
-          </button>
-        ))}
+    <div className="space-y-8 pb-[calc(var(--bank-mobile-nav-offset)+0.5rem)] md:pb-0">
+      <div>
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
+          Pro analytics split collections by channel so invoice revenue, payment-link checkout, and
+          Alta Pay are easy to compare for the selected range.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {MERCHANT_ANALYTICS_RANGES.map((range) => (
+            <button
+              key={range}
+              type="button"
+              onClick={() => {
+                setActiveRange(range);
+                onRangeChange(range);
+              }}
+              className={cn(
+                "min-h-11 rounded-md border px-4 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
+                activeRange === range
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {MERCHANT_ANALYTICS_RANGE_LABELS[range]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <BankStatCard
-          label="Payment volume"
+          label="All channels · volume"
           value={florin(analytics.grossVolume)}
-          sub={`${analytics.successfulPayments} successful`}
+          sub={`${analytics.successfulPayments} successful payments`}
           accent
         />
         <BankStatCard
-          label="Net receipts"
+          label="All channels · net"
           value={florin(analytics.netVolume)}
-          sub={`${florin(analytics.totalFees)} fees`}
+          sub={`${florin(analytics.totalFees)} platform fees`}
         />
         <BankStatCard
           label="Invoice revenue"
@@ -76,30 +83,30 @@ export function MerchantAnalyticsPanel({
         <BankStatCard
           label="Payment link revenue"
           value={florin(analytics.paymentLinkRevenue)}
-          sub={`${analytics.paymentFailureRate}% failed`}
+          sub={`${formatMerchantAnalyticsPercent(analytics.paymentFailureRate)} link payment failures`}
         />
         <BankStatCard
           label="Alta Pay revenue"
           value={florin(analytics.altaPayRevenue)}
-          sub="Instant intrabank"
+          sub="Instant intrabank payments"
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <BankStatCard
-          label="Outstanding receivables"
+          label="Outstanding invoices"
           value={florin(analytics.outstandingInvoiceTotal)}
-          sub="Open invoices"
+          sub="Open invoice receivables"
         />
         <BankStatCard
-          label="Overdue receivables"
+          label="Overdue invoices"
           value={florin(analytics.overdueInvoiceTotal)}
-          sub="Past due"
+          sub="Past-due invoice receivables"
         />
         <BankStatCard
           label="Average payment size"
           value={florin(analytics.averagePaymentSize)}
-          sub={`${analytics.paymentSuccessRate}% success rate`}
+          sub={`${formatMerchantAnalyticsPercent(analytics.paymentSuccessRate)} overall success rate`}
         />
       </div>
 

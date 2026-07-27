@@ -301,6 +301,20 @@ async function cancelExcessInvoices(
   return excessIds.length;
 }
 
+/** Stops pending payroll only; leaves invoices and payment links untouched. */
+export async function applyCommercialCoreDowngradePayrollOnly(
+  companyId: string,
+): Promise<CommercialDowngradeCleanupResult> {
+  const payrollRunsCancelled = await cancelPendingPayrollRuns(companyId);
+  return {
+    payrollRunsCancelled,
+    paymentLinksCancelled: 0,
+    invoicesCancelled: 0,
+    payrollRuns: [],
+    activePayrollEmployees: [],
+  };
+}
+
 /** Stops pending payroll and trims receivables to Core limits when Pro ends. */
 export async function applyCommercialCoreDowngradeCleanup(
   companyId: string,
@@ -319,5 +333,7 @@ export async function applyCommercialCoreDowngradeCleanup(
     payrollRunsCancelled,
     paymentLinksCancelled,
     invoicesCancelled,
+    payrollRuns: [],
+    activePayrollEmployees: [],
   };
 }

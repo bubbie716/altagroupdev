@@ -9,6 +9,16 @@ import {
   canViewPaymentLinks,
 } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import { validatePaymentLinkMinMax } from "@/lib/bank/payment-link-validation";
+
+describe("payment link min/max validation", () => {
+  it("rejects inverted open-amount bounds", () => {
+    assert.equal(
+      validatePaymentLinkMinMax(100, 40),
+      "Minimum amount cannot exceed maximum amount.",
+    );
+  });
+});
 
 describe("payment link fee service", () => {
   it("returns zero fee when disabled", () => {

@@ -39,7 +39,7 @@ describe("bank action registry", () => {
       assert.doesNotMatch(id, /private/i);
     }
     const openFlow = read("components/bank/actions/flows/open-account-action-flow.tsx");
-    assert.match(openFlow, /Alta Gold is not a deposit account/);
+    assert.doesNotMatch(openFlow, /Alta Gold is not a deposit account/);
     assert.doesNotMatch(openFlow, /Private Banking|Alta Private/i);
   });
 });

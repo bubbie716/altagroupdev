@@ -45,81 +45,40 @@ export function BankProcessSummary({
   );
 }
 
-function ProcessingGraphic({ variant }: { variant: "pulse" | "transfer" | "progress" }) {
-  if (variant === "transfer") {
-    return (
-      <svg
-        viewBox="0 0 64 32"
-        className="h-8 w-16 text-foreground"
-        aria-hidden
-      >
-        <circle cx="10" cy="16" r="6" className="fill-current opacity-80" />
-        <circle
-          cx="54"
-          cy="16"
-          r="6"
-          className="fill-current opacity-40 motion-safe:animate-pulse"
-        />
-        <path
-          d="M18 16h22"
-          className="stroke-current"
-          strokeWidth="2"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M36 10l8 6-8 6"
-          className="fill-none stroke-current motion-safe:animate-pulse"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  if (variant === "progress") {
-    return (
-      <svg viewBox="0 0 40 40" className="size-10 text-foreground" aria-hidden>
-        <circle
-          cx="20"
-          cy="20"
-          r="16"
-          className="stroke-surface-2"
-          strokeWidth="3"
-          fill="none"
-        />
-        <circle
-          cx="20"
-          cy="20"
-          r="16"
-          className="origin-center stroke-current motion-safe:animate-[spin_1.1s_linear_infinite] motion-reduce:animate-none"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray="70 100"
-          fill="none"
-        />
-      </svg>
-    );
-  }
-
+function ProcessingGraphic() {
   return (
-    <div className="relative flex size-12 items-center justify-center" aria-hidden>
-      <span className="absolute inset-0 rounded-full bg-foreground/10 motion-safe:animate-ping motion-reduce:animate-none" />
-      <span className="relative size-7 rounded-full border-2 border-foreground/80 bg-surface-1" />
-    </div>
+    <svg viewBox="0 0 40 40" className="size-10 text-foreground" aria-hidden>
+      <circle
+        cx="20"
+        cy="20"
+        r="16"
+        className="stroke-surface-2"
+        strokeWidth="3"
+        fill="none"
+      />
+      <circle
+        cx="20"
+        cy="20"
+        r="16"
+        className="origin-center stroke-current motion-safe:animate-[spin_1.1s_linear_infinite] motion-reduce:animate-none"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeDasharray="70 100"
+        fill="none"
+      />
+    </svg>
   );
 }
 
 export function BankProcessGraphic({
   kind,
-  variant = "pulse",
 }: {
   kind: BankProcessOutcomeKind | "processing";
+  /** @deprecated Transfer arrow removed; all processing uses the progress ring. */
   variant?: "pulse" | "transfer" | "progress";
 }) {
   if (kind === "processing") {
-    return <ProcessingGraphic variant={variant} />;
+    return <ProcessingGraphic />;
   }
 
   if (kind === "success") {
@@ -137,7 +96,7 @@ export function BankProcessGraphic({
   if (kind === "pending") {
     return (
       <div
-        className="flex size-12 items-center justify-center rounded-full border border-border bg-surface-2 text-foreground motion-safe:animate-pulse motion-reduce:animate-none"
+        className="flex size-12 items-center justify-center rounded-full border border-border bg-surface-2 text-foreground"
         aria-hidden
       >
         <Clock3 className="size-6" />
@@ -159,13 +118,14 @@ export function BankProcessState({
   kind,
   title,
   children,
-  graphicVariant = "pulse",
+  graphicVariant: _graphicVariant = "progress",
   liveMessage,
   className,
 }: {
   kind: BankProcessOutcomeKind | "processing";
   title: string;
   children?: ReactNode;
+  /** @deprecated Ignored — processing always uses the progress ring. */
   graphicVariant?: "pulse" | "transfer" | "progress";
   liveMessage?: string;
   className?: string;
@@ -181,7 +141,7 @@ export function BankProcessState({
       aria-live="polite"
       aria-busy={kind === "processing" ? true : undefined}
     >
-      <BankProcessGraphic kind={kind} variant={graphicVariant} />
+      <BankProcessGraphic kind={kind} />
       <div className="space-y-2">
         <p className="text-[15px] font-semibold text-foreground">{title}</p>
         {children ? (

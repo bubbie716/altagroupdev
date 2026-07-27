@@ -4,6 +4,10 @@ import {
   DEFAULT_COMMERCIAL_PLATFORM_SETTINGS,
   parseCommercialPlatformSettings,
 } from "@/lib/platform/commercial-plan-settings-types";
+import { enableTestNotificationTransport } from "@/server/notification-test-transport";
+
+enableTestNotificationTransport();
+
 import {
   addBillingMonths,
   canDowngradeCommercialPro,
@@ -119,11 +123,14 @@ describe("commercial plan limits messaging", () => {
 });
 
 describe("commercial billing cycle helpers", () => {
-  it("advances billing dates by one month", () => {
+  it("advances billing dates by one month with end-of-month clamping", () => {
     const start = new Date("2026-01-15T12:00:00.000Z");
     const next = addBillingMonths(start, 1);
     assert.equal(next.getUTCMonth(), 1);
     assert.equal(next.getUTCDate(), 15);
+
+    const monthEnd = addBillingMonths(new Date("2026-01-31T12:00:00.000Z"), 1);
+    assert.equal(monthEnd.toISOString(), "2026-02-28T12:00:00.000Z");
   });
 
   it("extends active admin grants from current expiry", async () => {
@@ -235,6 +242,81 @@ describe("commercial notification batching", () => {
   });
 });
 
+describe("commercial pro feature set", () => {
+  it("includes payroll and invoice branding on Pro", () => {
+    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("payroll"));
+    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("invoice_branding"));
+    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("merchant_analytics"));
+  });
+
+  it("gates payroll to active Pro with payroll feature", async () => {
+    const {
+      canAccessCommercialPayroll,
+      classifyCommercialPayrollPageAccess,
+      DEFAULT_COMMERCIAL_FEATURES: features,
+    } = await import("@/lib/bank/commercial-banking-types");
+
+    const core = mapCommercialPlanSettings({
+      commercialPlan: "CORE",
+      planStatus: "ACTIVE",
+      billingStatus: "NOT_BILLED",
+      commercialMonthlyFee: null,
+      commercialEnabledFeatures: features.CORE,
+    });
+    const pro = mapCommercialPlanSettings({
+      commercialPlan: "PRO",
+      planStatus: "ACTIVE",
+      billingStatus: "CURRENT",
+      commercialMonthlyFee: 10_000,
+      commercialEnabledFeatures: features.PRO,
+    });
+    const proSuspended = mapCommercialPlanSettings({
+      commercialPlan: "PRO",
+      planStatus: "SUSPENDED",
+      billingStatus: "PAST_DUE",
+      commercialMonthlyFee: 10_000,
+      commercialEnabledFeatures: features.PRO,
+    });
+    const proWithoutPayroll = mapCommercialPlanSettings({
+      commercialPlan: "PRO",
+      planStatus: "ACTIVE",
+      billingStatus: "CURRENT",
+      commercialMonthlyFee: 10_000,
+      commercialEnabledFeatures: features.PRO.filter((feature) => feature !== "payroll"),
+    });
+
+    assert.equal(canAccessCommercialPayroll(core), false);
+    assert.equal(canAccessCommercialPayroll(pro), true);
+    assert.equal(canAccessCommercialPayroll(proSuspended), false);
+    assert.equal(canAccessCommercialPayroll(proWithoutPayroll), false);
+
+    assert.equal(
+      classifyCommercialPayrollPageAccess({ roleCanAccessPayroll: true, plan: core }).mode,
+      "upgrade",
+    );
+    assert.equal(
+      classifyCommercialPayrollPageAccess({ roleCanAccessPayroll: true, plan: pro }).mode,
+      "active",
+    );
+    assert.equal(
+      classifyCommercialPayrollPageAccess({
+        roleCanAccessPayroll: false,
+        plan: pro,
+        errorMessage: "FORBIDDEN",
+      }).mode,
+      "forbidden",
+    );
+    assert.equal(
+      classifyCommercialPayrollPageAccess({
+        roleCanAccessPayroll: true,
+        plan: pro,
+        errorMessage: "DB_DOWN",
+      }).mode,
+      "error",
+    );
+  });
+});
+
 describe("commercial downgrade cleanup", () => {
   it("selects newest rows beyond the Core limit", async () => {
     const { selectExcessRowIds } = await import("@/server/commercial-downgrade-cleanup.service");
@@ -253,15 +335,20 @@ describe("commercial downgrade cleanup", () => {
   it("exports downgrade cleanup runner", async () => {
     const cleanup = await import("@/server/commercial-downgrade-cleanup.service");
     assert.equal(typeof cleanup.applyCommercialCoreDowngradeCleanup, "function");
+    assert.equal(typeof cleanup.applyCommercialCoreDowngradePayrollOnly, "function");
     assert.equal(typeof cleanup.previewCommercialCoreDowngradeCleanup, "function");
   });
-});
 
-describe("commercial pro feature set", () => {
-  it("includes payroll and invoice branding on Pro", () => {
-    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("payroll"));
-    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("invoice_branding"));
-    assert.ok(DEFAULT_COMMERCIAL_FEATURES.PRO.includes("merchant_analytics"));
+  it("documents cancellable payroll statuses for downgrade", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const source = await fs.readFile(
+      path.join(process.cwd(), "src/server/commercial-downgrade-cleanup.service.ts"),
+      "utf8",
+    );
+    assert.match(source, /Cancelled because Alta Commercial Pro ended/);
+    assert.match(source, /cancelPendingPayrollRuns/);
+    assert.match(source, /applyCommercialCoreDowngradePayrollOnly/);
   });
 });
 

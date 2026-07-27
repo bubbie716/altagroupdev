@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  BankRequestErrorCard,
   BankRequestSubmitButton,
   type BankRequestSubmissionResult,
 } from "@/components/bank/bank-request-submission-ui";
-import { BankProcessResult } from "@/components/bank/actions/bank-process-ui";
+import {
+  BankActionProcessing,
+} from "@/components/bank/actions/bank-action-chrome";
+import { BankProcessError, BankProcessResult } from "@/components/bank/actions/bank-process-ui";
 import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
 import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
@@ -41,13 +43,19 @@ import {
 } from "@/components/ui/dialog";
 import { closeAllBankWorkflows, registerBankWorkflow } from "@/lib/ui/bank-workflow-registry";
 import { registerTransientOverlay } from "@/lib/ui/transient-overlay-registry";
+import {
+  mockBankActionSubmission,
+  shouldUseBankActionUiLabMock,
+} from "@/lib/bank/bank-action-ui-lab";
+import { applyUiLabAltaCardCashAdvance } from "@/lib/bank/ui-lab-alta-card-state";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-60";
 
-type FormView = "compose" | "review" | "success" | "error";
+type FormView = "compose" | "review" | "submitting" | "success" | "error";
 
 type AltaCardCashAdvancePanelProps = {
   variant?: "button" | "quick" | "panel";
@@ -89,6 +97,7 @@ export function AltaCardCashAdvancePanel({
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
   const loadedRef = useRef(false);
+  const submittingLockRef = useRef(false);
 
   const disabled = isEmployee
     ? employeeCard!.status !== "active" || employeeCard!.employeeAvailableLimit <= 0
@@ -110,22 +119,36 @@ export function AltaCardCashAdvancePanel({
   const resultingAvailable = Math.max(0, availableCredit - advanceAmount);
   const selectedAccount = accounts.find((account) => account.id === destinationAccountId);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     setView("compose");
     setComposeError(null);
     setErrorReason(null);
     setSubmission(null);
     setAmount("");
     setMemo("");
-  }
+    setSubmitting(false);
+    submittingLockRef.current = false;
+  }, []);
 
-  async function openPanel() {
+  const openPanel = useCallback(async () => {
     closeAllBankWorkflows();
     setOpen(true);
     resetForm();
     setLoading(true);
     try {
-      if (isEmployee) {
+      if (shouldUseBankActionUiLabMock() && !isEmployee) {
+        const mockAccounts = [
+          {
+            id: "ui-lab-checking",
+            accountName: "UI Lab Checking",
+            accountNumber: "AB-5000-000001",
+          },
+        ];
+        setAccounts(mockAccounts);
+        setAvailableCredit(card!.availableCredit);
+        setCurrentBalance(card!.currentBalance);
+        setDestinationAccountId(mockAccounts[0].id);
+      } else if (isEmployee) {
         const ctx = await loadEmployeeContext({ data: employeeCard!.id });
         setAccounts(ctx.destinationAccounts);
         setAvailableCredit(ctx.availableCredit);
@@ -150,7 +173,14 @@ export function AltaCardCashAdvancePanel({
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    card,
+    employeeCard,
+    isEmployee,
+    loadCardContext,
+    loadEmployeeContext,
+    resetForm,
+  ]);
 
   useEffect(() => {
     if (!open || !isModal) return;
@@ -164,10 +194,10 @@ export function AltaCardCashAdvancePanel({
       unsubWorkflow();
       unsubTransient();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isModal]);
+  }, [open, isModal, resetForm]);
 
   function handleOpenChange(next: boolean) {
+    if (!next && (view === "submitting" || submittingLockRef.current)) return;
     setOpen(next);
     if (!next) {
       resetForm();
@@ -179,7 +209,7 @@ export function AltaCardCashAdvancePanel({
       loadedRef.current = true;
       void openPanel();
     }
-  }, [variant]);
+  }, [variant, openPanel]);
 
   function goToReview() {
     setComposeError(null);
@@ -200,32 +230,52 @@ export function AltaCardCashAdvancePanel({
 
   async function submitAdvance(e: React.FormEvent) {
     e.preventDefault();
-    if (!destinationAccountId || submitting) return;
+    if (!destinationAccountId || submittingLockRef.current || view === "submitting") return;
 
+    submittingLockRef.current = true;
     setSubmitting(true);
+    setView("submitting");
+    setErrorReason(null);
     const startedAt = Date.now();
 
     try {
-      const res = isEmployee
-        ? await submitEmployeeAdvance({
-            data: {
-              employeeCardId: employeeCard!.id,
-              destinationAccountId,
-              amount: advanceAmount,
-              memo: memo.trim() || undefined,
-            },
-          })
-        : await submitCardAdvance({
-            data: {
-              cardId: card!.id,
-              destinationAccountId,
-              amount: advanceAmount,
-              memo: memo.trim() || undefined,
-            },
-          });
+      let referenceCode: string;
+
+      if (shouldUseBankActionUiLabMock() && !isEmployee) {
+        const mock = mockBankActionSubmission({
+          kind: "cash_advance",
+          amount: advanceAmount,
+          accountName: selectedAccount?.accountName,
+          accountNumber: selectedAccount?.accountNumber,
+        });
+        referenceCode = mock.referenceCode;
+        applyUiLabAltaCardCashAdvance(card!.id, advanceAmount);
+      } else {
+        const res = (isEmployee
+          ? await submitEmployeeAdvance({
+              data: {
+                employeeCardId: employeeCard!.id,
+                destinationAccountId,
+                amount: advanceAmount,
+                memo: memo.trim() || undefined,
+              },
+            })
+          : await submitCardAdvance({
+              data: {
+                cardId: card!.id,
+                destinationAccountId,
+                amount: advanceAmount,
+                memo: memo.trim() || undefined,
+              },
+            })) as { referenceCode: string };
+        referenceCode = res.referenceCode;
+        if (isUiLabMode() && !isEmployee && card) {
+          applyUiLabAltaCardCashAdvance(card.id, advanceAmount);
+        }
+      }
 
       const submitted: BankRequestSubmissionResult = {
-        referenceCode: res.referenceCode,
+        referenceCode,
         amount: advanceAmount,
         submittedAt: new Date().toISOString(),
         accountName: selectedAccount?.accountName ?? "—",
@@ -235,18 +285,25 @@ export function AltaCardCashAdvancePanel({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmission(submitted);
       setView("success");
-      await router.invalidate();
+      if (!(shouldUseBankActionUiLabMock() && !isEmployee)) {
+        await router.invalidate();
+      }
     } catch (err) {
       setErrorReason(formatCustomerActionError(err, "cash_advance"));
       setView("error");
     } finally {
       setSubmitting(false);
+      submittingLockRef.current = false;
     }
   }
 
   function renderContent() {
     if (loading) {
       return <SkeletonFormPanel fields={3} label={LOADING_COPY.cashAdvanceOptions} />;
+    }
+
+    if (view === "submitting") {
+      return <BankActionProcessing label="Processing cash advance…" />;
     }
 
     if (view === "success" && submission) {
@@ -279,12 +336,14 @@ export function AltaCardCashAdvancePanel({
 
     if (view === "error") {
       return (
-        <BankRequestErrorCard
-          reason={errorReason}
-          onTryAgain={() => {
+        <BankProcessError
+          title="Cash advance failed"
+          message={errorReason ?? "Your cash advance could not be completed."}
+          onRetry={() => {
             setErrorReason(null);
             setView("review");
           }}
+          retryLabel="Try again"
         />
       );
     }
@@ -355,7 +414,8 @@ export function AltaCardCashAdvancePanel({
               </button>
               <BankRequestSubmitButton
                 kind="cash_advance"
-                submitting={submitting}
+                submitting={false}
+                disabled={submitting}
                 showContainer={false}
               />
             </fieldset>

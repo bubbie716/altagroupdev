@@ -5,7 +5,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { cn } from "@/lib/utils";
 import { BankSubNavScroll, bankSubNavClass } from "@/components/bank/bank-scroll-contain";
-import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { commercialCompanySearch } from "@/components/bank/commercial-account-back-link";
 import { fetchUnreadReceivedInvoiceCount } from "@/lib/bank/merchant-invoice.functions";
 import type { AltaPaySubNavTab } from "@/components/bank/alta-pay-sub-nav";
@@ -20,8 +19,6 @@ type SectionLink = {
 };
 
 const lendingSubLinks = [
-  { to: "/bank/lending", label: "Overview", exact: true },
-  { to: "/bank/lending/apply", label: "Apply" },
   { to: "/bank/lending/applications", label: "Applications" },
   { to: "/bank/lending/loans", label: "Loans" },
 ] as const;
@@ -81,7 +78,6 @@ function resolveAltaPaySubNavTab(pathname: string, tab?: string): AltaPaySubNavT
 function resolveBankSectionLinks(
   pathname: string,
   searchStr: string,
-  showApply: boolean,
   unreadInvoiceCount: number,
 ): { links: SectionLink[]; altaPayTab?: AltaPaySubNavTab } | null {
   const path = normalizePath(pathname);
@@ -91,10 +87,8 @@ function resolveBankSectionLinks(
   const commercialSearch = companyId ? commercialCompanySearch(companyId, accountId ?? undefined) : undefined;
 
   if (path.startsWith("/bank/lending")) {
-    const links = showApply
-      ? lendingSubLinks
-      : lendingSubLinks.filter((link) => link.to !== "/bank/lending/apply");
-    return { links: links.map((link) => ({ ...link })) };
+    if (path === "/bank/lending") return null;
+    return { links: lendingSubLinks.map((link) => ({ ...link })) };
   }
 
   if (path.startsWith("/bank/alta-card")) {
@@ -219,7 +213,6 @@ export const BankSubNav = memo(function BankSubNav() {
   const { pathname, searchStr } = useRouterState({
     select: (s) => ({ pathname: s.location.pathname, searchStr: s.location.searchStr }),
   });
-  const creditDeskNav = useCreditDeskCustomerNav();
   const fetchUnreadCount = useServerFn(fetchUnreadReceivedInvoiceCount);
   const [unreadInvoiceCount, setUnreadInvoiceCount] = useState(0);
 
@@ -243,7 +236,6 @@ export const BankSubNav = memo(function BankSubNav() {
   const section = resolveBankSectionLinks(
     pathname,
     searchStr,
-    creditDeskNav.showApplyEntryPoints,
     unreadInvoiceCount,
   );
 

@@ -1,8 +1,12 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import type { PaymentLinkDashboard } from "@/lib/bank/payment-link-types";
 import { PaymentLinkStatusBadge } from "@/components/bank/payment-links/payment-link-status-badge";
+import { PaymentLinkWorkflow } from "@/components/bank/payment-links/payment-link-workflow";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 
 export function PaymentLinkDashboardPanel({
@@ -11,13 +15,45 @@ export function PaymentLinkDashboardPanel({
   accountId,
   canCreate = true,
   createLimitMessage,
+  paymentLinksThisMonth,
+  paymentLinkMonthlyLimit,
+  autoOpenCreate = false,
 }: {
   dashboard: PaymentLinkDashboard;
   companyId: string;
   accountId: string;
   canCreate?: boolean;
   createLimitMessage?: string;
+  paymentLinksThisMonth?: number;
+  paymentLinkMonthlyLimit?: number;
+  autoOpenCreate?: boolean;
 }) {
+  const navigate = useNavigate();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (canCreate && autoOpenCreate) {
+      setCreateOpen(true);
+    }
+  }, [canCreate, autoOpenCreate]);
+
+  function openCreate() {
+    if (!canCreate) return;
+    setCreateOpen(true);
+  }
+
+  function handleCreateOpenChange(open: boolean) {
+    setCreateOpen(open);
+    if (!open && autoOpenCreate) {
+      void navigate({
+        to: accountCommercialRoutes.paymentLinks,
+        params: { accountId },
+        search: {},
+        replace: true,
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -36,9 +72,9 @@ export function PaymentLinkDashboardPanel({
       </div>
 
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-sm font-medium">Payment links</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to={accountCommercialRoutes.invoices}
               params={{ accountId }}
@@ -47,18 +83,19 @@ export function PaymentLinkDashboardPanel({
               Invoices
             </Link>
             {canCreate ? (
-              <Link
-                to={accountCommercialRoutes.paymentLinksNew}
-                params={{ accountId }}
+              <button
+                type="button"
+                onClick={openCreate}
                 className="inline-flex items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
               >
                 New link
-              </Link>
+              </button>
             ) : (
               <button
                 type="button"
                 disabled
-                title={createLimitMessage}
+                aria-disabled="true"
+                aria-describedby="payment-link-limit-note"
                 className="inline-flex cursor-not-allowed items-center rounded-md border border-foreground bg-foreground px-3 py-1.5 text-sm font-medium text-background opacity-50"
               >
                 New link
@@ -66,6 +103,27 @@ export function PaymentLinkDashboardPanel({
             )}
           </div>
         </div>
+        {!canCreate ? (
+          <div
+            id="payment-link-limit-note"
+            className="border-b border-border bg-surface-2/30 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground"
+          >
+            <p>
+              {typeof paymentLinksThisMonth === "number" &&
+              typeof paymentLinkMonthlyLimit === "number"
+                ? `${paymentLinksThisMonth} of ${paymentLinkMonthlyLimit} payment links used this month.`
+                : (createLimitMessage ?? "Payment link limit reached for Commercial Core.")}{" "}
+              Commercial Pro raises this limit.
+            </p>
+            <Link
+              to={accountCommercialRoutes.settings}
+              params={{ accountId }}
+              className="mt-2 inline-flex min-h-11 items-center text-[13px] font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              View Commercial settings
+            </Link>
+          </div>
+        ) : null}
         {dashboard.recent.length === 0 ? (
           <p className="px-4 py-8 text-sm text-muted-foreground">No payment links yet.</p>
         ) : (
@@ -82,7 +140,8 @@ export function PaymentLinkDashboardPanel({
                     {link.title?.trim() || link.description}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {link.referenceCode} · {link.amountType === "FIXED" && link.amount != null
+                    {link.referenceCode} ·{" "}
+                    {link.amountType === "FIXED" && link.amount != null
                       ? florin(link.amount)
                       : "Open amount"}
                   </p>
@@ -96,6 +155,15 @@ export function PaymentLinkDashboardPanel({
           </div>
         )}
       </Card>
+
+      {canCreate ? (
+        <PaymentLinkWorkflow
+          open={createOpen}
+          onOpenChange={handleCreateOpenChange}
+          companyId={companyId}
+          accountId={accountId}
+        />
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import {
   computeBucketSelectionMetrics,
   formatSelectionPerformanceDisplay,
+  isPointerDragPastThreshold,
   isSelectionVisible,
   normalizeBucketSelectionIndices,
   resolveBucketIndexAtPointer,
@@ -229,9 +230,16 @@ export function usePortfolioChartRangeSelection({
 }) {
   const [selection, setSelection] = useState<PortfolioChartSelectionIndices | null>(null);
   const draggingRef = useRef(false);
+  const pendingPressRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startIndex: number;
+  } | null>(null);
 
   const clearSelection = useCallback(() => {
     draggingRef.current = false;
+    pendingPressRef.current = null;
     setSelection(null);
   }, []);
 
@@ -258,17 +266,49 @@ export function usePortfolioChartRangeSelection({
     const element = containerRef.current;
     if (!element || disabled) return;
 
+    const beginDrag = (pointerId: number, startIndex: number, clientX: number) => {
+      const endIndex = resolveIndexFromClientX(clientX);
+      draggingRef.current = true;
+      pendingPressRef.current = null;
+      setSelection({ startIndex, endIndex, isDragging: true });
+      if (!element.hasPointerCapture(pointerId)) {
+        element.setPointerCapture(pointerId);
+      }
+    };
+
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
-      event.preventDefault();
+      // Defer capture/preventDefault until movement confirms a drag so taps
+      // can still pin the hover tooltip on touch devices.
       const index = resolveIndexFromClientX(event.clientX);
-      draggingRef.current = true;
-      setSelection({ startIndex: index, endIndex: index, isDragging: true });
-      element.setPointerCapture(event.pointerId);
+      pendingPressRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startIndex: index,
+      };
+      draggingRef.current = false;
     };
 
     const handlePointerMove = (event: PointerEvent) => {
+      const pending = pendingPressRef.current;
+      if (pending && pending.pointerId === event.pointerId && !draggingRef.current) {
+        if (
+          isPointerDragPastThreshold(
+            pending.startX,
+            pending.startY,
+            event.clientX,
+            event.clientY,
+          )
+        ) {
+          event.preventDefault();
+          beginDrag(pending.pointerId, pending.startIndex, event.clientX);
+        }
+        return;
+      }
+
       if (!draggingRef.current) return;
+      event.preventDefault();
       const index = resolveIndexFromClientX(event.clientX);
       setSelection((current) =>
         current ? { ...current, endIndex: index, isDragging: true } : null,
@@ -276,6 +316,11 @@ export function usePortfolioChartRangeSelection({
     };
 
     const releaseSelection = (event: PointerEvent) => {
+      const pending = pendingPressRef.current;
+      if (pending && pending.pointerId === event.pointerId) {
+        pendingPressRef.current = null;
+      }
+
       if (!draggingRef.current) return;
       draggingRef.current = false;
       if (element.hasPointerCapture(event.pointerId)) {

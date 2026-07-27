@@ -41,3 +41,14 @@ export function getUiLabCompaniesDashboard(): CompaniesDashboardData | null {
     invitations: [],
   };
 }
+
+export { resolveUiLabCompanyName, resolveCompanyDisplayName } from "@/lib/bank/ui-lab-alta-card-state";
+
+export {
+  UI_LAB_CORE_ACCOUNT_ID,
+  UI_LAB_CORE_COMPANY_ID,
+  UI_LAB_PRO_ACCOUNT_ID,
+  UI_LAB_PRO_COMPANY_ID,
+  resetUiLabCommercialOverlays,
+  setUiLabCommercialInsufficientFunds,
+} from "@/lib/bank/ui-lab-commercial-fixtures";

@@ -1,4 +1,5 @@
 import type { UserNotificationDmInput } from "@/server/bot-notification-delivery.service";
+import { assertLiveNotificationTransportAllowed } from "@/server/notification-test-transport";
 
 function logDispatch(message: string, meta?: Record<string, unknown>): void {
   if (process.env.NODE_ENV === "test") return;
@@ -68,6 +69,7 @@ async function directDelivery(
 export async function dispatchNotificationDm(
   input: UserNotificationDmInput,
 ): Promise<{ sent: boolean; via: "bot" | "direct" | "none"; reason?: string }> {
+  assertLiveNotificationTransportAllowed("dispatchNotificationDm");
   try {
     const direct = await directDelivery(input);
     if (direct.sent) {

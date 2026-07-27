@@ -1,11 +1,9 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
-import { Section } from "@/components/page-shell";
-import { PaymentLinkForm } from "@/components/bank/payment-links/payment-link-form";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchCommercialReceivableCreationLimits } from "@/lib/bank/commercial-banking.functions";
 
+/** Thin wrapper — opens the payment link workflow from the dashboard via `?create=1`. */
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payment-links/new")({
   loader: async ({ context, params }) => {
     const commercial = requireCommercialFromRouteContext(context);
@@ -16,29 +14,10 @@ export const Route = createFileRoute("/bank/account/$accountId/commercial/paymen
         params: { accountId: params.accountId },
       });
     }
-    return { companyId: commercial.companyId };
+    throw redirect({
+      to: accountCommercialRoutes.paymentLinks,
+      params: { accountId: params.accountId },
+      search: { create: 1 },
+    });
   },
-  head: () => ({ meta: [{ title: "New Payment Link — Business Account" }] }),
-  component: AccountCommercialNewPaymentLinkPage,
 });
-
-function AccountCommercialNewPaymentLinkPage() {
-  const { accountId } = Route.useParams();
-  const { companyId } = Route.useLoaderData();
-
-  return (
-    <>
-      <Link
-        to={accountCommercialRoutes.paymentLinks}
-        params={{ accountId }}
-        className="-ml-1 mb-6 inline-flex items-center gap-1.5 rounded-md px-1 py-2 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ChevronLeft className="size-4 shrink-0" aria-hidden />
-        Back to all payment links
-      </Link>
-      <Section title="Create payment link">
-        <PaymentLinkForm companyId={companyId} accountId={accountId} />
-      </Section>
-    </>
-  );
-}

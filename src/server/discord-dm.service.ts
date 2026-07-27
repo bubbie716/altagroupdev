@@ -1,6 +1,7 @@
 import type { InvitationDmPayload } from "@/lib/discord/invitation-dm";
 import type { NotificationDmPayload } from "@/lib/discord/notification-dm";
 import { getDiscordBotConfig } from "@/server/discord-embed.service";
+import { assertLiveNotificationTransportAllowed } from "@/server/notification-test-transport";
 
 type DmPayload = InvitationDmPayload | NotificationDmPayload;
 
@@ -56,6 +57,7 @@ export async function sendDiscordUserDm(
   | { sent: true; messageId: string; channelId: string }
   | { sent: false; reason: "not_configured" }
 > {
+  assertLiveNotificationTransportAllowed("sendDiscordUserDm");
   const config = getDiscordBotConfig();
   if (!config) return { sent: false, reason: "not_configured" };
 

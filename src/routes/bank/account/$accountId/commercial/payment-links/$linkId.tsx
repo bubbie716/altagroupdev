@@ -35,7 +35,7 @@ function AccountCommercialPaymentLinkDetailPage() {
         <ChevronLeft className="size-4 shrink-0" aria-hidden />
         Back to all payment links
       </Link>
-      <Section title={link.referenceCode}>
+      <Section title="Payment link">
         <PaymentLinkDetailPanel link={link} companyId={companyId} user={user} />
       </Section>
     </>

@@ -27,6 +27,11 @@ function rethrowServiceError(error: unknown): never {
 export const fetchPaymentLinkDashboard = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabPaymentLinkDashboard } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return getUiLabPaymentLinkDashboard(companyId);
+    }
     const { getPaymentLinkDashboard } = await import("@/server/payment-link.service");
     try {
       return await getPaymentLinkDashboard(await actor(), companyId);
@@ -38,6 +43,13 @@ export const fetchPaymentLinkDashboard = createServerFn({ method: "GET" })
 export const fetchPaymentLinkDetail = createServerFn({ method: "GET" })
   .inputValidator((input: { companyId: string; linkId: string }) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabPaymentLinkDetail } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      const detail = getUiLabPaymentLinkDetail(data.companyId, data.linkId);
+      if (!detail) throw new Error("Payment link not found.");
+      return detail;
+    }
     const { getPaymentLinkDetail } = await import("@/server/payment-link.service");
     try {
       return await getPaymentLinkDetail(await actor(), data.companyId, data.linkId);
@@ -49,6 +61,11 @@ export const fetchPaymentLinkDetail = createServerFn({ method: "GET" })
 export const createPaymentLinkRecord = createServerFn({ method: "POST" })
   .inputValidator((input: CreatePaymentLinkInput) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { createUiLabPaymentLink } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+      return createUiLabPaymentLink(data);
+    }
     const { createPaymentLink } = await import("@/server/payment-link.service");
     try {
       return await createPaymentLink(await actor(), data);

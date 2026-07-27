@@ -96,7 +96,6 @@ export function MerchantInvoiceDetailPanel({
       <Card className="space-y-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="type-meta text-muted-foreground">{invoice.referenceCode}</p>
             <h1 className="text-xl font-semibold">{florin(invoice.amount)}</h1>
             <p className="mt-1 text-sm text-muted-foreground">To {invoice.recipientName}</p>
           </div>
@@ -104,6 +103,10 @@ export function MerchantInvoiceDetailPanel({
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">Invoice number</dt>
+            <dd className="font-mono text-[13px]">{invoice.referenceCode}</dd>
+          </div>
           <div>
             <dt className="text-muted-foreground">Description</dt>
             <dd>{invoice.description}</dd>

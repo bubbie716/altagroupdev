@@ -321,7 +321,7 @@ export async function payMerchantInvoice(
       });
 
       return { locked, settlement, resolvedPayerLabel, paidAt: now };
-    });
+    }, { timeout: 20_000 });
 
     await recordMerchantInvoicePaidAudit({
       actorUserId: user.id,

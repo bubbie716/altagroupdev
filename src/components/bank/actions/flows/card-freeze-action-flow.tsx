@@ -21,6 +21,7 @@ import {
   mockBankActionSubmission,
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
+import { applyUiLabAltaCardFreeze } from "@/lib/bank/ui-lab-alta-card-state";
 
 export function CardFreezeActionFlow({
   mode,
@@ -94,6 +95,7 @@ export function CardFreezeActionFlow({
     try {
       if (shouldUseBankActionUiLabMock()) {
         mockBankActionSubmission({ kind: mode, amount: 0 });
+        applyUiLabAltaCardFreeze(cardId, mode === "freeze");
         await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
         setStatusLabel(mode === "freeze" ? "Frozen" : "Active");
         setPhase("success");

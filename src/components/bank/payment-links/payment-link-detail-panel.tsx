@@ -22,13 +22,7 @@ import {
   BankRequestActionButton,
   BankRequestErrorCard,
 } from "@/components/bank/bank-request-submission-ui";
-
-function fullCheckoutUrl(path: string): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}${path}`;
-  }
-  return path;
-}
+import { absolutePaymentLinkCheckoutUrl } from "@/lib/bank/payment-link-checkout-url";
 
 export function PaymentLinkDetailPanel({
   link,
@@ -48,11 +42,16 @@ export function PaymentLinkDetailPanel({
   const [error, setError] = useState<string | null>(null);
   const canManage = canManagePaymentLinks(user, { companyId });
 
-  const checkoutFullUrl = fullCheckoutUrl(link.checkoutUrl);
+  // Always render the relative path so SSR and the first client paint match.
+  const checkoutDisplayUrl = link.checkoutUrl;
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(checkoutFullUrl);
+      const absolute = absolutePaymentLinkCheckoutUrl(
+        link.checkoutUrl,
+        window.location.origin,
+      );
+      await navigator.clipboard.writeText(absolute);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -81,16 +80,21 @@ export function PaymentLinkDetailPanel({
       <Card className="space-y-4 p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="type-meta text-muted-foreground">{link.referenceCode}</p>
             <h1 className="text-xl font-semibold">
               {link.title?.trim() || link.description}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
+            {link.title?.trim() ? (
+              <p className="mt-1 text-sm text-muted-foreground">{link.description}</p>
+            ) : null}
           </div>
           <PaymentLinkStatusBadge status={link.status} />
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">Reference</dt>
+            <dd className="font-mono text-[13px]">{link.referenceCode}</dd>
+          </div>
           <div>
             <dt className="text-muted-foreground">Amount</dt>
             <dd>
@@ -127,7 +131,7 @@ export function PaymentLinkDetailPanel({
         <div className="rounded-md border border-border bg-surface-2/40 p-4">
           <p className="type-meta text-muted-foreground">Checkout link</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 break-all text-[13px]">{checkoutFullUrl}</code>
+            <code className="min-w-0 flex-1 break-all text-[13px]">{checkoutDisplayUrl}</code>
             <button
               type="button"
               onClick={() => void copyLink()}

@@ -83,6 +83,16 @@ enum CommercialProGrantSource {
   ADMIN_GRANT
 }
 
+enum CommercialSubscriptionChargeType {
+  INITIAL_PURCHASE
+  MONTHLY_RENEWAL
+}
+
+enum CommercialSubscriptionChargeStatus {
+  SUCCEEDED
+  FAILED
+}
+
 model User {
   id                    String                @id @default(cuid())
   discordId             String                @unique
@@ -263,22 +273,55 @@ model Company {
   recurringInvoiceSchedules    MerchantRecurringInvoiceSchedule[]
   altaPaySchedulesAsPayee      ScheduledPayment[]                   @relation("ScheduledPaymentRecipientCompany")
   recurringInvoicesToCompany   MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientCompany")
-  commercialPlan               CommercialPlan                       @default(CORE)
-  planStatus                   CommercialPlanStatus                 @default(ACTIVE)
-  billingStatus                CommercialBillingStatus              @default(NOT_BILLED)
-  commercialMonthlyFee         Decimal?                             @db.Decimal(18, 2)
-  commercialEnabledFeatures    Json?
-  commercialBillingAccountId   String?
-  commercialNextBillingAt      DateTime?
-  commercialPastDueAt          DateTime?
-  commercialProSubscribedAt    DateTime?
-  commercialProGrantSource     CommercialProGrantSource?
-  commercialProExpiresAt       DateTime?
-  commercialBillingAccount     BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
-  branding                     CompanyBranding?
-  terminalPortfolios           TerminalPortfolio[]
+  commercialPlan                   CommercialPlan                       @default(CORE)
+  planStatus                       CommercialPlanStatus                 @default(ACTIVE)
+  billingStatus                    CommercialBillingStatus              @default(NOT_BILLED)
+  commercialMonthlyFee             Decimal?                             @db.Decimal(18, 2)
+  commercialEnabledFeatures        Json?
+  commercialBillingAccountId       String?
+  commercialNextBillingAt          DateTime?
+  commercialPastDueAt              DateTime?
+  commercialProSubscribedAt        DateTime?
+  commercialProGrantSource         CommercialProGrantSource?
+  commercialProExpiresAt           DateTime?
+  commercialBillingCycleId         String?
+  commercialDowngradeScheduledAt   DateTime?
+  commercialBillingAccount         BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
+  commercialSubscriptionCharges    CommercialSubscriptionCharge[]
+  branding                         CompanyBranding?
+  terminalPortfolios               TerminalPortfolio[]
 
   @@index([verificationStatus])
+  @@index([commercialDowngradeScheduledAt])
+}
+
+/// Durable ledger for Commercial Pro purchase and renewal charges.
+/// Unique on (companyId, billingPeriod, chargeType) prevents double-billing a period.
+model CommercialSubscriptionCharge {
+  id                String                             @id @default(cuid())
+  companyId         String
+  billingAccountId  String
+  amount            Decimal                            @db.Decimal(18, 2)
+  billingPeriod     String
+  chargeType        CommercialSubscriptionChargeType
+  status            CommercialSubscriptionChargeStatus
+  bankTransactionId String?
+  referenceCode     String?
+  idempotencyKey    String                             @unique
+  failureReason     String?
+  billingCycleId    String?
+  createdAt         DateTime                           @default(now())
+  updatedAt         DateTime                           @updatedAt
+
+  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  billingAccount  BankAccount      @relation(fields: [billingAccountId], references: [id], onDelete: Restrict)
+  bankTransaction BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, billingPeriod, chargeType])
+  @@index([companyId])
+  @@index([billingAccountId])
+  @@index([status])
+  @@index([billingCycleId])
 }
 
 model CompanyBranding {
@@ -503,7 +546,8 @@ model BankAccount {
 
   user                              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   company                           Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  commercialBillingForCompanies     Company[]                 @relation("CommercialBillingAccount")
+  commercialBillingForCompanies     Company[]                       @relation("CommercialBillingAccount")
+  commercialSubscriptionCharges     CommercialSubscriptionCharge[]
   holds                             BankAccountHold[]
   transactions                      BankTransaction[]
   interestAccruals                  BankInterestAccrual[]
@@ -868,15 +912,16 @@ model BankTransaction {
   transferGroupId String?
   ledgerRole      TransferLedgerRole?
 
-  bankAccount                BankAccount                  @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  reviewedBy                 User?                        @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  transferGroup              TransferGroup?               @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
-  scheduledTransferExecution ScheduledTransferExecution[]
-  payrollRunLineExecution    PayrollRunLineExecution[]
-  loanPayment                LoanPayment?
-  loanLedgerEntries          LoanLedgerEntry[]
-  interestAccrual            BankInterestAccrual?
-  altaCardTransactions       AltaCardTransaction[]        @relation("AltaCardRelatedBankTransaction")
+  bankAccount                   BankAccount                     @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reviewedBy                    User?                           @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  transferGroup                 TransferGroup?                  @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  scheduledTransferExecution    ScheduledTransferExecution[]
+  payrollRunLineExecution       PayrollRunLineExecution[]
+  loanPayment                   LoanPayment?
+  loanLedgerEntries             LoanLedgerEntry[]
+  interestAccrual               BankInterestAccrual?
+  altaCardTransactions          AltaCardTransaction[]           @relation("AltaCardRelatedBankTransaction")
+  commercialSubscriptionCharges CommercialSubscriptionCharge[]
 
   @@index([bankAccountId])
   @@index([bankAccountId, createdAt])

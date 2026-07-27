@@ -6,7 +6,7 @@ import type {
   CommercialPlanStatus,
   CommercialBankingContext,
 } from "@/lib/bank/commercial-banking-types";
-import { DEFAULT_COMMERCIAL_FEATURES } from "@/lib/bank/commercial-banking-types";
+import { DEFAULT_COMMERCIAL_FEATURES, COMMERCIAL_FEATURE_LABELS } from "@/lib/bank/commercial-banking-types";
 import type { AltaUser } from "@/lib/auth/types";
 import {
   canManageCompany,
@@ -46,8 +46,11 @@ export function mapCommercialPlanSettings(company: {
   commercialMonthlyFee: { toString(): string } | null;
   commercialEnabledFeatures: unknown;
 }): CommercialPlanSettings {
+  const knownFeatures = new Set(Object.keys(COMMERCIAL_FEATURE_LABELS));
   const storedFeatures = Array.isArray(company.commercialEnabledFeatures)
-    ? (company.commercialEnabledFeatures as CommercialFeatureKey[])
+    ? (company.commercialEnabledFeatures as string[]).filter((feature): feature is CommercialFeatureKey =>
+        knownFeatures.has(feature),
+      )
     : null;
 
   return {
@@ -75,11 +78,10 @@ export function canAccessAdvancedMerchantAnalytics(plan: CommercialPlanSettings)
   return isCommercialProActive(plan) && companyHasCommercialFeature(plan, "merchant_analytics");
 }
 
-export function canAccessCommercialPayroll(plan: CommercialPlanSettings): boolean {
-  return isCommercialProActive(plan) && companyHasCommercialFeature(plan, "payroll");
-}
-
-export { canPublishInvoiceBranding } from "@/lib/bank/commercial-banking-types";
+export {
+  canAccessCommercialPayroll,
+  canPublishInvoiceBranding,
+} from "@/lib/bank/commercial-banking-types";
 
 export function canAccessBasicMerchantAnalytics(plan: CommercialPlanSettings): boolean {
   return plan.planStatus === "ACTIVE";

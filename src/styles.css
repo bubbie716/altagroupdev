@@ -9,9 +9,13 @@
   --bank-mobile-nav-offset: calc(
     var(--bank-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
   );
-  /* Available height for Bank action bottom sheets above nav + UI Lab banner. */
-  --bank-mobile-sheet-max-height: calc(
-    100dvh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px)
+  /*
+   * Available height for Bank action bottom sheets above nav + UI Lab banner.
+   * Prefer dynamic viewport (keyboard/browser chrome); fall back to small viewport.
+   */
+  --bank-mobile-sheet-max-height: min(
+    calc(100dvh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px)),
+    calc(100svh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px))
   );
 }
 

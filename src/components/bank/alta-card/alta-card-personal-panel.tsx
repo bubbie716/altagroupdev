@@ -1,44 +1,34 @@
+"use client";
+
+import { useState, useSyncExternalStore } from "react";
 import type {
   AltaCardBillingSummary,
   AltaCardDetail,
   AltaCardRow,
   AltaCardTransactionRow,
 } from "@/lib/bank/alta-card-types";
-import { ALTA_CARD_BILLING_HELPER_TEXT, formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
 import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
-  formatAltaCardRate,
 } from "@/lib/bank/alta-card-types";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
 import {
   AltaCardMetric,
-  AltaCardSection,
   AltaCardUtilizationBar,
 } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { AltaCardQuickActions } from "@/components/bank/alta-card/alta-card-quick-actions";
 import { AltaCardTransactionHistory } from "@/components/bank/alta-card/alta-card-transaction-history";
-import { AltaCardAutopayPanel } from "@/components/bank/alta-card/alta-card-autopay-panel";
+import { AltaCardStatementSummary } from "@/components/bank/alta-card/alta-card-statement-summary";
+import { AltaCardAutopayStatusRow } from "@/components/bank/alta-card/alta-card-autopay-status-row";
+import { AltaCardManageSheet } from "@/components/bank/alta-card/alta-card-manage-sheet";
 import type { AltaCardAutopayContext } from "@/lib/bank/alta-card-autopay-types";
 import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
-
-function paymentDueLabel(
-  card: AltaCardRow,
-  billingSummary?: AltaCardBillingSummary | null,
-): string {
-  return formatAltaCardBillingDate(
-    billingSummary?.paymentDueDate ?? card.paymentDueDate ?? card.dueDate,
-  );
-}
-
-function nextStatementLabel(
-  card: AltaCardRow,
-  billingSummary?: AltaCardBillingSummary | null,
-): string {
-  return formatAltaCardBillingDate(
-    billingSummary?.nextStatementDate ?? card.nextStatementDate,
-  );
-}
+import {
+  getUiLabAltaCardOverlay,
+  getUiLabAltaCardOverlayRevision,
+  mergeUiLabAltaCardRow,
+  subscribeUiLabAltaCardOverlays,
+} from "@/lib/bank/ui-lab-alta-card-state";
 
 export function AltaCardPersonalPanel({
   card,
@@ -55,41 +45,60 @@ export function AltaCardPersonalPanel({
   reviewEligibility?: AltaCardReviewEligibility | null;
   transactions: AltaCardTransactionRow[];
 }) {
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageView, setManageView] = useState<"menu" | "autopay">("menu");
+  useSyncExternalStore(
+    subscribeUiLabAltaCardOverlays,
+    getUiLabAltaCardOverlayRevision,
+    getUiLabAltaCardOverlayRevision,
+  );
+  const displayCard = mergeUiLabAltaCardRow(card);
+  const overlay = getUiLabAltaCardOverlay(card.id);
+  const autopayEnabled =
+    overlay?.autopayEnabled ?? autopayContext?.settings.enabled ?? false;
+
+  function openManage(view: "menu" | "autopay" = "menu") {
+    setManageView(view);
+    setManageOpen(true);
+  }
+
   return (
     <div className="min-w-0 space-y-6">
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start lg:gap-8">
         <div className="mx-auto w-full min-w-0 max-w-[300px] sm:max-w-[340px] lg:mx-0">
           <AltaCardVisual
-            tier={card.tier}
-            cardLastFour={card.cardLastFour}
+            tier={displayCard.tier}
+            cardLastFour={displayCard.cardLastFour}
             cardHolder={cardholderName}
             responsive
           />
         </div>
         <div className="min-w-0 space-y-4 sm:space-y-5">
           <p className="min-w-0 break-words text-[13px] text-muted-foreground">
-            {cardholderName} · {altaCardStatusLabel(card.status)} · Personal credit line
+            {altaCardStatusLabel(displayCard.status)}
           </p>
           <AltaCardUtilizationBar
             utilization={
-              card.creditLimit > 0 ? (card.currentBalance / card.creditLimit) * 100 : 0
+              displayCard.creditLimit > 0
+                ? (displayCard.currentBalance / displayCard.creditLimit) * 100
+                : 0
             }
           />
           <dl className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
             <AltaCardMetric
               label="Credit limit"
-              value={formatAltaCardCurrency(card.creditLimit)}
+              value={formatAltaCardCurrency(displayCard.creditLimit)}
               dense
             />
             <AltaCardMetric
               label="Current balance"
-              value={formatAltaCardCurrency(card.currentBalance)}
+              value={formatAltaCardCurrency(displayCard.currentBalance)}
               emphasis
               dense
             />
             <AltaCardMetric
               label="Available credit"
-              value={formatAltaCardCurrency(card.availableCredit)}
+              value={formatAltaCardCurrency(displayCard.availableCredit)}
               emphasis
               dense
               className="col-span-2 sm:col-span-1"
@@ -104,47 +113,31 @@ export function AltaCardPersonalPanel({
         </div>
       ) : null}
 
-      <dl className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
-        <AltaCardMetric
-          label="Statement balance"
-          value={formatAltaCardCurrency(card.statementBalance)}
-          dense
-        />
-        <AltaCardMetric
-          label="Minimum payment"
-          value={formatAltaCardCurrency(card.minimumPaymentDue)}
-          dense
-        />
-        <AltaCardMetric label="Payment due" value={paymentDueLabel(card, billingSummary)} dense />
-        <AltaCardMetric
-          label="Next statement"
-          value={nextStatementLabel(card, billingSummary)}
-          dense
-        />
-        <AltaCardMetric
-          label="Interest rate"
-          value={formatAltaCardRate(card.interestRate)}
-          dense
-          className="col-span-2 sm:col-span-1"
-        />
-      </dl>
-      <p className="text-[13px] text-muted-foreground">{ALTA_CARD_BILLING_HELPER_TEXT}</p>
+      <AltaCardStatementSummary card={displayCard} billingSummary={billingSummary} />
 
-      <AltaCardSection title="Quick actions" description="Manage your revolving credit line.">
-        <AltaCardQuickActions card={card} reviewEligibility={reviewEligibility} />
-      </AltaCardSection>
+      <AltaCardQuickActions card={displayCard} onManage={() => openManage("menu")} />
 
-      <AltaCardSection
-        title="Autopay"
-        description="Automatically pay your statement from an Alta Bank account on the payment due date."
-      >
-        <AltaCardAutopayPanel card={card} initialContext={autopayContext ?? undefined} />
-      </AltaCardSection>
+      {displayCard.status !== "closed" ? (
+        <AltaCardAutopayStatusRow
+          autopayContext={autopayContext}
+          autopayEnabled={autopayEnabled}
+          onManage={() => openManage("autopay")}
+        />
+      ) : null}
 
       <AltaCardTransactionHistory
         transactions={transactions}
-        title="Card transactions"
-        description="Purchases, payments, cash advances, and other activity on your personal Alta Card."
+        title="Recent transactions"
+        limit={5}
+      />
+
+      <AltaCardManageSheet
+        card={displayCard}
+        reviewEligibility={reviewEligibility}
+        autopayContext={autopayContext}
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        initialView={manageView}
       />
     </div>
   );

@@ -183,15 +183,16 @@ export function CommercialBrandingPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-[calc(var(--bank-mobile-nav-offset)+0.5rem)] md:pb-0">
       {!settings.canPublish ? (
         <Card className="!p-6">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-            Alta Commercial Pro
+            Preview mode · Core
           </p>
           <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-            Customize invoice and payment link branding with your logo, colors, and footer text.
-            Preview your design below — publishing custom branding requires Alta Commercial Pro.
+            You can design logo, colors, and footer text here. Customer checkout pages keep default
+            Alta branding until you upgrade to Pro and publish. Rejected or unpublished designs
+            never go live.
           </p>
           <div className="mt-4">
             <CommercialProUpgradePanel companyId={settings.companyId} onCompleted={onUpdated}>
@@ -200,15 +201,25 @@ export function CommercialBrandingPanel({
                   type="button"
                   disabled={loading}
                   onClick={open}
-                  className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
+                  className="inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
                 >
-                  Upgrade to Pro
+                  Upgrade to publish
                 </button>
               )}
             </CommercialProUpgradePanel>
           </div>
         </Card>
-      ) : null}
+      ) : (
+        <Card className="!p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
+            Live branding · Pro
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+            Saved branding is live on customer invoices, payment links, and receipts. If branding is
+            rejected by Alta staff, checkout falls back to default Alta styling until you resave.
+          </p>
+        </Card>
+      )}
 
       {settings.rejectedAt ? (
         <Card className="border-destructive/40 !p-4 text-sm text-destructive">
@@ -341,17 +352,29 @@ export function CommercialBrandingPanel({
             type="button"
             disabled={saving || !settings.canPublish}
             onClick={() => void saveBranding()}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
+            className="inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background disabled:opacity-50"
           >
-            {saving ? SUBMITTING_COPY.saving : settings.canPublish ? "Save branding" : "Pro required to publish"}
+            {saving
+              ? SUBMITTING_COPY.saving
+              : settings.canPublish
+                ? "Publish branding"
+                : "Pro required to publish"}
           </button>
+          {!settings.canPublish ? (
+            <p className="self-center text-[12px] text-muted-foreground">
+              Edits stay in preview until Pro publishes them.
+            </p>
+          ) : null}
         </div>
         {message ? <p className="mt-3 text-sm text-muted-foreground">{message}</p> : null}
         {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <BrandingPreviewCard title="Invoice preview">
+        <BrandingPreviewCard
+          title="Invoice preview"
+          badge={settings.canPublish ? "Live when saved" : "Preview only"}
+        >
           <CommercialBrandedCheckoutShell
             branding={previewBrandingState}
             merchantName={settings.companyName}
@@ -365,7 +388,10 @@ export function CommercialBrandingPanel({
           </CommercialBrandedCheckoutShell>
         </BrandingPreviewCard>
 
-        <BrandingPreviewCard title="Payment link preview">
+        <BrandingPreviewCard
+          title="Payment link preview"
+          badge={settings.canPublish ? "Live when saved" : "Preview only"}
+        >
           <CommercialBrandedCheckoutShell
             branding={previewBrandingState}
             merchantName={settings.companyName}
@@ -378,7 +404,11 @@ export function CommercialBrandingPanel({
           </CommercialBrandedCheckoutShell>
         </BrandingPreviewCard>
 
-        <BrandingPreviewCard title="Receipt preview" className="xl:col-span-2">
+        <BrandingPreviewCard
+          title="Receipt preview"
+          className="xl:col-span-2"
+          badge={settings.canPublish ? "Live when saved" : "Preview only"}
+        >
           <CommercialBrandedReceiptShell
             branding={previewBrandingState}
             merchantName={settings.companyName}
@@ -398,18 +428,23 @@ export function CommercialBrandingPanel({
 
 function BrandingPreviewCard({
   title,
+  badge,
   children,
   className,
 }: {
   title: string;
+  badge: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <Card className={`!p-4 ${className ?? ""}`}>
-      <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {title}
-      </p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {title}
+        </p>
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold">{badge}</span>
+      </div>
       <div className="pointer-events-none scale-[0.98] origin-top">{children}</div>
     </Card>
   );

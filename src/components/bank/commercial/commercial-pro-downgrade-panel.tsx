@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -11,29 +11,28 @@ import {
 } from "@/components/bank/bank-request-submission-ui";
 import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
 import { LOADING_COPY } from "@/lib/ui/route-loading";
+import { ResponsiveBankAction } from "@/components/bank/actions/responsive-bank-action";
+import {
+  BankActionFooter,
+  BankActionSecondaryButton,
+} from "@/components/bank/actions/bank-action-buttons";
 import { florin } from "@/lib/bank/api";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
-import type { CommercialDowngradePreview } from "@/lib/bank/commercial-billing-types";
+import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
+import type {
+  CommercialDowngradeMode,
+  CommercialDowngradePreview,
+} from "@/lib/bank/commercial-billing-types";
 import { COMMERCIAL_PLAN_LABELS } from "@/lib/bank/commercial-banking-types";
 import {
   downgradeCommercialProPlan,
   fetchCommercialDowngradePreview,
 } from "@/lib/bank/commercial-banking.functions";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { formatActivityDateTime } from "@/lib/format-datetime";
+import { cn } from "@/lib/utils";
 
 const DOWNGRADE_DESCRIPTION =
-  "Downgrade to Alta Commercial Core to stop Pro billing. Core limits apply immediately.";
-
-const downgradeDialogClass =
-  "max-w-md gap-3 border-border bg-surface-1 p-5 sm:max-h-[min(85dvh,calc(100dvh-5rem))]";
-
-type FormView = "compose" | "review" | "success" | "error";
+  "Return to Alta Commercial Core when your current Pro period ends, or downgrade immediately with explicit confirmation.";
 
 type CommercialProDowngradePanelProps = {
   companyId: string;
@@ -70,7 +69,7 @@ function CleanupSummary({ preview }: { preview: CommercialDowngradePreview }) {
   if (items.length === 0) {
     return (
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        No receivables or payroll activity need to be cancelled for Core limits right now.
+        No payroll or excess receivables need to be cancelled for Core limits right now.
       </p>
     );
   }
@@ -80,10 +79,32 @@ function CleanupSummary({ preview }: { preview: CommercialDowngradePreview }) {
       {items.map((item) => (
         <li key={item} className="flex gap-2">
           <span aria-hidden="true">·</span>
-          <span>{item}</span>
+          <span className="min-w-0">{item}</span>
         </li>
       ))}
     </ul>
+  );
+}
+
+function PeriodEndExplainer({ preview }: { preview: CommercialDowngradePreview }) {
+  const periodLabel = preview.periodEndAt
+    ? formatActivityDateTime(preview.periodEndAt)
+    : "the end of your current billing period";
+
+  return (
+    <div className="min-w-0 space-y-3 text-[13px] leading-relaxed text-muted-foreground">
+      <p>
+        Pro stays active through{" "}
+        <span className="font-medium text-foreground">{periodLabel}</span>. Existing invoices and
+        payment links remain valid. After that date, new invoices and payment links follow Core
+        limits, and payroll shows Pro ending on that date.
+      </p>
+      <p>
+        Core includes {preview.coreLimits.coreInvoiceMonthlyLimit} invoices and{" "}
+        {preview.coreLimits.corePaymentLinkMonthlyLimit} payment links per month, and up to{" "}
+        {preview.coreLimits.coreTeamMemberLimit} team members.
+      </p>
+    </div>
   );
 }
 
@@ -98,19 +119,32 @@ export function CommercialProDowngradePanel({
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<FormView>("compose");
+  const [phase, setPhase] = useState<BankActionPhase>("details");
   const [preview, setPreview] = useState<CommercialDowngradePreview | null>(null);
+  const [mode, setMode] = useState<CommercialDowngradeMode>("period_end");
+  const [acknowledgeImmediate, setAcknowledgeImmediate] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<BankRequestSubmissionResult | null>(null);
+  const [resultMode, setResultMode] = useState<CommercialDowngradeMode | null>(null);
+  const [effectiveAt, setEffectiveAt] = useState<string | null>(null);
+
+  const dirty = useMemo(() => {
+    if (phase === "success" || phase === "submitting") return false;
+    if (phase === "review") return true;
+    return mode !== "period_end" || acknowledgeImmediate;
+  }, [phase, mode, acknowledgeImmediate]);
 
   function resetForm() {
-    setView("compose");
+    setPhase("details");
     setComposeError(null);
     setErrorReason(null);
     setSubmission(null);
     setPreview(null);
+    setMode("period_end");
+    setAcknowledgeImmediate(false);
+    setResultMode(null);
+    setEffectiveAt(null);
   }
 
   async function openPanel() {
@@ -120,7 +154,13 @@ export function CommercialProDowngradePanel({
     try {
       const nextPreview = await fetchPreview({ data: companyId });
       setPreview(nextPreview);
-      if (!nextPreview.canDowngrade) {
+      if (nextPreview.downgradeAlreadyScheduled) {
+        setComposeError(
+          nextPreview.scheduledDowngradeAt
+            ? `A downgrade is already scheduled for ${formatActivityDateTime(nextPreview.scheduledDowngradeAt)}.`
+            : "A downgrade is already scheduled for the end of this billing period.",
+        );
+      } else if (!nextPreview.canDowngrade) {
         setComposeError("This company is not eligible to downgrade right now.");
       }
     } catch (err) {
@@ -135,7 +175,7 @@ export function CommercialProDowngradePanel({
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next && view === "success") {
+    if (!next && phase === "success") {
       void router.invalidate();
       onCompleted();
     }
@@ -145,39 +185,94 @@ export function CommercialProDowngradePanel({
     }
   }
 
-  async function submitDowngrade(e: React.FormEvent) {
-    e.preventDefault();
-    if (!preview || submitting) return;
+  function goToReview() {
+    setComposeError(null);
+    if (!preview?.canDowngrade || preview.downgradeAlreadyScheduled) return;
+    if (mode === "immediate" && !acknowledgeImmediate) {
+      setComposeError("Confirm the immediate cleanup items before continuing.");
+      return;
+    }
+    setPhase("review");
+  }
 
-    setSubmitting(true);
+  async function submitDowngrade() {
+    if (!preview || phase === "submitting") return;
+
+    setPhase("submitting");
 
     try {
-      const result = await downgradePlan({ data: { companyId } });
+      const result = await downgradePlan({
+        data: {
+          companyId,
+          mode,
+          ...(mode === "immediate" ? { acknowledgeImmediateCleanup: true } : {}),
+        },
+      });
 
-      const submitted: BankRequestSubmissionResult = {
+      setResultMode(result.mode);
+      setEffectiveAt(result.effectiveAt);
+      setSubmission({
         referenceCode: result.companyId,
         amount: 0,
         submittedAt: new Date().toISOString(),
         accountName: result.companyName,
         accountNumber: COMMERCIAL_PLAN_LABELS.CORE,
-      };
-
-      setSubmission(submitted);
-      setView("success");
+      });
+      setPhase("success");
     } catch (err) {
       setErrorReason(formatCustomerActionError(err, "commercial_pro_downgrade"));
-      setView("error");
-    } finally {
-      setSubmitting(false);
+      setPhase("error");
     }
   }
 
-  function renderContent() {
+  const title =
+    phase === "success"
+      ? resultMode === "period_end"
+        ? "Downgrade scheduled"
+        : "Downgraded to Core"
+      : phase === "error"
+        ? "Downgrade failed"
+        : phase === "review" || phase === "submitting"
+          ? "Review downgrade"
+          : "Downgrade to Core";
+
+  const description =
+    phase === "details" && !loading
+      ? DOWNGRADE_DESCRIPTION
+      : phase === "review"
+        ? mode === "period_end"
+          ? "Confirm scheduling Core at period end."
+          : "Confirm immediate downgrade and cleanup."
+        : undefined;
+
+  const showBack = phase === "review" || phase === "error";
+
+  function renderBody() {
     if (loading) {
       return <SkeletonFormPanel fields={3} label={LOADING_COPY.commercialDowngrade} />;
     }
 
-    if (view === "success" && submission) {
+    if (phase === "success" && submission) {
+      if (resultMode === "period_end") {
+        return (
+          <div className="text-center" role="status" aria-live="polite">
+            <p className="text-lg font-semibold tracking-tight">Downgrade scheduled</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              Pro remains active until{" "}
+              {effectiveAt ? formatActivityDateTime(effectiveAt) : "period end"}. Existing invoices
+              and payment links stay valid. Core limits apply to new creation after that date.
+            </p>
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              className="mt-6 w-full rounded-xl border border-border/80 bg-background px-4 py-3 text-[14px] font-medium tracking-tight text-foreground transition-colors hover:bg-surface-2/60"
+            >
+              Close
+            </button>
+          </div>
+        );
+      }
+
       return (
         <BankRequestSuccessCard
           kind="commercial_pro_downgrade"
@@ -188,155 +283,240 @@ export function CommercialProDowngradePanel({
       );
     }
 
-    if (view === "error") {
+    if (phase === "error") {
       return (
         <BankRequestErrorCard
           reason={errorReason}
           variant="embedded"
           onTryAgain={() => {
             setErrorReason(null);
-            setView("review");
+            setPhase("review");
           }}
         />
       );
     }
 
-    if (view === "review" && preview) {
+    if ((phase === "review" || phase === "submitting") && preview) {
       return (
-        <form onSubmit={submitDowngrade} className="space-y-4">
-          <div className="space-y-4">
-            <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold">
-                Review downgrade
-              </div>
-              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Confirm the details below. This takes effect immediately.
-              </p>
+        <div className="min-w-0 space-y-4">
+          <div className="min-w-0 space-y-3 border-y border-border/60 py-4 text-sm">
+            <div className="flex min-w-0 justify-between gap-3">
+              <span className="shrink-0 text-muted-foreground">Current plan</span>
+              <span className="min-w-0 truncate text-right font-medium">
+                {COMMERCIAL_PLAN_LABELS[preview.currentPlan]}
+              </span>
             </div>
-
-            <div className="space-y-3 border-y border-border/60 py-4 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Current plan</span>
-                <span className="font-medium">{COMMERCIAL_PLAN_LABELS[preview.currentPlan]}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">New plan</span>
-                <span className="font-medium">{COMMERCIAL_PLAN_LABELS[preview.targetPlan]}</span>
-              </div>
-              {preview.monthlyFee != null ? (
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Pro billing</span>
-                  <span className="text-right text-[13px]">
-                    {florin(preview.monthlyFee)} / month stops immediately
-                  </span>
-                </div>
-              ) : null}
+            <div className="flex min-w-0 justify-between gap-3">
+              <span className="shrink-0 text-muted-foreground">New plan</span>
+              <span className="min-w-0 truncate text-right font-medium">
+                {COMMERCIAL_PLAN_LABELS[preview.targetPlan]}
+              </span>
             </div>
+            <div className="flex min-w-0 justify-between gap-3">
+              <span className="shrink-0 text-muted-foreground">Effective</span>
+              <span className="min-w-0 text-right text-[13px]">
+                {mode === "period_end"
+                  ? preview.periodEndAt
+                    ? formatActivityDateTime(preview.periodEndAt)
+                    : "End of billing period"
+                  : "Immediately"}
+              </span>
+            </div>
+            {preview.monthlyFee != null ? (
+              <div className="flex min-w-0 justify-between gap-3">
+                <span className="shrink-0 text-muted-foreground">Pro billing</span>
+                <span className="min-w-0 text-right text-[13px]">
+                  {mode === "period_end"
+                    ? `${florin(preview.monthlyFee)} / month through period end`
+                    : `${florin(preview.monthlyFee)} / month stops immediately`}
+                </span>
+              </div>
+            ) : null}
+          </div>
 
+          {mode === "period_end" ? (
+            <PeriodEndExplainer preview={preview} />
+          ) : (
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Core cleanup
+                Immediate cleanup
               </p>
               <div className="mt-2">
                 <CleanupSummary preview={preview} />
               </div>
             </div>
-
-            <fieldset
-              disabled={submitting}
-              className="flex flex-wrap items-center gap-2 border-0 p-0 m-0 min-w-0"
-            >
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => setView("compose")}
-                className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Back
-              </button>
-              <BankRequestSubmitButton
-                kind="commercial_pro_downgrade"
-                submitting={submitting}
-                showContainer={false}
-              />
-            </fieldset>
-          </div>
-        </form>
+          )}
+        </div>
       );
     }
 
     return (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!preview?.canDowngrade) return;
-          setView("review");
-        }}
-        className="space-y-4"
-      >
-        <div className="space-y-3 text-[13px] leading-relaxed text-muted-foreground">
-          <p>
-            Core includes {preview?.coreLimits.coreInvoiceMonthlyLimit ?? 10} invoices and{" "}
-            {preview?.coreLimits.corePaymentLinkMonthlyLimit ?? 5} payment links per month, up to{" "}
-            {preview?.coreLimits.coreTeamMemberLimit ?? 3} team members, and basic analytics.
+      <div className="min-w-0 space-y-4">
+        {preview ? <PeriodEndExplainer preview={preview} /> : null}
+
+        <div className="min-w-0 space-y-2">
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            When to downgrade
           </p>
-          <p>
-            You will lose advanced analytics, payroll, custom branding, priority support, and
-            unlimited receivables.
-          </p>
+          <div className="min-w-0 space-y-2">
+            <ModeOption
+              selected={mode === "period_end"}
+              title="Downgrade at period end"
+              description={
+                preview?.periodEndAt
+                  ? `Recommended. Pro ends ${formatActivityDateTime(preview.periodEndAt)}. No receivables are cancelled now.`
+                  : "Recommended. Keep Pro until the current billing period ends."
+              }
+              onSelect={() => {
+                setMode("period_end");
+                setAcknowledgeImmediate(false);
+                setComposeError(null);
+              }}
+            />
+            <ModeOption
+              selected={mode === "immediate"}
+              title="Downgrade immediately"
+              description="Ends Pro now. Requires acknowledging payroll and excess invoice/link cleanup."
+              onSelect={() => {
+                setMode("immediate");
+                setComposeError(null);
+              }}
+            />
+          </div>
         </div>
 
-        {preview ? (
-          <div className="rounded-lg border border-border/70 bg-surface-2/30 p-3">
+        {mode === "immediate" && preview ? (
+          <div className="min-w-0 rounded-lg border border-border/70 bg-surface-2/30 p-3">
             <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              If you downgrade now
+              Immediate cleanup
             </p>
             <div className="mt-2">
               <CleanupSummary preview={preview} />
             </div>
+            <label className="mt-3 flex min-w-0 items-start gap-2 text-[13px] leading-relaxed">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 shrink-0 rounded border-border"
+                checked={acknowledgeImmediate}
+                onChange={(e) => {
+                  setAcknowledgeImmediate(e.target.checked);
+                  setComposeError(null);
+                }}
+              />
+              <span className="min-w-0">
+                I understand payroll will be cancelled and excess invoices or payment links created
+                this month may be cancelled to meet Core limits.
+              </span>
+            </label>
           </div>
         ) : null}
 
         {composeError ? <p className="text-sm text-destructive">{composeError}</p> : null}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleOpenChange(false)}
-            className="rounded-md border border-border px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-surface-2/60"
-          >
-            Cancel
-          </button>
-          <BankRequestSubmitButton
-            kind="commercial_pro_downgrade"
-            submitting={false}
-            disabled={!preview?.canDowngrade}
-            label="Review Downgrade"
-            showContainer={false}
-          />
-        </div>
-      </form>
+      </div>
     );
   }
 
-  const showIntro = view === "compose" && !loading;
+  const canContinue =
+    Boolean(preview?.canDowngrade) &&
+    !preview?.downgradeAlreadyScheduled &&
+    (mode === "period_end" || acknowledgeImmediate);
+
+  const footer =
+    phase === "success" || phase === "error" || loading ? null : (
+      <form
+        className="[&_button[type=submit]]:w-full sm:[&_button[type=submit]]:w-auto"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (phase === "review" || phase === "submitting") void submitDowngrade();
+          else goToReview();
+        }}
+      >
+        {phase === "review" || phase === "submitting" ? (
+          <BankActionFooter>
+            <BankActionSecondaryButton
+              disabled={phase === "submitting"}
+              onClick={() => setPhase("details")}
+            >
+              Back
+            </BankActionSecondaryButton>
+            <BankRequestSubmitButton
+              kind="commercial_pro_downgrade"
+              submitting={phase === "submitting"}
+              label={mode === "period_end" ? "Schedule Downgrade" : "Downgrade Immediately"}
+              showContainer={false}
+            />
+          </BankActionFooter>
+        ) : (
+          <BankActionFooter>
+            <BankActionSecondaryButton onClick={() => handleOpenChange(false)}>
+              Cancel
+            </BankActionSecondaryButton>
+            <BankRequestSubmitButton
+              kind="commercial_pro_downgrade"
+              submitting={false}
+              disabled={!canContinue}
+              label="Review Downgrade"
+              showContainer={false}
+            />
+          </BankActionFooter>
+        )}
+      </form>
+    );
 
   return (
     <>
       {children({ open: () => void openPanel(), loading })}
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className={downgradeDialogClass}>
-          <DialogHeader className="space-y-1 pr-8">
-            <DialogTitle className="font-serif text-[18px] leading-snug">Downgrade to Core</DialogTitle>
-            {showIntro ? (
-              <DialogDescription className="text-[13px] leading-relaxed">
-                {DOWNGRADE_DESCRIPTION}
-              </DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {renderContent()}
-        </DialogContent>
-      </Dialog>
+      <ResponsiveBankAction
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={title}
+        description={description}
+        phase={phase}
+        dirty={dirty}
+        showBack={showBack}
+        onBack={() => {
+          if (phase === "error") {
+            setErrorReason(null);
+            setPhase("review");
+            return;
+          }
+          setPhase("details");
+        }}
+        footer={footer}
+        size="md"
+        scrollResetKey={phase}
+      >
+        {renderBody()}
+      </ResponsiveBankAction>
     </>
+  );
+}
+
+function ModeOption({
+  selected,
+  title,
+  description,
+  onSelect,
+}: {
+  selected: boolean;
+  title: string;
+  description: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "flex w-full min-w-0 flex-col rounded-lg border px-3 py-3 text-left transition-colors",
+        selected
+          ? "border-foreground bg-surface-2/40"
+          : "border-border hover:bg-surface-2/30",
+      )}
+      aria-pressed={selected}
+    >
+      <span className="text-[13px] font-medium text-foreground">{title}</span>
+      <span className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{description}</span>
+    </button>
   );
 }

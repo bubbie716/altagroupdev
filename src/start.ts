@@ -1,6 +1,14 @@
-import { createStart, createMiddleware } from "@tanstack/react-start";
+import { createStart, createMiddleware, createCsrfMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+
+/**
+ * Protect same-origin server-function RPCs from cross-site requests.
+ * Recommended TanStack Start filter: only validate serverFn handler traffic.
+ */
+export const csrfMiddleware = createCsrfMiddleware({
+  filter: (ctx) => ctx.handlerType === "serverFn",
+});
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -18,5 +26,6 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware],
+  // CSRF first for server functions; error middleware still wraps handler failures.
+  requestMiddleware: [csrfMiddleware, errorMiddleware],
 }));

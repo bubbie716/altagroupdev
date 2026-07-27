@@ -1,8 +1,6 @@
 "use client";
 
-import { useRouter } from "@tanstack/react-router";
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
-import type { AltaCardReviewEligibility } from "@/lib/bank/alta-card-review-types";
 import {
   AltaCardActionButton,
   AltaCardQuickActionCell,
@@ -10,28 +8,21 @@ import {
 } from "@/components/bank/alta-card/alta-card-ui-primitives";
 import { AltaCardCashAdvancePanel } from "@/components/bank/alta-card/alta-card-cash-advance-panel";
 import { AltaCardPaymentPanel } from "@/components/bank/alta-card/alta-card-payment-panel";
-import { activateAltaCardRecord } from "@/lib/bank/alta-card.functions";
-import { altaCardStatementsLink, altaCardReviewLink, altaCardReviewDetailLink } from "@/lib/bank/alta-card-navigation";
-import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
-import { useBankActionLauncher } from "@/components/bank/actions/use-bank-action-launcher";
 
 export function AltaCardQuickActions({
   card,
-  reviewEligibility,
+  onManage,
 }: {
   card: AltaCardRow;
-  reviewEligibility?: AltaCardReviewEligibility | null;
+  onManage?: () => void;
 }) {
-  const router = useRouter();
-  const creditDeskNav = useCreditDeskCustomerNav();
-  const { openAction } = useBankActionLauncher();
   const canPay = card.currentBalance > 0 && card.status !== "closed";
   const canAdvance = card.status === "active" && card.availableCredit > 0;
   const canAltaPay = card.status === "active";
-  const activeReviewId = reviewEligibility?.activeReviewId ?? null;
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="space-y-3">
+      <div className="grid min-w-0 grid-cols-1 gap-2.5 min-[420px]:grid-cols-3">
         <AltaCardQuickActionCell>
           {canPay ? (
             <AltaCardPaymentPanel card={card} variant="quick" />
@@ -56,62 +47,17 @@ export function AltaCardQuickActions({
             disabled={!canAltaPay}
           />
         </AltaCardQuickActionCell>
-
-        <AltaCardQuickActionCell>
-          <AltaCardQuickActionLink label="Statements" {...altaCardStatementsLink(card)} />
-        </AltaCardQuickActionCell>
-
-        {card.status === "pending" ? (
-          <AltaCardQuickActionCell>
-            <AltaCardActionButton
-              label="Activate card"
-              variant="primary"
-              tile
-              onClick={() => void activateAltaCardRecord({ data: card.id }).then(() => router.invalidate())}
-            />
-          </AltaCardQuickActionCell>
-        ) : null}
-
-        {card.status === "active" ? (
-          <AltaCardQuickActionCell>
-            <AltaCardActionButton
-              label="Freeze card"
-              variant="ghost"
-              tile
-              onClick={() => {
-                openAction("card-freeze", { cardId: card.id });
-              }}
-            />
-          </AltaCardQuickActionCell>
-        ) : null}
-
-        {card.status === "frozen" ? (
-          <AltaCardQuickActionCell>
-            <AltaCardActionButton
-              label="Unfreeze"
-              variant="primary"
-              tile
-              onClick={() => {
-                openAction("card-unfreeze", { cardId: card.id });
-              }}
-            />
-          </AltaCardQuickActionCell>
-        ) : null}
-
-        <AltaCardQuickActionCell>
-          {card.status !== "closed" && (creditDeskNav.showApplyEntryPoints || activeReviewId) ? (
-            activeReviewId && !creditDeskNav.showApplyEntryPoints ? (
-              <AltaCardQuickActionLink
-                label="Account review"
-                {...altaCardReviewDetailLink(card, activeReviewId)}
-              />
-            ) : (
-              <AltaCardQuickActionLink label="Account review" {...altaCardReviewLink(card)} />
-            )
-          ) : (
-            <AltaCardActionButton label="Account review" variant="ghost" tile disabled />
-          )}
-        </AltaCardQuickActionCell>
       </div>
+
+      {onManage ? (
+        <button
+          type="button"
+          onClick={onManage}
+          className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Manage card
+        </button>
+      ) : null}
+    </div>
   );
 }

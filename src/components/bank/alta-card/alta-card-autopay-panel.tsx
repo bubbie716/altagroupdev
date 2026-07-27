@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { florin } from "@/lib/bank/api";
@@ -19,10 +19,22 @@ import {
 import type { AltaCardRow } from "@/lib/bank/alta-card-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { SkeletonFormPanel } from "@/components/ui/skeleton-form-panel";
-import { LOADING_COPY, SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { LOADING_COPY } from "@/lib/ui/route-loading";
+import { BankActionProcessing } from "@/components/bank/actions/bank-action-chrome";
+import { BankProcessError, BankProcessResult } from "@/components/bank/actions/bank-process-ui";
+import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
+import { applyUiLabAltaCardAutopay, getUiLabAltaCardOverlay } from "@/lib/bank/ui-lab-alta-card-state";
+import {
+  mockBankActionSubmission,
+  shouldUseBankActionUiLabMock,
+} from "@/lib/bank/bank-action-ui-lab";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { cn } from "@/lib/utils";
+import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
+
+type AutopayView = "form" | "submitting" | "success" | "error";
 
 function parseServerError(err: unknown): string {
   const message = err instanceof Error ? err.message : "Could not update autopay";
@@ -31,20 +43,35 @@ function parseServerError(err: unknown): string {
   return message;
 }
 
+type AutopaySnapshot = {
+  enabled: boolean;
+  sourceAccountId: string;
+  type: AltaCardAutopayTypeCode;
+  fixedAmount: string;
+};
+
 export function AltaCardAutopayPanel({
   card,
   initialContext,
+  onDirtyChange,
+  onPhaseChange,
 }: {
   card: AltaCardRow;
   initialContext?: AltaCardAutopayContext;
+  onDirtyChange?: (dirty: boolean) => void;
+  onPhaseChange?: (phase: BankActionPhase) => void;
 }) {
   const router = useRouter();
   const loadContext = useServerFn(fetchAltaCardAutopayContext);
   const save = useServerFn(updateAltaCardAutopaySettings);
 
+  const overlay = getUiLabAltaCardOverlay(card.id);
+  const initialEnabled =
+    overlay?.autopayEnabled ?? initialContext?.settings.enabled ?? false;
+
   const [context, setContext] = useState<AltaCardAutopayContext | null>(initialContext ?? null);
-  const [loading, setLoading] = useState(!initialContext);
-  const [enabled, setEnabled] = useState(initialContext?.settings.enabled ?? false);
+  const [loading, setLoading] = useState(!initialContext && !shouldUseBankActionUiLabMock());
+  const [enabled, setEnabled] = useState(initialEnabled);
   const [sourceAccountId, setSourceAccountId] = useState(
     initialContext?.settings.sourceAccountId ?? initialContext?.sourceAccounts[0]?.id ?? "",
   );
@@ -54,21 +81,112 @@ export function AltaCardAutopayPanel({
   const [fixedAmount, setFixedAmount] = useState(
     String(initialContext?.settings.fixedAmount ?? "100"),
   );
-  const [submitting, setSubmitting] = useState(false);
+  const [view, setView] = useState<AutopayView>("form");
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [confirmEnable, setConfirmEnable] = useState(false);
+  const submittingLockRef = useRef(false);
+
+  const initialSnapshotRef = useRef<AutopaySnapshot>({
+    enabled: initialEnabled,
+    sourceAccountId:
+      initialContext?.settings.sourceAccountId ?? initialContext?.sourceAccounts[0]?.id ?? "",
+    type: initialContext?.settings.type ?? "minimum_payment",
+    fixedAmount: String(initialContext?.settings.fixedAmount ?? "100"),
+  });
+
+  useEffect(() => {
+    if (shouldUseBankActionUiLabMock() && !context) {
+      setContext({
+        settings: {
+          enabled: initialEnabled,
+          sourceAccountId: "ui-lab-checking",
+          sourceAccountLabel: "UI Lab Checking · AB-5000-000001",
+          type: "minimum_payment",
+          fixedAmount: null,
+          lastRunAt: null,
+          lastStatus: "not_run",
+          failureReason: null,
+          canManage: true,
+        },
+        sourceAccounts: [
+          {
+            id: "ui-lab-checking",
+            accountName: "UI Lab Checking",
+            accountNumber: "AB-5000-000001",
+            availableBalance: 12_000,
+          },
+        ],
+      });
+      setSourceAccountId("ui-lab-checking");
+      setLoading(false);
+      initialSnapshotRef.current = {
+        enabled: initialEnabled,
+        sourceAccountId: "ui-lab-checking",
+        type: "minimum_payment",
+        fixedAmount: "100",
+      };
+    }
+  }, [context, initialEnabled]);
+
+  const dirty =
+    enabled !== initialSnapshotRef.current.enabled ||
+    sourceAccountId !== initialSnapshotRef.current.sourceAccountId ||
+    type !== initialSnapshotRef.current.type ||
+    (type === "fixed_amount" && fixedAmount !== initialSnapshotRef.current.fixedAmount);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty && view === "form");
+  }, [dirty, view, onDirtyChange]);
+
+  useEffect(() => {
+    if (view === "submitting") onPhaseChange?.("submitting");
+    else if (view === "success") onPhaseChange?.("success");
+    else if (view === "error") onPhaseChange?.("error");
+    else if (confirmEnable) onPhaseChange?.("review");
+    else onPhaseChange?.("details");
+  }, [view, confirmEnable, onPhaseChange]);
 
   async function ensureContext() {
     if (context) return context;
+    if (shouldUseBankActionUiLabMock()) {
+      const mock: AltaCardAutopayContext = {
+        settings: {
+          enabled: initialEnabled,
+          sourceAccountId: "ui-lab-checking",
+          sourceAccountLabel: "UI Lab Checking · AB-5000-000001",
+          type: "minimum_payment",
+          fixedAmount: null,
+          lastRunAt: null,
+          lastStatus: "not_run",
+          failureReason: null,
+          canManage: true,
+        },
+        sourceAccounts: [
+          {
+            id: "ui-lab-checking",
+            accountName: "UI Lab Checking",
+            accountNumber: "AB-5000-000001",
+            availableBalance: 12_000,
+          },
+        ],
+      };
+      setContext(mock);
+      return mock;
+    }
     setLoading(true);
     try {
       const loaded = await loadContext({ data: card.id });
       setContext(loaded);
-      setEnabled(loaded.settings.enabled);
+      setEnabled(overlay?.autopayEnabled ?? loaded.settings.enabled);
       setSourceAccountId(loaded.settings.sourceAccountId ?? loaded.sourceAccounts[0]?.id ?? "");
       setType(loaded.settings.type ?? "minimum_payment");
       setFixedAmount(String(loaded.settings.fixedAmount ?? "100"));
+      initialSnapshotRef.current = {
+        enabled: overlay?.autopayEnabled ?? loaded.settings.enabled,
+        sourceAccountId: loaded.settings.sourceAccountId ?? loaded.sourceAccounts[0]?.id ?? "",
+        type: loaded.settings.type ?? "minimum_payment",
+        fixedAmount: String(loaded.settings.fixedAmount ?? "100"),
+      };
       return loaded;
     } finally {
       setLoading(false);
@@ -78,37 +196,73 @@ export function AltaCardAutopayPanel({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSaved(false);
 
     if (enabled && !confirmEnable) {
       setConfirmEnable(true);
       return;
     }
 
-    setSubmitting(true);
+    if (submittingLockRef.current || view === "submitting") return;
+    submittingLockRef.current = true;
+    setView("submitting");
+    onDirtyChange?.(false);
+    const startedAt = Date.now();
+
     try {
       await ensureContext();
-      const updated = await save({
-        data: {
-          cardId: card.id,
-          enabled,
-          sourceAccountId: enabled ? sourceAccountId : undefined,
-          type: enabled ? type : undefined,
-          fixedAmount: enabled && type === "fixed_amount" ? Number(fixedAmount) : undefined,
-        },
-      });
-      setContext((current) =>
-        current
-          ? { ...current, settings: updated }
-          : { settings: updated, sourceAccounts: [] },
-      );
-      setSaved(true);
+
+      if (shouldUseBankActionUiLabMock()) {
+        mockBankActionSubmission({ kind: "autopay", amount: 0 });
+        applyUiLabAltaCardAutopay(card.id, enabled);
+        setContext((current) =>
+          current
+            ? {
+                ...current,
+                settings: {
+                  ...current.settings,
+                  enabled,
+                  sourceAccountId: enabled ? sourceAccountId : null,
+                  type: enabled ? type : null,
+                  fixedAmount: enabled && type === "fixed_amount" ? Number(fixedAmount) : null,
+                },
+              }
+            : current,
+        );
+      } else {
+        const updated = await save({
+          data: {
+            cardId: card.id,
+            enabled,
+            sourceAccountId: enabled ? sourceAccountId : undefined,
+            type: enabled ? type : undefined,
+            fixedAmount: enabled && type === "fixed_amount" ? Number(fixedAmount) : undefined,
+          },
+        });
+        if (isUiLabMode()) {
+          applyUiLabAltaCardAutopay(card.id, enabled);
+        }
+        setContext((current) =>
+          current
+            ? { ...current, settings: updated }
+            : { settings: updated, sourceAccounts: [] },
+        );
+        await router.invalidate();
+      }
+
+      initialSnapshotRef.current = {
+        enabled,
+        sourceAccountId,
+        type,
+        fixedAmount,
+      };
       setConfirmEnable(false);
-      await router.invalidate();
+      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
+      setView("success");
     } catch (err) {
       setError(parseServerError(err));
+      setView("error");
     } finally {
-      setSubmitting(false);
+      submittingLockRef.current = false;
     }
   }
 
@@ -119,7 +273,7 @@ export function AltaCardAutopayPanel({
   const settings = context?.settings;
   const sourceAccounts = context?.sourceAccounts ?? [];
   const readOnly = settings ? !settings.canManage : false;
-  const disabled = card.status === "closed" || readOnly;
+  const disabled = card.status === "closed" || readOnly || view === "submitting";
 
   if (sourceAccounts.length === 0 && !readOnly) {
     return (
@@ -129,12 +283,55 @@ export function AltaCardAutopayPanel({
     );
   }
 
+  if (view === "submitting") {
+    return <BankActionProcessing label="Saving Autopay…" />;
+  }
+
+  if (view === "success") {
+    return (
+      <BankProcessResult
+        kind="success"
+        title="Autopay saved"
+        liveMessage={enabled ? "Autopay is enabled." : "Autopay is disabled."}
+        summary={[
+          { label: "Status", value: enabled ? "Enabled" : "Disabled" },
+          ...(enabled
+            ? [
+                {
+                  label: "Payment type",
+                  value: altaCardAutopayTypeLabel(type),
+                },
+              ]
+            : []),
+        ]}
+        onDone={() => {
+          setView("form");
+          onPhaseChange?.("details");
+        }}
+      />
+    );
+  }
+
+  if (view === "error") {
+    return (
+      <BankProcessError
+        title="Could not save Autopay"
+        message={error ?? "Your Autopay settings could not be saved."}
+        onRetry={() => {
+          setError(null);
+          setView("form");
+        }}
+        retryLabel="Try again"
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-[13px]">
         <div>
           <dt className={fieldLabel}>Status</dt>
-          <dd className="mt-1">{settings?.enabled ? "Enabled" : "Disabled"}</dd>
+          <dd className="mt-1">{enabled ? "Enabled" : "Disabled"}</dd>
         </div>
         <div>
           <dt className={fieldLabel}>Payment type</dt>
@@ -194,7 +391,9 @@ export function AltaCardAutopayPanel({
                 <span className={fieldLabel}>Payment source account</span>
                 <select
                   value={sourceAccountId}
-                  onChange={(e) => setSourceAccountId(e.target.value)}
+                  onChange={(e) => {
+                    setSourceAccountId(e.target.value);
+                  }}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-[14px]"
                 >
                   {sourceAccounts.map((account) => (
@@ -218,7 +417,9 @@ export function AltaCardAutopayPanel({
                     key={value}
                     type="button"
                     disabled={disabled}
-                    onClick={() => setType(value)}
+                    onClick={() => {
+                      setType(value);
+                    }}
                     className={cn(
                       "rounded-lg border px-3 py-2 text-left text-[12px]",
                       type === value ? "border-gold/50 bg-gold/5" : "border-border",
@@ -237,7 +438,9 @@ export function AltaCardAutopayPanel({
                     min="0.01"
                     step="0.01"
                     value={fixedAmount}
-                    onChange={(e) => setFixedAmount(e.target.value)}
+                    onChange={(e) => {
+                      setFixedAmount(e.target.value);
+                    }}
                     className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-[14px]"
                   />
                 </label>
@@ -252,20 +455,12 @@ export function AltaCardAutopayPanel({
             </>
           ) : null}
 
-          {error ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
-              {error}
-            </p>
-          ) : null}
-
-          {saved ? <p className="text-[13px] text-gold">Autopay settings saved.</p> : null}
-
           <button
             type="submit"
-            disabled={disabled || submitting}
+            disabled={disabled}
             className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:opacity-50"
           >
-            {submitting ? SUBMITTING_COPY.saving : confirmEnable ? "Confirm and save autopay" : "Save autopay"}
+            {confirmEnable ? "Confirm and save autopay" : "Save autopay"}
           </button>
         </form>
       )}
