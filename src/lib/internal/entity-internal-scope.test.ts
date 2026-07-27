@@ -16,8 +16,6 @@ function userWithTags(tags: AltaUser["tags"]): AltaUser {
     minecraftUsername: null,
     tags,
     accountStatus: "active",
-    developerAccessStatus: "none",
-    developerAccess: false,
     internalAccess: true,
     companyMemberships: [],
     createdAt: new Date().toISOString(),

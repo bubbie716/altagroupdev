@@ -1,4 +1,4 @@
-export type { AltaUser, UserTag, CompanyRole, AccountStatus, DeveloperAccessStatus } from "./types";
+export type { AltaUser, UserTag, CompanyRole, AccountStatus } from "./types";
 export {
   hasTag,
   hasAnyTag,
@@ -9,14 +9,12 @@ export {
   formatUserTag,
 } from "./tags";
 export {
-  ISSUER_PORTAL_ROLES,
   COMPANY_MANAGEMENT_ROLES,
   findCompanyMembership,
   isAdmin,
   isCorporateAdmin,
   isBankAdmin,
   isTerminalAdmin,
-  isDeveloper,
   canAccessAnyInternal,
   canAccessBankInternal,
   canAccessInternalForSite,
@@ -26,13 +24,6 @@ export {
   isCompanyFinanceManager,
   isCompanyComplianceContact,
   canManageCompany,
-  canSubmitFilings,
-  canAccessIssuerPortal,
 } from "./permissions";
 export type { CompanyScope } from "./permissions";
-export {
-  authBeforeLoad,
-  internalBeforeLoad,
-  developerBeforeLoad,
-  issuerPortalBeforeLoad,
-} from "./guards";
+export { authBeforeLoad, internalBeforeLoad } from "./guards";

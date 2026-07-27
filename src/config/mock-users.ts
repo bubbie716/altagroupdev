@@ -11,7 +11,6 @@ export interface MockUserOverride {
   tags?: UserTag[];
   accountStatus?: AccountStatus;
   minecraftUsername?: string;
-  developerAccess?: boolean;
   companyMemberships?: Omit<CompanyMembership, "userId">[];
 }
 
@@ -20,7 +19,6 @@ export const MOCK_USER_OVERRIDES: Record<string, MockUserOverride> = {
   "000000000000000001": {
     tags: ["corporate_admin"],
     minecraftUsername: "VaultSeeker",
-    developerAccess: true,
     companyMemberships: [{ companyId: "CO-NPC", role: "finance_manager" }],
   },
   "000000000000000002": {
@@ -34,7 +32,6 @@ export const MOCK_USER_OVERRIDES: Record<string, MockUserOverride> = {
   "000000000000000003": {
     tags: [],
     minecraftUsername: "TerminalDev",
-    developerAccess: true,
     companyMemberships: [{ companyId: "CO-ALTB", role: "compliance_contact" }],
   },
   "000000000000000004": {

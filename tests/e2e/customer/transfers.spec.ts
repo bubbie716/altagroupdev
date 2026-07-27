@@ -3,21 +3,19 @@ import { visitAndAssert } from "../utils/page-health.js";
 import { describeMutations } from "../utils/mutations.js";
 
 test.describe("Transfers", () => {
-  test("loads intrabank transfer page", async ({ page }) => {
+  test("legacy intrabank URL redirects into transfer overlay", async ({ page }) => {
     await visitAndAssert(page, "/bank/transfers/intrabank");
-  });
-
-  test("loads interbank transfer page", async ({ page }) => {
-    await visitAndAssert(page, "/bank/transfers/interbank");
+    await expect(page).toHaveURL(/\/bank(\?|$)/);
+    await expect(page).toHaveURL(/action=transfer/);
   });
 
   describeMutations("Intrabank transfer", () => {
-    test("validates bad amount", async ({ page }) => {
-      await page.goto("/bank/transfers/intrabank");
+    test("validates bad amount in transfer overlay", async ({ page }) => {
+      await page.goto("/bank?action=transfer");
       const amount = page.getByRole("spinbutton", { name: /amount \(ƒ\)/i });
       if (await amount.isVisible()) {
         await amount.fill("-5");
-        const submit = page.getByRole("button", { name: /transfer|submit|review/i }).first();
+        const submit = page.getByRole("button", { name: /transfer|submit|review|continue/i }).first();
         if (await submit.isVisible()) {
           await submit.click();
           await expect(page.locator("body")).not.toBeEmpty();

@@ -4,7 +4,7 @@
 **Document ID:** AT-LEGAL-003  
 **Version:** 1.0  
 **Status:** Active disclosure  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 27, 2026  
 
 ---
 
@@ -44,11 +44,11 @@ Positions and balances may depend on provider or platform records rather than po
 
 ## 9. Settlement and Counterparty Risk
 
-A completed execution may still fail to settle. A provider, issuer, counterparty, payment source, or settlement service may fail to deliver required virtual cash or assets. Corrections or reversals may occur after an earlier provisional display.
+A completed execution may still fail to settle. A provider, company, counterparty, payment source, or settlement service may fail to deliver required virtual cash or assets. Corrections or reversals may occur after an earlier provisional display.
 
-## 10. Issuer Risk
+## 10. Company and Security Risk
 
-An issuer may provide inaccurate information, become inactive, act fraudulently, fail to honor a corporate action, lose community standing, or cease operating. Alta Terminal does not guarantee issuer conduct or disclosures.
+A company whose instruments appear in Terminal may provide inaccurate information, become inactive, act fraudulently, fail to honor a corporate action, lose community standing, or cease operating. Alta Terminal does not guarantee company conduct or disclosures.
 
 ## 11. Market Data Risk
 
@@ -64,11 +64,11 @@ Minecraft servers, Discord communities, roleplay governments, rules, ownership, 
 
 ## 14. Concentration Risk
 
-Holding a large portion of virtual value in one instrument, issuer, provider, industry, account, or community increases exposure to a single failure.
+Holding a large portion of virtual value in one instrument, company, provider, industry, account, or community increases exposure to a single failure.
 
 ## 15. Corporate-Action Risk
 
-Splits, distributions, mergers, symbol changes, cancellations, and other actions may be delayed, disputed, corrected, or inconsistently implemented by issuers and providers.
+Splits, distributions, mergers, symbol changes, cancellations, and other actions may be delayed, disputed, corrected, or inconsistently implemented by companies and providers.
 
 ## 16. Operational-Control Risk
 

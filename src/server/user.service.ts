@@ -2,11 +2,7 @@ import type { DiscordProfile } from "@/lib/auth/types";
 import { getMockUserOverride } from "@/config/mock-users";
 import { prisma } from "@/server/db";
 import { discordDisplayName, mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
-import {
-  toDbCompanyRole,
-  toDbDeveloperAccessStatus,
-  toDbUserTag,
-} from "@/server/enum-map";
+import { toDbCompanyRole, toDbUserTag } from "@/server/enum-map";
 import type { AltaUser } from "@/lib/auth/types";
 
 export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<AltaUser> {
@@ -29,12 +25,6 @@ export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<Al
         lastLoginAt: now,
         ...(mockOverride?.minecraftUsername !== undefined && {
           minecraftUsername: mockOverride.minecraftUsername,
-        }),
-        ...(mockOverride?.developerAccess === true && {
-          developerAccessStatus: toDbDeveloperAccessStatus("approved"),
-        }),
-        ...(mockOverride?.developerAccess === false && {
-          developerAccessStatus: toDbDeveloperAccessStatus("none"),
         }),
       },
       include: userWithMembershipsInclude,
@@ -67,10 +57,6 @@ export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<Al
       discordAvatar: profile.avatar,
       email: profile.email ?? null,
       minecraftUsername: mockOverride?.minecraftUsername ?? null,
-      developerAccessStatus:
-        mockOverride?.developerAccess === true
-          ? toDbDeveloperAccessStatus("approved")
-          : toDbDeveloperAccessStatus("none"),
       lastLoginAt: now,
       tags: mockOverride?.tags?.length
         ? {

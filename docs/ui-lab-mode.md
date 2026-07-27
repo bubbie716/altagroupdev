@@ -23,8 +23,7 @@ When `VITE_UI_LAB_MODE=true`:
 
 - The root `beforeLoad` skips `fetchCurrentUser()` and injects a mock
   user into router context.
-- `authBeforeLoad`, `developerBeforeLoad`,
-  `issuerPortalBeforeLoad`, and `internalBeforeLoad` short-circuit and
+- `authBeforeLoad` and `internalBeforeLoad` short-circuit and
   allow the route to render.
 - DATABASE_URL and Discord OAuth env vars are not required for
   navigating the preview (server functions are not called by guards).
@@ -38,8 +37,8 @@ When `VITE_UI_LAB_MODE=true`:
 - `/bank/dashboard`, `/bank/accounts`, `/bank/accounts/[accountId]`
 - `/bank/transfers`, `/bank/deposit`, `/bank/withdraw`
 - `/bank/lending/loans`, `/bank/statements`
-- `/exchange/terminal`
-- `/internal` (admin/operator bypass)
+- `/terminal`
+- `/internal` (staff bypass)
 
 ## Mock user
 
@@ -48,9 +47,9 @@ Defined in `src/lib/auth/ui-lab.ts` as `UI_LAB_MOCK_USER`:
 | Field           | Value                                                     |
 | --------------- | --------------------------------------------------------- |
 | Discord username| `Carter`                                                  |
-| Tags            | `admin`, `operator`, `developer`, `issuer`                |
+| Tags            | `corporate_admin`                                         |
 | Account status  | `active`                                                  |
-| Companies       | Alta Group N.V. (owner), Newport Petroleum Corp. (executive) |
+| Companies       | Alta Group N.V. (owner), Newport Petroleum Corp. (owner)  |
 
 The mock user only exists when the flag is on. With the flag off the
 constant is never read by any guard or route.

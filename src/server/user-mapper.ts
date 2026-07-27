@@ -1,13 +1,11 @@
 import type { Prisma } from "@prisma/client";
 import type { AltaUser, DiscordProfile, EnrichedCompanyMembership, UserTag } from "@/lib/auth/types";
 import {
-  developerAccessGranted,
   formatDbCompanyStatus,
   formatDbCompanyType,
   formatDbVerificationStatus,
   fromDbAccountStatus,
   fromDbCompanyRole,
-  fromDbDeveloperAccessStatus,
   fromDbUserTags,
 } from "@/server/enum-map";
 
@@ -39,7 +37,6 @@ function mapMemberships(user: UserWithRelations): EnrichedCompanyMembership[] {
 
 export function mapDbUserToAltaUser(user: UserWithRelations): AltaUser {
   const tags = mapTags(user);
-  const developerAccessStatus = fromDbDeveloperAccessStatus(user.developerAccessStatus);
 
   return {
     id: user.id,
@@ -50,8 +47,6 @@ export function mapDbUserToAltaUser(user: UserWithRelations): AltaUser {
     minecraftUsername: user.minecraftUsername,
     tags,
     accountStatus: fromDbAccountStatus(user.accountStatus),
-    developerAccessStatus,
-    developerAccess: developerAccessGranted(developerAccessStatus),
     internalAccess: tags.includes("corporate_admin") || tags.includes("bank_admin") || tags.includes("terminal_admin"),
     companyMemberships: mapMemberships(user),
     createdAt: user.createdAt.toISOString(),

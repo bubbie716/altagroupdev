@@ -39,30 +39,6 @@ export function applyEmbedTemplate(
         description: "Enter the notice details for Alta Bank clients.",
         footerText: "Alta Bank · Bank Like The 1%",
       };
-    case "ipo_announcement":
-      return {
-        ...base,
-        colorPreset: "success_green",
-        authorName: "Alta Terminal",
-        title: "IPO Announcement",
-        description: "Summarize the offering details for Terminal clients when IPO tooling is available.",
-        fields: [
-          field("Company", "—"),
-          field("Ticker", "—"),
-          field("Offering Price", "—"),
-          field("Status", "—"),
-        ],
-        footerText: `Alta Terminal · ${ALTA_TERMINAL_SUBTITLE}`,
-      };
-    case "developer_api_update":
-      return {
-        ...base,
-        colorPreset: "alta_navy",
-        authorName: "Alta Terminal",
-        title: "Developer API Update",
-        description: "Summarize the API change, affected endpoints, and effective date.",
-        footerText: `Alta Terminal · ${ALTA_TERMINAL_SUBTITLE}`,
-      };
     case "maintenance_notice":
       return {
         ...base,

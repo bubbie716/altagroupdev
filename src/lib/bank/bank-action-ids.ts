@@ -41,7 +41,7 @@ export function parseBankActionId(value: unknown): BankActionId | null {
   return isBankActionId(value) ? value : null;
 }
 
-/** Standalone page routes that host the same underlying form as overlays. */
+/** Standalone page routes retained as compatibility redirects to overlay actions. */
 export const BANK_ACTION_PAGE_ROUTES: Partial<Record<BankActionId, string>> = {
   deposit: "/bank/deposit",
   withdraw: "/bank/withdraw",

@@ -63,6 +63,7 @@ export function resolveInitialBankHomeContext(
   options: BankHomeContextOption[],
 ): BankHomeContextId {
   if (stored && options.some((o) => o.id === stored)) return stored;
+  if (options.some((o) => o.id === "all")) return "all";
   return "personal";
 }
 

@@ -13,7 +13,6 @@ export type CompanyType =
   | "Listed Company"
   | "Bank"
   | "Brokerage"
-  | "Issuer"
   | "Institution";
 
 export type CompanyAccountStatus = "Pending" | "Active" | "Listed" | "Suspended" | "Rejected";
@@ -23,10 +22,6 @@ export type DocumentReceiptStatus = "Complete" | "Partial" | "Missing";
 export type BoardApprovalStatus = "Approved" | "Pending" | "Not Required" | "Rejected";
 
 export type AccountStatus = "Active" | "Frozen" | "Suspended" | "Pending";
-export type IpoApplicationStatus = "New" | "Under Review" | "Approved" | "Rejected" | "Needs Info";
-export type ApiApplicationStatus = "New" | "Under Review" | "Approved" | "Rejected" | "Needs Info" | "Revoked";
-export type ApiAccessTier = "Standard" | "Professional" | "Institutional";
-export type ListingStatus = "Listed" | "Suspended" | "Halted" | "Delisted";
 export type ComplianceSeverity = "Low" | "Medium" | "High" | "Critical";
 export type ComplianceCaseStatus = "Open" | "Assigned" | "Resolved" | "Escalated";
 export type SystemStatusLevel = "Operational" | "Degraded" | "Maintenance";
@@ -83,25 +78,18 @@ export interface CompanyAccount {
   lastUpdated: string;
   /** Detail-only fields */
   documents?: CompanyDocument[];
-  ipoListingStatus?: string;
   bankAccounts?: { id: string; product: string; status: string }[];
-  exchangePermissions?: string[];
-  apiAccessStatus?: string;
 }
 
 export interface InternalOverviewMetrics {
   totalUsers: number;
   activeBankAccounts: number;
-  pendingIpoApplications: number;
-  listedCompanies: number;
   openComplianceFlags: number;
   settlementVolume: string;
   registeredCompanies: number;
   verifiedInstitutions: number;
   authorizedRepresentatives: number;
   pendingCompanyReviews: number;
-  pendingApiApplications: number;
-  activeApiKeys: number;
 }
 
 export interface AdminActivityItem {
@@ -173,69 +161,10 @@ export interface BankOpsAccount {
   status: AccountStatus;
 }
 
-export interface ExchangeOpsSummary {
-  listedCompanies: number;
-  securitiesHalted: number;
-  pendingCorporateActions: number;
-  activeNotices: number;
-  apiKeysActive: number;
-  dailyApiCalls: string;
-}
 
-export interface ExchangeListingRow {
-  ticker: string;
-  company: string;
-  sector: string;
-  tradingStatus: "Open" | "Halted" | "Suspended";
-  lastPrice: string;
-}
 
-/**
- * Exchange API access request — submitted by an authorized representative on behalf of a company.
- * Future: tie issued keys to company entity + membership permissions.
- */
-export interface ApiApplicationRecord {
-  id: string;
-  companyId: string | null;
-  company: string;
-  applicant: string;
-  organization: string;
-  contactName: string;
-  useCase: string;
-  apiTier: ApiAccessTier;
-  scopes: string[];
-  status: ApiApplicationStatus;
-  companyVerificationStatus: VerificationStatus;
-  keysIssued: number;
-  submitted: string;
-  lastUpdated: string;
-}
 
-export interface IpoApplication {
-  id: string;
-  companyId: string;
-  company: string;
-  ticker: string;
-  founder: string;
-  sector: string;
-  raiseSize: string;
-  status: IpoApplicationStatus;
-  submitted: string;
-  companyVerificationStatus: VerificationStatus;
-  authorizedRepresentative: string;
-  documentsReceived: DocumentReceiptStatus;
-  boardApprovalStatus: BoardApprovalStatus;
-}
 
-export interface ListingRecord {
-  ticker: string;
-  company: string;
-  sector: string;
-  marketCap: string;
-  status: ListingStatus;
-  lastFiling: string;
-  complianceStatus: "Clear" | "Review" | "Flagged";
-}
 
 export interface TerminalActivitySummary {
   activeUsers24h: number;
@@ -268,6 +197,5 @@ export interface InternalSettings {
   maintenanceMode: boolean;
   marketStatus: "Open" | "Pre-Open" | "Closed" | "Halted";
   bankTransfers: "Enabled" | "Review Required" | "Disabled";
-  ipoApplications: "Open" | "Paused" | "Closed";
   featureFlags: { key: string; label: string; enabled: boolean }[];
 }

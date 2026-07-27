@@ -90,5 +90,4 @@ This restores simulated bank dashboards, terminal portfolios, and homepage net-w
 ## Import guidance
 
 - **Do not** import `lib/bank/data` or `lib/terminal/data` directly in routes — use `lib/bank/api` and `lib/terminal/api`, gated by `data-mode`.
-- **Deprecated shims** (`mock-bank-data.ts`, `mock-terminal-data.ts`, `mock-exchange-data.ts`) have no runtime consumers; prefer API layers.
-- Exchange mock data flows through `lib/exchange/api` and remains allowed when `SHOW_PUBLIC_SIMULATED_MARKET_DATA` is true.
+- **Deprecated shims** (`mock-bank-data.ts`, `mock-terminal-data.ts`) have no runtime consumers; prefer API layers.

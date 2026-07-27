@@ -270,11 +270,6 @@ function ProfilePage() {
             }
           />
           <PermissionCell
-            label="Developer / API"
-            primary={<StatusBadge status={formatAccountStatus(user.developerAccessStatus)} />}
-            note={user.developerAccess ? "API keys may be issued." : "Apply through the API portal."}
-          />
-          <PermissionCell
             label="Internal operations"
             primary={
               user.internalAccess ? (

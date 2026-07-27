@@ -5,7 +5,7 @@
 **Version:** 1.1
 **Status:** Effective when accepted by a customer
 **Effective Date:** Upon acceptance
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026
 
 ---
 
@@ -119,7 +119,7 @@ The Customer is responsible for:
 - understanding the applicable rules, risks, fees, and provider terms;
 - maintaining sufficient funds;
 - monitoring open orders and account activity;
-- reviewing issuer and market information independently; and
+- reviewing company and market information independently; and
 - keeping contact and authorization information current.
 
 Alta Terminal does not monitor the account for the Customer’s investment objectives and does not provide personalized recommendations.
@@ -130,10 +130,10 @@ The Customer may not:
 
 - commit fraud, deception, manipulation, wash trading, spoofing, or artificial-volume activity;
 - exploit errors, stale prices, duplicate messages, race conditions, or provider failures;
-- use unauthorized automation, scraping, bots, or API access;
+- use unauthorized automation, scraping, or bots;
 - evade limits, suspensions, identity checks, or account controls;
 - trade using stolen, compromised, or improperly obtained information;
-- impersonate another person, organization, issuer, provider, or staff member;
+- impersonate another person, organization, company, provider, or staff member;
 - interfere with Alta Group or third-party systems; or
 - violate applicable server, Discord, Minecraft, community, provider, or platform rules.
 
@@ -143,11 +143,11 @@ Alta Terminal may reject, hold, route, cancel, correct, reverse, or investigate 
 
 We may restrict specific instruments, order types, accounts, providers, or services without restricting the entire platform.
 
-## 15. Issuers and Corporate Actions
+## 15. Companies and Corporate Actions
 
-Issuer profiles, announcements, distributions, splits, mergers, symbol changes, and other corporate actions may originate from issuers or third-party providers. Alta Terminal may process or display them based on information reasonably available to us.
+Company profiles, announcements, distributions, splits, mergers, symbol changes, and other corporate actions may originate from companies or third-party providers. Alta Terminal may process or display them based on information reasonably available to us.
 
-Alta Terminal is not the issuer and does not guarantee issuer disclosures. Corrections may be applied when an issuer or provider changes its instructions or when an error is identified.
+Alta Terminal does not guarantee company disclosures or corporate-action outcomes. Corrections may be applied when a company or provider changes its instructions or when an error is identified.
 
 ## 16. Market Data and Third Parties
 
@@ -161,7 +161,7 @@ The Customer acknowledges the Alta Terminal Risk Disclosure. Virtual instruments
 
 ## 18. Conflicts
 
-Alta Terminal and its affiliates may provide banking, treasury, technology, issuer, or administrative services to Customers or organizations whose instruments appear in Terminal. Alta Terminal may receive service fees from Customers, affiliates, or providers.
+Alta Terminal and its affiliates may provide banking, treasury, technology, or administrative services to Customers or organizations whose instruments appear in Terminal. Alta Terminal may receive service fees from Customers, affiliates, or providers.
 
 We will not represent an affiliate relationship, commercial arrangement, or paid placement as independent advice. Material transaction-specific conflicts known to us will be disclosed where reasonably practicable.
 
@@ -218,4 +218,4 @@ By accepting electronically or using an enabled Alta Terminal account after rece
 **Adopted by:** Alta Terminal LLC
 **Approved by:** Alta Group N.V.
 **Version:** 1.1
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026

@@ -10,8 +10,6 @@ export type UserTag = "corporate_admin" | "bank_admin" | "terminal_admin";
 
 export type AccountStatus = "active" | "restricted" | "frozen" | "pending_review";
 
-export type DeveloperAccessStatus = "none" | "pending" | "approved" | "suspended";
-
 export type CompanyRole =
   | "owner"
   | "executive"
@@ -55,8 +53,6 @@ export interface AltaUser {
   /** Backend tags (bank_admin, terminal_admin, …). Not shown as “roles” in the UI. */
   tags: UserTag[];
   accountStatus: AccountStatus;
-  developerAccessStatus: DeveloperAccessStatus;
-  developerAccess: boolean;
   internalAccess: boolean;
   companyMemberships: EnrichedCompanyMembership[];
   createdAt: string;

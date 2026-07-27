@@ -22,9 +22,7 @@ Add to `.env` (see `.env.example`):
 | `DISCORD_CHANNEL_INFORMATION` | Override channel ID for `#information` |
 | `DISCORD_CHANNEL_ANNOUNCEMENTS` | Override for `#announcements` |
 | `DISCORD_CHANNEL_BANK_NOTICES` | Override for `#bank-notices` |
-| `DISCORD_CHANNEL_EXCHANGE_NOTICES` | Override for `#exchange-notices` |
 | `DISCORD_CHANNEL_TERMINAL_UPDATES` | Override for `#terminal-updates` |
-| `DISCORD_CHANNEL_DEVELOPER_UPDATES` | Override for `#developer-updates` |
 | `DISCORD_CHANNEL_INTERNAL_LOG` | Override for `#internal-log` |
 
 If a channel env var is unset, quick-fill presets use mock IDs. You can also paste **any** Discord channel snowflake directly into the Channel ID field.
@@ -57,9 +55,6 @@ Enforced client-side (preview) and server-side (send):
 Built-in presets populate the editor:
 
 - **Bank Notice** — Alta Bank operational notice
-- **Exchange Notice** — market participant notice
-- **IPO Announcement** — company, ticker, price, status fields
-- **Developer API Update** — API changelog notice
 - **Maintenance Notice** — affected services, start time, duration
 
 Templates are starting points; staff can edit all fields before sending.

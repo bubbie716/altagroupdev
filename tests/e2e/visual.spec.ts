@@ -3,8 +3,9 @@ import { visitAndAssert, screenshotPage } from "./utils/page-health.js";
 
 const KEY_PAGES = [
   { name: "bank-dashboard", path: "/bank" },
-  { name: "deposit", path: "/bank/deposit" },
-  { name: "withdrawal", path: "/bank/withdraw" },
+  { name: "deposit-overlay", path: "/bank?action=deposit" },
+  { name: "withdrawal-overlay", path: "/bank?action=withdraw" },
+  { name: "activity-requests", path: "/bank/activity?view=requests" },
   { name: "alta-card", path: "/bank/alta-card" },
   { name: "lending", path: "/bank/lending?apply=1" },
   { name: "internal-dashboard", path: "/internal" },

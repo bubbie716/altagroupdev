@@ -83,6 +83,21 @@ describe("overlay layering", () => {
     assert.doesNotMatch(read("components/ui/dialog.tsx"), /bg-black\/80/);
   });
 
+  it("blocks page clicks under dialogs while keeping page scroll (no body lock)", () => {
+    const dialog = read("components/ui/dialog.tsx");
+    assert.match(dialog, /modal = false/);
+    assert.match(dialog, /scrollPageBehindOverlay/);
+    assert.match(dialog, /window\.scrollBy/);
+    assert.match(dialog, /onWheel/);
+    assert.match(dialog, /onTouchMove/);
+    // Open scrim captures hits (wheel/touch are forwarded instead of pointer-events-none).
+    const overlayBlock = dialog.slice(
+      dialog.indexOf("const DialogOverlay"),
+      dialog.indexOf("DialogOverlay.displayName"),
+    );
+    assert.doesNotMatch(overlayBlock, /pointer-events-none/);
+  });
+
   it("marks select/dropdown/popover content as nested overlays", () => {
     assert.match(read("components/ui/select.tsx"), /data-alta-overlay="nested"/);
     assert.match(read("components/ui/select.tsx"), /overlayZClass\("nestedPortal"\)/);

@@ -97,8 +97,8 @@ function CompaniesDashboard() {
             You are not connected to any companies yet.
           </h2>
           <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
-            Register a company or institution to begin business banking, listing, issuer portal, and
-            API workflows. You may belong to multiple companies with distinct roles.
+            Register a company or institution to begin business banking and related
+            workflows. You may belong to multiple companies with distinct roles.
           </p>
           <Link
             to="/companies/create"

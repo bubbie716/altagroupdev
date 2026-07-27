@@ -13,7 +13,7 @@ type SectionLink = {
   to: string;
   label: string;
   exact?: boolean;
-  search?: Record<string, string>;
+  search?: Record<string, string | undefined>;
   badge?: number;
   clearSearch?: boolean;
   /** Drop apply-modal query flags while keeping ?site= on localhost. */
@@ -22,9 +22,14 @@ type SectionLink = {
 
 function preserveSiteSearch(
   prev: Record<string, unknown>,
-  extra?: Record<string, string>,
+  extra?: Record<string, string | undefined>,
 ): Record<string, unknown> {
-  const next: Record<string, unknown> = { ...(extra ?? {}) };
+  const next: Record<string, unknown> = {};
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      if (value !== undefined) next[key] = value;
+    }
+  }
   if (typeof prev.site === "string" && prev.site) next.site = prev.site;
   return next;
 }
@@ -63,13 +68,6 @@ const commercialSubLinks = [
   { to: "/bank/commercial/analytics", label: "Analytics" },
   { to: "/bank/commercial/settings", label: "Settings" },
 ] as const;
-
-const altaPayEngineTabs: Array<{ id: Exclude<AltaPaySubNavTab, "now" | "invoices">; label: string }> = [
-  { id: "scheduled", label: "Scheduled" },
-  { id: "recurring", label: "Recurring" },
-  { id: "autopay", label: "AutoPay merchants" },
-];
-
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/$/, "") || "/";
 }
@@ -119,17 +117,14 @@ function resolveBankSectionLinks(
   if (path.startsWith("/bank/pay")) {
     const altaPayTab = resolveAltaPaySubNavTab(pathname, tabParam);
     const links: SectionLink[] = [
-      { to: "/bank/pay", label: "Pay now", clearSearch: true },
+      { to: "/bank", label: "Pay now", search: { action: "pay" }, clearSearch: false },
       {
         to: "/bank/pay/invoices",
         label: "Received invoices",
         badge: unreadInvoiceCount,
       },
-      ...altaPayEngineTabs.map((item) => ({
-        to: "/bank/pay",
-        label: item.label,
-        search: { tab: item.id },
-      })),
+      { to: "/bank/activity", label: "Scheduled", search: { view: "scheduled" } },
+      { to: "/bank/activity", label: "AutoPay", search: { view: "autopay" } },
     ];
     return { links, altaPayTab };
   }
@@ -164,6 +159,15 @@ function isSectionLinkActive(
   if (link.to === "/bank/alta-card" || link.to === "/bank/alta-card/business") {
     const altaLink = altaCardSubLinks.find((item) => item.to === link.to);
     if (altaLink) return isAltaCardSubLinkActive(pathname, altaLink);
+  }
+
+  if (altaPayTab !== undefined && link.to === "/bank") {
+    return link.search?.action === "pay" && altaPayTab === "now";
+  }
+
+  if (altaPayTab !== undefined && link.to === "/bank/activity") {
+    if (link.search?.view === "scheduled") return false;
+    if (link.search?.view === "autopay") return false;
   }
 
   if (altaPayTab !== undefined && link.to === "/bank/pay") {

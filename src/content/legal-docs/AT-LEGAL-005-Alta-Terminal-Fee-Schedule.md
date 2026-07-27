@@ -5,7 +5,7 @@
 **Version:** 1.0  
 **Status:** Pre-launch fee schedule  
 **Currency:** Florin (FLR), unless stated otherwise  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 27, 2026  
 
 ---
 
@@ -25,7 +25,6 @@ Alta Terminal is in development. Live execution and provider-connected custody a
 | Standard statements | 0 FLR |
 | Trading commission | Not applicable until trading launches |
 | Market-data subscription | Not currently offered |
-| API access | Not currently offered |
 | Margin interest | Not offered |
 | Securities lending | Not offered |
 
@@ -43,7 +42,7 @@ If a Customer requests exceptional manual work that would create a charge, Alta 
 
 ## 5. Future Fees
 
-Before an enabled trading, premium data, subscription, institutional, or API service charges a fee, Alta Terminal will publish the amount or calculation method and identify when it applies.
+Before an enabled trading, premium data, subscription, or institutional service charges a fee, Alta Terminal will publish the amount or calculation method and identify when it applies.
 
 Fee changes apply prospectively. A fee shown on an accepted order or service confirmation controls for that instruction unless corrected before execution with the Customer’s consent.
 

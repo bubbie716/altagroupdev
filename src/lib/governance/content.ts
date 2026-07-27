@@ -18,7 +18,6 @@ export const platformStatusItems: PlatformStatusItem[] = [
   { name: "Company Registry", status: "Operational" },
   { name: "Discord Authentication", status: "Operational" },
   { name: "Business Banking", status: "Operational" },
-  { name: "Developer API", status: "Planned" },
 ];
 
 /** Compact hierarchy node — ownership/reporting only. */

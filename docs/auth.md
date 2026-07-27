@@ -109,28 +109,27 @@ Access is granted only when the signed-in user has the `admin` tag in Postgres. 
 
 - `/`, `/governance`, `/login`
 - `/bank`, `/bank/products`, `/bank/lending`, `/bank/business`
-- `/exchange`, `/exchange/listings`, `/exchange/company/*`, `/exchange/ipo`, `/exchange/apply`, `/exchange/research`
-- `/terminal/news`, `/terminal/research`, `/terminal/ipo`, `/terminal/leaderboard` (marketing/preview pages)
+- `/terminal/news`, `/terminal/research`, `/terminal/leaderboard` (marketing/preview pages)
+- Legacy `/exchange/*` paths redirect to Terminal
 
 ## Tags & Access
 
 ### Backend tags (`UserTagAssignment`)
 
-Users can hold **multiple tags at once** (e.g. `admin` and `developer`). Each tag is a separate row in `UserTagAssignment`. Tags are not shown as “roles” in the public UI — they drive backend access only.
+Users can hold **multiple tags at once** (e.g. `corporate_admin` and `bank_admin`). Each tag is a separate row in `UserTagAssignment`. Tags are not shown as “roles” in the public UI — they drive backend access only.
 
 | Tag | Purpose |
 |-----|---------|
-| `admin` | Full internal ops access |
-| `operator` | Internal ops (non-admin actions) |
-| `developer` | Exchange API access |
-| `issuer` | Submit listing applications |
+| `corporate_admin` | Full group / corporate internal access |
+| `bank_admin` | Bank ops console |
+| `terminal_admin` | Terminal settings (with corporate admin) |
 
 Grant one or more tags after first login:
 
 ```bash
-npm run db:grant-tag -- DISCORD_ID admin bank_admin
-npm run db:grant-tag -- DISCORD_ID admin
+npm run db:grant-tag -- DISCORD_ID corporate_admin
 npm run db:grant-tag -- DISCORD_ID bank_admin
+npm run db:grant-tag -- DISCORD_ID terminal_admin
 ```
 
 Remove specific tags with `--remove` (other tags are kept):

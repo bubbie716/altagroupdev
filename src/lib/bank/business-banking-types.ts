@@ -193,9 +193,3 @@ export const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
   compliance_contact: "Compliance Contact",
   viewer: "Viewer",
 };
-
-export const INTERBANK_EXECUTION_NOTICE =
-  "Scheduled and recurring interbank wires are not yet available.";
-
-export const FUTURE_EXECUTION_NOTICE =
-  "Automatic payment execution is not available yet.";

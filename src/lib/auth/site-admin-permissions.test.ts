@@ -23,8 +23,6 @@ function userWithTags(tags: AltaUser["tags"]): AltaUser {
     minecraftUsername: null,
     tags,
     accountStatus: "active",
-    developerAccessStatus: "none",
-    developerAccess: false,
     internalAccess: tags.some((t) =>
       t === "corporate_admin" || t === "bank_admin" || t === "terminal_admin",
     ),

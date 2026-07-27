@@ -165,9 +165,14 @@ describe("bank home context", () => {
     );
   });
 
-  it("defaults to personal when stored context is missing", () => {
+  it("defaults to all accounts when stored context is missing", () => {
     const options = buildBankHomeContextOptions(companiesFromAccounts(accounts));
-    assert.equal(resolveInitialBankHomeContext(null, options), "personal");
+    assert.equal(resolveInitialBankHomeContext(null, options), "all");
+  });
+
+  it("defaults to personal when all accounts is not an option", () => {
+    const personalOnly = buildBankHomeContextOptions([]);
+    assert.equal(resolveInitialBankHomeContext(null, personalOnly), "personal");
   });
 
   it("filters personal context without company accounts", () => {

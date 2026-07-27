@@ -4,7 +4,7 @@
 **Document ID:** AT-LEGAL-004  
 **Version:** 1.0  
 **Status:** Effective when applicable services are used  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 27, 2026  
 
 ---
 
@@ -20,7 +20,7 @@ Provider names, roles, and material service limitations may be disclosed in the 
 
 ## 3. Data Is Informational
 
-Quotes, charts, rankings, news, issuer information, analytics, reference values, and calculated portfolio information are provided for informational and virtual-economy use. They are not personalized advice or a guarantee that a transaction can occur at a displayed value.
+Quotes, charts, rankings, news, company or security information, analytics, reference values, and calculated portfolio information are provided for informational and virtual-economy use. They are not personalized advice or a guarantee that a transaction can occur at a displayed value.
 
 ## 4. Delays and Corrections
 
@@ -48,11 +48,9 @@ Without written permission, the Customer may not:
 
 Ordinary screenshots and limited quotations for personal or community discussion are permitted unless a displayed provider notice states otherwise.
 
-## 7. APIs and Automation
+## 7. Automation
 
-Public API or automated access is unavailable unless Alta Terminal expressly enables it under separate credentials and terms. Browser or application access does not authorize scraping or reverse-engineered API use.
-
-If API access is later offered, separate developer terms may establish authentication, rate limits, retention, attribution, security, and permitted-use requirements.
+Alta Terminal does not authorize bots, scripts, bulk harvesting, scraping, or reverse-engineered access to Terminal interfaces or data. Ordinary browser or application use of enabled features does not grant permission for automated collection or redistribution.
 
 ## 8. Third-Party Availability
 

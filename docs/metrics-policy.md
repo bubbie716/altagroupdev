@@ -23,7 +23,7 @@ Alta Group surfaces two distinct categories of numbers across the public site, b
 
 ## Simulated market data
 
-**Source:** In-memory mock modules under `src/lib/exchange/`, `src/lib/mock-data.ts`, and Terminal preview data.
+**Source:** Terminal preview data and other gated mock modules — not a live exchange data plane.
 
 **May remain simulated (explicitly labeled):**
 

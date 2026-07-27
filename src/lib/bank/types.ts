@@ -71,12 +71,6 @@ export interface AdminLoanRequest {
   submitted: string;
 }
 
-export interface BankMarketingSection {
-  title: string;
-  desc: string;
-  to: string;
-}
-
 export interface BusinessService {
   name: string;
   desc: string;

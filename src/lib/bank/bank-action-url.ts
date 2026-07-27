@@ -28,6 +28,7 @@ export const BANK_ACTION_SEARCH_KEYS = [
   "action",
   "accountId",
   "cardId",
+  "employeeCardId",
   "companyId",
   "scope",
   "accountType",
@@ -37,6 +38,7 @@ export type BankActionSearch = {
   action: BankActionId | null;
   accountId?: string;
   cardId?: string;
+  employeeCardId?: string;
   companyId?: string;
   scope?: "personal" | "all";
   accountType?: BankAccountTypeCode;
@@ -57,20 +59,17 @@ export function parseBankActionSearch(
     action,
     accountId: typeof params.accountId === "string" ? params.accountId : undefined,
     cardId: typeof params.cardId === "string" ? params.cardId : undefined,
+    employeeCardId: typeof params.employeeCardId === "string" ? params.employeeCardId : undefined,
     companyId: typeof params.companyId === "string" ? params.companyId : undefined,
     scope,
     accountType: parseBankAccountTypeCode(params.accountType),
   };
 }
 
-export function stripBankActionSearch<T extends Record<string, unknown>>(
-  search: T,
-): Omit<
-  T,
-  "action" | "accountId" | "cardId" | "companyId" | "scope" | "accountType"
-> &
-  Record<string, unknown> {
-  const next = { ...search } as Record<string, unknown>;
+export function stripBankActionSearch(
+  search: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = { ...search };
   for (const key of BANK_ACTION_SEARCH_KEYS) {
     delete next[key];
   }
@@ -83,16 +82,19 @@ export function mergeBankActionSearch(
     action: BankActionId;
     accountId?: string;
     cardId?: string;
+    employeeCardId?: string;
     companyId?: string;
     scope?: "personal" | "all";
     accountType?: BankAccountTypeCode;
   },
 ): Record<string, unknown> {
-  const next = { ...current, action: patch.action };
+  const next: Record<string, unknown> = { ...current, action: patch.action };
   if (patch.accountId) next.accountId = patch.accountId;
   else delete next.accountId;
   if (patch.cardId) next.cardId = patch.cardId;
   else delete next.cardId;
+  if (patch.employeeCardId) next.employeeCardId = patch.employeeCardId;
+  else delete next.employeeCardId;
   if (patch.companyId) next.companyId = patch.companyId;
   else delete next.companyId;
   if (patch.scope) next.scope = patch.scope;

@@ -9,7 +9,7 @@ async function notify(
   type: CreateNotificationInput["type"],
   title: string,
   body: string,
-  linkUrl = "/bank/pay",
+  linkUrl = "/bank/activity?view=scheduled",
   options?: { customDmPayload?: CreateNotificationInput["customDmPayload"] },
 ): Promise<void> {
   try {
@@ -66,20 +66,60 @@ export async function notifyPaymentScheduleFailedBestEffort(
   );
 }
 
-export async function notifyMerchantAutopayApprovalCreatedBestEffort(userId: string, merchantName: string): Promise<void> {
-  await notify(userId, "MERCHANT_AUTOPAY_APPROVAL_CREATED", "AutoPay merchant approved", `You approved AutoPay for ${merchantName}.`);
+export async function notifyMerchantAutopayApprovalCreatedBestEffort(
+  userId: string,
+  merchantName: string,
+  approvalId: string,
+): Promise<void> {
+  await notify(
+    userId,
+    "MERCHANT_AUTOPAY_APPROVAL_CREATED",
+    "AutoPay merchant approved",
+    `You approved AutoPay for ${merchantName}.`,
+    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+  );
 }
 
-export async function notifyMerchantAutopayApprovalUpdatedBestEffort(userId: string, merchantName: string): Promise<void> {
-  await notify(userId, "MERCHANT_AUTOPAY_APPROVAL_UPDATED", "AutoPay rules updated", `Your AutoPay rules for ${merchantName} were updated.`);
+export async function notifyMerchantAutopayApprovalUpdatedBestEffort(
+  userId: string,
+  merchantName: string,
+  approvalId: string,
+): Promise<void> {
+  await notify(
+    userId,
+    "MERCHANT_AUTOPAY_APPROVAL_UPDATED",
+    "AutoPay rules updated",
+    `Your AutoPay rules for ${merchantName} were updated.`,
+    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+  );
 }
 
-export async function notifyMerchantAutopayApprovalPausedBestEffort(userId: string, merchantName: string): Promise<void> {
-  await notify(userId, "MERCHANT_AUTOPAY_APPROVAL_PAUSED", "AutoPay paused", `AutoPay for ${merchantName} is paused.`);
+export async function notifyMerchantAutopayApprovalPausedBestEffort(
+  userId: string,
+  merchantName: string,
+  approvalId: string,
+): Promise<void> {
+  await notify(
+    userId,
+    "MERCHANT_AUTOPAY_APPROVAL_PAUSED",
+    "AutoPay paused",
+    `AutoPay for ${merchantName} is paused.`,
+    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+  );
 }
 
-export async function notifyMerchantAutopayApprovalCancelledBestEffort(userId: string, merchantName: string): Promise<void> {
-  await notify(userId, "MERCHANT_AUTOPAY_APPROVAL_CANCELLED", "AutoPay cancelled", `AutoPay for ${merchantName} was cancelled.`);
+export async function notifyMerchantAutopayApprovalCancelledBestEffort(
+  userId: string,
+  merchantName: string,
+  approvalId: string,
+): Promise<void> {
+  await notify(
+    userId,
+    "MERCHANT_AUTOPAY_APPROVAL_CANCELLED",
+    "AutoPay cancelled",
+    `AutoPay for ${merchantName} was cancelled.`,
+    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+  );
 }
 
 export async function notifyMerchantInvoiceAutopaidBestEffort(
@@ -96,7 +136,7 @@ export async function notifyMerchantInvoiceAutopaidBestEffort(
     "MERCHANT_INVOICE_AUTOPAID",
     "Invoice paid automatically",
     `${merchantName} invoice \`${referenceCode}\` for ${formatFlorin(amount)} was paid via AutoPay${funding}.`,
-    invoiceId ? `/bank/pay/invoices/${invoiceId}` : "/bank/pay",
+    invoiceId ? `/bank/pay/invoices/${invoiceId}` : "/bank/pay/invoices",
   );
 }
 

@@ -5,14 +5,10 @@ export type CompanyTypeValue =
   | "listed_company"
   | "bank"
   | "brokerage"
-  | "issuer"
   | "institution";
 
 export type IntendedUseValue =
   | "business_banking"
-  | "ipo_listing"
-  | "issuer_portal"
-  | "api_access"
   | "other";
 
 export interface CompanySummary {
@@ -132,7 +128,6 @@ export interface InternalCompanyRow {
 export const COMPANY_TYPE_OPTIONS: { value: CompanyTypeValue; label: string }[] = [
   { value: "private_company", label: "Private Company" },
   { value: "listed_company", label: "Listed Company" },
-  { value: "issuer", label: "Issuer" },
   { value: "institution", label: "Institution" },
   { value: "bank", label: "Bank" },
   { value: "brokerage", label: "Brokerage" },
@@ -140,9 +135,6 @@ export const COMPANY_TYPE_OPTIONS: { value: CompanyTypeValue; label: string }[] 
 
 export const INTENDED_USE_OPTIONS: { value: IntendedUseValue; label: string }[] = [
   { value: "business_banking", label: "Business banking" },
-  { value: "ipo_listing", label: "IPO / listing" },
-  { value: "issuer_portal", label: "Exchange issuer portal" },
-  { value: "api_access", label: "API / developer access" },
   { value: "other", label: "Other" },
 ];
 

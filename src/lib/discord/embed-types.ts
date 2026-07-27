@@ -15,15 +15,12 @@ export type DiscordChannelKey =
   | "announcements"
   | "bank_notices"
   | "terminal_updates"
-  | "developer_updates"
   | "internal_log";
 
 export type EmbedTemplateKey =
   | "custom"
   | "alta_group_information"
   | "bank_notice"
-  | "ipo_announcement"
-  | "developer_api_update"
   | "maintenance_notice";
 
 export type EmbedColorPreset =
@@ -44,7 +41,6 @@ export const DISCORD_CHANNELS: {
   { key: "announcements", label: "#announcements", mockId: "1000000000000000002", envKey: "DISCORD_CHANNEL_ANNOUNCEMENTS" },
   { key: "bank_notices", label: "#bank-notices", mockId: "1000000000000000003", envKey: "DISCORD_CHANNEL_BANK_NOTICES" },
   { key: "terminal_updates", label: "#terminal-updates", mockId: "1000000000000000005", envKey: "DISCORD_CHANNEL_TERMINAL_UPDATES" },
-  { key: "developer_updates", label: "#developer-updates", mockId: "1000000000000000006", envKey: "DISCORD_CHANNEL_DEVELOPER_UPDATES" },
   { key: "internal_log", label: "#internal-log", mockId: "1000000000000000007", envKey: "DISCORD_CHANNEL_INTERNAL_LOG" },
 ];
 
@@ -63,8 +59,6 @@ export const EMBED_TEMPLATES: { key: EmbedTemplateKey; label: string }[] = [
   { key: "custom", label: "Custom" },
   { key: "alta_group_information", label: "Alta Group Information" },
   { key: "bank_notice", label: "Bank Notice" },
-  { key: "ipo_announcement", label: "IPO Announcement" },
-  { key: "developer_api_update", label: "Developer API Update" },
   { key: "maintenance_notice", label: "Maintenance Notice" },
 ];
 

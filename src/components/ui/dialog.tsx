@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * Non-modal by default: no body scroll lock / RemoveScroll jump-to-top.
- * Backdrop is a plain div (Radix Overlay is omitted when modal=false) so the
- * page behind can keep scrolling while the dialog stays put.
+ * Backdrop is a plain div (Radix Overlay is omitted when modal=false). It
+ * captures pointer hits so controls behind stay inert, and forwards
+ * wheel/touch so the page can keep scrolling under the scrim.
  */
 const Dialog = ({
   modal = false,
@@ -25,25 +26,53 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
+function scrollPageBehindOverlay(deltaX: number, deltaY: number) {
+  if (deltaX === 0 && deltaY === 0) return;
+  window.scrollBy({ left: deltaX, top: deltaY, behavior: "instant" });
+}
+
 const DialogOverlay = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    aria-hidden
-    data-state="open"
-    className={cn(
-      "fixed inset-0 z-[110]",
-      "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      OVERLAY_SCRIM_CLASS,
-      className,
-      // After caller classes so the page behind stays interactive / scrollable.
-      "pointer-events-none",
-    )}
-    {...props}
-  />
-));
+>(({ className, onWheel, onTouchStart, onTouchMove, ...props }, ref) => {
+  const lastTouchRef = React.useRef<{ x: number; y: number } | null>(null);
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      data-state="open"
+      className={cn(
+        "fixed inset-0 z-[110]",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        OVERLAY_SCRIM_CLASS,
+        className,
+      )}
+      onWheel={(event) => {
+        onWheel?.(event);
+        if (event.defaultPrevented) return;
+        scrollPageBehindOverlay(event.deltaX, event.deltaY);
+      }}
+      onTouchStart={(event) => {
+        onTouchStart?.(event);
+        if (event.defaultPrevented) return;
+        const touch = event.touches[0];
+        if (!touch) return;
+        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      onTouchMove={(event) => {
+        onTouchMove?.(event);
+        if (event.defaultPrevented) return;
+        const touch = event.touches[0];
+        const last = lastTouchRef.current;
+        if (!touch || !last) return;
+        scrollPageBehindOverlay(last.x - touch.clientX, last.y - touch.clientY);
+        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      {...props}
+    />
+  );
+});
 DialogOverlay.displayName = "DialogOverlay";
 
 interface DialogContentProps

@@ -37,8 +37,6 @@ function testUser(): AltaUser {
     minecraftUsername: "ux",
     tags: [],
     accountStatus: "active",
-    developerAccessStatus: "none",
-    developerAccess: false,
     internalAccess: false,
     companyMemberships: [
       {

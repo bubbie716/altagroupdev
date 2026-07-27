@@ -42,8 +42,8 @@ export function AltaCardQuickActions({
         <AltaCardQuickActionCell>
           <AltaCardQuickActionLink
             label="Pay with Alta Card"
-            to="/bank/pay"
-            search={{ cardId: card.id }}
+            to="/bank"
+            search={{ action: "pay", cardId: card.id }}
             disabled={!canAltaPay}
           />
         </AltaCardQuickActionCell>

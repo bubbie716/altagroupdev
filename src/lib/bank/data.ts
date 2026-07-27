@@ -5,7 +5,6 @@ import type {
   AdminClient,
   AdminLoanRequest,
   BankAccount,
-  BankMarketingSection,
   BankProduct,
   BusinessService,
   LendingProduct,
@@ -342,14 +341,3 @@ export const bankRecentActivity = transactions.slice(0, 6).map((tx, index) => {
     accountNumber: account.accountNumber,
   };
 });
-
-export const bankMarketingSections: BankMarketingSection[] = [
-  { title: "Alta Access", desc: "Starter banking for new Newport citizens.", to: "/bank/products" },
-  { title: "Alta Checking", desc: "Everyday banking for active Newport citizens.", to: "/bank/products" },
-  { title: "Business Banking", desc: "Operating accounts, payroll, and treasury for Newport institutions.", to: "/bank/business" },
-  { title: "Bank Products", desc: "Retail and business deposit products for Newport.", to: "/bank/products" },
-  { title: "Lending", desc: "Personal, business, and secured credit for Newport's leading clients.", to: "/bank/lending" },
-  { title: "Transfers & Wires", desc: "Internal transfers and external wire settlement.", to: "/bank/transfers" },
-  { title: "Bank Like the 1%", desc: "Balances, credit access, and activity across your Alta Bank relationship.", to: "/bank" },
-  { title: "Alta Card", desc: "Revolving credit from Alta White through Alta Gold.", to: "/bank/alta-card" },
-];

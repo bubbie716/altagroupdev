@@ -12,14 +12,9 @@ import {
   bankOpsSummary,
   bankOpsTransfers,
   companyAccounts,
-  apiApplications,
   complianceCases,
-  exchangeListings,
-  exchangeOpsSummary,
   internalSettings,
   internalUsers,
-  ipoApplications,
-  listingRecords,
   overviewMetrics,
   recentAdminActivity,
   systemStatus,
@@ -73,26 +68,6 @@ export function getBankOpsDepositWithdrawRequests() {
   return bankOpsDepositWithdrawRequests;
 }
 
-export function getExchangeOpsSummary() {
-  return exchangeOpsSummary;
-}
-
-export function getExchangeListings() {
-  return exchangeListings;
-}
-
-export function getIpoApplications() {
-  return ipoApplications;
-}
-
-export function getApiApplications() {
-  return apiApplications;
-}
-
-export function getListingRecords() {
-  return listingRecords;
-}
-
 export function getTerminalActivitySummary() {
   return terminalActivitySummary;
 }
@@ -129,11 +104,6 @@ export const internalApi = {
   getBankOpsTransfers,
   getBankOpsLoanApplications,
   getBankOpsDepositWithdrawRequests,
-  getExchangeOpsSummary,
-  getExchangeListings,
-  getIpoApplications,
-  getApiApplications,
-  getListingRecords,
   getTerminalActivitySummary,
   getTerminalOpenOrders,
   getTerminalTopViewed,

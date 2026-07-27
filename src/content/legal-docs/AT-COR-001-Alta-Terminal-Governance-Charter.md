@@ -6,7 +6,7 @@
 **Status:** Active upon approval  
 **Approved By:** Alta Group N.V.  
 **Effective Date:** Immediately upon approval  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 27, 2026  
 
 ---
 
@@ -20,7 +20,7 @@ Alta Terminal exists to connect eligible Customers to approved market infrastruc
 
 Alta Terminal is wholly owned and controlled by Alta Group N.V. unless Alta Group approves a different ownership arrangement in writing.
 
-Customers, issuers, vendors, data providers, execution providers, employees, contractors, and counterparties do not acquire ownership or governance rights through their use of or relationship with Alta Terminal.
+Customers, vendors, data providers, execution providers, employees, contractors, and counterparties do not acquire ownership or governance rights through their use of or relationship with Alta Terminal.
 
 ## 3. Relationship with Alta Group
 
@@ -153,7 +153,7 @@ Alta Terminal shall maintain, at minimum:
 - Market Data and Third-Party Services Terms; and
 - a Fee Schedule.
 
-Additional agreements shall be adopted before margin, lending, APIs, advisory services, institutional accounts, or other materially different products are enabled.
+Additional agreements shall be adopted before margin, lending, advisory services, institutional accounts, or other materially different products are enabled.
 
 ## 14. Amendments
 
@@ -165,4 +165,4 @@ This Charter establishes Alta Terminal as a standalone Alta Group subsidiary and
 
 **Approved by:** Alta Group N.V.  
 **Version:** 1.0  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 27, 2026  

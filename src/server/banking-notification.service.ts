@@ -22,14 +22,17 @@ export async function notifyDepositSubmitted(
   referenceCode: string,
   accountName: string,
   proofImageUrl?: string | null,
+  requestId?: string,
 ): Promise<void> {
   scheduleCreateUserNotification({
     userId,
     type: "DEPOSIT_SUBMITTED",
     title: "Deposit submitted",
     body: `Your deposit of ${formatFlorin(amount)} to ${accountName} (${referenceCode}) is pending Alta review.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount, accountName },
+    linkUrl: requestId
+      ? `/bank/activity?view=requests&requestId=${encodeURIComponent(requestId)}`
+      : "/bank/activity?view=requests",
+    metadata: { referenceCode, amount, accountName, requestId: requestId ?? null },
     embedImageUrl: proofImageUrl,
   });
 }
@@ -38,14 +41,17 @@ export async function notifyDepositApproved(
   userId: string,
   amount: number,
   referenceCode: string,
+  transactionId?: string,
 ): Promise<void> {
   scheduleCreateUserNotification({
     userId,
     type: "DEPOSIT_APPROVED",
     title: "Deposit approved",
     body: `Your deposit of ${formatFlorin(amount)} (${referenceCode}) has been approved and credited to your account.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount },
+    linkUrl: transactionId
+      ? `/bank/activity?view=activity&transactionId=${encodeURIComponent(transactionId)}`
+      : "/bank/activity?view=activity",
+    metadata: { referenceCode, amount, transactionId: transactionId ?? null },
   });
 }
 
@@ -54,14 +60,17 @@ export async function notifyWithdrawalSubmitted(
   amount: number,
   referenceCode: string,
   accountName: string,
+  requestId?: string,
 ): Promise<void> {
   scheduleCreateUserNotification({
     userId,
     type: "WITHDRAWAL_SUBMITTED",
     title: "Withdrawal submitted",
     body: `Your withdrawal of ${formatFlorin(amount)} from ${accountName} (${referenceCode}) is pending Alta processing.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount, accountName },
+    linkUrl: requestId
+      ? `/bank/activity?view=requests&requestId=${encodeURIComponent(requestId)}`
+      : "/bank/activity?view=requests",
+    metadata: { referenceCode, amount, accountName, requestId: requestId ?? null },
   });
 }
 
@@ -69,14 +78,17 @@ export async function notifyWithdrawalApproved(
   userId: string,
   amount: number,
   referenceCode: string,
+  transactionId?: string,
 ): Promise<void> {
   scheduleCreateUserNotification({
     userId,
     type: "WITHDRAWAL_APPROVED",
     title: "Withdrawal approved",
     body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) has been approved.`,
-    linkUrl: "/bank",
-    metadata: { referenceCode, amount },
+    linkUrl: transactionId
+      ? `/bank/activity?view=activity&transactionId=${encodeURIComponent(transactionId)}`
+      : "/bank/activity?view=activity",
+    metadata: { referenceCode, amount, transactionId: transactionId ?? null },
   });
 }
 
@@ -92,7 +104,7 @@ export async function notifyTransferCompleted(
     type: "TRANSFER_COMPLETED",
     title: "Transfer complete",
     body: `Moved ${formatFlorin(amount)} from ${fromAccountName} to ${toAccountName}. Ref \`${referenceCode}\`.`,
-    linkUrl: "/bank/transfers/intrabank",
+    linkUrl: "/bank/activity?view=activity",
     metadata: { referenceCode, amount, fromAccountName, toAccountName },
   });
 
@@ -105,7 +117,7 @@ export async function notifyTransferCompleted(
       amount,
       description: `Transfer from ${fromAccountName} to ${toAccountName}.`,
       referenceCode,
-      linkUrl: "/bank/transfers/intrabank",
+      linkUrl: "/bank/activity?view=activity",
     });
   } catch (error) {
     console.error("[banking-notification] large movement alert failed", error);
@@ -168,7 +180,7 @@ export async function notifyAltaPaySent(
     type: "ALTA_PAY_SENT",
     title: "Alta Pay sent",
     body: `Paid ${formatFlorin(amount)} to ${payeeName} from ${fundingSourceLabel}. Ref \`${referenceCode}\`.`,
-    linkUrl: "/bank/pay",
+    linkUrl: "/bank/activity?view=activity",
     metadata: { referenceCode, amount, payeeName, fundingSourceLabel },
   });
 
@@ -181,7 +193,7 @@ export async function notifyAltaPaySent(
       amount,
       description: `Alta Pay to ${payeeName}.`,
       referenceCode,
-      linkUrl: "/bank/pay",
+      linkUrl: "/bank/activity?view=activity",
     });
   } catch (error) {
     console.error("[banking-notification] large movement alert failed", error);
@@ -306,7 +318,7 @@ export async function notifyTransferFailedBestEffort(
       type: "TRANSFER_FAILED",
       title: "Transfer could not be completed",
       body: `We couldn't complete your transfer of ${formatFlorin(input.amount)}. ${safeReason}`,
-      linkUrl: "/bank/transfers/intrabank",
+      linkUrl: "/bank?action=transfer",
       linkLabel: "Try again",
       metadata: { amount: input.amount, reason: safeReason },
     });
@@ -328,7 +340,7 @@ export async function notifyAltaPayFailedBestEffort(
       type: "ALTA_PAY_FAILED",
       title: "Alta Pay could not be completed",
       body: `We couldn't send ${formatFlorin(input.amount)}${payeePart}. ${safeReason}`,
-      linkUrl: "/bank/pay",
+      linkUrl: "/bank?action=pay",
       linkLabel: "Try again",
       metadata: { amount: input.amount, reason: safeReason, payeeLabel: payee ?? null },
     });
@@ -346,6 +358,7 @@ export async function notifyScheduledTransferExecuted(
     paymentType?: "ONE_TIME" | "SCHEDULED" | "RECURRING";
     bankAccountId?: string;
     companyId?: string | null;
+    scheduleId?: string;
   },
 ): Promise<void> {
   const kind =
@@ -354,9 +367,11 @@ export async function notifyScheduledTransferExecuted(
       : input.paymentType === "SCHEDULED"
         ? "Scheduled transfer"
         : "Scheduled transfer";
-  const linkUrl = input.companyId && input.bankAccountId
-    ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
-    : "/bank/transfers/intrabank";
+  const linkUrl = input.scheduleId
+    ? `/bank/activity?view=scheduled&scheduleId=${encodeURIComponent(input.scheduleId)}`
+    : input.bankAccountId
+      ? `/bank/activity?view=scheduled&accountId=${encodeURIComponent(input.bankAccountId)}`
+      : "/bank/activity?view=scheduled";
 
   scheduleCreateUserNotification({
     userId,
@@ -373,6 +388,7 @@ export async function notifyScheduledTransferExecuted(
       paymentType: input.paymentType ?? null,
       bankAccountId: input.bankAccountId ?? null,
       companyId: input.companyId ?? null,
+      scheduleId: input.scheduleId ?? null,
     },
   });
 }
@@ -387,6 +403,7 @@ export async function notifyScheduledTransferFailed(
     paymentType?: "ONE_TIME" | "SCHEDULED" | "RECURRING";
     bankAccountId?: string;
     companyId?: string | null;
+    scheduleId?: string;
   },
 ): Promise<void> {
   const kind =
@@ -399,9 +416,11 @@ export async function notifyScheduledTransferFailed(
   const pausedNote = input.paused
     ? " The schedule has been paused after repeated failures."
     : "";
-  const linkUrl = input.companyId && input.bankAccountId
-    ? `/bank/transfers/intrabank?accountId=${input.bankAccountId}`
-    : "/bank/transfers/intrabank";
+  const linkUrl = input.scheduleId
+    ? `/bank/activity?view=scheduled&scheduleId=${encodeURIComponent(input.scheduleId)}`
+    : input.bankAccountId
+      ? `/bank/activity?view=scheduled&accountId=${encodeURIComponent(input.bankAccountId)}`
+      : "/bank/activity?view=scheduled";
 
   scheduleCreateUserNotification({
     userId,
@@ -409,7 +428,7 @@ export async function notifyScheduledTransferFailed(
     title: `${kind} could not be completed`,
     body: `We couldn't send your ${kind.toLowerCase()} "${input.label}" for ${formatFlorin(input.amount)}. ${safeReason}${pausedNote}`,
     linkUrl,
-    linkLabel: "Try again",
+    linkLabel: "Review",
     metadata: {
       label: input.label,
       amount: input.amount,
@@ -418,6 +437,7 @@ export async function notifyScheduledTransferFailed(
       paymentType: input.paymentType ?? null,
       bankAccountId: input.bankAccountId ?? null,
       companyId: input.companyId ?? null,
+      scheduleId: input.scheduleId ?? null,
     },
   });
 }

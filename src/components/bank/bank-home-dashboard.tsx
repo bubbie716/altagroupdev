@@ -75,7 +75,7 @@ type BankHomeNotice = {
   detail: string;
   tone: BankHomeNoticeTone;
 } & (
-  | { target: "deposit" | "withdraw" | "activity" }
+  | { target: "activity"; view?: "activity" | "requests"; recordId?: string }
   | { target: "account"; accountId: string }
 );
 
@@ -111,22 +111,17 @@ function NoticeCard({ notice }: { notice: BankHomeNotice }) {
       </Link>
     );
   }
-  if (notice.target === "withdraw") {
-    return (
-      <Link to="/bank/withdraw" className={className}>
-        {body}
-      </Link>
-    );
-  }
-  if (notice.target === "deposit") {
-    return (
-      <Link to="/bank/deposit" className={className}>
-        {body}
-      </Link>
-    );
-  }
+
+  const view = notice.view ?? "activity";
+  const search =
+    view === "requests" && notice.recordId
+      ? { view: "requests" as const, requestId: notice.recordId }
+      : view === "activity" && notice.recordId
+        ? { view: "activity" as const, transactionId: notice.recordId }
+        : { view };
+
   return (
-    <Link to="/bank/activity" className={className}>
+    <Link to="/bank/activity" search={search} className={className}>
       {body}
     </Link>
   );
@@ -137,7 +132,7 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
   const companies = useMemo(() => companiesFromAccounts(data.accounts), [data.accounts]);
   const options = useMemo(() => buildBankHomeContextOptions(companies), [companies]);
 
-  const [contextId, setContextId] = useState<BankHomeContextId>("personal");
+  const [contextId, setContextId] = useState<BankHomeContextId>("all");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -191,7 +186,9 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
         id: req.id,
         title: req.status === "pending" ? `Pending ${kind}` : `${req.statusLabel} ${kind}`,
         detail: `${req.accountName} · ${florin(req.amount)}`,
-        target: kind === "withdrawal" ? "withdraw" : "deposit",
+        target: "activity",
+        view: "requests",
+        recordId: req.id,
         tone: req.status === "denied" ? "error" : "pending",
       });
     }
@@ -214,6 +211,8 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
           title: "Transaction needs attention",
           detail: tx.description,
           target: "activity",
+          view: "activity",
+          recordId: tx.id,
           tone: "error",
         });
       }
@@ -240,6 +239,14 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
             {scopedPending.length > 0 ? (
               <p className="mt-2 text-[13px] text-muted-foreground">
                 {scopedPending.length} pending action{scopedPending.length === 1 ? "" : "s"}
+                {" · "}
+                <Link
+                  to="/bank/activity"
+                  search={{ view: "requests" }}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  View all requests
+                </Link>
               </p>
             ) : null}
           </div>

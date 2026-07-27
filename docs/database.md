@@ -70,7 +70,7 @@ Persisted Alta identity from Discord login:
 - `discordUsername`, `discordAvatar`
 - `email` (optional — not collected with current `identify` scope)
 - `minecraftUsername` (optional)
-- `accountStatus`, `developerAccessStatus`
+- `accountStatus`
 - Tags via `UserTagAssignment` (`admin`, `bank_admin`, …)
 - `createdAt`, `updatedAt`, `lastLoginAt`
 

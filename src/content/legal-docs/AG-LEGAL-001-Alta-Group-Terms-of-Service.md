@@ -5,13 +5,13 @@
 **Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026
 
 ---
 
 ## 1. Overview
 
-These Terms of Service (“Terms”) govern access to and use of websites, applications, bots, Discord integrations, APIs, services, products, and other platforms operated by Alta Group N.V. or its subsidiaries.
+These Terms of Service (“Terms”) govern access to and use of websites, applications, bots, Discord integrations, services, products, and other platforms operated by Alta Group N.V. or its subsidiaries.
 
 By using any Alta service, the user agrees to follow these Terms and any additional rules, agreements, policies, or disclosures that apply to a specific service.
 
@@ -104,7 +104,6 @@ Alta may publish service-specific rules, including:
 - brokerage terms;
 - order-handling terms;
 - trading and market-data disclosures;
-- API terms;
 - fee schedules;
 - dispute procedures;
 - community rules;
@@ -149,7 +148,7 @@ Alta is not responsible for losses caused by user error, incorrect account infor
 
 ## 9. Fees
 
-Alta may charge fees for certain products, services, transactions, subscriptions, accounts, orders, APIs, merchant tools, premium features, or other services.
+Alta may charge fees for certain products, services, transactions, subscriptions, accounts, orders, merchant tools, premium features, or other services.
 
 Fees may be listed in a fee schedule, product page, invoice, agreement, or service-specific terms.
 
@@ -161,7 +160,7 @@ Alta may update fees at any time unless a specific agreement states otherwise.
 
 Alta services may be unavailable, delayed, interrupted, changed, or discontinued at any time.
 
-Alta does not guarantee that any website, bot, Discord service, API, database, payment system, market-data feed, account, or product will always be available or error-free.
+Alta does not guarantee that any website, bot, Discord service, database, payment system, market-data feed, account, or product will always be available or error-free.
 
 Alta may perform maintenance, upgrades, emergency shutdowns, or service changes without prior notice.
 
@@ -235,7 +234,7 @@ Enforcement actions may include:
 - merchant restriction;
 - trading restriction;
 - brokerage or order-entry restriction;
-- API restriction;
+- system-access restriction;
 - Discord role or channel restriction;
 - removal of content;
 - denial of future access.
@@ -345,4 +344,4 @@ These Terms are adopted by Alta Group N.V. as the platform-wide Terms of Service
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
 **Version:** 1.1
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026

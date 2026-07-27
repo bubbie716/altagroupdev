@@ -15,6 +15,7 @@ import { closeAllTransientOverlays } from "@/lib/ui/transient-overlay-registry";
 export type BankActionLaunchExtras = {
   accountId?: string;
   cardId?: string;
+  employeeCardId?: string;
   companyId?: string;
   scope?: "personal" | "all";
   accountType?: BankAccountTypeCode;
@@ -50,6 +51,7 @@ export function useBankActionLauncher() {
         action,
         accountId: extras?.accountId,
         cardId: extras?.cardId,
+        employeeCardId: extras?.employeeCardId,
         companyId: extras?.companyId,
         scope: extras?.scope,
         accountType: extras?.accountType,
@@ -85,6 +87,7 @@ export function useBankActionLauncher() {
     action: parsed.action,
     accountId: parsed.accountId,
     cardId: parsed.cardId,
+    employeeCardId: parsed.employeeCardId,
     companyId: parsed.companyId,
     scope: parsed.scope,
     accountType: parsed.accountType,

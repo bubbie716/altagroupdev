@@ -22,18 +22,12 @@ enum AccountStatus {
   PENDING_REVIEW
 }
 
-enum DeveloperAccessStatus {
-  NONE
-  PENDING
-  APPROVED
-  SUSPENDED
-}
-
 enum CompanyType {
   PRIVATE_COMPANY
   LISTED_COMPANY
   BANK
   BROKERAGE
+  /// Legacy DB-only value — remapped to PRIVATE_COMPANY; do not create.
   ISSUER
   INSTITUTION
 }
@@ -101,7 +95,6 @@ model User {
   email                 String?
   minecraftUsername     String?
   accountStatus         AccountStatus         @default(ACTIVE)
-  developerAccessStatus DeveloperAccessStatus @default(NONE)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   lastLoginAt           DateTime              @default(now())

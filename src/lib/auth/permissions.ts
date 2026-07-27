@@ -2,14 +2,6 @@ import type { AltaUser, CompanyRole, EnrichedCompanyMembership } from "@/lib/aut
 import type { SiteKey } from "@/config/sites";
 import { hasTag } from "@/lib/auth/tags";
 
-/** Company roles that may access the issuer portal (VIEWER excluded). */
-export const ISSUER_PORTAL_ROLES: readonly CompanyRole[] = [
-  "owner",
-  "executive",
-  "finance_manager",
-  "compliance_contact",
-] as const;
-
 /** Roles that may manage company settings and representatives. */
 export const COMPANY_MANAGEMENT_ROLES: readonly CompanyRole[] = ["owner", "executive"] as const;
 
@@ -90,11 +82,6 @@ export function isAdmin(user: AltaUser): boolean {
   return isCorporateAdmin(user);
 }
 
-/** Approved developer access workflow on the user record (legacy Exchange field). */
-export function isDeveloper(user: AltaUser): boolean {
-  return user.developerAccess;
-}
-
 /** Any Alta staff tag (corporate / bank / terminal). */
 export function canAccessAnyInternal(user: AltaUser): boolean {
   return isCorporateAdmin(user) || isBankAdmin(user) || isTerminalAdmin(user);
@@ -152,14 +139,6 @@ export function isCompanyComplianceContact(user: AltaUser, scope: CompanyScope):
 
 export function canManageCompany(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, COMPANY_MANAGEMENT_ROLES);
-}
-
-export function canSubmitFilings(user: AltaUser, scope: CompanyScope): boolean {
-  return hasCompanyRole(user, scope, ISSUER_PORTAL_ROLES);
-}
-
-export function canAccessIssuerPortal(user: AltaUser, scope: CompanyScope): boolean {
-  return hasCompanyRole(user, scope, ISSUER_PORTAL_ROLES);
 }
 
 /** Roles that may view business treasury (Business Banking). VIEWER excluded. */

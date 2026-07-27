@@ -28,7 +28,6 @@ const COMPANY_TYPE_TO_DB: Record<CompanyTypeValue, Company["type"]> = {
   listed_company: "LISTED_COMPANY",
   bank: "BANK",
   brokerage: "BROKERAGE",
-  issuer: "ISSUER",
   institution: "INSTITUTION",
 };
 
@@ -37,7 +36,7 @@ const COMPANY_TYPE_FROM_DB: Record<Company["type"], CompanyTypeValue> = {
   LISTED_COMPANY: "listed_company",
   BANK: "bank",
   BROKERAGE: "brokerage",
-  ISSUER: "issuer",
+  ISSUER: "private_company",
   INSTITUTION: "institution",
 };
 
@@ -50,13 +49,7 @@ export function fromDbCompanyTypeValue(type: Company["type"]): CompanyTypeValue 
 }
 
 export function parseIntendedUses(values: string[]): IntendedUseValue[] {
-  const allowed: IntendedUseValue[] = [
-    "business_banking",
-    "ipo_listing",
-    "issuer_portal",
-    "api_access",
-    "other",
-  ];
+  const allowed: IntendedUseValue[] = ["business_banking", "other"];
   return values.filter((v): v is IntendedUseValue => allowed.includes(v as IntendedUseValue));
 }
 

@@ -6,11 +6,10 @@ import {
   RelationshipProfileSection,
   RelationshipSnapshotAside,
 } from "@/components/account/relationship-profile-ui";
-import { PageShell, Section, Card } from "@/components/page-shell";
+import { PageShell, Card } from "@/components/page-shell";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { Florin } from "@/components/ui/florin";
 import { CompanySubNav } from "@/components/companies/company-sub-nav";
-import { CompanyFutureModules } from "@/components/companies/company-future-modules";
 import { formatCompanyRole } from "@/lib/auth/tags";
 import { formatIntendedUse } from "@/lib/company/types";
 import { fetchCompanyBankSummary } from "@/lib/company/company.functions";
@@ -207,10 +206,6 @@ function CompanyDetailPage() {
           </Link>
         ) : null}
       </RelationshipProfileSection>
-
-      <Section title="Modules" className="mt-12">
-        <CompanyFutureModules />
-      </Section>
     </PageShell>
   );
 }

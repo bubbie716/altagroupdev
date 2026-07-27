@@ -5,13 +5,13 @@
 **Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026
 
 ---
 
 ## 1. Overview
 
-This Privacy Policy explains how Alta Group N.V. and its subsidiaries collect, use, store, share, and protect information when users access Alta websites, applications, Discord bots, APIs, financial services, marketplace services, and related products.
+This Privacy Policy explains how Alta Group N.V. and its subsidiaries collect, use, store, share, and protect information when users access Alta websites, applications, Discord bots, financial services, marketplace services, and related products.
 
 By using Alta services, the user agrees that Alta may collect and use information as described in this Policy.
 
@@ -26,7 +26,6 @@ This Policy applies to services operated by Alta Group and its subsidiaries, inc
 - Alta Terminal;
 - Alta websites;
 - Alta Discord bots;
-- Alta APIs;
 - Alta support systems;
 - and any future Alta product or subsidiary.
 
@@ -56,7 +55,6 @@ This may include:
 - transfer records;
 - trading or market activity;
 - brokerage applications and order activity;
-- API usage records;
 - audit logs;
 - staff action logs;
 - device, browser, or technical information;
@@ -92,7 +90,7 @@ Alta may use information to:
 
 ## 5. Discord and Third-Party Platform Data
 
-Alta services may connect with Discord, Minecraft servers, hosting providers, APIs, databases, authentication providers, and other third-party platforms.
+Alta services may connect with Discord, Minecraft servers, hosting providers, databases, authentication providers, and other third-party platforms.
 
 When a user connects a Discord account or interacts with an Alta bot, Alta may collect and process Discord-related information such as Discord ID, username, server roles, messages sent to Alta systems, interaction history, and bot command usage.
 
@@ -343,4 +341,4 @@ This Privacy Policy is adopted by Alta Group N.V. as the platform-wide privacy p
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
 **Version:** 1.1
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026

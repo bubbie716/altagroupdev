@@ -1,9 +1,7 @@
 import type { AltaUser } from "@/lib/auth/types";
 import {
   canAccessBankInternal,
-  canAccessIssuerPortal,
   isAdmin,
-  isDeveloper,
   isCorporateAdmin,
   isTerminalAdmin,
 } from "@/lib/auth/permissions";
@@ -31,17 +29,5 @@ export async function requireOperator(): Promise<AltaUser> {
 export async function requireTerminalAdmin(): Promise<AltaUser> {
   const user = await requireAuth();
   if (!isCorporateAdmin(user) && !isTerminalAdmin(user)) forbid();
-  return user;
-}
-
-export async function requireDeveloper(): Promise<AltaUser> {
-  const user = await requireAuth();
-  if (!isDeveloper(user)) forbid();
-  return user;
-}
-
-export async function requireIssuerPortalAccess(ticker: string): Promise<AltaUser> {
-  const user = await requireAuth();
-  if (!canAccessIssuerPortal(user, { ticker })) forbid();
   return user;
 }

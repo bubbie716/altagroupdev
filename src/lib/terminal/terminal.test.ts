@@ -50,8 +50,6 @@ function testUser(overrides: Partial<AltaUser> = {}): AltaUser {
     minecraftUsername: "trader",
     tags: [],
     accountStatus: "active",
-    developerAccessStatus: "none",
-    developerAccess: false,
     internalAccess: false,
     companyMemberships: [
       {

@@ -1,62 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import { BankActionPageSurface } from "@/components/bank/actions/bank-action-page-surface";
-import { DepositActionFlow } from "@/components/bank/actions/flows/deposit-action-flow";
-import { BankRequestsInProgress } from "@/components/bank/bank-requests-in-progress";
-import { fetchActiveBankAccounts, fetchUserBankRequestsInProgress } from "@/lib/bank/bank.functions";
-import { authBeforeLoad } from "@/lib/auth/guards";
-import { DEPOSIT_PAGE_DESCRIPTION } from "@/lib/bank/bank-shared-copy";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 type BankDepositSearch = {
   accountId?: string;
 };
 
+/** Compatibility redirect — deposit history lives in Activity → Requests. */
 export const Route = createFileRoute("/bank/deposit")({
-  beforeLoad: authBeforeLoad,
   validateSearch: (search: Record<string, unknown>): BankDepositSearch => ({
     accountId: typeof search.accountId === "string" ? search.accountId : undefined,
   }),
-  loader: async () => {
-    const [accounts, requestsInProgress] = await Promise.all([
-      fetchActiveBankAccounts(),
-      fetchUserBankRequestsInProgress({ data: "deposit" }),
-    ]);
-    return { accounts, requestsInProgress };
+  beforeLoad: ({ search }) => {
+    throw redirect({
+      to: "/bank",
+      search: {
+        action: "deposit",
+        ...(search.accountId ? { accountId: search.accountId } : {}),
+      },
+      replace: true,
+    });
   },
-  head: () => ({ meta: [{ title: "Deposit — Alta Bank" }] }),
-  component: BankDepositPage,
 });
-
-function BankDepositPage() {
-  const { accounts, requestsInProgress } = Route.useLoaderData();
-  const { accountId } = Route.useSearch();
-  const [highlightReferenceCode, setHighlightReferenceCode] = useState<string | null>(null);
-
-  return (
-    <>
-      <BankPageMeta
-        eyebrow="Alta Bank · Deposits"
-        title="Submit a Deposit"
-        description={DEPOSIT_PAGE_DESCRIPTION}
-      />
-      <BankActionPageSurface>
-        {(ctrl) => (
-          <DepositActionFlow
-            accounts={accounts}
-            defaultAccountId={accountId}
-            {...ctrl}
-            onPendingReference={setHighlightReferenceCode}
-          />
-        )}
-      </BankActionPageSurface>
-      <div className="mt-10">
-        <BankRequestsInProgress
-          requests={requestsInProgress}
-          highlightReferenceCode={highlightReferenceCode}
-          showProof
-        />
-      </div>
-    </>
-  );
-}

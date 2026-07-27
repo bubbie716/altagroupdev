@@ -30,7 +30,7 @@ Navigation: **Account → Companies** (logged-in users only).
 2. `Company` row created with `status: PENDING`, `verificationStatus: UNVERIFIED`.
 3. Creator receives `CompanyMembership` with role `OWNER`.
 4. Alta operations may later verify the entity and assign an official `ticker`.
-5. Future modules (banking, IPO, issuer portal, API) unlock after verification and product-specific approval.
+5. Business banking unlocks after company verification.
 
 ### Profile fields (`Company`)
 
@@ -51,7 +51,7 @@ Navigation: **Account → Companies** (logged-in users only).
 | **Compliance Contact** | Yes | No | No | Filings / compliance |
 | **Viewer** | Yes | No | No | Read-only |
 
-Permission helpers: `canManageCompany`, `canAccessIssuerPortal`, `isCompanyOwner`, etc. in `src/lib/auth/permissions.ts`.
+Permission helpers: `canManageCompany`, `isCompanyOwner`, treasury helpers, etc. in `src/lib/auth/permissions.ts`.
 
 ### Member management rules (implemented)
 
@@ -91,14 +91,13 @@ When the Alta Discord bot ships, invitations should also trigger:
 // await discordBot.sendCompanyInvite({ ... })
 ```
 
-## IPO / listing dependency
+## Business banking dependency
 
-IPO applications and issuer portal access depend on:
+Business operating accounts depend on:
 
 1. Verified `Company` record.
-2. Appropriate **company role** (issuer portal: owner, executive, finance manager, or compliance contact).
-3. Global **`issuer` tag** for new listing applications (future route guard on `/exchange/apply`).
-4. Alta Exchange operations approval (not built in this pass).
+2. Appropriate **company role** (treasury view/manage roles — see permissions.md).
+3. Alta Bank product availability for the company.
 
 ## Internal admin
 

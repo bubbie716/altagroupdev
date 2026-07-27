@@ -127,14 +127,12 @@ async function upsertUser() {
       email: "carter.townshend@ui-lab.local",
       minecraftUsername: "carter",
       accountStatus: "ACTIVE",
-      developerAccessStatus: "APPROVED",
     },
     update: {
       discordUsername: "carter",
       email: "carter.townshend@ui-lab.local",
       minecraftUsername: "carter",
       accountStatus: "ACTIVE",
-      developerAccessStatus: "APPROVED",
     },
   });
   for (const tag of [UserTag.CORPORATE_ADMIN]) {

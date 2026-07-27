@@ -50,6 +50,7 @@ describe("bank action URL contract", () => {
       action: "deposit",
       accountId: "acc_1",
       cardId: undefined,
+      employeeCardId: undefined,
       companyId: undefined,
       scope: undefined,
       accountType: undefined,
@@ -148,15 +149,23 @@ describe("responsive bank action architecture", () => {
     assert.match(layout, /BankActionHost/);
   });
 
-  it("reuses flow components on standalone pages", () => {
+  it("redirects legacy money pages to overlay actions", () => {
     const deposit = read("routes/bank/deposit.tsx");
     const withdraw = read("routes/bank/withdraw.tsx");
     const open = read("routes/bank/open.tsx");
     const intrabank = read("routes/bank/transfers/intrabank.tsx");
-    assert.match(deposit, /DepositActionFlow/);
-    assert.match(withdraw, /WithdrawActionFlow/);
-    assert.match(open, /OpenAccountActionFlow/);
-    assert.match(intrabank, /TransferActionFlow/);
+    assert.match(deposit, /action:\s*"deposit"/);
+    assert.match(withdraw, /action:\s*"withdraw"/);
+    assert.match(open, /action:\s*"open-account"/);
+    assert.match(intrabank, /action:\s*"transfer"/);
+    assert.match(deposit, /throw redirect/);
+  });
+
+  it("keeps money flow components available for overlays", () => {
+    assert.match(read("components/bank/actions/flows/deposit-action-flow.tsx"), /DepositActionFlow/);
+    assert.match(read("components/bank/actions/flows/withdraw-action-flow.tsx"), /WithdrawActionFlow/);
+    assert.match(read("components/bank/actions/flows/open-account-action-flow.tsx"), /OpenAccountActionFlow/);
+    assert.match(read("components/bank/actions/flows/transfer-action-flow.tsx"), /TransferActionFlow/);
   });
 
   it("requires review before financial submission in money flows", () => {

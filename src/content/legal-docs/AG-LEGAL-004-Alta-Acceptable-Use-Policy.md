@@ -5,13 +5,13 @@
 **Version:** 1.0
 **Status:** Active upon publication
 **Effective Date:** Immediately upon publication
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026
 
 ---
 
 ## 1. Scope
 
-This Acceptable Use Policy applies to Alta websites, accounts, dashboards, Discord bots and communities, APIs, payment tools, banking products, brokerage tools, support systems, and other services operated by Alta Group or its subsidiaries.
+This Acceptable Use Policy applies to Alta websites, accounts, dashboards, Discord bots and communities, payment tools, banking products, brokerage tools, support systems, and other services operated by Alta Group or its subsidiaries.
 
 It supplements the Alta Group Terms of Service and applicable product agreements.
 
@@ -36,11 +36,11 @@ Users must not:
 - submit unlawful, infringing, deceptive, or malicious content; or
 - use confidential or non-public information for an unfair advantage.
 
-## 4. Automation and APIs
+## 4. Automation
 
-Bots, scripts, browser automation, bulk requests, API clients, and data collection require express authorization unless Alta provides the relevant feature for ordinary customer use.
+Bots, scripts, browser automation, bulk requests, and data collection require express authorization unless Alta provides the relevant feature for ordinary customer use.
 
-Authorized automation must respect credentials, scopes, rate limits, documentation, data-use restrictions, and revocation instructions. Alta may disable automation that creates risk or excessive load.
+Authorized automation must respect credentials, permissions, rate limits, data-use restrictions, and revocation instructions. Alta may disable automation that creates risk or excessive load.
 
 ## 5. Financial-Style Services
 
@@ -70,4 +70,4 @@ Alta may update this Policy when services, threats, or operating requirements ch
 
 **Approved by:** Alta Group N.V.
 **Version:** 1.0
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026

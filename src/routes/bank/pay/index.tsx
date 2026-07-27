@@ -1,99 +1,59 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
-import { BankPageMeta } from "@/components/bank/bank-page-layout";
-import {
-  altaCardPayFundingKey,
-  bankAccountPayFundingKey,
-  employeeCardPayFundingKey,
-} from "@/components/bank/alta-pay-form";
-import { AltaPayEnginePanel, type AltaPayEngineTab } from "@/components/bank/alta-pay-engine-panel";
-import { EmptyBankState } from "@/components/data/empty-bank-state";
-import { fetchUserBankSettings } from "@/lib/bank/bank-settings.functions";
-import { fetchPayFundingSources, fetchUserAltaPayHistory } from "@/lib/bank/alta-pay.functions";
-import {
-  fetchAltaPaySchedules,
-  fetchMerchantAutopayApprovals,
-} from "@/lib/bank/payments-engine.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 type AltaPaySearch = {
   employeeCardId?: string;
   cardId?: string;
-  tab?: AltaPayEngineTab;
+  tab?: "scheduled" | "recurring" | "autopay";
 };
 
-function parseAltaPayTab(value: unknown): AltaPayEngineTab | undefined {
+function parseAltaPayTab(value: unknown): AltaPaySearch["tab"] | undefined {
   if (value === "scheduled" || value === "recurring" || value === "autopay") return value;
   return undefined;
 }
 
+/**
+ * Compatibility redirect:
+ * - Pay now → ?action=pay
+ * - scheduled/recurring → Activity → Scheduled
+ * - autopay → Activity → AutoPay
+ * Invoice routes under /bank/pay/invoices remain canonical.
+ */
 export const Route = createFileRoute("/bank/pay/")({
   validateSearch: (search: Record<string, unknown>): AltaPaySearch => {
     const result: AltaPaySearch = {};
-    const employeeCardId = search.employeeCardId;
-    const cardId = search.cardId;
-    if (typeof employeeCardId === "string" && employeeCardId.trim()) {
-      result.employeeCardId = employeeCardId.trim();
+    if (typeof search.employeeCardId === "string" && search.employeeCardId.trim()) {
+      result.employeeCardId = search.employeeCardId.trim();
     }
-    if (typeof cardId === "string" && cardId.trim()) {
-      result.cardId = cardId.trim();
+    if (typeof search.cardId === "string" && search.cardId.trim()) {
+      result.cardId = search.cardId.trim();
     }
     const tab = parseAltaPayTab(search.tab);
     if (tab) result.tab = tab;
     return result;
   },
-  loader: async () => {
-    const [fundingSources, history, bankSettings, schedules, autopayApprovals] = await Promise.all([
-      fetchPayFundingSources(),
-      fetchUserAltaPayHistory({ data: 25 }),
-      fetchUserBankSettings(),
-      fetchAltaPaySchedules(),
-      fetchMerchantAutopayApprovals(),
-    ]);
-    return { fundingSources, history, bankSettings, schedules, autopayApprovals };
+  beforeLoad: ({ search }) => {
+    if (search.tab === "scheduled" || search.tab === "recurring") {
+      throw redirect({
+        to: "/bank/activity",
+        search: { view: "scheduled" },
+        replace: true,
+      });
+    }
+    if (search.tab === "autopay") {
+      throw redirect({
+        to: "/bank/activity",
+        search: { view: "autopay" },
+        replace: true,
+      });
+    }
+    throw redirect({
+      to: "/bank",
+      search: {
+        action: "pay",
+        ...(search.cardId ? { cardId: search.cardId } : {}),
+        ...(search.employeeCardId ? { employeeCardId: search.employeeCardId } : {}),
+      },
+      replace: true,
+    });
   },
-  head: () => ({
-    meta: [{ title: "Alta Pay — Alta Bank" }],
-  }),
-  component: AltaPayPage,
 });
-
-function AltaPayPage() {
-  const { fundingSources, history, bankSettings, schedules, autopayApprovals } = Route.useLoaderData();
-  const { employeeCardId, cardId, tab } = Route.useSearch();
-  const activeTab = tab ?? "now";
-  const defaultFundingKey = employeeCardId
-    ? employeeCardPayFundingKey(employeeCardId)
-    : cardId
-      ? altaCardPayFundingKey(cardId)
-      : bankSettings.defaultAltaPayFundingAccountId
-        ? bankAccountPayFundingKey(bankSettings.defaultAltaPayFundingAccountId)
-        : undefined;
-
-  return (
-    <>
-      <BankPageMeta
-        eyebrow="Alta Bank · Alta Pay"
-        title="Alta Pay"
-        description="Send money now, schedule future payments, set up recurring payments, and manage merchant AutoPay."
-      />
-      {fundingSources.length === 0 && activeTab === "now" ? (
-        <EmptyBankState
-          title="No eligible payment sources"
-          description="Open a personal Alta Bank account or activate an Alta Card to send money through Alta Pay."
-        />
-      ) : (
-        <Section title="Payments">
-          <AltaPayEnginePanel
-            key={activeTab}
-            tab={activeTab}
-            fundingSources={fundingSources}
-            defaultFundingKey={defaultFundingKey}
-            history={history}
-            schedules={schedules}
-            autopayApprovals={autopayApprovals}
-          />
-        </Section>
-      )}
-    </>
-  );
-}

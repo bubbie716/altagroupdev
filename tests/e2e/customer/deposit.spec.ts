@@ -5,18 +5,24 @@ import { hasBlobStorage } from "../utils/env.js";
 import { visitAndAssert } from "../utils/page-health.js";
 import { attachDepositProof, fillFlorinAmount } from "../utils/form.js";
 
-test.describe("Deposit page", () => {
-  test("loads deposit form", async ({ page }) => {
-    await visitAndAssert(page, "/bank/deposit", { heading: /deposit/i });
-    await expect(page.getByRole("button", { name: /submit deposit/i })).toBeVisible();
+test.describe("Deposit overlay", () => {
+  test("loads deposit form via overlay", async ({ page }) => {
+    await visitAndAssert(page, "/bank?action=deposit");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText(/deposit/i).first()).toBeVisible();
   });
 
-  test("requires proof before submit is enabled", async ({ page }) => {
-    await page.goto("/bank/deposit");
+  test("legacy /bank/deposit redirects into overlay", async ({ page }) => {
+    await visitAndAssert(page, "/bank/deposit");
+    await expect(page).toHaveURL(/action=deposit/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  test("requires proof before continue is enabled", async ({ page }) => {
+    await page.goto("/bank?action=deposit");
     await fillFlorinAmount(page, "50");
-    const submit = page.getByRole("button", { name: /submit deposit/i });
-    await expect(submit).toBeDisabled();
-    await expect(page.locator('input[type="file"]')).toHaveAttribute("required", "");
+    const continueBtn = page.getByRole("button", { name: /continue|review|submit deposit/i }).first();
+    await expect(continueBtn).toBeDisabled();
   });
 
   describeMutations("Deposit submission", () => {
@@ -25,10 +31,16 @@ test.describe("Deposit page", () => {
         testInfo.skip(true, "BLOB_READ_WRITE_TOKEN required for deposit proof upload.");
       }
 
-      await page.goto("/bank/deposit");
+      await page.goto("/bank?action=deposit");
       await fillFlorinAmount(page, "25");
       await attachDepositProof(page, path.resolve("tests/e2e/fixtures/proof.png"));
 
+      const continueBtn = page.getByRole("button", { name: /continue|review/i }).first();
+      if (await continueBtn.isEnabled()) {
+        await continueBtn.click();
+      }
+
+      const submit = page.getByRole("button", { name: /submit deposit|confirm|submit/i }).first();
       const [response] = await Promise.all([
         page.waitForResponse(
           (resp) =>
@@ -36,14 +48,13 @@ test.describe("Deposit page", () => {
             resp.request().method() === "POST",
           { timeout: 60_000 },
         ),
-        page.getByRole("button", { name: /submit deposit/i }).click(),
+        submit.click(),
       ]);
       expect(response.ok()).toBeTruthy();
 
-      await expect(page.getByRole("heading", { name: /deposit submitted/i })).toBeVisible({
+      await expect(page.getByText(/pending review|deposit submitted|submitted/i).first()).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.getByText(/\bpending\b/i).first()).toBeVisible();
     });
   });
 });

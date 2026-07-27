@@ -5,7 +5,7 @@
 **Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026
 
 ---
 
@@ -59,7 +59,7 @@ Unless Alta Group states otherwise in writing, all Alta intellectual property is
 
 Subsidiaries may use Alta intellectual property only because Alta Group permits them to use it for approved business operations.
 
-No subsidiary, employee, contractor, officer, director, user, customer, merchant, issuer, institution, or third party receives ownership of Alta intellectual property by using, working on, contributing to, or interacting with Alta services.
+No subsidiary, employee, contractor, officer, director, user, customer, merchant, institution, or third party receives ownership of Alta intellectual property by using, working on, contributing to, or interacting with Alta services.
 
 ---
 
@@ -225,13 +225,13 @@ Nothing in this Policy gives users ownership of third-party materials used insid
 
 ---
 
-## 13. APIs and Data
+## 13. Systems and Data
 
-Alta APIs, API documentation, endpoints, schemas, keys, market data feeds, routing systems, account systems, and related technical materials are controlled by Alta Group.
+Alta software, interfaces, databases, market-data displays, routing systems, account systems, and related technical materials are controlled by Alta Group.
 
-Users may not access, scrape, copy, resell, overload, reverse engineer, or misuse Alta APIs or data without permission.
+Users may not access, scrape, copy, resell, overload, reverse engineer, or misuse Alta systems or data without permission.
 
-Alta may suspend or restrict API access at any time for abuse, security, excessive usage, nonpayment, rule violations, or platform risk.
+Alta may suspend or restrict system access at any time for abuse, security, excessive usage, nonpayment, rule violations, or platform risk.
 
 ---
 
@@ -258,7 +258,7 @@ Actions may include:
 - takedown request;
 - removal of content;
 - revocation of branding permission;
-- API restriction;
+- system-access restriction;
 - Discord restriction;
 - legal action if necessary.
 
@@ -315,4 +315,4 @@ This Intellectual Property Policy is adopted by Alta Group N.V. as the platform-
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
 **Version:** 1.1
-**Last Updated:** July 21, 2026
+**Last Updated:** July 27, 2026

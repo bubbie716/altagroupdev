@@ -259,6 +259,7 @@ async function executeSinglePayment(
         paymentType: payment.paymentType,
         bankAccountId: payment.bankAccountId,
         companyId: payment.companyId,
+        scheduleId: payment.id,
       });
     } catch (error) {
       console.error("[scheduled-transfer] executed notification failed", error);
@@ -347,6 +348,7 @@ async function recordFailure(
       paymentType: payment.paymentType,
       bankAccountId: undefinedIfNull(payment.bankAccountId),
       companyId: payment.companyId,
+      scheduleId: payment.id,
     });
   } catch (error) {
     console.error("[scheduled-transfer] failed notification error", error);

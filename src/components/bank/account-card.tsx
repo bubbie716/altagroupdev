@@ -100,26 +100,3 @@ export function AccountCard({
     </Card>
   );
 }
-
-export function OpenAccountCard() {
-  return (
-    <Card className="flex h-full flex-col !p-6">
-      <div className="type-meta">Alta Bank</div>
-      <div className="mt-4 min-w-0">
-        <div className="text-base font-medium leading-normal tracking-[0.01em] [word-spacing:0.08em]">
-          Open an account
-        </div>
-        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          Personal, savings, and business banking products.
-        </p>
-      </div>
-      <RouteButton
-        to="/bank/open"
-        className="mt-auto inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-foreground px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background transition-opacity hover:opacity-90"
-      >
-        Open account
-        <ArrowUpRight className="size-3.5" />
-      </RouteButton>
-    </Card>
-  );
-}

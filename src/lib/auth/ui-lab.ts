@@ -60,8 +60,6 @@ export const UI_LAB_MOCK_USER: AltaUser = {
   minecraftUsername: "carter",
   tags: ["corporate_admin"],
   accountStatus: "active",
-  developerAccessStatus: "approved",
-  developerAccess: true,
   internalAccess: true,
   companyMemberships: MOCK_MEMBERSHIPS,
   createdAt: new Date("2025-01-01T00:00:00.000Z").toISOString(),

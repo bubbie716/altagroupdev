@@ -5,7 +5,7 @@ export const Route = createFileRoute("/docs/")({
   head: () => ({
     meta: [
       { title: "Documentation — Alta Group" },
-      { name: "description", content: "Developer documentation and user guides for the Alta platform." },
+      { name: "description", content: "Platform documentation and user guides for Alta Group." },
     ],
   }),
   component: DocumentationPage,
@@ -16,7 +16,7 @@ function DocumentationPage() {
     <ComingSoonPage
       eyebrow="Alta Platform"
       title="Documentation"
-      description="Developer API references, integration guides, and user documentation will be available here."
+      description="Platform guides and product documentation will be available here."
     />
   );
 }

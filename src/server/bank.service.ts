@@ -858,6 +858,7 @@ export async function submitDepositRequest(
         transaction.referenceCode,
         account.accountName,
         getProofFileUrl(proof.proofImageUrl, { transactionId: transaction.id }),
+        transaction.id,
       );
     } catch (error) {
       console.error("[bank] deposit submitted notification failed", error);
@@ -926,6 +927,7 @@ export async function submitWithdrawalRequest(
         input.amount,
         transaction.referenceCode,
         account.accountName,
+        transaction.id,
       );
     } catch (error) {
       console.error("[bank] withdrawal submitted notification failed", error);
@@ -1475,6 +1477,7 @@ export async function approveDeposit(
         record.bankAccount.userId,
         decimalToNumber(record.amount),
         record.referenceCode,
+        transactionId,
       );
       return true;
     },
@@ -1679,6 +1682,7 @@ export async function approveWithdrawal(
         record.bankAccount.userId,
         decimalToNumber(record.amount),
         record.referenceCode,
+        transactionId,
       );
       return true;
     },

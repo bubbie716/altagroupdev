@@ -9,8 +9,10 @@ const VIEWPORTS = [
 
 const ROUTES = [
   "/bank",
-  "/bank/deposit",
-  "/bank/withdraw",
+  "/bank?action=deposit",
+  "/bank?action=withdraw",
+  "/bank/activity?view=requests",
+  "/bank/activity?view=scheduled",
   "/bank/alta-card",
 ] as const;
 

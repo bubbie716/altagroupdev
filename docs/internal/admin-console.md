@@ -85,7 +85,6 @@ These routes redirect to `/internal` — no mock data in production internal UI:
 - `/internal/terminal`
 - `/internal/ipos`
 - `/internal/listings`
-- `/internal/api-applications`
 
 ## Safe action rules
 
