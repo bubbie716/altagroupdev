@@ -45,17 +45,16 @@ async function main() {
           ok = false;
         }
       }
-      // Primary nav should not list Deposit as a top-level desktop link label cluster
+      // Primary nav should not list Deposit / Withdraw. Alta Card / Lending may appear when credit desk permits.
       const nav = await page.locator("header nav[aria-label='Bank primary']").innerText().catch(() => "");
-      if (nav && /Deposit|Withdraw|Statements|Settings/i.test(nav)) {
+      if (nav && /Deposit|Withdraw/i.test(nav)) {
         console.log("FAIL primary nav still crowded");
         ok = false;
       }
-      if (nav && !/Home|Accounts|Activity/i.test(nav)) {
+      if (nav && !/Home|Accounts|Activity|Statements|Settings/i.test(nav)) {
         console.log("FAIL primary nav missing core links");
         ok = false;
       }
-      // Alta Card / Lending may appear when credit desk permits — do not require them.
       if (ok) console.log("ok");
       else failed += 1;
     } catch (err) {

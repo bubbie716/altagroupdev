@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Section } from "@/components/page-shell";
+import { Section, Card } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { StatementListTable } from "@/components/bank/statement-list-table";
-import { StatementCenterGenerateDialog } from "@/components/bank/statement-center-generate-form";
+import { StatementCenterGenerateForm } from "@/components/bank/statement-center-generate-form";
 import {
   fetchPreviousStatementPeriod,
   fetchStatementCenterStatements,
@@ -36,14 +36,17 @@ function BankStatementsPage() {
       <BankPageMeta
         eyebrow="Alta Bank · Statements"
         title="Statement Center"
-        description="Monthly statements generated from approved transaction history."
-        action={
-          <StatementCenterGenerateDialog
+        description="Monthly account statements for your personal and business Alta Bank accounts."
+      />
+
+      <Section title="Generate statement" className="mb-10">
+        <Card className="mx-auto max-w-xl !p-6">
+          <StatementCenterGenerateForm
             accounts={generatableAccounts}
             defaultPeriod={defaultPeriod}
           />
-        }
-      />
+        </Card>
+      </Section>
 
       {statements.length === 0 ? (
         <Section title="Statements">

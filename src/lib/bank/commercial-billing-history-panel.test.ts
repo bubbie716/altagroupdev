@@ -35,10 +35,13 @@ describe("merchant invoice UI Lab server-function branches", () => {
 });
 
 describe("statement UI Lab server-function branches", () => {
-  it("routes account/detail/generate through UI Lab fixtures", () => {
+  it("routes account/detail/generate/center through UI Lab fixtures", () => {
     const fns = read("lib/bank/statement.functions.ts");
     assert.match(fns, /getUiLabAccountStatements/);
     assert.match(fns, /getUiLabStatementDetail/);
     assert.match(fns, /generateUiLabAccountStatement/);
+    assert.match(fns, /getUiLabStatementCenterStatements/);
+    assert.match(fns, /getUiLabStatementGeneratableAccounts/);
+    assert.match(fns, /generateUiLabAccountStatementsBatch/);
   });
 });

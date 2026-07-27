@@ -12,6 +12,11 @@ export const fetchPersonalStatements = createServerFn({ method: "GET" }).handler
 });
 
 export const fetchStatementCenterStatements = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabStatementCenterStatements } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+    return getUiLabStatementCenterStatements();
+  }
   const { listStatementCenterStatements } = await import("@/server/statement.service");
   return listStatementCenterStatements(await actorId());
 });
@@ -111,6 +116,13 @@ export const fetchPreviousStatementPeriod = createServerFn({ method: "GET" }).ha
 });
 
 export const fetchStatementGeneratableAccounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabStatementGeneratableAccounts } = await import(
+      "@/lib/bank/ui-lab-commercial-fixtures"
+    );
+    return getUiLabStatementGeneratableAccounts();
+  }
   const { listStatementGeneratableAccountsForUser } = await import("@/server/statement.service");
   return listStatementGeneratableAccountsForUser(await actorId());
 });
@@ -118,6 +130,13 @@ export const fetchStatementGeneratableAccounts = createServerFn({ method: "GET" 
 export const generateAccountStatementsBatch = createServerFn({ method: "POST" })
   .inputValidator((input: import("@/lib/bank/statement-types").GenerateStatementsBatchInput) => input)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { generateUiLabAccountStatementsBatch } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      return generateUiLabAccountStatementsBatch(data);
+    }
     const { generateStatementsForUserBatch } = await import("@/server/statement.service");
     return generateStatementsForUserBatch(await actorId(), data);
   });

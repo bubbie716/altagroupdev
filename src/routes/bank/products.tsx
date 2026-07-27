@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Section } from "@/components/page-shell";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
@@ -5,6 +8,7 @@ import {
   BankOpenAccountAction,
   BankProductComparisonList,
 } from "@/components/bank/bank-product-comparison";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { getBankProducts } from "@/lib/bank/api";
 import type { BankProductCategory } from "@/lib/bank/types";
 
@@ -15,7 +19,11 @@ export const Route = createFileRoute("/bank/products")({
   component: BankProducts,
 });
 
-const PRODUCT_SECTIONS: Array<{ id: BankProductCategory; description: string }> = [
+const PRODUCT_SECTIONS: Array<{
+  id: BankProductCategory;
+  description: string;
+  creditGate?: "altaCard" | "lending";
+}> = [
   {
     id: "Retail Banking",
     description: "Everyday Florin deposit products for Newport citizens.",
@@ -24,20 +32,41 @@ const PRODUCT_SECTIONS: Array<{ id: BankProductCategory; description: string }> 
     id: "Business Banking",
     description: "Treasury and operating accounts for verified Newport companies.",
   },
+  {
+    id: "Credit & Cards",
+    description: "Revolving Alta Card credit lines for personal and business clients.",
+    creditGate: "altaCard",
+  },
+  {
+    id: "Lending",
+    description: "Personal and business credit lines with manual underwriting.",
+    creditGate: "lending",
+  },
 ];
 
 function BankProducts() {
   const products = getBankProducts();
+  const creditDesk = useCreditDeskCustomerNav();
+
+  const visibleSections = useMemo(
+    () =>
+      PRODUCT_SECTIONS.filter((section) => {
+        if (section.creditGate === "altaCard") return creditDesk.showAltaCardNav;
+        if (section.creditGate === "lending") return creditDesk.showLendingNav;
+        return true;
+      }),
+    [creditDesk.showAltaCardNav, creditDesk.showLendingNav],
+  );
 
   return (
     <>
       <BankPageMeta
         eyebrow="Alta Bank · Products"
         title="Bank Products"
-        description="Retail and business deposit products for Newport citizens and verified companies."
+        description="Compare Alta Bank deposit, card, and lending products. Open or apply from a product’s details — existing accounts and credit products stay on their own pages."
         action={<BankOpenAccountAction />}
       />
-      {PRODUCT_SECTIONS.map((section, index) => {
+      {visibleSections.map((section, index) => {
         const sectionProducts = products.filter((p) => p.category === section.id);
         if (sectionProducts.length === 0) return null;
 

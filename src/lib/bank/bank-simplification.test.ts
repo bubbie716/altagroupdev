@@ -24,7 +24,7 @@ describe("bank simplification contracts", () => {
     assert.equal(BANK_MOBILE_NAV_ITEMS.at(-1)?.kind, "more");
   });
 
-  it("gates desktop Alta Card and Lending", () => {
+  it("gates desktop Alta Card and Lending and keeps Statements / Settings", () => {
     const open = buildBankDesktopPrimaryLinks({
       showLendingNav: true,
       showAltaCardNav: true,
@@ -33,7 +33,7 @@ describe("bank simplification contracts", () => {
     });
     assert.deepEqual(
       open.map((l) => l.label),
-      ["Home", "Accounts", "Activity", "Alta Card", "Lending"],
+      ["Home", "Accounts", "Activity", "Alta Card", "Lending", "Statements", "Settings"],
     );
 
     const gated = buildBankDesktopPrimaryLinks({
@@ -44,7 +44,7 @@ describe("bank simplification contracts", () => {
     });
     assert.deepEqual(
       gated.map((l) => l.label),
-      ["Home", "Accounts", "Activity"],
+      ["Home", "Accounts", "Activity", "Statements", "Settings"],
     );
   });
 

@@ -12,7 +12,11 @@ export interface BankAccount {
   recentActivity: string;
 }
 
-export type BankProductCategory = "Retail Banking" | "Business Banking";
+export type BankProductCategory =
+  | "Retail Banking"
+  | "Business Banking"
+  | "Credit & Cards"
+  | "Lending";
 
 export interface BankProduct {
   name: string;
@@ -21,6 +25,13 @@ export interface BankProduct {
   bestFor: string;
   benefits: string[];
   availability: string;
+  /**
+   * Apply/open destination for catalog CTAs.
+   * Must target an apply or open flow — never an existing-product overview.
+   */
+  applyHref?: string;
+  applySearch?: Record<string, string>;
+  ctaLabel?: string;
 }
 
 export interface LendingProduct {

@@ -12,13 +12,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 import { useControlledMenu } from "@/hooks/use-controlled-menu";
-import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
-import { canAccessAnyInternal } from "@/lib/auth/permissions";
 import {
   BANK_MOBILE_NAV_ITEMS,
-  buildBankSecondaryNavItems,
+  buildBankMobileMoreItems,
 } from "@/lib/bank/bank-primary-nav";
 import { cn } from "@/lib/utils";
 import type { SiteNavLink } from "@/config/sites";
@@ -62,19 +59,10 @@ const ICONS = {
 export function BankMobileBottomNav() {
   const site = useSiteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const user = useCurrentUser();
-  const creditDesk = useCreditDeskCustomerNav();
   const router = useRouter();
   const moreMenu = useControlledMenu();
 
-  const secondary = useMemo(
-    () =>
-      buildBankSecondaryNavItems({
-        creditDesk,
-        showInternal: Boolean(user && canAccessAnyInternal(user)),
-      }),
-    [creditDesk, user],
-  );
+  const moreItems = useMemo(() => buildBankMobileMoreItems(), []);
 
   return (
     <nav
@@ -117,9 +105,9 @@ export function BankMobileBottomNav() {
                   }}
                 >
                   <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Products & manage
+                    More
                   </DropdownMenuLabel>
-                  {secondary.map((entry) => {
+                  {moreItems.map((entry) => {
                     const Icon = entry.icon;
                     return (
                       <DropdownMenuItem

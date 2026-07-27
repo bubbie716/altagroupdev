@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import { BankActionLauncher } from "@/components/bank/actions/bank-action-launch
 import { useBankActionLauncher } from "@/components/bank/actions/use-bank-action-launcher";
 import { RouteButton } from "@/components/bank/route-button";
 import { Button } from "@/components/ui/button";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { buildSignInSearch, resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
@@ -58,8 +60,8 @@ function OpenAccountAction({
 }
 
 /**
- * Product-details CTA that closes the details dialog (full unmount) before
- * launching open-account — never stacks two Bank dialogs/backdrops.
+ * Deposit product CTA — closes details before launching open-account.
+ * Never navigates to an existing account overview.
  */
 function OpenAccountFromProductDetails({
   product,
@@ -98,8 +100,6 @@ function OpenAccountFromProductDetails({
       className={cn("h-10 min-w-11 gap-1.5 px-3 text-[13px] font-medium", className)}
       onClick={(event) => {
         const fromElement = event.currentTarget;
-        // Conditional Dialog unmount (activeProduct → null) removes the portal
-        // immediately — no exit-animation double-scrim with the Bank action.
         closeThenRun(onRequestCloseDetails, () => {
           openAction("open-account", { accountType }, { fromElement });
         });
@@ -110,7 +110,101 @@ function OpenAccountFromProductDetails({
   );
 }
 
-/** Compact comparison list — one row per product, full detail in a dialog. */
+/**
+ * Credit/lending apply CTA — closes details then opens the apply flow only.
+ * Never routes to Alta Card / Lending overviews that show existing products.
+ */
+function ApplyFromProductDetails({
+  product,
+  onRequestCloseDetails,
+  className,
+}: {
+  product: BankProduct;
+  onRequestCloseDetails: () => void;
+  className?: string;
+}) {
+  const user = useCurrentUser();
+  const site = useSiteContext();
+  const router = useRouter();
+
+  if (!product.applyHref) return null;
+
+  const signInReturn =
+    product.applySearch != null
+      ? `${product.applyHref}?${new URLSearchParams(product.applySearch).toString()}`
+      : product.applyHref;
+
+  if (!user) {
+    return (
+      <RouteButton
+        to={resolveSiteSignInPath(site.key)}
+        search={buildSignInSearch(site.key, signInReturn)}
+        className={cn(
+          "inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background hover:opacity-90",
+          className,
+        )}
+      >
+        Sign in to apply
+      </RouteButton>
+    );
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="default"
+      size="sm"
+      className={cn("h-10 min-w-11 gap-1.5 px-3 text-[13px] font-medium", className)}
+      onClick={() => {
+        closeThenRun(onRequestCloseDetails, () => {
+          void router.navigate({
+            to: product.applyHref!,
+            search: product.applySearch,
+          });
+        });
+      }}
+    >
+      {product.ctaLabel ?? "Apply"}
+    </Button>
+  );
+}
+
+function ProductDetailsCta({
+  product,
+  onRequestCloseDetails,
+  className,
+}: {
+  product: BankProduct;
+  onRequestCloseDetails: () => void;
+  className?: string;
+}) {
+  const creditDesk = useCreditDeskCustomerNav();
+
+  if (product.applyHref) {
+    if (!creditDesk.showApplyEntryPoints) return null;
+    return (
+      <ApplyFromProductDetails
+        product={product}
+        onRequestCloseDetails={onRequestCloseDetails}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <OpenAccountFromProductDetails
+      product={product}
+      onRequestCloseDetails={onRequestCloseDetails}
+      className={className}
+    />
+  );
+}
+
+/**
+ * Product catalog with details + open/apply CTAs.
+ * CTAs start new applications or open new accounts — they never open existing
+ * account, Alta Card, or loan overviews.
+ */
 export function BankProductComparisonList({ products }: { products: BankProduct[] }) {
   const [activeProduct, setActiveProduct] = useState<BankProduct | null>(null);
 
@@ -142,10 +236,6 @@ export function BankProductComparisonList({ products }: { products: BankProduct[
         ))}
       </ul>
 
-      {/*
-        Mount Dialog only while a product is selected so closing fully unmounts
-        the portal (no stacked exit animation under the Bank action sheet).
-      */}
       {activeProduct ? (
         <Dialog
           open
@@ -177,7 +267,7 @@ export function BankProductComparisonList({ products }: { products: BankProduct[
               <div className="type-meta">Availability · {activeProduct.availability}</div>
             </div>
 
-            <OpenAccountFromProductDetails
+            <ProductDetailsCta
               product={activeProduct}
               onRequestCloseDetails={() => setActiveProduct(null)}
               className="w-full"

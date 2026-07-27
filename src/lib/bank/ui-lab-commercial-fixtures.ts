@@ -41,7 +41,13 @@ import type {
 import { COMPANY_ROLE_LABELS } from "@/lib/bank/business-banking-types";
 import type { MerchantInvoiceRecipientOption } from "@/lib/bank/merchant-invoice-types";
 import type { PayableRecipient } from "@/lib/bank/alta-pay-types";
-import type { BankStatementDetail, BankStatementSummary } from "@/lib/bank/statement-types";
+import type {
+  BankStatementDetail,
+  BankStatementSummary,
+  GenerateStatementsBatchInput,
+  GenerateStatementsBatchResult,
+  StatementGeneratableAccount,
+} from "@/lib/bank/statement-types";
 import { getRoutingNumber } from "@/lib/bank/routing";
 import type { BusinessAccountModule } from "@/lib/bank/business-account-access";
 import { getBusinessModuleAccess } from "@/lib/bank/business-account-access";
@@ -1358,6 +1364,82 @@ export function generateUiLabAccountStatement(input: {
   const rows = sessionStatements.get(input.accountId) ?? [];
   sessionStatements.set(input.accountId, [detail, ...rows]);
   return detail;
+}
+
+export function getUiLabStatementCenterStatements(): BankStatementSummary[] {
+  return [
+    ...getUiLabAccountStatements(UI_LAB_CORE_ACCOUNT_ID),
+    ...getUiLabAccountStatements(UI_LAB_PRO_ACCOUNT_ID),
+  ];
+}
+
+export function getUiLabStatementGeneratableAccounts(): StatementGeneratableAccount[] {
+  return [UI_LAB_CORE_ACCOUNT_ID, UI_LAB_PRO_ACCOUNT_ID].map((accountId) => {
+    const meta = accountMeta(accountId);
+    return {
+      id: accountId,
+      accountName: meta.accountName,
+      accountNumber: meta.accountNumber,
+      isCompanyAccount: true,
+      companyName: meta.companyName,
+    };
+  });
+}
+
+export function generateUiLabAccountStatementsBatch(
+  input: GenerateStatementsBatchInput,
+): GenerateStatementsBatchResult {
+  const generatable = getUiLabStatementGeneratableAccounts();
+  const generatableIds = new Set(generatable.map((account) => account.id));
+
+  let targetIds: string[];
+  if (input.allAccounts) {
+    targetIds = generatable.map((account) => account.id);
+  } else if (input.accountIds?.length) {
+    const invalid = input.accountIds.filter((id) => !generatableIds.has(id));
+    if (invalid.length > 0) throw new Error("FORBIDDEN");
+    targetIds = input.accountIds;
+  } else {
+    throw new Error("Select at least one account or choose all accounts.");
+  }
+
+  if (targetIds.length === 0) {
+    throw new Error("No eligible accounts available for statement generation.");
+  }
+
+  let created = 0;
+  let skipped = 0;
+  const errors: GenerateStatementsBatchResult["errors"] = [];
+  const statements: GenerateStatementsBatchResult["statements"] = [];
+
+  for (const accountId of targetIds) {
+    const account = generatable.find((row) => row.id === accountId);
+    const label = account?.accountNumber ?? accountId;
+    try {
+      const existing = getUiLabAccountStatements(accountId).some(
+        (row) => row.periodStart === input.periodStart && row.periodEnd === input.periodEnd,
+      );
+      if (existing) {
+        skipped += 1;
+        continue;
+      }
+      const detail = generateUiLabAccountStatement({
+        accountId,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      });
+      created += 1;
+      statements.push({ id: detail.id, accountId });
+    } catch (error) {
+      errors.push({
+        accountId,
+        label,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return { created, skipped, errors, statements };
 }
 
 export function getUiLabRepresentatives(companyId: string): BusinessRepresentativeRow[] {

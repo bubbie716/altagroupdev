@@ -19,6 +19,7 @@ const checks = [
   ["components/bank/bank-page-layout.tsx", /BankActionHost/],
   ["components/bank/bank-home-dashboard.tsx", /BankActionLauncher/],
   ["components/bank/bank-product-comparison.tsx", /closeThenRun/],
+  ["components/bank/bank-product-comparison.tsx", /ApplyFromProductDetails/],
   ["components/bank/move-money-chooser.tsx", /Between my accounts/],
   ["lib/bank/bank-action-url.ts", /query-driven/i],
   ["lib/bank/bank-action-ui-lab.ts", /shouldUseBankActionUiLabMock/],

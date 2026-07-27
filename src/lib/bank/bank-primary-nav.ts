@@ -1,13 +1,13 @@
 import type { SiteNavLink } from "@/config/sites";
 import type { CreditDeskCustomerNav } from "@/lib/platform/credit-desk-types";
 import {
-  CreditCard,
   FileText,
-  HandCoins,
   HelpCircle,
   LayoutGrid,
   Settings,
   Shield,
+  User,
+  Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -18,6 +18,7 @@ export type BankPrimaryNavOptions = {
 /**
  * Desktop Bank primary destinations.
  * Alta Card / Lending are gated by credit-desk customer nav permissions.
+ * Statements and Settings stay in the header; credit products are also listed on Products.
  */
 export function buildBankDesktopPrimaryLinks(
   creditDesk: CreditDeskCustomerNav,
@@ -60,6 +61,20 @@ export function buildBankDesktopPrimaryLinks(
     });
   }
 
+  links.push(
+    {
+      label: "Statements",
+      to: "/bank/statements",
+      match: "/bank/statements",
+      activePaths: ["/bank/statements"],
+    },
+    {
+      label: "Settings",
+      to: "/bank/settings",
+      match: "/bank/settings",
+    },
+  );
+
   return links;
 }
 
@@ -91,36 +106,16 @@ export type BankSecondaryNavItem = {
   group: "products" | "manage" | "support";
 };
 
-export function buildBankSecondaryNavItems(options: {
-  creditDesk: CreditDeskCustomerNav;
+/** Account avatar menu — products entry plus profile and support links. */
+export function buildBankAccountMenuItems(options: {
   showInternal: boolean;
 }): BankSecondaryNavItem[] {
-  const items: BankSecondaryNavItem[] = [];
-
-  if (options.creditDesk.showAltaCardNav) {
-    items.push({
-      label: "Alta Card",
-      to: "/bank/alta-card",
-      icon: CreditCard,
-      group: "products",
-    });
-  }
-
-  if (options.creditDesk.showLendingNav) {
-    items.push({
-      label: options.creditDesk.creditDeskClosed ? "Loans" : "Lending",
-      to: options.creditDesk.creditDeskClosed ? "/bank/lending/loans" : "/bank/lending",
-      icon: HandCoins,
-      group: "products",
-    });
-  }
-
-  items.push(
+  const items: BankSecondaryNavItem[] = [
     { label: "Products", to: "/bank/products", icon: LayoutGrid, group: "products" },
-    { label: "Statements", to: "/bank/statements", icon: FileText, group: "manage" },
-    { label: "Settings", to: "/bank/settings", icon: Settings, group: "manage" },
-    { label: "Support", to: "/profile", icon: HelpCircle, group: "support" },
-  );
+    { label: "Profile", to: "/profile", icon: User, group: "support" },
+    { label: "Companies", to: "/companies", icon: Building2, group: "support" },
+    { label: "Support", to: "/support", icon: HelpCircle, group: "support" },
+  ];
 
   if (options.showInternal) {
     items.push({
@@ -132,6 +127,26 @@ export function buildBankSecondaryNavItems(options: {
   }
 
   return items;
+}
+
+/** Mobile More menu — destinations not in the bottom bar. */
+export function buildBankMobileMoreItems(): BankSecondaryNavItem[] {
+  return [
+    { label: "Products", to: "/bank/products", icon: LayoutGrid, group: "products" },
+    { label: "Statements", to: "/bank/statements", icon: FileText, group: "manage" },
+    { label: "Settings", to: "/bank/settings", icon: Settings, group: "manage" },
+  ];
+}
+
+/** @deprecated Use buildBankAccountMenuItems or buildBankMobileMoreItems. */
+export function buildBankSecondaryNavItems(options: {
+  creditDesk: CreditDeskCustomerNav;
+  showInternal: boolean;
+}): BankSecondaryNavItem[] {
+  return [
+    ...buildBankMobileMoreItems(),
+    ...buildBankAccountMenuItems({ showInternal: options.showInternal }),
+  ];
 }
 
 /** @deprecated Prefer buildBankDesktopPrimaryLinks. */

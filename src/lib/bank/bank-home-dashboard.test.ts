@@ -3,8 +3,9 @@ import { describe, it } from "node:test";
 import {
   BANK_HOME_PRIMARY_LINKS,
   BANK_MOBILE_NAV_ITEMS,
+  buildBankAccountMenuItems,
   buildBankDesktopPrimaryLinks,
-  buildBankSecondaryNavItems,
+  buildBankMobileMoreItems,
 } from "./bank-primary-nav.ts";
 import {
   buildBankHomeContextOptions,
@@ -60,16 +61,16 @@ function account(partial: Partial<UserBankAccount> & Pick<UserBankAccount, "id">
 }
 
 describe("bank home navigation", () => {
-  it("includes Alta Card and Lending on desktop when credit desk permits", () => {
-    const open = buildBankDesktopPrimaryLinks({
+  it("includes Alta Card, Lending, Statements, and Settings when credit desk permits", () => {
+    const links = buildBankDesktopPrimaryLinks({
       showLendingNav: true,
       showAltaCardNav: true,
       creditDeskClosed: false,
       showApplyEntryPoints: true,
     });
     assert.deepEqual(
-      open.map((l) => l.label),
-      ["Home", "Accounts", "Activity", "Alta Card", "Lending"],
+      links.map((l) => l.label),
+      ["Home", "Accounts", "Activity", "Alta Card", "Lending", "Statements", "Settings"],
     );
   });
 
@@ -82,7 +83,7 @@ describe("bank home navigation", () => {
     });
     assert.deepEqual(
       closed.map((l) => l.label),
-      ["Home", "Accounts", "Activity"],
+      ["Home", "Accounts", "Activity", "Statements", "Settings"],
     );
   });
 
@@ -105,23 +106,24 @@ describe("bank home navigation", () => {
     );
   });
 
-  it("keeps secondary destinations reachable from the account menu", () => {
-    const items = buildBankSecondaryNavItems({
-      creditDesk: {
-        showLendingNav: true,
-        showAltaCardNav: true,
-        creditDeskClosed: false,
-        showApplyEntryPoints: true,
-      },
-      showInternal: true,
-    });
+  it("keeps account menu focused on products and account links", () => {
+    const items = buildBankAccountMenuItems({ showInternal: true });
     const tos = items.map((i) => i.to);
-    assert.ok(tos.includes("/bank/alta-card"));
-    assert.ok(tos.includes("/bank/lending"));
     assert.ok(tos.includes("/bank/products"));
-    assert.ok(tos.includes("/bank/statements"));
-    assert.ok(tos.includes("/bank/settings"));
+    assert.equal(items.find((i) => i.label === "Profile")?.to, "/profile");
+    assert.equal(items.find((i) => i.label === "Companies")?.to, "/companies");
+    assert.equal(items.find((i) => i.label === "Support")?.to, "/support");
     assert.ok(tos.includes("/internal"));
+    assert.equal(tos.includes("/bank/alta-card"), false);
+    assert.equal(tos.includes("/bank/lending"), false);
+    assert.equal(tos.includes("/bank/statements"), false);
+    assert.equal(tos.includes("/bank/settings"), false);
+  });
+
+  it("keeps mobile More menu for products, statements, and settings", () => {
+    const items = buildBankMobileMoreItems();
+    const tos = items.map((i) => i.to);
+    assert.deepEqual(tos, ["/bank/products", "/bank/statements", "/bank/settings"]);
   });
 
   it("keeps mobile nav to four slots including More", () => {

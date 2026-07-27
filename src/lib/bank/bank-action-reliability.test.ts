@@ -125,20 +125,32 @@ describe("overlay layering", () => {
   });
 });
 
-describe("product details to open-account transition", () => {
-  it("closes details before launching open-account and preserves product type", () => {
+describe("product catalog", () => {
+  it("opens or applies from details without linking to existing product overviews", () => {
     const comparison = read("components/bank/bank-product-comparison.tsx");
-    assert.match(comparison, /closeThenRun/);
-    assert.match(comparison, /onRequestCloseDetails/);
     assert.match(comparison, /OpenAccountFromProductDetails/);
-    assert.match(comparison, /resolveBankAccountTypeFromProductName/);
+    assert.match(comparison, /ApplyFromProductDetails/);
+    assert.match(comparison, /closeThenRun/);
     assert.match(comparison, /openAction\(\s*"open-account"/);
-    // Dialog mounts only while a product is selected (full unmount, no exit stack).
     assert.match(comparison, /\{activeProduct \? \(/);
+    assert.doesNotMatch(comparison, /to:\s*"\/bank\/alta-card"/);
+    assert.doesNotMatch(comparison, /to:\s*"\/bank\/lending"/);
+    assert.doesNotMatch(comparison, /\/bank\/accounts/);
     // Details dialog CTA must not nest BankActionLauncher (that stacks overlays).
     const detailsBlock = comparison.slice(comparison.indexOf("OpenAccountFromProductDetails"));
     assert.match(detailsBlock, /closeThenRun\(onRequestCloseDetails/);
     assert.doesNotMatch(detailsBlock, /<BankActionLauncher/);
+  });
+
+  it("keeps catalog apply destinations on apply flows only", () => {
+    const data = read("lib/bank/data.ts");
+    assert.match(data, /applyHref: "\/bank\/alta-card\/apply"/);
+    assert.match(data, /applyHref: "\/bank\/alta-card\/business\/apply"/);
+    assert.match(data, /applyHref: "\/bank\/lending\/apply"/);
+    assert.match(data, /applySearch: \{ product: "personal_credit_line" \}/);
+    assert.match(data, /applySearch: \{ product: "business_credit_line" \}/);
+    assert.doesNotMatch(data, /href: "\/bank\/alta-card"/);
+    assert.doesNotMatch(data, /ctaLabel: "View/);
   });
 
   it("maps catalog product names to account types", async () => {

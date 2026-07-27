@@ -13,13 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useControlledMenu } from "@/hooks/use-controlled-menu";
-import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { canAccessAnyInternal } from "@/lib/auth/permissions";
 import { logoutUser } from "@/lib/auth/auth.functions";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
-import { buildBankSecondaryNavItems } from "@/lib/bank/bank-primary-nav";
+import { buildBankAccountMenuItems } from "@/lib/bank/bank-primary-nav";
 import { resolveSiteSignInPath, buildSignInSearch } from "@/lib/site/site-sign-in-path";
 import { resolveSiteInternalLink } from "@/components/site/site-internal-link";
 import { readRequestHost } from "@/lib/site/site-context";
@@ -38,15 +37,13 @@ export function BankAccountMenu() {
   const router = useRouter();
   const logout = useServerFn(logoutUser);
   const menu = useControlledMenu();
-  const creditDesk = useCreditDeskCustomerNav();
 
   const items = useMemo(
     () =>
-      buildBankSecondaryNavItems({
-        creditDesk,
+      buildBankAccountMenuItems({
         showInternal: Boolean(user && canAccessAnyInternal(user)),
       }),
-    [creditDesk, user],
+    [user],
   );
 
   if (!user) {
