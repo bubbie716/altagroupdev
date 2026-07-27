@@ -147,6 +147,11 @@ describe("bank activity center authorization helpers", () => {
 });
 
 describe("compatibility redirects for money actions", () => {
+  it("keeps Activity detail navigations from resetting page scroll", () => {
+    const source = read("components/bank/activity-center/bank-activity-center.tsx");
+    assert.match(source, /resetScroll:\s*false/);
+  });
+
   it("converts deposit/withdraw/open/pay/intrabank pages to redirects", () => {
     for (const rel of [
       "routes/bank/deposit.tsx",

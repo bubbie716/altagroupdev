@@ -62,12 +62,7 @@ function isNonstandardStatus(status: string): boolean {
   return status !== "active";
 }
 
-/** Deposit and withdrawal requests share one shape; the reference prefix tells them apart. */
-function isWithdrawalRequest(request: BankRequestInProgress): boolean {
-  return request.referenceCode?.trim().toUpperCase().startsWith("WDR") ?? false;
-}
-
-type BankHomeNoticeTone = "pending" | "warning" | "error";
+type BankHomeNoticeTone = "warning" | "error";
 
 type BankHomeNotice = {
   id: string;
@@ -80,7 +75,6 @@ type BankHomeNotice = {
 );
 
 const NOTICE_TONE_LABELS: Record<BankHomeNoticeTone, string> = {
-  pending: "Pending",
   warning: "Needs attention",
   error: "Action required",
 };
@@ -88,7 +82,7 @@ const NOTICE_TONE_LABELS: Record<BankHomeNoticeTone, string> = {
 function noticeClassName(tone: BankHomeNoticeTone): string {
   return cn(
     "block rounded-xl border bg-surface-1 px-4 py-3 transition-colors hover:border-border-strong hover:bg-[var(--menu-item-hover)]",
-    tone === "error" ? "border-destructive/40" : tone === "warning" ? "border-amber-700/30" : "border-border",
+    tone === "error" ? "border-destructive/40" : "border-amber-700/30",
   );
 }
 
@@ -180,18 +174,6 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
 
   const notices = useMemo(() => {
     const items: BankHomeNotice[] = [];
-    for (const req of scopedPending.slice(0, 3)) {
-      const kind = isWithdrawalRequest(req) ? "withdrawal" : "deposit";
-      items.push({
-        id: req.id,
-        title: req.status === "pending" ? `Pending ${kind}` : `${req.statusLabel} ${kind}`,
-        detail: `${req.accountName} · ${florin(req.amount)}`,
-        target: "activity",
-        view: "requests",
-        recordId: req.id,
-        tone: req.status === "denied" ? "error" : "pending",
-      });
-    }
     for (const account of scopedAccounts) {
       if (account.status === "frozen" || account.status === "pending") {
         items.push({
@@ -218,7 +200,7 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
       }
     }
     return items.slice(0, 4);
-  }, [scopedPending, scopedAccounts, scopedTransactions]);
+  }, [scopedAccounts, scopedTransactions]);
 
   const greeting = `Hi, ${formatGreetingName(user)}`;
 

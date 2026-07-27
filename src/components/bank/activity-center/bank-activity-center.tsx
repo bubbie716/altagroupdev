@@ -212,6 +212,7 @@ export function BankActivityCenter({
       params: lockAccountId ? { accountId: lockAccountId } : undefined,
       search: mergeBankActivityCenterSearch(current, patch) as never,
       replace: false,
+      resetScroll: false,
     });
   }
 
@@ -222,6 +223,7 @@ export function BankActivityCenter({
       params: lockAccountId ? { accountId: lockAccountId } : undefined,
       search: stripBankActivityDetailSearch(current) as never,
       replace: true,
+      resetScroll: false,
     });
     setDetailError(null);
   }
