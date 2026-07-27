@@ -38,6 +38,9 @@ describe("commercial mobile overlay and navigation structure", () => {
     assert.match(shell, /min-h-0/);
     assert.match(shell, /scrollResetKey/);
     assert.match(shell, /scrollTop = 0/);
+    // Phase must not remount the scroll body — that wiped form state on review.
+    assert.match(shell, /key=\{contentKeyRef\.current\}/);
+    assert.doesNotMatch(shell, /key=\{`\$\{contentKeyRef\.current\}:\$\{String\(scrollResetKey/);
     assert.match(styles, /--bank-mobile-sheet-max-height/);
     assert.match(styles, /safe-area-inset-bottom/);
   });

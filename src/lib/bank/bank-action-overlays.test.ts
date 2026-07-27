@@ -135,6 +135,9 @@ describe("responsive bank action architecture", () => {
     assert.match(shell, /CLOSE_RESET_MS/);
     assert.match(shell, /Discard this draft/);
     assert.match(shell, /event\.preventDefault\(\)/);
+    // Remounting on phase wiped amounts / account fields on review.
+    assert.match(shell, /key=\{contentKeyRef\.current\}/);
+    assert.doesNotMatch(shell, /key=\{`\$\{contentKeyRef\.current\}:\$\{String\(scrollResetKey/);
   });
 
   it("hosts a single active overlay from Bank chrome", () => {

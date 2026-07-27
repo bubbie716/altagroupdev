@@ -46,7 +46,7 @@ export function ResponsiveBankAction({
   showBack = false,
   onCloseAutoFocus,
   contentClassName,
-  /** Change when advancing/returning between workflow steps so the body scrolls to top. */
+  /** Change when advancing/returning between workflow steps so the body scrolls to top (does not remount children). */
   scrollResetKey,
 }: {
   open: boolean;
@@ -258,7 +258,10 @@ export function ResponsiveBankAction({
         ) : mountedContent ? (
           <>
             <div
-              key={`${contentKeyRef.current}:${String(scrollResetKey ?? "")}:${phase}`}
+              // Remount only when the dialog re-opens (contentKeyRef). Never key on
+              // phase/scrollResetKey — that wiped flow form state on Continue → review
+              // (ƒ0.00 amounts, blank open-account fields, lost companyId).
+              key={contentKeyRef.current}
               ref={scrollRef}
               data-bank-action-scroll=""
               className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-6 sm:px-5"
