@@ -30,7 +30,9 @@ export function useCreditDeskCustomerNav(): CreditDeskCustomerNav {
       return;
     }
 
-    if (creditDeskNavCache.has(userId)) {
+    const cached = creditDeskNavCache.get(userId);
+    if (cached) {
+      setNav(cached);
       return;
     }
 
@@ -52,6 +54,12 @@ export function useCreditDeskCustomerNav(): CreditDeskCustomerNav {
   }, [userId, fetchNav]);
 
   return nav;
+}
+
+/** Seed the client cache from a route loader so Apply CTAs are correct on first paint. */
+export function seedCreditDeskNavCache(userId: string | undefined, nav: CreditDeskCustomerNav): void {
+  if (!userId) return;
+  creditDeskNavCache.set(userId, nav);
 }
 
 /** Clears cached nav after Credit Desk status changes (internal settings). */

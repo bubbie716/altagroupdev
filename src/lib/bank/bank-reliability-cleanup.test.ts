@@ -54,7 +54,7 @@ describe("bank reliability cleanup contracts", () => {
     assert.match(overview, /ariaLabel=\{`Apply for \$\{productItem\.name\}`\}/);
     assert.match(overview, /min-h-11/);
     assert.match(overview, /flex w-full shrink-0 gap-2 sm:w-auto/);
-    assert.match(overview, /search=\{productCode \? \{ apply: "1", product: productCode \}/);
+    assert.match(overview, /withApplySearch\(prev, productCode \? \{ product: productCode \}/);
     assert.match(overview, /Apply for Personal Credit Line/);
     assert.match(overview, /Apply for Business Credit Line/);
     assert.match(overview, /ApplyFromProductDetails/);

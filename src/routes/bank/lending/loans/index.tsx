@@ -8,6 +8,7 @@ import { fetchUserLoans } from "@/lib/bank/lending.functions";
 import { splitLoansByServicing } from "@/lib/bank/lending-loans-display";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { withApplySearch } from "@/lib/bank/bank-apply-search";
 
 export const Route = createFileRoute("/bank/lending/loans/")({
   beforeLoad: authBeforeLoad,
@@ -17,6 +18,14 @@ export const Route = createFileRoute("/bank/lending/loans/")({
   }),
   component: BankLendingLoans,
 });
+
+function ApplyForCreditLink({ className }: { className?: string }) {
+  return (
+    <Link to="/bank/lending" search={(prev) => withApplySearch(prev)} className={className}>
+      Apply for credit
+    </Link>
+  );
+}
 
 function BankLendingLoans() {
   const loans = Route.useLoaderData();
@@ -32,13 +41,7 @@ function BankLendingLoans() {
         description="Your active loans, upcoming payments, and loan history."
         action={
           showApply ? (
-            <Link
-              to="/bank/lending"
-              search={{ apply: "1" }}
-              className="inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
-            >
-              Apply for credit
-            </Link>
+            <ApplyForCreditLink className="inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90" />
           ) : undefined
         }
       />
@@ -50,13 +53,7 @@ function BankLendingLoans() {
             description="When Alta approves a loan for your account, your balances, payment schedules, and history will appear here."
           >
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                to="/bank/lending"
-                search={{ apply: "1" }}
-                className="inline-flex items-center justify-center rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background transition-transform hover:-translate-y-px"
-              >
-                Apply for credit
-              </Link>
+              <ApplyForCreditLink className="inline-flex items-center justify-center rounded-md bg-foreground px-5 py-2.5 text-[13px] font-medium tracking-wide text-background transition-transform hover:-translate-y-px" />
               <Link
                 to="/bank/lending/applications"
                 className="inline-flex items-center justify-center rounded-md border border-border-strong bg-surface-1/70 px-5 py-2.5 text-[13px] font-medium tracking-wide text-foreground transition-colors hover:bg-surface-2"
@@ -82,13 +79,7 @@ function BankLendingLoans() {
           <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
             Submit a new credit application when you need another loan.
           </p>
-          <Link
-            to="/bank/lending"
-            search={{ apply: "1" }}
-            className="mt-4 inline-flex rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
-          >
-            Apply for credit
-          </Link>
+          <ApplyForCreditLink className="mt-4 inline-flex rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90" />
         </div>
       ) : null}
     </>

@@ -27,6 +27,7 @@ import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { closeThenRun } from "@/lib/ui/close-then-run";
+import { withApplySearch } from "@/lib/bank/bank-apply-search";
 
 type LendingOverviewSearch = {
   apply?: "1";
@@ -97,7 +98,8 @@ function ApplyFromProductDetails({
         closeThenRun(onRequestCloseDetails, () => {
           void router.navigate({
             to: "/bank/lending",
-            search: productCode ? { apply: "1", product: productCode } : { apply: "1" },
+            search: (prev) =>
+              withApplySearch(prev, productCode ? { product: productCode } : undefined),
           });
         });
       }}
@@ -146,7 +148,7 @@ function ProductApplyLink({
   return (
     <Link
       to="/bank/lending"
-      search={productCode ? { apply: "1", product: productCode } : { apply: "1" }}
+      search={(prev) => withApplySearch(prev, productCode ? { product: productCode } : undefined)}
       className={className}
       aria-label={accessibleName}
     >
@@ -172,7 +174,7 @@ function HeaderApplyButton() {
   }
 
   return (
-    <Link to="/bank/lending" search={{ apply: "1" }} className={applyButtonClass}>
+    <Link to="/bank/lending" search={(prev) => withApplySearch(prev)} className={applyButtonClass}>
       Apply for credit
     </Link>
   );

@@ -16,17 +16,38 @@ type SectionLink = {
   search?: Record<string, string>;
   badge?: number;
   clearSearch?: boolean;
+  /** Drop apply-modal query flags while keeping ?site= on localhost. */
+  resetModalSearch?: boolean;
 };
 
+function preserveSiteSearch(
+  prev: Record<string, unknown>,
+  extra?: Record<string, string>,
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...(extra ?? {}) };
+  if (typeof prev.site === "string" && prev.site) next.site = prev.site;
+  return next;
+}
+
+function stripModalSearch(prev: Record<string, unknown>): Record<string, unknown> {
+  const {
+    apply: _apply,
+    product: _product,
+    companyId: _companyId,
+    ...rest
+  } = prev;
+  return preserveSiteSearch(rest);
+}
+
 const lendingSubLinks = [
-  { to: "/bank/lending", label: "Lending", exact: true },
-  { to: "/bank/lending/applications", label: "Applications" },
-  { to: "/bank/lending/loans", label: "Loans" },
+  { to: "/bank/lending", label: "Lending", exact: true, resetModalSearch: true },
+  { to: "/bank/lending/applications", label: "Applications", resetModalSearch: true },
+  { to: "/bank/lending/loans", label: "Loans", resetModalSearch: true },
 ] as const;
 
 const altaCardSubLinks = [
-  { to: "/bank/alta-card", label: "Personal" },
-  { to: "/bank/alta-card/business", label: "Business" },
+  { to: "/bank/alta-card", label: "Personal", resetModalSearch: true },
+  { to: "/bank/alta-card/business", label: "Business", resetModalSearch: true },
 ] as const;
 
 const businessSubLinks = [
@@ -159,20 +180,29 @@ function isSectionLinkActive(
 
 function resolveSectionLinkSearch(
   link: SectionLink,
-): Record<string, string> | ((prev: Record<string, unknown>) => Record<string, unknown>) | undefined {
+): Record<string, string> | ((prev: Record<string, unknown>) => Record<string, unknown>) {
   if (link.clearSearch) {
-    return (prev) => {
-      const { tab: _tab, ...rest } = prev;
-      return rest;
-    };
+    return (prev) => preserveSiteSearch(prev);
   }
 
   if (link.search?.tab) {
     const tab = link.search.tab;
-    return (prev) => ({ ...prev, tab });
+    return (prev) => preserveSiteSearch(prev, { tab });
   }
 
-  return link.search;
+  if (link.resetModalSearch) {
+    return (prev) => {
+      const cleaned = stripModalSearch(prev);
+      return link.search ? { ...cleaned, ...link.search } : cleaned;
+    };
+  }
+
+  if (link.search) {
+    return (prev) => preserveSiteSearch(prev, link.search);
+  }
+
+  // Default: keep ?site= and drop unrelated modal params so tab clicks fully navigate.
+  return (prev) => stripModalSearch(prev);
 }
 
 function SectionNavLink({
@@ -197,6 +227,7 @@ function SectionNavLink({
     <Link
       to={link.to}
       search={resolveSectionLinkSearch(link)}
+      preload="intent"
       className={linkClass}
     >
       {link.label}

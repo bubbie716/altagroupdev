@@ -9,6 +9,7 @@ import type { LoanApplicationRow } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import { withApplySearch } from "@/lib/bank/bank-apply-search";
 
 type DisplayFilter = "all" | "waiting_on_alta" | "waiting_on_you" | "accepted" | "denied";
 
@@ -57,7 +58,7 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
           creditDeskNav.showApplyEntryPoints ? (
           <RouteButton
             to="/bank/lending"
-            search={{ apply: "1" }}
+            search={(prev) => withApplySearch(prev)}
             className="rounded-md bg-foreground px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-background hover:bg-foreground/90"
           >
             Apply for credit

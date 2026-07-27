@@ -6,6 +6,7 @@ import { fetchUserLoanApplications } from "@/lib/bank/lending.functions";
 import { LendingApplicationsList } from "@/components/bank/lending-applications-list";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { withApplySearch } from "@/lib/bank/bank-apply-search";
 
 export const Route = createFileRoute("/bank/lending/applications/")({
   beforeLoad: authBeforeLoad,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/bank/lending/applications/")({
 function BankLendingApplications() {
   const applications = Route.useLoaderData();
   const creditDeskNav = useCreditDeskCustomerNav();
+  const showApply = creditDeskNav.showApplyEntryPoints;
 
   return (
     <>
@@ -27,10 +29,10 @@ function BankLendingApplications() {
         title="Applications"
         description="Track credit applications and review status."
         action={
-          creditDeskNav.showApplyEntryPoints ? (
+          showApply ? (
             <Link
               to="/bank/lending"
-              search={{ apply: "1" }}
+              search={(prev) => withApplySearch(prev)}
               className="inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
             >
               Apply for credit

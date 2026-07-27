@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+
+type SearchInput =
+  | Record<string, unknown>
+  | ((prev: Record<string, unknown>) => Record<string, unknown>);
 
 type RouteButtonProps = {
   to: string;
   params?: Record<string, string>;
-  search?: Record<string, unknown>;
+  search?: SearchInput;
   className?: string;
   children: ReactNode;
   disabled?: boolean;
@@ -25,6 +29,9 @@ export function RouteButton({
   "aria-label": ariaLabel,
 }: RouteButtonProps) {
   const navigate = useNavigate();
+  const currentSearch = useRouterState({
+    select: (s) => s.location.search as Record<string, unknown>,
+  });
 
   return (
     <button
@@ -33,7 +40,9 @@ export function RouteButton({
       aria-label={ariaLabel}
       className={cn("cursor-pointer", className)}
       onClick={() => {
-        void navigate({ to, params, search });
+        const resolvedSearch =
+          typeof search === "function" ? search(currentSearch ?? {}) : search;
+        void navigate({ to, params, search: resolvedSearch });
       }}
     >
       {children}

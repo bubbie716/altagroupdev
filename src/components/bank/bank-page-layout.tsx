@@ -41,6 +41,12 @@ function normalizeBankPath(pathname: string): string {
 function defaultMetaForPath(pathname: string): BankPageMetaProps {
   const path = normalizeBankPath(pathname);
 
+  if (path.startsWith("/bank/lending/applications")) {
+    return { eyebrow: "Alta Bank · Lending", title: "Applications", hideTitle: false };
+  }
+  if (path.startsWith("/bank/lending/loans")) {
+    return { eyebrow: "Alta Bank · Lending", title: "Loans", hideTitle: false };
+  }
   if (path.startsWith("/bank/lending")) {
     return { eyebrow: "Alta Bank · Lending", title: "Lending", hideTitle: false };
   }
@@ -144,6 +150,7 @@ function shouldShowSectionSubNav(pathname: string): boolean {
 
 function BankChromeLayout() {
   const resolvedPathname = useResolvedPathname();
+  const locationPathname = useRouterState({ select: (s) => s.location.pathname });
   const [meta, setMetaState] = useState<BankPageMetaProps>(() => defaultMetaForPath(resolvedPathname));
   const [metaPathname, setMetaPathname] = useState(resolvedPathname);
   const setMeta = useCallback((next: BankPageMetaProps) => {
@@ -151,15 +158,24 @@ function BankChromeLayout() {
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
 
+  // Prefer the destination path while a loader is in flight so the title/tab chrome
+  // updates on the first click instead of waiting for resolvedLocation.
+  const chromePathname =
+    normalizeBankPath(locationPathname) !== normalizeBankPath(resolvedPathname)
+      ? locationPathname
+      : resolvedPathname;
+
   // Reset default chrome meta during render on navigation so page BankPageMeta
   // layout effects (children) run afterward and can set title/action reliably.
-  if (metaPathname !== resolvedPathname) {
-    setMetaPathname(resolvedPathname);
-    setMetaState(defaultMetaForPath(resolvedPathname));
+  if (metaPathname !== chromePathname) {
+    setMetaPathname(chromePathname);
+    setMetaState(defaultMetaForPath(chromePathname));
   }
 
-  const showSubNav = shouldShowSectionSubNav(resolvedPathname);
+  const showSubNav = shouldShowSectionSubNav(chromePathname);
   const showTitle = !meta.hideTitle && Boolean(meta.title);
+  const isRoutePending =
+    normalizeBankPath(locationPathname) !== normalizeBankPath(resolvedPathname);
 
   return (
     <BankPageLayoutContext.Provider value={layoutValue}>
@@ -217,7 +233,9 @@ function BankChromeLayout() {
               "flex min-h-0 flex-1 flex-col py-6 sm:py-8",
               "pb-[calc(var(--bank-mobile-nav-offset)+1.5rem)] md:pb-10",
               meta.printDocument && "print:py-0",
+              isRoutePending && "opacity-60",
             )}
+            aria-busy={isRoutePending || undefined}
           >
             <Outlet />
           </main>
