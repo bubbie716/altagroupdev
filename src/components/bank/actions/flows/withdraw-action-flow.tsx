@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import {
   BankActionFooter,
   BankActionPrimaryButton,
@@ -20,6 +21,7 @@ import {
   listAccountsForActionContext,
   resolvePreferredAccountId,
 } from "@/lib/bank/bank-action-account-context";
+import { isBankAccountPagePath } from "@/lib/bank/bank-account-page-path";
 import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
 import {
   mockBankActionSubmission,
@@ -63,6 +65,7 @@ export function WithdrawActionFlow({
   accounts: UserBankAccount[];
   defaultAccountId?: string;
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const context = useMemo(
     () => ({
       accountId: defaultAccountId ?? accountContext?.accountId,
@@ -81,6 +84,8 @@ export function WithdrawActionFlow({
     () => resolvePreferredAccountId(accounts, context, "withdraw"),
     [accounts, context],
   );
+
+  const lockAccountSelection = isBankAccountPagePath(pathname, defaultAccountId);
 
   const [bankAccountId, setBankAccountId] = useState(() => preferredAccountId ?? "");
   const [amount, setAmount] = useState("");
@@ -336,31 +341,33 @@ export function WithdrawActionFlow({
     <div className="space-y-5">
       <BankActionProgress step={1} total={3} label="Details" />
 
-      <label className="block">
-        <span className={fieldLabel}>Source account</span>
-        <Select value={bankAccountId} onValueChange={setBankAccountId}>
-          <SelectTrigger className={inputClass} aria-label="Source account">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[var(--menu-surface)]">
-            {withdrawAccounts.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                <span className="block min-w-0">
-                  <span className="block truncate font-medium">
-                    {formatAccountOptionPrimary(account)}
+      {lockAccountSelection ? null : (
+        <label className="block">
+          <span className={fieldLabel}>Source account</span>
+          <Select value={bankAccountId} onValueChange={setBankAccountId}>
+            <SelectTrigger className={inputClass} aria-label="Source account">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[var(--menu-surface)]">
+              {withdrawAccounts.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  <span className="block min-w-0">
+                    <span className="block truncate font-medium">
+                      {formatAccountOptionPrimary(account)}
+                    </span>
+                    <span className="block truncate text-[12px] text-muted-foreground">
+                      {formatAccountOptionSecondary(account)}
+                    </span>
                   </span>
-                  <span className="block truncate text-[12px] text-muted-foreground">
-                    {formatAccountOptionSecondary(account)}
-                  </span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="mt-1.5 text-[12px] text-muted-foreground">
-          Available {florin(availableBalance)}
-        </p>
-      </label>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
+            Available {florin(availableBalance)}
+          </p>
+        </label>
+      )}
 
       <label className="block">
         <span className={fieldLabel}>Amount (ƒ)</span>
@@ -375,6 +382,11 @@ export function WithdrawActionFlow({
           className={`${inputClass} tabular-nums text-foreground`}
           aria-label="Withdrawal amount in Florin"
         />
+        {lockAccountSelection ? (
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
+            Available {florin(availableBalance)}
+          </p>
+        ) : null}
       </label>
 
       <label className="block">

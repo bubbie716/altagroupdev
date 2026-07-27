@@ -24,9 +24,10 @@ describe("bank reliability cleanup contracts", () => {
     assert.match(moveMoney, /Pay someone/);
     const accountActions = read("components/bank/account-quick-actions.tsx");
     assert.match(accountActions, /Transfer/);
+    assert.match(accountActions, /Alta Pay/);
     assert.match(accountActions, /Deposit/);
     assert.match(accountActions, /Withdraw/);
-    assert.doesNotMatch(accountActions, /action: "pay"/);
+    assert.match(accountActions, /action: "pay"/);
   });
 
   it("simplifies Lending navigation across Lending / Applications / Loans", () => {

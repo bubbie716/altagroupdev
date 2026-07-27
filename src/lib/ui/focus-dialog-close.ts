@@ -2,7 +2,7 @@
 export function focusDialogCloseButton(container: EventTarget | null) {
   if (!container || typeof (container as Element).querySelector !== "function") return;
   const close = (container as Element).querySelector("[data-dialog-close]") as {
-    focus?: () => void;
+    focus?: (options?: FocusOptions) => void;
   } | null;
-  close?.focus?.();
+  close?.focus?.({ preventScroll: true });
 }

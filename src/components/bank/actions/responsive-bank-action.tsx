@@ -144,7 +144,7 @@ export function ResponsiveBankAction({
         overlayClassName={cn(
           overlayZClass("bankAction"),
           OVERLAY_SCRIM_CLASS,
-          "data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0",
+          "data-[state=closed]:opacity-0",
           "motion-reduce:data-[state=open]:animate-none motion-reduce:data-[state=closed]:animate-none",
         )}
         className={cn(

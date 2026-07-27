@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, ChevronRight } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowLeftRight,
+  ArrowUpFromLine,
+  ChevronRight,
+  Send,
+} from "lucide-react";
 import { Card } from "@/components/page-shell";
 import { BankActionLauncher } from "@/components/bank/actions/bank-action-launcher";
 import { cn } from "@/lib/utils";
@@ -11,6 +17,12 @@ const actions = [
     hint: "Between your Alta Bank accounts",
     action: "transfer" as const,
     icon: ArrowLeftRight,
+  },
+  {
+    title: "Alta Pay",
+    hint: "Send Florin to a person or business",
+    action: "pay" as const,
+    icon: Send,
   },
   {
     title: "Deposit",
