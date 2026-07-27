@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
 import { useControlledMenu } from "@/hooks/use-controlled-menu";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { useSiteContext } from "@/hooks/use-site-context";
 import {
   BANK_MOBILE_NAV_ITEMS,
@@ -20,8 +21,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { SiteNavLink } from "@/config/sites";
 import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
+  CreditCard,
+  HandCoins,
   Home,
   List,
   MoreHorizontal,
@@ -61,8 +62,24 @@ export function BankMobileBottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
   const moreMenu = useControlledMenu();
+  const creditDesk = useCreditDeskCustomerNav();
 
   const moreItems = useMemo(() => buildBankMobileMoreItems(), []);
+
+  const creditLinks = useMemo(() => {
+    const links: Array<{ label: string; to: string; icon: typeof CreditCard }> = [];
+    if (creditDesk.showAltaCardNav) {
+      links.push({ label: "Alta Card", to: "/bank/alta-card", icon: CreditCard });
+    }
+    if (creditDesk.showLendingNav) {
+      links.push({
+        label: creditDesk.creditDeskClosed ? "Loans" : "Lending",
+        to: creditDesk.creditDeskClosed ? "/bank/lending/loans" : "/bank/lending",
+        icon: HandCoins,
+      });
+    }
+    return links;
+  }, [creditDesk]);
 
   return (
     <nav
@@ -124,29 +141,28 @@ export function BankMobileBottomNav() {
                       </DropdownMenuItem>
                     );
                   })}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onSelect={() => {
-                      moreMenu.runAfterClose(() => {
-                        void router.navigate({ to: "/bank/deposit" });
-                      });
-                    }}
-                  >
-                    <ArrowDownToLine className="mr-2 size-3.5" />
-                    Deposit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onSelect={() => {
-                      moreMenu.runAfterClose(() => {
-                        void router.navigate({ to: "/bank/withdraw" });
-                      });
-                    }}
-                  >
-                    <ArrowUpFromLine className="mr-2 size-3.5" />
-                    Withdraw
-                  </DropdownMenuItem>
+                  {creditLinks.length > 0 ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      {creditLinks.map((entry) => {
+                        const Icon = entry.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={entry.to}
+                            className="cursor-pointer"
+                            onSelect={() => {
+                              moreMenu.runAfterClose(() => {
+                                void router.navigate({ to: entry.to });
+                              });
+                            }}
+                          >
+                            <Icon className="mr-2 size-3.5" />
+                            {entry.label}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             );
