@@ -34,6 +34,7 @@ import {
   mergeBankActivityCenterSearch,
   stripBankActivityDetailSearch,
 } from "@/lib/bank/bank-activity-center-url";
+import { focusDialogCloseButton } from "@/lib/ui/focus-dialog-close";
 import type {
   BankRequestInProgress,
   BankTransactionStatusCode,
@@ -121,6 +122,13 @@ function DetailSheet({
           "max-md:left-0 max-md:right-0 max-md:h-auto max-md:w-full max-md:max-w-none",
           "max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-t-2xl max-md:rounded-b-none",
         )}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          focusDialogCloseButton(event.currentTarget);
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
       >
         <DialogHeader className="shrink-0 border-b border-border px-4 py-3 pr-14 text-left sm:px-5">
           <DialogTitle className="text-[16px] font-semibold tracking-tight">{title}</DialogTitle>

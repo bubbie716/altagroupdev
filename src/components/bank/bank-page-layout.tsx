@@ -6,6 +6,7 @@ import {
   useContext,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -108,9 +109,6 @@ export function BankPageMeta({
       printDocument,
       hideTitle,
     });
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    }
   }, [
     ctx,
     eyebrow,
@@ -157,6 +155,7 @@ function BankChromeLayout() {
     setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
+  const lastScrolledPathRef = useRef<string | null>(null);
 
   // Prefer the destination path while a loader is in flight so the title/tab chrome
   // updates on the first click instead of waiting for resolvedLocation.
@@ -164,6 +163,15 @@ function BankChromeLayout() {
     normalizeBankPath(locationPathname) !== normalizeBankPath(resolvedPathname)
       ? locationPathname
       : resolvedPathname;
+
+  // Scroll to top on pathname changes only — not when search params update
+  // (e.g. opening an Activity detail sheet via ?transactionId=…).
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (lastScrolledPathRef.current === chromePathname) return;
+    lastScrolledPathRef.current = chromePathname;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [chromePathname]);
 
   // Reset default chrome meta during render on navigation so page BankPageMeta
   // layout effects (children) run afterward and can set title/action reliably.
