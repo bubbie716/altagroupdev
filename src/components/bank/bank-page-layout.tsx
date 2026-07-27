@@ -133,7 +133,6 @@ export function isFullScreenBankPath(pathname: string): boolean {
 
 function shouldShowSectionSubNav(pathname: string): boolean {
   if (isChromelessBankPath(pathname)) return false;
-  if (normalizeBankPath(pathname) === "/bank/lending") return false;
   return (
     pathname.startsWith("/bank/lending") ||
     pathname.startsWith("/bank/alta-card") ||
@@ -146,14 +145,18 @@ function shouldShowSectionSubNav(pathname: string): boolean {
 function BankChromeLayout() {
   const resolvedPathname = useResolvedPathname();
   const [meta, setMetaState] = useState<BankPageMetaProps>(() => defaultMetaForPath(resolvedPathname));
+  const [metaPathname, setMetaPathname] = useState(resolvedPathname);
   const setMeta = useCallback((next: BankPageMetaProps) => {
     setMetaState((prev) => (metaFieldsEqual(prev, next) ? prev : next));
   }, []);
   const layoutValue = useMemo(() => ({ setMeta }), [setMeta]);
 
-  useLayoutEffect(() => {
+  // Reset default chrome meta during render on navigation so page BankPageMeta
+  // layout effects (children) run afterward and can set title/action reliably.
+  if (metaPathname !== resolvedPathname) {
+    setMetaPathname(resolvedPathname);
     setMetaState(defaultMetaForPath(resolvedPathname));
-  }, [resolvedPathname]);
+  }
 
   const showSubNav = shouldShowSectionSubNav(resolvedPathname);
   const showTitle = !meta.hideTitle && Boolean(meta.title);

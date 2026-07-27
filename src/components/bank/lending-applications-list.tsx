@@ -56,7 +56,8 @@ export function LendingApplicationsList({ applications }: { applications: LoanAp
         action={
           creditDeskNav.showApplyEntryPoints ? (
           <RouteButton
-            to="/bank/lending/apply"
+            to="/bank/lending"
+            search={{ apply: "1" }}
             className="rounded-md bg-foreground px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-background hover:bg-foreground/90"
           >
             Apply for credit

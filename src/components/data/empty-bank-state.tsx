@@ -4,8 +4,8 @@ import { EmptyState } from "@/components/data/empty-state";
 type EmptyBankStateProps = {
   title?: string;
   description?: string;
-  ctaLabel?: string;
-  ctaTo?: string;
+  ctaLabel?: string | null;
+  ctaTo?: string | null;
   children?: ReactNode;
 };
 
@@ -16,14 +16,21 @@ export function EmptyBankState({
   ctaTo = "/bank/open",
   children,
 }: EmptyBankStateProps) {
+  const actions =
+    ctaLabel && ctaTo
+      ? [{ label: ctaLabel, to: ctaTo }]
+      : undefined;
+
   return (
     <EmptyState
       eyebrow="Alta Bank"
       title={title}
       description={description}
-      actions={[{ label: ctaLabel, to: ctaTo }]}
+      actions={actions}
     >
-      {children}
+      {children ? (
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">{children}</div>
+      ) : null}
     </EmptyState>
   );
 }

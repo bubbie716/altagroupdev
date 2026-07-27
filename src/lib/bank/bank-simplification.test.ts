@@ -66,18 +66,23 @@ describe("bank simplification contracts", () => {
   it("preserves lending apply deep link and modal open via search", () => {
     const applyRoute = read("routes/bank/lending/apply.tsx");
     const overview = read("routes/bank/lending/index.tsx");
-    assert.match(applyRoute, /LendingApplyWorkflow/);
+    assert.match(applyRoute, /redirect/);
+    assert.match(applyRoute, /apply: "1"/);
     assert.match(overview, /apply === "1"/);
     assert.match(overview, /LendingApplyWorkflow/);
     assert.doesNotMatch(overview, /lending-apply-form|LendingApplyForm|LendingApplyExperience/);
   });
 
-  it("simplifies lending section nav without Apply tab", () => {
+  it("keeps lending section nav as Lending / Applications / Loans", () => {
     const subNav = read("components/bank/bank-sub-nav.tsx");
+    assert.match(subNav, /to: "\/bank\/lending"/);
+    assert.match(subNav, /label: "Lending"/);
     assert.match(subNav, /Applications/);
     assert.match(subNav, /Loans/);
     assert.doesNotMatch(subNav, /to: "\/bank\/lending\/apply"/);
     assert.doesNotMatch(subNav, /label: "Apply"/);
+    const layout = read("components/bank/bank-page-layout.tsx");
+    assert.doesNotMatch(layout, /=== "\/bank\/lending"\) return false/);
   });
 
   it("keeps Manage Card as one controlled sheet with close-before-nav", () => {

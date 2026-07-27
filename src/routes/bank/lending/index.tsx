@@ -24,6 +24,8 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { buildSignInSearch, resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import { authBeforeLoad } from "@/lib/auth/guards";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
 import { closeThenRun } from "@/lib/ui/close-then-run";
 
 type LendingOverviewSearch = {
@@ -32,6 +34,13 @@ type LendingOverviewSearch = {
 };
 
 export const Route = createFileRoute("/bank/lending/")({
+  beforeLoad: async (ctx) => {
+    // Apply modal requires auth + open credit desk; browsing products does not.
+    if (ctx.search.apply === "1") {
+      authBeforeLoad(ctx);
+      await creditDeskApplicationBeforeLoad(ctx);
+    }
+  },
   validateSearch: (search: Record<string, unknown>): LendingOverviewSearch => {
     const next: LendingOverviewSearch = {};
     if (search.apply === "1" || search.apply === 1) next.apply = "1";
@@ -49,9 +58,6 @@ export const Route = createFileRoute("/bank/lending/")({
 
 const applyButtonClass =
   "inline-flex min-h-11 items-center justify-center rounded-md bg-foreground px-4 py-2 text-[13px] font-medium text-background transition-opacity hover:opacity-90";
-
-const navButtonClass =
-  "inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-surface-2/50 px-4 py-2 text-[13px] font-medium transition-colors hover:border-border-strong";
 
 function ApplyFromProductDetails({
   product,
@@ -149,6 +155,29 @@ function ProductApplyLink({
   );
 }
 
+function HeaderApplyButton() {
+  const user = useCurrentUser();
+  const site = useSiteContext();
+
+  if (!user) {
+    return (
+      <RouteButton
+        to={resolveSiteSignInPath(site.key)}
+        search={buildSignInSearch(site.key, "/bank/lending?apply=1")}
+        className={applyButtonClass}
+      >
+        Apply for credit
+      </RouteButton>
+    );
+  }
+
+  return (
+    <Link to="/bank/lending" search={{ apply: "1" }} className={applyButtonClass}>
+      Apply for credit
+    </Link>
+  );
+}
+
 function BankLendingOverview() {
   const router = useRouter();
   const user = useCurrentUser();
@@ -197,17 +226,8 @@ function BankLendingOverview() {
       <BankPageMeta
         eyebrow="Alta Bank · Lending"
         title="Lending"
-        description="Personal and business credit lines for Alta Bank clients. Apply from a product below."
-        action={
-          <>
-            <Link to="/bank/lending/loans" className={navButtonClass}>
-              My Loans
-            </Link>
-            <Link to="/bank/lending/applications" className={navButtonClass}>
-              My Applications
-            </Link>
-          </>
-        }
+        description="Personal and business credit lines for Alta Bank clients."
+        action={showApply ? <HeaderApplyButton /> : undefined}
       />
 
       <Section

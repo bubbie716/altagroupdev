@@ -7,8 +7,8 @@ test.describe("Alta Card", () => {
     await visitAndAssert(page, "/bank/alta-card");
   });
 
-  test("loads apply page when credit desk open", async ({ page }) => {
-    await page.goto("/bank/alta-card/apply");
+  test("opens apply modal when credit desk open", async ({ page }) => {
+    await page.goto("/bank/alta-card?apply=1");
     const closed = page.getByText(/credit desk closed/i);
     const apply = page.getByText(/application|apply|tier/i);
     await expect(closed.or(apply).first()).toBeVisible();
@@ -16,7 +16,7 @@ test.describe("Alta Card", () => {
 
   describeMutations("Alta Card application", () => {
     test("shows application form or credit desk gate", async ({ page }) => {
-      await page.goto("/bank/alta-card/apply");
+      await page.goto("/bank/alta-card?apply=1");
       if (await page.getByText(/credit desk closed/i).isVisible()) {
         expect(await page.getByText(/credit desk closed/i).isVisible()).toBeTruthy();
         return;

@@ -151,8 +151,8 @@ export function AltaCardBusinessPanel({
         </p>
         {creditDeskNav.showApplyEntryPoints ? (
         <Link
-          to="/bank/alta-card/business/apply"
-          search={{ companyId }}
+          to="/bank/alta-card/business"
+          search={{ apply: "1", companyId }}
           className="mt-4 inline-flex rounded-md border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em]"
         >
           Apply for business card

@@ -165,7 +165,8 @@ export const bankProducts: BankProduct[] = [
       "Upgrade path through Alta Gold",
     ],
     availability: "Apply",
-    applyHref: "/bank/alta-card/apply",
+    applyHref: "/bank/alta-card",
+    applySearch: { apply: "1" },
     ctaLabel: "Apply",
   },
   {
@@ -180,7 +181,8 @@ export const bankProducts: BankProduct[] = [
       "Manual underwriting for verified companies",
     ],
     availability: "Apply",
-    applyHref: "/bank/alta-card/business/apply",
+    applyHref: "/bank/alta-card/business",
+    applySearch: { apply: "1" },
     ctaLabel: "Apply",
   },
   {
@@ -195,8 +197,8 @@ export const bankProducts: BankProduct[] = [
       "Apply from Alta Bank lending",
     ],
     availability: "Apply",
-    applyHref: "/bank/lending/apply",
-    applySearch: { product: "personal_credit_line" },
+    applyHref: "/bank/lending",
+    applySearch: { apply: "1", product: "personal_credit_line" },
     ctaLabel: "Apply",
   },
   {
@@ -211,8 +213,8 @@ export const bankProducts: BankProduct[] = [
       "Apply from Alta Bank lending",
     ],
     availability: "Apply",
-    applyHref: "/bank/lending/apply",
-    applySearch: { product: "business_credit_line" },
+    applyHref: "/bank/lending",
+    applySearch: { apply: "1", product: "business_credit_line" },
     ctaLabel: "Apply",
   },
 ];

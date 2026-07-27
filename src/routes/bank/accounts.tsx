@@ -1,3 +1,5 @@
+"use client";
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
@@ -20,6 +22,14 @@ export const Route = createFileRoute("/bank/accounts")({
   component: BankAccountsPage,
 });
 
+function OpenAccountButton({ className }: { className?: string }) {
+  return (
+    <BankActionLauncher action="open-account" variant="default" className={className}>
+      Open an account
+    </BankActionLauncher>
+  );
+}
+
 function BankAccountsPage() {
   const accounts = Route.useLoaderData();
   const personal = accounts.filter((a) => !a.companyId);
@@ -31,13 +41,13 @@ function BankAccountsPage() {
         eyebrow="Alta Bank"
         title="Accounts"
         description="Personal and business accounts you can access."
-        action={
-          <BankActionLauncher action="open-account">Open an account</BankActionLauncher>
-        }
+        action={<OpenAccountButton />}
       />
 
       {accounts.length === 0 ? (
-        <EmptyBankState />
+        <EmptyBankState ctaLabel={null} ctaTo={null}>
+          <OpenAccountButton />
+        </EmptyBankState>
       ) : (
         <div className="space-y-8">
           {personal.length > 0 ? (

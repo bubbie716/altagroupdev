@@ -1,19 +1,14 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { LendingApplyWorkflow } from "@/components/bank/lending-apply-workflow";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
-import { fetchLendingFormContext } from "@/lib/bank/lending.functions";
 import type { LoanProductTypeCode } from "@/lib/bank/lending-types";
 
 type ApplySearch = {
   product?: LoanProductTypeCode;
 };
 
+/** Legacy deep link — apply opens as a modal on the Lending page. */
 export const Route = createFileRoute("/bank/lending/apply")({
-  beforeLoad: async (ctx) => {
-    authBeforeLoad(ctx);
-    await creditDeskApplicationBeforeLoad(ctx);
-  },
   validateSearch: (search: Record<string, unknown>): ApplySearch => {
     const product = search.product;
     if (product === "personal_credit_line" || product === "business_credit_line") {
@@ -21,28 +16,15 @@ export const Route = createFileRoute("/bank/lending/apply")({
     }
     return {};
   },
-  loader: async () => fetchLendingFormContext(),
-  head: () => ({
-    meta: [{ title: "Apply for Credit — Alta Bank Lending" }],
-  }),
-  component: BankLendingApply,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+    throw redirect({
+      to: "/bank/lending",
+      search: ctx.search.product
+        ? { apply: "1", product: ctx.search.product }
+        : { apply: "1" },
+      replace: true,
+    });
+  },
 });
-
-function BankLendingApply() {
-  const router = useRouter();
-  const { product } = Route.useSearch();
-  const { accounts, companies } = Route.useLoaderData();
-
-  return (
-    <LendingApplyWorkflow
-      open
-      accounts={accounts}
-      companies={companies}
-      initialProduct={product}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) void router.navigate({ to: "/bank/lending" });
-      }}
-      onDone={() => void router.navigate({ to: "/bank/lending" })}
-    />
-  );
-}

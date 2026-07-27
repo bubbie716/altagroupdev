@@ -29,20 +29,23 @@ describe("bank reliability cleanup contracts", () => {
     assert.doesNotMatch(accountActions, /action: "pay"/);
   });
 
-  it("simplifies Lending overview actions and hides overview tabs", () => {
+  it("simplifies Lending navigation across Lending / Applications / Loans", () => {
     const overview = read("routes/bank/lending/index.tsx");
-    assert.match(overview, /My Loans/);
-    assert.match(overview, /My Applications/);
-    assert.match(overview, /\/bank\/lending\/loans/);
-    assert.match(overview, /\/bank\/lending\/applications/);
+    assert.match(overview, /HeaderApplyButton|Apply for credit/);
+    assert.match(overview, /\/bank\/lending/);
+    assert.match(overview, /LendingApplyWorkflow/);
+    assert.doesNotMatch(overview, /My Loans/);
+    assert.doesNotMatch(overview, /My Applications/);
     assert.doesNotMatch(overview, /ApplyAction/);
-    assert.doesNotMatch(overview, /label: "Apply for credit"/);
-    assert.match(overview, /ProductApplyLink|ApplyFromProductDetails/);
 
     const subNav = read("components/bank/bank-sub-nav.tsx");
-    assert.match(subNav, /path === "\/bank\/lending"/);
+    assert.match(subNav, /label: "Lending"/);
+    assert.match(subNav, /Applications/);
+    assert.match(subNav, /Loans/);
+    assert.doesNotMatch(subNav, /path === "\/bank\/lending"/);
+
     const layout = read("components/bank/bank-page-layout.tsx");
-    assert.match(layout, /=== "\/bank\/lending"/);
+    assert.doesNotMatch(layout, /=== "\/bank\/lending"\) return false/);
   });
 
   it("exposes Details and Apply on mobile Lending product cards with correct product preselect", () => {

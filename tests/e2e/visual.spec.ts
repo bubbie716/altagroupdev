@@ -6,7 +6,7 @@ const KEY_PAGES = [
   { name: "deposit", path: "/bank/deposit" },
   { name: "withdrawal", path: "/bank/withdraw" },
   { name: "alta-card", path: "/bank/alta-card" },
-  { name: "lending", path: "/bank/lending/apply" },
+  { name: "lending", path: "/bank/lending?apply=1" },
   { name: "internal-dashboard", path: "/internal" },
   { name: "internal-deposits-queue", path: "/internal/queues/deposits" },
 ] as const;

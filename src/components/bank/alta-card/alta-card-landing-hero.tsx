@@ -21,7 +21,8 @@ export function AltaCardLandingHero() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              to="/bank/alta-card/apply"
+              to="/bank/alta-card"
+              search={{ apply: "1" }}
               className="rounded-md bg-foreground px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
             >
               Apply for Alta Card
@@ -101,7 +102,8 @@ export function AltaGoldCardHighlight({ cardId }: { cardId?: string | null }) {
               </Link>
             ) : (
               <Link
-                to="/bank/alta-card/apply"
+                to="/bank/alta-card"
+                search={{ apply: "1" }}
                 className="rounded-md border border-gold/50 bg-gold/[0.08] px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.2em] hover:bg-gold/[0.14]"
               >
                 Apply for Alta Gold

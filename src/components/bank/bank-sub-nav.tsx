@@ -19,6 +19,7 @@ type SectionLink = {
 };
 
 const lendingSubLinks = [
+  { to: "/bank/lending", label: "Lending", exact: true },
   { to: "/bank/lending/applications", label: "Applications" },
   { to: "/bank/lending/loans", label: "Loans" },
 ] as const;
@@ -87,7 +88,6 @@ function resolveBankSectionLinks(
   const commercialSearch = companyId ? commercialCompanySearch(companyId, accountId ?? undefined) : undefined;
 
   if (path.startsWith("/bank/lending")) {
-    if (path === "/bank/lending") return null;
     return { links: lendingSubLinks.map((link) => ({ ...link })) };
   }
 

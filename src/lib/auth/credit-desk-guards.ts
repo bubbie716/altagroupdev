@@ -3,12 +3,12 @@ import { isCreditDeskApplicationPath } from "@/lib/platform/credit-desk-guard";
 import { fetchCreditDeskClosedGate } from "@/lib/platform/platform-settings.functions";
 
 type CreditDeskGuardContext = {
-  location: { pathname: string };
+  location: { pathname: string; search?: Record<string, unknown> };
 };
 
 /** Redirects customers away from new-application routes when the Credit Desk is closed. */
 export async function creditDeskApplicationBeforeLoad(context: CreditDeskGuardContext): Promise<void> {
-  if (!isCreditDeskApplicationPath(context.location.pathname)) return;
+  if (!isCreditDeskApplicationPath(context.location.pathname, context.location.search)) return;
 
   const closed = await fetchCreditDeskClosedGate();
   if (closed) {

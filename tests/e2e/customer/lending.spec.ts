@@ -13,7 +13,7 @@ test.describe("Lending", () => {
 
   describeMutations("Lending application", () => {
     test("loads apply form or credit desk closed page", async ({ page }) => {
-      await page.goto("/bank/lending/apply");
+      await page.goto("/bank/lending?apply=1");
       const body = page.locator("body");
       await expect(
         body.getByText(/credit desk closed|apply|loan|application/i).first(),

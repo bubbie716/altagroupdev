@@ -1,14 +1,40 @@
-import { createFileRoute } from "@tanstack/react-router";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
+import { AltaCardApplyWorkflow } from "@/components/bank/alta-card/alta-card-apply-workflow";
 import { AltaCardBusinessCompanyList } from "@/components/bank/alta-card/alta-card-business-panel";
 import { AltaCardEmployeeCardList } from "@/components/bank/alta-card/alta-card-employee-card-panel";
 import { AltaCardPendingApplicationBanner } from "@/components/bank/alta-card/alta-card-landing-hero";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
 import { ALTA_CARD_APPLICATION_STATUS_LABELS } from "@/lib/bank/alta-card-application-thread-types";
 import { authBeforeLoad } from "@/lib/auth/guards";
-import { fetchBusinessAltaCardHub } from "@/lib/bank/alta-card.functions";
+import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
+import {
+  fetchAltaCardApplyContext,
+  fetchBusinessAltaCardHub,
+} from "@/lib/bank/alta-card.functions";
+
+type BusinessIndexSearch = {
+  apply?: "1";
+  companyId?: string;
+};
 
 export const Route = createFileRoute("/bank/alta-card/business/")({
-  beforeLoad: authBeforeLoad,
+  beforeLoad: async (ctx) => {
+    authBeforeLoad(ctx);
+    await creditDeskApplicationBeforeLoad(ctx);
+  },
+  validateSearch: (search: Record<string, unknown>): BusinessIndexSearch => {
+    const next: BusinessIndexSearch = {};
+    if (search.apply === "1" || search.apply === 1) next.apply = "1";
+    const companyId = search.companyId;
+    if (typeof companyId === "string" && companyId.trim()) next.companyId = companyId.trim();
+    return next;
+  },
   loader: async () => fetchBusinessAltaCardHub(),
   head: () => ({
     meta: [{ title: "Business Alta Cards — Alta Bank" }],
@@ -17,7 +43,47 @@ export const Route = createFileRoute("/bank/alta-card/business/")({
 });
 
 function BankAltaCardBusinessIndex() {
+  const user = useCurrentUser();
+  const router = useRouter();
+  const { apply, companyId } = Route.useSearch();
   const { companies, employeeCards } = Route.useLoaderData();
+  const creditDeskNav = useCreditDeskCustomerNav();
+  const showApply = creditDeskNav.showApplyEntryPoints;
+  const showApplyWorkflow = showApply && apply === "1" && Boolean(user);
+  const fetchApplyContext = useServerFn(fetchAltaCardApplyContext);
+  const [applyContext, setApplyContext] = useState<Awaited<
+    ReturnType<typeof fetchAltaCardApplyContext>
+  > | null>(null);
+
+  useEffect(() => {
+    if (!showApplyWorkflow) {
+      setApplyContext(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchApplyContext()
+      .then((context) => {
+        if (!cancelled) setApplyContext(context);
+      })
+      .catch(() => {
+        if (!cancelled) setApplyContext(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showApplyWorkflow, fetchApplyContext]);
+
+  function closeApplyWorkflow() {
+    void router.navigate({
+      to: "/bank/alta-card/business",
+      search: (prev) => {
+        const { apply: _apply, companyId: _companyId, ...rest } = prev;
+        return rest;
+      },
+      replace: true,
+    });
+  }
+
   const pendingApplications = companies
     .map((c) => c.pendingApplication)
     .filter((application): application is NonNullable<typeof application> => application != null);
@@ -27,11 +93,11 @@ function BankAltaCardBusinessIndex() {
   return (
     <>
       <BankPageMeta
-      eyebrow="Alta Bank · Alta Card"
-      title="Business Alta Cards"
-      description="Company revolving credit lines and employee cards authorized against your business limit."
-    />
-{pendingApplications.length > 0 ? (
+        eyebrow="Alta Bank · Alta Card"
+        title="Business Alta Cards"
+        description="Company revolving credit lines and employee cards authorized against your business limit."
+      />
+      {pendingApplications.length > 0 ? (
         <div className="mb-8 space-y-4">
           {pendingApplications.map((application) => (
             <AltaCardPendingApplicationBanner
@@ -69,6 +135,19 @@ function BankAltaCardBusinessIndex() {
           </p>
         )}
       </div>
+
+      {showApplyWorkflow && applyContext ? (
+        <AltaCardApplyWorkflow
+          open
+          context={applyContext}
+          kind="business"
+          defaultCompanyId={companyId}
+          onOpenChange={(open) => {
+            if (!open) closeApplyWorkflow();
+          }}
+          onDone={closeApplyWorkflow}
+        />
+      ) : null}
     </>
   );
 }

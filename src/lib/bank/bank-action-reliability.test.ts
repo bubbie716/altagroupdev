@@ -144,13 +144,30 @@ describe("product catalog", () => {
 
   it("keeps catalog apply destinations on apply flows only", () => {
     const data = read("lib/bank/data.ts");
-    assert.match(data, /applyHref: "\/bank\/alta-card\/apply"/);
-    assert.match(data, /applyHref: "\/bank\/alta-card\/business\/apply"/);
-    assert.match(data, /applyHref: "\/bank\/lending\/apply"/);
-    assert.match(data, /applySearch: \{ product: "personal_credit_line" \}/);
-    assert.match(data, /applySearch: \{ product: "business_credit_line" \}/);
-    assert.doesNotMatch(data, /href: "\/bank\/alta-card"/);
+    assert.match(data, /applyHref: "\/bank\/alta-card"/);
+    assert.match(data, /applyHref: "\/bank\/alta-card\/business"/);
+    assert.match(data, /applySearch: \{ apply: "1" \}/);
+    assert.match(data, /applyHref: "\/bank\/lending"/);
+    assert.match(data, /applySearch: \{ apply: "1", product: "personal_credit_line" \}/);
+    assert.match(data, /applySearch: \{ apply: "1", product: "business_credit_line" \}/);
+    assert.doesNotMatch(data, /applyHref: "\/bank\/alta-card\/apply"/);
     assert.doesNotMatch(data, /ctaLabel: "View/);
+  });
+
+  it("opens Alta Card apply as a modal over the card page", () => {
+    const personal = read("routes/bank/alta-card/index.tsx");
+    const business = read("routes/bank/alta-card/business/index.tsx");
+    const applyRedirect = read("routes/bank/alta-card/apply.tsx");
+    const businessApplyRedirect = read("routes/bank/alta-card/business/apply.tsx");
+    assert.match(personal, /AltaCardApplyWorkflow/);
+    assert.match(personal, /apply === "1"/);
+    assert.match(business, /AltaCardApplyWorkflow/);
+    assert.match(business, /kind="business"/);
+    assert.match(applyRedirect, /redirect/);
+    assert.match(applyRedirect, /search: \{ apply: "1" \}/);
+    assert.doesNotMatch(applyRedirect, /AltaCardTierComparison/);
+    assert.match(businessApplyRedirect, /redirect/);
+    assert.doesNotMatch(businessApplyRedirect, /AltaCardApplyWorkflow/);
   });
 
   it("maps catalog product names to account types", async () => {

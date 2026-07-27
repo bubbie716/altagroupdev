@@ -83,7 +83,8 @@ export function AltaCardTierComparison({
             Alta Card is revolving credit subject to approval.
           </p>
           <Link
-            to="/bank/alta-card/apply"
+            to="/bank/alta-card"
+            search={{ apply: "1" }}
             className="shrink-0 rounded-md bg-foreground px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-background"
           >
             Apply for Alta Card

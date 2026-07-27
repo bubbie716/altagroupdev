@@ -11,7 +11,7 @@ const PAGES = [
   { name: "bank-products", url: `${BASE}/bank/products?site=bank` },
   { name: "alta-card", url: `${BASE}/bank/alta-card?site=bank` },
   { name: "alta-card-business", url: `${BASE}/bank/alta-card/business?site=bank` },
-  { name: "alta-card-apply", url: `${BASE}/bank/alta-card/apply?site=bank` },
+  { name: "alta-card-apply", url: `${BASE}/bank/alta-card?apply=1&site=bank` },
   { name: "lending", url: `${BASE}/bank/lending?site=bank` },
   { name: "profile", url: `${BASE}/profile?site=bank` },
   { name: "internal", url: `${BASE}/internal?site=bank` },
