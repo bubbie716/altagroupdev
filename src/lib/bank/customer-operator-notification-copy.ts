@@ -1,4 +1,7 @@
 import { formatFlorin } from "@/lib/bank/format";
+import {
+  activityTransactionHref,
+} from "@/lib/bank/bank-activity-center-url";
 
 export type OperatorCustomerNotificationKind =
   | "manual_credit"
@@ -116,7 +119,7 @@ export function operatorNotificationAuditAction(kind: OperatorCustomerNotificati
 }
 
 export function buildOperatorAccountLink(accountId: string): string {
-  return `/bank/accounts/${accountId}`;
+  return `/bank/account/${accountId}`;
 }
 
 export function buildOperatorActivityLink(): string {
@@ -124,7 +127,7 @@ export function buildOperatorActivityLink(): string {
 }
 
 export function buildOperatorTransactionLink(transactionId: string): string {
-  return `/bank/activity?transaction=${transactionId}`;
+  return activityTransactionHref(transactionId);
 }
 
 export type OperatorNotificationCopyInput = {

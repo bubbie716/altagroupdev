@@ -1,5 +1,10 @@
 import { formatFlorin } from "@/lib/bank/format";
 import { friendlyFailureReason, toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
+import {
+  activityRequestsHref,
+  activityScheduledHref,
+  activityTransactionHref,
+} from "@/lib/bank/bank-activity-center-url";
 import { scheduleCreateUserNotification, scheduleCreateUserNotifications } from "@/server/notification.service";
 import { prisma } from "@/server/db";
 
@@ -29,9 +34,7 @@ export async function notifyDepositSubmitted(
     type: "DEPOSIT_SUBMITTED",
     title: "Deposit submitted",
     body: `Your deposit of ${formatFlorin(amount)} to ${accountName} (${referenceCode}) is pending Alta review.`,
-    linkUrl: requestId
-      ? `/bank/activity?view=requests&requestId=${encodeURIComponent(requestId)}`
-      : "/bank/activity?view=requests",
+    linkUrl: requestId ? activityRequestsHref(requestId) : "/bank/activity?view=requests",
     metadata: { referenceCode, amount, accountName, requestId: requestId ?? null },
     embedImageUrl: proofImageUrl,
   });
@@ -48,9 +51,7 @@ export async function notifyDepositApproved(
     type: "DEPOSIT_APPROVED",
     title: "Deposit approved",
     body: `Your deposit of ${formatFlorin(amount)} (${referenceCode}) has been approved and credited to your account.`,
-    linkUrl: transactionId
-      ? `/bank/activity?view=activity&transactionId=${encodeURIComponent(transactionId)}`
-      : "/bank/activity?view=activity",
+    linkUrl: transactionId ? activityTransactionHref(transactionId) : "/bank/activity?view=activity",
     metadata: { referenceCode, amount, transactionId: transactionId ?? null },
   });
 }
@@ -67,9 +68,7 @@ export async function notifyWithdrawalSubmitted(
     type: "WITHDRAWAL_SUBMITTED",
     title: "Withdrawal submitted",
     body: `Your withdrawal of ${formatFlorin(amount)} from ${accountName} (${referenceCode}) is pending Alta processing.`,
-    linkUrl: requestId
-      ? `/bank/activity?view=requests&requestId=${encodeURIComponent(requestId)}`
-      : "/bank/activity?view=requests",
+    linkUrl: requestId ? activityRequestsHref(requestId) : "/bank/activity?view=requests",
     metadata: { referenceCode, amount, accountName, requestId: requestId ?? null },
   });
 }
@@ -85,9 +84,7 @@ export async function notifyWithdrawalApproved(
     type: "WITHDRAWAL_APPROVED",
     title: "Withdrawal approved",
     body: `Your withdrawal of ${formatFlorin(amount)} (${referenceCode}) has been approved.`,
-    linkUrl: transactionId
-      ? `/bank/activity?view=activity&transactionId=${encodeURIComponent(transactionId)}`
-      : "/bank/activity?view=activity",
+    linkUrl: transactionId ? activityTransactionHref(transactionId) : "/bank/activity?view=activity",
     metadata: { referenceCode, amount, transactionId: transactionId ?? null },
   });
 }
@@ -367,11 +364,10 @@ export async function notifyScheduledTransferExecuted(
       : input.paymentType === "SCHEDULED"
         ? "Scheduled transfer"
         : "Scheduled transfer";
-  const linkUrl = input.scheduleId
-    ? `/bank/activity?view=scheduled&scheduleId=${encodeURIComponent(input.scheduleId)}`
-    : input.bankAccountId
-      ? `/bank/activity?view=scheduled&accountId=${encodeURIComponent(input.bankAccountId)}`
-      : "/bank/activity?view=scheduled";
+  const linkUrl = activityScheduledHref({
+    scheduleId: input.scheduleId,
+    accountId: input.bankAccountId,
+  });
 
   scheduleCreateUserNotification({
     userId,
@@ -416,11 +412,10 @@ export async function notifyScheduledTransferFailed(
   const pausedNote = input.paused
     ? " The schedule has been paused after repeated failures."
     : "";
-  const linkUrl = input.scheduleId
-    ? `/bank/activity?view=scheduled&scheduleId=${encodeURIComponent(input.scheduleId)}`
-    : input.bankAccountId
-      ? `/bank/activity?view=scheduled&accountId=${encodeURIComponent(input.bankAccountId)}`
-      : "/bank/activity?view=scheduled";
+  const linkUrl = activityScheduledHref({
+    scheduleId: input.scheduleId,
+    accountId: input.bankAccountId,
+  });
 
   scheduleCreateUserNotification({
     userId,

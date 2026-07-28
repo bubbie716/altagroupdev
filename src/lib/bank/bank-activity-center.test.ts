@@ -13,12 +13,18 @@ import {
   stripBankActivityDetailSearch,
 } from "./bank-activity-center-url.ts";
 import {
+  filterActivityCenterByAccount,
+  filterAutopayByAccount,
   findAuthorizedRequest,
   findAuthorizedTransaction,
   isPendingMoneyRequestTransaction,
+  isVisibleActivityRequest,
   mapAltaPaySchedule,
   mapTransferSchedule,
 } from "./bank-activity-center-types.ts";
+import {
+  buildOperatorTransactionLink,
+} from "./customer-operator-notification-copy.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -34,6 +40,21 @@ describe("bank activity center URL", () => {
       requestId: "req_1",
     });
     assert.equal(parseBankActivityCenterSearch({ view: "nope" }).view, "activity");
+  });
+
+  it("accepts legacy ?transaction= as transactionId for Activity view", () => {
+    assert.deepEqual(parseBankActivityCenterSearch("?transaction=tx_legacy"), {
+      view: "activity",
+      transactionId: "tx_legacy",
+    });
+    assert.equal(
+      parseBankActivityCenterSearch({
+        view: "activity",
+        transactionId: "tx_new",
+        transaction: "tx_old",
+      }).transactionId,
+      "tx_new",
+    );
   });
 
   it("strips only detail keys when closing a sheet", () => {
@@ -68,6 +89,14 @@ describe("bank activity center URL", () => {
     );
     assert.equal(activityAutopayHref("ap_1"), "/bank/activity?view=autopay&approvalId=ap_1");
   });
+
+  it("uses canonical transactionId links for operator notifications", () => {
+    assert.equal(
+      buildOperatorTransactionLink("tx_op_1"),
+      "/bank/activity?view=activity&transactionId=tx_op_1",
+    );
+    assert.doesNotMatch(buildOperatorTransactionLink("tx_op_1"), /[?&]transaction=/);
+  });
 });
 
 describe("bank activity center authorization helpers", () => {
@@ -82,6 +111,35 @@ describe("bank activity center authorization helpers", () => {
     assert.equal(isPendingMoneyRequestTransaction({ type: "withdrawal", status: "pending" }), true);
     assert.equal(isPendingMoneyRequestTransaction({ type: "deposit", status: "approved" }), false);
     assert.equal(isPendingMoneyRequestTransaction({ type: "transfer", status: "pending" }), false);
+  });
+
+  it("keeps approved requests out of Requests while pending and denied remain", () => {
+    assert.equal(isVisibleActivityRequest({ status: "pending" }), true);
+    assert.equal(isVisibleActivityRequest({ status: "denied" }), true);
+    assert.equal(isVisibleActivityRequest({ status: "approved" }), false);
+  });
+
+  it("scopes rows and AutoPay to the selected account only", () => {
+    const rows = [
+      { id: "1", bankAccountId: "acc_a" },
+      { id: "2", bankAccountId: "acc_b" },
+    ];
+    assert.deepEqual(
+      filterActivityCenterByAccount(rows, "acc_a").map((row) => row.id),
+      ["1"],
+    );
+    assert.deepEqual(filterActivityCenterByAccount(rows, undefined), rows);
+    assert.deepEqual(
+      filterAutopayByAccount(
+        [
+          { id: "ap1", fundingSource: { kind: "bank_account", accountId: "acc_a" } } as never,
+          { id: "ap2", fundingSource: { kind: "bank_account", accountId: "acc_b" } } as never,
+          { id: "ap3", fundingSource: { kind: "alta_card", cardId: "card_1" } } as never,
+        ],
+        "acc_a",
+      ).map((row) => row.id),
+      ["ap1"],
+    );
   });
 
   it("maps transfer and alta pay schedules without inventing pause for transfers", () => {
@@ -171,10 +229,33 @@ describe("compatibility redirects for money actions", () => {
     assert.match(read("routes/bank/pay/invoices/$invoiceId.tsx"), /invoiceId/);
   });
 
-  it("routes scheduled account aliases to activity scheduled view", () => {
-    const account = read("routes/bank/account/$accountId/scheduled.tsx");
-    const legacy = read("routes/bank/accounts/$accountId/scheduled.tsx");
-    assert.match(account, /view:\s*"scheduled"/);
-    assert.match(legacy, /view:\s*"scheduled"/);
+  it("routes scheduled account aliases to account-scoped Activity scheduled view", () => {
+    const account = read("routes/bank/account/$accountId/activity.tsx");
+    const scheduled = read("routes/bank/account/$accountId/scheduled.tsx");
+    const legacyParent = read("routes/bank/accounts/$accountId/route.tsx");
+    const legacyActivity = read("routes/bank/accounts/$accountId/activity.tsx");
+    const legacyScheduled = read("routes/bank/accounts/$accountId/scheduled.tsx");
+    assert.match(account, /BankActivityCenter/);
+    assert.match(scheduled, /\/bank\/account\/\$accountId\/activity/);
+    assert.match(scheduled, /view:\s*"scheduled"/);
+    assert.match(scheduled, /replace:\s*true/);
+    assert.doesNotMatch(legacyParent, /throw redirect/);
+    assert.match(legacyActivity, /\/bank\/account\/\$accountId\/activity/);
+    assert.match(legacyActivity, /transactionId/);
+    assert.match(legacyActivity, /replace:\s*true/);
+    assert.match(legacyScheduled, /\/bank\/account\/\$accountId\/activity/);
+    assert.match(legacyScheduled, /view:\s*"scheduled"/);
+  });
+
+  it("preserves money-action search params on compatibility redirects", () => {
+    assert.match(read("routes/bank/deposit.tsx"), /accountId/);
+    assert.match(read("routes/bank/withdraw.tsx"), /accountId/);
+    assert.match(read("routes/bank/open.tsx"), /accountType/);
+    assert.match(read("routes/bank/open.tsx"), /companyId/);
+    assert.match(read("routes/bank/pay/index.tsx"), /cardId/);
+    assert.match(read("routes/bank/pay/index.tsx"), /employeeCardId/);
+    assert.match(read("routes/bank/pay/index.tsx"), /view:\s*"scheduled"/);
+    assert.match(read("routes/bank/pay/index.tsx"), /view:\s*"autopay"/);
+    assert.match(read("routes/bank/transfers/intrabank.tsx"), /accountId/);
   });
 });

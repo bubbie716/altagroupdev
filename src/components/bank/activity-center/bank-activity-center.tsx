@@ -28,6 +28,7 @@ import {
   findAuthorizedSchedule,
   findAuthorizedTransaction,
   isPendingMoneyRequestTransaction,
+  isVisibleActivityRequest,
 } from "@/lib/bank/bank-activity-center-types";
 import type { BankActivityView } from "@/lib/bank/bank-activity-center-url";
 import {
@@ -183,10 +184,11 @@ export function BankActivityCenter({
   basePath?: "/bank/activity" | "/bank/account/$accountId/activity";
 }) {
   const router = useRouter();
-  const effectiveAccountId = lockAccountId ?? accountId;
 
   const [query, setQuery] = useState("");
-  const [filterAccountId, setFilterAccountId] = useState(effectiveAccountId ?? "all");
+  const [filterAccountId, setFilterAccountId] = useState(
+    () => lockAccountId ?? accountId ?? "all",
+  );
   const [type, setType] = useState<"all" | BankTransactionTypeCode>("all");
   const [status, setStatus] = useState<"all" | BankTransactionStatusCode>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -202,8 +204,12 @@ export function BankActivityCenter({
   const cancelAutopay = useServerFn(cancelMerchantAutopayApprovalFn);
 
   useEffect(() => {
-    if (lockAccountId) setFilterAccountId(lockAccountId);
-  }, [lockAccountId]);
+    if (lockAccountId) {
+      setFilterAccountId(lockAccountId);
+      return;
+    }
+    setFilterAccountId(accountId ?? "all");
+  }, [lockAccountId, accountId]);
 
   function navigateSearch(patch: Record<string, unknown>) {
     const current = router.state.location.search as Record<string, unknown>;
@@ -216,7 +222,7 @@ export function BankActivityCenter({
     });
   }
 
-  function closeDetail() {
+  function stripDetailFromUrl() {
     const current = router.state.location.search as Record<string, unknown>;
     void router.navigate({
       to: basePath,
@@ -225,6 +231,10 @@ export function BankActivityCenter({
       replace: true,
       resetScroll: false,
     });
+  }
+
+  function closeDetail() {
+    stripDetailFromUrl();
     setDetailError(null);
   }
 
@@ -236,15 +246,29 @@ export function BankActivityCenter({
   useEffect(() => {
     if (transactionId && !selectedTransaction) {
       setDetailError("That transaction is not available.");
-    } else if (requestId && !selectedRequest) {
+      stripDetailFromUrl();
+      return;
+    }
+    if (requestId && !selectedRequest) {
       setDetailError("That request is not available.");
-    } else if (scheduleId && !selectedSchedule) {
+      stripDetailFromUrl();
+      return;
+    }
+    if (scheduleId && !selectedSchedule) {
       setDetailError("That scheduled payment is not available.");
-    } else if (approvalId && !selectedAutopay) {
+      stripDetailFromUrl();
+      return;
+    }
+    if (approvalId && !selectedAutopay) {
       setDetailError("That AutoPay authorization is not available.");
-    } else {
+      stripDetailFromUrl();
+      return;
+    }
+    if (selectedTransaction || selectedRequest || selectedSchedule || selectedAutopay) {
       setDetailError(null);
     }
+    // Intentionally omit stripDetailFromUrl from deps — only react to selection changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     transactionId,
     requestId,
@@ -267,6 +291,9 @@ export function BankActivityCenter({
     for (const tx of data.transactions) map.set(tx.bankAccountId, tx.accountName);
     return [...map.entries()].map(([id, name]) => ({ id, name }));
   }, [data.accounts, data.transactions]);
+
+  const effectiveAccountId =
+    lockAccountId ?? (filterAccountId === "all" ? undefined : filterAccountId);
 
   const filteredTransactions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -380,7 +407,14 @@ export function BankActivityCenter({
           query={query}
           setQuery={setQuery}
           filterAccountId={filterAccountId}
-          setFilterAccountId={setFilterAccountId}
+          setFilterAccountId={(next) => {
+            setFilterAccountId(next);
+            if (!lockAccountId) {
+              navigateSearch({
+                accountId: next === "all" ? undefined : next,
+              });
+            }
+          }}
           lockAccountId={lockAccountId}
           type={type}
           setType={setType}
@@ -395,9 +429,10 @@ export function BankActivityCenter({
       {view === "requests" ? (
         <RequestsPanel
           requests={
-            effectiveAccountId
+            (effectiveAccountId
               ? data.requests.filter((row) => row.bankAccountId === effectiveAccountId)
               : data.requests
+            ).filter(isVisibleActivityRequest)
           }
           onOpen={(id) => navigateSearch({ view: "requests", requestId: id })}
           lockedAccountId={lockAccountId}

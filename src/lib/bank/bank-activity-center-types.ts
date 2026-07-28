@@ -141,3 +141,11 @@ export function isPendingMoneyRequestTransaction(tx: {
 }): boolean {
   return tx.status === "pending" && (tx.type === "deposit" || tx.type === "withdrawal");
 }
+
+/**
+ * Requests view shows operational pending/denied deposit & withdrawal requests.
+ * Approved (completed) rows belong only in Activity history.
+ */
+export function isVisibleActivityRequest(request: { status: string }): boolean {
+  return request.status === "pending" || request.status === "denied";
+}

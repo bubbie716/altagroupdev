@@ -2,6 +2,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/bank/accounts/$accountId/payments")({
   beforeLoad: ({ params }) => {
-    throw redirect({ to: "/bank/account/$accountId/payments", params });
+    throw redirect({ to: "/bank/account/$accountId/payments", params, replace: true });
   },
 });

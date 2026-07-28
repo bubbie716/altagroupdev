@@ -46,6 +46,9 @@ export function parseBankActivityCenterSearch(
   }
   if (typeof params.transactionId === "string" && params.transactionId.trim()) {
     result.transactionId = params.transactionId.trim();
+  } else if (typeof params.transaction === "string" && params.transaction.trim()) {
+    // Legacy operator/notification links used ?transaction= before transactionId.
+    result.transactionId = params.transaction.trim();
   }
   if (typeof params.requestId === "string" && params.requestId.trim()) {
     result.requestId = params.requestId.trim();

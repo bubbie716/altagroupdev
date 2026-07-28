@@ -1,5 +1,6 @@
 import type { ScheduledPayment } from "@prisma/client";
 import { formatFlorin } from "@/lib/bank/format";
+import { activityAutopayHref } from "@/lib/bank/bank-activity-center-url";
 import { toCustomerSafePaymentFailureReason } from "@/lib/bank/customer-payment-failure-reason";
 import type { CreateNotificationInput } from "@/server/notification.service";
 import { scheduleCreateUserNotification } from "@/server/notification.service";
@@ -76,7 +77,7 @@ export async function notifyMerchantAutopayApprovalCreatedBestEffort(
     "MERCHANT_AUTOPAY_APPROVAL_CREATED",
     "AutoPay merchant approved",
     `You approved AutoPay for ${merchantName}.`,
-    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+    activityAutopayHref(approvalId),
   );
 }
 
@@ -90,7 +91,7 @@ export async function notifyMerchantAutopayApprovalUpdatedBestEffort(
     "MERCHANT_AUTOPAY_APPROVAL_UPDATED",
     "AutoPay rules updated",
     `Your AutoPay rules for ${merchantName} were updated.`,
-    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+    activityAutopayHref(approvalId),
   );
 }
 
@@ -104,7 +105,7 @@ export async function notifyMerchantAutopayApprovalPausedBestEffort(
     "MERCHANT_AUTOPAY_APPROVAL_PAUSED",
     "AutoPay paused",
     `AutoPay for ${merchantName} is paused.`,
-    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+    activityAutopayHref(approvalId),
   );
 }
 
@@ -118,7 +119,7 @@ export async function notifyMerchantAutopayApprovalCancelledBestEffort(
     "MERCHANT_AUTOPAY_APPROVAL_CANCELLED",
     "AutoPay cancelled",
     `AutoPay for ${merchantName} was cancelled.`,
-    `/bank/activity?view=autopay&approvalId=${encodeURIComponent(approvalId)}`,
+    activityAutopayHref(approvalId),
   );
 }
 
