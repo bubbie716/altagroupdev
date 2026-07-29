@@ -1,4 +1,5 @@
 import type { GlobalSearchResult } from "@/lib/internal/ops-types";
+import { formatOpsAuditActionTitle } from "@/lib/internal/ops-activity-title";
 import { formatOpsJobRunHealthDetail } from "@/lib/internal/ops-job-run-display";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
@@ -24,14 +25,162 @@ function pushResult(
   if (results.length < limit) results.push(row);
 }
 
-export async function globalOpsSearch(query: string, limit = 30): Promise<GlobalSearchResult[]> {
+export async function globalOpsSearch(
+  query: string,
+  limit = 30,
+  site?: string | null,
+): Promise<GlobalSearchResult[]> {
+  const searchStarted = performance.now();
   await requireOperator();
   const q = query.trim();
   if (!q) return [];
 
+  const terminalOnly = site === "terminal" || site === "exchange";
   const results: GlobalSearchResult[] = [];
-  const perType = Math.max(2, Math.ceil(limit / 12));
+  const perType = Math.max(2, Math.ceil(limit / (terminalOnly ? 4 : 12)));
   const idMatch = q.length >= 8 ? { contains: q } : undefined;
+
+  if (terminalOnly) {
+    const [users, companies, portfolios] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { discordUsername: { contains: q, mode: "insensitive" } },
+            { minecraftUsername: { contains: q, mode: "insensitive" } },
+            { discordId: { contains: q } },
+            { email: { contains: q, mode: "insensitive" } },
+            ...(idMatch ? [{ id: idMatch }] : []),
+          ],
+        },
+        include: { relationshipProfile: true },
+        take: perType,
+        orderBy: { lastLoginAt: "desc" },
+      }),
+      prisma.company.findMany({
+        where: {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { ticker: { contains: q, mode: "insensitive" } },
+            ...(idMatch ? [{ id: idMatch }] : []),
+          ],
+        },
+        include: { relationshipProfile: true },
+        take: perType,
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.terminalPortfolio
+        .findMany({
+          where: {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              ...(idMatch ? [{ id: idMatch }] : []),
+              {
+                ownerUser: {
+                  OR: [
+                    { discordUsername: { contains: q, mode: "insensitive" } },
+                    { minecraftUsername: { contains: q, mode: "insensitive" } },
+                  ],
+                },
+              },
+              {
+                ownerCompany: {
+                  OR: [
+                    { name: { contains: q, mode: "insensitive" } },
+                    { ticker: { contains: q, mode: "insensitive" } },
+                  ],
+                },
+              },
+            ],
+          },
+          include: {
+            ownerUser: { select: { discordUsername: true } },
+            ownerCompany: { select: { name: true } },
+          },
+          take: perType,
+          orderBy: { updatedAt: "desc" },
+        })
+        .catch(() => [] as never[]),
+    ]);
+
+    const ranked: GlobalSearchResult[] = [];
+    const qLower = q.toLowerCase();
+
+    for (const p of portfolios as Array<{
+      id: string;
+      name: string;
+      ownerType: string;
+      status: string;
+      ownerUser: { discordUsername: string } | null;
+      ownerCompany: { name: string } | null;
+    }>) {
+      const ownerLabel =
+        p.ownerType === "PERSONAL"
+          ? (p.ownerUser?.discordUsername ?? "Individual")
+          : (p.ownerCompany?.name ?? "Company");
+      const status = p.status === "ACTIVE" ? "active" : "archived";
+      const typeLabel = p.ownerType === "COMPANY" ? "Company" : "Personal";
+      ranked.push({
+        id: p.id,
+        type: "terminal_portfolio",
+        label: p.name,
+        sublabel: `${ownerLabel} · ${typeLabel} · ${status}`,
+        href: `/internal/terminal/portfolios/${p.id}?tab=overview`,
+        status,
+      });
+    }
+
+    for (const u of users) {
+      ranked.push({
+        id: u.id,
+        type: "user",
+        label: u.discordUsername,
+        sublabel: [u.discordId, u.relationshipProfile?.relationshipTier, "Investor"]
+          .filter(Boolean)
+          .join(" · "),
+        href: `/internal/users/${u.id}?tab=overview`,
+        status: u.accountStatus,
+        date: u.lastLoginAt ? isoDate(u.lastLoginAt) : undefined,
+      });
+    }
+    for (const c of companies) {
+      ranked.push({
+        id: c.id,
+        type: "company",
+        label: c.name,
+        sublabel: [c.ticker, c.relationshipProfile?.relationshipTier, c.verificationStatus]
+          .filter(Boolean)
+          .join(" · "),
+        href: `/internal/companies/${c.id}?tab=overview`,
+        status: c.verificationStatus,
+        date: isoDate(c.updatedAt),
+      });
+    }
+
+    ranked.sort((a, b) => {
+      const aExact =
+        a.label.toLowerCase() === qLower || a.id.toLowerCase() === qLower
+          ? 0
+          : a.type === "terminal_portfolio" || a.type === "terminal_order"
+            ? 1
+            : 2;
+      const bExact =
+        b.label.toLowerCase() === qLower || b.id.toLowerCase() === qLower
+          ? 0
+          : b.type === "terminal_portfolio" || b.type === "terminal_order"
+            ? 1
+            : 2;
+      return aExact - bExact;
+    });
+
+    // No Terminal order ledger in production yet — avoid inventing order hits.
+    // Bank products are intentionally excluded from Terminal search.
+    if (import.meta.env?.DEV) {
+      console.debug(
+        `[ops-search] terminal ${Math.round(performance.now() - searchStarted)}ms results=${ranked.length}`,
+      );
+    }
+    return ranked.slice(0, limit);
+  }
 
   const [
     users,
@@ -48,8 +197,6 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
     altaCardStatements,
     relationshipProfiles,
     companyProfiles,
-    auditLogs,
-    jobRuns,
   ] = await Promise.all([
     prisma.user.findMany({
       where: {
@@ -102,7 +249,15 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
       orderBy: { createdAt: "desc" },
     }),
     prisma.loan.findMany({
-      where: idMatch ? { id: idMatch } : { id: { contains: q } },
+      where: idMatch
+        ? { id: idMatch }
+        : {
+            OR: [
+              { id: { contains: q } },
+              { borrowerUser: { discordUsername: { contains: q, mode: "insensitive" } } },
+              { company: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          },
       include: { borrowerUser: true, company: true },
       take: perType,
       orderBy: { updatedAt: "desc" },
@@ -207,29 +362,13 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
       take: perType,
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.auditLog.findMany({
-      where: {
-        OR: [
-          { description: { contains: q, mode: "insensitive" } },
-          { action: { contains: q, mode: "insensitive" } },
-          ...(idMatch ? [{ id: idMatch }, { entityId: idMatch }] : []),
-        ],
-      },
-      include: { actor: true },
-      take: perType,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.opsJobRun.findMany({
-      where: {
-        OR: [
-          { label: { contains: q, mode: "insensitive" } },
-          { jobKey: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      take: perType,
-      orderBy: { label: "asc" },
-    }),
   ]);
+
+  // Audit / job runs load secondarily — they dominate latency on broad queries.
+  let auditLogs: Awaited<ReturnType<typeof prisma.auditLog.findMany>> = [];
+  let jobRuns: Awaited<ReturnType<typeof prisma.opsJobRun.findMany>> = [];
+  const wantsSecondary =
+    /\baudit\b|\bjob\b|_[A-Z0-9]{4,}/i.test(q) || q.length >= 6;
 
   for (const u of users) {
     pushResult(results, {
@@ -315,14 +454,21 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
   }
 
   for (const l of loans) {
+    const borrower = l.company?.name ?? l.borrowerUser?.discordUsername ?? "Borrower";
+    const product =
+      l.productType === "BUSINESS_CREDIT_LINE"
+        ? "Business Credit Line"
+        : l.productType === "PERSONAL_CREDIT_LINE"
+          ? "Personal Credit Line"
+          : "Loan";
     pushResult(results, {
       id: l.id,
       type: "loan",
-      label: l.company?.name ?? l.borrowerUser?.discordUsername ?? l.id.slice(0, 12),
-      sublabel: `${florin(decimalToNumber(l.principalAmount))} · ${l.status}`,
+      label: `${product} · ${borrower}`,
+      sublabel: `${florin(decimalToNumber(l.principalOutstanding ?? l.principalAmount))} · ${l.status}`,
       href: `/internal/lending/loans/${l.id}`,
       status: l.status,
-      amount: florin(decimalToNumber(l.principalAmount)),
+      amount: florin(decimalToNumber(l.principalOutstanding ?? l.principalAmount)),
       date: isoDate(l.updatedAt),
     }, limit);
   }
@@ -374,7 +520,7 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
     pushResult(results, {
       id: card.id,
       type: "alta_card",
-      label: `${card.tier.replace(/_/g, " ")} •••• ${card.cardLastFour}`,
+      label: `${card.tier.replace(/_/g, " ")} · •••• ${card.cardLastFour}`,
       sublabel: `${florin(decimalToNumber(card.currentBalance))} balance · ${card.status} · ${owner}`,
       href: `/internal/alta-card/${card.id}`,
       status: card.status,
@@ -426,7 +572,7 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
       type: "relationship_profile",
       label: rp.user.discordUsername,
       sublabel: `${rp.relationshipTier} · score ${rp.relationshipScore}`,
-      href: `/internal/users/${rp.userId}?tab=relationship`,
+      href: `/internal/users/${rp.userId}?tab=overview&section=relationship`,
       status: rp.relationshipTier,
       date: isoDate(rp.lastCalculatedAt),
     }, limit);
@@ -438,18 +584,51 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
       type: "company_relationship",
       label: cp.company.name,
       sublabel: `${cp.relationshipTier} · score ${cp.relationshipScore}`,
-      href: `/internal/companies/${cp.companyId}?tab=relationship`,
+      href: `/internal/companies/${cp.companyId}?tab=overview&section=relationship`,
       status: cp.relationshipTier,
       date: isoDate(cp.lastCalculatedAt),
     }, limit);
+  }
+
+  if (wantsSecondary && results.length < limit) {
+    const startedSecondary = performance.now();
+    [auditLogs, jobRuns] = await Promise.all([
+      prisma.auditLog.findMany({
+        where: {
+          OR: [
+            { description: { contains: q, mode: "insensitive" } },
+            { action: { contains: q, mode: "insensitive" } },
+            ...(idMatch ? [{ id: idMatch }, { entityId: idMatch }] : []),
+          ],
+        },
+        include: { actor: true },
+        take: Math.min(perType, 5),
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.opsJobRun.findMany({
+        where: {
+          OR: [
+            { label: { contains: q, mode: "insensitive" } },
+            { jobKey: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        take: Math.min(perType, 5),
+        orderBy: { label: "asc" },
+      }),
+    ]);
+    if (import.meta.env?.DEV) {
+      console.debug(
+        `[ops-search] secondary audit/jobs ${Math.round(performance.now() - startedSecondary)}ms qLen=${q.length}`,
+      );
+    }
   }
 
   for (const log of auditLogs) {
     pushResult(results, {
       id: log.id,
       type: "audit",
-      label: log.action,
-      sublabel: log.description.slice(0, 80),
+      label: formatOpsAuditActionTitle(log.action),
+      sublabel: [log.description.slice(0, 80), log.action].filter(Boolean).join(" · "),
       href: `/internal/audit?entityType=${log.entityType}${log.entityId ? `&entityId=${log.entityId}` : ""}`,
       status: log.entityType,
       date: isoDate(log.createdAt),
@@ -469,5 +648,16 @@ export async function globalOpsSearch(query: string, limit = 30): Promise<Global
     }, limit);
   }
 
+  if (import.meta.env?.DEV) {
+    console.debug(
+      `[ops-search] primary+secondary ${Math.round(performance.now() - searchStarted)}ms results=${results.length} qLen=${q.length}`,
+    );
+  }
+
   return results.slice(0, limit);
+}
+
+/** Dev-only timing helper for search instrumentation tests. */
+export function measureOpsSearchPhaseMs(startedAt: number): number {
+  return Math.round(performance.now() - startedAt);
 }

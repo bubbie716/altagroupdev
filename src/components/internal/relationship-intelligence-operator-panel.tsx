@@ -18,13 +18,18 @@ import {
   INTERNAL_ALTA_CARD_WORKSPACE_SEARCH,
   INTERNAL_USER_WORKSPACE_SEARCH,
   internalWorkspaceTabSearch,
+  withInternalSiteSearch,
 } from "@/lib/internal/internal-route-search";
+import { customerRelationshipSearch } from "@/lib/internal/record-workspace-search";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 export function RelationshipProgramSummaryPanel({
   panel,
 }: {
   panel: RelationshipIntelligencePanelData;
 }) {
+  const site = useSiteContext();
+
   return (
     <section className="rounded-xl border border-gold/30 bg-gold/5 p-5">
       <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -63,7 +68,7 @@ export function RelationshipProgramSummaryPanel({
         <Link
           to="/internal/users/$userId"
           params={{ userId: panel.userId }}
-          search={{ ...INTERNAL_USER_WORKSPACE_SEARCH, ...internalWorkspaceTabSearch("relationship") }}
+          search={withInternalSiteSearch(customerRelationshipSearch(), site.key)}
           className="rounded border border-gold/40 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:bg-gold/10"
         >
           Relationship workspace
@@ -71,6 +76,7 @@ export function RelationshipProgramSummaryPanel({
         <Link
           to="/internal/relationships/$userId"
           params={{ userId: panel.userId }}
+          search={withInternalSiteSearch({}, site.key)}
           className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground hover:underline"
         >
           Relationship history →
@@ -95,6 +101,8 @@ export function RelationshipIntelligenceOperatorPanel({
   preApprovalReadiness: PreApprovalReadiness | null;
   altaCardId?: string | null;
 }) {
+  const site = useSiteContext();
+
   return (
     <div className="space-y-6">
       <RelationshipIntelligencePanel panel={panel} context="CUSTOMER_PROFILE" showLendingSignals />
@@ -121,6 +129,7 @@ export function RelationshipIntelligenceOperatorPanel({
           <Link
             to="/internal/relationships/$userId"
             params={{ userId }}
+            search={withInternalSiteSearch({}, site.key)}
             className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
           >
             Full timeline →
@@ -143,25 +152,46 @@ export function RelationshipIntelligenceOperatorPanel({
       <section className="rounded-xl border border-border bg-surface-1/80 p-5">
         <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Quick links</h3>
         <div className="mt-3 flex flex-wrap gap-3 font-mono text-[10px] uppercase tracking-[0.14em]">
-          <Link to="/internal/relationships/$userId" params={{ userId }} className="text-gold hover:underline">
+          <Link
+            to="/internal/relationships/$userId"
+            params={{ userId }}
+            search={withInternalSiteSearch({}, site.key)}
+            className="text-gold hover:underline"
+          >
             Relationship profile
           </Link>
           {altaCardId ? (
-            <Link to="/internal/alta-card/$cardId" params={{ cardId: altaCardId }} search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH} className="text-gold hover:underline">
+            <Link to="/internal/alta-card/$cardId" params={{ cardId: altaCardId }} search={withInternalSiteSearch(INTERNAL_ALTA_CARD_WORKSPACE_SEARCH, site.key)} className="text-gold hover:underline">
               Alta Card
             </Link>
           ) : (
-            <Link to="/internal/alta-card/applications" className="text-gold hover:underline">
+            <Link
+              to="/internal/alta-card/applications"
+              search={withInternalSiteSearch({}, site.key)}
+              className="text-gold hover:underline"
+            >
               Alta Card applications
             </Link>
           )}
-          <Link to="/internal/lending" className="text-gold hover:underline">
+          <Link
+            to="/internal/lending"
+            search={withInternalSiteSearch({}, site.key)}
+            className="text-gold hover:underline"
+          >
             Lending queue
           </Link>
-          <Link to="/internal/bank/accounts" className="text-gold hover:underline">
+          <Link
+            to="/internal/bank/accounts"
+            search={withInternalSiteSearch({}, site.key)}
+            className="text-gold hover:underline"
+          >
             Bank accounts
           </Link>
-          <Link to="/internal/bank/alta-pay" className="text-gold hover:underline">
+          <Link
+            to="/internal/bank/alta-pay"
+            search={withInternalSiteSearch({}, site.key)}
+            className="text-gold hover:underline"
+          >
             Alta Pay
           </Link>
         </div>

@@ -68,6 +68,8 @@ export async function searchTransactions(
 
   const where = and.length > 0 ? { AND: and } : {};
 
+  // Pending / needs-decision first when no explicit status filter, then newest.
+  // Prisma enum order is not PENDING-first; fetch a window and sort in memory.
   const [total, rows] = await Promise.all([
     prisma.bankTransaction.count({ where }),
     prisma.bankTransaction.findMany({
@@ -77,17 +79,33 @@ export async function searchTransactions(
         reviewedBy: true,
       },
       orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
+      take: filters.status ? limit : Math.min(limit + offset + 50, 500),
+      skip: filters.status ? offset : 0,
     }),
   ]);
 
+  let items = rows.map(mapTxRow);
+  if (!filters.status) {
+    const rank = (status: string) => {
+      const s = status.toUpperCase();
+      if (s === "PENDING") return 0;
+      if (s === "DENIED") return 1;
+      return 2;
+    };
+    items = items.sort((a, b) => {
+      const sr = rank(a.status) - rank(b.status);
+      if (sr !== 0) return sr;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+    items = items.slice(offset, offset + limit);
+  }
+
   return {
-    items: rows.map(mapTxRow),
+    items,
     total,
     limit,
     offset,
-    hasMore: offset + rows.length < total,
+    hasMore: offset + items.length < total,
   };
 }
 

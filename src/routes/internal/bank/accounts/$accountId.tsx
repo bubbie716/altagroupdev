@@ -1,20 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AccountWorkspaceView, parseWorkspaceTab } from "@/components/internal/workspace";
+import { AccountWorkspaceView } from "@/components/internal/workspace";
 import { fetchInternalBankAccountDetail } from "@/lib/bank/bank.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
 import { fetchAccountOpsSummary, fetchActivityTimeline } from "@/lib/internal/ops-platform.functions";
-
-const TABS = ["overview", "transactions", "statements", "holds", "activity", "audit", "notes"];
+import { parseAccountWorkspaceSearch } from "@/lib/internal/record-workspace-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/bank/accounts/$accountId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
+  validateSearch: (search: Record<string, unknown>) => parseAccountWorkspaceSearch(search),
+  loaderDeps: ({ search }) => ({
+    tab: search.tab,
+    section: search.section,
+    filter: search.filter,
   }),
-  loaderDeps: ({ search }) => ({ tab: search.tab }),
   loader: async ({ params, deps }) => {
-    const includeAudit = deps.tab === "audit";
-    const includeNotes = deps.tab === "notes";
+    const includeAudit = deps.tab === "more" || deps.section === "audit";
+    const includeNotes = deps.tab === "more" || deps.section === "notes";
     const includeActivity = deps.tab === "activity";
     const [account, auditLogs, notes, ops, timeline] = await Promise.all([
       fetchInternalBankAccountDetail({ data: params.accountId }),
@@ -35,14 +37,14 @@ export const Route = createFileRoute("/internal/bank/accounts/$accountId")({
     ]);
     return { account, auditLogs, notes, ops, timeline };
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.account.accountNumber ?? "Account"} — Alta Internal` }],
+  head: ({ loaderData, match }) => ({
+    meta: [{ title: internalDocumentTitle(`${loaderData?.account.accountNumber ?? "Account"}`, (match.search as { site?: string }).site ?? "bank") }],
   }),
   component: AccountWorkspaceRoute,
 });
 
 function AccountWorkspaceRoute() {
   const data = Route.useLoaderData();
-  const { tab } = Route.useSearch();
-  return <AccountWorkspaceView data={data} activeTab={tab} />;
+  const search = Route.useSearch();
+  return <AccountWorkspaceView data={data} search={search} />;
 }

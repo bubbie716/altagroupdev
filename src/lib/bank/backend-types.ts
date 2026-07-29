@@ -240,6 +240,8 @@ export interface InternalBankAccountRow {
   status: string;
   companyName: string | null;
   createdAt: string;
+  /** ISO timestamp of latest transaction when available; falls back to opened date in UI. */
+  lastActivityAt?: string | null;
 }
 
 export interface InternalBankTransactionRow {
@@ -268,6 +270,9 @@ export interface InternalBankOpsSummary {
   frozenAccounts: number;
   lendingQueue: number;
   transfersInReview: number;
+  failedTransfers: number;
+  pendingCardApplications: number;
+  pendingCardReviews: number;
   altaPayCountThisMonth: number;
   altaPayVolumeThisMonth: number;
 }

@@ -18,7 +18,11 @@ import { LOAN_PRODUCT_DEFAULT_MONTHLY_RATES } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { ApplicationRelationshipQueueCell } from "@/components/internal/relationship-queue-cell";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
+import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
 import { OPS_COPY } from "@/lib/internal/console/ops-copy";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -35,6 +39,7 @@ function defaultMonthlyRate(productType: LoanProductTypeCode): string {
 
 function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow }) {
   const router = useRouter();
+  const site = useSiteContext();
   const openThread = useServerFn(ensureInternalLoanApplicationThread);
   const [pending, setPending] = useState(false);
 
@@ -43,19 +48,19 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
       <Link
         to="/internal/lending/applications/$applicationId"
         params={{ applicationId: row.id }}
-        search={{ tab: "thread" }}
+        search={withInternalSiteSearch({ section: "evidence" }, site.key)}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
-        Open Secure Deal Room
+        Review evidence
       </Link>
     );
   }
 
   return (
     <OpsAction
-      label={pending ? SUBMITTING_COPY.opening : "Open Secure Deal Room"}
-      title="Open Secure Deal Room"
-      description="Creates the applicant thread and opens the Secure Deal Room workspace."
+      label={pending ? SUBMITTING_COPY.opening : "Review evidence"}
+      title="Open evidence thread"
+      description="Creates the applicant thread and opens the application evidence section."
       disabled={pending}
       onConfirm={async () => {
         setPending(true);
@@ -64,7 +69,7 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
           await router.navigate({
             to: "/internal/lending/applications/$applicationId",
             params: { applicationId: row.id },
-            search: { tab: "thread" },
+            search: withInternalSiteSearch({ section: "evidence" }, site.key),
           });
         } finally {
           setPending(false);
@@ -76,6 +81,7 @@ function LoanApplicationThreadLink({ row }: { row: InternalLoanApplicationRow })
 
 function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow }) {
   const router = useRouter();
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const [reviewNote, setReviewNote] = useState(row.reviewNote ?? "");
   const [interestRate, setInterestRate] = useState(() => defaultMonthlyRate(row.productType));
   const [principalAmount, setPrincipalAmount] = useState(String(row.requestedAmount));
@@ -152,9 +158,10 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
           <div className="flex flex-wrap gap-1 pt-1">
             {row.status === "pending" && (
               <OpsAction
-                label="Begin review"
+                label={uiLab ? unavailableLabel("Begin review") : "Begin review"}
                 title="Begin application review"
                 description={OPS_COPY.lendingBeginReviewDescription}
+                disabled={uiLab}
                 onConfirm={async (reason) => {
                   await markLoanApplicationUnderReviewRecord({
                     data: { applicationId: row.id, reviewNote: reviewNote.trim() || reason },
@@ -164,11 +171,12 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
               />
             )}
             <OpsAction
-              label="Accept"
+              label={uiLab ? unavailableLabel("Accept") : "Accept"}
               variant="primary"
               title="Accept loan application"
               description="Creates the loan with the terms below."
               impact={`${florin(Number(principalAmount) || 0)} · ${termMonths} mo`}
+              disabled={uiLab}
               onConfirm={async (reason) => {
                 await approveLoanApplicationRecord({
                   data: {
@@ -183,10 +191,11 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
               }}
             />
             <OpsAction
-              label="Deny"
+              label={uiLab ? unavailableLabel("Deny") : "Deny"}
               variant="danger"
               title="Deny loan application"
               description="Closes the application."
+              disabled={uiLab}
               onConfirm={async (reason) => {
                 await denyLoanApplicationRecord({
                   data: { applicationId: row.id, reviewNote: reviewNote.trim() || reason },

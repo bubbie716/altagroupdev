@@ -139,6 +139,8 @@ export const fetchInternalCompanyFromDb = createServerFn({ method: "GET" })
 export const verifyCompanyRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Verify company");
     const { verifyCompany } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
     const admin = await requireOperator();
@@ -149,6 +151,8 @@ export const verifyCompanyRecord = createServerFn({ method: "POST" })
 export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Reject company verification");
     const { rejectCompanyVerification } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
     const admin = await requireOperator();
@@ -159,6 +163,8 @@ export const rejectCompanyVerificationRecord = createServerFn({ method: "POST" }
 export const revokeCompanyVerificationRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { companyId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Revoke company verification");
     const { revokeCompanyVerification } = await import("@/server/company.service");
     const { requireOperator } = await import("@/server/permissions.service");
     const admin = await requireOperator();

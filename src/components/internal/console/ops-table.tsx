@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { OpsTableSkeleton } from "@/components/internal/console/ops-table-skeleton";
 import { OpsEmptyState } from "@/components/internal/console/ops-empty-state";
@@ -12,6 +12,8 @@ export type OpsTableColumn<T> = {
   cell: (row: T) => ReactNode;
   sortable?: boolean;
   className?: string;
+  /** Pin column to the end so actions stay reachable while scrolling. */
+  stickyEnd?: boolean;
 };
 
 export type OpsTableSort = {
@@ -34,6 +36,7 @@ export function OpsTable<T extends { id?: string }>({
   emptyState = OPS_COPY.noResults,
   filterSlot,
   className,
+  mobileCard,
 }: {
   columns: OpsTableColumn<T>[];
   rows: T[];
@@ -49,7 +52,33 @@ export function OpsTable<T extends { id?: string }>({
   emptyState?: ReactNode;
   filterSlot?: ReactNode;
   className?: string;
+  /** Optional stacked card renderer for narrow viewports. */
+  mobileCard?: (row: T, index: number) => ReactNode;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollX, setCanScrollX] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function update() {
+      if (!el) return;
+      setCanScrollX(el.scrollWidth > el.clientWidth + 2);
+    }
+
+    update();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      ro?.disconnect();
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [rows.length, columns.length, loading]);
+
   const allSelected =
     selectable &&
     rows.length > 0 &&
@@ -86,6 +115,8 @@ export function OpsTable<T extends { id?: string }>({
     onSortChange({ key, direction: "asc" });
   }
 
+  const stickyKey = columns.find((c) => c.stickyEnd || c.key === "actions")?.key;
+
   return (
     <div className={cn("ops-table min-w-0", className)}>
       {(filterSlot || (selectable && selectedIds && selectedIds.size > 0 && bulkActions)) && (
@@ -102,95 +133,131 @@ export function OpsTable<T extends { id?: string }>({
         </div>
       )}
 
-      <div className="max-h-[calc(100dvh-14rem)] overflow-auto overscroll-contain rounded border border-border/80 bg-surface-1/30">
-        {loading ? (
+      {loading ? (
+        <div className="max-h-[calc(100dvh-14rem)] overflow-auto overscroll-contain rounded border border-border/80 bg-surface-1/30">
           <OpsTableSkeleton rows={4} cols={columns.length} />
-        ) : rows.length === 0 ? (
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded border border-border/80 bg-surface-1/30">
           <OpsEmptyState
             title={typeof emptyState === "string" ? emptyState : OPS_COPY.noResults}
             className="border-0 bg-transparent"
           />
-        ) : (
-        <table className="w-full min-w-[640px] border-collapse text-[12px]">
-          <thead className="sticky top-0 z-10">
-            <tr className="border-b border-border/80 bg-surface-2/80 text-left backdrop-blur">
-              {selectable ? (
-                <th className="w-8 px-2 py-2">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    aria-label="Select all rows"
-                    className="size-3.5 rounded border-border"
-                  />
-                </th>
-              ) : null}
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={cn(
-                    "px-3 py-2.5 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90",
-                    col.sortable && onSortChange && "cursor-pointer select-none hover:text-foreground",
-                    col.className,
-                  )}
-                  onClick={col.sortable && onSortChange ? () => handleSort(col.key) : undefined}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.header}
-                    {sort?.key === col.key ? (
-                      <span aria-hidden>{sort.direction === "asc" ? "↑" : "↓"}</span>
-                    ) : null}
-                  </span>
-                </th>
+        </div>
+      ) : (
+        <>
+          {mobileCard ? (
+            <ul className="ops-table-mobile space-y-2 md:hidden">
+              {rows.map((row, index) => (
+                <li key={resolveKey(row, index, rowKey)}>{mobileCard(row, index)}</li>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => {
-                const id = resolveKey(row, index, rowKey);
-                const selected = selectedIds?.has(id) ?? false;
-                return (
-                  <tr
-                    key={id}
-                    className={cn(
-                      "border-b border-border/40 last:border-0 transition-colors",
-                      index % 2 === 1 && !selected && "bg-surface-1/20",
-                      onRowClick && "cursor-pointer hover:bg-gold/[0.04]",
-                      selected && "bg-gold/5",
-                    )}
-                    onClick={
-                      onRowClick
-                        ? (e) => {
-                            const target = e.target as HTMLElement;
-                            if (target.closest("button,a,input,label")) return;
-                            onRowClick(row);
-                          }
-                        : undefined
-                    }
-                  >
+            </ul>
+          ) : null}
+
+          <div
+            className={cn(
+              "ops-table-scroll rounded border border-border/80 bg-surface-1/30",
+              mobileCard && "hidden md:block",
+            )}
+            data-can-scroll-x={canScrollX ? "true" : "false"}
+          >
+            <p className="ops-table-scroll-hint border-b border-border/50 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+              Scroll horizontally for more columns and actions
+            </p>
+            <div
+              ref={scrollRef}
+              className="max-h-[calc(100dvh-14rem)] overflow-auto overscroll-contain"
+            >
+              <table className="w-full min-w-[640px] border-collapse text-[12px]">
+                <thead className="sticky top-0 z-10">
+                  <tr className="border-b border-border/80 bg-surface-2/80 text-left backdrop-blur">
                     {selectable ? (
-                      <td className="w-8 px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                      <th className="w-8 px-2 py-2">
                         <input
                           type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleRow(id)}
-                          aria-label={`Select row ${id}`}
+                          checked={allSelected}
+                          onChange={toggleAll}
+                          aria-label="Select all rows"
                           className="size-3.5 rounded border-border"
                         />
-                      </td>
+                      </th>
                     ) : null}
                     {columns.map((col) => (
-                      <td key={col.key} className={cn("px-3 py-2 align-top", col.className)}>
-                        {col.cell(row)}
-                      </td>
+                      <th
+                        key={col.key}
+                        className={cn(
+                          "px-3 py-2.5 font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90",
+                          col.sortable && onSortChange && "cursor-pointer select-none hover:text-foreground",
+                          (col.stickyEnd || col.key === stickyKey) && "ops-table-col-sticky-end",
+                          col.className,
+                        )}
+                        onClick={col.sortable && onSortChange ? () => handleSort(col.key) : undefined}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {col.header}
+                          {sort?.key === col.key ? (
+                            <span aria-hidden>{sort.direction === "asc" ? "↑" : "↓"}</span>
+                          ) : null}
+                        </span>
+                      </th>
                     ))}
                   </tr>
-                );
-              })}
-          </tbody>
-        </table>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => {
+                    const id = resolveKey(row, index, rowKey);
+                    const selected = selectedIds?.has(id) ?? false;
+                    return (
+                      <tr
+                        key={id}
+                        className={cn(
+                          "border-b border-border/40 last:border-0 transition-colors",
+                          index % 2 === 1 && !selected && "bg-surface-1/20",
+                          onRowClick && "cursor-pointer hover:bg-gold/[0.04]",
+                          selected && "bg-gold/5",
+                        )}
+                        onClick={
+                          onRowClick
+                            ? (e) => {
+                                const target = e.target as HTMLElement;
+                                if (target.closest("button,a,input,label")) return;
+                                onRowClick(row);
+                              }
+                            : undefined
+                        }
+                      >
+                        {selectable ? (
+                          <td className="w-8 px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleRow(id)}
+                              aria-label={`Select row ${id}`}
+                              className="size-3.5 rounded border-border"
+                            />
+                          </td>
+                        ) : null}
+                        {columns.map((col) => (
+                          <td
+                            key={col.key}
+                            className={cn(
+                              "px-3 py-2 align-top",
+                              (col.stickyEnd || col.key === stickyKey) && "ops-table-col-sticky-end",
+                              col.className,
+                            )}
+                          >
+                            {col.cell(row)}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

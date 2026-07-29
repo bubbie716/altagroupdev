@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { INTERNAL_COMPANY_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
+import { INTERNAL_COMPANY_WORKSPACE_SEARCH, withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { useSiteContext } from "@/hooks/use-site-context";
 import { OpsTable, type OpsTableColumn } from "@/components/internal/console";
 import { OpsStatusBadge } from "@/components/internal/console/ops-status-badge";
 import { OpsAction } from "@/components/internal/ops-action";
@@ -14,11 +15,13 @@ import {
   revokeCompanyVerificationRecord,
   verifyCompanyRecord,
 } from "@/lib/company/company.functions";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { normalizeCompanyVerificationStatus } from "@/lib/company/verification-status";
 import type { InternalCompanyRow } from "@/lib/company/types";
 
 export function CompanyVerificationsQueueView({ companies }: { companies: InternalCompanyRow[] }) {
   const router = useRouter();
+  const site = useSiteContext();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"pending" | "verified" | "all">("pending");
 
@@ -55,7 +58,7 @@ export function CompanyVerificationsQueueView({ companies }: { companies: Intern
         <Link
           to="/internal/companies/$companyId"
           params={{ companyId: c.id }}
-          search={INTERNAL_COMPANY_WORKSPACE_SEARCH}
+          search={withInternalSiteSearch(INTERNAL_COMPANY_WORKSPACE_SEARCH, site.key)}
           className="font-medium text-[12px] hover:text-gold"
           onClick={(e) => e.stopPropagation()}
         >
@@ -134,6 +137,7 @@ export function CompanyVerificationsQueueView({ companies }: { companies: Intern
 }
 
 function CompanyVerificationOpsActions({ company }: { company: InternalCompanyRow }) {
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const state = normalizeCompanyVerificationStatus(company.verificationStatus);
   const canReview = state === "unverified" || state === "pending";
   const isVerified = state === "verified";
@@ -147,23 +151,25 @@ function CompanyVerificationOpsActions({ company }: { company: InternalCompanyRo
       {canReview ? (
         <>
           <OpsAction
-            label="Verify"
+            label={uiLab ? unavailableLabel("Verify") : "Verify"}
             variant="primary"
             title="Verify company"
             description="This will mark the company as verified and enable full institutional operations."
             impact={company.name}
             confirmLabel="Confirm verification"
+            disabled={uiLab}
             onConfirm={async (reason) => {
               await verifyCompanyRecord({ data: { companyId: company.id, reviewNote: reason } });
             }}
           />
           <OpsAction
-            label="Reject"
+            label={uiLab ? unavailableLabel("Reject") : "Reject"}
             variant="danger"
             title="Reject company verification"
             description="This will reject the verification request. The company remains unverified."
             impact={company.name}
             confirmLabel="Confirm rejection"
+            disabled={uiLab}
             onConfirm={async (reason) => {
               await rejectCompanyVerificationRecord({ data: { companyId: company.id, reviewNote: reason } });
             }}
@@ -172,12 +178,13 @@ function CompanyVerificationOpsActions({ company }: { company: InternalCompanyRo
       ) : null}
       {isVerified ? (
         <OpsAction
-          label="Revoke"
+          label={uiLab ? unavailableLabel("Revoke") : "Revoke"}
           variant="danger"
           title="Revoke company verification"
           description="This will revoke verified status. Representatives may lose institution-level access."
           impact={company.name}
           confirmLabel="Confirm revocation"
+          disabled={uiLab}
           onConfirm={async (reason) => {
             await revokeCompanyVerificationRecord({ data: { companyId: company.id, reviewNote: reason } });
           }}

@@ -1,20 +1,15 @@
-import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
-import {
-  LendingApplicationWorkspaceView,
-  parseWorkspaceTab,
-} from "@/components/internal/workspace";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { LendingApplicationWorkspaceView } from "@/components/internal/workspace";
 import { fetchInternalLoanApplicationDetail } from "@/lib/bank/lending.functions";
 import { fetchInternalLoanApplicationThread } from "@/lib/bank/loan-application-thread.functions";
 import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
-
-const TABS = ["overview", "thread", "decision", "audit", "notes"];
+import { parseLendingApplicationSearch } from "@/lib/internal/record-workspace-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/lending/applications/$applicationId/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-  }),
+  validateSearch: (search: Record<string, unknown>) => parseLendingApplicationSearch(search),
   loader: async ({ params }) => {
     try {
       const [application, threadData, auditLogs] = await Promise.all([
@@ -39,7 +34,7 @@ export const Route = createFileRoute("/internal/lending/applications/$applicatio
         threadContext: threadData.context,
         threadMessages: threadData.messages,
         integration,
-        auditLogs,
+        auditLogs: auditLogs as import("@/lib/internal/audit.types").AuditLogRow[],
         notes,
       };
     } catch (error) {
@@ -49,7 +44,7 @@ export const Route = createFileRoute("/internal/lending/applications/$applicatio
       throw error;
     }
   },
-  head: () => ({ meta: [{ title: "Lending Application — Alta Internal" }] }),
+  head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Lending Application", (match.search as { site?: string }).site) }] }),
   component: LendingApplicationWorkspaceRoute,
 });
 
@@ -62,7 +57,7 @@ function LendingApplicationWorkspaceRoute() {
     <LendingApplicationWorkspaceView
       {...data}
       applicationId={applicationId}
-      activeTab={search.tab}
+      search={search}
     />
   );
 }

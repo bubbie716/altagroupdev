@@ -256,6 +256,11 @@ export const deleteTransferContactRecord = createServerFn({ method: "POST" })
   });
 
 export const fetchInternalBankOpsSummary = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabInternalBankOpsSummary } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+    return getUiLabInternalBankOpsSummary();
+  }
   const { requireOperator } = await import("@/server/permissions.service");
   const { getInternalBankOpsSummary } = await import("@/server/bank.service");
   await requireOperator();
@@ -399,6 +404,14 @@ export const closeBankAccountRecord = createServerFn({ method: "POST" })
 export const fetchInternalBankAccountDetail = createServerFn({ method: "GET" })
   .inputValidator((accountId: string) => accountId)
   .handler(async ({ data: accountId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalBankAccountDetail } = await import(
+        "@/lib/bank/ui-lab-money-ops-fixtures"
+      );
+      const fixture = getUiLabInternalBankAccountDetail(accountId);
+      if (fixture) return fixture;
+    }
     const { getInternalBankAccountDetail } = await import("@/server/bank.service");
     await import("@/server/permissions.service").then((m) => m.requireOperator());
     return getInternalBankAccountDetail(accountId);
@@ -429,6 +442,11 @@ export const fetchInternalBankAccountsFiltered = createServerFn({ method: "GET" 
     (filters: { q?: string; accountType?: string; status?: string; companyId?: string }) => filters,
   )
   .handler(async ({ data: filters }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalBankAccountRows } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+      return getUiLabInternalBankAccountRows(filters);
+    }
     const { listInternalBankAccounts } = await import("@/server/bank.service");
     await import("@/server/permissions.service").then((m) => m.requireOperator());
     return listInternalBankAccounts(filters);

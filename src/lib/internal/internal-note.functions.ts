@@ -19,6 +19,8 @@ export const createInternalNoteRecord = createServerFn({ method: "POST" })
     (input: { targetType: InternalNoteTargetType; targetId: string; note: string }) => input,
   )
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Add internal note");
     const { createInternalNote } = await import("@/server/internal-note.service");
     const userId = await actorId();
     return createInternalNote(userId, data.targetType, data.targetId, data.note);

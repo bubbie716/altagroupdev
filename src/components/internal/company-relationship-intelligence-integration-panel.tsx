@@ -1,7 +1,8 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
-import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { useSiteContext } from "@/hooks/use-site-context";
 import { florin } from "@/lib/bank/api";
 import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
 import type {
@@ -31,6 +32,7 @@ export function CompanyRelationshipIntelligencePanel({
   compact?: boolean;
   showLendingSignals?: boolean;
 }) {
+  const site = useSiteContext();
   const gridClass = compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4";
 
   return (
@@ -46,9 +48,12 @@ export function CompanyRelationshipIntelligencePanel({
           </p>
         </div>
         <Link
-          to="/internal/companies/$companyId/relationship"
+          to="/internal/companies/$companyId"
           params={{ companyId: panel.companyId }}
-          search={internalWorkspaceTabSearch("relationship")}
+          search={withInternalSiteSearch(
+            { tab: "overview" as const, section: "relationship" },
+            site.key,
+          )}
           className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
         >
           Full company profile →

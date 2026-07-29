@@ -17,6 +17,7 @@ export {
   isTerminalAdmin,
   canAccessAnyInternal,
   canAccessBankInternal,
+  canAccessTerminalInternal,
   canAccessInternalForSite,
   canBypassMaintenanceMode,
   isCompanyOwner,

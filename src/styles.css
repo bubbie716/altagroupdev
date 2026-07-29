@@ -874,6 +874,67 @@
   }
 }
 
+@media (min-width: 768px) {
+  .internal-mobile-nav-trigger {
+    display: none;
+  }
+}
+
+/* Horizontally scrollable ops tables — visible edge fade cue */
+.ops-table-scroll {
+  position: relative;
+}
+
+.ops-table-scroll[data-can-scroll-x="true"]::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2.25rem;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--background) 88%, transparent));
+  border-radius: 0 inherit inherit 0;
+}
+
+.ops-table-scroll-hint {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .ops-table-scroll[data-can-scroll-x="true"] .ops-table-scroll-hint {
+    display: block;
+  }
+}
+
+.ops-table-col-sticky-end {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: color-mix(in srgb, var(--surface-1) 92%, var(--background));
+  box-shadow: -6px 0 8px -6px color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+thead .ops-table-col-sticky-end {
+  background: color-mix(in srgb, var(--surface-2) 92%, var(--background));
+}
+
+/* Workspace tab strip scroll cue */
+.workspace-tabs-scroll {
+  position: relative;
+}
+
+.workspace-tabs-scroll[data-can-scroll-x="true"]::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2rem;
+  background: linear-gradient(to right, transparent, var(--background));
+}
+
 /* Alta Terminal — Robinhood-inspired brokerage shell */
 :where(.terminal-shell, body:has(.terminal-shell)) {
   --terminal-bg: #ffffff;

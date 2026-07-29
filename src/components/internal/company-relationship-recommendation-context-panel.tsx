@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import { formatAltaCardCurrency } from "@/lib/bank/alta-card-types";
@@ -34,7 +35,7 @@ export function CompanyRelationshipRecommendationContextPanel({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const recordRecommendation = useCompanyRelationshipRecommendationRecord();
+  const recordRecommendation = useServerFn(useCompanyRelationshipRecommendationRecord);
 
   const active = recommendations.filter((r) => r.status === "ACTIVE");
 

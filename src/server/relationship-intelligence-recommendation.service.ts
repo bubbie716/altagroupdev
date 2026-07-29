@@ -444,7 +444,7 @@ export async function generateRelationshipRecommendations(
             ? {
                 ...draft.reasons.actionPath,
                 search: {
-                  ...draft.reasons.actionPath.search,
+                  ...(draft.reasons.actionPath.search ?? {}),
                   recommendationId: "pending",
                 },
               }
@@ -459,7 +459,7 @@ export async function generateRelationshipRecommendations(
           ...draft.reasons,
           actionPath: {
             ...actionPath,
-            search: { ...actionPath.search, recommendationId: row.id },
+            search: { ...(actionPath.search ?? {}), recommendationId: row.id },
           },
         }
       : draft.reasons;

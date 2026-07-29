@@ -1,8 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import {
-  AltaCardReviewWorkspaceView,
-  parseWorkspaceTab,
-} from "@/components/internal/workspace";
+import { AltaCardReviewWorkspaceView } from "@/components/internal/workspace";
 import {
   fetchInternalAltaCardReviewDetail,
   fetchInternalAltaCardReviewThread,
@@ -10,13 +7,11 @@ import {
 import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
-
-const TABS = ["overview", "thread", "decision", "audit", "notes"];
+import { parseCardReviewSearch } from "@/lib/internal/record-workspace-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/alta-card/reviews/$reviewId/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-  }),
+  validateSearch: (search: Record<string, unknown>) => parseCardReviewSearch(search),
   loader: async ({ params }) => {
     try {
       const detail = await fetchInternalAltaCardReviewDetail({ data: params.reviewId });
@@ -50,7 +45,7 @@ export const Route = createFileRoute("/internal/alta-card/reviews/$reviewId/")({
       throw error;
     }
   },
-  head: () => ({ meta: [{ title: "Alta Card Review — Alta Internal" }] }),
+  head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Alta Card Review", (match.search as { site?: string }).site) }] }),
   component: AltaCardReviewWorkspaceRoute,
 });
 
@@ -58,5 +53,5 @@ function AltaCardReviewWorkspaceRoute() {
   const data = Route.useLoaderData();
   const search = Route.useSearch();
 
-  return <AltaCardReviewWorkspaceView {...data} activeTab={search.tab} />;
+  return <AltaCardReviewWorkspaceView {...data} search={search} />;
 }

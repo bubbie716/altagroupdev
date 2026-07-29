@@ -17,6 +17,9 @@ export type InternalUserListRow = {
   tags: UserTag[];
   companyCount: number;
   bankAccountCount: number;
+  altaCardCount: number;
+  activeLoanCount: number;
+  terminalPortfolioCount: number;
   totalBankBalance: number;
   lastLoginAt: string;
   createdAt: string;

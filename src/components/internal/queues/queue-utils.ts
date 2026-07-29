@@ -56,12 +56,12 @@ export function formatQueueDate(isoOrDate: string): string {
   return formatDueDate(isoOrDate);
 }
 
-export const QUEUE_BREADCRUMB_ROOT = { label: "Queues", to: "/internal/queues/deposits" } as const;
+export const QUEUE_BREADCRUMB_ROOT = { label: "Inbox", to: "/internal/inbox" } as const;
 
 export function queueBreadcrumbs(label: string) {
   return [
-    { label: "Dashboard", to: "/internal" },
-    { label: "Queues", to: "/internal/queues/deposits" },
+    { label: "Home", to: "/internal" },
+    { label: "Inbox", to: "/internal/inbox" },
     { label },
   ];
 }

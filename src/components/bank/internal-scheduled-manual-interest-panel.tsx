@@ -13,6 +13,7 @@ import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isAdmin } from "@/lib/auth/permissions";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
 export function InternalScheduledManualInterestPanel({
   initialRows,
@@ -22,6 +23,7 @@ export function InternalScheduledManualInterestPanel({
   const router = useRouter();
   const user = useCurrentUser();
   const canCancel = user ? isAdmin(user) : false;
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const cancelFn = useServerFn(cancelScheduledManualInterestApplicationRecord);
 
   const [rows, setRows] = useState(initialRows);
@@ -93,8 +95,16 @@ export function InternalScheduledManualInterestPanel({
           {
             key: "actions",
             header: "",
-            cell: (row: ScheduledManualInterestRow) =>
-              canCancel && row.status === "PENDING" ? (
+            cell: (row: ScheduledManualInterestRow) => {
+              if (!(canCancel && row.status === "PENDING")) return null;
+              if (uiLab) {
+                return (
+                  <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {unavailableLabel("Cancel")}
+                  </span>
+                );
+              }
+              return (
                 <OpsAction
                   label={pendingId === row.id ? SUBMITTING_COPY.cancelling : "Cancel"}
                   variant="danger"
@@ -105,7 +115,8 @@ export function InternalScheduledManualInterestPanel({
                     await handleCancel(row.id, reason);
                   }}
                 />
-              ) : null,
+              );
+            },
           },
         ]}
         rows={rows}

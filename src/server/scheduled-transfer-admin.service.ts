@@ -68,9 +68,9 @@ function mapAdminRow(
     statusLabel: STATUS_LABELS[status],
     paymentType: row.paymentType,
     transferScope: row.transferScope,
-    sourceAccountId: row.bankAccount.id,
-    sourceAccountName: row.bankAccount.accountName,
-    sourceAccountNumber: row.bankAccount.accountNumber,
+    sourceAccountId: row.bankAccount?.id ?? "",
+    sourceAccountName: row.bankAccount?.accountName ?? "—",
+    sourceAccountNumber: row.bankAccount?.accountNumber ?? "—",
     destinationAccountNumber: row.recipientAccountNumber,
     destinationName: row.recipientName,
     ownerLabel: row.company?.name ?? row.createdBy.discordUsername,
@@ -108,6 +108,86 @@ export async function listActiveInternalScheduledTransfers(): Promise<InternalSc
   return rows
     .filter((r) => ["APPROVED", "PAUSED", "PENDING_REVIEW"].includes(r.status))
     .map(mapAdminRow);
+}
+
+export type InternalScheduledTransferExecutionRow = {
+  id: string;
+  scheduledRunAt: string;
+  status: string;
+  statusLabel: string;
+  transferReferenceCode: string | null;
+  bankTransactionId: string | null;
+  failureReason: string | null;
+  executedAt: string | null;
+};
+
+export type InternalScheduledTransferDetail = InternalScheduledTransferRow & {
+  frequency: string;
+  frequencyLabel: string;
+  memo: string | null;
+  destinationAccountId: string | null;
+  ownerUserId: string | null;
+  executions: InternalScheduledTransferExecutionRow[];
+};
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  ONCE: "Once",
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  BIWEEKLY: "Biweekly",
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  YEARLY: "Yearly",
+};
+
+export async function getInternalScheduledTransfer(
+  paymentId: string,
+): Promise<InternalScheduledTransferDetail> {
+  const payment = await prisma.scheduledPayment.findFirst({
+    where: { id: paymentId, transferScope: "INTRABANK" },
+    include: {
+      bankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
+      createdBy: { select: { id: true, discordUsername: true } },
+      company: { select: { id: true, name: true } },
+      executions: {
+        orderBy: { scheduledRunAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          scheduledRunAt: true,
+          status: true,
+          transferReferenceCode: true,
+          bankTransactionId: true,
+          failureReason: true,
+          executedAt: true,
+        },
+      },
+    },
+  });
+  if (!payment) notFound();
+
+  const base = mapAdminRow(
+    payment as Awaited<ReturnType<typeof fetchScheduledPaymentRows>>[number],
+  );
+  const frequency = String(payment.frequency ?? "ONCE");
+  return {
+    ...base,
+    frequency: frequency.toLowerCase(),
+    frequencyLabel: FREQUENCY_LABELS[frequency] ?? frequency.replace(/_/g, " "),
+    memo: payment.memo ?? null,
+    destinationAccountId: null,
+    ownerUserId: payment.companyId ? null : payment.createdBy.id,
+    executions: payment.executions.map((e) => ({
+      id: e.id,
+      scheduledRunAt: e.scheduledRunAt.toISOString(),
+      status: EXECUTION_FROM_DB[e.status] ?? String(e.status).toLowerCase(),
+      statusLabel: mapExecutionStatusLabel(e.status) ?? String(e.status),
+      transferReferenceCode: e.transferReferenceCode,
+      bankTransactionId: e.bankTransactionId,
+      failureReason: e.failureReason,
+      executedAt: e.executedAt?.toISOString() ?? null,
+    })),
+  };
 }
 
 async function requireIntrabankPayment(paymentId: string) {

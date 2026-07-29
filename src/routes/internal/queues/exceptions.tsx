@@ -1,29 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ExceptionsQueueView, type ExceptionQueueItem } from "@/components/internal/queues";
-import { fetchExceptionCenter } from "@/lib/internal/ops-platform.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/exceptions")({
-  loader: async () => {
-    const items = await fetchExceptionCenter();
-    return items.map(
-      (item) =>
-        ({
-          id: item.id,
-          category: item.category,
-          severity: item.severity,
-          title: item.title,
-          detail: item.detail,
-          href: item.href,
-          amount: item.amount,
-          createdAt: item.createdAt,
-        }) satisfies ExceptionQueueItem,
-    );
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX.exceptions!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
+    });
   },
-  head: () => ({ meta: [{ title: "Exceptions Queue — Alta Internal" }] }),
-  component: ExceptionsQueuePage,
 });
-
-function ExceptionsQueuePage() {
-  const items = Route.useLoaderData();
-  return <ExceptionsQueueView items={items} />;
-}

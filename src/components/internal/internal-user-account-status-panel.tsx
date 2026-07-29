@@ -16,6 +16,7 @@ import { formatAccountStatus } from "@/lib/auth/tags";
 import type { AccountStatus } from "@/lib/auth/types";
 import { updateInternalUserAccountStatusRecord } from "@/lib/internal/user-management.functions";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
@@ -23,6 +24,7 @@ const fieldClass =
 export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDetail }) {
   const router = useRouter();
   const updateStatus = useServerFn(updateInternalUserAccountStatusRecord);
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const [selected, setSelected] = useState<AccountStatus>(user.accountStatus);
   const [confirmStatus, setConfirmStatus] = useState<AccountStatus | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -32,6 +34,7 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
   const { canChangeAccountStatus, allowedAccountStatuses } = user.capabilities;
 
   async function applyStatus(status: AccountStatus) {
+    if (uiLab) return;
     setSubmitting(true);
     setError(null);
     setMessage(null);
@@ -77,6 +80,7 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
             className={fieldClass}
             value={selected}
             onChange={(e) => setSelected(e.target.value as AccountStatus)}
+            disabled={uiLab}
           >
             {allowedAccountStatuses.map((status) => (
               <option key={status} value={status}>
@@ -90,16 +94,19 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
         </p>
         <button
           type="submit"
-          disabled={submitting || selected === user.accountStatus}
+          disabled={submitting || selected === user.accountStatus || uiLab}
           className="rounded-md border border-border-strong bg-surface-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
         >
-          {submitting ? SUBMITTING_COPY.updating : "Update status"}
+          {uiLab
+            ? unavailableLabel("Update status")
+            : submitting
+              ? SUBMITTING_COPY.updating
+              : "Update status"}
         </button>
         {message && <p className="text-[13px] text-[var(--success)]">{message}</p>}
         {error && <p className="text-[13px] text-destructive">{error}</p>}
         <p className="text-[11px] text-muted-foreground">
-          {/* TODO: Future AuditLog required for account status changes. */}
-          Status changes are applied immediately. Audit logging is planned for a future release.
+          Status changes are applied immediately and recorded in the audit log.
         </p>
       </form>
 
@@ -125,11 +132,15 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
             </button>
             <button
               type="button"
-              disabled={submitting || !confirmStatus}
+              disabled={submitting || !confirmStatus || uiLab}
               onClick={() => confirmStatus && void applyStatus(confirmStatus)}
               className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-50"
             >
-              {submitting ? SUBMITTING_COPY.applying : "Confirm"}
+              {uiLab
+                ? unavailableLabel("Confirm")
+                : submitting
+                  ? SUBMITTING_COPY.applying
+                  : "Confirm"}
             </button>
           </DialogFooter>
         </DialogContent>

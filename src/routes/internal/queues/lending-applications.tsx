@@ -1,24 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LendingApplicationsQueueView } from "@/components/internal/queues";
-import { fetchInternalLendingOps } from "@/lib/bank/lending.functions";
-import { fetchApplicationRelationshipSummaries } from "@/lib/internal/relationship-intelligence.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/lending-applications")({
-  loader: async () => {
-    const ops = await fetchInternalLendingOps();
-    const summaries = await fetchApplicationRelationshipSummaries({
-      data: ops.applications.map((a) => ({
-        companyId: a.companyId,
-        applicantUserId: a.applicantUserId,
-      })),
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX["lending-applications"]!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
     });
-    return { applications: ops.applications, summaries };
   },
-  head: () => ({ meta: [{ title: "Lending Applications Queue — Alta Internal" }] }),
-  component: LendingApplicationsQueuePage,
 });
-
-function LendingApplicationsQueuePage() {
-  const { applications, summaries } = Route.useLoaderData();
-  return <LendingApplicationsQueueView applications={applications} summaries={summaries} />;
-}

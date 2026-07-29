@@ -324,6 +324,7 @@ export interface AdminAdjustLoanInput {
 export interface InternalActiveLoanRow {
   id: string;
   productLabel: string;
+  productType: LoanProductTypeCode;
   borrowerLabel: string;
   companyName: string | null;
   linkedAccountNumber: string | null;
@@ -354,6 +355,7 @@ export interface InternalActiveLoanRow {
   paymentSchedule: LoanScheduleItemRow[];
   termMonths: number | null;
   monthlyPrincipalPercent: number | null;
+  updatedAt: string;
 }
 
 export interface InternalLoanApplicationRow extends LoanApplicationRow {

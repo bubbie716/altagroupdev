@@ -22,6 +22,9 @@ import type { InternalLoanApplicationRow } from "@/lib/bank/lending-types";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
 import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
 import { OPS_COPY } from "@/lib/internal/console/ops-copy";
+import { useSiteContext } from "@/hooks/use-site-context";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
 export function LendingApplicationsQueueView({
   applications,
@@ -34,6 +37,7 @@ export function LendingApplicationsQueueView({
   };
 }) {
   const router = useRouter();
+  const site = useSiteContext();
   const openThread = useServerFn(ensureInternalLoanApplicationThread);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"open" | "all">("open");
@@ -111,13 +115,14 @@ export function LendingApplicationsQueueView({
       key: "thread",
       header: "Deal room",
       cell: (row) => (
-        <DealRoomLink row={row} onOpenThread={openThread} router={router} />
+        <DealRoomLink row={row} onOpenThread={openThread} router={router} site={site.key} />
       ),
     },
     {
       key: "actions",
       header: "Actions",
-      cell: (row) => <LendingQueueActions row={row} />,
+      stickyEnd: true,
+      cell: (row) => <LendingQueueActions row={row} site={site.key} />,
     },
   ];
 
@@ -140,8 +145,9 @@ export function LendingApplicationsQueueView({
         rowKey={(row) => row.id}
         onRowClick={(row) =>
           void router.navigate({
-            to: "/internal/lending/applications/$applicationId/thread",
+            to: "/internal/lending/applications/$applicationId",
             params: { applicationId: row.id },
+            search: withInternalSiteSearch({ section: "evidence" }, site.key),
           })
         }
         emptyState="No lending applications in this queue."
@@ -159,18 +165,21 @@ function DealRoomLink({
   row,
   onOpenThread,
   router,
+  site,
 }: {
   row: InternalLoanApplicationRow;
   onOpenThread: ReturnType<typeof useServerFn<typeof ensureInternalLoanApplicationThread>>;
   router: ReturnType<typeof useRouter>;
+  site: string;
 }) {
   const [pending, setPending] = useState(false);
 
   if (row.threadId) {
     return (
       <Link
-        to="/internal/lending/applications/$applicationId/thread"
+        to="/internal/lending/applications/$applicationId"
         params={{ applicationId: row.id }}
+        search={withInternalSiteSearch({ section: "evidence" }, site)}
         className="font-mono text-[10px] uppercase tracking-[0.12em] text-gold hover:underline"
         onClick={(e) => e.stopPropagation()}
       >
@@ -190,8 +199,9 @@ function DealRoomLink({
         try {
           await onOpenThread({ data: row.id });
           await router.navigate({
-            to: "/internal/lending/applications/$applicationId/thread",
+            to: "/internal/lending/applications/$applicationId",
             params: { applicationId: row.id },
+            search: withInternalSiteSearch({ section: "evidence" }, site),
           });
         } finally {
           setPending(false);
@@ -203,7 +213,8 @@ function DealRoomLink({
   );
 }
 
-function LendingQueueActions({ row }: { row: InternalLoanApplicationRow }) {
+function LendingQueueActions({ row, site }: { row: InternalLoanApplicationRow; site: string }) {
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const actionable = row.status === "pending" || row.status === "under_review";
   if (!actionable) return <span className="text-[11px] text-muted-foreground">—</span>;
 
@@ -211,10 +222,11 @@ function LendingQueueActions({ row }: { row: InternalLoanApplicationRow }) {
     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
       {row.status === "pending" ? (
         <OpsAction
-          label="Begin review"
+          label={uiLab ? unavailableLabel("Begin review") : "Begin review"}
           title="Begin lending review"
           description={OPS_COPY.lendingBeginReviewDescription}
           impact={`${row.applicantLabel} · ${florin(row.requestedAmount)}`}
+          disabled={uiLab}
           onConfirm={async (reason) => {
             await markLoanApplicationUnderReviewRecord({
               data: { applicationId: row.id, reviewNote: reason },
@@ -223,12 +235,13 @@ function LendingQueueActions({ row }: { row: InternalLoanApplicationRow }) {
         />
       ) : null}
       <OpsAction
-        label="Deny"
+        label={uiLab ? unavailableLabel("Deny") : "Deny"}
         variant="danger"
         title="Deny lending application"
         description="This will reject the application. No loan will be originated."
         impact={`${row.productLabel} · ${florin(row.requestedAmount)}`}
         confirmLabel="Confirm denial"
+        disabled={uiLab}
         onConfirm={async (reason) => {
           await denyLoanApplicationRecord({
             data: { applicationId: row.id, reviewNote: reason },
@@ -236,8 +249,9 @@ function LendingQueueActions({ row }: { row: InternalLoanApplicationRow }) {
         }}
       />
       <Link
-        to="/internal/lending/applications/$applicationId/thread"
+        to="/internal/lending/applications/$applicationId"
         params={{ applicationId: row.id }}
+        search={withInternalSiteSearch({ section: "evidence" }, site)}
         className="self-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-gold"
         onClick={(e) => e.stopPropagation()}
       >

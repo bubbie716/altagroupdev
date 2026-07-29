@@ -22,32 +22,60 @@ type TxLike = {
   canReverseAdjustment?: boolean;
 };
 
-export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
+export function TransactionWorkspaceActions({
+  tx,
+  layout = "inline",
+}: {
+  tx: TxLike;
+  /** panel = bordered resolve block on the detail overview (mobile-friendly). */
+  layout?: "inline" | "panel";
+}) {
   const isPending = tx.status.toUpperCase() === "PENDING";
   const type = tx.type.toUpperCase();
+  const actions = resolveActions(tx, isPending, type);
 
+  if (!actions) return null;
+
+  if (layout === "panel") {
+    return (
+      <section className="rounded border border-border/80 bg-surface-1/40 px-3 py-3">
+        <div>
+          <h3 className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground">
+            Resolve transaction
+          </h3>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            Approve or deny from this page. A reason is required; nothing submits until you confirm.
+          </p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">{actions}</div>
+      </section>
+    );
+  }
+
+  return <div className="flex flex-wrap gap-2">{actions}</div>;
+}
+
+function resolveActions(tx: TxLike, isPending: boolean, type: string) {
   if (type === "ADJUSTMENT" && tx.status.toUpperCase() === "APPROVED" && tx.canReverseAdjustment) {
     return (
-      <div className="flex flex-wrap gap-2">
-        <OpsAction
-          label="Reverse adjustment"
-          variant="danger"
-          title="Reverse adjustment"
-          description="Post an offsetting adjustment. The original ledger entry is preserved."
-          impact={`${florin(tx.amount)} · ${tx.referenceCode}`}
-          confirmLabel="Post reversal"
-          customerNotifies
-          onConfirm={async (reason, options) => {
-            await reverseAdjustmentOps({
-              data: {
-                transactionId: tx.id,
-                reason,
-                silentNotification: options?.silentNotification,
-              },
-            });
-          }}
-        />
-      </div>
+      <OpsAction
+        label="Reverse adjustment"
+        variant="danger"
+        title="Reverse adjustment"
+        description="Post an offsetting adjustment. The original ledger entry is preserved."
+        impact={`${florin(tx.amount)} · ${tx.referenceCode}`}
+        confirmLabel="Post reversal"
+        customerNotifies
+        onConfirm={async (reason, options) => {
+          await reverseAdjustmentOps({
+            data: {
+              transactionId: tx.id,
+              reason,
+              silentNotification: options?.silentNotification,
+            },
+          });
+        }}
+      />
     );
   }
 
@@ -55,7 +83,7 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
 
   if (type === "DEPOSIT") {
     return (
-      <div className="flex flex-wrap gap-2">
+      <>
         <OpsAction
           label="Approve deposit"
           variant="primary"
@@ -84,14 +112,14 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             });
           }}
         />
-      </div>
+      </>
     );
   }
 
   if (type === "WITHDRAWAL") {
     const isAltaPay = tx.description.toLowerCase().includes("alta pay");
     return (
-      <div className="flex flex-wrap gap-2">
+      <>
         <OpsAction
           label={isAltaPay ? "Approve Alta Pay" : "Approve withdrawal"}
           variant="primary"
@@ -120,7 +148,7 @@ export function TransactionWorkspaceActions({ tx }: { tx: TxLike }) {
             });
           }}
         />
-      </div>
+      </>
     );
   }
 

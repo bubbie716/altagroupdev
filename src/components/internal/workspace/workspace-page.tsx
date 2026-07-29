@@ -32,7 +32,6 @@ export function WorkspacePage({
     void navigate({
       to: ".",
       search: (prev: Record<string, unknown>) => ({ ...prev, tab: tabId }),
-      replace: true,
     });
   }
 
@@ -61,7 +60,9 @@ export function WorkspacePage({
   );
 }
 
-export function workspaceBreadcrumbs(segments: Array<{ label: string; to?: string }>) {
+export function workspaceBreadcrumbs(
+  segments: Array<{ label: string; to?: string; search?: Record<string, string | undefined> }>,
+) {
   return buildBreadcrumbs(segments);
 }
 

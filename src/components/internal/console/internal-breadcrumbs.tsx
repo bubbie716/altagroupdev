@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 export type InternalBreadcrumbItem = {
   label: string;
   to?: string;
+  /** Optional search params preserved when navigating back (e.g. Inbox filters). */
+  search?: Record<string, string | undefined>;
 };
 
 export function InternalBreadcrumbs({
@@ -28,6 +30,7 @@ export function InternalBreadcrumbs({
             {item.to && !isLast ? (
               <Link
                 to={item.to}
+                search={item.search}
                 className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
               >
                 {item.label}
@@ -51,10 +54,11 @@ export function InternalBreadcrumbs({
 
 /** Build breadcrumbs from an explicit trail; last segment is current page (no link). */
 export function buildBreadcrumbs(
-  segments: Array<{ label: string; to?: string }>,
+  segments: Array<{ label: string; to?: string; search?: Record<string, string | undefined> }>,
 ): InternalBreadcrumbItem[] {
   return segments.map((segment, index) => ({
     label: segment.label,
     to: index < segments.length - 1 ? segment.to : undefined,
+    search: index < segments.length - 1 ? segment.search : undefined,
   }));
 }

@@ -1,19 +1,14 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import {
-  AltaCardApplicationWorkspaceView,
-  parseWorkspaceTab,
-} from "@/components/internal/workspace";
+import { AltaCardApplicationWorkspaceView } from "@/components/internal/workspace";
 import { fetchInternalAltaCardApplicationDetail } from "@/lib/bank/alta-card-application.functions";
 import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/relationship-intelligence.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
-
-const TABS = ["overview", "thread", "decision", "audit", "notes"];
+import { parseCardApplicationSearch } from "@/lib/internal/record-workspace-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/alta-card/applications/$applicationId/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-  }),
+  validateSearch: (search: Record<string, unknown>) => parseCardApplicationSearch(search),
   loader: async ({ params }) => {
     try {
       const review = await fetchInternalAltaCardApplicationDetail({ data: params.applicationId });
@@ -38,7 +33,7 @@ export const Route = createFileRoute("/internal/alta-card/applications/$applicat
       throw error;
     }
   },
-  head: () => ({ meta: [{ title: "Alta Card Application — Alta Internal" }] }),
+  head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Alta Card Application", (match.search as { site?: string }).site) }] }),
   component: AltaCardApplicationWorkspaceRoute,
 });
 
@@ -54,7 +49,7 @@ function AltaCardApplicationWorkspaceRoute() {
       auditLogs={auditLogs}
       notes={notes}
       applicationId={applicationId}
-      activeTab={search.tab}
+      search={search}
     />
   );
 }

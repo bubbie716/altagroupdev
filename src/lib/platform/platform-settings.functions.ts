@@ -16,6 +16,8 @@ export const setMaintenanceModeOps = createServerFn({ method: "POST" })
     (input: { scope: MaintenanceScope; enabled: boolean; message?: string; reason: string }) => input,
   )
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Maintenance mode update");
     const { requireAuth } = await import("@/server/auth.service");
     const { setMaintenanceScope } = await import("@/server/platform-settings.service");
     const user = await requireAuth();
@@ -42,6 +44,8 @@ export const fetchCreditDeskCustomerNav = createServerFn({ method: "GET" }).hand
 export const setCreditDeskStatusOps = createServerFn({ method: "POST" })
   .inputValidator((input: { status: "open" | "closed"; reason: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Credit Desk status change");
     const { requireAuth } = await import("@/server/auth.service");
     const { setCreditDeskStatus } = await import("@/server/platform-settings.service");
     const user = await requireAuth();
@@ -69,6 +73,8 @@ export const setCommercialPlanPlatformSettingsOps = createServerFn({ method: "PO
     }) => input,
   )
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Commercial plan settings");
     const { requireAuth } = await import("@/server/auth.service");
     const { setCommercialPlatformSettings } = await import(
       "@/server/commercial-platform-settings.service"

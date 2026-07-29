@@ -92,6 +92,11 @@ export function canAccessBankInternal(user: AltaUser): boolean {
   return isCorporateAdmin(user) || isBankAdmin(user);
 }
 
+/** Terminal ops console — corporate or terminal admin (not bank-only staff). */
+export function canAccessTerminalInternal(user: AltaUser): boolean {
+  return isCorporateAdmin(user) || isTerminalAdmin(user);
+}
+
 /**
  * Alta platform staff used by internal platform helpers.
  * Preserves pre-split behavior: only corporate admins (former global admin).

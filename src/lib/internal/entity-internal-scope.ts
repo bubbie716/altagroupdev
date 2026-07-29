@@ -24,6 +24,7 @@ function isCorporateOnlyPath(path: string): boolean {
 
 function isBankPanelPath(path: string): boolean {
   if (path === "/internal/bank" || path.startsWith("/internal/bank/")) return true;
+  if (path === "/internal/inbox" || path.startsWith("/internal/inbox/")) return true;
   if (path.startsWith("/internal/queues")) return true;
   if (path.startsWith("/internal/users")) return true;
   if (path.startsWith("/internal/companies")) return true;
@@ -37,13 +38,22 @@ function isBankPanelPath(path: string): boolean {
   return false;
 }
 
+/**
+ * Terminal site / terminal_admin panel paths.
+ * Includes investor deep-links into customer/company workspaces (Bank data redacted in UI).
+ * Never includes Bank money / lending / card operations.
+ */
 function isTerminalPanelPath(path: string, siteKey: SiteKey): boolean {
   if (path === "/internal") return true;
-  if (siteKey === "terminal" && (path === "/internal/terminal/settings" || path.startsWith("/internal/terminal/"))) {
-    return true;
+  if (siteKey === "terminal") {
+    if (path === "/internal/terminal" || path.startsWith("/internal/terminal/")) return true;
+    if (path.startsWith("/internal/users")) return true;
+    if (path.startsWith("/internal/companies")) return true;
+    return false;
   }
-  if (siteKey === "exchange" && (path === "/internal/exchange/settings" || path.startsWith("/internal/exchange/"))) {
-    return true;
+  if (siteKey === "exchange") {
+    if (path === "/internal/exchange" || path.startsWith("/internal/exchange/")) return true;
+    return false;
   }
   return false;
 }
@@ -60,15 +70,11 @@ export function assertEntityInternalRouteAccess(
   const path = normalizePathname(pathname);
 
   if (siteKey === "exchange") {
-    if (path === "/internal" || path === "/internal/exchange/settings") {
-      // Tag check below
-    } else {
+    if (!isTerminalPanelPath(path, "exchange")) {
       throw redirect({ to: "/internal" });
     }
   } else if (siteKey === "terminal") {
-    if (path === "/internal" || path === "/internal/terminal/settings") {
-      // Tag check below
-    } else {
+    if (!isTerminalPanelPath(path, "terminal")) {
       throw redirect({ to: "/internal" });
     }
   }
@@ -105,4 +111,35 @@ export function internalHomePathForSite(siteKey: SiteKey, user?: AltaUser | null
   }
   if (siteKey === "bank") return "/internal/bank";
   return "/internal";
+}
+
+/** Non-throwing access check for nav filtering (mirrors assertEntityInternalRouteAccess). */
+export function isInternalPathAllowedForUser(
+  siteKey: SiteKey,
+  pathname: string,
+  user?: AltaUser | null,
+): boolean {
+  const path = normalizePathname(pathname);
+
+  if (siteKey === "exchange") {
+    return isTerminalPanelPath(path, "exchange");
+  }
+  if (siteKey === "terminal") {
+    return isTerminalPanelPath(path, "terminal");
+  }
+
+  if (!user) return true;
+  if (isCorporateAdmin(user)) return true;
+
+  if (isBankAdmin(user) && !isCorporateAdmin(user)) {
+    if (siteKey !== "bank") return false;
+    return !isCorporateOnlyPath(path) && isBankPanelPath(path);
+  }
+
+  if (isTerminalAdmin(user)) {
+    if (siteKey !== "terminal" && siteKey !== "exchange") return false;
+    return isTerminalPanelPath(path, siteKey);
+  }
+
+  return true;
 }

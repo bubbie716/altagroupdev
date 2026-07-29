@@ -3,10 +3,11 @@ import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalPlatformSettingsSections } from "@/components/internal/internal-platform-settings-sections";
 import { fetchMaintenanceModeSettings } from "@/lib/platform/platform-settings.functions";
 import { maintenanceScopesForInternalSettings } from "@/lib/platform/maintenance-types";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/exchange/settings")({
   loader: () => fetchMaintenanceModeSettings(),
-  head: () => ({ meta: [{ title: "Legacy Host Settings — Alta Internal" }] }),
+  head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Legacy Host Settings", (match.search as { site?: string }).site ?? "terminal") }] }),
   component: ExchangeInternalSettingsPage,
 });
 

@@ -24,13 +24,17 @@ function formatAction(rec: CompanyRelationshipRecommendationRow): string {
 export function CompanyRelationshipRecommendationsPanel({
   companyId,
   recommendations: initial,
+  mode = "manage",
 }: {
   companyId: string;
   recommendations: CompanyRelationshipRecommendationRow[];
+  /** Overview shows state only; manage mode exposes mutation controls. */
+  mode?: "summary" | "manage";
 }) {
   const router = useRouter();
   const [recommendations, setRecommendations] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
+  const summaryOnly = mode === "summary";
 
   async function regenerate() {
     setBusy("generate");
@@ -57,6 +61,26 @@ export function CompanyRelationshipRecommendationsPanel({
     } finally {
       setBusy(null);
     }
+  }
+
+  if (summaryOnly) {
+    if (recommendations.length === 0) {
+      return <p className="text-[12px] text-muted-foreground">No active recommendations.</p>;
+    }
+    return (
+      <ul className="space-y-2">
+        {recommendations.map((rec) => (
+          <li key={rec.id} className="text-[12px]">
+            <span className="font-medium text-foreground">{rec.title}</span>
+            <span className="text-muted-foreground">
+              {" "}
+              · {rec.status}
+              {rec.summary ? ` — ${rec.summary}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   return (

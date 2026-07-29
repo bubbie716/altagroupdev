@@ -9,6 +9,7 @@ import { OpsAction } from "@/components/internal/ops-action";
 import { OpsCsvExportButton } from "@/components/internal/ops-csv-export-button";
 import { QueuePage } from "./queue-page";
 import { QueueAgeCell } from "./queue-age-cell";
+import { QueueMobileCard } from "./queue-mobile-card";
 import { formatQueueDate, queueAgeMs } from "./queue-utils";
 import { defaultQueueSortAccessor, sortQueueRows } from "./queue-table-sort";
 import {
@@ -99,39 +100,48 @@ export function WithdrawalsQueueView({
     {
       key: "actions",
       header: "Actions",
+      stickyEnd: true,
       cell: (r) => (
         <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-          <OpsAction
-            label="Approve"
-            variant="primary"
-            title="Approve withdrawal"
-            description="This will debit the account and mark the withdrawal as approved for settlement."
-            impact={`Amount ${r.amount} from account ${r.account}`}
-            confirmLabel="Confirm approval"
-            customerNotifies
-            onConfirm={async (reason, options) => {
-              await approveBankWithdrawal({
-                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
-              });
-            }}
-          />
-          <OpsAction
-            label="Deny"
-            variant="danger"
-            title="Deny withdrawal"
-            description="This will reject the withdrawal request. No funds will leave the account."
-            confirmLabel="Confirm denial"
-            customerNotifies
-            onConfirm={async (reason, options) => {
-              await denyBankWithdrawal({
-                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
-              });
-            }}
-          />
+          {withdrawalActions(r)}
         </div>
       ),
     },
   ];
+
+  function withdrawalActions(r: InternalBankTransactionRow) {
+    return (
+      <>
+        <OpsAction
+          label="Approve"
+          variant="primary"
+          title="Approve withdrawal"
+          description="This will debit the account and mark the withdrawal as approved for settlement."
+          impact={`Amount ${r.amount} from account ${r.account}`}
+          confirmLabel="Confirm approval"
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await approveBankWithdrawal({
+              data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
+          }}
+        />
+        <OpsAction
+          label="Deny"
+          variant="danger"
+          title="Deny withdrawal"
+          description="This will reject the withdrawal request. No funds will leave the account."
+          confirmLabel="Confirm denial"
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await denyBankWithdrawal({
+              data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
+          }}
+        />
+      </>
+    );
+  }
 
   const selectedTotal = filtered
     .filter((r) => selected.has(r.id))
@@ -157,6 +167,22 @@ export function WithdrawalsQueueView({
           void router.navigate({ to: "/internal/bank/transactions/$transactionId", params: { transactionId: r.id } })
         }
         emptyState="No pending withdrawals."
+        mobileCard={(r) => (
+          <QueueMobileCard
+            title={r.referenceCode}
+            subtitle={`${r.holder} · ${r.account}`}
+            amount={r.amount}
+            status={r.status}
+            ageIso={r.submitted}
+            onOpen={() =>
+              void router.navigate({
+                to: "/internal/bank/transactions/$transactionId",
+                params: { transactionId: r.id },
+              })
+            }
+            actions={withdrawalActions(r)}
+          />
+        )}
         bulkActions={
           <>
             <OpsAction

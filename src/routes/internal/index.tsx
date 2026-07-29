@@ -1,39 +1,58 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
-import { OpsSection } from "@/components/internal/console";
-import { OpsTable, type OpsTableColumn } from "@/components/internal/console/ops-table";
+import { OpsSection, OpsEmptyState, buildBreadcrumbs } from "@/components/internal/console";
 import { OpsQueueCard } from "@/components/internal/ops-queue-card";
 import { cn } from "@/lib/utils";
-import { AccountActivityLink } from "@/components/internal/internal-audit-table";
 import { fetchEnhancedDashboard } from "@/lib/internal/ops-platform.functions";
-import { florin } from "@/lib/bank/api";
-import { Link } from "@tanstack/react-router";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { buildBreadcrumbs } from "@/components/internal/console";
 import { EntityInternalHome } from "@/components/internal/entity-internal-home";
+import { TerminalInternalHome } from "@/components/internal/terminal-internal-home";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { siteFromRouteContext } from "@/lib/site/site-context";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
+import { readDevSiteFromSearch, siteSearchPatch } from "@/lib/site/preserve-dev-site-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { fetchTerminalOpsHomeSummary } from "@/lib/terminal/terminal-ops.functions";
+import {
+  formatHomeRelativeTime,
+  homeAttentionTotal,
+  rankHomeAttention,
+  selectHomePlatformStatus,
+  selectHomeRecentActivity,
+  summarizeHealthyJobs,
+  type HomeAttentionItem,
+} from "@/lib/internal/home-attention";
 
 export const Route = createFileRoute("/internal/")({
-  beforeLoad: ({ context }) => {
+  beforeLoad: ({ context, location }) => {
     const siteKey = siteFromRouteContext(context).key;
     if (siteKey === "bank") {
-      throw redirect({ to: "/internal/bank" });
+      throw redirect({
+        to: "/internal/bank",
+        search: normalizeInternalSearch(
+          siteSearchPatch(readDevSiteFromSearch(location.search as Record<string, unknown>)),
+        ),
+      });
     }
   },
   loader: ({ context }) => {
     const siteKey = siteFromRouteContext(context).key;
-    if (siteKey === "exchange" || siteKey === "terminal") {
-      return null;
+    if (siteKey === "terminal") {
+      return fetchTerminalOpsHomeSummary().then((summary) => ({ kind: "terminal" as const, summary }));
     }
-    return fetchEnhancedDashboard();
+    if (siteKey === "exchange") {
+      return { kind: "exchange" as const };
+    }
+    return fetchEnhancedDashboard().then((dashboard) => ({ kind: "corporate" as const, dashboard }));
   },
-  head: ({ context }) => {
+  head: ({ match, context }) => {
+    const siteFromSearch = (match.search as { site?: string }).site;
     const site = siteFromRouteContext(context);
-    if (site.key === "exchange" || site.key === "terminal") {
+    if (site.key === "exchange" && !siteFromSearch) {
       return { meta: [{ title: `Internal — ${site.displayName}` }] };
     }
-    return { meta: [{ title: "Operations Center — Alta Internal" }] };
+    return { meta: [{ title: internalDocumentTitle("Home", siteFromSearch ?? site.key) }] };
   },
   component: InternalOperationsCenter,
 });
@@ -42,28 +61,127 @@ function InternalOperationsCenter() {
   const site = useSiteContext();
   const loaderData = Route.useLoaderData();
 
-  if (site.key === "exchange" || site.key === "terminal") {
-    return <EntityInternalHome siteKey={site.key} />;
+  if (loaderData?.kind === "terminal") {
+    return <TerminalInternalHome summary={loaderData.summary} />;
   }
 
-  const { metrics: m, health, activity, negativeBalances, largeAdjustments, maintenance, queueAging } =
-    loaderData;
+  if (site.key === "exchange" || loaderData?.kind === "exchange") {
+    return <EntityInternalHome siteKey="exchange" />;
+  }
 
-  const totalQueues =
-    m.pendingDeposits +
-    m.pendingWithdrawals +
-    m.pendingAccountOpenings +
-    m.pendingLoanApplications +
-    m.pendingCompanyVerifications +
-    m.failedScheduledTransfers +
-    negativeBalances;
+  if (!loaderData || loaderData.kind !== "corporate") {
+    return null;
+  }
+
+  const {
+    metrics: m,
+    health,
+    activity,
+    negativeBalances,
+    largeAdjustments,
+    maintenance,
+  } = loaderData.dashboard;
+
+  const attention = rankHomeAttention([
+    {
+      id: "deposits",
+      label: "Pending deposits",
+      count: m.pendingDeposits,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "money" as const, type: "deposit" as const }, site.key),
+      urgency: 90,
+      tone: "alert",
+    },
+    {
+      id: "withdrawals",
+      label: "Pending withdrawals",
+      count: m.pendingWithdrawals,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "money" as const, type: "withdrawal" as const }, site.key),
+      urgency: 95,
+      tone: "alert",
+    },
+    {
+      id: "lending",
+      label: "Loan applications",
+      count: m.pendingLoanApplications,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "lending" as const }, site.key),
+      urgency: 70,
+      tone: "warn",
+    },
+    {
+      id: "companies",
+      label: "Company verifications",
+      count: m.pendingCompanyVerifications,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "companies" as const }, site.key),
+      urgency: 60,
+      tone: "warn",
+    },
+    {
+      id: "openings",
+      label: "Account openings",
+      count: m.pendingAccountOpenings,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "account_opening" as const }, site.key),
+      urgency: 65,
+      tone: "warn",
+    },
+    {
+      id: "failed-transfers",
+      label: "Failed transfers",
+      count: m.failedScheduledTransfers,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "risk" as const, type: "exception" as const }, site.key),
+      urgency: 85,
+      tone: "alert",
+    },
+    {
+      id: "negative",
+      label: "Negative balances",
+      count: negativeBalances,
+      to: "/internal/inbox",
+      search: withInternalSiteSearch({ category: "risk" as const }, site.key),
+      urgency: 100,
+      tone: "alert",
+    },
+    {
+      id: "frozen",
+      label: "Frozen accounts",
+      count: m.frozenAccounts,
+      to: "/internal/bank/accounts",
+      search: withInternalSiteSearch({ status: "frozen" }, site.key),
+      urgency: 75,
+      tone: "warn",
+    },
+    {
+      id: "restricted",
+      label: "Restricted people",
+      count: m.restrictedUsers,
+      to: "/internal/users",
+      search: withInternalSiteSearch({ accountStatus: "restricted" }, site.key),
+      urgency: 72,
+      tone: "warn",
+    },
+    {
+      id: "adjustments",
+      label: "Large adjustments (30d)",
+      count: largeAdjustments,
+      to: "/internal/audit",
+      search: withInternalSiteSearch({ action: "ADJUSTMENT" }, site.key),
+      urgency: 40,
+      tone: "warn",
+    },
+  ] satisfies HomeAttentionItem[]);
+
+  const attentionTotal = homeAttentionTotal(attention);
+  const platformStatus = selectHomePlatformStatus(health);
+  const healthySummary = summarizeHealthyJobs(health);
+  const recent = selectHomeRecentActivity(activity, 6);
 
   return (
-    <InternalPageShell
-      title="Operations Center"
-      breadcrumbs={buildBreadcrumbs([{ label: "Dashboard" }])}
-    >
-
+    <InternalPageShell title="Home" breadcrumbs={buildBreadcrumbs([{ label: "Home" }])}>
       {maintenance.enabled ? (
         <div className="mb-6 rounded border-l-2 border-l-amber-400 border-y border-r border-amber-400/30 bg-amber-400/[0.06] px-5 py-3">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -86,6 +204,7 @@ function InternalOperationsCenter() {
             </div>
             <Link
               to="/internal/settings"
+              search={withInternalSiteSearch({}, site.key)}
               className="rounded border border-amber-300/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-100 hover:bg-amber-400/10"
             >
               Settings
@@ -94,172 +213,159 @@ function InternalOperationsCenter() {
         </div>
       ) : null}
 
-      <OpsSection title={`Operational queues · ${totalQueues} items`}>
-        {(queueAging.olderThan24Hours > 0 || queueAging.olderThan72Hours > 0) ? (
-          <div className="mb-3 flex flex-wrap items-center gap-3 rounded border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-[11px]">
-            {queueAging.olderThan24Hours > 0 ? (
-              <span className="font-mono text-amber-300">
-                {queueAging.olderThan24Hours} item{queueAging.olderThan24Hours === 1 ? "" : "s"} &gt; 24h
-              </span>
-            ) : null}
-            {queueAging.olderThan72Hours > 0 ? (
-              <span className="font-mono text-rose-300">
-                {queueAging.olderThan72Hours} item{queueAging.olderThan72Hours === 1 ? "" : "s"} &gt; 72h
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-          <OpsQueueCard label="Pending deposits" count={m.pendingDeposits} to="/internal/queues/deposits" cta="Review" />
-          <OpsQueueCard label="Pending withdrawals" count={m.pendingWithdrawals} to="/internal/queues/withdrawals" cta="Review" />
-          <OpsQueueCard label="Loan applications" count={m.pendingLoanApplications} to="/internal/queues/lending-applications" cta="Review" />
-          <OpsQueueCard label="Company verifications" count={m.pendingCompanyVerifications} to="/internal/queues/company-verifications" cta="Review" tone={m.pendingCompanyVerifications > 0 ? "warn" : "neutral"} />
-          <OpsQueueCard label="Account openings" count={m.pendingAccountOpenings} to="/internal/queues/account-openings" cta="Review" />
-          <OpsQueueCard label="Failed transfers" count={m.failedScheduledTransfers} to="/internal/bank/transfers" cta="Transfers" tone={m.failedScheduledTransfers > 0 ? "alert" : "neutral"} />
-          <OpsQueueCard label="Negative balances" count={negativeBalances} to="/internal/queues/exceptions" cta="Exceptions" tone={negativeBalances > 0 ? "alert" : "neutral"} />
-          <OpsQueueCard
-            label="Frozen accounts"
-            count={m.frozenAccounts}
-            to="/internal/bank/accounts"
-            search={{ status: "frozen" }}
-            cta="Accounts"
+      <OpsSection title="Work requiring attention">
+        {attention.length === 0 ? (
+          <OpsEmptyState
+            title="No open work"
+            description="Queues are clear. New deposits, openings, lending, and risk cases will appear here."
           />
-          <OpsQueueCard
-            label="Restricted users"
-            count={m.restrictedUsers}
-            to="/internal/users"
-            search={{ accountStatus: "restricted" }}
-            cta="Users"
-          />
-          <OpsQueueCard label="Large adjustments (30d)" count={largeAdjustments} to="/internal/reports" cta="Reports" tone={largeAdjustments > 0 ? "warn" : "neutral"} />
-        </div>
+        ) : (
+          <>
+            <p className="mb-2 text-[12px] text-muted-foreground">
+              {attentionTotal} item{attentionTotal === 1 ? "" : "s"} need attention
+            </p>
+            <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+              {attention.map((item) => (
+                <OpsQueueCard
+                  key={item.id}
+                  label={item.label}
+                  count={item.count}
+                  to={item.to}
+                  search={item.search}
+                  tone={item.tone}
+                  cta="Open"
+                />
+              ))}
+            </div>
+          </>
+        )}
       </OpsSection>
 
-      <OpsSection title="Operational health" className="mt-6" action={<QuickLink to="/internal/jobs">All jobs</QuickLink>}>
-        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-          {health.map((h) => (
+      <OpsSection
+        title="Platform status"
+        className="mt-6"
+        action={
+          <Link
+            to="/internal/jobs"
+            search={withInternalSiteSearch({}, site.key)}
+            className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-gold"
+          >
+            System Jobs
+          </Link>
+        }
+      >
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {platformStatus.map((h) => (
             <div key={h.key} className="rounded border border-border bg-surface-1/60 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[12px] text-foreground">{h.label}</span>
-                <span className={cn(
-                  "inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em]",
-                  h.status === "operational" ? "text-emerald-400" : h.status === "degraded" ? "text-amber-300" : "text-muted-foreground"
-                )}>
-                  <span className={cn(
-                    "size-1.5 rounded-full",
-                    h.status === "operational" ? "bg-emerald-500" : h.status === "degraded" ? "bg-amber-500" : "bg-muted-foreground/50"
-                  )} aria-hidden />
-                  {h.status}
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.14em]",
+                    h.status === "operational"
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : h.status === "degraded"
+                        ? "text-amber-700 dark:text-amber-300"
+                        : "text-muted-foreground",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      h.status === "operational"
+                        ? "bg-emerald-500"
+                        : h.status === "degraded"
+                          ? "bg-amber-500"
+                          : "bg-muted-foreground/50",
+                    )}
+                    aria-hidden
+                  />
+                  {h.status === "operational" ? "Healthy" : h.status === "degraded" ? "Needs attention" : "Unknown"}
                 </span>
               </div>
-              <p className="mt-1 truncate text-[11px] text-muted-foreground">{h.detail}</p>
-              {h.lastSuccessAt ? (
-                <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
-                  {h.lastSuccessAt.slice(0, 19).replace("T", " ")}
+              <p className="mt-1 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
+                {h.detail}
+              </p>
+              {h.lastSuccessAt && h.status !== "operational" ? (
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Last success {formatHomeRelativeTime(h.lastSuccessAt)}
                 </p>
               ) : null}
             </div>
           ))}
         </div>
+        {healthySummary ? (
+          <p className="mt-2 text-[12px] text-muted-foreground">{healthySummary}</p>
+        ) : null}
       </OpsSection>
 
-      <OpsSection title="Platform vitals" className="mt-6">
-        <div className="grid grid-cols-2 divide-x divide-border rounded border border-border bg-surface-1/40 lg:grid-cols-4">
-          {[
-            { label: "Users", value: m.totalUsers.toLocaleString() },
-            { label: "Active accounts", value: m.activeBankAccounts.toLocaleString() },
-            { label: "Balances held", value: florin(m.totalBalancesHeld) },
-            { label: "Active loans", value: m.activeLoans.toLocaleString() },
-          ].map((v) => (
-            <div key={v.label} className="px-3 py-2.5">
-              <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">{v.label}</div>
-              <div className="tabular mt-1 text-[15px] font-semibold">{v.value}</div>
-            </div>
-          ))}
-        </div>
-      </OpsSection>
+      {recent.length > 0 ? (
+        <OpsSection
+          title="Recent operator activity"
+          className="mt-6"
+          action={
+            <Link
+              to="/internal/audit"
+              search={withInternalSiteSearch({}, site.key)}
+              className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-gold"
+            >
+              View audit log
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-border/60 overflow-hidden rounded border border-border/70 bg-surface-1/40">
+            {recent.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 px-3 py-2.5">
+                <div className="min-w-0">
+                  {a.href ? (
+                    <Link
+                      to={a.href}
+                      search={withInternalSiteSearch(a.search ?? {}, site.key)}
+                      className="text-[13px] font-medium text-foreground hover:text-gold"
+                    >
+                      {a.title}
+                    </Link>
+                  ) : (
+                    <p className="text-[13px] font-medium text-foreground">{a.title}</p>
+                  )}
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    {[a.actorLabel, a.accountLabel].filter(Boolean).join(" · ") || a.detail}
+                  </p>
+                </div>
+                <time
+                  className="shrink-0 font-mono text-[10px] text-muted-foreground"
+                  dateTime={a.createdAt}
+                >
+                  {formatHomeRelativeTime(a.createdAt)}
+                </time>
+              </li>
+            ))}
+          </ul>
+        </OpsSection>
+      ) : null}
 
-      <OpsSection
-        title="Recent operational events"
-        className="mt-6"
-        action={<QuickLink to="/internal/audit">Audit log</QuickLink>}
-      >
-        <ActivityFeedTable items={activity} />
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <QuickLink to="/internal/bank/transactions">Transaction explorer</QuickLink>
-          <QuickLink to="/internal/bank/alta-pay">Alta Pay ops</QuickLink>
-          <QuickLink to="/internal/queues/exceptions">Exception center</QuickLink>
-          <QuickLink to="/internal/reports">Reports</QuickLink>
-        </div>
-      </OpsSection>
+      <nav aria-label="Quick navigation" className="mt-6 flex flex-wrap gap-2">
+        <QuickLink to="/internal/inbox">Inbox</QuickLink>
+        <QuickLink to="/internal/reports">Reports</QuickLink>
+        <QuickLink to="/internal/jobs">System</QuickLink>
+      </nav>
     </InternalPageShell>
   );
 }
 
-function ActivityFeedTable({
-  items,
+function QuickLink({
+  to,
+  children,
 }: {
-  items: Awaited<ReturnType<typeof fetchEnhancedDashboard>>["activity"];
+  to: string;
+  children: React.ReactNode;
 }) {
-  type ActivityRow = (typeof items)[number];
-  const columns: OpsTableColumn<ActivityRow>[] = [
-    {
-      key: "time",
-      header: "Time",
-      cell: (a) => (
-        <span className="font-mono text-[11px] text-muted-foreground">
-          {a.createdAt.slice(0, 19).replace("T", " ")}
-        </span>
-      ),
-    },
-    {
-      key: "category",
-      header: "Category",
-      cell: (a) => <span className="font-mono text-[10px] uppercase">{a.category}</span>,
-    },
-    {
-      key: "account",
-      header: "Account",
-      cell: (a) => <AccountActivityLink accountId={a.accountId} label={a.accountLabel} />,
-    },
-    {
-      key: "event",
-      header: "Event",
-      cell: (a) => (
-        <>
-          {a.href ? (
-            <Link to={a.href} className="hover:text-gold">
-              {a.title}
-            </Link>
-          ) : (
-            a.title
-          )}
-          <div className="text-[12px] text-muted-foreground">{a.detail}</div>
-        </>
-      ),
-    },
-    {
-      key: "actor",
-      header: "Actor",
-      cell: (a) => <span className="font-mono text-[11px]">{a.actorLabel ?? "—"}</span>,
-    },
-  ];
-
-  return (
-    <OpsTable
-      columns={columns}
-      rows={items}
-      rowKey={(a) => a.id}
-      emptyState="No recent activity."
-    />
-  );
-}
-
-function QuickLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const site = useSiteContext();
   return (
     <Link
       to={to}
-      className="inline-flex items-center rounded border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:border-border-strong hover:text-foreground"
+      search={withInternalSiteSearch({}, site.key)}
+      className="inline-flex items-center rounded border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:border-border-strong hover:text-foreground"
     >
       {children}
     </Link>

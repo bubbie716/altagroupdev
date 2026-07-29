@@ -1,14 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { WithdrawalsQueueView } from "@/components/internal/queues";
-import { fetchPendingWithdrawalsQueue } from "@/lib/bank/bank.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/withdrawals")({
-  loader: () => fetchPendingWithdrawalsQueue(),
-  head: () => ({ meta: [{ title: "Withdrawals Queue — Alta Internal" }] }),
-  component: WithdrawalsQueuePage,
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX.withdrawals!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
+    });
+  },
 });
-
-function WithdrawalsQueuePage() {
-  const pendingWithdrawals = Route.useLoaderData();
-  return <WithdrawalsQueueView pendingWithdrawals={pendingWithdrawals} />;
-}

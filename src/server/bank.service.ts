@@ -1341,6 +1341,10 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     pendingWithdrawals,
     frozenAccounts,
     lendingQueue,
+    transfersInReview,
+    failedTransfers,
+    pendingCardApplications,
+    pendingCardReviews,
     altaPayVolume,
   ] = await Promise.all([
     prisma.bankAccount.count(),
@@ -1349,6 +1353,18 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     prisma.bankTransaction.count({ where: { type: "WITHDRAWAL", status: "PENDING" } }),
     prisma.bankAccount.count({ where: { status: "FROZEN" } }),
     import("@/server/lending.service").then((m) => m.countPendingLoanApplications()),
+    prisma.scheduledPayment.count({
+      where: { status: "PENDING_REVIEW", transferScope: "INTRABANK" },
+    }),
+    prisma.scheduledPayment.count({
+      where: { status: "FAILED", transferScope: "INTRABANK" },
+    }),
+    prisma.altaCardApplication.count({
+      where: { status: { in: ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO"] } },
+    }),
+    prisma.altaCardReviewRequest.count({
+      where: { status: { in: ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFORMATION"] } },
+    }),
     import("@/server/alta-pay.service").then((m) => m.getAltaPayVolumeSummary()),
   ]);
 
@@ -1359,7 +1375,10 @@ export async function getInternalBankOpsSummary(): Promise<InternalBankOpsSummar
     pendingWithdrawals,
     frozenAccounts,
     lendingQueue,
-    transfersInReview: 0,
+    transfersInReview,
+    failedTransfers,
+    pendingCardApplications,
+    pendingCardReviews,
     altaPayCountThisMonth: altaPayVolume.countThisMonth,
     altaPayVolumeThisMonth: altaPayVolume.volumeThisMonth,
   };

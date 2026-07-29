@@ -5,8 +5,10 @@ export const sendDiscordEmbedRecord = createServerFn({ method: "POST" })
   .inputValidator((input: DiscordEmbedDraft) => input)
   .handler(async ({ data }): Promise<SendDiscordEmbedResult> => {
     const { requireOperator } = await import("@/server/permissions.service");
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
     const { sendDiscordEmbed } = await import("@/server/discord-embed.service");
     await requireOperator();
+    assertNotUiLabMutation("Discord embed send");
     return sendDiscordEmbed(data);
   });
 

@@ -8,12 +8,14 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { CreditDeskSettings, CreditDeskStatus } from "@/lib/platform/credit-desk-types";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { setCreditDeskStatusOps } from "@/lib/platform/platform-settings.functions";
 import { invalidateCreditDeskNavCache } from "@/hooks/use-credit-desk-nav";
 
 export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
   const router = useRouter();
   const saveFn = useServerFn(setCreditDeskStatusOps);
+  const { uiLab, unavailableLabel, bannerCopy } = useUiLabMutationGate();
   const [status, setStatus] = useState<CreditDeskStatus>(initial.status);
   const [confirmAction, setConfirmAction] = useState<null | CreditDeskStatus>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,24 +60,38 @@ export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
 
       {error ? <p className="mt-4 text-[13px] text-destructive">{error}</p> : null}
 
+      {uiLab ? (
+        <div className="mt-6 rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
+          {bannerCopy}
+        </div>
+      ) : null}
+
       <div className="mt-6">
         {initial.canEdit ? (
           <div className="flex flex-wrap gap-2">
             {!isClosed ? (
               <button
                 type="button"
-                className="rounded border border-destructive/30 bg-destructive/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
-                onClick={() => setConfirmAction("closed")}
+                className="rounded border border-destructive/30 bg-destructive/5 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={uiLab}
+                onClick={() => {
+                  if (uiLab) return;
+                  setConfirmAction("closed");
+                }}
               >
-                Close Credit Desk
+                {uiLab ? unavailableLabel("Close Credit Desk") : "Close Credit Desk"}
               </button>
             ) : (
               <button
                 type="button"
-                className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
-                onClick={() => setConfirmAction("open")}
+                className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={uiLab}
+                onClick={() => {
+                  if (uiLab) return;
+                  setConfirmAction("open");
+                }}
               >
-                Open Credit Desk
+                {uiLab ? unavailableLabel("Open Credit Desk") : "Open Credit Desk"}
               </button>
             )}
           </div>

@@ -1,36 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CompanyVerificationsQueueView } from "@/components/internal/queues";
-import { fetchInternalCompaniesFromDb } from "@/lib/company/company.functions";
-import type { InternalCompanyRow } from "@/lib/company/types";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/company-verifications")({
-  loader: async () => {
-    try {
-      return await fetchInternalCompaniesFromDb();
-    } catch {
-      const { getCompanyAccounts } = await import("@/lib/internal/api");
-      return getCompanyAccounts().map(
-        (c) =>
-          ({
-            id: c.id,
-            name: c.name,
-            ticker: c.ticker,
-            type: c.type,
-            sector: c.sector,
-            status: c.status,
-            verificationStatus: c.verificationStatus,
-            representativeCount: c.representativeCount,
-            primaryContact: c.primaryContact,
-            lastUpdated: c.lastUpdated,
-          }) satisfies InternalCompanyRow,
-      );
-    }
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX["company-verifications"]!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
+    });
   },
-  head: () => ({ meta: [{ title: "Company Verifications Queue — Alta Internal" }] }),
-  component: CompanyVerificationsQueuePage,
 });
-
-function CompanyVerificationsQueuePage() {
-  const companies = Route.useLoaderData();
-  return <CompanyVerificationsQueueView companies={companies} />;
-}

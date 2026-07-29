@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import type {
   RecommendationPrefill,
@@ -29,7 +30,7 @@ export function RelationshipRecommendationPanel({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const recordRecommendation = useRelationshipRecommendationRecord();
+  const recordRecommendation = useServerFn(useRelationshipRecommendationRecord);
 
   const active = recommendations.filter((r) => r.status === "ACTIVE");
 

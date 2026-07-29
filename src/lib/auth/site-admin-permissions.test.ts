@@ -6,6 +6,7 @@ import {
   canAccessBankInternal,
   canAccessInternal,
   canAccessInternalForSite,
+  canAccessTerminalInternal,
   canBypassMaintenanceMode,
   isAdmin,
   isBankAdmin,
@@ -60,6 +61,7 @@ describe("site admin permissions", () => {
     const user = userWithTags(["terminal_admin"]);
     assert.equal(isTerminalAdmin(user), true);
     assert.equal(canAccessBankInternal(user), false);
+    assert.equal(canAccessTerminalInternal(user), true);
     assert.equal(canAccessInternalForSite(user, "terminal"), true);
     assert.equal(canAccessInternalForSite(user, "exchange"), true);
     assert.equal(canAccessInternalForSite(user, "bank"), false);

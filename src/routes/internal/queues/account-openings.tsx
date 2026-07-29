@@ -1,14 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AccountOpeningsQueueView } from "@/components/internal/queues";
-import { fetchPendingAccountOpeningsQueue } from "@/lib/bank/bank.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/account-openings")({
-  loader: () => fetchPendingAccountOpeningsQueue(),
-  head: () => ({ meta: [{ title: "Account Openings Queue — Alta Internal" }] }),
-  component: AccountOpeningsQueuePage,
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX["account-openings"]!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
+    });
+  },
 });
-
-function AccountOpeningsQueuePage() {
-  const pendingAccounts = Route.useLoaderData();
-  return <AccountOpeningsQueueView pendingAccounts={pendingAccounts} />;
-}

@@ -222,7 +222,17 @@ export const createManualRelationshipNoteRecord = createServerFn({ method: "POST
   });
 
 export const useRelationshipRecommendationRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { recommendationId: string; context: string }) => input)
+  .inputValidator((input: { recommendationId?: string; context?: string } | undefined) => {
+    if (!input || typeof input !== "object") {
+      throw new Error("recommendationId is required");
+    }
+    const recommendationId =
+      typeof input.recommendationId === "string" ? input.recommendationId.trim() : "";
+    const context = typeof input.context === "string" ? input.context.trim() : "";
+    if (!recommendationId) throw new Error("recommendationId is required");
+    if (!context) throw new Error("context is required");
+    return { recommendationId, context };
+  })
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { useRelationshipRecommendation } = await import(

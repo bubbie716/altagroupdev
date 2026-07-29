@@ -1060,6 +1060,7 @@ export async function getRelationshipIntelligenceDashboard(): Promise<Relationsh
       relationshipScore: row.relationshipScore,
       relationshipTier: tierToCode(row.relationshipTier),
       totalAltaAssets: decimalToNumber(row.totalAltaAssets),
+      lastCalculatedAt: row.lastCalculatedAt.toISOString(),
     })),
     recentlyChanged,
   };

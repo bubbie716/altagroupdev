@@ -13,6 +13,8 @@ import { formatQueueDate, queueAgeMs } from "./queue-utils";
 import { sortQueueRows } from "./queue-table-sort";
 import { setExceptionDispositionOps } from "@/lib/internal/ops-v1.functions";
 import { florin } from "@/lib/bank/api";
+import { useSiteContext } from "@/hooks/use-site-context";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export type ExceptionQueueItem = {
   id: string;
@@ -29,6 +31,7 @@ export type ExceptionQueueItem = {
 
 export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) {
   const router = useRouter();
+  const site = useSiteContext();
   const dispositionFn = useServerFn(setExceptionDispositionOps);
   const [query, setQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<"all" | "critical" | "high" | "escalated">("all");
@@ -118,6 +121,7 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
     {
       key: "actions",
       header: "Actions",
+      stickyEnd: true,
       cell: (i) => (
         <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
           <OpsAction
@@ -180,7 +184,7 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
         rowKey={(i) => i.id}
         sort={sort}
         onSortChange={setSort}
-        onRowClick={(i) => void navigateExceptionHref(router, i.href)}
+        onRowClick={(i) => void navigateExceptionHref(router, i.href, site.key)}
         emptyState="No open exceptions."
         filterSlot={
           <div className="flex flex-wrap items-center gap-2">
@@ -211,12 +215,15 @@ export function ExceptionsQueueView({ items }: { items: ExceptionQueueItem[] }) 
 function navigateExceptionHref(
   router: ReturnType<typeof import("@tanstack/react-router").useRouter>,
   href: string,
+  site?: string,
 ) {
+  const siteSearch = withInternalSiteSearch({}, site);
   const accountMatch = href.match(/^\/internal\/bank\/accounts\/([^/]+)$/);
   if (accountMatch) {
     return router.navigate({
       to: "/internal/bank/accounts/$accountId",
       params: { accountId: accountMatch[1]! },
+      search: siteSearch,
     });
   }
   const txMatch = href.match(/^\/internal\/bank\/transactions\/([^/]+)$/);
@@ -224,16 +231,29 @@ function navigateExceptionHref(
     return router.navigate({
       to: "/internal/bank/transactions/$transactionId",
       params: { transactionId: txMatch[1]! },
+      search: siteSearch,
     });
   }
   if (href === "/internal/bank/transfers") {
-    return router.navigate({ to: "/internal/bank/transfers" });
+    return router.navigate({ to: "/internal/bank/transfers", search: siteSearch });
   }
   if (href === "/internal/bank/deposits" || href === "/internal/queues/deposits") {
-    return router.navigate({ to: "/internal/queues/deposits" });
+    return router.navigate({
+      to: "/internal/inbox",
+      search: withInternalSiteSearch(
+        { category: "money" as const, type: "deposit" as const },
+        site,
+      ),
+    });
   }
   if (href === "/internal/bank/withdrawals" || href === "/internal/queues/withdrawals") {
-    return router.navigate({ to: "/internal/queues/withdrawals" });
+    return router.navigate({
+      to: "/internal/inbox",
+      search: withInternalSiteSearch(
+        { category: "money" as const, type: "withdrawal" as const },
+        site,
+      ),
+    });
   }
-  return router.navigate({ to: "/internal/audit" });
+  return router.navigate({ to: "/internal/audit", search: siteSearch });
 }

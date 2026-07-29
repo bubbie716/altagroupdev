@@ -1,14 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { DepositsQueueView } from "@/components/internal/queues";
-import { fetchPendingDepositsQueue } from "@/lib/bank/bank.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
 
+/** Compatibility: deposits queue → Inbox Money / deposit filter. */
 export const Route = createFileRoute("/internal/queues/deposits")({
-  loader: () => fetchPendingDepositsQueue(),
-  head: () => ({ meta: [{ title: "Deposits Queue — Alta Internal" }] }),
-  component: DepositsQueuePage,
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX.deposits!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
+    });
+  },
 });
-
-function DepositsQueuePage() {
-  const pendingDeposits = Route.useLoaderData();
-  return <DepositsQueueView pendingDeposits={pendingDeposits} />;
-}

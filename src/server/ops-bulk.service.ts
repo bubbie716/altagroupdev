@@ -162,11 +162,24 @@ export async function bulkFreezeAccounts(
 export async function exportAuditLogsCsv(filters: import("@/lib/internal/audit.types").AuditLogFilters): Promise<string> {
   await requireOperator();
   const { queryAuditLogs } = await import("@/server/audit.service");
-  const rows = await queryAuditLogs({ ...filters }, 5000);
-  const header = "id,createdAt,actor,action,description,entityType,entityId\n";
+  const page = await queryAuditLogs({ ...filters, offset: 0, limit: 5000 });
+  const rows = page.rows;
+  const header =
+    "id,createdAt,actor,action,description,entityType,entityId,targetUserId,targetAccountId,targetCompanyId\n";
   const body = rows
     .map((r) =>
-      [r.id, r.createdAt, r.actorUsername, r.action, `"${r.description.replace(/"/g, '""')}"`, r.entityType, r.entityId ?? ""].join(","),
+      [
+        r.id,
+        r.createdAt,
+        r.actorUsername,
+        r.action,
+        `"${r.description.replace(/"/g, '""')}"`,
+        r.entityType,
+        r.entityId ?? "",
+        r.targetUserId ?? "",
+        r.targetAccountId ?? "",
+        r.targetCompanyId ?? "",
+      ].join(","),
     )
     .join("\n");
   return header + body;

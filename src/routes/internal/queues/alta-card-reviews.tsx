@@ -1,24 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AltaCardReviewsQueueView } from "@/components/internal/queues";
-import { fetchInternalAltaCardReviewQueue } from "@/lib/bank/alta-card-review.functions";
-import { fetchApplicationRelationshipSummaries } from "@/lib/internal/relationship-intelligence.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/alta-card-reviews")({
-  loader: async () => {
-    const reviews = await fetchInternalAltaCardReviewQueue();
-    const summaries = await fetchApplicationRelationshipSummaries({
-      data: reviews.map((r) => ({
-        companyId: r.companyId,
-        applicantUserId: r.applicantUserId,
-      })),
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX["alta-card-reviews"]!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(
+        withInternalSiteSearch({ category: mapped.category, type: mapped.type }, search.site),
+      ),
     });
-    return { reviews, summaries };
   },
-  head: () => ({ meta: [{ title: "Alta Card Reviews Queue — Alta Internal" }] }),
-  component: AltaCardReviewsQueuePage,
 });
-
-function AltaCardReviewsQueuePage() {
-  const { reviews, summaries } = Route.useLoaderData();
-  return <AltaCardReviewsQueueView reviews={reviews} summaries={summaries} />;
-}

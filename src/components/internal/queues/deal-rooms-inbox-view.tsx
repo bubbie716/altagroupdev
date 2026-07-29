@@ -40,20 +40,20 @@ export function dealRoomRowNavigate(
     return router.navigate({
       to: "/internal/lending/applications/$applicationId",
       params: { applicationId: row.entityId },
-      search: { tab: "thread" },
+      search: { section: "evidence" },
     });
   }
   if (row.productType === "Alta Card Application") {
     return router.navigate({
       to: "/internal/alta-card/applications/$applicationId",
       params: { applicationId: row.entityId },
-      search: { tab: "thread" },
+      search: { section: "evidence" },
     });
   }
   return router.navigate({
     to: "/internal/alta-card/reviews/$reviewId",
     params: { reviewId: row.entityId },
-    search: { tab: "thread" },
+    search: { section: "evidence" },
   });
 }
 

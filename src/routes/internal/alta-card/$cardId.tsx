@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
-import { AltaCardWorkspaceView, parseWorkspaceTab } from "@/components/internal/workspace";
+import { AltaCardWorkspaceView } from "@/components/internal/workspace";
 import { fetchInternalCardOperationsContext } from "@/lib/bank/alta-card-admin.functions";
 import { fetchCardStatements } from "@/lib/bank/alta-card-statement.functions";
 import { fetchInternalCardFeesRecord } from "@/lib/bank/alta-card-interest.functions";
@@ -9,43 +9,26 @@ import { fetchResolvedRelationshipIntegrationBestEffort } from "@/lib/internal/r
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchActivityTimeline } from "@/lib/internal/ops-platform.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
-
-const TABS = [
-  "overview",
-  "transactions",
-  "statements",
-  "payments",
-  "autopay",
-  "employees",
-  "relationship",
-  "activity",
-  "audit",
-  "notes",
-];
+import { parseAltaCardWorkspaceSearch } from "@/lib/internal/internal-route-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/alta-card/$cardId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-    suggestedTier:
-      typeof search.suggestedTier === "string" ? (search.suggestedTier as AltaCardTierCode) : undefined,
-    suggestedLimit:
-      search.suggestedLimit != null && search.suggestedLimit !== ""
-        ? Number(search.suggestedLimit)
-        : undefined,
-    suggestedRate:
-      search.suggestedRate != null && search.suggestedRate !== ""
-        ? Number(search.suggestedRate)
-        : undefined,
-    recommendationId:
-      typeof search.recommendationId === "string" ? search.recommendationId : undefined,
+  validateSearch: (search: Record<string, unknown>) => parseAltaCardWorkspaceSearch(search),
+  loaderDeps: ({ search }) => ({
+    tab: search.tab,
+    section: search.section,
+    filter: search.filter,
   }),
-  loaderDeps: ({ search }) => ({ tab: search.tab }),
   loader: async ({ params, deps }) => {
-    const tab = deps.tab;
-    const includeAudit = tab === "audit";
-    const includeActivity = tab === "activity";
-    const includeRelationship = tab === "relationship";
-    const includeNotes = tab === "notes";
+    const includeAudit = deps.tab === "more" || deps.section === "audit";
+    const includeNotes = deps.tab === "more" || deps.section === "notes";
+    const includeActivity = deps.tab === "activity" || deps.tab === "overview";
+    const includeIntegration =
+      deps.tab === "more" ||
+      deps.section === "controls" ||
+      deps.section === "statements" ||
+      deps.section === "autopay" ||
+      deps.section === "employees";
 
     const [ops, statements, fees, autopay, auditLogs, timeline] = await Promise.all([
       fetchInternalCardOperationsContext({ data: params.cardId }),
@@ -88,7 +71,7 @@ export const Route = createFileRoute("/internal/alta-card/$cardId")({
           )
         : [];
     const integration =
-      includeRelationship && ownerUserId
+      includeIntegration && ownerUserId
         ? await fetchResolvedRelationshipIntegrationBestEffort({
             userId: ownerUserId,
             companyId,
@@ -97,7 +80,7 @@ export const Route = createFileRoute("/internal/alta-card/$cardId")({
         : null;
     return { ops, statements, fees, autopay, integration, ownerUserId, companyId, auditLogs, timeline, notes };
   },
-  head: () => ({ meta: [{ title: "Alta Card — Alta Internal" }] }),
+  head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Alta Card", (match.search as { site?: string }).site) }] }),
   component: AltaCardWorkspaceRoute,
 });
 
@@ -118,9 +101,9 @@ function AltaCardWorkspaceRoute() {
       auditLogs={auditLogs}
       notes={notes}
       timeline={timeline}
-      activeTab={search.tab}
+      search={search}
       searchDefaults={{
-        tier: search.suggestedTier,
+        tier: search.suggestedTier as AltaCardTierCode | undefined,
         limit: search.suggestedLimit,
         rate: search.suggestedRate,
         recommendationId: search.recommendationId,

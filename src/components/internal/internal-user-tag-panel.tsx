@@ -21,6 +21,7 @@ import {
 } from "@/lib/internal/user-management.functions";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import { ALL_USER_TAGS } from "@/lib/internal/user-management.types";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
 type PendingAction = {
   kind: "grant" | "revoke";
@@ -39,12 +40,14 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
   const router = useRouter();
   const grantTag = useServerFn(grantInternalUserTagRecord);
   const revokeTag = useServerFn(revokeInternalUserTagRecord);
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   async function runAction(action: PendingAction) {
+    if (uiLab) return;
     setSubmitting(true);
     setError(null);
     setMessage(null);
@@ -120,21 +123,21 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
                   {action.canGrant && (
                     <button
                       type="button"
-                      disabled={submitting}
+                      disabled={submitting || uiLab}
                       onClick={() => requestAction("grant", tag)}
                       className="rounded-md border border-border-strong bg-surface-2 px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-surface-2/80 disabled:opacity-50"
                     >
-                      Grant
+                      {uiLab ? unavailableLabel("Grant") : "Grant"}
                     </button>
                   )}
                   {action.canRevoke && (
                     <button
                       type="button"
-                      disabled={submitting}
+                      disabled={submitting || uiLab}
                       onClick={() => requestAction("revoke", tag)}
                       className="rounded-md border border-destructive/40 px-3 py-1.5 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
                     >
-                      Revoke
+                      {uiLab ? unavailableLabel("Revoke") : "Revoke"}
                     </button>
                   )}
                   {!action.canGrant && !action.canRevoke && (
@@ -149,7 +152,7 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
         {message && <p className="text-[13px] text-[var(--success)]">{message}</p>}
         {error && <p className="text-[13px] text-destructive">{error}</p>}
         <p className="text-[11px] text-muted-foreground">
-          Tag changes are applied immediately. Audit logging is planned for a future release.
+          Tag changes are applied immediately and recorded in the audit log.
         </p>
       </div>
 
@@ -176,11 +179,15 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
             </button>
             <button
               type="button"
-              disabled={submitting || !pending}
+              disabled={submitting || !pending || uiLab}
               onClick={() => pending && void runAction(pending)}
               className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive disabled:opacity-50"
             >
-              {submitting ? SUBMITTING_COPY.applying : "Confirm"}
+              {uiLab
+                ? unavailableLabel("Confirm")
+                : submitting
+                  ? SUBMITTING_COPY.applying
+                  : "Confirm"}
             </button>
           </DialogFooter>
         </DialogContent>

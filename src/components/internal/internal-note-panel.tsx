@@ -10,6 +10,7 @@ import {
   fetchInternalNotes,
 } from "@/lib/internal/internal-note.functions";
 import type { InternalNoteRow } from "@/lib/internal/internal-note.types";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
 export function InternalNotePanel({
   targetType,
@@ -23,6 +24,7 @@ export function InternalNotePanel({
   const router = useRouter();
   const loadNotes = useServerFn(fetchInternalNotes);
   const createNote = useServerFn(createInternalNoteRecord);
+  const { uiLab, unavailableLabel } = useUiLabMutationGate();
   const [notes, setNotes] = useState<InternalNoteRow[]>(initialNotes ?? []);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +37,7 @@ export function InternalNotePanel({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (uiLab) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -56,16 +59,17 @@ export function InternalNotePanel({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Add an internal note visible to operators…"
-          className="min-h-[80px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          className="min-h-[80px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
           required
+          disabled={uiLab}
         />
         {error && <p className="text-[12px] text-destructive">{error}</p>}
         <button
           type="submit"
-          disabled={submitting || !text.trim()}
+          disabled={submitting || !text.trim() || uiLab}
           className="rounded-md bg-foreground px-4 py-2 text-[12px] font-medium text-background disabled:opacity-50"
         >
-          {submitting ? SUBMITTING_COPY.saving : "Add note"}
+          {uiLab ? unavailableLabel("Add note") : submitting ? SUBMITTING_COPY.saving : "Add note"}
         </button>
       </form>
       <ul className="mt-5 space-y-3 border-t border-border pt-4">

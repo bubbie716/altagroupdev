@@ -65,8 +65,15 @@ export const backfillCompanyRelationshipTimelineRecord = createServerFn({ method
     return backfillCompanyRelationshipTimeline(companyId);
   });
 
+function requireRecommendationId(recommendationId: unknown): string {
+  if (typeof recommendationId !== "string" || !recommendationId.trim()) {
+    throw new Error("recommendationId is required");
+  }
+  return recommendationId.trim();
+}
+
 export const dismissCompanyRecommendationRecord = createServerFn({ method: "POST" })
-  .inputValidator((recommendationId: string) => recommendationId)
+  .inputValidator((recommendationId: string | undefined) => requireRecommendationId(recommendationId))
   .handler(async ({ data: recommendationId }) => {
     const { dismissCompanyRelationshipRecommendation } = await import(
       "@/server/company-relationship-recommendation.service"
@@ -76,7 +83,7 @@ export const dismissCompanyRecommendationRecord = createServerFn({ method: "POST
   });
 
 export const markCompanyRecommendationReviewedRecord = createServerFn({ method: "POST" })
-  .inputValidator((recommendationId: string) => recommendationId)
+  .inputValidator((recommendationId: string | undefined) => requireRecommendationId(recommendationId))
   .handler(async ({ data: recommendationId }) => {
     const { markCompanyRecommendationReviewed } = await import(
       "@/server/company-relationship-recommendation.service"
@@ -86,7 +93,7 @@ export const markCompanyRecommendationReviewedRecord = createServerFn({ method: 
   });
 
 export const acceptCompanyRecommendationRecord = createServerFn({ method: "POST" })
-  .inputValidator((recommendationId: string) => recommendationId)
+  .inputValidator((recommendationId: string | undefined) => requireRecommendationId(recommendationId))
   .handler(async ({ data: recommendationId }) => {
     const { acceptCompanyRelationshipRecommendation } = await import(
       "@/server/company-relationship-recommendation.service"
@@ -105,7 +112,15 @@ export const fetchCompanyRelationshipProfileSummariesForCompanies = createServer
   });
 
 export const useCompanyRelationshipRecommendationRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: { recommendationId: string; context: string }) => input)
+  .inputValidator((input: { recommendationId?: string; context?: string } | undefined) => {
+    if (!input || typeof input !== "object") {
+      throw new Error("recommendationId is required");
+    }
+    const recommendationId = requireRecommendationId(input.recommendationId);
+    const context = typeof input.context === "string" ? input.context.trim() : "";
+    if (!context) throw new Error("context is required");
+    return { recommendationId, context };
+  })
   .handler(async ({ data }) => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { useCompanyRelationshipRecommendation } = await import(

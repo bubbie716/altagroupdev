@@ -8,6 +8,8 @@ export const fetchOpsJobs = createServerFn({ method: "GET" }).handler(async () =
 export const runManualOpsJobRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { jobKey: string; reason: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Manual job execution");
     const { requireAdmin } = await import("@/server/permissions.service");
     const { runManualOpsJob } = await import("@/server/ops-jobs.service");
     const admin = await requireAdmin();

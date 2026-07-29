@@ -7,6 +7,7 @@ import { Card } from "@/components/page-shell";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { CommercialPlatformSettingsView } from "@/lib/platform/commercial-plan-settings-types";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { setCommercialPlanPlatformSettingsOps } from "@/lib/platform/platform-settings.functions";
 
 export function CommercialPlanSettingsPanel({
@@ -16,6 +17,7 @@ export function CommercialPlanSettingsPanel({
 }) {
   const router = useRouter();
   const saveFn = useServerFn(setCommercialPlanPlatformSettingsOps);
+  const { uiLab, unavailableLabel, bannerCopy } = useUiLabMutationGate();
   const [values, setValues] = useState({
     proMonthlyFee: String(initial.proMonthlyFee),
     coreInvoiceMonthlyLimit: String(initial.coreInvoiceMonthlyLimit),
@@ -37,6 +39,7 @@ export function CommercialPlanSettingsPanel({
   }, [initial]);
 
   async function save(reason: string) {
+    if (uiLab) return;
     setError(null);
     try {
       await saveFn({
@@ -112,13 +115,23 @@ export function CommercialPlanSettingsPanel({
 
       {error ? <p className="mt-4 text-[13px] text-destructive">{error}</p> : null}
 
+      {uiLab && initial.canEdit ? (
+        <div className="mt-6 rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
+          {bannerCopy}
+        </div>
+      ) : null}
+
       {initial.canEdit ? (
         <button
           type="button"
-          className="mt-6 rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold"
-          onClick={() => setConfirmOpen(true)}
+          className="mt-6 rounded border border-gold/30 bg-gold/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-gold disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={uiLab}
+          onClick={() => {
+            if (uiLab) return;
+            setConfirmOpen(true);
+          }}
         >
-          Save commercial plan settings
+          {uiLab ? unavailableLabel("Save commercial plan settings") : "Save commercial plan settings"}
         </button>
       ) : null}
 

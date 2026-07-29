@@ -92,7 +92,9 @@ describe("private banking absence", () => {
     assert.ok(links.some((l) => l.to === "/bank/activity"));
     assert.ok(links.some((l) => l.to === "/bank/alta-card"));
     assert.ok(links.some((l) => l.to === "/bank/lending"));
-    assert.equal(links.length, 5);
+    assert.ok(links.some((l) => l.to === "/bank/statements"));
+    assert.ok(links.some((l) => l.to === "/bank/settings"));
+    assert.equal(links.length, 7);
   });
 
   it("does not label retained loan enum as Private Banking", () => {

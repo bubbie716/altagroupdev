@@ -693,6 +693,7 @@ export function mapInternalActiveLoanRow(
   return {
     id: record.id,
     productLabel: LOAN_PRODUCT_LABELS[productType],
+    productType,
     borrowerLabel,
     companyName: record.company?.name ?? null,
     linkedAccountNumber: record.linkedBankAccount?.accountNumber ?? null,
@@ -728,6 +729,7 @@ export function mapInternalActiveLoanRow(
     paymentSchedule,
     termMonths: record.termMonths,
     monthlyPrincipalPercent: null,
+    updatedAt: record.updatedAt.toISOString(),
   };
 }
 

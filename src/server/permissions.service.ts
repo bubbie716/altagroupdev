@@ -25,8 +25,11 @@ export async function requireOperator(): Promise<AltaUser> {
   return user;
 }
 
-/** Terminal settings — corporate or terminal admin. */
+/** Terminal ops / settings — corporate or terminal admin. */
 export async function requireTerminalAdmin(): Promise<AltaUser> {
+  const { getUiLabUserIfEnabled } = await import("@/lib/auth/ui-lab");
+  const labUser = getUiLabUserIfEnabled();
+  if (labUser) return labUser;
   const user = await requireAuth();
   if (!isCorporateAdmin(user) && !isTerminalAdmin(user)) forbid();
   return user;

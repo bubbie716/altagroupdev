@@ -1,50 +1,67 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Section, Card } from "@/components/page-shell";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalPlatformSettingsSections } from "@/components/internal/internal-platform-settings-sections";
-import { fetchInternalDashboardMetrics } from "@/lib/internal/internal-dashboard.functions";
 import { loadInternalPlatformSettings } from "@/lib/internal/internal-platform-settings-loader";
 import { maintenanceScopesForInternalSettings } from "@/lib/platform/maintenance-types";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
+import { buildBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
+
+export type SettingsSearch = {
+  site?: string;
+  section?: "credit" | "commercial" | "maintenance";
+};
 
 export const Route = createFileRoute("/internal/settings")({
-  loader: async () => {
-    const [live, platformSettings] = await Promise.all([
-      fetchInternalDashboardMetrics(),
-      loadInternalPlatformSettings(),
-    ]);
-    return { live, ...platformSettings };
+  validateSearch: (s: Record<string, unknown>): SettingsSearch => {
+    const section =
+      s.section === "credit" || s.section === "commercial" || s.section === "maintenance"
+        ? s.section
+        : undefined;
+    return {
+      site: readDevSiteFromSearch(s),
+      section,
+    };
   },
-  head: () => ({ meta: [{ title: "Settings — Alta Internal" }] }),
+  beforeLoad: ({ search }) => {
+    if (search.site === "bank") {
+      throw redirect({
+        to: "/internal/bank/settings",
+        search: normalizeInternalSearch(
+          withInternalSiteSearch({ section: search.section }, "bank"),
+        ),
+      });
+    }
+  },
+  loader: () => loadInternalPlatformSettings(),
+  head: ({ match }) => ({
+    meta: [{ title: internalDocumentTitle("Settings", (match.search as SettingsSearch).site) }],
+  }),
   component: InternalSettingsPage,
 });
 
 function InternalSettingsPage() {
-  const { live, maintenance, creditDesk, commercialPlans } = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  const search = Route.useSearch();
 
   return (
-    <InternalPageShell title="Internal Settings" description="Platform maintenance, Credit Desk status, and live operations.">
+    <InternalPageShell
+      title="Internal Settings"
+      description="Credit Desk, commercial plans, and maintenance configuration."
+      breadcrumbs={buildBreadcrumbs([
+        { label: "System", to: "/internal/jobs", search: withInternalSiteSearch({}, search.site) },
+        { label: "Settings" },
+      ])}
+    >
       <InternalPlatformSettingsSections
-        data={{ maintenance, creditDesk, commercialPlans }}
+        data={data}
         maintenanceScopes={maintenanceScopesForInternalSettings("corporate")}
+        section={search.section ?? "credit"}
+        sectionBasePath="/internal/settings"
+        siteKey={search.site ?? "corporate"}
       />
-
-      <Section title="Operations status (live)" className="mt-10">
-        <Card className="grid gap-4 md:grid-cols-2 !p-5">
-          <StatusRow label="Banking" detail={`${live.activeBankAccounts} active accounts · ${live.pendingDeposits} pending deposits`} />
-          <StatusRow label="Scheduled transfers" detail={`${live.pendingScheduledTransfers} pending · ${live.failedScheduledTransfers} failed`} />
-          <StatusRow label="Lending" detail={`${live.activeLoans} active loans · ${live.pendingLoanApplications} applications pending`} />
-          <StatusRow label="Identity" detail={`${live.restrictedUsers} restricted · ${live.frozenAccounts} frozen accounts`} />
-        </Card>
-      </Section>
     </InternalPageShell>
-  );
-}
-
-function StatusRow({ label, detail }: { label: string; detail: string }) {
-  return (
-    <div className="rounded-md border border-border/60 px-4 py-3">
-      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-      <p className="mt-2 text-[13px] text-muted-foreground">{detail}</p>
-    </div>
   );
 }

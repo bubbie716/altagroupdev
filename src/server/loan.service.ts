@@ -1595,6 +1595,74 @@ export async function listInternalLoansByStatus(
   return records.map(mapInternalActiveLoanRow);
 }
 
+export type InternalLoanListFilters = {
+  q?: string;
+  status?: string;
+  borrowerType?: "personal" | "company";
+  attention?: boolean;
+  offset?: number;
+  limit?: number;
+};
+
+export type InternalLoanListPage = {
+  rows: InternalActiveLoanRow[];
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+};
+
+export async function listInternalLoansFiltered(
+  filters: InternalLoanListFilters = {},
+): Promise<InternalLoanListPage> {
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
+
+  const statusMap: Record<string, DbLoanStatus> = {
+    active: "ACTIVE",
+    paid_off: "PAID_OFF",
+    defaulted: "DEFAULTED",
+    cancelled: "CANCELLED",
+    frozen: "FROZEN",
+  };
+  const statusFilter = filters.status ? statusMap[filters.status] : undefined;
+  const pageSize = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+  const offset = Math.max(filters.offset ?? 0, 0);
+
+  const records = await prisma.loan.findMany({
+    where: statusFilter ? { status: statusFilter } : undefined,
+    include: internalLoanInclude,
+    orderBy: { updatedAt: "desc" },
+    take: 500,
+  });
+
+  const {
+    loanBorrowerType,
+    loanDirectoryMatchesQuery,
+    loanNeedsDirectoryAttention,
+    sortLoansForDirectory,
+  } = await import("@/lib/internal/lending-desk");
+
+  let rows = records.map(mapInternalActiveLoanRow);
+  if (filters.q) {
+    rows = rows.filter((loan) => loanDirectoryMatchesQuery(loan, filters.q!));
+  }
+  if (filters.borrowerType === "personal" || filters.borrowerType === "company") {
+    rows = rows.filter((loan) => loanBorrowerType(loan) === filters.borrowerType);
+  }
+  if (filters.attention) {
+    rows = rows.filter((loan) => loanNeedsDirectoryAttention(loan));
+  }
+  rows = sortLoansForDirectory(rows);
+  const pageRows = rows.slice(offset, offset + pageSize + 1);
+  const hasMore = pageRows.length > pageSize;
+  return {
+    rows: hasMore ? pageRows.slice(0, pageSize) : pageRows,
+    offset,
+    limit: pageSize,
+    hasMore,
+  };
+}
+
 export async function getInternalLoanDetail(loanId: string): Promise<InternalActiveLoanRow> {
   const { requireOperator } = await import("@/server/permissions.service");
   await requireOperator();

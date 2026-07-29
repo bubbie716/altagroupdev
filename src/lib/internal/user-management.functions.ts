@@ -29,6 +29,8 @@ export const fetchInternalUserDetail = createServerFn({ method: "GET" })
 export const grantInternalUserTagRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; tag: UserTag }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Grant staff access tag");
     const { grantInternalUserTag } = await import("@/server/internal-user-management.service");
     const id = await actorId();
     return grantInternalUserTag(id, data.userId, data.tag);
@@ -37,6 +39,8 @@ export const grantInternalUserTagRecord = createServerFn({ method: "POST" })
 export const revokeInternalUserTagRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; tag: UserTag }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Revoke staff access tag");
     const { revokeInternalUserTag } = await import("@/server/internal-user-management.service");
     const id = await actorId();
     return revokeInternalUserTag(id, data.userId, data.tag);
@@ -45,6 +49,8 @@ export const revokeInternalUserTagRecord = createServerFn({ method: "POST" })
 export const updateInternalUserAccountStatusRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { userId: string; accountStatus: AccountStatus }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Change customer standing");
     const { updateInternalUserAccountStatus } = await import("@/server/internal-user-management.service");
     const id = await actorId();
     return updateInternalUserAccountStatus(id, data.userId, data.accountStatus);

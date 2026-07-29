@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
-import { Link, useRouter } from "@tanstack/react-router";
-import { INTERNAL_ACCOUNT_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
+import { useRouter, useRouterState } from "@tanstack/react-router";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 import { useServerFn } from "@tanstack/react-start";
 import { florin } from "@/lib/bank/api";
 import type { AccountInterestOpsSummary } from "@/lib/bank/account-interest.functions";
@@ -12,16 +12,26 @@ import {
   accrueAllDueAccountInterest,
   previewAccountInterest,
 } from "@/lib/bank/account-interest.functions";
-import { formatActivityDateTime, formatDueDate } from "@/lib/format-datetime";
-import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { OpsAction } from "@/components/internal/ops-action";
-import { AdminDataTable } from "@/components/internal/admin-data-table";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 
-export function InternalAccountInterestOps({ summary }: { summary: AccountInterestOpsSummary }) {
+/** Accrual / preview actions only — account attention lists live on the Interest page. */
+export function InternalAccountInterestOps({
+  summary,
+  mode = "full",
+}: {
+  summary: AccountInterestOpsSummary;
+  /** `actions` omits duplicated status cards and due-account tables. */
+  mode?: "full" | "actions";
+}) {
+  useRouterState({
+    select: (s) => readDevSiteFromSearch(s.location.search as Record<string, unknown>),
+  });
   const router = useRouter();
   const previewFn = useServerFn(previewAccountInterest);
   const accrueOneFn = useServerFn(accrueAccountInterest);
   const accrueAllFn = useServerFn(accrueAllDueAccountInterest);
+  const { uiLab, unavailableLabel, bannerCopy } = useUiLabMutationGate();
 
   const [previewAccountId, setPreviewAccountId] = useState(summary.dueAccounts[0]?.accountId ?? "");
   const [previewResult, setPreviewResult] = useState<string | null>(null);
@@ -29,7 +39,7 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
   const [pending, setPending] = useState<"preview" | "one" | "all" | null>(null);
 
   async function handlePreview() {
-    if (!previewAccountId.trim()) return;
+    if (uiLab || !previewAccountId.trim()) return;
     setPending("preview");
     setPreviewResult(null);
     try {
@@ -83,25 +93,12 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <InternalStatCard label="Due for interest" value={String(summary.dueAccountCount)} alert={summary.dueAccountCount > 0} />
-        <InternalStatCard label="Interest-bearing (active)" value={String(summary.interestBearingActiveCount)} />
-        <InternalStatCard
-          label="Est. interest due"
-          value={florin(summary.estimatedTotalInterestDue)}
-          sub="If accrued now"
-        />
-        <InternalStatCard
-          label="Credited this month"
-          value={florin(summary.totalInterestCreditedThisMonth)}
-          sub={
-            summary.lastInterestRunAt
-              ? `Last run ${formatActivityDateTime(summary.lastInterestRunAt)}`
-              : "No runs yet"
-          }
-        />
-      </div>
+    <div className="space-y-4">
+      {uiLab ? (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
+          {bannerCopy} Manual interest accrual and preview are disabled in UI Lab.
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-surface-1/40 p-4">
         <div className="min-w-[12rem] flex-1">
@@ -111,79 +108,65 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
           <select
             value={previewAccountId}
             onChange={(e) => setPreviewAccountId(e.target.value)}
-            className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm"
+            disabled={uiLab}
+            className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm disabled:opacity-50"
           >
             <option value="">Select account…</option>
             {summary.dueAccounts.map((a) => (
               <option key={a.accountId} value={a.accountId}>
-                {a.accountNumber} — {a.accountName}
+                {a.accountNumber} — {a.holder}
               </option>
             ))}
           </select>
         </div>
-        <button
-          type="button"
-          disabled={pending !== null || !previewAccountId}
-          onClick={() => void handlePreview()}
-          className="rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          {pending === "preview" ? SUBMITTING_COPY.previewing : "Preview interest"}
-        </button>
-        <OpsAction
-          label={pending === "all" ? SUBMITTING_COPY.accruing : "Accrue all due interest"}
-          variant="primary"
-          title="Accrue all due interest"
-          description="Credits monthly interest for every due account."
-          impact={`${summary.dueAccountCount} account(s) · est. ${florin(summary.estimatedTotalInterestDue)}`}
-          disabled={pending !== null || summary.dueAccountCount === 0}
-          onConfirm={handleAccrueAll}
-        />
+        {uiLab ? (
+          <button
+            type="button"
+            disabled
+            className="rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-medium text-muted-foreground disabled:opacity-60"
+          >
+            {unavailableLabel("Preview")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={pending !== null || !previewAccountId}
+            onClick={() => void handlePreview()}
+            className="rounded-md border border-border bg-surface-2 px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            {pending === "preview" ? SUBMITTING_COPY.previewing : "Preview accrual"}
+          </button>
+        )}
+        {!uiLab ? (
+          <OpsAction
+            label={pending === "all" ? SUBMITTING_COPY.accruing : "Accrue all due"}
+            variant="primary"
+            title="Accrue all due interest"
+            description="Credits monthly interest for every due account. Distinct from manual category credits."
+            impact={`${summary.dueAccountCount} account(s) · est. ${florin(summary.estimatedTotalInterestDue)}`}
+            disabled={pending !== null || summary.dueAccountCount === 0}
+            onConfirm={handleAccrueAll}
+          />
+        ) : null}
       </div>
 
-      {(previewResult || actionResult) && (
-        <p className="text-[13px] text-muted-foreground">{previewResult ?? actionResult}</p>
-      )}
-
-      <p className="text-[12px] leading-relaxed text-muted-foreground">
-        Manual accrual only — no scheduled automation. Operators may preview; admins must run accrual.
-      </p>
-
-      {summary.dueAccounts.length > 0 ? (
-        <AdminDataTable
-          columns={[
-            {
-              key: "account",
-              header: "Account",
-              cell: (a) => (
-                <Link
-                  to="/internal/bank/accounts/$accountId"
-                  params={{ accountId: a.accountId }}
-                  search={INTERNAL_ACCOUNT_WORKSPACE_SEARCH}
-                  className="font-mono text-[12px] hover:underline"
-                >
-                  {a.accountNumber}
-                  <span className="mt-0.5 block text-muted-foreground">{a.accountName}</span>
-                </Link>
-              ),
-            },
-            { key: "holder", header: "Holder", cell: (a) => a.holder },
-            { key: "balance", header: "Balance", cell: (a) => florin(a.balance), className: "text-right" },
-            { key: "rate", header: "Rate", cell: (a) => a.rateLabel },
-            {
-              key: "due",
-              header: "Due date",
-              cell: (a) => formatDueDate(a.nextInterestAccrualAt),
-            },
-            {
-              key: "est",
-              header: "Est. credit",
-              cell: (a) => florin(a.estimatedInterest),
-              className: "text-right",
-            },
-            {
-              key: "actions",
-              header: "",
-              cell: (a) => (
+      {!uiLab && summary.dueAccounts.length > 0 && mode === "actions" ? (
+        <div className="space-y-2">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            Accrue one account
+          </div>
+          <ul className="space-y-2">
+            {summary.dueAccounts.map((a) => (
+              <li
+                key={a.accountId}
+                className="flex flex-wrap items-center justify-between gap-2 rounded border border-border/60 px-3 py-2"
+              >
+                <div className="text-[13px]">
+                  <span className="font-medium">{a.holder}</span>
+                  <span className="ml-2 font-mono text-[11px] text-muted-foreground">
+                    {a.accountNumber} · est. {florin(a.estimatedInterest)}
+                  </span>
+                </div>
                 <OpsAction
                   label="Accrue"
                   title="Credit monthly interest"
@@ -194,17 +177,19 @@ export function InternalAccountInterestOps({ summary }: { summary: AccountIntere
                     await handleAccrueOne(a.accountId, reason);
                   }}
                 />
-              ),
-            },
-          ]}
-          rows={summary.dueAccounts}
-          rowKey={(a) => a.accountId}
-        />
-      ) : (
-        <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-[13px] text-muted-foreground">
-          No accounts are currently due for interest accrual.
-        </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {(previewResult || actionResult) && (
+        <p className="text-[13px] text-muted-foreground">{previewResult ?? actionResult}</p>
       )}
+
+      <p className="text-[12px] leading-relaxed text-muted-foreground">
+        Automated accrual is distinct from manual category credits. Do not invent rates here.
+      </p>
     </div>
   );
 }

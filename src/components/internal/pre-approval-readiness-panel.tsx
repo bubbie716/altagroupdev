@@ -50,10 +50,6 @@ export function PreApprovalReadinessPanel({
         </ul>
       ) : null}
 
-      <p className="mt-4 text-[12px] text-muted-foreground">
-        Suggested products (placeholder): {readiness.suggestedProducts.join(" · ")}
-      </p>
-
       {onReview ? (
         <button
           type="button"

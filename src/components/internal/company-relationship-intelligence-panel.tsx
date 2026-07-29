@@ -1,7 +1,8 @@
 "use client";
 
-import { Link } from "@tanstack/react-router";
-import { INTERNAL_COMPANY_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { INTERNAL_COMPANY_WORKSPACE_SEARCH, withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { florin } from "@/lib/bank/api";
 import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
@@ -28,6 +29,9 @@ export function CompanyRelationshipDetailPanel({
   onRefresh?: () => void;
   refreshing?: boolean;
 }) {
+  const site = useRouterState({
+    select: (s) => readDevSiteFromSearch(s.location.search as Record<string, unknown>),
+  });
   const display = calculated;
   const persistedScoreMatches =
     profile == null || profile.relationshipScore === calculated.relationshipScore;
@@ -93,7 +97,7 @@ export function CompanyRelationshipDetailPanel({
       <Link
         to="/internal/companies/$companyId"
         params={{ companyId }}
-        search={INTERNAL_COMPANY_WORKSPACE_SEARCH}
+        search={withInternalSiteSearch(INTERNAL_COMPANY_WORKSPACE_SEARCH, site)}
         className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Company 360 →

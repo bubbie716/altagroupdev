@@ -1,7 +1,8 @@
 "use client";
 
-import { Link } from "@tanstack/react-router";
-import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { INTERNAL_LOAN_WORKSPACE_SEARCH, withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 import { OpsAction } from "@/components/internal/ops-action";
 import { florin } from "@/lib/bank/api";
 import {
@@ -23,6 +24,9 @@ const inputClass =
   "mt-1 h-8 w-full rounded border border-border bg-surface-1 px-2.5 text-[12px]";
 
 export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }) {
+  const site = useRouterState({
+    select: (s) => readDevSiteFromSearch(s.location.search as Record<string, unknown>),
+  });
   const [expanded, setExpanded] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustDesc, setAdjustDesc] = useState("");
@@ -44,7 +48,7 @@ export function InternalActiveLoanCard({ loan }: { loan: InternalActiveLoanRow }
           <Link
             to="/internal/lending/loans/$loanId"
             params={{ loanId: loan.id }}
-            search={internalWorkspaceTabSearch("overview")}
+            search={withInternalSiteSearch(INTERNAL_LOAN_WORKSPACE_SEARCH, site)}
             className="h-7 rounded border border-gold/30 bg-surface-2 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold"
           >
             Open workspace

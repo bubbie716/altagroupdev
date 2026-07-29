@@ -10,6 +10,7 @@ import { OpsCsvExportButton } from "@/components/internal/ops-csv-export-button"
 import { BankProofStatus } from "@/components/bank/bank-proof-link";
 import { QueuePage } from "./queue-page";
 import { QueueAgeCell } from "./queue-age-cell";
+import { QueueMobileCard } from "./queue-mobile-card";
 import { formatQueueDate, queueAgeMs } from "./queue-utils";
 import { defaultQueueSortAccessor, sortQueueRows } from "./queue-table-sort";
 import {
@@ -115,40 +116,49 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
     {
       key: "actions",
       header: "Actions",
+      stickyEnd: true,
       cell: (r) => (
         <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
-          <OpsAction
-            label="Approve"
-            variant="primary"
-            title="Approve deposit"
-            description="This will credit the selected account and mark the deposit request as approved."
-            impact={`Amount ${r.amount} → account ${r.account}`}
-            confirmLabel="Confirm approval"
-            customerNotifies
-            onConfirm={async (reason, options) => {
-              await approveBankDeposit({
-                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
-              });
-            }}
-          />
-          <OpsAction
-            label="Deny"
-            variant="danger"
-            title="Deny deposit"
-            description="This will reject the deposit request. Funds will not be credited."
-            impact={`Reference ${r.referenceCode} · ${r.amount}`}
-            confirmLabel="Confirm denial"
-            customerNotifies
-            onConfirm={async (reason, options) => {
-              await denyBankDeposit({
-                data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
-              });
-            }}
-          />
+          {depositActions(r)}
         </div>
       ),
     },
   ];
+
+  function depositActions(r: InternalBankTransactionRow) {
+    return (
+      <>
+        <OpsAction
+          label="Approve"
+          variant="primary"
+          title="Approve deposit"
+          description="This will credit the selected account and mark the deposit request as approved."
+          impact={`Amount ${r.amount} → account ${r.account}`}
+          confirmLabel="Confirm approval"
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await approveBankDeposit({
+              data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
+          }}
+        />
+        <OpsAction
+          label="Deny"
+          variant="danger"
+          title="Deny deposit"
+          description="This will reject the deposit request. Funds will not be credited."
+          impact={`Reference ${r.referenceCode} · ${r.amount}`}
+          confirmLabel="Confirm denial"
+          customerNotifies
+          onConfirm={async (reason, options) => {
+            await denyBankDeposit({
+              data: { transactionId: r.id, reviewNote: reason, silentNotification: options?.silentNotification },
+            });
+          }}
+        />
+      </>
+    );
+  }
 
   const selectedTotal = filtered
     .filter((r) => selected.has(r.id))
@@ -180,6 +190,22 @@ export function DepositsQueueView({ pendingDeposits }: { pendingDeposits: Intern
           void router.navigate({ to: "/internal/bank/transactions/$transactionId", params: { transactionId: r.id } })
         }
         emptyState="No pending deposits."
+        mobileCard={(r) => (
+          <QueueMobileCard
+            title={r.referenceCode}
+            subtitle={`${r.holder} · ${r.account}`}
+            amount={r.amount}
+            status={r.status}
+            ageIso={r.submitted}
+            onOpen={() =>
+              void router.navigate({
+                to: "/internal/bank/transactions/$transactionId",
+                params: { transactionId: r.id },
+              })
+            }
+            actions={depositActions(r)}
+          />
+        )}
         bulkActions={
           <>
             <OpsAction

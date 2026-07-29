@@ -107,14 +107,38 @@ export const fetchInternalLendingOps = createServerFn({ method: "GET" }).handler
   const { listInternalLoanApplications } = await import("@/server/lending.service");
   const { listInternalLoansByStatus } = await import("@/server/loan.service");
   await requireOperator();
-  const [applications, activeLoans, paidOffLoans, frozenLoans] = await Promise.all([
+  const [applications, activeLoans, paidOffLoans, frozenLoans, defaultedLoans] = await Promise.all([
     listInternalLoanApplications(),
     listInternalLoansByStatus(["ACTIVE"]),
     listInternalLoansByStatus(["PAID_OFF"]),
     listInternalLoansByStatus(["FROZEN"]),
+    listInternalLoansByStatus(["DEFAULTED"]),
   ]);
-  return { applications, activeLoans, paidOffLoans, frozenLoans };
+  return { applications, activeLoans, paidOffLoans, frozenLoans, defaultedLoans };
 });
+
+export type InternalLoansSearchInput = {
+  q?: string;
+  status?: string;
+  borrowerType?: "personal" | "company";
+  attention?: string;
+  offset?: number;
+  site?: string;
+};
+
+export const fetchInternalLoansFiltered = createServerFn({ method: "GET" })
+  .inputValidator((filters: InternalLoansSearchInput) => filters)
+  .handler(async ({ data }) => {
+    const { listInternalLoansFiltered } = await import("@/server/loan.service");
+    return listInternalLoansFiltered({
+      q: data.q,
+      status: data.status,
+      borrowerType: data.borrowerType,
+      attention: data.attention === "1" || data.attention === "true",
+      offset: data.offset ?? 0,
+      limit: 50,
+    });
+  });
 
 export const fetchInternalLoanApplicationDetail = createServerFn({ method: "GET" })
   .inputValidator((applicationId: string) => applicationId)
@@ -130,6 +154,8 @@ export const fetchInternalLoanApplicationDetail = createServerFn({ method: "GET"
 export const markLoanApplicationUnderReviewRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { applicationId: string; reviewNote?: string }) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Begin lending review");
     const { requireOperator } = await import("@/server/permissions.service");
     const { markLoanApplicationUnderReview } = await import("@/server/lending.service");
     const admin = await requireOperator();
@@ -140,6 +166,8 @@ export const markLoanApplicationUnderReviewRecord = createServerFn({ method: "PO
 export const approveLoanApplicationRecord = createServerFn({ method: "POST" })
   .inputValidator((input: ApproveLoanApplicationInput) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Accept lending application");
     const { requireOperator } = await import("@/server/permissions.service");
     const { approveLoanApplication } = await import("@/server/loan.service");
     const admin = await requireOperator();
@@ -150,6 +178,8 @@ export const approveLoanApplicationRecord = createServerFn({ method: "POST" })
 export const denyLoanApplicationRecord = createServerFn({ method: "POST" })
   .inputValidator((input: DenyLoanApplicationInput) => input)
   .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Deny lending application");
     const { requireOperator } = await import("@/server/permissions.service");
     const { denyLoanApplication } = await import("@/server/loan.service");
     const admin = await requireOperator();
@@ -237,7 +267,7 @@ export type InternalLegacyDealRoomRedirect =
   | {
       to: "/internal/lending/applications/$applicationId";
       params: { applicationId: string };
-      search: { tab: "thread" };
+      search: { section: "evidence" };
     }
   | {
       to: "/internal/users/$userId";
@@ -245,9 +275,9 @@ export type InternalLegacyDealRoomRedirect =
       search: Record<string, never>;
     }
   | {
-      to: "/internal/queues/deal-rooms";
+      to: "/internal/inbox";
       params: Record<string, never>;
-      search: Record<string, never>;
+      search: { type: "deal_room" };
     };
 
 /** Resolve legacy Prisma DealRoom URLs to the current lending workspace routes. */
@@ -267,7 +297,7 @@ export const resolveInternalLegacyDealRoomRedirect = createServerFn({ method: "G
       return {
         to: "/internal/lending/applications/$applicationId",
         params: { applicationId: room.loanApplicationId },
-        search: { tab: "thread" },
+        search: { section: "evidence" },
       };
     }
 
@@ -279,5 +309,5 @@ export const resolveInternalLegacyDealRoomRedirect = createServerFn({ method: "G
       };
     }
 
-    return { to: "/internal/queues/deal-rooms", params: {}, search: {} };
+    return { to: "/internal/inbox", params: {}, search: { type: "deal_room" } };
   });

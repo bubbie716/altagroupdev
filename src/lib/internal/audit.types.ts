@@ -20,17 +20,35 @@ export type AuditLogRow = {
   createdAt: string;
 };
 
+export type AuditLogViewMode = "meaningful" | "all";
+
 export type AuditLogFilters = {
   q?: string;
   action?: string;
   entityType?: AuditEntityType;
   entityId?: string;
   actorUserId?: string;
+  /** Actor Discord username contains (default filter). */
+  actor?: string;
   targetUserId?: string;
   targetAccountId?: string;
   targetCompanyId?: string;
   from?: string;
   to?: string;
+  /** Coarse event category (money, lending, cards, …). */
+  category?: string;
+  /** Default meaningful hides passive recommendation-view noise. */
+  view?: AuditLogViewMode;
+  offset?: number;
+  limit?: number;
+  site?: string;
+};
+
+export type AuditLogPage = {
+  rows: AuditLogRow[];
+  offset: number;
+  limit: number;
+  hasMore: boolean;
 };
 
 export type WriteAuditLogInput = {

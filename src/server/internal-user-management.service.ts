@@ -142,7 +142,13 @@ function mapListRow(user: {
   lastLoginAt: Date;
   createdAt: Date;
   tags: { tag: import("@prisma/client").UserTag }[];
-  _count: { companyMemberships: number; bankAccounts: number };
+  _count: {
+    companyMemberships: number;
+    bankAccounts: number;
+    altaCardsOwned: number;
+    loansBorrowed: number;
+    terminalPortfoliosOwned: number;
+  };
 }): InternalUserListRow {
   return {
     id: user.id,
@@ -154,6 +160,9 @@ function mapListRow(user: {
     tags: fromDbUserTags(user.tags),
     companyCount: user._count.companyMemberships,
     bankAccountCount: user._count.bankAccounts,
+    altaCardCount: user._count.altaCardsOwned,
+    activeLoanCount: user._count.loansBorrowed,
+    terminalPortfolioCount: user._count.terminalPortfoliosOwned,
     totalBankBalance:
       "bankAccounts" in user && Array.isArray(user.bankAccounts)
         ? user.bankAccounts.reduce((sum, a) => sum + decimalToNumber(a.balance), 0)
@@ -195,6 +204,9 @@ export async function listInternalUsers(
         select: {
           companyMemberships: true,
           bankAccounts: true,
+          altaCardsOwned: true,
+          loansBorrowed: { where: { status: { in: ["ACTIVE", "FROZEN"] } } },
+          terminalPortfoliosOwned: true,
         },
       },
     },
@@ -220,6 +232,9 @@ export async function getInternalUserDetail(userId: string): Promise<InternalUse
         select: {
           companyMemberships: true,
           bankAccounts: true,
+          altaCardsOwned: true,
+          loansBorrowed: { where: { status: { in: ["ACTIVE", "FROZEN"] } } },
+          terminalPortfoliosOwned: true,
         },
       },
     },

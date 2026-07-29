@@ -23,13 +23,20 @@ export async function buildOpsHealthFromMetrics(
 ): Promise<OpsHealthItem[]> {
   const jobs = await listOpsJobRuns();
   const jobMap = new Map(jobs.map((j) => [j.jobKey, j]));
-  const jobStatus = (key: string, fallback: string): OpsHealthItem => {
+  const jobStatus = (key: string, fallbackLabel: string, fallbackDetail: string): OpsHealthItem => {
     const j = jobMap.get(key);
+    const rawLabel = (j?.label ?? fallbackLabel ?? key).trim();
+    const label =
+      key === "BANK_ACCOUNT_STATEMENTS" || key === "statements"
+        ? "Bank account statements"
+        : /^[a-z0-9]+(?:[_-][a-z0-9]+)+$/i.test(rawLabel) || rawLabel === rawLabel.toLowerCase()
+          ? rawLabel.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          : rawLabel;
     return {
       key,
-      label: j?.label ?? key,
+      label,
       status: j?.lastStatus === "SUCCESS" ? "operational" : j?.lastStatus === "FAILED" ? "degraded" : "unknown",
-      detail: formatOpsJobRunHealthDetail(key, j?.lastMessage, fallback),
+      detail: formatOpsJobRunHealthDetail(key, j?.lastMessage, fallbackDetail),
       lastSuccessAt: j?.lastSuccessAt?.toISOString() ?? null,
     };
   };
@@ -51,13 +58,28 @@ export async function buildOpsHealthFromMetrics(
       detail: `${metrics.activeBankAccounts} active accounts · ${metrics.totalUsers} users`,
       lastSuccessAt: new Date().toISOString(),
     },
-    jobStatus("scheduled_transfers", `${metrics.pendingScheduledTransfers} pending · ${metrics.failedScheduledTransfers} failed`),
-    jobStatus("deposit_interest", "Deposit accrual and scheduled manual interest via cron"),
-    jobStatus("loan_servicing", `${metrics.activeLoans} active loans`),
-    jobStatus("BANK_ACCOUNT_STATEMENTS", "Bank account monthly statements"),
-    jobStatus("ALTA_CARD_STATEMENTS", "Alta Card statement generation"),
-    jobStatus("ALTA_CARD_BILLING", "Alta Card billing processing"),
-    jobStatus("statements", "Batch generation via Statements ops"),
+    jobStatus(
+      "scheduled_transfers",
+      "Scheduled transfers",
+      `${metrics.pendingScheduledTransfers} pending · ${metrics.failedScheduledTransfers} failed`,
+    ),
+    jobStatus(
+      "deposit_interest",
+      "Deposit interest",
+      "Deposit accrual and scheduled manual interest via cron",
+    ),
+    jobStatus("loan_servicing", "Loan servicing", `${metrics.activeLoans} active loans`),
+    jobStatus(
+      "BANK_ACCOUNT_STATEMENTS",
+      "Bank account statements",
+      "Monthly bank account statement generation",
+    ),
+    jobStatus(
+      "ALTA_CARD_STATEMENTS",
+      "Alta Card statements",
+      "Alta Card statement generation",
+    ),
+    jobStatus("ALTA_CARD_BILLING", "Alta Card billing", "Alta Card billing processing"),
     {
       key: "alta_pay",
       label: "Alta Pay",
@@ -122,7 +144,8 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
       severity: "high",
       title: s.label,
       detail: s.lastFailureReason ?? "Scheduled transfer failed",
-      href: "/internal/bank/transfers",
+      href: `/internal/bank/transfers/${s.id}`,
+      amount: decimalToNumber(s.amount),
       createdAt: s.updatedAt.toISOString(),
     });
   }
@@ -146,30 +169,8 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
     });
   }
 
-  const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
-  const pending = await getInternalDashboardMetrics();
-  if (pending.pendingDeposits > 0) {
-    items.push({
-      id: "queue-deposits",
-      category: "pending_review",
-      severity: "medium",
-      title: `${pending.pendingDeposits} pending deposits`,
-      detail: "Deposit review queue",
-      href: "/internal/bank/deposits",
-      createdAt: new Date().toISOString(),
-    });
-  }
-  if (pending.pendingWithdrawals > 0) {
-    items.push({
-      id: "queue-withdrawals",
-      category: "pending_review",
-      severity: "medium",
-      title: `${pending.pendingWithdrawals} pending withdrawals`,
-      detail: "Withdrawal review queue",
-      href: "/internal/bank/withdrawals",
-      createdAt: new Date().toISOString(),
-    });
-  }
+  // Aggregate "N pending deposits/withdrawals" summaries are intentionally omitted.
+  // Individual pending transactions are the authoritative Inbox cases; aggregates duplicated work.
 
   return items
     .map((item) => {
@@ -197,12 +198,15 @@ function formatAccountLabel(account: { accountName: string; accountNumber: strin
 export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]> {
   await requireOperator();
   const items: ActivityFeedItem[] = [];
+  const { formatOpsAuditActionTitle, isPassiveHomeActivityAction } = await import(
+    "@/lib/internal/ops-activity-title"
+  );
 
   const [audit, deposits, withdrawals, adjustments, loans] = await Promise.all([
     prisma.auditLog.findMany({
       include: { actor: true },
       orderBy: { createdAt: "desc" },
-      take: limit,
+      take: Math.max(limit * 3, 40),
     }),
     prisma.bankTransaction.findMany({
       where: { type: "DEPOSIT", status: "APPROVED" },
@@ -233,11 +237,12 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
   const auditAccounts = await resolveAccountsByAuditLogId(audit);
 
   for (const a of audit) {
+    if (isPassiveHomeActivityAction(a.action)) continue;
     const account = auditAccounts.get(a.id);
     items.push({
       id: `audit-${a.id}`,
       category: "audit",
-      title: a.action,
+      title: formatOpsAuditActionTitle(a.action),
       detail: a.description,
       accountLabel: account ? formatAccountLabel(account) : null,
       accountId: account?.id ?? null,
@@ -289,7 +294,7 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
     items.push({
       id: `loan-${l.id}`,
       category: "loan",
-      title: `Loan ${l.status}`,
+      title: `Loan ${humanizeLoanStatus(l.status)}`,
       detail: l.company?.name ?? l.borrowerUser?.discordUsername ?? l.id.slice(0, 8),
       accountLabel: l.linkedBankAccount ? formatAccountLabel(l.linkedBankAccount) : null,
       accountId: l.linkedBankAccountId,
@@ -300,6 +305,10 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
   }
 
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+}
+
+function humanizeLoanStatus(status: string): string {
+  return status.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export async function getOpsDailyReports(): Promise<Record<string, OpsReportRow>> {
@@ -356,7 +365,7 @@ export async function getOpsDailyReports(): Promise<Record<string, OpsReportRow>
 }
 
 export async function buildActivityTimeline(
-  entityType: "USER" | "BANK_ACCOUNT" | "COMPANY" | "LOAN",
+  entityType: "USER" | "BANK_ACCOUNT" | "COMPANY" | "LOAN" | "ALTA_CARD",
   entityId: string,
   limit = 50,
 ): Promise<TimelineEvent[]> {
@@ -385,6 +394,7 @@ export async function buildActivityTimeline(
     formatLendingAuditDescription,
     isLendingAuditAction,
   } = await import("@/lib/bank/lending-audit-display");
+  const { formatOpsAuditActionTitle } = await import("@/lib/internal/ops-activity-title");
 
   for (const a of audit) {
     const account = auditAccounts.get(a.id);
@@ -394,7 +404,7 @@ export async function buildActivityTimeline(
       kind: a.action,
       title: isLendingAuditAction(a.action)
         ? formatLendingAuditActionTitle(a.action)
-        : a.action.replace(/_/g, " "),
+        : formatOpsAuditActionTitle(a.action),
       detail: isLendingAuditAction(a.action)
         ? formatLendingAuditDescription(a.description)
         : a.description,

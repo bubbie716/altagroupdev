@@ -4,6 +4,7 @@ import type { AltaUser } from "@/lib/auth/types";
 import {
   assertEntityInternalRouteAccess,
   internalHomePathForSite,
+  isInternalPathAllowedForUser,
 } from "@/lib/internal/entity-internal-scope";
 
 function userWithTags(tags: AltaUser["tags"]): AltaUser {
@@ -77,6 +78,9 @@ describe("entity-internal-scope", () => {
     assert.doesNotThrow(() =>
       assertEntityInternalRouteAccess("bank", "/internal/queues/deposits", bankAdmin),
     );
+    assert.doesNotThrow(() =>
+      assertEntityInternalRouteAccess("bank", "/internal/inbox", bankAdmin),
+    );
     assert.throws(() => assertEntityInternalRouteAccess("bank", "/internal/settings", bankAdmin));
     assert.throws(() => assertEntityInternalRouteAccess("corporate", "/internal/bank", bankAdmin));
   });
@@ -92,5 +96,18 @@ describe("entity-internal-scope", () => {
     assert.throws(() =>
       assertEntityInternalRouteAccess("bank", "/internal/bank", terminalAdmin),
     );
+  });
+
+  it("mirrors access checks in isInternalPathAllowedForUser for nav filtering", () => {
+    const bankAdmin = userWithTags(["bank_admin"]);
+    assert.equal(isInternalPathAllowedForUser("bank", "/internal/queues/deposits", bankAdmin), true);
+    assert.equal(isInternalPathAllowedForUser("bank", "/internal/inbox", bankAdmin), true);
+    assert.equal(isInternalPathAllowedForUser("bank", "/internal/settings", bankAdmin), false);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/terminal/settings", userWithTags(["terminal_admin"])), true);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/terminal/orders", userWithTags(["terminal_admin"])), true);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/users/x", userWithTags(["terminal_admin"])), true);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/queues/deposits", userWithTags(["terminal_admin"])), false);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/bank/accounts", userWithTags(["terminal_admin"])), false);
+    assert.equal(isInternalPathAllowedForUser("terminal", "/internal/inbox", userWithTags(["terminal_admin"])), false);
   });
 });

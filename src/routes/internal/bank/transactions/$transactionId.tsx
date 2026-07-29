@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { TransactionWorkspaceView, parseWorkspaceTab } from "@/components/internal/workspace";
+import { TransactionWorkspaceView } from "@/components/internal/workspace";
 import { fetchTransactionDetail } from "@/lib/internal/ops-platform.functions";
 import { fetchActiveOpsReviewFlags } from "@/lib/internal/ops-v1.functions";
 import { fetchAuditLogsForEntity } from "@/lib/internal/audit.functions";
 import { fetchInternalNotes } from "@/lib/internal/internal-note.functions";
-
-const TABS = ["overview", "related", "flags", "audit", "notes"];
+import { parseTransactionRecordSearch } from "@/lib/internal/record-workspace-search";
+import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
 
 export const Route = createFileRoute("/internal/bank/transactions/$transactionId")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: parseWorkspaceTab(typeof search.tab === "string" ? search.tab : undefined, TABS),
-  }),
+  validateSearch: (search: Record<string, unknown>) => parseTransactionRecordSearch(search),
   loader: async ({ params }) => {
     const [tx, audit, notes, reviewFlags] = await Promise.all([
       fetchTransactionDetail({ data: params.transactionId }),
@@ -22,14 +20,22 @@ export const Route = createFileRoute("/internal/bank/transactions/$transactionId
     ]);
     return { tx, audit, notes, reviewFlags };
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: `${loaderData?.tx.referenceCode ?? "Transaction"} — Alta Internal` }],
+  head: ({ loaderData, match }) => ({
+    meta: [{ title: internalDocumentTitle(`${loaderData?.tx.referenceCode ?? "Transaction"}`, (match.search as { site?: string }).site ?? "bank") }],
   }),
   component: TransactionWorkspaceRoute,
 });
 
 function TransactionWorkspaceRoute() {
   const { tx, audit, notes, reviewFlags } = Route.useLoaderData();
-  const { tab } = Route.useSearch();
-  return <TransactionWorkspaceView tx={tx} audit={audit} notes={notes} activeTab={tab} reviewFlags={reviewFlags} />;
+  const search = Route.useSearch();
+  return (
+    <TransactionWorkspaceView
+      tx={tx}
+      audit={audit}
+      notes={notes}
+      search={search}
+      reviewFlags={reviewFlags}
+    />
+  );
 }

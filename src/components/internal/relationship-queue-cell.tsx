@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import { computeCompanyRelationshipProgress } from "@/lib/bank/customer-relationship-display";
 import type { RelationshipProfileSummary } from "@/lib/bank/relationship-intelligence-types";
 import type { CompanyRelationshipProfileSummary } from "@/lib/bank/company-relationship-intelligence-types";
+import { useSiteContext } from "@/hooks/use-site-context";
 
 export function RelationshipQueueCell({
   userId,
@@ -12,6 +13,7 @@ export function RelationshipQueueCell({
   userId: string;
   summary?: RelationshipProfileSummary | null;
 }) {
+  const site = useSiteContext();
   return (
     <div className="min-w-0">
       {summary ? (
@@ -27,6 +29,7 @@ export function RelationshipQueueCell({
       <Link
         to="/internal/relationships/$userId"
         params={{ userId }}
+        search={withInternalSiteSearch({}, site.key)}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Relationship →
@@ -42,6 +45,7 @@ export function CompanyRelationshipQueueCell({
   companyId: string;
   summary?: CompanyRelationshipProfileSummary | null;
 }) {
+  const site = useSiteContext();
   return (
     <div className="min-w-0">
       {summary ? (
@@ -61,9 +65,12 @@ export function CompanyRelationshipQueueCell({
         <p className="text-[11px] text-muted-foreground">No company profile</p>
       )}
       <Link
-        to="/internal/companies/$companyId/relationship"
+        to="/internal/companies/$companyId"
         params={{ companyId }}
-        search={internalWorkspaceTabSearch("relationship")}
+        search={withInternalSiteSearch(
+          { tab: "overview" as const, section: "relationship" },
+          site.key,
+        )}
         className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Company relationship →

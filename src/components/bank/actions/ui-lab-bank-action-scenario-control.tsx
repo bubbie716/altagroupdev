@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
+import { useSiteContext } from "@/hooks/use-site-context";
+import type { SiteKey } from "@/config/sites";
 import {
   getBankActionUiLabScenario,
   setBankActionUiLabScenario,
@@ -15,13 +18,61 @@ const SCENARIOS: { value: BankActionUiLabScenario; label: string }[] = [
   { value: "idempotent_replay", label: "Idempotent replay" },
 ];
 
-/** UI Lab only — never mount outside UI Lab mode. */
+const CORPORATE_BANK_WORKFLOW_PREFIXES = [
+  "/internal/bank",
+  "/internal/lending",
+  "/internal/alta-card",
+  "/internal/inbox",
+  "/internal/queues",
+  "/internal/users",
+  "/internal/companies",
+] as const;
+
+const CORPORATE_EXCLUDED_PREFIXES = [
+  "/internal/jobs",
+  "/internal/embeds",
+  "/internal/reports",
+  "/internal/compliance",
+  "/internal/settings",
+  "/internal/audit",
+] as const;
+
+function pathMatchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+export function shouldShowBankActionScenarioControl(siteKey: SiteKey, pathname: string): boolean {
+  if (siteKey === "terminal" || siteKey === "exchange") {
+    return false;
+  }
+
+  if (siteKey === "bank") {
+    return true;
+  }
+
+  if (siteKey === "corporate") {
+    if (CORPORATE_EXCLUDED_PREFIXES.some((prefix) => pathMatchesPrefix(pathname, prefix))) {
+      return false;
+    }
+    return CORPORATE_BANK_WORKFLOW_PREFIXES.some((prefix) => pathMatchesPrefix(pathname, prefix));
+  }
+
+  return false;
+}
+
+/** UI Lab only — Bank action scenarios; hidden on Terminal/Exchange and unrelated Corporate pages. */
 export function UiLabBankActionScenarioControl() {
+  const site = useSiteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [scenario, setScenario] = useState<BankActionUiLabScenario>("success");
 
   useEffect(() => {
     setScenario(getBankActionUiLabScenario());
   }, []);
+
+  if (!shouldShowBankActionScenarioControl(site.key, pathname)) {
+    return null;
+  }
 
   return (
     <label

@@ -57,8 +57,11 @@ export const UI_LAB_CORE_COMPANY_ID = "CO-ALTG";
 export const UI_LAB_PRO_COMPANY_ID = "CO-NPC";
 export const UI_LAB_CORE_ACCOUNT_ID = "ui-lab-biz-core";
 export const UI_LAB_PRO_ACCOUNT_ID = "ui-lab-biz-pro";
-/** Verified third-party company used as an invoice recipient (not owned by the UI Lab user). */
-export const UI_LAB_HARBOR_COMPANY_ID = "CO-HARBOR";
+/**
+ * Verified third-party company used as an invoice recipient (not owned by the UI Lab user).
+ * Canonical id matches UI Lab seed `CO-HBR` so company workspaces resolve.
+ */
+export const UI_LAB_HARBOR_COMPANY_ID = "CO-HBR";
 
 const CORE_LIMITS = {
   coreInvoiceMonthlyLimit: 25,

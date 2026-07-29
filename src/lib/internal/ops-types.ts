@@ -9,6 +9,8 @@ export type PaginatedResult<T> = {
 export type GlobalSearchResultType =
   | "user"
   | "company"
+  | "terminal_portfolio"
+  | "terminal_order"
   | "account"
   | "transaction"
   | "deposit"
@@ -67,6 +69,8 @@ export type ActivityFeedItem = {
   accountLabel: string | null;
   accountId: string | null;
   href: string | null;
+  /** Optional route search when linking from Home activity. */
+  search?: Record<string, unknown>;
   actorLabel: string | null;
   createdAt: string;
 };

@@ -1,27 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { DealRoomsInboxView, buildDealRoomInboxRows } from "@/components/internal/queues";
-import { fetchInternalLendingOps } from "@/lib/bank/lending.functions";
-import { fetchInternalAltaCardApplicationsFiltered } from "@/lib/bank/alta-card-application.functions";
-import { fetchInternalAltaCardReviewQueue } from "@/lib/bank/alta-card-review.functions";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { LEGACY_QUEUE_TO_INBOX } from "@/lib/internal/inbox-types";
+import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 
 export const Route = createFileRoute("/internal/queues/deal-rooms")({
-  loader: async () => {
-    const [lendingOps, altaCardApplications, altaCardReviews] = await Promise.all([
-      fetchInternalLendingOps(),
-      fetchInternalAltaCardApplicationsFiltered({ data: {} }),
-      fetchInternalAltaCardReviewQueue(),
-    ]);
-    return buildDealRoomInboxRows({
-      lendingApplications: lendingOps.applications,
-      altaCardApplications,
-      altaCardReviews,
+  validateSearch: validateDevSiteSearch,
+  beforeLoad: ({ search }) => {
+    const mapped = LEGACY_QUEUE_TO_INBOX["deal-rooms"]!;
+    throw redirect({
+      to: "/internal/inbox",
+      search: normalizeInternalSearch(withInternalSiteSearch({ type: mapped.type }, search.site)),
     });
   },
-  head: () => ({ meta: [{ title: "Deal Room Inbox — Alta Internal" }] }),
-  component: DealRoomsQueuePage,
 });
-
-function DealRoomsQueuePage() {
-  const rows = Route.useLoaderData();
-  return <DealRoomsInboxView rows={rows} />;
-}

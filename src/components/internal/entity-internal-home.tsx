@@ -13,18 +13,25 @@ export function EntityInternalHome({ siteKey }: { siteKey: SiteKey }) {
 
   return (
     <InternalPageShell title={`${site.displayName} Internal`}>
-      <OpsEmptyState
-        title="Operations console coming soon"
-        description={`${site.displayName} internal tools are not available yet. Alta Group operators can manage the full platform from the group internal console.`}
-        action={
-          <Link
-            to={settingsPath}
-            className="inline-flex items-center rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:border-border-strong hover:text-foreground"
-          >
-            Maintenance settings
-          </Link>
-        }
-      />
+      <div className="mx-auto max-w-xl">
+        <OpsEmptyState
+          title="Legacy host maintenance only"
+          description={
+            siteKey === "exchange"
+              ? "This host is a legacy redirect surface for Alta Terminal. Day-to-day Terminal operations live on the Terminal site console. Use maintenance settings here only for this host’s public-site controls."
+              : `${site.displayName} internal tools are limited to site maintenance.`
+          }
+          action={
+            <Link
+              to={settingsPath}
+              className="inline-flex items-center rounded border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground hover:border-border-strong hover:text-foreground"
+            >
+              Maintenance settings
+            </Link>
+          }
+          className="px-4 py-10 sm:px-6"
+        />
+      </div>
     </InternalPageShell>
   );
 }

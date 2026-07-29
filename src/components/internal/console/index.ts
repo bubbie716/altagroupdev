@@ -3,10 +3,30 @@ export { InternalShellProvider, useInternalShell } from "./internal-shell-contex
 export type { InternalShellPageState } from "./internal-shell-context";
 export { InternalSidebar } from "./internal-sidebar";
 export { InternalHeader } from "./internal-header";
+export { InternalMobileNav } from "./internal-mobile-nav";
+export { InternalNavLinks, useAuthorizedInternalNavGroups } from "./internal-nav";
 export { InternalBreadcrumbs, buildBreadcrumbs } from "./internal-breadcrumbs";
 export type { InternalBreadcrumbItem } from "./internal-breadcrumbs";
-export { INTERNAL_NAV_GROUPS, isInternalNavActive } from "./internal-nav-config";
-export type { InternalNavLink, InternalNavGroup } from "./internal-nav-config";
+export {
+  INTERNAL_NAV_GROUPS,
+  BANK_INTERNAL_NAV_GROUPS,
+  TERMINAL_INTERNAL_NAV_GROUPS,
+  EXCHANGE_INTERNAL_NAV_GROUPS,
+  getInternalNavGroupsForSite,
+  getInternalPrimaryNav,
+  getInternalContextualNav,
+  resolveInternalPrimarySection,
+  filterInternalNavGroupsForAccess,
+  filterInternalNavLinksForAccess,
+  isInternalNavActive,
+} from "./internal-nav-config";
+export type {
+  InternalNavLink,
+  InternalNavGroup,
+  InternalContextualNav,
+  InternalPrimarySectionId,
+} from "./internal-nav-config";
+export { InternalContextualNav as InternalContextualSectionNav } from "./internal-contextual-nav";
 export { OpsTable } from "./ops-table";
 export type { OpsTableColumn, OpsTableSort } from "./ops-table";
 export { OpsStatusBadge } from "./ops-status-badge";

@@ -84,6 +84,11 @@ export const generateAccountStatement = createServerFn({ method: "POST" })
 export const fetchInternalStatementOps = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOperator } = await import("@/server/permissions.service");
   await requireOperator();
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabInternalStatementOps } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+    return getUiLabInternalStatementOps();
+  }
   const { getInternalStatementOps } = await import("@/server/statement.service");
   return getInternalStatementOps();
 });

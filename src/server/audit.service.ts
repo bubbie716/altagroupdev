@@ -76,6 +76,84 @@ export async function writeAuditLog(input: WriteAuditLogInput): Promise<void> {
   }
 }
 
+const MEANINGFUL_VIEW_EXCLUDED_ACTIONS = [
+  "ALTA_CARD_RELATIONSHIP_RECOMMENDATION_VIEWED",
+  "RELATIONSHIP_RECOMMENDATION_VIEWED",
+  "COMPANY_RELATIONSHIP_RECOMMENDATION_VIEWED",
+  "RELATIONSHIP_INTELLIGENCE_VIEWED",
+  "COMPANY_RELATIONSHIP_INTELLIGENCE_VIEWED",
+];
+
+function categoryActionWhere(
+  category: string,
+): Prisma.AuditLogWhereInput | null {
+  switch (category) {
+    case "money":
+      return {
+        OR: [
+          { action: { contains: "DEPOSIT", mode: "insensitive" } },
+          { action: { contains: "WITHDRAWAL", mode: "insensitive" } },
+          { action: { contains: "TRANSFER", mode: "insensitive" } },
+          { action: { contains: "INTEREST", mode: "insensitive" } },
+          { action: { contains: "ADJUSTMENT", mode: "insensitive" } },
+          { action: { contains: "FEE", mode: "insensitive" } },
+          { action: { contains: "PAYROLL", mode: "insensitive" } },
+          { action: { contains: "ALTA_PAY", mode: "insensitive" } },
+          { action: { contains: "PAYMENT", mode: "insensitive" } },
+        ],
+      };
+    case "lending":
+      return {
+        OR: [
+          { action: { startsWith: "LOAN_" } },
+          { action: { contains: "LENDING", mode: "insensitive" } },
+          { action: { contains: "DEAL_ROOM", mode: "insensitive" } },
+        ],
+      };
+    case "cards":
+      return { action: { contains: "ALTA_CARD", mode: "insensitive" } };
+    case "accounts":
+      return {
+        OR: [
+          { action: { contains: "ACCOUNT", mode: "insensitive" } },
+          { action: { contains: "HOLD_", mode: "insensitive" } },
+          { action: { contains: "STATEMENT", mode: "insensitive" } },
+        ],
+      };
+    case "access":
+      return {
+        OR: [
+          { action: { contains: "RESTRICT", mode: "insensitive" } },
+          { action: { contains: "FREEZE", mode: "insensitive" } },
+          { action: { contains: "FROZEN", mode: "insensitive" } },
+          { action: { contains: "MAINTENANCE", mode: "insensitive" } },
+          { action: { contains: "CREDIT_DESK", mode: "insensitive" } },
+        ],
+      };
+    case "jobs":
+      return {
+        OR: [
+          { action: { contains: "OPS_JOB", mode: "insensitive" } },
+          { action: { contains: "JOB_RUN", mode: "insensitive" } },
+          { action: { contains: "SERVICING", mode: "insensitive" } },
+          { action: { contains: "RECONCILIATION", mode: "insensitive" } },
+        ],
+      };
+    case "alerts":
+      return {
+        OR: [
+          { action: { contains: "STAFF_AUDIT", mode: "insensitive" } },
+          { action: { contains: "STAFF_ALERT", mode: "insensitive" } },
+          { action: { contains: "NOTIFICATION", mode: "insensitive" } },
+        ],
+      };
+    case "other":
+      return null;
+    default:
+      return null;
+  }
+}
+
 function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {
   const and: Prisma.AuditLogWhereInput[] = [];
 
@@ -88,6 +166,11 @@ function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {
         { actor: { discordUsername: { contains: q, mode: "insensitive" } } },
       ],
     });
+  }
+
+  const actor = filters.actor?.trim();
+  if (actor) {
+    and.push({ actor: { discordUsername: { contains: actor, mode: "insensitive" } } });
   }
 
   if (filters.action) and.push({ action: filters.action });
@@ -103,6 +186,15 @@ function buildAuditWhere(filters: AuditLogFilters): Prisma.AuditLogWhereInput {
   }
   if (filters.to) {
     and.push({ createdAt: { lte: new Date(filters.to) } });
+  }
+
+  if (filters.view !== "all") {
+    and.push({ action: { notIn: MEANINGFUL_VIEW_EXCLUDED_ACTIONS } });
+  }
+
+  if (filters.category && filters.category !== "other") {
+    const cat = categoryActionWhere(filters.category);
+    if (cat) and.push(cat);
   }
 
   return and.length > 0 ? { AND: and } : {};
@@ -205,14 +297,28 @@ export async function listRecentAuditLogs(limit = 25): Promise<AuditLogRow[]> {
   return mapAuditRows(rows);
 }
 
-export async function queryAuditLogs(filters: AuditLogFilters, limit = 200): Promise<AuditLogRow[]> {
+export async function queryAuditLogs(
+  filters: AuditLogFilters,
+  limit = 50,
+): Promise<import("@/lib/internal/audit.types").AuditLogPage> {
+  const pageSize = Math.min(Math.max(filters.limit ?? limit, 1), 200);
+  const offset = Math.max(filters.offset ?? 0, 0);
+  const where = buildAuditWhere(filters);
   const rows = await prisma.auditLog.findMany({
-    where: buildAuditWhere(filters),
+    where,
     include: { actor: { select: { discordUsername: true } } },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: pageSize + 1,
+    skip: offset,
   });
-  return mapAuditRows(rows);
+  const hasMore = rows.length > pageSize;
+  const pageRows = hasMore ? rows.slice(0, pageSize) : rows;
+  return {
+    rows: await mapAuditRows(pageRows),
+    offset,
+    limit: pageSize,
+    hasMore,
+  };
 }
 
 export async function listAuditLogsForTarget(

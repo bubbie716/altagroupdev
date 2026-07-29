@@ -116,6 +116,7 @@ export type RelationshipIntelligenceDashboard = {
     relationshipScore: number;
     relationshipTier: RelationshipTierCode;
     totalAltaAssets: number;
+    lastCalculatedAt: string;
   }>;
   recentlyChanged: Array<{
     userId: string;

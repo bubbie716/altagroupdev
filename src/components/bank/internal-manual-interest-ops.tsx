@@ -24,6 +24,7 @@ import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { InternalStatCard } from "@/components/internal/internal-stat-card";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isAdmin } from "@/lib/auth/permissions";
+import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
@@ -36,6 +37,7 @@ export function InternalManualInterestOps() {
   const router = useRouter();
   const user = useCurrentUser();
   const canApply = user ? isAdmin(user) : false;
+  const { uiLab, bannerCopy } = useUiLabMutationGate();
 
   const previewFn = useServerFn(previewManualInterestApplicationRecord);
   const applyFn = useServerFn(applyManualInterestApplicationRecord);
@@ -156,6 +158,19 @@ export function InternalManualInterestOps() {
     setError(null);
     setConfirmationPhrase("");
     setIdempotencyKey(null);
+  }
+
+  if (uiLab) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-[13px] text-muted-foreground">
+          {bannerCopy}
+        </div>
+        <p className="text-[13px] text-muted-foreground">
+          Manual interest posting and scheduling are disabled in UI Lab.
+        </p>
+      </div>
+    );
   }
 
   return (

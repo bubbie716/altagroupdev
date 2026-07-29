@@ -134,15 +134,18 @@ export function LoanApplicationThreadView({
   backParams,
   className,
   product = "loan",
+  embedded = false,
 }: {
   context: LoanApplicationThreadContext;
   messages: LoanApplicationThreadMessageRow[];
   variant: "user" | "internal";
-  backTo: string;
-  backLabel: string;
+  backTo?: string;
+  backLabel?: string;
   backParams?: Record<string, string>;
   className?: string;
   product?: ApplicationThreadProduct;
+  /** When true, omits the page header shell for embedding in record workspaces. */
+  embedded?: boolean;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -349,17 +352,20 @@ export function LoanApplicationThreadView({
         className,
       )}
     >
-      {/* Header — simple status header */}
+      {/* Header — simple status header (hidden when embedded in a record workspace) */}
+      {!embedded ? (
       <header className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-[#f8f7f4]/85 backdrop-blur-md supports-[backdrop-filter]:bg-[#f8f7f4]/70 dark:bg-background/85 dark:supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
+          {backTo ? (
           <Link
             to={backTo}
             params={backParams}
-            aria-label={backLabel}
+            aria-label={backLabel ?? "Back"}
             className="-ml-1.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
+          ) : null}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-[#0f1729] dark:bg-gold/10">
             {variant === "internal" && ctx.applicantAvatarUrl ? (
               <img
@@ -372,9 +378,21 @@ export function LoanApplicationThreadView({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-serif text-[16px] leading-tight tracking-tight sm:text-[17px]">
+            {variant === "internal" ? (
+              <p className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Secure deal room
+              </p>
+            ) : null}
+            <p
+              className={cn(
+                "truncate leading-tight tracking-tight",
+                variant === "internal"
+                  ? "text-[13px] font-medium"
+                  : "font-serif text-[16px] sm:text-[17px]",
+              )}
+            >
               {variant === "internal" ? ctx.applicantName : copy.deskLabel}
-            </h1>
+            </p>
             <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
               {ctx.productLabel} · {headerStatusLabel}
               {decisionFinal && ctx.status === "closed" ? " · Deal room closed" : null}
@@ -427,6 +445,14 @@ export function LoanApplicationThreadView({
           </div>
         )}
       </header>
+      ) : (
+        <div className="shrink-0 border-b border-border/60 px-4 py-2 sm:px-6">
+          <p className="text-[11px] text-muted-foreground">
+            {ctx.productLabel} · {headerStatusLabel}
+            {decisionFinal && ctx.status === "closed" ? " · Deal room closed" : null}
+          </p>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="relative min-h-0 flex-1 flex flex-col">

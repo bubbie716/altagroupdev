@@ -1,3 +1,8 @@
+/**
+ * Customer notification popover — not used in the internal console header.
+ * Public/customer-facing notification centers live elsewhere; operators use
+ * {@link InternalInboxShortcut} instead of this customer feed.
+ */
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell } from "lucide-react";

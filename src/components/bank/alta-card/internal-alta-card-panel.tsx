@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { INTERNAL_ALTA_CARD_WORKSPACE_SEARCH } from "@/lib/internal/internal-route-search";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { INTERNAL_ALTA_CARD_WORKSPACE_SEARCH, withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 import type {
   AltaCardApplicationRow,
   AltaCardFeeRow,
@@ -44,7 +45,7 @@ import { AltaCardStatementList } from "@/components/bank/alta-card/alta-card-sta
 import { AltaCardStatementGenerateForm } from "@/components/bank/alta-card/alta-card-statement-generate-form";
 import { ALTA_CARD_BILLING_POLICY_LINES } from "@/lib/bank/alta-card-billing-cycle";
 
-function cardColumns(): AdminTableColumn<AltaCardRow>[] {
+function cardColumns(site?: string): AdminTableColumn<AltaCardRow>[] {
   return [
     {
       key: "holder",
@@ -71,7 +72,7 @@ function cardColumns(): AdminTableColumn<AltaCardRow>[] {
         <Link
           to="/internal/alta-card/$cardId"
           params={{ cardId: row.id }}
-          search={INTERNAL_ALTA_CARD_WORKSPACE_SEARCH}
+          search={withInternalSiteSearch(INTERNAL_ALTA_CARD_WORKSPACE_SEARCH, site)}
           className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold"
         >
           Manage →
@@ -168,6 +169,9 @@ export function InternalAltaCardPanel({
   applications: AltaCardApplicationRow[];
   onRefresh: () => Promise<void>;
 }) {
+  const site = useRouterState({
+    select: (s) => readDevSiteFromSearch(s.location.search as Record<string, unknown>),
+  });
   const [tierFilter, setTierFilter] = useState<AltaCardTierCode | "">("");
   const [statusFilter, setStatusFilter] = useState<AltaCardStatusCode | "">("");
   const [typeFilter, setTypeFilter] = useState<AltaCardTypeCode | "">("");
@@ -235,7 +239,7 @@ export function InternalAltaCardPanel({
         </Link>
       </div>
 
-      <AdminDataTable columns={cardColumns()} rows={filtered} rowKey={(row) => row.id} />
+      <AdminDataTable columns={cardColumns(site)} rows={filtered} rowKey={(row) => row.id} />
 
       <div>
         <h3 className="mb-4 font-serif text-[18px]">Pending applications</h3>

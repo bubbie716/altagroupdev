@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { internalWorkspaceTabSearch } from "@/lib/internal/internal-route-search";
+import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { useSiteContext } from "@/hooks/use-site-context";
 import type { CompanyRelationshipTimelineEventRow } from "@/lib/bank/company-relationship-intelligence-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 
@@ -57,6 +58,7 @@ export function CompanyRelationshipSummaryCard({
   totalBusinessAssets: number;
   commercialEligible: boolean;
 }) {
+  const site = useSiteContext();
   return (
     <section className="rounded-xl border border-border bg-surface-1/80 p-5">
       <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -82,9 +84,12 @@ export function CompanyRelationshipSummaryCard({
         </div>
       </dl>
       <Link
-        to="/internal/companies/$companyId/relationship"
+        to="/internal/companies/$companyId"
         params={{ companyId }}
-        search={internalWorkspaceTabSearch("relationship")}
+        search={withInternalSiteSearch(
+          { tab: "overview" as const, section: "relationship" },
+          site.key,
+        )}
         className="mt-4 inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-gold hover:underline"
       >
         Full company profile →

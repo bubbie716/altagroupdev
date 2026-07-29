@@ -39,6 +39,9 @@ export const applyManualInterestApplicationRecord = createServerFn({ method: "PO
     (input: ManualInterestApplicationInput & { confirmationPhrase: string }) => input,
   )
   .handler(async ({ data }): Promise<ManualInterestApplyResult> => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Manual interest posting");
+
     const { requireAdmin } = await import("@/server/permissions.service");
     const { applyManualInterestApplication } = await import("@/lib/bank/manual-interest-service");
     const { MANUAL_INTEREST_CONFIRMATION_PHRASE } = await import("@/lib/bank/manual-interest-types");
@@ -65,6 +68,9 @@ export const scheduleManualInterestApplicationRecord = createServerFn({ method: 
     (input: ManualInterestApplicationInput & { confirmationPhrase: string }) => input,
   )
   .handler(async ({ data }): Promise<ScheduleManualInterestResult> => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Manual interest posting");
+
     const { requireAdmin } = await import("@/server/permissions.service");
     const { scheduleManualInterestApplication } = await import(
       "@/server/manual-interest-scheduler.service"
@@ -105,6 +111,9 @@ export const fetchScheduledManualInterestApplications = createServerFn({ method:
 export const cancelScheduledManualInterestApplicationRecord = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data }): Promise<{ cancelled: true }> => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Manual interest posting");
+
     const { requireAdmin } = await import("@/server/permissions.service");
     const { cancelScheduledManualInterestApplication } = await import(
       "@/server/manual-interest-scheduler.service"
