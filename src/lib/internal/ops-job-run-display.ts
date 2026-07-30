@@ -9,6 +9,15 @@ type OpsJobRunSummary = {
   details?: Record<string, unknown>;
 };
 
+export function latestOpsJobRunAt(
+  lastSuccessAt: Date | null | undefined,
+  lastFailureAt: Date | null | undefined,
+): Date | null {
+  if (!lastSuccessAt) return lastFailureAt ?? null;
+  if (!lastFailureAt) return lastSuccessAt;
+  return lastSuccessAt.getTime() >= lastFailureAt.getTime() ? lastSuccessAt : lastFailureAt;
+}
+
 function parseOpsJobRunMessage(lastMessage: string | null | undefined): OpsJobRunSummary | null {
   if (!lastMessage?.trim()) return null;
   if (!lastMessage.trimStart().startsWith("{")) return null;

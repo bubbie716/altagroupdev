@@ -17,6 +17,17 @@ export type BalanceReconciliationResult = {
   mismatches: BalanceReconciliationMismatch[];
 };
 
+const UI_LAB_BANK_ACCOUNT_ID_PREFIX = "BA-LAB-";
+
+/**
+ * UI Lab accounts are deterministic presentation fixtures with seeded point-in-time
+ * balances, not complete opening-balance ledgers. They must not page operators as
+ * production reconciliation failures.
+ */
+export function isReconciliationEligibleAccountId(accountId: string): boolean {
+  return !accountId.startsWith(UI_LAB_BANK_ACCOUNT_ID_PREFIX);
+}
+
 function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
 }
@@ -58,10 +69,13 @@ export async function reconcileBankAccountBalances(input?: {
   accountIds?: string[];
   actorUserId?: string;
 }): Promise<BalanceReconciliationResult> {
-  const accounts = await prisma.bankAccount.findMany({
+  const candidateAccounts = await prisma.bankAccount.findMany({
     where: input?.accountIds?.length ? { id: { in: input.accountIds } } : { status: { not: "CLOSED" } },
     select: { id: true, accountNumber: true, balance: true },
   });
+  const accounts = candidateAccounts.filter((account) =>
+    isReconciliationEligibleAccountId(account.id),
+  );
 
   const mismatches: BalanceReconciliationMismatch[] = [];
 

@@ -10,6 +10,7 @@ import {
   buildLinkedReversalMetadata,
   parseLinkedReversalMetadata,
 } from "./transaction-reversal-link.ts";
+import { latestOpsJobRunAt } from "./ops-job-run-display.ts";
 import { isRetryableDeliveryFailure } from "../../server/notification-delivery-audit.service.ts";
 
 describe("failed action audit source normalization", () => {
@@ -90,8 +91,30 @@ describe("linked reversal metadata", () => {
 
 describe("balance reconciliation ledger math", () => {
   it("computes signed amounts for approved transactions", async () => {
-    const { computeLedgerBalanceForAccount } = await import("../../server/balance-reconciliation.service.ts");
+    const { computeLedgerBalanceForAccount } = await import(
+      "../../server/balance-reconciliation.service.ts"
+    );
     assert.equal(typeof computeLedgerBalanceForAccount, "function");
+  });
+
+  it("excludes incomplete UI Lab ledgers from operational reconciliation", async () => {
+    const { isReconciliationEligibleAccountId } = await import(
+      "../../server/balance-reconciliation.service.ts"
+    );
+    assert.equal(isReconciliationEligibleAccountId("BA-LAB-CHK"), false);
+    assert.equal(isReconciliationEligibleAccountId("cm_real_account"), true);
+  });
+});
+
+describe("ops job run timestamps", () => {
+  it("shows the newest run whether it succeeded or failed", () => {
+    const olderSuccess = new Date("2026-07-25T03:00:26.304Z");
+    const newerFailure = new Date("2026-07-30T22:00:19.396Z");
+    assert.equal(
+      latestOpsJobRunAt(olderSuccess, newerFailure)?.toISOString(),
+      newerFailure.toISOString(),
+    );
+    assert.equal(latestOpsJobRunAt(newerFailure, olderSuccess)?.toISOString(), newerFailure.toISOString());
   });
 });
 

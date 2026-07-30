@@ -1,5 +1,8 @@
 import { OPS_JOBS_CATALOG } from "@/lib/internal/ops-jobs-catalog";
-import { formatOpsJobRunHealthDetail } from "@/lib/internal/ops-job-run-display";
+import {
+  formatOpsJobRunHealthDetail,
+  latestOpsJobRunAt,
+} from "@/lib/internal/ops-job-run-display";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
 import { requireAdmin, requireOperator } from "@/server/permissions.service";
 import { writeAuditLog } from "@/server/audit.service";
@@ -50,7 +53,7 @@ export async function listOpsJobs(): Promise<OpsJobRow[]> {
   return OPS_JOBS_CATALOG.map((entry) => {
     const run = runMap.get(entry.jobKey);
     const summary = parseSummary(run?.lastMessage);
-    const lastRunAt = run?.lastSuccessAt ?? run?.lastFailureAt;
+    const lastRunAt = latestOpsJobRunAt(run?.lastSuccessAt, run?.lastFailureAt);
     const detailSummary = formatOpsJobRunHealthDetail(
       entry.jobKey,
       run?.lastMessage,
