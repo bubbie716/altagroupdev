@@ -106,6 +106,15 @@ function TerminalHomePage() {
         >
           Trade
         </button>
+        {portfolios[0] ? (
+          <Link
+            to="/bank"
+            search={{ action: "terminal-funding", portfolioId: portfolios[0].id }}
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
+          >
+            Transfer money
+          </Link>
+        ) : null}
         <QuickAction href="/terminal/markets" label="View markets" />
         <button
           type="button"

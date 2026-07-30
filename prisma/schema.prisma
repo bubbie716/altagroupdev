@@ -176,6 +176,8 @@ model User {
   terminalOrdersCreated                      TerminalOrder[]                      @relation("TerminalOrderCreatedBy")
   terminalWatchlists                         TerminalWatchlist[]
   terminalCashLedgerEntries                  TerminalCashLedgerEntry[]            @relation("TerminalCashLedgerActor")
+  terminalFundingTransfersInitiated          TerminalFundingTransfer[]            @relation("TerminalFundingInitiatedBy")
+  terminalFundingTransfersOwned              TerminalFundingTransfer[]            @relation("TerminalFundingOwnerUser")
   secureDealRoomDiscordSessions              SecureDealRoomDiscordSession[]
   notificationDeliveryQueue                  NotificationDeliveryQueue[]
   paymentsInitiated                          Payment[]                            @relation("PaymentInitiatedBy")
@@ -286,6 +288,7 @@ model Company {
   commercialSubscriptionCharges  CommercialSubscriptionCharge[]
   branding                       CompanyBranding?
   terminalPortfolios             TerminalPortfolio[]
+  terminalFundingTransfers       TerminalFundingTransfer[] @relation("TerminalFundingOwnerCompany")
 
   @@index([verificationStatus])
   @@index([commercialDowngradeScheduledAt])
@@ -565,6 +568,7 @@ model BankAccount {
   merchantInvoicesDestination       MerchantInvoice[]              @relation("MerchantInvoiceDestination")
   paymentLinksDestination           PaymentLink[]                  @relation("PaymentLinkDestination")
   merchantAutopayFundingApprovals   MerchantAutopayApproval[]
+  terminalFundingTransfers          TerminalFundingTransfer[]
 
   @@index([userId])
   @@index([companyId])
@@ -918,6 +922,7 @@ model BankTransaction {
   interestAccrual               BankInterestAccrual?
   altaCardTransactions          AltaCardTransaction[]          @relation("AltaCardRelatedBankTransaction")
   commercialSubscriptionCharges CommercialSubscriptionCharge[]
+  terminalFundingTransfer       TerminalFundingTransfer?
 
   @@index([bankAccountId])
   @@index([bankAccountId, createdAt])
@@ -1873,6 +1878,7 @@ enum AuditEntityType {
   PAYMENT_LINK
   MERCHANT_AUTOPAY_APPROVAL
   MERCHANT_RECURRING_INVOICE
+  TERMINAL_FUNDING_TRANSFER
 }
 
 enum InternalNoteTargetType {
@@ -2913,6 +2919,7 @@ enum TransferGroupType {
   PAYMENT_LINK
   ADJUSTMENT_REVERSAL
   MANUAL_REVERSAL
+  TERMINAL_FUNDING
   OTHER
 }
 
@@ -3033,8 +3040,9 @@ model TransferGroup {
   updatedAt     DateTime            @updatedAt
   completedAt   DateTime?
 
-  payment       Payment?
-  ledgerEntries BankTransaction[]
+  payment                 Payment?
+  ledgerEntries           BankTransaction[]
+  terminalFundingTransfer TerminalFundingTransfer?
 
   @@index([groupType, status])
   @@index([createdAt])
@@ -3436,11 +3444,12 @@ model TerminalPortfolio {
   createdByUser User                   @relation("TerminalPortfolioCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   selectedBy    UserTerminalSettings[]
 
-  cashAccount TerminalPortfolioCashAccount?
-  cashLedger  TerminalCashLedgerEntry[]
-  positions   TerminalPosition[]
-  orders      TerminalOrder[]
-  activity    TerminalPortfolioActivity[]
+  cashAccount       TerminalPortfolioCashAccount?
+  cashLedger        TerminalCashLedgerEntry[]
+  positions         TerminalPosition[]
+  orders            TerminalOrder[]
+  activity          TerminalPortfolioActivity[]
+  fundingTransfers  TerminalFundingTransfer[]
 
   @@index([ownerUserId, status])
   @@index([ownerCompanyId, status])
@@ -3494,10 +3503,11 @@ model TerminalCashLedgerEntry {
   source             String                        @default("system")
   createdAt          DateTime                      @default(now())
 
-  portfolio    TerminalPortfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  cashAccount  TerminalPortfolioCashAccount @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
-  relatedOrder TerminalOrder?               @relation(fields: [relatedOrderId], references: [id], onDelete: SetNull)
-  actorUser    User?                        @relation("TerminalCashLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  portfolio                 TerminalPortfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  cashAccount               TerminalPortfolioCashAccount @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
+  relatedOrder              TerminalOrder?               @relation(fields: [relatedOrderId], references: [id], onDelete: SetNull)
+  actorUser                 User?                        @relation("TerminalCashLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  terminalFundingTransfer   TerminalFundingTransfer?
 
   @@unique([portfolioId, idempotencyKey])
   @@index([portfolioId, createdAt])
@@ -3594,13 +3604,71 @@ model TerminalPortfolioActivity {
   cashAfter   Decimal?                      @db.Decimal(18, 2)
   createdAt   DateTime                      @default(now())
 
-  portfolio TerminalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  order     TerminalOrder?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  portfolio               TerminalPortfolio         @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  order                   TerminalOrder?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  terminalFundingTransfer TerminalFundingTransfer?
 
   @@index([portfolioId, occurredAt])
   @@index([orderId])
   @@index([kind, occurredAt])
   @@index([symbol, occurredAt])
+}
+
+/// Authoritative Alta Bank ↔ Alta Terminal funding operation (internal cash only; not TSE custody).
+model TerminalFundingTransfer {
+  id                     String                   @id @default(cuid())
+  referenceCode          String                   @unique
+  direction              TerminalFundingDirection
+  status                 TerminalFundingStatus    @default(PENDING)
+  amount                 Decimal                  @db.Decimal(18, 2)
+  currency               String                   @default("FLR")
+  bankAccountId          String
+  portfolioId            String
+  ownerUserId            String?
+  ownerCompanyId         String?
+  initiatedByUserId      String
+  idempotencyKey         String?
+  failureCode            String?
+  failureMessage         String?
+  bankTransactionId      String?                  @unique
+  transferGroupId        String?                  @unique
+  terminalLedgerEntryId  String?                  @unique
+  terminalActivityId     String?                  @unique
+  operatorReason         String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  completedAt            DateTime?
+  failedAt               DateTime?
+
+  bankAccount         BankAccount               @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  portfolio           TerminalPortfolio         @relation(fields: [portfolioId], references: [id], onDelete: Restrict)
+  ownerUser           User?                     @relation("TerminalFundingOwnerUser", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  ownerCompany        Company?                  @relation("TerminalFundingOwnerCompany", fields: [ownerCompanyId], references: [id], onDelete: SetNull)
+  initiatedBy         User                      @relation("TerminalFundingInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  bankTransaction     BankTransaction?          @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  transferGroup       TransferGroup?            @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  terminalLedgerEntry TerminalCashLedgerEntry?  @relation(fields: [terminalLedgerEntryId], references: [id], onDelete: SetNull)
+  terminalActivity    TerminalPortfolioActivity? @relation(fields: [terminalActivityId], references: [id], onDelete: SetNull)
+
+  @@unique([initiatedByUserId, idempotencyKey])
+  @@index([bankAccountId, createdAt])
+  @@index([portfolioId, createdAt])
+  @@index([ownerUserId, createdAt])
+  @@index([ownerCompanyId, createdAt])
+  @@index([status, createdAt])
+  @@index([direction, status])
+  @@index([createdAt])
+}
+
+enum TerminalFundingDirection {
+  BANK_TO_TERMINAL
+  TERMINAL_TO_BANK
+}
+
+enum TerminalFundingStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
 
 model TerminalWatchlist {

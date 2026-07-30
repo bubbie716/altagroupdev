@@ -19,6 +19,7 @@ export type BankActionLaunchExtras = {
   companyId?: string;
   scope?: "personal" | "all";
   accountType?: BankAccountTypeCode;
+  portfolioId?: string;
 };
 
 /**
@@ -55,6 +56,7 @@ export function useBankActionLauncher() {
         companyId: extras?.companyId,
         scope: extras?.scope,
         accountType: extras?.accountType,
+        portfolioId: extras?.portfolioId,
       });
       void router.navigate({
         to: pathname,
@@ -91,6 +93,7 @@ export function useBankActionLauncher() {
     companyId: parsed.companyId,
     scope: parsed.scope,
     accountType: parsed.accountType,
+    portfolioId: parsed.portfolioId,
     openAction,
     closeAction,
     restoreLaunchFocus,

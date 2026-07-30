@@ -250,6 +250,7 @@ import { Route as BankAltaCardCardIdStatementsIndexRouteImport } from './routes/
 import { Route as BankAltaCardCardIdReviewIndexRouteImport } from './routes/bank/alta-card/$cardId/review/index'
 import { Route as BankAccountAccountIdCommercialIndexRouteImport } from './routes/bank/account/$accountId/commercial/index'
 import { Route as InternalLendingApplicationsApplicationIdThreadRouteImport } from './routes/internal/lending/applications/$applicationId/thread'
+import { Route as InternalBankTransfersFundingTransferIdRouteImport } from './routes/internal/bank/transfers/funding.$transferId'
 import { Route as InternalBankAltaPayPaymentLinksLinkIdRouteImport } from './routes/internal/bank/alta-pay/payment-links/$linkId'
 import { Route as InternalBankAltaPayInvoicesInvoiceIdRouteImport } from './routes/internal/bank/alta-pay/invoices/$invoiceId'
 import { Route as InternalAltaCardReviewsReviewIdThreadRouteImport } from './routes/internal/alta-card/reviews/$reviewId/thread'
@@ -1594,6 +1595,12 @@ const InternalLendingApplicationsApplicationIdThreadRoute =
     path: '/applications/$applicationId/thread',
     getParentRoute: () => InternalLendingRouteRoute,
   } as any)
+const InternalBankTransfersFundingTransferIdRoute =
+  InternalBankTransfersFundingTransferIdRouteImport.update({
+    id: '/transfers/funding/$transferId',
+    path: '/transfers/funding/$transferId',
+    getParentRoute: () => InternalBankRouteRoute,
+  } as any)
 const InternalBankAltaPayPaymentLinksLinkIdRoute =
   InternalBankAltaPayPaymentLinksLinkIdRouteImport.update({
     id: '/alta-pay/payment-links/$linkId',
@@ -2081,6 +2088,7 @@ export interface FileRoutesByFullPath {
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/bank/alta-pay/invoices/$invoiceId': typeof InternalBankAltaPayInvoicesInvoiceIdRoute
   '/internal/bank/alta-pay/payment-links/$linkId': typeof InternalBankAltaPayPaymentLinksLinkIdRoute
+  '/internal/bank/transfers/funding/$transferId': typeof InternalBankTransfersFundingTransferIdRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
   '/bank/account/$accountId/commercial/': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
@@ -2334,6 +2342,7 @@ export interface FileRoutesByTo {
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/bank/alta-pay/invoices/$invoiceId': typeof InternalBankAltaPayInvoicesInvoiceIdRoute
   '/internal/bank/alta-pay/payment-links/$linkId': typeof InternalBankAltaPayPaymentLinksLinkIdRoute
+  '/internal/bank/transfers/funding/$transferId': typeof InternalBankTransfersFundingTransferIdRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
   '/bank/account/$accountId/commercial': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review': typeof BankAltaCardCardIdReviewIndexRoute
@@ -2616,6 +2625,7 @@ export interface FileRoutesById {
   '/internal/alta-card/reviews/$reviewId/thread': typeof InternalAltaCardReviewsReviewIdThreadRoute
   '/internal/bank/alta-pay/invoices/$invoiceId': typeof InternalBankAltaPayInvoicesInvoiceIdRoute
   '/internal/bank/alta-pay/payment-links/$linkId': typeof InternalBankAltaPayPaymentLinksLinkIdRoute
+  '/internal/bank/transfers/funding/$transferId': typeof InternalBankTransfersFundingTransferIdRoute
   '/internal/lending/applications/$applicationId/thread': typeof InternalLendingApplicationsApplicationIdThreadRoute
   '/bank/account/$accountId/commercial/': typeof BankAccountAccountIdCommercialIndexRoute
   '/bank/alta-card/$cardId/review/': typeof BankAltaCardCardIdReviewIndexRoute
@@ -2899,6 +2909,7 @@ export interface FileRouteTypes {
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/bank/alta-pay/invoices/$invoiceId'
     | '/internal/bank/alta-pay/payment-links/$linkId'
+    | '/internal/bank/transfers/funding/$transferId'
     | '/internal/lending/applications/$applicationId/thread'
     | '/bank/account/$accountId/commercial/'
     | '/bank/alta-card/$cardId/review/'
@@ -3152,6 +3163,7 @@ export interface FileRouteTypes {
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/bank/alta-pay/invoices/$invoiceId'
     | '/internal/bank/alta-pay/payment-links/$linkId'
+    | '/internal/bank/transfers/funding/$transferId'
     | '/internal/lending/applications/$applicationId/thread'
     | '/bank/account/$accountId/commercial'
     | '/bank/alta-card/$cardId/review'
@@ -3433,6 +3445,7 @@ export interface FileRouteTypes {
     | '/internal/alta-card/reviews/$reviewId/thread'
     | '/internal/bank/alta-pay/invoices/$invoiceId'
     | '/internal/bank/alta-pay/payment-links/$linkId'
+    | '/internal/bank/transfers/funding/$transferId'
     | '/internal/lending/applications/$applicationId/thread'
     | '/bank/account/$accountId/commercial/'
     | '/bank/alta-card/$cardId/review/'
@@ -5203,6 +5216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalLendingApplicationsApplicationIdThreadRouteImport
       parentRoute: typeof InternalLendingRouteRoute
     }
+    '/internal/bank/transfers/funding/$transferId': {
+      id: '/internal/bank/transfers/funding/$transferId'
+      path: '/transfers/funding/$transferId'
+      fullPath: '/internal/bank/transfers/funding/$transferId'
+      preLoaderRoute: typeof InternalBankTransfersFundingTransferIdRouteImport
+      parentRoute: typeof InternalBankRouteRoute
+    }
     '/internal/bank/alta-pay/payment-links/$linkId': {
       id: '/internal/bank/alta-pay/payment-links/$linkId'
       path: '/alta-pay/payment-links/$linkId'
@@ -6054,6 +6074,7 @@ interface InternalBankRouteRouteChildren {
   InternalBankTransfersIndexRoute: typeof InternalBankTransfersIndexRoute
   InternalBankAltaPayInvoicesInvoiceIdRoute: typeof InternalBankAltaPayInvoicesInvoiceIdRoute
   InternalBankAltaPayPaymentLinksLinkIdRoute: typeof InternalBankAltaPayPaymentLinksLinkIdRoute
+  InternalBankTransfersFundingTransferIdRoute: typeof InternalBankTransfersFundingTransferIdRoute
 }
 
 const InternalBankRouteRouteChildren: InternalBankRouteRouteChildren = {
@@ -6077,6 +6098,8 @@ const InternalBankRouteRouteChildren: InternalBankRouteRouteChildren = {
     InternalBankAltaPayInvoicesInvoiceIdRoute,
   InternalBankAltaPayPaymentLinksLinkIdRoute:
     InternalBankAltaPayPaymentLinksLinkIdRoute,
+  InternalBankTransfersFundingTransferIdRoute:
+    InternalBankTransfersFundingTransferIdRoute,
 }
 
 const InternalBankRouteRouteWithChildren =

@@ -147,12 +147,29 @@ export async function getTerminalOpsPortfolioFromDb(
     rejectReason: order.rejectReason,
     needsAttention: order.status === "REJECTED" || Boolean(order.rejectReason),
   }));
+  const { listPortfolioFundingTransfersForOps } = await import(
+    "@/server/terminal-funding.service"
+  );
+  const fundingRows = await listPortfolioFundingTransfersForOps(portfolioId, {
+    maskBank: true,
+    limit: 20,
+  });
+
   return {
     ...row,
     holdings: [],
     openOrders: orderRows.filter((order) => order.status === "open" || order.status === "partial"),
     recentOrders: orderRows,
     activity: [],
+    fundingTransfers: fundingRows.map((t) => ({
+      id: t.id,
+      referenceCode: t.referenceCode,
+      direction: t.direction,
+      status: t.status,
+      amount: t.amount,
+      bankAccountMasked: t.bankAccountMasked,
+      createdAt: t.createdAt,
+    })),
   };
 }
 

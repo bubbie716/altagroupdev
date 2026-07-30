@@ -1,24 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeftRight, Send } from "lucide-react";
+import { ArrowLeftRight, Landmark, Send } from "lucide-react";
 import {
   BankActionChoiceCard,
 } from "@/components/bank/actions/bank-action-chrome";
 import type { BankActionFlowController } from "@/components/bank/actions/bank-action-flow-types";
 import { TransferActionFlow } from "@/components/bank/actions/flows/transfer-action-flow";
 import { PayActionFlow } from "@/components/bank/actions/flows/pay-action-flow";
+import { TerminalFundingActionFlow } from "@/components/bank/actions/flows/terminal-funding-action-flow";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 
-type Branch = "chooser" | "transfer" | "pay";
+type Branch = "chooser" | "transfer" | "pay" | "terminal-funding";
 
 export function MoveMoneyActionFlow({
   accounts,
   defaultAccountId,
+  defaultPortfolioId,
   ...ctrl
 }: BankActionFlowController & {
   accounts: UserBankAccount[];
   defaultAccountId?: string;
+  defaultPortfolioId?: string;
 }) {
   const [branch, setBranch] = useState<Branch>("chooser");
 
@@ -65,6 +68,17 @@ export function MoveMoneyActionFlow({
     );
   }
 
+  if (branch === "terminal-funding") {
+    return (
+      <TerminalFundingActionFlow
+        {...ctrl}
+        defaultAccountId={defaultAccountId}
+        defaultPortfolioId={defaultPortfolioId}
+        onExitToChooser={() => setBranch("chooser")}
+      />
+    );
+  }
+
   return (
     <div className="space-y-3">
       <BankActionChoiceCard
@@ -78,6 +92,12 @@ export function MoveMoneyActionFlow({
         description="Send Florin to a person or business."
         icon={<Send className="size-4" aria-hidden />}
         onClick={() => openBranch("pay")}
+      />
+      <BankActionChoiceCard
+        title="Transfer to or from Alta Terminal"
+        description="Move florins between Bank and a Terminal portfolio."
+        icon={<Landmark className="size-4" aria-hidden />}
+        onClick={() => openBranch("terminal-funding")}
       />
       <BankActionChoiceCard
         title="External bank transfer"

@@ -150,6 +150,25 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
     });
   }
 
+  // Exception-only: failed Terminal funding (not completed successes).
+  const failedFunding = await prisma.terminalFundingTransfer.findMany({
+    where: { status: "FAILED" },
+    take: 50,
+    orderBy: { updatedAt: "desc" },
+  });
+  for (const t of failedFunding) {
+    items.push({
+      id: `tfd-${t.id}`,
+      category: "failed_transfer",
+      severity: "high",
+      title: `Terminal funding · ${t.referenceCode}`,
+      detail: t.failureMessage ?? "Bank ↔ Terminal funding transfer failed",
+      href: `/internal/bank/transfers/funding/${t.id}`,
+      amount: decimalToNumber(t.amount),
+      createdAt: (t.failedAt ?? t.updatedAt).toISOString(),
+    });
+  }
+
   const largeAdjustments = await prisma.bankTransaction.findMany({
     where: { type: "ADJUSTMENT", status: "APPROVED", createdAt: { gte: since }, amount: { gte: 100_000 } },
     include: { bankAccount: { include: { user: true, company: true } } },

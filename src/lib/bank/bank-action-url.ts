@@ -32,6 +32,7 @@ export const BANK_ACTION_SEARCH_KEYS = [
   "companyId",
   "scope",
   "accountType",
+  "portfolioId",
 ] as const;
 
 export type BankActionSearch = {
@@ -42,6 +43,7 @@ export type BankActionSearch = {
   companyId?: string;
   scope?: "personal" | "all";
   accountType?: BankAccountTypeCode;
+  portfolioId?: string;
 };
 
 export function parseBankActionSearch(
@@ -63,6 +65,7 @@ export function parseBankActionSearch(
     companyId: typeof params.companyId === "string" ? params.companyId : undefined,
     scope,
     accountType: parseBankAccountTypeCode(params.accountType),
+    portfolioId: typeof params.portfolioId === "string" ? params.portfolioId : undefined,
   };
 }
 
@@ -86,6 +89,7 @@ export function mergeBankActionSearch(
     companyId?: string;
     scope?: "personal" | "all";
     accountType?: BankAccountTypeCode;
+    portfolioId?: string;
   },
 ): Record<string, unknown> {
   const next: Record<string, unknown> = { ...current, action: patch.action };
@@ -101,6 +105,8 @@ export function mergeBankActionSearch(
   else delete next.scope;
   if (patch.accountType) next.accountType = patch.accountType;
   else delete next.accountType;
+  if (patch.portfolioId) next.portfolioId = patch.portfolioId;
+  else delete next.portfolioId;
   return next;
 }
 

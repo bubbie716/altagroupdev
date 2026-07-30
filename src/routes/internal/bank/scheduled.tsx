@@ -10,7 +10,7 @@ export const Route = createFileRoute("/internal/bank/scheduled")({
       to: "/internal/bank/transfers",
       search: normalizeInternalSearch({
         ...siteSearchPatch(search.site),
-        status: "scheduled",
+        status: "scheduled" as const,
       }),
     });
   },

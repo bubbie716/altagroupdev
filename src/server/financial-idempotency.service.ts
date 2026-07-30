@@ -3,7 +3,11 @@ import { prisma } from "@/server/db";
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
-export type FinancialIdempotencyScope = "internal_transfer" | "alta_pay" | "alta_pay_person";
+export type FinancialIdempotencyScope =
+  | "internal_transfer"
+  | "alta_pay"
+  | "alta_pay_person"
+  | "terminal_funding";
 
 function stableHash(payload: unknown): string {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");

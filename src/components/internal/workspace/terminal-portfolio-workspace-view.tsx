@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   INTERNAL_COMPANY_WORKSPACE_SEARCH,
   INTERNAL_TERMINAL_ORDER_RECORD_SEARCH,
+  INTERNAL_TRANSFER_RECORD_SEARCH,
   INTERNAL_USER_WORKSPACE_SEARCH,
   withInternalSiteSearch,
 } from "@/lib/internal/internal-route-search";
@@ -189,6 +190,43 @@ export function TerminalPortfolioWorkspaceView({
             environment. Missing values are not zeros.
           </p>
         )}
+
+        <RecordSummaryCard title="Bank ↔ Terminal funding" id={recordSectionId("funding")}>
+          {!portfolio.fundingTransfers || portfolio.fundingTransfers.length === 0 ? (
+            <RecordEmptyCopy>No funding transfers recorded for this portfolio.</RecordEmptyCopy>
+          ) : (
+            <ul className="divide-y divide-border/60 text-[13px]">
+              {portfolio.fundingTransfers.map((row) => (
+                <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
+                  <div className="min-w-0">
+                    <Link
+                      to="/internal/bank/transfers/funding/$transferId"
+                      params={{ transferId: row.id }}
+                      search={withInternalSiteSearch(
+                        { ...INTERNAL_TRANSFER_RECORD_SEARCH, from: search.from },
+                        search.site,
+                      )}
+                      className="font-mono text-[12px] text-gold hover:underline"
+                    >
+                      {row.referenceCode}
+                    </Link>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {row.direction === "BANK_TO_TERMINAL" ? "Bank → Terminal" : "Terminal → Bank"}{" "}
+                      · Bank {row.bankAccountMasked}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                      {formatActivityDateTime(row.createdAt)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="tabular-nums">{formatTerminalMoney(row.amount)}</div>
+                    <StatusBadge status={row.status} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </RecordSummaryCard>
 
         <RecordSummaryCard title="Holdings" id={recordSectionId("holdings")}>
           {!trustworthy && portfolio.holdings.length === 0 ? (

@@ -13,6 +13,7 @@ import { WithdrawActionFlow } from "@/components/bank/actions/flows/withdraw-act
 import { PayActionFlow } from "@/components/bank/actions/flows/pay-action-flow";
 import { OpenAccountActionFlow } from "@/components/bank/actions/flows/open-account-action-flow";
 import { TransferActionFlow } from "@/components/bank/actions/flows/transfer-action-flow";
+import { TerminalFundingActionFlow } from "@/components/bank/actions/flows/terminal-funding-action-flow";
 import { CardFreezeActionFlow } from "@/components/bank/actions/flows/card-freeze-action-flow";
 import { useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -29,6 +30,7 @@ export function BankActionHost() {
     companyId,
     scope,
     accountType,
+    portfolioId,
     closeAction,
     restoreLaunchFocus,
   } = useBankActionLauncher();
@@ -78,11 +80,12 @@ export function BankActionHost() {
 
   return (
     <BankActionFlowShell
-      key={`${action}:${accountId ?? ""}:${cardId ?? ""}:${companyId ?? ""}:${scope ?? ""}:${accountType ?? ""}`}
+      key={`${action}:${accountId ?? ""}:${cardId ?? ""}:${companyId ?? ""}:${scope ?? ""}:${accountType ?? ""}:${portfolioId ?? ""}`}
       action={action}
       accountId={accountId}
       cardId={cardId}
       accountType={accountType}
+      portfolioId={portfolioId}
       accountContext={accountContext}
       accounts={accounts}
       loadError={loadError}
@@ -99,6 +102,7 @@ function BankActionFlowShell({
   accountId,
   cardId,
   accountType,
+  portfolioId,
   accountContext,
   accounts,
   loadError,
@@ -108,6 +112,7 @@ function BankActionFlowShell({
   accountId?: string;
   cardId?: string;
   accountType?: BankAccountTypeCode;
+  portfolioId?: string;
   accountContext: {
     accountId?: string;
     companyId?: string;
@@ -118,7 +123,7 @@ function BankActionFlowShell({
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<BankActionPhase>(
-    action === "move-money" ? "selection" : "details",
+    action === "move-money" || action === "terminal-funding" ? "selection" : "details",
   );
   const [title, setTitle] = useState(BANK_ACTION_LABELS[action]);
   const [description, setDescription] = useState<string | undefined>(undefined);
@@ -144,6 +149,26 @@ function BankActionFlowShell({
       <MoveMoneyActionFlow
         accounts={accounts}
         defaultAccountId={accountId}
+        defaultPortfolioId={portfolioId}
+        accountContext={accountContext}
+        phase={phase}
+        setPhase={setPhase}
+        setTitle={setTitle}
+        setDescription={setDescription}
+        setDirty={setDirty}
+        setShowBack={setShowBack}
+        setFooter={setFooter}
+        registerBack={(fn) => {
+          backHandlerRef.current = fn;
+        }}
+        onDone={onClose}
+      />
+    );
+  } else if (action === "terminal-funding") {
+    body = (
+      <TerminalFundingActionFlow
+        defaultAccountId={accountId}
+        defaultPortfolioId={portfolioId}
         accountContext={accountContext}
         phase={phase}
         setPhase={setPhase}

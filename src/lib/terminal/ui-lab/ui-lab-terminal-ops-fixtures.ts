@@ -353,9 +353,22 @@ export function getUiLabTerminalPortfolioDetail(
             id: `${portfolioId}-act-3`,
             kind: "cash_deposit",
             title: "Cash deposit",
-            detail: "Funding",
+            detail: "Transfer from Alta Bank",
             occurredAt: daysFromNow(-20),
             amount: 5_000,
+          },
+        ],
+    fundingTransfers: isEmpty
+      ? []
+      : [
+          {
+            id: "TFT-LAB-1",
+            referenceCode: "TFD-LAB-0001",
+            direction: "BANK_TO_TERMINAL" as const,
+            status: "COMPLETED" as const,
+            amount: 500,
+            bankAccountMasked: "····0002",
+            createdAt: daysFromNow(-1),
           },
         ],
   };

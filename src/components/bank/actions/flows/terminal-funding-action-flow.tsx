@@ -1,0 +1,491 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  BankActionFooter,
+  BankActionPrimaryButton,
+  BankActionProcessing,
+  BankActionProgress,
+  BankActionSuccess,
+} from "@/components/bank/actions/bank-action-chrome";
+import {
+  BankProcessError,
+  BankProcessSummary,
+} from "@/components/bank/actions/bank-process-ui";
+import type { BankActionFlowController } from "@/components/bank/actions/bank-action-flow-types";
+import { florin } from "@/lib/bank/api";
+import { ensureIdempotencyKey } from "@/lib/bank/bank-action-flow";
+import { waitBankProcessMin, BANK_PROCESS_MOTION } from "@/lib/bank/bank-process";
+import { formatBankActionError } from "@/lib/bank/account-status-copy";
+import {
+  fetchTerminalFundingEligibility,
+  submitTerminalFundingTransferFn,
+} from "@/lib/terminal/terminal-funding.functions";
+import type {
+  TerminalFundingDirection,
+  TerminalFundingEligibility,
+  TerminalFundingReceipt,
+} from "@/lib/terminal/terminal-funding-types";
+import { TERMINAL_FUNDING_TSE_DISCLAIMER } from "@/lib/terminal/terminal-funding-types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const inputClass =
+  "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-base sm:text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 disabled:opacity-60 min-h-11";
+
+type Step = "direction" | "details" | "review" | "submitting" | "success" | "error";
+
+export function TerminalFundingActionFlow({
+  phase,
+  setPhase,
+  setTitle,
+  setDescription,
+  setDirty,
+  setShowBack,
+  setFooter,
+  registerBack,
+  onDone,
+  onExitToChooser,
+  defaultPortfolioId,
+  defaultAccountId,
+}: BankActionFlowController & {
+  onExitToChooser?: () => void;
+  defaultPortfolioId?: string;
+  defaultAccountId?: string;
+}) {
+  const loadEligibility = useServerFn(fetchTerminalFundingEligibility);
+  const submitFunding = useServerFn(submitTerminalFundingTransferFn);
+
+  const [eligibility, setEligibility] = useState<TerminalFundingEligibility | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>("direction");
+  const [direction, setDirection] = useState<TerminalFundingDirection | null>(null);
+  const [bankAccountId, setBankAccountId] = useState(defaultAccountId ?? "");
+  const [portfolioId, setPortfolioId] = useState(defaultPortfolioId ?? "");
+  const [amount, setAmount] = useState("");
+  const [errorReason, setErrorReason] = useState<string | null>(null);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<TerminalFundingReceipt | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const submittingLockRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadEligibility()
+      .then((data) => {
+        if (cancelled) return;
+        setEligibility(data);
+        if (!bankAccountId) {
+          const first = data.accounts.find((a) => a.canDebit || a.canCredit);
+          if (first) setBankAccountId(first.id);
+        }
+        if (!portfolioId) {
+          const first = data.portfolios.find((p) => p.canFund);
+          if (first) setPortfolioId(first.id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError("Unable to load funding accounts and portfolios.");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadEligibility]);
+
+  // Sync outer phase with inner step for chrome
+  useEffect(() => {
+    if (step === "submitting") setPhase("submitting");
+    else if (step === "success") setPhase("success");
+    else if (step === "error") setPhase("error");
+    else if (step === "review") setPhase("review");
+    else setPhase("details");
+  }, [step, setPhase]);
+
+  const account = useMemo(
+    () => eligibility?.accounts.find((a) => a.id === bankAccountId),
+    [eligibility, bankAccountId],
+  );
+  const portfolio = useMemo(
+    () => eligibility?.portfolios.find((p) => p.id === portfolioId),
+    [eligibility, portfolioId],
+  );
+
+  const compatibleAccounts = useMemo(() => {
+    if (!eligibility || !portfolio) return eligibility?.accounts ?? [];
+    return eligibility.accounts.filter((a) => {
+      if (portfolio.ownerType === "personal") {
+        return a.ownershipType === "PERSONAL";
+      }
+      return a.ownershipType === "COMPANY" && a.companyId === portfolio.ownerCompanyId;
+    });
+  }, [eligibility, portfolio]);
+
+  const compatiblePortfolios = useMemo(() => {
+    if (!eligibility || !account) return eligibility?.portfolios ?? [];
+    return eligibility.portfolios.filter((p) => {
+      if (account.ownershipType === "PERSONAL") return p.ownerType === "personal";
+      return p.ownerType === "company" && p.ownerCompanyId === account.companyId;
+    });
+  }, [eligibility, account]);
+
+  const amountNumber = Number(amount) || 0;
+  const bankAfter =
+    direction === "BANK_TO_TERMINAL"
+      ? Math.max(0, (account?.availableBalance ?? 0) - amountNumber)
+      : (account?.availableBalance ?? 0) + amountNumber;
+  const terminalAfter =
+    direction === "BANK_TO_TERMINAL"
+      ? (portfolio?.availableCash ?? 0) + amountNumber
+      : Math.max(0, (portfolio?.availableCash ?? 0) - amountNumber);
+
+  useEffect(() => {
+    const dirty =
+      Boolean(direction || amount) && step !== "success" && step !== "submitting";
+    setDirty(dirty);
+  }, [direction, amount, step, setDirty]);
+
+  useEffect(() => {
+    if (step === "success") {
+      setTitle("Funding completed");
+      setDescription(undefined);
+      setShowBack(false);
+      registerBack(null);
+      setFooter(null);
+      return;
+    }
+    if (step === "submitting") {
+      setTitle("Transfer money");
+      setDescription(undefined);
+      setShowBack(false);
+      registerBack(null);
+      setFooter(null);
+      return;
+    }
+    if (step === "error") {
+      setTitle("Funding unsuccessful");
+      setDescription("Your entries were preserved.");
+      setShowBack(true);
+      registerBack(() => setStep("review"));
+      setFooter(null);
+      return;
+    }
+    if (step === "review") {
+      setTitle("Review funding transfer");
+      setDescription("Confirm details before moving florins.");
+      setShowBack(true);
+      registerBack(() => setStep("details"));
+      return;
+    }
+    if (step === "details") {
+      setTitle("Transfer money");
+      setDescription("Choose source, destination, and amount.");
+      setShowBack(true);
+      registerBack(() => setStep("direction"));
+      return;
+    }
+    setTitle("Transfer to or from Alta Terminal");
+    setDescription("Move florins between Alta Bank and a Terminal portfolio.");
+    setShowBack(Boolean(onExitToChooser));
+    registerBack(onExitToChooser ? () => onExitToChooser() : null);
+  }, [
+    step,
+    setTitle,
+    setDescription,
+    setShowBack,
+    registerBack,
+    onExitToChooser,
+    setFooter,
+  ]);
+
+  useEffect(() => {
+    if (step === "details") {
+      setFooter(
+        <BankActionFooter>
+          <BankActionPrimaryButton
+            disabled={
+              !direction ||
+              !bankAccountId ||
+              !portfolioId ||
+              amountNumber <= 0 ||
+              !account ||
+              !portfolio
+            }
+            onClick={() => {
+              setDetailsError(null);
+              if (!direction || !account || !portfolio) return;
+              if (direction === "BANK_TO_TERMINAL") {
+                if (!account.canDebit) {
+                  setDetailsError(account.blockedReason ?? "This Bank account cannot send funds.");
+                  return;
+                }
+                if (amountNumber > account.availableBalance) {
+                  setDetailsError("Amount exceeds available Bank balance.");
+                  return;
+                }
+              } else {
+                if (!account.canCredit) {
+                  setDetailsError(account.blockedReason ?? "This Bank account cannot receive funds.");
+                  return;
+                }
+                if (!portfolio.canFund) {
+                  setDetailsError(portfolio.blockedReason ?? "This portfolio cannot send funds.");
+                  return;
+                }
+                if (amountNumber > portfolio.availableCash) {
+                  setDetailsError("Amount exceeds Terminal available cash.");
+                  return;
+                }
+              }
+              if (!portfolio.canFund) {
+                setDetailsError(portfolio.blockedReason ?? "This portfolio cannot be funded.");
+                return;
+              }
+              setStep("review");
+            }}
+          >
+            Continue
+          </BankActionPrimaryButton>
+        </BankActionFooter>,
+      );
+    } else if (step === "review") {
+      setFooter(
+        <BankActionFooter>
+          <BankActionPrimaryButton onClick={() => void submit()}>
+            Confirm transfer
+          </BankActionPrimaryButton>
+        </BankActionFooter>,
+      );
+    } else {
+      setFooter(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, direction, bankAccountId, portfolioId, amountNumber, account, portfolio]);
+
+  async function submit() {
+    if (submittingLockRef.current || !direction) return;
+    submittingLockRef.current = true;
+    setStep("submitting");
+    const startedAt = Date.now();
+    try {
+      const key = ensureIdempotencyKey(idempotencyKeyRef);
+      const result = await submitFunding({
+        data: {
+          direction,
+          bankAccountId,
+          portfolioId,
+          amount: amountNumber,
+          idempotencyKey: key,
+        },
+      });
+      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
+      setReceipt(result);
+      idempotencyKeyRef.current = null;
+      setStep("success");
+    } catch (err) {
+      const raw =
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN:/, "")
+          : "Unable to complete funding transfer.";
+      const formatted = formatBankActionError(raw, { action: "transfer" });
+      setErrorReason(formatted.message);
+      setStep("error");
+    } finally {
+      submittingLockRef.current = false;
+    }
+  }
+
+  if (loadError) {
+    return <p className="text-[14px] text-muted-foreground">{loadError}</p>;
+  }
+
+  if (!eligibility) {
+    return (
+      <div className="animate-pulse space-y-3" aria-busy="true" aria-label="Loading">
+        <div className="h-10 rounded-md bg-surface-2" />
+        <div className="h-10 rounded-md bg-surface-2" />
+      </div>
+    );
+  }
+
+  if (step === "submitting") {
+    return <BankActionProcessing label="Moving florins…" variant="transfer" />;
+  }
+
+  if (step === "success" && receipt) {
+    return (
+      <BankActionSuccess
+        title="Funding completed"
+        liveMessage={`Moved ${florin(receipt.amount)} ${
+          receipt.direction === "BANK_TO_TERMINAL" ? "to" : "from"
+        } ${receipt.portfolioName}.`}
+        onDone={onDone}
+        summary={[
+          { label: "Amount", value: florin(receipt.amount) },
+          {
+            label: "Direction",
+            value:
+              receipt.direction === "BANK_TO_TERMINAL"
+                ? "Bank to Terminal"
+                : "Terminal to Bank",
+          },
+          { label: "Bank account", value: receipt.bankAccountLabel },
+          { label: "Portfolio", value: receipt.portfolioName },
+          { label: "Reference", value: receipt.referenceCode, mono: true },
+          ...(receipt.resultingBankAvailable != null
+            ? [{ label: "Bank available now", value: florin(receipt.resultingBankAvailable) }]
+            : []),
+          ...(receipt.resultingTerminalCash != null
+            ? [{ label: "Terminal cash now", value: florin(receipt.resultingTerminalCash) }]
+            : []),
+        ]}
+      />
+    );
+  }
+
+  if (step === "error") {
+    return (
+      <BankProcessError
+        message={errorReason ?? "Unable to complete funding transfer."}
+        onEdit={() => setStep("details")}
+        onRetry={() => setStep("review")}
+      />
+    );
+  }
+
+  if (step === "review" && direction) {
+    return (
+      <div className="space-y-4">
+        <BankActionProgress step={3} total={3} label="Review" />
+        <BankProcessSummary
+          rows={[
+            {
+              label: "Direction",
+              value:
+                direction === "BANK_TO_TERMINAL" ? "Bank to Terminal" : "Terminal to Bank",
+            },
+            {
+              label: direction === "BANK_TO_TERMINAL" ? "From" : "To",
+              value: account?.label ?? "—",
+            },
+            {
+              label: direction === "BANK_TO_TERMINAL" ? "To" : "From",
+              value: portfolio?.name ?? "—",
+              secondary: "Alta Terminal portfolio cash",
+            },
+            { label: "Amount", value: florin(amountNumber) },
+            { label: "Bank available after", value: florin(bankAfter) },
+            { label: "Terminal cash after", value: florin(terminalAfter) },
+          ]}
+        />
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          {TERMINAL_FUNDING_TSE_DISCLAIMER}
+        </p>
+      </div>
+    );
+  }
+
+  if (step === "details" && direction) {
+    const sourceIsBank = direction === "BANK_TO_TERMINAL";
+    return (
+      <div className="space-y-5">
+        <BankActionProgress step={2} total={3} label="Details" />
+        <label className="block">
+          <span className="type-meta">{sourceIsBank ? "From Bank account" : "To Bank account"}</span>
+          <Select value={bankAccountId} onValueChange={setBankAccountId}>
+            <SelectTrigger className={inputClass}>
+              <SelectValue placeholder="Select account" />
+            </SelectTrigger>
+            <SelectContent>
+              {compatibleAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.label} · {florin(a.availableBalance)} avail.
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="block">
+          <span className="type-meta">
+            {sourceIsBank ? "To Terminal portfolio" : "From Terminal portfolio"}
+          </span>
+          <Select value={portfolioId} onValueChange={setPortfolioId}>
+            <SelectTrigger className={inputClass}>
+              <SelectValue placeholder="Select portfolio" />
+            </SelectTrigger>
+            <SelectContent>
+              {compatiblePortfolios.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} · {florin(p.availableCash)} cash
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="block">
+          <span className="type-meta">Amount</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={inputClass}
+            placeholder="0.00"
+          />
+        </label>
+        {detailsError ? (
+          <p className="text-[13px] text-destructive" role="alert">
+            {detailsError}
+          </p>
+        ) : null}
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          {TERMINAL_FUNDING_TSE_DISCLAIMER}
+        </p>
+      </div>
+    );
+  }
+
+  // direction chooser
+  return (
+    <div className="space-y-3">
+      <BankActionProgress step={1} total={3} label="Direction" />
+      <button
+        type="button"
+        className="flex min-h-11 w-full flex-col items-start rounded-md border border-border bg-surface-1 px-4 py-3 text-left hover:border-border-strong"
+        onClick={() => {
+          setDirection("BANK_TO_TERMINAL");
+          setStep("details");
+        }}
+      >
+        <span className="text-[14px] font-medium">Bank → Terminal</span>
+        <span className="mt-1 text-[12px] text-muted-foreground">
+          Move florins from an Alta Bank account into a Terminal portfolio’s cash.
+        </span>
+      </button>
+      <button
+        type="button"
+        className="flex min-h-11 w-full flex-col items-start rounded-md border border-border bg-surface-1 px-4 py-3 text-left hover:border-border-strong"
+        onClick={() => {
+          setDirection("TERMINAL_TO_BANK");
+          setStep("details");
+        }}
+      >
+        <span className="text-[14px] font-medium">Terminal → Bank</span>
+        <span className="mt-1 text-[12px] text-muted-foreground">
+          Move available portfolio cash back to an Alta Bank account.
+        </span>
+      </button>
+      <p className="text-[12px] leading-relaxed text-muted-foreground">
+        {TERMINAL_FUNDING_TSE_DISCLAIMER}
+      </p>
+    </div>
+  );
+}

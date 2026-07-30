@@ -188,6 +188,19 @@ function TerminalPortfolioDetailPage() {
         />
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Link
+          to="/bank"
+          search={{ action: "terminal-funding", portfolioId: selectedPortfolio.id }}
+          className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
+        >
+          Transfer money
+        </Link>
+        <p className="self-center text-[12px] text-[var(--terminal-muted)]">
+          Move florins between Alta Bank and this portfolio’s cash.
+        </p>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <SummaryCard
           label="Total return"

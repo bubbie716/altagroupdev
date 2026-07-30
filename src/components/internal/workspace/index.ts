@@ -30,6 +30,7 @@ export { LendingApplicationWorkspaceView } from "./lending-application-workspace
 export { AltaCardApplicationWorkspaceView } from "./alta-card-application-workspace-view";
 export { AltaCardReviewWorkspaceView } from "./alta-card-review-workspace-view";
 export { ScheduledTransferWorkspaceView } from "./scheduled-transfer-workspace-view";
+export { TerminalFundingWorkspaceView } from "./terminal-funding-workspace-view";
 export { AltaPayPaymentWorkspaceView } from "./alta-pay-payment-workspace-view";
 export { InvoiceWorkspaceView } from "./invoice-workspace-view";
 export { PaymentLinkWorkspaceView } from "./payment-link-workspace-view";

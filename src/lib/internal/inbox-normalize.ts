@@ -309,9 +309,18 @@ export function inboxItemFromException(row: ExceptionItem): InboxItem | null {
   const priority =
     row.severity === "critical" ? "critical" : row.severity === "high" ? "high" : "medium";
 
+  const fundingMatch = row.href.match(
+    /^\/internal\/bank\/transfers\/funding\/([^/?#]+)/,
+  );
   const transferMatch = row.href.match(/^\/internal\/bank\/transfers\/([^/?#]+)/);
   let destination: InboxItem["destination"];
-  if (transferMatch) {
+  if (fundingMatch) {
+    destination = {
+      to: "/internal/bank/transfers/funding/$transferId",
+      params: { transferId: fundingMatch[1]! },
+      search: {},
+    };
+  } else if (transferMatch) {
     destination = {
       to: "/internal/bank/transfers/$transferId",
       params: { transferId: transferMatch[1]! },

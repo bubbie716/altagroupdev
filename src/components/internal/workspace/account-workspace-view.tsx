@@ -301,7 +301,10 @@ export function AccountWorkspaceView({
               <li>
                 <Link
                   to="/internal/bank/transfers"
-                  search={withInternalSiteSearch({ status: "scheduled" }, search.site)}
+                  search={withInternalSiteSearch(
+                    { status: "scheduled" as const },
+                    search.site,
+                  )}
                   className="text-gold hover:underline"
                 >
                   Scheduled transfers ({ops.scheduled.length})
@@ -595,7 +598,10 @@ export function AccountWorkspaceView({
           {ops.scheduled.length > 0 ? (
             <Link
               to="/internal/bank/transfers"
-              search={withInternalSiteSearch({ status: "scheduled" }, search.site)}
+              search={withInternalSiteSearch(
+                { status: "scheduled" as const },
+                search.site,
+              )}
               className="text-[12px] text-gold hover:underline"
             >
               Open scheduled transfers

@@ -54,7 +54,12 @@ describe("bank action URL contract", () => {
       companyId: undefined,
       scope: undefined,
       accountType: undefined,
+      portfolioId: undefined,
     });
+    assert.equal(
+      parseBankActionSearch("?action=terminal-funding&portfolioId=TP-1").portfolioId,
+      "TP-1",
+    );
     assert.equal(parseBankActionSearch({ action: "nope" }).action, null);
     assert.equal(
       parseBankActionSearch("?action=open-account&accountType=alta_access").accountType,
@@ -166,6 +171,10 @@ describe("responsive bank action architecture", () => {
     assert.match(read("components/bank/actions/flows/withdraw-action-flow.tsx"), /WithdrawActionFlow/);
     assert.match(read("components/bank/actions/flows/open-account-action-flow.tsx"), /OpenAccountActionFlow/);
     assert.match(read("components/bank/actions/flows/transfer-action-flow.tsx"), /TransferActionFlow/);
+    assert.match(
+      read("components/bank/actions/flows/terminal-funding-action-flow.tsx"),
+      /TerminalFundingActionFlow/,
+    );
   });
 
   it("requires review before financial submission in money flows", () => {
@@ -194,6 +203,7 @@ describe("responsive bank action architecture", () => {
     assert.match(chooser, /Between my accounts/);
     assert.match(chooser, /Pay someone/);
     assert.doesNotMatch(chooser, /intrabank/i);
+    assert.match(move, /Transfer to or from Alta Terminal/);
     assert.match(move, /Coming later/);
     assert.match(move, /disabled/);
   });

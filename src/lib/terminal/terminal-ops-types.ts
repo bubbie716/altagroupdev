@@ -92,6 +92,16 @@ export type TerminalOpsPortfolioDetail = TerminalOpsPortfolioRow & {
     occurredAt: string;
     amount: number | null;
   }>;
+  /** Recent Bank ↔ Terminal funding; Bank account is masked for Terminal-only staff. */
+  fundingTransfers?: Array<{
+    id: string;
+    referenceCode: string;
+    direction: "BANK_TO_TERMINAL" | "TERMINAL_TO_BANK";
+    status: "PENDING" | "COMPLETED" | "FAILED";
+    amount: number;
+    bankAccountMasked: string;
+    createdAt: string;
+  }>;
 };
 
 export const TERMINAL_ORDER_LIST_FILTERS = [
