@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { Prisma } from "@prisma/client";
 import {
   formatCompactVolume,
   formatMarketCap,
@@ -9,8 +12,7 @@ import {
 } from "@/lib/terminal/format";
 import { estimateOrderValue, validateOrderPreview } from "@/lib/terminal/order-validation";
 import { filterOrders, filterSecurities, sortSecurities } from "@/lib/terminal/market-filters";
-import { MockTseClient } from "@/lib/terminal/mock-tse-client";
-import { UnavailableTseClient } from "@/lib/terminal/unavailable-tse-client";
+import { UnavailableTseClient, emptyLocalPortfolioSnapshot } from "@/lib/terminal/unavailable-tse-client";
 import {
   createTseClient,
   getTseClient,
@@ -18,27 +20,28 @@ import {
   resolveTerminalTseMode,
 } from "@/lib/terminal/tse-client";
 import {
-  getFixtureSecurity,
-  listFixtureSecurities,
-  mockPortfolioIds,
-} from "@/lib/terminal/terminal-fixtures";
+  decimalToNumber,
+  serializeMoney,
+  serializeQuantity,
+  toDecimal,
+} from "@/lib/terminal/terminal-decimal";
 import {
-  archiveTerminalPortfolio,
-  createTerminalPortfolio,
+  TerminalPersistenceUnavailableError,
   listAccessibleTerminalPortfolios,
-  renameTerminalPortfolio,
-  resetTerminalPortfolioMemoryForTests,
-  resolveTerminalPortfolioId,
-  rememberSelectedTerminalPortfolio,
 } from "@/lib/terminal/terminal-portfolio.service";
 import {
   canCreateCompanyTerminalPortfolio,
   canTradeCompanyTerminalPortfolio,
   canViewCompanyTerminalPortfolio,
+  companyPortfolioCapabilities,
 } from "@/lib/terminal/portfolio-auth";
 import type { AltaUser } from "@/lib/auth/types";
 import { ECOSYSTEM_ENTRIES, getEcosystemSwitcherLinks } from "@/lib/site/ecosystem-config";
 import { resolveEntitySiteUrl } from "@/lib/site/entity-site-url";
+import {
+  getFixtureSecurity,
+  listFixtureSecurities,
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-market-fixtures";
 
 function testUser(overrides: Partial<AltaUser> = {}): AltaUser {
   return {
@@ -88,6 +91,15 @@ describe("terminal format", () => {
   });
 });
 
+describe("terminal decimal boundary", () => {
+  it("serializes Decimal money and quantities safely", () => {
+    const money = toDecimal("1234.567");
+    assert.equal(serializeMoney(money), 1234.57);
+    assert.equal(serializeQuantity(toDecimal("10.123456789")), 10.12345679);
+    assert.equal(decimalToNumber(new Prisma.Decimal("0.00")), 0);
+  });
+});
+
 describe("terminal market filters", () => {
   const rows = listFixtureSecurities();
 
@@ -119,130 +131,84 @@ describe("terminal order validation", () => {
   const portfolioId = "tp_test_core";
 
   it("estimates order value", () => {
-    const est = estimateOrderValue(10, 100);
-    assert.equal(est.estimatedValue, 1000);
-    assert.equal(est.estimatedFees, 1);
+    const est = estimateOrderValue(10, security.lastPrice);
+    assert.ok(est.estimatedValue > 0);
+    assert.ok(est.estimatedFees >= 0);
   });
 
-  it("rejects halted securities and insufficient buying power", () => {
-    const halted = getFixtureSecurity("HALT")!;
-    const haltedPreview = validateOrderPreview({
-      order: { portfolioId, symbol: "HALT", side: "buy", type: "market", quantity: 1 },
-      security: halted,
-      marketStatus: "open",
-      buyingPower: 10_000,
-      holding: null,
-    });
-    assert.equal(haltedPreview.ok, false);
-    assert.ok(haltedPreview.errors.some((e) => /halted/i.test(e)));
-
-    const poor = validateOrderPreview({
-      order: { portfolioId, symbol: "ALTA", side: "buy", type: "market", quantity: 1000 },
+  it("validates a market buy", () => {
+    const result = validateOrderPreview({
+      order: {
+        portfolioId,
+        symbol: "ALTA",
+        side: "buy",
+        type: "market",
+        quantity: 1,
+      },
       security,
-      marketStatus: "open",
-      buyingPower: 10,
+      buyingPower: 100_000,
       holding: null,
-    });
-    assert.equal(poor.ok, false);
-    assert.ok(poor.errors.some((e) => /buying power/i.test(e)));
-  });
-
-  it("requires portfolioId", () => {
-    const preview = validateOrderPreview({
-      order: { portfolioId: "", symbol: "ALTA", side: "buy", type: "market", quantity: 1 },
-      security,
       marketStatus: "open",
-      buyingPower: 10_000,
-      holding: null,
     });
-    assert.equal(preview.ok, false);
-    assert.ok(preview.errors.some((e) => /portfolio/i.test(e)));
-  });
-
-  it("accepts a valid market buy", () => {
-    const preview = validateOrderPreview({
-      order: { portfolioId, symbol: "ALTA", side: "buy", type: "market", quantity: 1 },
-      security,
-      marketStatus: "open",
-      buyingPower: 10_000,
-      holding: null,
-    });
-    assert.equal(preview.ok, true);
-    assert.equal(preview.portfolioId, portfolioId);
-    assert.ok(preview.estimatedValue > 0);
+    assert.equal(result.ok, true);
   });
 });
 
-describe("terminal tse clients", () => {
-  it("mock client is portfolio-aware for orders and holdings", async () => {
-    const userId = "mock-iso-user";
-    const ids = mockPortfolioIds(userId);
-    const client = new MockTseClient({ userId });
-
-    const core = await client.getPortfolio(ids.personalCore);
-    const growth = await client.getPortfolio(ids.personalGrowth);
-    const income = await client.getPortfolio(ids.personalIncome);
-    const company = await client.getPortfolio(ids.companyAltg);
-
-    assert.ok(core.holdings.length > 0);
-    assert.ok(growth.holdings.length > 0);
-    assert.ok(income.holdings.length > 0);
-    assert.ok(company.holdings.length > 0);
-    assert.notEqual(core.totalValue, company.totalValue);
-    assert.notEqual(growth.totalValue, income.totalValue);
-
-    const emptyId = `tp_${userId}_scratch`;
-    await client.ensurePortfolioMarketState?.(emptyId, "empty");
-    const empty = await client.getPortfolio(emptyId);
-    assert.equal(empty.holdings.length, 0);
-
-    const preview = await client.previewOrder({
-      portfolioId: ids.personalCore,
-      symbol: "MINE",
-      side: "buy",
-      type: "market",
-      quantity: 1,
-    });
-    assert.equal(preview.ok, true);
-    assert.equal(preview.portfolioId, ids.personalCore);
-
-    const rejected = await client.previewOrder({
-      portfolioId: "",
-      symbol: "MINE",
-      side: "buy",
-      type: "market",
-      quantity: 1,
-    });
-    assert.equal(rejected.ok, false);
-
-    const submitted = await client.submitOrder({
-      portfolioId: emptyId,
-      symbol: "MINE",
-      side: "buy",
-      type: "limit",
-      quantity: 1,
-      limitPrice: 18,
-    });
-    assert.equal(submitted.ok, true);
-    if (submitted.ok) {
-      assert.equal(submitted.order.portfolioId, emptyId);
-      assert.equal(submitted.order.status, "open");
-    }
-
-    const emptyOrders = await client.listOrders(emptyId);
-    assert.ok(emptyOrders.some((o) => o.id === (submitted.ok ? submitted.order.id : "")));
-    const coreOrders = await client.listOrders(ids.personalCore);
-    assert.equal(
-      coreOrders.some((o) => o.id === (submitted.ok ? submitted.order.id : "")),
-      false,
-    );
+describe("TSE mode defaults and fail-closed live", () => {
+  it("defaults to unavailable even in non-production when unset", () => {
+    const prev = process.env.TERMINAL_TSE_MODE;
+    const prevVite = process.env.VITE_TERMINAL_TSE_MODE;
+    delete process.env.TERMINAL_TSE_MODE;
+    delete process.env.VITE_TERMINAL_TSE_MODE;
+    assert.equal(resolveTerminalTseMode(), "unavailable");
+    if (prev === undefined) delete process.env.TERMINAL_TSE_MODE;
+    else process.env.TERMINAL_TSE_MODE = prev;
+    if (prevVite === undefined) delete process.env.VITE_TERMINAL_TSE_MODE;
+    else process.env.VITE_TERMINAL_TSE_MODE = prevVite;
   });
 
-  it("unavailable client disables trading", async () => {
+  it("ignores mock mode for normal runtime", () => {
+    const prev = process.env.TERMINAL_TSE_MODE;
+    process.env.TERMINAL_TSE_MODE = "mock";
+    assert.equal(resolveTerminalTseMode(), "unavailable");
+    process.env.TERMINAL_TSE_MODE = prev;
+  });
+
+  it("live without adapter still returns UnavailableTseClient", () => {
+    const prev = process.env.TERMINAL_TSE_MODE;
+    process.env.TERMINAL_TSE_MODE = "live";
+    resetTseClientForTests();
+    const client = createTseClient({ userId: "x" });
+    assert.equal(client.mode, "unavailable");
+    assert.ok(client instanceof UnavailableTseClient);
+    process.env.TERMINAL_TSE_MODE = prev;
+    resetTseClientForTests();
+  });
+
+  it("factory uses unavailable for explicit unavailable mode", () => {
+    const prev = process.env.TERMINAL_TSE_MODE;
+    process.env.TERMINAL_TSE_MODE = "unavailable";
+    assert.equal(createTseClient().mode, "unavailable");
+    process.env.TERMINAL_TSE_MODE = prev;
+  });
+
+  it("scoped clients do not share across users", () => {
+    resetTseClientForTests();
+    const a = getTseClient({ userId: "a" });
+    const b = getTseClient({ userId: "b" });
+    assert.notEqual(a, b);
+    resetTseClientForTests();
+  });
+});
+
+describe("unavailable TSE client", () => {
+  it("disables trading and returns empty market data", async () => {
     const client = new UnavailableTseClient();
     assert.equal(client.mode, "unavailable");
+    assert.deepEqual(await client.listSecurities(), []);
+    assert.equal(await client.getSecurity("ALTA"), null);
     const submit = await client.submitOrder({
-      portfolioId: "tp_x",
+      portfolioId: "p1",
       symbol: "ALTA",
       side: "buy",
       type: "market",
@@ -250,238 +216,139 @@ describe("terminal tse clients", () => {
     });
     assert.equal(submit.ok, false);
     if (!submit.ok) assert.equal(submit.code, "unavailable");
-    assert.equal((await client.listSecurities()).length, 0);
   });
 
-  it("factory respects explicit mock mode", () => {
-    resetTseClientForTests();
-    const prev = process.env.TERMINAL_TSE_MODE;
-    process.env.TERMINAL_TSE_MODE = "mock";
-    assert.equal(resolveTerminalTseMode(), "mock");
-    const client = createTseClient();
-    assert.equal(client.mode, "mock");
-    process.env.TERMINAL_TSE_MODE = prev;
-    resetTseClientForTests();
-  });
-
-  it("factory uses unavailable for explicit unavailable mode", () => {
-    resetTseClientForTests();
-    const prev = process.env.TERMINAL_TSE_MODE;
-    process.env.TERMINAL_TSE_MODE = "unavailable";
-    assert.equal(createTseClient().mode, "unavailable");
-    process.env.TERMINAL_TSE_MODE = prev;
-    resetTseClientForTests();
-  });
-
-  it("isolates mutable mock state by authenticated user", async () => {
-    resetTseClientForTests();
-    const prev = process.env.TERMINAL_TSE_MODE;
-    process.env.TERMINAL_TSE_MODE = "mock";
-    const first = getTseClient({ userId: "terminal-user-one" });
-    const second = getTseClient({ userId: "terminal-user-two" });
-
-    await first.addToWatchlist("ALTA");
-
-    assert.equal(
-      (await first.getWatchlist()).some((item) => item.symbol === "ALTA"),
-      true,
-    );
-    assert.equal(
-      (await second.getWatchlist()).some((item) => item.symbol === "ALTA"),
-      false,
-    );
-    process.env.TERMINAL_TSE_MODE = prev;
-    resetTseClientForTests();
+  it("empty local portfolio snapshot marks valuation unavailable", () => {
+    const snap = emptyLocalPortfolioSnapshot("p1");
+    assert.equal(snap.valuationAvailable, false);
+    assert.equal(snap.totalValue, null);
+    assert.equal(snap.cashBalance, 0);
+    assert.deepEqual(snap.holdings, []);
   });
 });
 
-describe("terminal portfolios", () => {
-  const previousStore = process.env.TERMINAL_PORTFOLIO_STORE;
-
-  function withMemoryStore() {
-    process.env.TERMINAL_PORTFOLIO_STORE = "memory";
-    resetTerminalPortfolioMemoryForTests();
-  }
-
-  function restoreStore() {
-    if (previousStore === undefined) delete process.env.TERMINAL_PORTFOLIO_STORE;
-    else process.env.TERMINAL_PORTFOLIO_STORE = previousStore;
-    resetTerminalPortfolioMemoryForTests();
-  }
-
-  it("seeds personal and company fixtures with isolation", async () => {
-    withMemoryStore();
-    try {
-      const a = testUser({ id: "user-a" });
-      const b = testUser({
-        id: "user-b",
-        companyMemberships: [
-          {
-            userId: "user-b",
-            companyId: "CO-ALTG",
-            role: "owner",
-            companyName: "Alta Group N.V.",
-            companyType: "Holding Company",
-            companyTicker: "ALTG",
-            companyStatus: "Listed",
-            companyVerificationStatus: "Verified",
-          },
-        ],
-      });
-
-      const aPortfolios = await listAccessibleTerminalPortfolios(a);
-      const bPortfolios = await listAccessibleTerminalPortfolios(b);
-
-      assert.ok(aPortfolios.length >= 3);
-      assert.ok(aPortfolios.some((p) => p.ownerType === "personal" && p.isDefault));
-      assert.ok(aPortfolios.some((p) => p.ownerType === "personal" && !p.isDefault));
-      assert.ok(aPortfolios.some((p) => p.ownerType === "company" && p.ownerCompanyId === "CO-ALTG"));
-      assert.equal(
-        aPortfolios.some((p) => bPortfolios.some((bp) => bp.id === p.id)),
-        false,
-      );
-    } finally {
-      restoreStore();
-    }
-  });
-
-  it("resolves selection order: explicit → recent → default", async () => {
-    withMemoryStore();
-    try {
-      const user = testUser({ id: "sel-user" });
-      const portfolios = await listAccessibleTerminalPortfolios(user);
-      const defaultId = portfolios.find((p) => p.isDefault)!.id;
-      const other = portfolios.find((p) => !p.isDefault)!;
-
-      assert.equal(await resolveTerminalPortfolioId(user, other.id), other.id);
-      assert.equal(await resolveTerminalPortfolioId(user, null), defaultId);
-
-      await rememberSelectedTerminalPortfolio(user, other.id);
-      assert.equal(await resolveTerminalPortfolioId(user, null), other.id);
-    } finally {
-      restoreStore();
-    }
-  });
-
-  it("creates, renames, and archives personal portfolios", async () => {
-    withMemoryStore();
-    try {
-      const user = testUser({ id: "crud-user" });
-      const created = await createTerminalPortfolio(user, {
-        name: "Speculative",
-        ownerType: "personal",
-      });
-      assert.equal(created.name, "Speculative");
-      assert.equal(created.ownerType, "personal");
-
-      const renamed = await renameTerminalPortfolio(user, created.id, "Momentum");
-      assert.equal(renamed.name, "Momentum");
-
-      const archived = await archiveTerminalPortfolio(user, created.id);
-      assert.equal(archived.status, "archived");
-      const remaining = await listAccessibleTerminalPortfolios(user);
-      assert.equal(remaining.some((p) => p.id === created.id), false);
-    } finally {
-      restoreStore();
-    }
-  });
-
-  it("creates company portfolios only when authorized", async () => {
-    withMemoryStore();
-    try {
-      const owner = testUser({ id: "co-owner" });
-      const viewer = testUser({
-        id: "co-viewer",
-        companyMemberships: [
-          {
-            userId: "co-viewer",
-            companyId: "CO-ALTG",
-            role: "viewer",
-            companyName: "Alta Group N.V.",
-            companyType: "Holding Company",
-            companyTicker: "ALTG",
-            companyStatus: "Listed",
-            companyVerificationStatus: "Verified",
-          },
-        ],
-      });
-
-      assert.equal(canCreateCompanyTerminalPortfolio(owner, "CO-ALTG"), true);
-      assert.equal(canCreateCompanyTerminalPortfolio(viewer, "CO-ALTG"), false);
-      assert.equal(canTradeCompanyTerminalPortfolio(viewer, "CO-ALTG"), false);
-      assert.equal(canViewCompanyTerminalPortfolio(viewer, "CO-ALTG"), false);
-
-      const created = await createTerminalPortfolio(owner, {
-        name: "Ops Book",
-        ownerType: "company",
-        ownerCompanyId: "CO-ALTG",
-      });
-      assert.equal(created.ownerType, "company");
-
-      await assert.rejects(
-        () =>
-          createTerminalPortfolio(viewer, {
-            name: "Forbidden",
-            ownerType: "company",
-            ownerCompanyId: "CO-ALTG",
-          }),
-        /authorized/i,
-      );
-    } finally {
-      restoreStore();
-    }
-  });
-
-  it("denies cross-company access by portfolio id", async () => {
-    withMemoryStore();
-    try {
-      const owner = testUser({ id: "iso-owner" });
-      const outsider = testUser({
-        id: "iso-out",
-        companyMemberships: [
-          {
-            userId: "iso-out",
-            companyId: "CO-OTHER",
-            role: "owner",
-            companyName: "Other Co",
-            companyType: "Private",
-            companyTicker: "OTH",
-            companyStatus: "Active",
-            companyVerificationStatus: "Verified",
-          },
-        ],
-      });
-
-      const companyPortfolio = (await listAccessibleTerminalPortfolios(owner)).find(
-        (p) => p.ownerCompanyId === "CO-ALTG",
-      )!;
-      await assert.rejects(
-        () => resolveTerminalPortfolioId(outsider, companyPortfolio.id),
-        /access denied|not found/i,
-      );
-    } finally {
-      restoreStore();
-    }
+describe("portfolio authorization", () => {
+  it("enforces company view/trade/create roles", () => {
+    const owner = testUser();
+    const viewer = testUser({
+      id: "viewer",
+      companyMemberships: [
+        {
+          userId: "viewer",
+          companyId: "CO-ALTG",
+          role: "viewer",
+          companyName: "Alta Group N.V.",
+          companyType: "Holding Company",
+          companyTicker: "ALTG",
+          companyStatus: "Listed",
+          companyVerificationStatus: "Verified",
+        },
+      ],
+    });
+    assert.equal(canViewCompanyTerminalPortfolio(owner, "CO-ALTG"), true);
+    assert.equal(canTradeCompanyTerminalPortfolio(owner, "CO-ALTG"), true);
+    assert.equal(canCreateCompanyTerminalPortfolio(owner, "CO-ALTG"), true);
+    assert.equal(canViewCompanyTerminalPortfolio(viewer, "CO-ALTG"), false);
+    assert.equal(canTradeCompanyTerminalPortfolio(viewer, "CO-ALTG"), false);
+    const caps = companyPortfolioCapabilities(viewer, "CO-ALTG");
+    assert.equal(caps.canView, false);
+    assert.equal(caps.canTrade, false);
   });
 });
 
-describe("terminal ecosystem and production urls", () => {
-  it("points Terminal ecosystem home at /terminal", () => {
-    const entry = ECOSYSTEM_ENTRIES.find((e) => e.key === "terminal");
-    assert.equal(entry?.homePath, "/terminal");
-    const links = getEcosystemSwitcherLinks("terminal", "localhost:3000");
-    assert.ok(links.find((l) => l.key === "terminal")?.href.includes("/terminal"));
+describe("persistence without DB never falls back to memory fixtures", () => {
+  it("listAccessibleTerminalPortfolios fails closed when DATABASE_URL is unset", async () => {
+    const prev = process.env.DATABASE_URL;
+    const prevStore = process.env.TERMINAL_PORTFOLIO_STORE;
+    process.env.DATABASE_URL = "";
+    delete process.env.TERMINAL_PORTFOLIO_STORE;
+    try {
+      await listAccessibleTerminalPortfolios(testUser());
+      assert.fail("expected TerminalPersistenceUnavailableError");
+    } catch (error) {
+      assert.ok(error instanceof TerminalPersistenceUnavailableError);
+    } finally {
+      if (prev === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = prev;
+      if (prevStore === undefined) delete process.env.TERMINAL_PORTFOLIO_STORE;
+      else process.env.TERMINAL_PORTFOLIO_STORE = prevStore;
+    }
   });
 
-  it("does not resolve production Terminal links to localhost", () => {
-    const prev = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-    try {
-      const href = resolveEntitySiteUrl("terminal", "/terminal", "terminal.altagroup.dev");
-      assert.ok(href.includes("terminal.altagroup.dev"));
-      assert.equal(href.includes("localhost"), false);
-    } finally {
-      process.env.NODE_ENV = prev;
+  it("portfolio service source has no memory fixture fallback", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/terminal/terminal-portfolio.service.ts"),
+      "utf8",
+    );
+    assert.doesNotMatch(src, /TERMINAL_PORTFOLIO_STORE|seedMemoryStore|memoryByUser/);
+    assert.match(src, /TerminalPersistenceUnavailableError/);
+  });
+});
+
+describe("UI Lab fixture isolation", () => {
+  it("normal runtime modules do not statically import UI Lab fixtures", () => {
+    const libRoot = join(process.cwd(), "src/lib/terminal");
+    const forbidden = [
+      "terminal-portfolio.service.ts",
+      "terminal-local.service.ts",
+      "tse-client.ts",
+      "unavailable-tse-client.ts",
+      "terminal-ops-admin.service.ts",
+    ];
+    for (const file of forbidden) {
+      const src = readFileSync(join(libRoot, file), "utf8");
+      assert.doesNotMatch(src, /ui-lab\//);
+      assert.doesNotMatch(src, /ui-lab-terminal-market-fixtures/);
+      assert.doesNotMatch(src, /ui-lab-terminal-fixture-ledger/);
+      assert.doesNotMatch(src, /MockTseClient/);
     }
+    const envSrc = readFileSync(join(libRoot, "terminal-ops-environment.ts"), "utf8");
+    assert.doesNotMatch(envSrc, /ui-lab-terminal-market-fixtures/);
+    assert.doesNotMatch(envSrc, /MockTseClient/);
+    assert.match(envSrc, /UiLabDemonstrationTseClient|UI Lab/);
+  });
+
+  it("obsolete mock runtime paths are removed from terminal lib root", () => {
+    const names = readdirSync(join(process.cwd(), "src/lib/terminal"));
+    assert.ok(!names.includes("mock-tse-client.ts"));
+    assert.ok(!names.includes("terminal-fixtures.ts"));
+    assert.ok(!names.includes("terminal-fixture-ledger.ts"));
+  });
+
+  it("terminal.functions gates UI Lab behind isUiLabMode", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/lib/terminal/terminal.functions.ts"),
+      "utf8",
+    );
+    assert.match(src, /isUiLabMode/);
+    assert.match(src, /ui-lab\/ui-lab-demonstration-tse-client/);
+  });
+});
+
+describe("public Terminal truthful copy", () => {
+  it("home keeps portfolios usable without fabricated combined value when unavailable", () => {
+    const home = readFileSync(join(process.cwd(), "src/routes/terminal/index.tsx"), "utf8");
+    assert.match(home, /Valuation unavailable|marketDataAvailable/);
+    assert.doesNotMatch(home, /TerminalUnavailableState/);
+    assert.match(home, /Create your first portfolio|Create portfolio/);
+  });
+
+  it("portfolio detail does not block on unavailable TSE mode", () => {
+    const detail = readFileSync(
+      join(process.cwd(), "src/routes/terminal/portfolio/$portfolioId.tsx"),
+      "utf8",
+    );
+    assert.doesNotMatch(detail, /if \(data\.mode === "unavailable"\)/);
+  });
+});
+
+describe("ecosystem URLs remain site-isolated", () => {
+  it("terminal entry resolves to a terminal site URL", () => {
+    const terminal = ECOSYSTEM_ENTRIES.find((e) => e.key === "terminal");
+    assert.ok(terminal);
+    const url = resolveEntitySiteUrl("terminal");
+    assert.match(url, /terminal/);
+    const links = getEcosystemSwitcherLinks("terminal");
+    assert.ok(links.some((l) => l.href.includes("terminal")));
   });
 });

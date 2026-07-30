@@ -216,14 +216,16 @@ export function PortfolioChart({
   equityValue,
   dayChange,
   dayChangePercent,
+  valuationAvailable,
   className,
   range: controlledRange,
   onRangeChange,
 }: {
   seriesByRange: Record<TerminalChartRange, PricePoint[]>;
-  equityValue: number;
-  dayChange: number;
-  dayChangePercent: number;
+  equityValue: number | null;
+  dayChange: number | null;
+  dayChangePercent: number | null;
+  valuationAvailable: boolean;
   className?: string;
   range?: TerminalChartRange;
   onRangeChange?: (range: TerminalChartRange) => void;
@@ -240,7 +242,7 @@ export function PortfolioChart({
     }
     return { amount: end - start, percent: ((end - start) / Math.abs(start)) * 100 };
   }, [data, dayChange, dayChangePercent]);
-  const positive = rangeChange.amount >= 0;
+  const positive = (rangeChange.amount ?? 0) >= 0;
 
   return (
     <section className={cn("min-w-0 space-y-4", className)} aria-label="Portfolio performance">
@@ -254,13 +256,19 @@ export function PortfolioChart({
         </div>
         <RangeSelector value={range} onChange={setRange} />
       </div>
-      <InteractiveTerminalChart
-        data={data}
-        range={range}
-        positive={positive}
-        heightClass="h-[220px] sm:h-[260px]"
-        ariaLabel={`Portfolio chart for ${range}`}
-      />
+      {valuationAvailable ? (
+        <InteractiveTerminalChart
+          data={data}
+          range={range}
+          positive={positive}
+          heightClass="h-[220px] sm:h-[260px]"
+          ariaLabel={`Portfolio chart for ${range}`}
+        />
+      ) : (
+        <div className="flex h-[220px] items-center justify-center rounded-lg border border-dashed border-[var(--terminal-border)] text-[13px] text-[var(--terminal-muted)] sm:h-[260px]">
+          Portfolio chart unavailable without market valuation
+        </div>
+      )}
     </section>
   );
 }
@@ -284,10 +292,7 @@ export function SecurityChart({
   const [localRange, setLocalRange] = useState<TerminalChartRange>(initialRange);
   const activeRange = range ?? localRange;
   const setRange = onRangeChange ?? setLocalRange;
-  const data = useMemo(
-    () => seriesByRange[activeRange] ?? [],
-    [activeRange, seriesByRange],
-  );
+  const data = useMemo(() => seriesByRange[activeRange] ?? [], [activeRange, seriesByRange]);
 
   return (
     <section className={cn("min-w-0 space-y-3", className)} aria-label="Price history">

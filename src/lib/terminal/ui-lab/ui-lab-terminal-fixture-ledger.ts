@@ -16,7 +16,7 @@ import {
   buildFixturePortfolioFromLots,
   getFixtureSecurity,
   type FixtureLot,
-} from "@/lib/terminal/terminal-fixtures";
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-market-fixtures";
 
 export type FixtureProfileKey = "core" | "growth" | "income" | "active" | "treasury" | "empty";
 
@@ -836,8 +836,8 @@ export function buildSnapshotFromLedger(
     return {
       ...empty,
       seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility, {
-        totalValue: empty.totalValue,
-        dayChange: empty.dayChange,
+        totalValue: empty.totalValue ?? empty.cashBalance,
+        dayChange: empty.dayChange ?? 0,
       }),
     };
   }
@@ -850,8 +850,8 @@ export function buildSnapshotFromLedger(
   return {
     ...snap,
     seriesByRange: buildLedgerChartSeries(applied, profile.seriesSeed, profile.chartVolatility, {
-      totalValue: snap.totalValue,
-      dayChange: snap.dayChange,
+      totalValue: snap.totalValue ?? snap.cashBalance,
+      dayChange: snap.dayChange ?? 0,
     }),
   };
 }

@@ -19,19 +19,20 @@ export const fetchTerminalOpsHomeSummary = createServerFn({ method: "GET" }).han
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalHomeSummary } = await import(
-        "@/lib/terminal/ui-lab-terminal-ops-fixtures"
-      );
+      const { getUiLabTerminalHomeSummary } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       return getUiLabTerminalHomeSummary();
     }
     const {
       listTerminalOpsPortfoliosFromDb,
+      listTerminalOpsOrdersFromDb,
       buildInvestorsFromPortfolios,
       buildTerminalOpsHomeSummary,
     } = await import("@/lib/terminal/terminal-ops-admin.service");
     const portfolios = await listTerminalOpsPortfoliosFromDb();
     const investors = buildInvestorsFromPortfolios(portfolios);
-    return buildTerminalOpsHomeSummary({ portfolios, investors, orders: [] });
+    const orders = await listTerminalOpsOrdersFromDb();
+    return buildTerminalOpsHomeSummary({ portfolios, investors, orders });
   },
 );
 
@@ -40,14 +41,12 @@ export const fetchTerminalInvestors = createServerFn({ method: "GET" }).handler(
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalInvestors } = await import(
-        "@/lib/terminal/ui-lab-terminal-ops-fixtures"
-      );
+      const { getUiLabTerminalInvestors } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       return getUiLabTerminalInvestors();
     }
-    const { listTerminalOpsPortfoliosFromDb, buildInvestorsFromPortfolios } = await import(
-      "@/lib/terminal/terminal-ops-admin.service"
-    );
+    const { listTerminalOpsPortfoliosFromDb, buildInvestorsFromPortfolios } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
     return buildInvestorsFromPortfolios(await listTerminalOpsPortfoliosFromDb());
   },
 );
@@ -57,14 +56,12 @@ export const fetchTerminalPortfolios = createServerFn({ method: "GET" }).handler
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalPortfolios } = await import(
-        "@/lib/terminal/ui-lab-terminal-ops-fixtures"
-      );
+      const { getUiLabTerminalPortfolios } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       return getUiLabTerminalPortfolios();
     }
-    const { listTerminalOpsPortfoliosFromDb } = await import(
-      "@/lib/terminal/terminal-ops-admin.service"
-    );
+    const { listTerminalOpsPortfoliosFromDb } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
     return listTerminalOpsPortfoliosFromDb();
   },
 );
@@ -75,16 +72,14 @@ export const fetchTerminalPortfolioDetail = createServerFn({ method: "GET" })
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalPortfolioDetail } = await import(
-        "@/lib/terminal/ui-lab-terminal-ops-fixtures"
-      );
+      const { getUiLabTerminalPortfolioDetail } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       const detail = getUiLabTerminalPortfolioDetail(portfolioId);
       if (!detail) throw new Error("NOT_FOUND");
       return detail;
     }
-    const { getTerminalOpsPortfolioFromDb } = await import(
-      "@/lib/terminal/terminal-ops-admin.service"
-    );
+    const { getTerminalOpsPortfolioFromDb } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
     const detail = await getTerminalOpsPortfolioFromDb(portfolioId);
     if (!detail) throw new Error("NOT_FOUND");
     return detail;
@@ -95,11 +90,13 @@ export const fetchTerminalOrders = createServerFn({ method: "GET" }).handler(
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalOrders } = await import("@/lib/terminal/ui-lab-terminal-ops-fixtures");
+      const { getUiLabTerminalOrders } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       return getUiLabTerminalOrders();
     }
-    // Live/unavailable: no TSE order ledger for operators yet.
-    return [];
+    const { listTerminalOpsOrdersFromDb } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
+    return listTerminalOpsOrdersFromDb();
   },
 );
 
@@ -109,14 +106,18 @@ export const fetchTerminalOrderDetail = createServerFn({ method: "GET" })
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalOrderDetail } = await import(
-        "@/lib/terminal/ui-lab-terminal-ops-fixtures"
-      );
+      const { getUiLabTerminalOrderDetail } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       const detail = getUiLabTerminalOrderDetail(orderId);
       if (!detail) throw new Error("NOT_FOUND");
       return detail;
     }
-    throw new Error("NOT_FOUND");
+    const { listTerminalOpsOrdersFromDb } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
+    const orders = await listTerminalOpsOrdersFromDb();
+    const detail = orders.find((order) => order.id === orderId);
+    if (!detail) throw new Error("NOT_FOUND");
+    return detail;
   });
 
 export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler(
@@ -138,8 +139,12 @@ export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler
     await requireTerminalOperator();
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabTerminalAttention, getUiLabTerminalOrders, getUiLabTerminalPortfolios, getUiLabTerminalInvestors } =
-        await import("@/lib/terminal/ui-lab-terminal-ops-fixtures");
+      const {
+        getUiLabTerminalAttention,
+        getUiLabTerminalOrders,
+        getUiLabTerminalPortfolios,
+        getUiLabTerminalInvestors,
+      } = await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       const portfolios = getUiLabTerminalPortfolios();
       const byId = new Map(portfolios.map((p) => [p.id, p]));
       return getUiLabTerminalAttention().map((a) => {
@@ -200,9 +205,8 @@ export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler
 export const fetchTerminalSystemStatus = createServerFn({ method: "GET" }).handler(
   async (): Promise<TerminalOpsSystemStatus> => {
     await requireTerminalOperator();
-    const { getTerminalOpsSystemStatus } = await import(
-      "@/lib/terminal/terminal-ops-admin.service"
-    );
+    const { getTerminalOpsSystemStatus } =
+      await import("@/lib/terminal/terminal-ops-admin.service");
     return getTerminalOpsSystemStatus();
   },
 );

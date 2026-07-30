@@ -46,6 +46,8 @@ describe("internal mobile shell", () => {
   it("wires a mobile nav drawer from shared nav config", () => {
     const shell = read("components/internal/console/internal-shell.tsx");
     assert.match(shell, /InternalMobileNav/);
+    assert.match(shell, /internal-shell-column/);
+    assert.match(shell, /internal-main/);
 
     const header = read("components/internal/console/internal-header.tsx");
     assert.match(header, /Open navigation menu/);

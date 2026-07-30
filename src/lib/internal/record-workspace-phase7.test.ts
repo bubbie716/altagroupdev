@@ -28,7 +28,7 @@ import {
   getUiLabTerminalPortfolios,
   getUiLabTerminalPortfolioDetail,
   UI_LAB_TERMINAL_PORTFOLIO_IDS,
-} from "@/lib/terminal/ui-lab-terminal-ops-fixtures";
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures";
 import {
   buildListReturnPath,
   isSafeInternalFrom,
@@ -43,7 +43,10 @@ import {
 } from "@/lib/internal/entity-internal-scope";
 import { canAccessBankInternal, canAccessTerminalInternal } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
-import { TERMINAL_PRIMARY_NAV, resolveInternalPrimarySection } from "@/components/internal/console/internal-nav-config";
+import {
+  TERMINAL_PRIMARY_NAV,
+  resolveInternalPrimarySection,
+} from "@/components/internal/console/internal-nav-config";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -80,11 +83,23 @@ describe("Phase 7 Terminal navigation and scope", () => {
   it("scopes Terminal nav sections correctly", () => {
     assert.equal(resolveInternalPrimarySection("terminal", "/internal"), "home");
     assert.equal(resolveInternalPrimarySection("terminal", "/internal/terminal/inbox"), "inbox");
-    assert.equal(resolveInternalPrimarySection("terminal", "/internal/terminal/investors"), "investors");
+    assert.equal(
+      resolveInternalPrimarySection("terminal", "/internal/terminal/investors"),
+      "investors",
+    );
     assert.equal(resolveInternalPrimarySection("terminal", "/internal/users/abc"), "investors");
-    assert.equal(resolveInternalPrimarySection("terminal", "/internal/terminal/portfolios/x"), "portfolios");
-    assert.equal(resolveInternalPrimarySection("terminal", "/internal/terminal/orders/y"), "orders");
-    assert.equal(resolveInternalPrimarySection("terminal", "/internal/terminal/settings"), "system");
+    assert.equal(
+      resolveInternalPrimarySection("terminal", "/internal/terminal/portfolios/x"),
+      "portfolios",
+    );
+    assert.equal(
+      resolveInternalPrimarySection("terminal", "/internal/terminal/orders/y"),
+      "orders",
+    );
+    assert.equal(
+      resolveInternalPrimarySection("terminal", "/internal/terminal/settings"),
+      "system",
+    );
   });
 
   it("allows Terminal panel paths including investors deep links", () => {
@@ -113,12 +128,8 @@ describe("Phase 7 Terminal navigation and scope", () => {
       isInternalPathAllowedForUser("terminal", "/internal/bank/accounts", terminalAdmin),
       false,
     );
-    assert.throws(() =>
-      assertEntityInternalRouteAccess("bank", "/internal/bank", terminalAdmin),
-    );
-    assert.throws(() =>
-      assertEntityInternalRouteAccess("terminal", "/internal", bankAdmin),
-    );
+    assert.throws(() => assertEntityInternalRouteAccess("bank", "/internal/bank", terminalAdmin));
+    assert.throws(() => assertEntityInternalRouteAccess("terminal", "/internal", bankAdmin));
   });
 });
 
@@ -174,7 +185,10 @@ describe("Phase 7 Terminal environment and fixtures", () => {
     assert.equal(investorMatchesListFilter(investor, "restricted"), true);
     assert.equal(investorMatchesListFilter(investor, "companies"), false);
     const portfolio = getUiLabTerminalPortfolios()[0]!;
-    assert.equal(portfolioMatchesListFilter(portfolio, "personal"), portfolio.ownerType === "personal");
+    assert.equal(
+      portfolioMatchesListFilter(portfolio, "personal"),
+      portfolio.ownerType === "personal",
+    );
     assert.equal(orderMatchesListFilter({ status: "filled" }, "filled"), true);
     assert.equal(activityMatchesTerminalFilter("dividend", "dividends"), true);
     assert.equal(activityMatchesTerminalFilter("buy_fill", "cash"), false);
@@ -217,8 +231,8 @@ describe("Phase 7 Terminal environment and fixtures", () => {
     assert.ok(attention.some((a) => a.kind === "connection_unavailable"));
   });
 
-  it("documents system sync/recon and recurring trades as unavailable", () => {
-    const system = getTerminalOpsSystemStatus();
+  it("documents system sync/recon and recurring trades as unavailable", async () => {
+    const system = await getTerminalOpsSystemStatus();
     assert.equal(system.synchronization.available, false);
     assert.equal(system.reconciliation.available, false);
     assert.ok(system.reconciliation.readiness.length > 0);
@@ -252,7 +266,9 @@ describe("Phase 7 return context and legacy maps", () => {
 
 describe("Phase 7 source structure and interest Accrue UX", () => {
   it("uses RecordWorkspacePage for portfolios and RecordSinglePage for orders", () => {
-    const portfolioView = read("components/internal/workspace/terminal-portfolio-workspace-view.tsx");
+    const portfolioView = read(
+      "components/internal/workspace/terminal-portfolio-workspace-view.tsx",
+    );
     const orderView = read("components/internal/workspace/terminal-order-workspace-view.tsx");
     assert.match(portfolioView, /RecordWorkspacePage/);
     assert.match(orderView, /RecordSinglePage/);

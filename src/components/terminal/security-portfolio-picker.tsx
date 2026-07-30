@@ -354,8 +354,8 @@ function PortfolioOptionButton({
         </span>
         <span className="sr-only">
           {selected ? "Selected. " : ""}
-          {owner}. Total value {portfolio.totalValue}. Buying power {portfolio.buyingPower}.
-          {blocked ? ` ${blocked}.` : ""}
+          {owner}. Total value {portfolio.totalValue == null ? "unavailable" : portfolio.totalValue}
+          . Buying power {portfolio.buyingPower}.{blocked ? ` ${blocked}.` : ""}
         </span>
       </button>
     </li>

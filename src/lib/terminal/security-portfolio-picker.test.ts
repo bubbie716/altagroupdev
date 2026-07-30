@@ -26,6 +26,8 @@ function option(
     totalValue: 10_000,
     dayChange: 0,
     dayChangePercent: 0,
+    valuationAvailable: true,
+    cashBalance: 5_000,
     buyingPower: 5_000,
     holdingQuantity: 0,
     capabilities: {

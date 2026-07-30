@@ -69,15 +69,25 @@ function readinessFromStatus(status: TerminalOpsSystemStatus): TerminalReadiness
           : "not_implemented";
 
   return [
-    { id: "tse", label: "TSE connection", status: tseStatus },
+    {
+      id: "local-db",
+      label: "Local Terminal database",
+      status: status.localDatabase.available ? "ready" : "failed",
+    },
+    { id: "tse", label: "TSE adapter", status: tseStatus },
+    {
+      id: "market-data",
+      label: "Market data",
+      status: status.marketData.available ? "ready" : "not_implemented",
+    },
+    {
+      id: "order-execution",
+      label: "Order execution",
+      status: status.orderExecution.available ? "ready" : "not_implemented",
+    },
     {
       id: "portfolio-sync",
       label: "Portfolio sync",
-      status: status.synchronization.available ? "ready" : "not_implemented",
-    },
-    {
-      id: "order-sync",
-      label: "Order sync",
       status: status.synchronization.available ? "ready" : "not_implemented",
     },
     {
@@ -181,6 +191,9 @@ function TerminalSystemPage() {
               Implementation notes
             </p>
             <ul className="mt-2 list-inside list-disc space-y-1">
+              <li>{status.localDatabase.detail}</li>
+              <li>{status.marketData.detail}</li>
+              <li>{status.orderExecution.detail}</li>
               <li>{status.synchronization.detail}</li>
               <li>{status.reconciliation.detail}</li>
               <li>{status.jobs.detail}</li>

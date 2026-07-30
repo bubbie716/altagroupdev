@@ -268,10 +268,22 @@ function TerminalSecurityPage() {
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Stat label="Shares" value={String(data.position.quantity)} />
               <Stat label="Avg cost" value={formatTerminalMoney(data.position.averageCost)} />
-              <Stat label="Market value" value={formatTerminalMoney(data.position.marketValue)} />
+              <Stat
+                label="Market value"
+                value={
+                  data.position.marketValue == null
+                    ? "—"
+                    : formatTerminalMoney(data.position.marketValue)
+                }
+              />
               <Stat
                 label="Total return"
-                value={`${formatTerminalMoney(data.position.totalReturn, { signed: true })} (${data.position.totalReturnPercent.toFixed(2)}%)`}
+                value={
+                  data.position.totalReturn == null ||
+                  data.position.totalReturnPercent == null
+                    ? "—"
+                    : `${formatTerminalMoney(data.position.totalReturn, { signed: true })} (${data.position.totalReturnPercent.toFixed(2)}%)`
+                }
               />
             </div>
           ) : (

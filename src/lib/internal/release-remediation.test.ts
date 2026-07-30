@@ -15,17 +15,14 @@ import {
   parseInternalSearchHref,
 } from "@/lib/internal/navigate-internal-search-href";
 import { serializeInternalSearch } from "@/lib/internal/normalize-internal-search";
-import {
-  canAcceptLoanPayment,
-  loanPaymentUnavailableCopy,
-} from "@/lib/internal/lending-desk";
+import { canAcceptLoanPayment, loanPaymentUnavailableCopy } from "@/lib/internal/lending-desk";
 import {
   dedupeHomePlatformSignals,
   formatHomePlatformSignalLabel,
   selectHomePlatformStatus,
 } from "@/lib/internal/home-attention";
 import type { OpsHealthItem } from "@/lib/internal/ops-types";
-import { searchUiLabTerminalOps } from "@/lib/terminal/ui-lab-terminal-ops-fixtures";
+import { searchUiLabTerminalOps } from "@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures";
 import { formatTerminalOrderSearchSublabel } from "@/lib/terminal/terminal-desk";
 import type { TerminalOpsOrderRow } from "@/lib/terminal/terminal-ops-types";
 import {
@@ -73,10 +70,7 @@ describe("Release remediation — UI Lab account fixture integrity", () => {
   it("resolves every directory account via the record detail fixture", () => {
     const rows = getUiLabInternalBankAccountRows();
     assert.ok(rows.length > 0);
-    assert.deepEqual(
-      rows.map((r) => r.id).sort(),
-      [...UI_LAB_INTERNAL_ACCOUNT_IDS].sort(),
-    );
+    assert.deepEqual(rows.map((r) => r.id).sort(), [...UI_LAB_INTERNAL_ACCOUNT_IDS].sort());
     for (const row of rows) {
       const detail = getUiLabInternalBankAccountDetail(row.id);
       assert.ok(detail, `missing detail for ${row.id}`);
@@ -136,7 +130,12 @@ function allApproved(items: Array<{ status: string; id: string; type: string }>)
 describe("Release remediation — global search navigation", () => {
   const cases: Array<{ href: string; site?: string; expectSite: string; expectTab?: string }> = [
     { href: "/internal/users/ui-lab-user", site: "bank", expectSite: "bank" },
-    { href: "/internal/users/ui-lab-user?tab=overview", site: "bank", expectSite: "bank", expectTab: "overview" },
+    {
+      href: "/internal/users/ui-lab-user?tab=overview",
+      site: "bank",
+      expectSite: "bank",
+      expectTab: "overview",
+    },
     {
       href: "/internal/companies/CO-ALTG?tab=overview&section=relationship",
       site: "bank",
@@ -149,8 +148,18 @@ describe("Release remediation — global search navigation", () => {
       site: "bank",
       expectSite: "bank",
     },
-    { href: "/internal/lending/loans/LN-LAB-ACTIVE?tab=overview", site: "bank", expectSite: "bank", expectTab: "overview" },
-    { href: "/internal/alta-card/CARD-1?tab=overview", site: "bank", expectSite: "bank", expectTab: "overview" },
+    {
+      href: "/internal/lending/loans/LN-LAB-ACTIVE?tab=overview",
+      site: "bank",
+      expectSite: "bank",
+      expectTab: "overview",
+    },
+    {
+      href: "/internal/alta-card/CARD-1?tab=overview",
+      site: "bank",
+      expectSite: "bank",
+      expectTab: "overview",
+    },
     {
       href: "/internal/users/u1?tab=overview&section=relationship&from=%2Finternal%2Frelationships",
       site: "bank",
@@ -186,13 +195,20 @@ describe("Release remediation — global search navigation", () => {
       if (c.expectTab) assert.equal(dest!.search.tab, c.expectTab);
       const serialized = `${dest!.to}?${serializeInternalSearch(dest!.search)}`;
       assert.equal(hrefHasDuplicateQueryDelimiter(serialized), false, serialized);
-      assert.ok(!serialized.includes("?site=") || serialized.indexOf("?") === serialized.lastIndexOf("?"));
+      assert.ok(
+        !serialized.includes("?site=") || serialized.indexOf("?") === serialized.lastIndexOf("?"),
+      );
     }
   });
 
   it("rejects non-internal destinations", () => {
     assert.equal(parseInternalSearchHref("/bank/accounts", "bank"), null);
-    assert.equal(parseInternalSearchHref("https://evil.example/internal/users/x", "bank")?.to.startsWith("/internal"), true);
+    assert.equal(
+      parseInternalSearchHref("https://evil.example/internal/users/x", "bank")?.to.startsWith(
+        "/internal",
+      ),
+      true,
+    );
   });
 
   it("uses the helper for mouse and keyboard selection in global search", () => {
@@ -203,7 +219,10 @@ describe("Release remediation — global search navigation", () => {
   });
 
   it("preserves fragments when present", () => {
-    const dest = parseInternalSearchHref("/internal/lending/loans/LN-1?tab=overview#payments", "bank");
+    const dest = parseInternalSearchHref(
+      "/internal/lending/loans/LN-1?tab=overview#payments",
+      "bank",
+    );
     assert.equal(dest?.hash, "payments");
     assert.equal(dest?.search.site, "bank");
   });
@@ -211,21 +230,59 @@ describe("Release remediation — global search navigation", () => {
 
 describe("Release remediation — loan payment eligibility", () => {
   it("allows only active loans with payoff due", () => {
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "active", currentPayoffAmount: 500 })), true);
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "frozen", currentPayoffAmount: 500 })), false);
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "paid_off", currentPayoffAmount: 0 })), false);
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "cancelled", currentPayoffAmount: 100 })), false);
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "defaulted", currentPayoffAmount: 100 })), false);
-    assert.equal(canAcceptLoanPayment(sampleLoan({ status: "active", currentPayoffAmount: 0 })), false);
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "active", currentPayoffAmount: 500 })),
+      true,
+    );
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "frozen", currentPayoffAmount: 500 })),
+      false,
+    );
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "paid_off", currentPayoffAmount: 0 })),
+      false,
+    );
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "cancelled", currentPayoffAmount: 100 })),
+      false,
+    );
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "defaulted", currentPayoffAmount: 100 })),
+      false,
+    );
+    assert.equal(
+      canAcceptLoanPayment(sampleLoan({ status: "active", currentPayoffAmount: 0 })),
+      false,
+    );
   });
 
   it("returns concise status copy when payment is unavailable", () => {
-    assert.match(loanPaymentUnavailableCopy(sampleLoan({ status: "paid_off", currentPayoffAmount: 0 })) ?? "", /paid off/i);
-    assert.match(loanPaymentUnavailableCopy(sampleLoan({ status: "frozen", currentPayoffAmount: 100 })) ?? "", /frozen/i);
-    assert.match(loanPaymentUnavailableCopy(sampleLoan({ status: "cancelled", currentPayoffAmount: 100 })) ?? "", /cancelled/i);
-    assert.match(loanPaymentUnavailableCopy(sampleLoan({ status: "defaulted", currentPayoffAmount: 100 })) ?? "", /default/i);
-    assert.match(loanPaymentUnavailableCopy(sampleLoan({ status: "active", currentPayoffAmount: 0 })) ?? "", /No amount/i);
-    assert.equal(loanPaymentUnavailableCopy(sampleLoan({ status: "active", currentPayoffAmount: 10 })), null);
+    assert.match(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "paid_off", currentPayoffAmount: 0 })) ?? "",
+      /paid off/i,
+    );
+    assert.match(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "frozen", currentPayoffAmount: 100 })) ?? "",
+      /frozen/i,
+    );
+    assert.match(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "cancelled", currentPayoffAmount: 100 })) ??
+        "",
+      /cancelled/i,
+    );
+    assert.match(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "defaulted", currentPayoffAmount: 100 })) ??
+        "",
+      /default/i,
+    );
+    assert.match(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "active", currentPayoffAmount: 0 })) ?? "",
+      /No amount/i,
+    );
+    assert.equal(
+      loanPaymentUnavailableCopy(sampleLoan({ status: "active", currentPayoffAmount: 10 })),
+      null,
+    );
   });
 
   it("hides the payment form for non-payable loans in the workspace", () => {
@@ -339,7 +396,10 @@ describe("Release remediation — Corporate Home statement signals", () => {
     ];
     const deduped = dedupeHomePlatformSignals(health);
     assert.equal(deduped.filter((h) => /statement/i.test(h.label)).length, 1);
-    assert.equal(formatHomePlatformSignalLabel("statements", "statements"), "Bank account statements");
+    assert.equal(
+      formatHomePlatformSignalLabel("statements", "statements"),
+      "Bank account statements",
+    );
     const selected = selectHomePlatformStatus(health);
     assert.equal(selected[0]?.key, "scheduled_transfers");
     assert.ok(selected.every((h) => h.label !== "statements"));
@@ -366,7 +426,10 @@ describe("Release remediation — failure copy", () => {
     });
     const failedStage = life.find((s) => s.id === "failed");
     assert.equal(failedStage?.label, "Execution stopped");
-    assert.equal(transferAttentionLabel({ status: "failed", consecutiveFailures: 2 }), "Action needed");
+    assert.equal(
+      transferAttentionLabel({ status: "failed", consecutiveFailures: 2 }),
+      "Action needed",
+    );
     assert.match(
       transferAttentionCopy({
         status: "failed",

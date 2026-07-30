@@ -38,7 +38,7 @@ export function InternalMobileNav() {
     <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
       <SheetContent
         side="left"
-        className="internal-mobile-nav flex w-[min(20rem,88vw)] flex-col gap-0 p-0 sm:max-w-sm"
+        className="internal-mobile-nav flex w-[min(20rem,88vw)] flex-col gap-0 overflow-hidden p-0 sm:max-w-sm"
         aria-describedby="internal-mobile-nav-desc"
       >
         <SheetHeader className="shrink-0 border-b border-border/60 px-4 py-3 text-left">
@@ -55,9 +55,11 @@ export function InternalMobileNav() {
         </SheetHeader>
 
         {navGroups.length > 0 ? (
-          <InternalNavLinks idPrefix="mobile" onNavigate={close} />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <InternalNavLinks idPrefix="mobile" onNavigate={close} />
+          </div>
         ) : (
-          <div className="min-h-0 flex-1 px-4 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             <p className="text-[12px] leading-relaxed text-muted-foreground">
               {site.key === "terminal" || site.key === "exchange"
                 ? `${site.displayName} operations tools arrive in a later phase. Use Settings for maintenance.`
@@ -66,7 +68,7 @@ export function InternalMobileNav() {
           </div>
         )}
 
-        <div className="shrink-0 border-t border-border/60 p-3">
+        <div className="shrink-0 border-t border-border/60 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
           <BackToSiteButton />
         </div>
       </SheetContent>

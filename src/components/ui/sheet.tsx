@@ -38,19 +38,19 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
   cn(
-    "fixed gap-4 overflow-y-auto bg-surface-1 p-6 shadow-lg transition ease-in-out",
+    "fixed gap-4 bg-surface-1 p-6 shadow-lg transition ease-in-out",
     "data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
     SHEET_Z,
   ),
   {
     variants: {
       side: {
-        top: "inset-x-0 top-[var(--ui-lab-banner-height,0px)] border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        top: "inset-x-0 top-[var(--ui-lab-banner-height,0px)] max-h-[var(--internal-sheet-available-height,100dvh)] overflow-y-auto border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
-          "inset-x-0 bottom-0 max-h-[calc(100dvh-var(--ui-lab-banner-height,0px))] border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "top-[var(--ui-lab-banner-height,0px)] bottom-0 left-0 h-auto max-h-[calc(100dvh-var(--ui-lab-banner-height,0px))] w-[min(100%,24rem)] max-w-[100vw] border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          "inset-x-0 bottom-0 max-h-[var(--internal-sheet-available-height,100dvh)] overflow-y-auto border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom pb-[env(safe-area-inset-bottom,0px)]",
+        left: "top-[var(--ui-lab-banner-height,0px)] bottom-0 left-0 flex h-[var(--internal-sheet-available-height,100dvh)] max-h-[var(--internal-sheet-available-height,100dvh)] w-[min(100%,24rem)] max-w-[100vw] flex-col overflow-hidden border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "top-[var(--ui-lab-banner-height,0px)] bottom-0 right-0 h-auto max-h-[calc(100dvh-var(--ui-lab-banner-height,0px))] w-[min(100%,24rem)] max-w-[100vw] border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "top-[var(--ui-lab-banner-height,0px)] bottom-0 right-0 flex h-[var(--internal-sheet-available-height,100dvh)] max-h-[var(--internal-sheet-available-height,100dvh)] w-[min(100%,24rem)] max-w-[100vw] flex-col overflow-hidden border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
       },
     },
     defaultVariants: {

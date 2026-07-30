@@ -372,6 +372,7 @@ export async function buildActivityTimeline(
   await requireOperator();
   const events: TimelineEvent[] = [];
 
+  const fetchLimit = entityType === "ALTA_CARD" ? Math.max(limit * 3, 40) : limit;
   const audit = await prisma.auditLog.findMany({
     where: {
       OR: [
@@ -384,7 +385,7 @@ export async function buildActivityTimeline(
     },
     include: { actor: true },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: fetchLimit,
   });
 
   const { resolveAccountsByAuditLogId } = await import("@/server/audit.service");
@@ -394,9 +395,13 @@ export async function buildActivityTimeline(
     formatLendingAuditDescription,
     isLendingAuditAction,
   } = await import("@/lib/bank/lending-audit-display");
-  const { formatOpsAuditActionTitle } = await import("@/lib/internal/ops-activity-title");
+  const { formatOpsAuditActionTitle, isPassiveHomeActivityAction } = await import(
+    "@/lib/internal/ops-activity-title"
+  );
 
   for (const a of audit) {
+    // Passive relationship-view events clutter Alta Card activity; keep them in Audit.
+    if (entityType === "ALTA_CARD" && isPassiveHomeActivityAction(a.action)) continue;
     const account = auditAccounts.get(a.id);
     const showAccount = entityType !== "BANK_ACCOUNT" && account;
     events.push({

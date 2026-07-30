@@ -34,6 +34,7 @@ import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
   formatAltaCardRate,
+  formatAltaCardTransactionSummary,
   type AltaCardStatusCode,
 } from "@/lib/bank/alta-card-types";
 import { formatAltaCardBillingDate } from "@/lib/bank/alta-card-billing-cycle";
@@ -230,9 +231,11 @@ export function AltaCardWorkspaceView(props: AltaCardWorkspaceProps) {
               ) : null}
               {ops.lastTransaction ? (
                 <WorkspaceField label="Last transaction">
-                  {ops.lastTransaction.type}
-                  <span className="ml-1.5 type-finance tabular-nums">
-                    {formatAltaCardCurrency(ops.lastTransaction.amount)}
+                  <span className="type-finance tabular-nums">
+                    {formatAltaCardTransactionSummary(
+                      ops.lastTransaction.type,
+                      ops.lastTransaction.amount,
+                    )}
                   </span>
                 </WorkspaceField>
               ) : null}

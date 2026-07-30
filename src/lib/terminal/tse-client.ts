@@ -1,51 +1,44 @@
+/**
+ * Resolve Terminal TSE data-source mode.
+ * - `unavailable`: honest offline state; orders disabled (default for all environments)
+ * - `live`: reserved for future NewportTseClient (fails closed to unavailable until wired)
+ * - `mock`: not a normal runtime mode — rejected unless an explicit test/UI Lab path opts in
+ *
+ * Control via server-only `TERMINAL_TSE_MODE`. Do not rely on `VITE_TERMINAL_TSE_MODE`
+ * for server behavior (kept only as a deprecated fallback read during cleanup).
+ */
 import type { TseClient, TseClientContext, TseDataSourceMode } from "@/lib/terminal/types";
-import { MockTseClient } from "@/lib/terminal/mock-tse-client";
 import { UnavailableTseClient } from "@/lib/terminal/unavailable-tse-client";
 
-/**
- * Resolve Terminal data-source mode.
- * - `mock`: deterministic fixtures (development default)
- * - `unavailable`: polished offline state; orders disabled (production default)
- * - `live`: reserved for future NewportTseClient (falls back to unavailable until wired)
- *
- * Control via `TERMINAL_TSE_MODE` or `VITE_TERMINAL_TSE_MODE`.
- */
 export function resolveTerminalTseMode(): TseDataSourceMode {
   const raw =
     (typeof process !== "undefined" && process.env.TERMINAL_TSE_MODE) ||
     (typeof process !== "undefined" && process.env.VITE_TERMINAL_TSE_MODE) ||
-    (typeof import.meta !== "undefined" &&
-      (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_TERMINAL_TSE_MODE) ||
     "";
 
   const normalized = String(raw).trim().toLowerCase();
-  if (normalized === "mock" || normalized === "unavailable" || normalized === "live") {
+  if (normalized === "unavailable" || normalized === "live") {
     return normalized;
   }
-
-  const isProd =
-    (typeof process !== "undefined" && process.env.NODE_ENV === "production") ||
-    (typeof import.meta !== "undefined" &&
-      (import.meta as ImportMeta & { env?: { PROD?: boolean; DEV?: boolean; MODE?: string } }).env
-        ?.PROD === true);
-
-  return isProd ? "unavailable" : "mock";
+  // Explicit `mock` is ignored for normal runtime — fail closed to unavailable.
+  // UI Lab demonstration data is gated separately via isUiLabMode().
+  return "unavailable";
 }
 
 const scopedClients = new Map<string, TseClient>();
 
 export function createTseClient(
-  context: TseClientContext = { userId: "terminal-demo-user" },
+  _context: TseClientContext = { userId: "anonymous" },
   mode = resolveTerminalTseMode(),
 ): TseClient {
-  if (mode === "mock") return new MockTseClient(context);
-  // Live Newport TSE client is not implemented yet.
+  // Live Newport TSE client is not implemented yet — fail closed.
+  void mode;
   return new UnavailableTseClient();
 }
 
 /**
- * Account-scoped client. Mock mutations survive across server functions without
- * leaking watchlists, cash, or orders into another authenticated user session.
+ * Account-scoped market client. Until Newport is wired this always returns
+ * UnavailableTseClient regardless of TERMINAL_TSE_MODE=live.
  */
 export function getTseClient(context: TseClientContext): TseClient {
   const mode = resolveTerminalTseMode();

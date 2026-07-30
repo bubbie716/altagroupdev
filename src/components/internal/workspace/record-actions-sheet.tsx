@@ -79,13 +79,13 @@ export function RecordActionsSheet({
             <SheetTitle className="text-left text-[15px]">{title}</SheetTitle>
             <SheetDescription className="text-left text-[12px]">{description}</SheetDescription>
           </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
             <div className="space-y-3" data-record-actions>
               {children}
             </div>
           </div>
           {footer ? (
-            <div className="sticky bottom-0 shrink-0 border-t border-border/60 bg-surface-1 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-border/60 bg-surface-1 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
               {footer}
             </div>
           ) : null}

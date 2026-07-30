@@ -24,6 +24,11 @@ export async function listTerminalOpsPortfoliosFromDb(): Promise<TerminalOpsPort
       include: {
         ownerCompany: { select: { id: true, name: true } },
         ownerUser: { select: { id: true, discordUsername: true } },
+        cashAccount: { select: { availableCash: true } },
+        orders: {
+          where: { status: { in: ["OPEN", "PARTIAL"] } },
+          select: { id: true },
+        },
       },
       orderBy: [{ updatedAt: "desc" }],
       take: 500,
@@ -44,9 +49,9 @@ export async function listTerminalOpsPortfoliosFromDb(): Promise<TerminalOpsPort
         status: row.status === "ACTIVE" ? ("active" as const) : ("archived" as const),
         isDefault: row.isDefault,
         totalValue: null,
-        cashBalance: null,
-        buyingPower: null,
-        openOrderCount: 0,
+        cashBalance: row.cashAccount ? Number(row.cashAccount.availableCash) : 0,
+        buyingPower: row.cashAccount ? Number(row.cashAccount.availableCash) : 0,
+        openOrderCount: row.orders.length,
         lastActivityAt: row.updatedAt.toISOString(),
         needsAttention: false,
         attentionDetail: null,
@@ -61,17 +66,92 @@ export async function listTerminalOpsPortfoliosFromDb(): Promise<TerminalOpsPort
   }
 }
 
+export async function listTerminalOpsOrdersFromDb(): Promise<TerminalOpsOrderRow[]> {
+  const { prisma } = await import("@/server/db");
+  const orders = await prisma.terminalOrder.findMany({
+    include: {
+      portfolio: {
+        select: {
+          name: true,
+          ownerUserId: true,
+          ownerCompanyId: true,
+          ownerUser: { select: { discordUsername: true } },
+          ownerCompany: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: { submittedAt: "desc" },
+    take: 500,
+  });
+  return orders.map((order) => {
+    const investorLabel =
+      order.portfolio.ownerUser?.discordUsername ??
+      order.portfolio.ownerCompany?.name ??
+      "Unknown investor";
+    return {
+      id: order.id,
+      portfolioId: order.portfolioId,
+      portfolioName: order.portfolio.name,
+      investorLabel,
+      ownerUserId: order.portfolio.ownerUserId,
+      ownerCompanyId: order.portfolio.ownerCompanyId,
+      symbol: order.symbol,
+      name: order.symbol,
+      side: order.side === "BUY" ? "buy" : "sell",
+      type: order.orderType === "MARKET" ? "market" : "limit",
+      status: order.status.toLowerCase() as TerminalOpsOrderRow["status"],
+      quantity: Number(order.quantity),
+      filledQuantity: Number(order.filledQuantity),
+      limitPrice: order.limitPrice == null ? null : Number(order.limitPrice),
+      averageFillPrice: order.averageFillPrice == null ? null : Number(order.averageFillPrice),
+      estimatedValue: order.estimatedValue == null ? 0 : Number(order.estimatedValue),
+      submittedAt: order.submittedAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      rejectReason: order.rejectReason,
+      needsAttention: order.status === "REJECTED" || Boolean(order.rejectReason),
+    };
+  });
+}
+
 export async function getTerminalOpsPortfolioFromDb(
   portfolioId: string,
 ): Promise<TerminalOpsPortfolioDetail | null> {
   const rows = await listTerminalOpsPortfoliosFromDb();
   const row = rows.find((p) => p.id === portfolioId);
   if (!row) return null;
+  const { prisma } = await import("@/server/db");
+  const orders = await prisma.terminalOrder.findMany({
+    where: { portfolioId },
+    orderBy: { submittedAt: "desc" },
+    take: 200,
+  });
+  const orderRows: TerminalOpsOrderRow[] = orders.map((order) => ({
+    id: order.id,
+    portfolioId: order.portfolioId,
+    portfolioName: row.name,
+    investorLabel: row.ownerLabel,
+    ownerUserId: row.ownerUserId,
+    ownerCompanyId: row.ownerCompanyId,
+    symbol: order.symbol,
+    name: order.symbol,
+    side: order.side === "BUY" ? "buy" : "sell",
+    type: order.orderType === "MARKET" ? "market" : "limit",
+    status: order.status.toLowerCase() as TerminalOpsOrderRow["status"],
+    quantity: Number(order.quantity),
+    filledQuantity: Number(order.filledQuantity),
+    limitPrice: order.limitPrice == null ? null : Number(order.limitPrice),
+    averageFillPrice: order.averageFillPrice == null ? null : Number(order.averageFillPrice),
+    estimatedValue: order.estimatedValue == null ? 0 : Number(order.estimatedValue),
+    submittedAt: order.submittedAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+    rejectReason: order.rejectReason,
+    needsAttention: order.status === "REJECTED" || Boolean(order.rejectReason),
+  }));
   return {
     ...row,
     holdings: [],
-    openOrders: [],
-    recentOrders: [],
+    openOrders: orderRows.filter((order) => order.status === "open" || order.status === "partial"),
+    recentOrders: orderRows,
     activity: [],
   };
 }
@@ -184,7 +264,8 @@ export function buildTerminalOpsHomeSummary(input: {
     attention,
     investorCount: input.investors.length,
     activePortfolioCount: active.length,
-    openOrderCount: input.orders.filter((o) => o.status === "open" || o.status === "partial").length,
+    openOrderCount: input.orders.filter((o) => o.status === "open" || o.status === "partial")
+      .length,
     rejectedOrderCount: rejected.length,
     recordedPortfolioValue: environment.marketDataTrustworthy
       ? active.reduce((sum, p) => sum + (p.totalValue ?? 0), 0)
@@ -200,6 +281,18 @@ export function buildTerminalOpsHomeSummary(input: {
 
 export type TerminalOpsSystemStatus = {
   environment: ReturnType<typeof resolveTerminalOpsEnvironmentStatus>;
+  localDatabase: {
+    available: boolean;
+    detail: string;
+  };
+  marketData: {
+    available: boolean;
+    detail: string;
+  };
+  orderExecution: {
+    available: boolean;
+    detail: string;
+  };
   synchronization: {
     available: boolean;
     detail: string;
@@ -223,10 +316,46 @@ export type TerminalOpsSystemStatus = {
   };
 };
 
-export function getTerminalOpsSystemStatus(): TerminalOpsSystemStatus {
+export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemStatus> {
   const environment = resolveTerminalOpsEnvironmentStatus();
+  let localDatabaseAvailable = false;
+  let localDatabaseDetail =
+    "Terminal PostgreSQL persistence is not configured (DATABASE_URL missing).";
+  try {
+    const { isDatabaseConfigured, prisma } = await import("@/server/db");
+    if (isDatabaseConfigured()) {
+      await prisma.terminalPortfolio.count();
+      try {
+        await prisma.terminalPortfolioCashAccount.count();
+        localDatabaseAvailable = true;
+        localDatabaseDetail =
+          "Local Terminal database is reachable. Portfolio metadata, cash accounts, orders, and watchlists persist in PostgreSQL.";
+      } catch {
+        localDatabaseAvailable = false;
+        localDatabaseDetail =
+          "Terminal portfolio metadata is reachable, but the persistent foundation migration has not been applied yet.";
+      }
+    }
+  } catch {
+    localDatabaseAvailable = false;
+    localDatabaseDetail =
+      "Local Terminal database is configured but unreachable or not migrated.";
+  }
+
   return {
     environment,
+    localDatabase: {
+      available: localDatabaseAvailable,
+      detail: localDatabaseDetail,
+    },
+    marketData: {
+      available: false,
+      detail: "Market data is unavailable until the Newport TSE adapter is wired.",
+    },
+    orderExecution: {
+      available: false,
+      detail: "Order submission and cancellation require a live TSE adapter.",
+    },
     synchronization: {
       available: false,
       detail:

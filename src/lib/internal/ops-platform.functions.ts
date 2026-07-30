@@ -9,13 +9,15 @@ export const globalOpsSearch = createServerFn({ method: "GET" })
   .inputValidator((input: string | { q: string; site?: string }) => {
     if (typeof input === "string") return { q: input, site: undefined as string | undefined };
     const q = typeof input?.q === "string" ? input.q : "";
-    const site = typeof input?.site === "string" && input.site.trim() ? input.site.trim() : undefined;
+    const site =
+      typeof input?.site === "string" && input.site.trim() ? input.site.trim() : undefined;
     return { q, site };
   })
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode() && (data.site === "terminal" || data.site === "exchange")) {
-      const { searchUiLabTerminalOps } = await import("@/lib/terminal/ui-lab-terminal-ops-fixtures");
+      const { searchUiLabTerminalOps } =
+        await import("@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures");
       return searchUiLabTerminalOps(data.q, 30);
     }
     const { globalOpsSearch: search } = await import("@/server/ops-global-search.service");
@@ -57,7 +59,10 @@ export const fetchActivityTimeline = createServerFn({ method: "GET" })
   });
 
 export const searchTransactionsExplorer = createServerFn({ method: "GET" })
-  .inputValidator((filters: import("@/server/ops-transaction-explorer.service").TransactionSearchFilters) => filters)
+  .inputValidator(
+    (filters: import("@/server/ops-transaction-explorer.service").TransactionSearchFilters) =>
+      filters,
+  )
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
@@ -82,7 +87,9 @@ export const fetchTransactionDetail = createServerFn({ method: "GET" })
   });
 
 export const searchAltaPayAdmin = createServerFn({ method: "GET" })
-  .inputValidator((filters: import("@/server/ops-alta-pay-admin.service").AltaPaySearchFilters) => filters)
+  .inputValidator(
+    (filters: import("@/server/ops-alta-pay-admin.service").AltaPaySearchFilters) => filters,
+  )
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
@@ -131,7 +138,8 @@ export const searchAltaPayInvoicesAdmin = createServerFn({ method: "GET" })
         hasMore: offset + limit < rows.length,
       };
     }
-    const { searchMerchantInvoicesAdmin } = await import("@/server/ops-alta-pay-commercial-admin.service");
+    const { searchMerchantInvoicesAdmin } =
+      await import("@/server/ops-alta-pay-commercial-admin.service");
     return searchMerchantInvoicesAdmin(data);
   });
 
@@ -140,12 +148,14 @@ export const fetchAltaPayInvoiceAdminDetail = createServerFn({ method: "GET" })
   .handler(async ({ data: invoiceId }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabInternalInvoiceDetail } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+      const { getUiLabInternalInvoiceDetail } =
+        await import("@/lib/bank/ui-lab-money-ops-fixtures");
       const detail = getUiLabInternalInvoiceDetail(invoiceId);
       if (!detail) throw new Error("NOT_FOUND");
       return detail;
     }
-    const { getMerchantInvoiceAdminDetail } = await import("@/server/ops-alta-pay-commercial-admin.service");
+    const { getMerchantInvoiceAdminDetail } =
+      await import("@/server/ops-alta-pay-commercial-admin.service");
     return getMerchantInvoiceAdminDetail(invoiceId);
   });
 
@@ -154,7 +164,8 @@ export const searchAltaPayPaymentLinksAdmin = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabInternalPaymentLinkRows } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+      const { getUiLabInternalPaymentLinkRows } =
+        await import("@/lib/bank/ui-lab-money-ops-fixtures");
       let rows = getUiLabInternalPaymentLinkRows();
       const q = data.q?.trim().toLowerCase();
       if (q) {
@@ -174,7 +185,8 @@ export const searchAltaPayPaymentLinksAdmin = createServerFn({ method: "GET" })
         hasMore: offset + limit < rows.length,
       };
     }
-    const { searchPaymentLinksAdmin } = await import("@/server/ops-alta-pay-commercial-admin.service");
+    const { searchPaymentLinksAdmin } =
+      await import("@/server/ops-alta-pay-commercial-admin.service");
     return searchPaymentLinksAdmin(data);
   });
 
@@ -183,17 +195,21 @@ export const fetchAltaPayPaymentLinkAdminDetail = createServerFn({ method: "GET"
   .handler(async ({ data: linkId }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabInternalPaymentLinkDetail } = await import("@/lib/bank/ui-lab-money-ops-fixtures");
+      const { getUiLabInternalPaymentLinkDetail } =
+        await import("@/lib/bank/ui-lab-money-ops-fixtures");
       const detail = getUiLabInternalPaymentLinkDetail(linkId);
       if (!detail) throw new Error("NOT_FOUND");
       return detail;
     }
-    const { getPaymentLinkAdminDetail } = await import("@/server/ops-alta-pay-commercial-admin.service");
+    const { getPaymentLinkAdminDetail } =
+      await import("@/server/ops-alta-pay-commercial-admin.service");
     return getPaymentLinkAdminDetail(linkId);
   });
 
 export const reverseAltaPayAdmin = createServerFn({ method: "POST" })
-  .inputValidator((input: { referenceCode: string; reason: string; silentNotification?: boolean }) => input)
+  .inputValidator(
+    (input: { referenceCode: string; reason: string; silentNotification?: boolean }) => input,
+  )
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
@@ -210,7 +226,7 @@ export const fetchCustomer360 = createServerFn({ method: "GET" })
   .inputValidator((payload: string | { userId: string; includeTimeline?: boolean }) => payload)
   .handler(async ({ data }) => {
     const userId = typeof data === "string" ? data : data.userId;
-    const includeTimeline = typeof data === "string" ? true : data.includeTimeline ?? true;
+    const includeTimeline = typeof data === "string" ? true : (data.includeTimeline ?? true);
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
       const { getUiLabCustomer360 } = await import("@/lib/bank/ui-lab-party-catalog");
@@ -225,12 +241,11 @@ export const fetchCompany360 = createServerFn({ method: "GET" })
   .inputValidator((payload: string | { companyId: string; includeTimeline?: boolean }) => payload)
   .handler(async ({ data }) => {
     const companyId = typeof data === "string" ? data : data.companyId;
-    const includeTimeline = typeof data === "string" ? true : data.includeTimeline ?? true;
+    const includeTimeline = typeof data === "string" ? true : (data.includeTimeline ?? true);
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { canonicalizeUiLabPartyId, getUiLabParty } = await import(
-        "@/lib/bank/ui-lab-party-catalog"
-      );
+      const { canonicalizeUiLabPartyId, getUiLabParty } =
+        await import("@/lib/bank/ui-lab-party-catalog");
       const canonical = canonicalizeUiLabPartyId(companyId);
       const party = getUiLabParty(canonical);
       if (party?.kind === "company" && party.hasInternalRecord && canonical !== companyId) {
@@ -261,7 +276,9 @@ export const fetchAccountOpsSummary = createServerFn({ method: "GET" })
   });
 
 export const reopenBankAccountOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { accountId: string; reason: string; silentNotification?: boolean }) => input)
+  .inputValidator(
+    (input: { accountId: string; reason: string; silentNotification?: boolean }) => input,
+  )
   .handler(async ({ data }) => {
     const { reopenBankAccount } = await import("@/server/ops-account-ops.service");
     await reopenBankAccount(await actorId(), data.accountId, data.reason, {
@@ -289,7 +306,8 @@ export const setAccountRestrictionsOps = createServerFn({ method: "POST" })
 
 export const applyAccountHoldOps = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { accountId: string; amount: number; reason: string; silentNotification?: boolean }) => input,
+    (input: { accountId: string; amount: number; reason: string; silentNotification?: boolean }) =>
+      input,
   )
   .handler(async ({ data }) => {
     const { applyAccountHold } = await import("@/server/ops-account-ops.service");
@@ -299,7 +317,9 @@ export const applyAccountHoldOps = createServerFn({ method: "POST" })
   });
 
 export const releaseAccountHoldOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { holdId: string; reason: string; silentNotification?: boolean }) => input)
+  .inputValidator(
+    (input: { holdId: string; reason: string; silentNotification?: boolean }) => input,
+  )
   .handler(async ({ data }) => {
     const { releaseAccountHold } = await import("@/server/ops-account-ops.service");
     await releaseAccountHold(await actorId(), data.holdId, data.reason, {
@@ -324,7 +344,9 @@ export const adminManualTransferOps = createServerFn({ method: "POST" })
   });
 
 export const reverseAdjustmentOps = createServerFn({ method: "POST" })
-  .inputValidator((input: { transactionId: string; reason: string; silentNotification?: boolean }) => input)
+  .inputValidator(
+    (input: { transactionId: string; reason: string; silentNotification?: boolean }) => input,
+  )
   .handler(async ({ data }) => {
     const { reverseAdjustment } = await import("@/server/ops-account-ops.service");
     return reverseAdjustment(await actorId(), data.transactionId, data.reason, {
@@ -378,7 +400,8 @@ export const adminRecordLoanPaymentOps = createServerFn({ method: "POST" })
 
 export const fetchEnhancedDashboard = createServerFn({ method: "GET" }).handler(async () => {
   const { getInternalDashboardMetrics } = await import("@/server/internal-dashboard.service");
-  const { buildOpsHealthFromMetrics, getOpsActivityFeed } = await import("@/server/ops-platform.service");
+  const { buildOpsHealthFromMetrics, getOpsActivityFeed } =
+    await import("@/server/ops-platform.service");
   const { getMaintenanceMode } = await import("@/server/platform-settings.service");
   await import("@/server/permissions.service").then((m) => m.requireOperator());
 

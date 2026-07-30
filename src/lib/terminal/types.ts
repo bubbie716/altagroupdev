@@ -1,4 +1,4 @@
-/** Domain types for Alta Terminal ↔ TSE adapter. Wire-format agnostic. */
+/** Domain types for Alta Terminal. Local persistence and TSE market access are distinct. */
 
 export type TerminalChartRange = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
@@ -52,29 +52,38 @@ export type Holding = {
   name: string;
   quantity: number;
   averageCost: number;
-  lastPrice: number;
-  marketValue: number;
-  totalReturn: number;
-  totalReturnPercent: number;
-  dayReturn: number;
-  dayReturnPercent: number;
-  weightPercent: number;
+  /** Null when live quotes are unavailable. */
+  lastPrice: number | null;
+  /** Null when live quotes are unavailable — never treat cost basis as live value. */
+  marketValue: number | null;
+  totalReturn: number | null;
+  totalReturnPercent: number | null;
+  dayReturn: number | null;
+  dayReturnPercent: number | null;
+  weightPercent: number | null;
   sparkline: PricePoint[];
 };
 
 export type PortfolioSnapshot = {
   portfolioId: string;
-  equityValue: number;
+  /** Local ledger cash — authoritative even without TSE. */
   cashBalance: number;
   buyingPower: number;
-  totalValue: number;
-  dayChange: number;
-  dayChangePercent: number;
-  totalReturn: number;
-  totalReturnPercent: number;
-  unrealizedReturn: number;
-  unrealizedReturnPercent: number;
   holdings: Holding[];
+  /**
+   * True only when equity/total/day change come from live TSE quotes.
+   * When false, UI must not display ƒ0.00 as if it were a live valuation.
+   */
+  valuationAvailable: boolean;
+  /** Null when valuationAvailable is false. */
+  equityValue: number | null;
+  totalValue: number | null;
+  dayChange: number | null;
+  dayChangePercent: number | null;
+  totalReturn: number | null;
+  totalReturnPercent: number | null;
+  unrealizedReturn: number | null;
+  unrealizedReturnPercent: number | null;
   seriesByRange: Record<TerminalChartRange, PricePoint[]>;
 };
 
@@ -87,9 +96,13 @@ export type TerminalPortfolioSummary = {
   ownerLabel: string;
   status: TerminalPortfolioStatusCode;
   isDefault: boolean;
-  totalValue: number;
-  dayChange: number;
-  dayChangePercent: number;
+  /** Null when live valuation is unavailable. */
+  totalValue: number | null;
+  dayChange: number | null;
+  dayChangePercent: number | null;
+  valuationAvailable: boolean;
+  /** Authoritative local cash when loaded; otherwise null. */
+  cashBalance: number | null;
   capabilities: {
     canView: boolean;
     canTrade: boolean;
@@ -101,11 +114,13 @@ export type TerminalPortfolioSummary = {
 export type WatchlistItem = {
   symbol: string;
   name: string;
-  lastPrice: number;
-  dayChange: number;
-  dayChangePercent: number;
+  /** Null when quotes are unavailable. */
+  lastPrice: number | null;
+  dayChange: number | null;
+  dayChangePercent: number | null;
   sparkline: PricePoint[];
   tradingStatus: SecurityTradingStatus;
+  quoteAvailable: boolean;
 };
 
 export type OrderRecord = {
@@ -161,7 +176,7 @@ export type SubmitOrderResult =
 
 export type CancelOrderResult = { ok: true; order: OrderRecord } | { ok: false; errors: string[] };
 
-/** Portfolio cash/security activity — adapter-level ledger, not mock-only. */
+/** Portfolio cash/security activity — persisted locally and/or synced from TSE fills. */
 export type PortfolioActivityKind =
   | "cash_deposit"
   | "cash_withdrawal"
@@ -184,45 +199,45 @@ export type PortfolioActivityRecord = {
   price: number | null;
   orderId: string | null;
   description: string;
-  /** Running cash after this event (when provided by the adapter). */
+  /** Running cash after this event (when provided). */
   cashAfter: number | null;
 };
 
 export type HomeDashboard = {
   marketStatus: MarketStatusSnapshot;
-  combinedValue: number;
-  combinedDayChange: number;
-  combinedDayChangePercent: number;
+  marketDataAvailable: boolean;
+  /** Null when valuation is unavailable — do not display as ƒ0.00. */
+  combinedValue: number | null;
+  combinedDayChange: number | null;
+  combinedDayChangePercent: number | null;
   portfolios: TerminalPortfolioSummary[];
   watchlistPreview: WatchlistItem[];
   movers: { gainers: SecuritySummary[]; losers: SecuritySummary[] };
   recentOrders: OrderRecord[];
 };
 
-export type TseDataSourceMode = "mock" | "unavailable" | "live";
+/** TSE adapter modes. `mock` is retained only for explicit UI Lab / test doubles. */
+export type TseDataSourceMode = "unavailable" | "live" | "mock";
 
 export type TseClientContext = {
   userId: string;
 };
 
-export interface TseClient {
+/**
+ * External TSE market and execution interface.
+ * Local portfolio/order/watchlist persistence is NOT part of this interface.
+ */
+export interface TseMarketClient {
   readonly mode: TseDataSourceMode;
   getMarketStatus(): Promise<MarketStatusSnapshot>;
   listSecurities(query?: string): Promise<SecuritySummary[]>;
   getSecurity(symbol: string): Promise<SecurityDetail | null>;
   getQuote(symbol: string): Promise<SecuritySummary | null>;
   getPriceHistory(symbol: string, range: TerminalChartRange): Promise<PricePoint[]>;
-  getPortfolio(portfolioId: string): Promise<PortfolioSnapshot>;
-  getHoldings(portfolioId: string): Promise<Holding[]>;
-  getWatchlist(): Promise<WatchlistItem[]>;
-  addToWatchlist(symbol: string): Promise<WatchlistItem[]>;
-  removeFromWatchlist(symbol: string): Promise<WatchlistItem[]>;
-  listOrders(portfolioId: string): Promise<OrderRecord[]>;
   previewOrder(input: OrderPreviewInput): Promise<OrderPreviewResult>;
   submitOrder(input: OrderPreviewInput): Promise<SubmitOrderResult>;
   cancelOrder(portfolioId: string, orderId: string): Promise<CancelOrderResult>;
-  listPortfolioActivity(portfolioId: string): Promise<PortfolioActivityRecord[]>;
-  getHomeDashboard(portfolios: TerminalPortfolioSummary[]): Promise<HomeDashboard>;
-  /** Seed mock market state for a newly created portfolio. */
-  ensurePortfolioMarketState?(portfolioId: string, seed?: "populated" | "empty"): Promise<void>;
 }
+
+/** @deprecated Prefer TseMarketClient — kept as alias during migration of call sites. */
+export type TseClient = TseMarketClient;

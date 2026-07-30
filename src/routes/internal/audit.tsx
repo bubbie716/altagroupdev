@@ -261,7 +261,7 @@ function InternalAuditPage() {
       <Sheet open={advancedOpen} onOpenChange={setAdvancedOpen}>
         <SheetContent
           side="bottom"
-          className="flex max-h-[calc(100dvh-var(--ui-lab-banner-height,0px)-0.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+          className="flex max-h-[var(--internal-sheet-available-height,100dvh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
         >
           <SheetHeader className="shrink-0 border-b border-border/60 px-4 py-3 pr-12 text-left">
             <SheetTitle className="text-left text-[15px]">Advanced filters</SheetTitle>
@@ -270,7 +270,7 @@ function InternalAuditPage() {
             </SheetDescription>
           </SheetHeader>
           <form
-            className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]"
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);

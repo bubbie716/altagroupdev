@@ -49,7 +49,7 @@ export function InternalContextualNav({ className }: { className?: string }) {
     <nav
       aria-label={`${contextual.label} section`}
       className={cn(
-        "internal-contextual-nav order-2 flex min-w-0 items-center gap-1 border-b border-border/60 bg-surface-1/30 px-3 py-1.5 sm:px-4",
+        "internal-contextual-nav order-2 flex min-w-0 items-center gap-1 border-b border-border/60 bg-surface-1/30 px-3 py-1.5 sm:overflow-visible sm:px-4 sm:pe-4",
         className,
       )}
     >
@@ -73,18 +73,20 @@ export function InternalContextualNav({ className }: { className?: string }) {
         ) : null}
       </ul>
 
-      {/* Mobile: up to 3 links + More for the rest (active link always visible) */}
-      <ul className="flex min-w-0 items-center gap-0.5 sm:hidden">
-        {mobileSplit.visible.map((link) => (
-          <ContextualLink
-            key={`ctx-mobile-${link.to}-${link.label}`}
-            link={link}
-            pathname={pathname}
-            siteKey={site.key}
-          />
-        ))}
+      {/* Mobile: scroll primary links independently; keep More inside the available width. */}
+      <div className="internal-contextual-nav-mobile min-w-0 flex-1 sm:hidden">
+        <ul className="internal-contextual-nav-scroll flex min-w-0 flex-1 items-center gap-0.5">
+          {mobileSplit.visible.map((link) => (
+            <ContextualLink
+              key={`ctx-mobile-${link.to}-${link.label}`}
+              link={link}
+              pathname={pathname}
+              siteKey={site.key}
+            />
+          ))}
+        </ul>
         {mobileSplit.overflow.length > 0 ? (
-          <li>
+          <div className="internal-contextual-nav-more shrink-0">
             <ContextualNavOverflow
               label="More"
               links={mobileSplit.overflow}
@@ -92,9 +94,9 @@ export function InternalContextualNav({ className }: { className?: string }) {
               siteKey={site.key}
               active={mobileSplit.overflow.some((link) => isInternalNavActive(pathname, link))}
             />
-          </li>
+          </div>
         ) : null}
-      </ul>
+      </div>
     </nav>
   );
 }
@@ -171,7 +173,7 @@ function ContextualNavOverflow({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         className={cn(
-          "inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-[12px] transition-colors outline-none",
+          "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded px-2.5 text-[12px] transition-colors outline-none sm:min-h-0 sm:min-w-0 sm:justify-start sm:px-2 sm:py-1",
           active || open
             ? "bg-surface-2 font-medium text-foreground"
             : "text-muted-foreground hover:bg-surface-2/50 hover:text-foreground",

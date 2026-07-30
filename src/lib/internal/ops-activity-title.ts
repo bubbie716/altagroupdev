@@ -44,6 +44,7 @@ const KNOWN_TITLES: Record<string, string> = {
   LOAN_APPROVED: "Loan approved",
   LOAN_DENIED: "Loan denied",
   LOAN_PAYMENT: "Loan payment",
+  LOAN_PAYMENT_MADE: "Loan payment made",
   LOAN_FROZEN: "Loan frozen",
   LOAN_UNFROZEN: "Loan unfrozen",
   LOAN_PAID_OFF: "Loan paid off",

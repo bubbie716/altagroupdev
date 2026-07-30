@@ -83,10 +83,14 @@ export function HoldingsTable({
                   <PriceChange amount={h.dayReturn} percent={h.dayReturnPercent} compact />
                 </td>
                 <td className="text-right text-[var(--terminal-muted)]">
-                  {h.weightPercent.toFixed(1)}%
+                  {h.weightPercent == null ? "—" : `${h.weightPercent.toFixed(1)}%`}
                 </td>
                 <td className="text-right">
-                  <Sparkline data={h.sparkline} positive={h.dayReturn >= 0} />
+                  {h.sparkline.length > 0 ? (
+                    <Sparkline data={h.sparkline} positive={(h.dayReturn ?? 0) >= 0} />
+                  ) : (
+                    <span className="text-[var(--terminal-muted)]">—</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -107,7 +111,8 @@ export function HoldingsTable({
                 <div>
                   <p className="font-medium">{h.symbol}</p>
                   <p className="text-[12px] text-[var(--terminal-muted)]">
-                    {h.quantity} sh · {h.weightPercent.toFixed(1)}%
+                    {h.quantity} sh
+                    {h.weightPercent == null ? "" : ` · ${h.weightPercent.toFixed(1)}%`}
                   </p>
                 </div>
                 <div className="text-right">
@@ -126,7 +131,7 @@ export function HoldingsTable({
 }
 
 export function AllocationBars({ holdings }: { holdings: Holding[] }) {
-  if (!holdings.length) return null;
+  if (!holdings.length || holdings.some((holding) => holding.weightPercent == null)) return null;
   return (
     <div className="space-y-3" aria-label="Portfolio allocation">
       {holdings.map((h) => (
@@ -134,13 +139,13 @@ export function AllocationBars({ holdings }: { holdings: Holding[] }) {
           <div className="mb-1 flex justify-between text-[12px]">
             <span>{h.symbol}</span>
             <span className="tabular-nums text-[var(--terminal-muted)]">
-              {h.weightPercent.toFixed(1)}%
+              {h.weightPercent!.toFixed(1)}%
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--terminal-surface-2)]">
             <div
               className="h-full rounded-full bg-[var(--terminal-green)]"
-              style={{ width: `${Math.min(100, h.weightPercent)}%` }}
+              style={{ width: `${Math.min(100, h.weightPercent!)}%` }}
             />
           </div>
         </div>

@@ -44,21 +44,21 @@ function isActive(pathname: string, to: string, exact?: boolean, activePaths?: s
   return path === target || path.startsWith(`${target}/`);
 }
 
-export function MockDataBanner({ mode }: { mode: TseDataSourceMode }) {
+export function UiLabDataBanner({ mode }: { mode: TseDataSourceMode }) {
   if (mode !== "mock") return null;
   return (
     <div
       role="status"
       className="border-b border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-3 py-1.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]"
     >
-      Demonstration data · Not live market quotes
+      UI Lab · demonstration data
     </div>
   );
 }
 
 export function TerminalUnavailableState({
   title = "Market connection unavailable",
-  description = "Alta Terminal cannot reach the Newport TSE right now. Portfolio browsing stays available when connectivity returns.",
+  description = "Market quotes and trading are unavailable because a live Newport TSE connection is not configured.",
 }: {
   title?: string;
   description?: string;
@@ -112,7 +112,11 @@ function SearchResultList({
 }) {
   if (results.length === 0) return null;
   return (
-    <ul className="divide-y divide-[var(--terminal-border)]" role="listbox" aria-label="Symbol results">
+    <ul
+      className="divide-y divide-[var(--terminal-border)]"
+      role="listbox"
+      aria-label="Symbol results"
+    >
       {results.map((row) => (
         <li key={row.symbol} role="option">
           <button
@@ -394,7 +398,7 @@ export function TerminalAppShell({
   const title = useMemo(() => "Alta Terminal", []);
   return (
     <div className="terminal-shell">
-      <MockDataBanner mode={mode} />
+      <UiLabDataBanner mode={mode} />
       <TerminalTopNav marketStatus={marketStatus} />
       <main className="terminal-content">{children}</main>
       <TerminalMobileNav />

@@ -332,7 +332,7 @@ export const FIXTURE_COMPANY_LOTS: FixtureLot[] = [
   { symbol: "NPRT", quantity: 80, averageCost: 39.1 },
 ];
 
-/** Stable mock portfolio ids for a user (used when DB is unavailable). */
+/** Stable UI Lab demonstration portfolio ids for a user. */
 export function mockPortfolioIds(userId: string) {
   return {
     personalCore: `tp_${userId}_core`,
@@ -387,9 +387,11 @@ export function buildFixturePortfolioFromLots(
 
   return {
     portfolioId,
-    equityValue: Number(equity.toFixed(2)),
     cashBalance: cash,
     buyingPower: cash,
+    holdings,
+    valuationAvailable: true,
+    equityValue: Number(equity.toFixed(2)),
     totalValue: Number(totalValue.toFixed(2)),
     dayChange: Number(dayChange.toFixed(2)),
     dayChangePercent:
@@ -401,7 +403,6 @@ export function buildFixturePortfolioFromLots(
     unrealizedReturn: Number(totalReturn.toFixed(2)),
     unrealizedReturnPercent:
       totalCost > 0 ? Number(((totalReturn / totalCost) * 100).toFixed(2)) : 0,
-    holdings,
     seriesByRange: seriesForRanges(seriesSeed, Math.max(totalValue, cash), 0.008),
   };
 }
@@ -441,9 +442,11 @@ export function buildEmptyFixturePortfolio(
   } as Record<TerminalChartRange, PricePoint[]>;
   return {
     portfolioId,
-    equityValue: 0,
     cashBalance: cash,
     buyingPower: cash,
+    holdings: [],
+    valuationAvailable: true,
+    equityValue: 0,
     totalValue: cash,
     dayChange: 0,
     dayChangePercent: 0,
@@ -451,7 +454,6 @@ export function buildEmptyFixturePortfolio(
     totalReturnPercent: 0,
     unrealizedReturn: 0,
     unrealizedReturnPercent: 0,
-    holdings: [],
     seriesByRange: series,
   };
 }
@@ -469,6 +471,7 @@ export function watchlistFromSymbols(symbols: string[]): WatchlistItem[] {
       dayChangePercent: s.dayChangePercent,
       sparkline: s.sparkline,
       tradingStatus: s.tradingStatus,
+      quoteAvailable: true,
     }));
 }
 

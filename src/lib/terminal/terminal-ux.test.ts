@@ -51,7 +51,7 @@ describe("home vs portfolio separation", () => {
     assert.doesNotMatch(home, /PortfolioChart/);
     assert.doesNotMatch(home, /HoldingsTable/);
     assert.match(home, /HomePortfolioCard/);
-    assert.match(home, /combinedValue/);
+    assert.match(home, /combinedValue|marketDataAvailable/);
   });
 
   it("renders detailed portfolio tools on the portfolio detail route", () => {

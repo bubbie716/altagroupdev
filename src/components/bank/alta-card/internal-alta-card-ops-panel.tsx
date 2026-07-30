@@ -5,6 +5,7 @@ import {
   altaCardStatusLabel,
   formatAltaCardCurrency,
   formatAltaCardRate,
+  formatAltaCardTransactionSummary,
 } from "@/lib/bank/alta-card-types";
 import { ALTA_CARD_TIER_CONFIG } from "@/lib/bank/alta-card-tier-config";
 import type { InternalAltaCardOperationsContext } from "@/lib/bank/alta-card-types";
@@ -232,7 +233,7 @@ export function InternalAltaCardOpsPanel({
             </dt>
             <dd className="mt-1 text-[13px]">
               {lastTransaction
-                ? `${lastTransaction.type} · ${formatAltaCardCurrency(lastTransaction.amount)}`
+                ? formatAltaCardTransactionSummary(lastTransaction.type, lastTransaction.amount)
                 : "—"}
             </dd>
           </div>

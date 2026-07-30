@@ -24,7 +24,7 @@ import {
   getUiLabTerminalOrders,
   getUiLabTerminalPortfolios,
   searchUiLabTerminalOps,
-} from "@/lib/terminal/ui-lab-terminal-ops-fixtures";
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures";
 import { getTerminalOpsSystemStatus } from "@/lib/terminal/terminal-ops-admin.service";
 
 const root = join(import.meta.dirname, "../..");
@@ -177,7 +177,9 @@ describe("Phase 7 Terminal search and System", () => {
   it("indexes investors, companies, portfolios, and orders in UI Lab Terminal search", () => {
     const bySymbol = searchUiLabTerminalOps("NPT");
     assert.ok(bySymbol.some((r) => r.type === "terminal_order"));
-    assert.ok(bySymbol.every((r) => r.type !== "account" && r.type !== "alta_card" && r.type !== "loan"));
+    assert.ok(
+      bySymbol.every((r) => r.type !== "account" && r.type !== "alta_card" && r.type !== "loan"),
+    );
 
     const byPortfolio = searchUiLabTerminalOps("Core Portfolio");
     assert.ok(byPortfolio.some((r) => r.type === "terminal_portfolio"));
@@ -196,14 +198,20 @@ describe("Phase 7 Terminal search and System", () => {
     assert.match(service, /terminalOnly/);
     assert.match(service, /terminal_portfolio/);
     assert.match(service, /Bank products are intentionally excluded/);
-    assert.doesNotMatch(service.slice(service.indexOf("if (terminalOnly)"), service.indexOf("const [")), /bankAccount/);
+    assert.doesNotMatch(
+      service.slice(service.indexOf("if (terminalOnly)"), service.indexOf("const [")),
+      /bankAccount/,
+    );
   });
 
-  it("collapses System into connection, readiness checklist, and configuration", () => {
+  it("collapses System into connection, readiness checklist, and configuration", async () => {
     const system = read("routes/internal/terminal/system.tsx");
     assert.match(system, /Connection/);
     assert.match(system, /Readiness/);
-    assert.match(system, /TSE connection/);
+    assert.match(system, /TSE adapter/);
+    assert.match(system, /Local Terminal database/);
+    assert.match(system, /Market data/);
+    assert.match(system, /Order execution/);
     assert.match(system, /Portfolio sync/);
     assert.match(system, /Reconciliation/);
     assert.match(system, /terminalReadinessLabel/);
@@ -212,7 +220,7 @@ describe("Phase 7 Terminal search and System", () => {
     assert.doesNotMatch(system, /Fully reconciled/);
     assert.doesNotMatch(system, /Run reconciliation/);
     assert.doesNotMatch(system, /Schedule recurring/);
-    const status = getTerminalOpsSystemStatus();
+    const status = await getTerminalOpsSystemStatus();
     assert.equal(status.synchronization.available, false);
     assert.equal(status.reconciliation.available, false);
     assert.equal(status.jobs.available, false);

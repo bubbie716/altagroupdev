@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getFixtureSecurity } from "@/lib/terminal/terminal-fixtures";
+import { getFixtureSecurity } from "@/lib/terminal/ui-lab/ui-lab-terminal-market-fixtures";
 import {
   canReviewQuickTrade,
   getQuickTradeReviewErrors,

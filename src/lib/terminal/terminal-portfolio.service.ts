@@ -8,8 +8,8 @@ import {
   companyPortfolioCapabilities,
   personalPortfolioCapabilities,
 } from "@/lib/terminal/portfolio-auth";
-import { mockPortfolioIds } from "@/lib/terminal/terminal-fixtures";
 import type { TerminalPortfolioSummary } from "@/lib/terminal/types";
+import { serializeMoney } from "@/lib/terminal/terminal-decimal";
 
 export type TerminalPortfolioRecord = {
   id: string;
@@ -25,15 +25,20 @@ export type TerminalPortfolioRecord = {
   updatedAt: string;
 };
 
-type MemoryStore = {
-  portfolios: TerminalPortfolioRecord[];
-  lastSelectedByUser: Map<string, string>;
-};
+export class TerminalPersistenceUnavailableError extends Error {
+  readonly code = "terminal_persistence_unavailable" as const;
+  constructor(message = "Terminal database is unavailable") {
+    super(message);
+    this.name = "TerminalPersistenceUnavailableError";
+  }
+}
 
-const memoryByUser = new Map<string, MemoryStore>();
-
-function nowIso() {
-  return new Date().toISOString();
+export class TerminalPortfolioAccessError extends Error {
+  readonly code = "terminal_portfolio_access_denied" as const;
+  constructor(message = "Portfolio not found or access denied") {
+    super(message);
+    this.name = "TerminalPortfolioAccessError";
+  }
 }
 
 function assertExactlyOneOwner(input: {
@@ -52,122 +57,41 @@ function assertExactlyOneOwner(input: {
   }
 }
 
-function seedMemoryStore(user: AltaUser): MemoryStore {
-  const ids = mockPortfolioIds(user.id);
-  const ts = nowIso();
-  const portfolios: TerminalPortfolioRecord[] = [
-    {
-      id: ids.personalCore,
-      name: "Core Portfolio",
-      ownerType: "personal",
-      ownerUserId: user.id,
-      ownerCompanyId: null,
-      ownerLabel: "Personal",
-      createdByUserId: user.id,
-      status: "active",
-      isDefault: true,
-      createdAt: ts,
-      updatedAt: ts,
-    },
-    {
-      id: ids.personalGrowth,
-      name: "Growth Portfolio",
-      ownerType: "personal",
-      ownerUserId: user.id,
-      ownerCompanyId: null,
-      ownerLabel: "Personal",
-      createdByUserId: user.id,
-      status: "active",
-      isDefault: false,
-      createdAt: ts,
-      updatedAt: ts,
-    },
-    {
-      id: ids.personalIncome,
-      name: "Income Portfolio",
-      ownerType: "personal",
-      ownerUserId: user.id,
-      ownerCompanyId: null,
-      ownerLabel: "Personal",
-      createdByUserId: user.id,
-      status: "active",
-      isDefault: false,
-      createdAt: ts,
-      updatedAt: ts,
-    },
-    {
-      id: ids.personalActive,
-      name: "Active Trading",
-      ownerType: "personal",
-      ownerUserId: user.id,
-      ownerCompanyId: null,
-      ownerLabel: "Personal",
-      createdByUserId: user.id,
-      status: "active",
-      isDefault: false,
-      createdAt: ts,
-      updatedAt: ts,
-    },
-  ];
-
-  const altg = user.companyMemberships.find((m) => m.companyId === "CO-ALTG");
-  if (altg && canViewCompanyTerminalPortfolio(user, altg.companyId)) {
-    portfolios.push({
-      id: ids.companyAltg,
-      name: "ALTG Treasury",
-      ownerType: "company",
-      ownerUserId: null,
-      ownerCompanyId: altg.companyId,
-      ownerLabel: altg.companyName,
-      createdByUserId: user.id,
-      status: "active",
-      isDefault: false,
-      createdAt: ts,
-      updatedAt: ts,
-    });
+async function requirePrisma() {
+  const { isDatabaseConfigured, prisma } = await import("@/server/db");
+  if (!isDatabaseConfigured()) {
+    throw new TerminalPersistenceUnavailableError();
   }
-
-  const store: MemoryStore = {
-    portfolios,
-    lastSelectedByUser: new Map([[user.id, ids.personalCore]]),
-  };
-  memoryByUser.set(user.id, store);
-  return store;
+  return prisma;
 }
 
-function getMemoryStore(user: AltaUser): MemoryStore {
-  return memoryByUser.get(user.id) ?? seedMemoryStore(user);
-}
-
-/** Test helper — clears in-memory portfolio metadata. */
-export function resetTerminalPortfolioMemoryForTests() {
-  memoryByUser.clear();
-}
-
-/** Prefer Prisma when configured; tests may force memory via TERMINAL_PORTFOLIO_STORE=memory. */
-async function isPortfolioDatabaseAvailable(): Promise<boolean> {
-  if (process.env.TERMINAL_PORTFOLIO_STORE === "memory") return false;
-  try {
-    const { isDatabaseConfigured } = await import("@/server/db");
-    return isDatabaseConfigured();
-  } catch {
-    return false;
-  }
-}
-
-function isMissingTerminalPortfolioTable(error: unknown): boolean {
-  return (
+function mapDbError(error: unknown): never {
+  if (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (error as { code?: string }).code === "P2021"
-  );
+    ((error as { code?: string }).code === "P2021" ||
+      (error as { code?: string }).code === "P2010")
+  ) {
+    throw new TerminalPersistenceUnavailableError("Terminal tables are not migrated yet");
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  if (/terminalportfolio|does not exist|relation .* does not exist/i.test(message)) {
+    throw new TerminalPersistenceUnavailableError("Terminal tables are not migrated yet");
+  }
+  throw error;
 }
 
 function toSummary(
   record: TerminalPortfolioRecord,
   user: AltaUser,
-  values?: { totalValue?: number; dayChange?: number; dayChangePercent?: number },
+  values?: {
+    totalValue?: number | null;
+    dayChange?: number | null;
+    dayChangePercent?: number | null;
+    cashBalance?: number | null;
+    valuationAvailable?: boolean;
+  },
 ): TerminalPortfolioSummary {
   const capabilities =
     record.ownerType === "personal"
@@ -183,9 +107,11 @@ function toSummary(
     ownerLabel: record.ownerLabel,
     status: record.status,
     isDefault: record.isDefault,
-    totalValue: values?.totalValue ?? 0,
-    dayChange: values?.dayChange ?? 0,
-    dayChangePercent: values?.dayChangePercent ?? 0,
+    totalValue: values?.totalValue ?? null,
+    dayChange: values?.dayChange ?? null,
+    dayChangePercent: values?.dayChangePercent ?? null,
+    valuationAvailable: values?.valuationAvailable ?? false,
+    cashBalance: values?.cashBalance ?? null,
     capabilities,
   };
 }
@@ -200,82 +126,148 @@ function userCanAccessRecord(user: AltaUser, record: TerminalPortfolioRecord): b
   );
 }
 
-async function listFromDb(user: AltaUser): Promise<TerminalPortfolioRecord[]> {
-  const { prisma } = await import("@/server/db");
-  const companyIds = user.companyMemberships
-    .filter((m) => canViewCompanyTerminalPortfolio(user, m.companyId))
-    .map((m) => m.companyId);
-
-  const rows = await prisma.terminalPortfolio.findMany({
-    where: {
-      status: "ACTIVE",
-      OR: [
-        { ownerType: "PERSONAL", ownerUserId: user.id },
-        ...(companyIds.length
-          ? [{ ownerType: "COMPANY" as const, ownerCompanyId: { in: companyIds } }]
-          : []),
-      ],
-    },
-    include: { ownerCompany: { select: { name: true } } },
-    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-  });
-
-  return rows.map((row) => ({
+function rowToRecord(row: {
+  id: string;
+  name: string;
+  ownerType: "PERSONAL" | "COMPANY";
+  ownerUserId: string | null;
+  ownerCompanyId: string | null;
+  createdByUserId: string;
+  status: "ACTIVE" | "ARCHIVED";
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  ownerCompany?: { name: string } | null;
+}): TerminalPortfolioRecord {
+  return {
     id: row.id,
     name: row.name,
-    ownerType: row.ownerType === "PERSONAL" ? ("personal" as const) : ("company" as const),
+    ownerType: row.ownerType === "PERSONAL" ? "personal" : "company",
     ownerUserId: row.ownerUserId,
     ownerCompanyId: row.ownerCompanyId,
     ownerLabel: row.ownerType === "PERSONAL" ? "Personal" : (row.ownerCompany?.name ?? "Company"),
     createdByUserId: row.createdByUserId,
-    status: row.status === "ACTIVE" ? ("active" as const) : ("archived" as const),
+    status: row.status === "ACTIVE" ? "active" : "archived",
     isDefault: row.isDefault,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-  }));
+  };
 }
 
-async function ensureDbDefaults(user: AltaUser): Promise<void> {
-  const { prisma } = await import("@/server/db");
-  const existing = await prisma.terminalPortfolio.count({
-    where: { ownerType: "PERSONAL", ownerUserId: user.id, status: "ACTIVE" },
-  });
-  if (existing > 0) return;
+async function listFromDb(user: AltaUser): Promise<TerminalPortfolioRecord[]> {
+  const prisma = await requirePrisma();
+  try {
+    const companyIds = user.companyMemberships
+      .filter((m) => canViewCompanyTerminalPortfolio(user, m.companyId))
+      .map((m) => m.companyId);
 
-  await prisma.terminalPortfolio.create({
-    data: {
-      name: "Core",
-      ownerType: "PERSONAL",
-      ownerUserId: user.id,
-      createdByUserId: user.id,
-      isDefault: true,
-      status: "ACTIVE",
-    },
-  });
+    const rows = await prisma.terminalPortfolio.findMany({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { ownerType: "PERSONAL", ownerUserId: user.id },
+          ...(companyIds.length
+            ? [{ ownerType: "COMPANY" as const, ownerCompanyId: { in: companyIds } }]
+            : []),
+        ],
+      },
+      include: {
+        ownerCompany: { select: { name: true } },
+      },
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    });
+
+    return rows.map((row) => rowToRecord(row));
+  } catch (error) {
+    mapDbError(error);
+  }
+}
+
+/**
+ * Ensure existing portfolios have a zero cash account (idempotent app-level backfill).
+ * Does not create fabricated activity, positions, orders, or watchlists.
+ */
+export async function ensurePortfolioCashAccount(portfolioId: string): Promise<void> {
+  const prisma = await requirePrisma();
+  try {
+    await prisma.terminalPortfolioCashAccount.upsert({
+      where: { portfolioId },
+      create: {
+        portfolioId,
+        availableCash: 0,
+        reservedCash: 0,
+        currency: "FLORIN",
+      },
+      update: {},
+    });
+  } catch (error) {
+    mapDbError(error);
+  }
+}
+
+/**
+ * Resolve invalid personal default combinations transactionally:
+ * at most one default ACTIVE personal portfolio per user — keep oldest by createdAt.
+ */
+export async function repairPersonalDefaultPortfolios(userId: string): Promise<void> {
+  const prisma = await requirePrisma();
+  try {
+    await prisma.$transaction(async (tx) => {
+      const personal = await tx.terminalPortfolio.findMany({
+        where: { ownerType: "PERSONAL", ownerUserId: userId, status: "ACTIVE" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, isDefault: true },
+      });
+      if (personal.length === 0) return;
+      const defaults = personal.filter((p) => p.isDefault);
+      const keepId = defaults[0]?.id ?? personal[0]!.id;
+      for (const row of personal) {
+        const shouldDefault = row.id === keepId;
+        if (row.isDefault !== shouldDefault) {
+          await tx.terminalPortfolio.update({
+            where: { id: row.id },
+            data: { isDefault: shouldDefault },
+          });
+        }
+      }
+    });
+  } catch (error) {
+    mapDbError(error);
+  }
 }
 
 export async function listAccessibleTerminalPortfolios(
   user: AltaUser,
 ): Promise<TerminalPortfolioSummary[]> {
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      await ensureDbDefaults(user);
-      const records = await listFromDb(user);
-      return records.filter((r) => userCanAccessRecord(user, r)).map((r) => toSummary(r, user));
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) {
-        // UI Lab mock user is not a real Prisma User — FK seed fails when DATABASE_URL is set.
-        // Fall back to the in-memory fixture store so mock Terminal remains previewable.
-        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
-        if (!isUiLabMode()) throw error;
-      }
+  // Intentionally does NOT auto-create portfolios — new users see an empty state.
+  const records = await listFromDb(user);
+  const prisma = await requirePrisma();
+
+  const cashByPortfolio = new Map<string, number>();
+  try {
+    const accounts = await prisma.terminalPortfolioCashAccount.findMany({
+      where: { portfolioId: { in: records.map((r) => r.id) } },
+      select: { portfolioId: true, availableCash: true },
+    });
+    for (const account of accounts) {
+      cashByPortfolio.set(account.portfolioId, serializeMoney(account.availableCash));
     }
+  } catch {
+    // Cash foundation table may be missing until migration is applied.
+    // Portfolio metadata remains available; cash stays null/0.
   }
 
-  const store = getMemoryStore(user);
-  return store.portfolios
+  return records
     .filter((r) => userCanAccessRecord(user, r))
-    .map((r) => toSummary(r, user));
+    .map((r) =>
+      toSummary(r, user, {
+        cashBalance: cashByPortfolio.get(r.id) ?? 0,
+        valuationAvailable: false,
+        totalValue: null,
+        dayChange: null,
+        dayChangePercent: null,
+      }),
+    );
 }
 
 export async function resolveTerminalPortfolioId(
@@ -287,32 +279,19 @@ export async function resolveTerminalPortfolioId(
 
   if (requestedId) {
     const match = accessible.find((p) => p.id === requestedId);
-    if (!match) {
-      throw new Error("Portfolio not found or access denied");
-    }
+    if (!match) throw new TerminalPortfolioAccessError();
     return match.id;
   }
 
-  // Prefer the last portfolio the user actually selected (DB, then in-memory).
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      const { prisma } = await import("@/server/db");
-      const settings = await prisma.userTerminalSettings.findUnique({ where: { userId: user.id } });
-      if (settings?.lastSelectedPortfolioId) {
-        const recent = accessible.find((p) => p.id === settings.lastSelectedPortfolioId);
-        if (recent) return recent.id;
-      }
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) {
-        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
-        if (!isUiLabMode()) throw error;
-      }
+  const prisma = await requirePrisma();
+  try {
+    const settings = await prisma.userTerminalSettings.findUnique({ where: { userId: user.id } });
+    if (settings?.lastSelectedPortfolioId) {
+      const recent = accessible.find((p) => p.id === settings.lastSelectedPortfolioId);
+      if (recent) return recent.id;
     }
-  }
-
-  const memoryRecentId = getMemoryStore(user).lastSelectedByUser.get(user.id);
-  if (memoryRecentId && accessible.some((p) => p.id === memoryRecentId)) {
-    return memoryRecentId;
+  } catch (error) {
+    mapDbError(error);
   }
 
   const defaultPortfolio = accessible.find((p) => p.isDefault);
@@ -323,27 +302,18 @@ export async function resolveTerminalPortfolioId(
 export async function rememberSelectedTerminalPortfolio(user: AltaUser, portfolioId: string) {
   const accessible = await listAccessibleTerminalPortfolios(user);
   if (!accessible.some((p) => p.id === portfolioId)) {
-    throw new Error("Portfolio not found or access denied");
+    throw new TerminalPortfolioAccessError();
   }
 
-  // Always keep an in-memory copy so resolve stays correct when DB settings
-  // are missing (e.g. UI Lab) or temporarily unavailable.
-  getMemoryStore(user).lastSelectedByUser.set(user.id, portfolioId);
-
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      const { prisma } = await import("@/server/db");
-      await prisma.userTerminalSettings.upsert({
-        where: { userId: user.id },
-        create: { userId: user.id, lastSelectedPortfolioId: portfolioId },
-        update: { lastSelectedPortfolioId: portfolioId },
-      });
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) {
-        const { isUiLabMode } = await import("@/lib/auth/ui-lab");
-        if (!isUiLabMode()) throw error;
-      }
-    }
+  const prisma = await requirePrisma();
+  try {
+    await prisma.userTerminalSettings.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, lastSelectedPortfolioId: portfolioId },
+      update: { lastSelectedPortfolioId: portfolioId },
+    });
+  } catch (error) {
+    mapDbError(error);
   }
 }
 
@@ -353,8 +323,35 @@ export async function getTerminalPortfolioForUser(
 ): Promise<TerminalPortfolioSummary> {
   const accessible = await listAccessibleTerminalPortfolios(user);
   const match = accessible.find((p) => p.id === portfolioId);
-  if (!match) throw new Error("Portfolio not found or access denied");
+  if (!match) throw new TerminalPortfolioAccessError();
   return match;
+}
+
+/** Includes archived portfolios the user may still view for history (not selectable). */
+export async function getTerminalPortfolioRecordIncludingArchived(
+  user: AltaUser,
+  portfolioId: string,
+): Promise<TerminalPortfolioRecord | null> {
+  const prisma = await requirePrisma();
+  try {
+    const row = await prisma.terminalPortfolio.findUnique({
+      where: { id: portfolioId },
+      include: { ownerCompany: { select: { name: true } } },
+    });
+    if (!row) return null;
+    const record = rowToRecord(row);
+    if (record.ownerType === "personal") {
+      if (record.ownerUserId !== user.id) return null;
+    } else if (
+      !record.ownerCompanyId ||
+      !canViewCompanyTerminalPortfolio(user, record.ownerCompanyId)
+    ) {
+      return null;
+    }
+    return record;
+  } catch (error) {
+    mapDbError(error);
+  }
 }
 
 export type CreateTerminalPortfolioInput = {
@@ -390,13 +387,17 @@ export async function createTerminalPortfolio(
       : (user.companyMemberships.find((m) => m.companyId === input.ownerCompanyId)?.companyName ??
         "Company");
 
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      const { prisma } = await import("@/server/db");
-      const personalCount = await prisma.terminalPortfolio.count({
-        where: { ownerType: "PERSONAL", ownerUserId: user.id, status: "ACTIVE" },
-      });
-      const row = await prisma.terminalPortfolio.create({
+  const prisma = await requirePrisma();
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      const personalCount =
+        input.ownerType === "personal"
+          ? await tx.terminalPortfolio.count({
+              where: { ownerType: "PERSONAL", ownerUserId: user.id, status: "ACTIVE" },
+            })
+          : 0;
+
+      const created = await tx.terminalPortfolio.create({
         data: {
           name,
           ownerType: input.ownerType === "personal" ? "PERSONAL" : "COMPANY",
@@ -405,52 +406,61 @@ export async function createTerminalPortfolio(
           createdByUserId: user.id,
           isDefault: input.ownerType === "personal" && personalCount === 0,
           status: "ACTIVE",
+          cashAccount: {
+            create: {
+              availableCash: 0,
+              reservedCash: 0,
+              currency: "FLORIN",
+            },
+          },
         },
-        include: { ownerCompany: { select: { name: true } } },
+        include: { ownerCompany: { select: { name: true } }, cashAccount: true },
       });
-      return toSummary(
-        {
-          id: row.id,
-          name: row.name,
-          ownerType: input.ownerType,
-          ownerUserId: row.ownerUserId,
-          ownerCompanyId: row.ownerCompanyId,
-          ownerLabel:
-            input.ownerType === "personal" ? "Personal" : (row.ownerCompany?.name ?? ownerLabel),
-          createdByUserId: row.createdByUserId,
-          status: "active",
-          isDefault: row.isDefault,
-          createdAt: row.createdAt.toISOString(),
-          updatedAt: row.updatedAt.toISOString(),
-        },
-        user,
-      );
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
-    }
-  }
 
-  const store = getMemoryStore(user);
-  const personalActive = store.portfolios.filter(
-    (p) => p.ownerType === "personal" && p.ownerUserId === user.id && p.status === "active",
-  );
-  const id = `tp_${user.id}_${Date.now().toString(36)}`;
-  const ts = nowIso();
-  const record: TerminalPortfolioRecord = {
-    id,
-    name,
-    ownerType: input.ownerType,
-    ownerUserId: input.ownerType === "personal" ? user.id : null,
-    ownerCompanyId: input.ownerType === "company" ? input.ownerCompanyId! : null,
-    ownerLabel,
-    createdByUserId: user.id,
-    status: "active",
-    isDefault: input.ownerType === "personal" && personalActive.length === 0,
-    createdAt: ts,
-    updatedAt: ts,
-  };
-  store.portfolios.push(record);
-  return toSummary(record, user);
+      // Ensure at most one personal default remains if a race created another.
+      if (input.ownerType === "personal" && created.isDefault) {
+        await tx.terminalPortfolio.updateMany({
+          where: {
+            ownerType: "PERSONAL",
+            ownerUserId: user.id,
+            status: "ACTIVE",
+            isDefault: true,
+            NOT: { id: created.id },
+          },
+          data: { isDefault: false },
+        });
+      }
+
+      return created;
+    });
+
+    return toSummary(
+      {
+        id: row.id,
+        name: row.name,
+        ownerType: input.ownerType,
+        ownerUserId: row.ownerUserId,
+        ownerCompanyId: row.ownerCompanyId,
+        ownerLabel:
+          input.ownerType === "personal" ? "Personal" : (row.ownerCompany?.name ?? ownerLabel),
+        createdByUserId: row.createdByUserId,
+        status: "active",
+        isDefault: row.isDefault,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      },
+      user,
+      {
+        cashBalance: 0,
+        valuationAvailable: false,
+        totalValue: null,
+        dayChange: null,
+        dayChangePercent: null,
+      },
+    );
+  } catch (error) {
+    mapDbError(error);
+  }
 }
 
 export async function renameTerminalPortfolio(
@@ -468,42 +478,23 @@ export async function renameTerminalPortfolio(
     }
   }
 
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      const { prisma } = await import("@/server/db");
-      const row = await prisma.terminalPortfolio.update({
-        where: { id: portfolioId },
-        data: { name: trimmed },
-        include: { ownerCompany: { select: { name: true } } },
-      });
-      return toSummary(
-        {
-          id: row.id,
-          name: row.name,
-          ownerType: row.ownerType === "PERSONAL" ? "personal" : "company",
-          ownerUserId: row.ownerUserId,
-          ownerCompanyId: row.ownerCompanyId,
-          ownerLabel:
-            row.ownerType === "PERSONAL" ? "Personal" : (row.ownerCompany?.name ?? "Company"),
-          createdByUserId: row.createdByUserId,
-          status: row.status === "ACTIVE" ? "active" : "archived",
-          isDefault: row.isDefault,
-          createdAt: row.createdAt.toISOString(),
-          updatedAt: row.updatedAt.toISOString(),
-        },
-        user,
-      );
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
-    }
+  const prisma = await requirePrisma();
+  try {
+    const row = await prisma.terminalPortfolio.update({
+      where: { id: portfolioId },
+      data: { name: trimmed },
+      include: {
+        ownerCompany: { select: { name: true } },
+        cashAccount: { select: { availableCash: true } },
+      },
+    });
+    return toSummary(rowToRecord(row), user, {
+      cashBalance: row.cashAccount ? serializeMoney(row.cashAccount.availableCash) : 0,
+      valuationAvailable: false,
+    });
+  } catch (error) {
+    mapDbError(error);
   }
-
-  const store = getMemoryStore(user);
-  const record = store.portfolios.find((p) => p.id === portfolioId);
-  if (!record) throw new Error("Portfolio not found or access denied");
-  record.name = trimmed;
-  record.updatedAt = nowIso();
-  return toSummary(record, user);
 }
 
 export async function archiveTerminalPortfolio(
@@ -518,46 +509,66 @@ export async function archiveTerminalPortfolio(
     }
   }
 
-  if (await isPortfolioDatabaseAvailable()) {
-    try {
-      const { prisma } = await import("@/server/db");
-      const row = await prisma.terminalPortfolio.update({
+  const prisma = await requirePrisma();
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      const archived = await tx.terminalPortfolio.update({
         where: { id: portfolioId },
         data: { status: "ARCHIVED", isDefault: false },
-        include: { ownerCompany: { select: { name: true } } },
-      });
-      return toSummary(
-        {
-          id: row.id,
-          name: row.name,
-          ownerType: row.ownerType === "PERSONAL" ? "personal" : "company",
-          ownerUserId: row.ownerUserId,
-          ownerCompanyId: row.ownerCompanyId,
-          ownerLabel:
-            row.ownerType === "PERSONAL" ? "Personal" : (row.ownerCompany?.name ?? "Company"),
-          createdByUserId: row.createdByUserId,
-          status: "archived",
-          isDefault: false,
-          createdAt: row.createdAt.toISOString(),
-          updatedAt: row.updatedAt.toISOString(),
+        include: {
+          ownerCompany: { select: { name: true } },
+          cashAccount: { select: { availableCash: true } },
         },
-        user,
-      );
-    } catch (error) {
-      if (!isMissingTerminalPortfolioTable(error)) throw error;
-    }
-  }
+      });
 
-  const store = getMemoryStore(user);
-  const record = store.portfolios.find((p) => p.id === portfolioId);
-  if (!record) throw new Error("Portfolio not found or access denied");
-  record.status = "archived";
-  record.isDefault = false;
-  record.updatedAt = nowIso();
-  return toSummary(record, user);
+      // Clear last-selected pointers so archived portfolios cannot remain selected.
+      await tx.userTerminalSettings.updateMany({
+        where: { lastSelectedPortfolioId: portfolioId },
+        data: { lastSelectedPortfolioId: null },
+      });
+
+      // If this was the personal default, promote the oldest remaining active personal portfolio.
+      if (archived.ownerType === "PERSONAL" && archived.ownerUserId) {
+        const nextDefault = await tx.terminalPortfolio.findFirst({
+          where: {
+            ownerType: "PERSONAL",
+            ownerUserId: archived.ownerUserId,
+            status: "ACTIVE",
+          },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+        if (nextDefault && !nextDefault.isDefault) {
+          await tx.terminalPortfolio.update({
+            where: { id: nextDefault.id },
+            data: { isDefault: true },
+          });
+        }
+      }
+
+      return archived;
+    });
+
+    return toSummary(
+      {
+        ...rowToRecord(row),
+        status: "archived",
+        isDefault: false,
+      },
+      user,
+      {
+        cashBalance: row.cashAccount ? serializeMoney(row.cashAccount.availableCash) : 0,
+        valuationAvailable: false,
+      },
+    );
+  } catch (error) {
+    mapDbError(error);
+  }
 }
 
 export function assertCanTradePortfolio(user: AltaUser, portfolio: TerminalPortfolioSummary) {
+  if (portfolio.status !== "active") {
+    throw new Error("Archived portfolios cannot be traded");
+  }
   if (!portfolio.capabilities.canTrade) {
     throw new Error("Not authorized to trade this portfolio");
   }

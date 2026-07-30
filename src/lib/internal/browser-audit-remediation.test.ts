@@ -74,7 +74,8 @@ describe("browser-audit remediation: sheets", () => {
     const sheet = read("components/ui/sheet.tsx");
     assert.match(sheet, /--ui-lab-banner-height/);
     assert.match(sheet, /z-\[10050\]/);
-    assert.match(sheet, /100dvh-var\(--ui-lab-banner-height/);
+    assert.match(sheet, /--internal-sheet-available-height|100dvh/);
+    assert.match(sheet, /overflow-hidden/);
   });
 });
 
@@ -139,6 +140,7 @@ describe("browser-audit remediation: copy", () => {
   it("humanizes raw event codes for primary copy", () => {
     assert.equal(formatOpsAuditActionTitle("ALTA_CARD_CASH_ADVANCE_CREATED"), "Cash advance created");
     assert.equal(formatOpsAuditActionTitle("LOAN_PAYMENT"), "Loan payment");
+    assert.equal(formatOpsAuditActionTitle("LOAN_PAYMENT_MADE"), "Loan payment made");
     assert.equal(formatOpsAuditActionTitle("BUSINESS CREDIT LINE"), "Business Credit Line");
   });
 

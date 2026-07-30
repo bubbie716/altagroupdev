@@ -88,16 +88,16 @@ enum CommercialSubscriptionChargeStatus {
 }
 
 model User {
-  id                    String                @id @default(cuid())
-  discordId             String                @unique
-  discordUsername       String
-  discordAvatar         String?
-  email                 String?
-  minecraftUsername     String?
-  accountStatus         AccountStatus         @default(ACTIVE)
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  lastLoginAt           DateTime              @default(now())
+  id                String        @id @default(cuid())
+  discordId         String        @unique
+  discordUsername   String
+  discordAvatar     String?
+  email             String?
+  minecraftUsername String?
+  accountStatus     AccountStatus @default(ACTIVE)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt       DateTime      @default(now())
 
   tags                                       UserTagAssignment[]
   companyMemberships                         CompanyMembership[]
@@ -173,6 +173,9 @@ model User {
   terminalSettings                           UserTerminalSettings?
   terminalPortfoliosOwned                    TerminalPortfolio[]                  @relation("TerminalPortfolioOwnerUser")
   terminalPortfoliosCreated                  TerminalPortfolio[]                  @relation("TerminalPortfolioCreator")
+  terminalOrdersCreated                      TerminalOrder[]                      @relation("TerminalOrderCreatedBy")
+  terminalWatchlists                         TerminalWatchlist[]
+  terminalCashLedgerEntries                  TerminalCashLedgerEntry[]            @relation("TerminalCashLedgerActor")
   secureDealRoomDiscordSessions              SecureDealRoomDiscordSession[]
   notificationDeliveryQueue                  NotificationDeliveryQueue[]
   paymentsInitiated                          Payment[]                            @relation("PaymentInitiatedBy")
@@ -238,51 +241,51 @@ model Company {
   createdAt                     DateTime           @default(now())
   updatedAt                     DateTime           @updatedAt
 
-  memberships                  CompanyMembership[]
-  bankAccounts                 BankAccount[]
-  invitations                  CompanyInvitation[]
-  scheduledPayments            ScheduledPayment[]
-  payrollEmployees             PayrollEmployee[]
-  payrollRuns                  PayrollRun[]
-  loanApplications             LoanApplication[]
-  loans                        Loan[]
-  dealRooms                    DealRoom[]
-  loanApplicationThreads       LoanApplicationThread[]
-  altaCards                    AltaCard[]
-  altaCardApplications         AltaCardApplication[]
-  altaCardApplicationThreads   AltaCardApplicationThread[]
-  altaCardReviewRequests       AltaCardReviewRequest[]
-  altaCardReviewThreads        AltaCardReviewThread[]
-  altaEmployeeCards            AltaEmployeeCard[]
-  altaCardMerchantTransactions AltaCardTransaction[]                @relation("AltaCardMerchantCompany")
-  relationshipProfile          CompanyRelationshipProfile?
-  relationshipSnapshots        CompanyRelationshipProfileSnapshot[]
-  relationshipRecommendations  CompanyRelationshipRecommendation[]
-  relationshipTimelineEvents   CompanyRelationshipTimelineEvent[]
-  merchantInvoices             MerchantInvoice[]
-  merchantInvoicesReceived     MerchantInvoice[]                    @relation("MerchantInvoiceRecipientCompany")
-  paymentLinks                 PaymentLink[]
-  merchantAutopayApprovals     MerchantAutopayApproval[]
-  recurringInvoiceSchedules    MerchantRecurringInvoiceSchedule[]
-  altaPaySchedulesAsPayee      ScheduledPayment[]                   @relation("ScheduledPaymentRecipientCompany")
-  recurringInvoicesToCompany   MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientCompany")
-  commercialPlan                   CommercialPlan                       @default(CORE)
-  planStatus                       CommercialPlanStatus                 @default(ACTIVE)
-  billingStatus                    CommercialBillingStatus              @default(NOT_BILLED)
-  commercialMonthlyFee             Decimal?                             @db.Decimal(18, 2)
-  commercialEnabledFeatures        Json?
-  commercialBillingAccountId       String?
-  commercialNextBillingAt          DateTime?
-  commercialPastDueAt              DateTime?
-  commercialProSubscribedAt        DateTime?
-  commercialProGrantSource         CommercialProGrantSource?
-  commercialProExpiresAt           DateTime?
-  commercialBillingCycleId         String?
-  commercialDowngradeScheduledAt   DateTime?
-  commercialBillingAccount         BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
-  commercialSubscriptionCharges    CommercialSubscriptionCharge[]
-  branding                         CompanyBranding?
-  terminalPortfolios               TerminalPortfolio[]
+  memberships                    CompanyMembership[]
+  bankAccounts                   BankAccount[]
+  invitations                    CompanyInvitation[]
+  scheduledPayments              ScheduledPayment[]
+  payrollEmployees               PayrollEmployee[]
+  payrollRuns                    PayrollRun[]
+  loanApplications               LoanApplication[]
+  loans                          Loan[]
+  dealRooms                      DealRoom[]
+  loanApplicationThreads         LoanApplicationThread[]
+  altaCards                      AltaCard[]
+  altaCardApplications           AltaCardApplication[]
+  altaCardApplicationThreads     AltaCardApplicationThread[]
+  altaCardReviewRequests         AltaCardReviewRequest[]
+  altaCardReviewThreads          AltaCardReviewThread[]
+  altaEmployeeCards              AltaEmployeeCard[]
+  altaCardMerchantTransactions   AltaCardTransaction[]                @relation("AltaCardMerchantCompany")
+  relationshipProfile            CompanyRelationshipProfile?
+  relationshipSnapshots          CompanyRelationshipProfileSnapshot[]
+  relationshipRecommendations    CompanyRelationshipRecommendation[]
+  relationshipTimelineEvents     CompanyRelationshipTimelineEvent[]
+  merchantInvoices               MerchantInvoice[]
+  merchantInvoicesReceived       MerchantInvoice[]                    @relation("MerchantInvoiceRecipientCompany")
+  paymentLinks                   PaymentLink[]
+  merchantAutopayApprovals       MerchantAutopayApproval[]
+  recurringInvoiceSchedules      MerchantRecurringInvoiceSchedule[]
+  altaPaySchedulesAsPayee        ScheduledPayment[]                   @relation("ScheduledPaymentRecipientCompany")
+  recurringInvoicesToCompany     MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientCompany")
+  commercialPlan                 CommercialPlan                       @default(CORE)
+  planStatus                     CommercialPlanStatus                 @default(ACTIVE)
+  billingStatus                  CommercialBillingStatus              @default(NOT_BILLED)
+  commercialMonthlyFee           Decimal?                             @db.Decimal(18, 2)
+  commercialEnabledFeatures      Json?
+  commercialBillingAccountId     String?
+  commercialNextBillingAt        DateTime?
+  commercialPastDueAt            DateTime?
+  commercialProSubscribedAt      DateTime?
+  commercialProGrantSource       CommercialProGrantSource?
+  commercialProExpiresAt         DateTime?
+  commercialBillingCycleId       String?
+  commercialDowngradeScheduledAt DateTime?
+  commercialBillingAccount       BankAccount?                         @relation("CommercialBillingAccount", fields: [commercialBillingAccountId], references: [id], onDelete: SetNull)
+  commercialSubscriptionCharges  CommercialSubscriptionCharge[]
+  branding                       CompanyBranding?
+  terminalPortfolios             TerminalPortfolio[]
 
   @@index([verificationStatus])
   @@index([commercialDowngradeScheduledAt])
@@ -537,9 +540,9 @@ model BankAccount {
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
 
-  user                              User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company                           Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  commercialBillingForCompanies     Company[]                       @relation("CommercialBillingAccount")
+  user                              User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company                           Company?                       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  commercialBillingForCompanies     Company[]                      @relation("CommercialBillingAccount")
   commercialSubscriptionCharges     CommercialSubscriptionCharge[]
   holds                             BankAccountHold[]
   transactions                      BankTransaction[]
@@ -549,18 +552,18 @@ model BankAccount {
   payrollRuns                       PayrollRun[]
   statements                        BankStatement[]
   loanApplications                  LoanApplication[]
-  loansLinked                       Loan[]                    @relation("LoanLinkedAccount")
-  loansAutoPaySource                Loan[]                    @relation("LoanAutoPaySource")
-  altaCardAutopaySource             AltaCard[]                @relation("AltaCardAutopaySource")
+  loansLinked                       Loan[]                         @relation("LoanLinkedAccount")
+  loansAutoPaySource                Loan[]                         @relation("LoanAutoPaySource")
+  altaCardAutopaySource             AltaCard[]                     @relation("AltaCardAutopaySource")
   loanPaymentsFrom                  LoanPayment[]
-  altaCardTransactions              AltaCardTransaction[]     @relation("AltaCardRelatedBankAccount")
-  altaCardApplicationsPaymentSource AltaCardApplication[]     @relation("AltaCardApplicationPaymentSource")
-  altaPayReceiveForUsers            UserBankSettings[]        @relation("UserAltaPayReceiveAccount")
-  altaPayFundingForUsers            UserBankSettings[]        @relation("UserAltaPayFundingAccount")
-  paymentsAsSource                  Payment[]                 @relation("PaymentSourceAccount")
-  paymentsAsDestination             Payment[]                 @relation("PaymentDestinationAccount")
-  merchantInvoicesDestination       MerchantInvoice[]         @relation("MerchantInvoiceDestination")
-  paymentLinksDestination           PaymentLink[]             @relation("PaymentLinkDestination")
+  altaCardTransactions              AltaCardTransaction[]          @relation("AltaCardRelatedBankAccount")
+  altaCardApplicationsPaymentSource AltaCardApplication[]          @relation("AltaCardApplicationPaymentSource")
+  altaPayReceiveForUsers            UserBankSettings[]             @relation("UserAltaPayReceiveAccount")
+  altaPayFundingForUsers            UserBankSettings[]             @relation("UserAltaPayFundingAccount")
+  paymentsAsSource                  Payment[]                      @relation("PaymentSourceAccount")
+  paymentsAsDestination             Payment[]                      @relation("PaymentDestinationAccount")
+  merchantInvoicesDestination       MerchantInvoice[]              @relation("MerchantInvoiceDestination")
+  paymentLinksDestination           PaymentLink[]                  @relation("PaymentLinkDestination")
   merchantAutopayFundingApprovals   MerchantAutopayApproval[]
 
   @@index([userId])
@@ -905,15 +908,15 @@ model BankTransaction {
   transferGroupId String?
   ledgerRole      TransferLedgerRole?
 
-  bankAccount                   BankAccount                     @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  reviewedBy                    User?                           @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  transferGroup                 TransferGroup?                  @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  bankAccount                   BankAccount                    @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reviewedBy                    User?                          @relation("BankTransactionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  transferGroup                 TransferGroup?                 @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
   scheduledTransferExecution    ScheduledTransferExecution[]
   payrollRunLineExecution       PayrollRunLineExecution[]
   loanPayment                   LoanPayment?
   loanLedgerEntries             LoanLedgerEntry[]
   interestAccrual               BankInterestAccrual?
-  altaCardTransactions          AltaCardTransaction[]           @relation("AltaCardRelatedBankTransaction")
+  altaCardTransactions          AltaCardTransaction[]          @relation("AltaCardRelatedBankTransaction")
   commercialSubscriptionCharges CommercialSubscriptionCharge[]
 
   @@index([bankAccountId])
@@ -3358,6 +3361,64 @@ enum TerminalPortfolioStatus {
   ARCHIVED
 }
 
+enum TerminalCashCurrency {
+  FLORIN
+}
+
+enum TerminalCashLedgerEntryKind {
+  CASH_DEPOSIT
+  CASH_WITHDRAWAL
+  BUY_FILL
+  SELL_FILL
+  DIVIDEND
+  TRADING_FEE
+  ADJUSTMENT
+  REALIZED_GAIN_LOSS
+  RESERVE
+  RELEASE_RESERVE
+}
+
+enum TerminalCashLedgerEntryStatus {
+  POSTED
+  PENDING
+  VOIDED
+}
+
+enum TerminalOrderSide {
+  BUY
+  SELL
+}
+
+enum TerminalOrderType {
+  MARKET
+  LIMIT
+}
+
+enum TerminalOrderStatus {
+  OPEN
+  FILLED
+  CANCELLED
+  REJECTED
+  PARTIAL
+}
+
+enum TerminalOrderSource {
+  TERMINAL
+  INTERNAL
+  SYSTEM
+}
+
+enum TerminalPortfolioActivityKind {
+  CASH_DEPOSIT
+  CASH_WITHDRAWAL
+  BUY_FILL
+  SELL_FILL
+  DIVIDEND
+  TRADING_FEE
+  ADJUSTMENT
+  REALIZED_GAIN_LOSS
+}
+
 model TerminalPortfolio {
   id              String                     @id @default(cuid())
   name            String
@@ -3370,10 +3431,16 @@ model TerminalPortfolio {
   createdAt       DateTime                   @default(now())
   updatedAt       DateTime                   @updatedAt
 
-  ownerUser     User?    @relation("TerminalPortfolioOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  ownerCompany  Company? @relation(fields: [ownerCompanyId], references: [id], onDelete: Cascade)
-  createdByUser User     @relation("TerminalPortfolioCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  ownerUser     User?                  @relation("TerminalPortfolioOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerCompany  Company?               @relation(fields: [ownerCompanyId], references: [id], onDelete: Cascade)
+  createdByUser User                   @relation("TerminalPortfolioCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   selectedBy    UserTerminalSettings[]
+
+  cashAccount TerminalPortfolioCashAccount?
+  cashLedger  TerminalCashLedgerEntry[]
+  positions   TerminalPosition[]
+  orders      TerminalOrder[]
+  activity    TerminalPortfolioActivity[]
 
   @@index([ownerUserId, status])
   @@index([ownerCompanyId, status])
@@ -3392,4 +3459,173 @@ model UserTerminalSettings {
   lastSelectedPortfolio TerminalPortfolio? @relation(fields: [lastSelectedPortfolioId], references: [id], onDelete: SetNull)
 
   @@index([lastSelectedPortfolioId])
+}
+
+/// Authoritative cash balances for a Terminal portfolio. One row per portfolio.
+model TerminalPortfolioCashAccount {
+  id            String               @id @default(cuid())
+  portfolioId   String               @unique
+  availableCash Decimal              @default(0) @db.Decimal(18, 2)
+  reservedCash  Decimal              @default(0) @db.Decimal(18, 2)
+  currency      TerminalCashCurrency @default(FLORIN)
+  version       Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  portfolio TerminalPortfolio         @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ledger    TerminalCashLedgerEntry[]
+}
+
+/// Immutable cash ledger. Reversals are new entries; never edit posted rows as a substitute.
+model TerminalCashLedgerEntry {
+  id                 String                        @id @default(cuid())
+  portfolioId        String
+  cashAccountId      String
+  amount             Decimal                       @db.Decimal(18, 2)
+  availableCashAfter Decimal                       @db.Decimal(18, 2)
+  reservedCashAfter  Decimal                       @db.Decimal(18, 2)
+  kind               TerminalCashLedgerEntryKind
+  status             TerminalCashLedgerEntryStatus @default(POSTED)
+  description        String
+  externalReference  String?
+  idempotencyKey     String?
+  relatedOrderId     String?
+  actorUserId        String?
+  source             String                        @default("system")
+  createdAt          DateTime                      @default(now())
+
+  portfolio    TerminalPortfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  cashAccount  TerminalPortfolioCashAccount @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
+  relatedOrder TerminalOrder?               @relation(fields: [relatedOrderId], references: [id], onDelete: SetNull)
+  actorUser    User?                        @relation("TerminalCashLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([portfolioId, idempotencyKey])
+  @@index([portfolioId, createdAt])
+  @@index([cashAccountId, createdAt])
+  @@index([relatedOrderId])
+  @@index([externalReference])
+  @@index([kind, createdAt])
+}
+
+/// One position per portfolio/symbol. Market value is never stored as authoritative state.
+model TerminalPosition {
+  id               String   @id @default(cuid())
+  portfolioId      String
+  symbol           String
+  quantity         Decimal  @default(0) @db.Decimal(28, 8)
+  averageCost      Decimal  @default(0) @db.Decimal(18, 6)
+  realizedGainLoss Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  portfolio TerminalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioId, symbol])
+  @@index([symbol])
+  @@index([portfolioId, updatedAt])
+}
+
+/// Local order foundation. Submission/fills require the external TSE adapter.
+model TerminalOrder {
+  id                 String              @id @default(cuid())
+  portfolioId        String
+  symbol             String
+  side               TerminalOrderSide
+  orderType          TerminalOrderType
+  status             TerminalOrderStatus
+  quantity           Decimal             @db.Decimal(28, 8)
+  filledQuantity     Decimal             @default(0) @db.Decimal(28, 8)
+  limitPrice         Decimal?            @db.Decimal(18, 6)
+  averageFillPrice   Decimal?            @db.Decimal(18, 6)
+  estimatedValue     Decimal?            @db.Decimal(18, 2)
+  externalTseOrderId String?
+  clientKey          String?
+  rejectReason       String?
+  createdByUserId    String
+  source             TerminalOrderSource @default(TERMINAL)
+  submittedAt        DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  completedAt        DateTime?
+
+  portfolio  TerminalPortfolio           @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  createdBy  User                        @relation("TerminalOrderCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  fills      TerminalOrderFill[]
+  activity   TerminalPortfolioActivity[]
+  cashLedger TerminalCashLedgerEntry[]
+
+  @@unique([portfolioId, clientKey])
+  @@index([portfolioId, status, submittedAt])
+  @@index([symbol, submittedAt])
+  @@index([externalTseOrderId])
+  @@index([createdByUserId, submittedAt])
+  @@index([status, updatedAt])
+}
+
+model TerminalOrderFill {
+  id             String   @id @default(cuid())
+  orderId        String
+  quantity       Decimal  @db.Decimal(28, 8)
+  price          Decimal  @db.Decimal(18, 6)
+  fee            Decimal  @default(0) @db.Decimal(18, 2)
+  externalFillId String?
+  idempotencyKey String?
+  executedAt     DateTime
+  createdAt      DateTime @default(now())
+
+  order TerminalOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, idempotencyKey])
+  @@unique([externalFillId])
+  @@index([orderId, executedAt])
+}
+
+/// Persisted portfolio activity, created transactionally with authoritative financial records.
+model TerminalPortfolioActivity {
+  id          String                        @id @default(cuid())
+  portfolioId String
+  kind        TerminalPortfolioActivityKind
+  occurredAt  DateTime
+  amount      Decimal                       @db.Decimal(18, 2)
+  symbol      String?
+  quantity    Decimal?                      @db.Decimal(28, 8)
+  price       Decimal?                      @db.Decimal(18, 6)
+  orderId     String?
+  description String
+  cashAfter   Decimal?                      @db.Decimal(18, 2)
+  createdAt   DateTime                      @default(now())
+
+  portfolio TerminalPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  order     TerminalOrder?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([portfolioId, occurredAt])
+  @@index([orderId])
+  @@index([kind, occurredAt])
+  @@index([symbol, occurredAt])
+}
+
+model TerminalWatchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @default("Watchlist")
+  isDefault Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items TerminalWatchlistItem[]
+
+  @@unique([userId, name])
+  @@index([userId, isDefault])
+}
+
+model TerminalWatchlistItem {
+  id          String   @id @default(cuid())
+  watchlistId String
+  symbol      String
+  createdAt   DateTime @default(now())
+
+  watchlist TerminalWatchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, symbol])
+  @@index([symbol])
 }

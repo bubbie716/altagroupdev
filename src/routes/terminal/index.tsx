@@ -4,15 +4,13 @@ import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { WatchlistPanel } from "@/components/terminal/watchlist";
 import { OrdersList } from "@/components/terminal/orders-list";
 import { MarketTable } from "@/components/terminal/market-table";
-import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
-import {
-  CreatePortfolioDialog,
-  HomePortfolioCard,
-} from "@/components/terminal/portfolio-switcher";
+import { CreatePortfolioDialog, HomePortfolioCard } from "@/components/terminal/portfolio-switcher";
 import { QuickTradeDialog } from "@/components/terminal/quick-trade-dialog";
-import { fetchTerminalHome, fetchEligibleTerminalCompanies } from "@/lib/terminal/terminal.functions";
+import {
+  fetchTerminalHome,
+  fetchEligibleTerminalCompanies,
+} from "@/lib/terminal/terminal.functions";
 import { MarketStatusBadge } from "@/components/terminal/market-status";
-import { Route as TerminalLayoutRoute } from "./route";
 
 export const Route = createFileRoute("/terminal/")({
   loader: async () => {
@@ -30,18 +28,14 @@ export const Route = createFileRoute("/terminal/")({
 
 function TerminalHomePage() {
   const { mode, dashboard, userDisplayName, eligibleCompanies } = Route.useLoaderData();
-  const layout = TerminalLayoutRoute.useLoaderData();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [quickTradeOpen, setQuickTradeOpen] = useState(false);
   const tradeButtonRef = useRef<HTMLButtonElement>(null);
 
-  if (mode === "unavailable" && layout.mode === "unavailable") {
-    return <TerminalUnavailableState />;
-  }
-
   const {
     marketStatus,
+    marketDataAvailable,
     combinedValue,
     combinedDayChange,
     combinedDayChangePercent,
@@ -56,6 +50,16 @@ function TerminalHomePage() {
 
   return (
     <div className="space-y-10">
+      {!marketDataAvailable ? (
+        <div
+          role="status"
+          className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
+        >
+          Market data and trading are currently unavailable. Your portfolio details and local cash
+          records remain available.
+        </div>
+      ) : null}
+
       <section className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--terminal-muted)]">
@@ -76,10 +80,18 @@ function TerminalHomePage() {
           <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
             Total value
           </p>
-          <MoneyValue value={combinedValue} size="lg" className="mt-1" />
-          <div className="mt-1 flex justify-end">
-            <PriceChange amount={combinedDayChange} percent={combinedDayChangePercent} />
-          </div>
+          {combinedValue == null ? (
+            <p className="mt-1 text-[18px] font-medium text-[var(--terminal-muted)]">
+              Valuation unavailable
+            </p>
+          ) : (
+            <>
+              <MoneyValue value={combinedValue} size="lg" className="mt-1" />
+              <div className="mt-1 flex justify-end">
+                <PriceChange amount={combinedDayChange} percent={combinedDayChangePercent} />
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -88,7 +100,9 @@ function TerminalHomePage() {
           ref={tradeButtonRef}
           type="button"
           onClick={() => setQuickTradeOpen(true)}
+          disabled={mode === "unavailable"}
           className="min-h-11 rounded-md bg-[var(--terminal-green)] px-3.5 py-2 text-[13px] font-medium text-black"
+          title={mode === "unavailable" ? "Trading is unavailable" : undefined}
         >
           Trade
         </button>
@@ -133,7 +147,9 @@ function TerminalHomePage() {
       <div className="grid gap-10 lg:grid-cols-2">
         <section>
           <SectionHeader title="Watchlist" href="/terminal/watchlist" />
-          {watchlistPreview.length === 0 ? (
+          {!marketDataAvailable ? (
+            <EmptyHint message="Watchlist quotes are unavailable while market data is offline." />
+          ) : watchlistPreview.length === 0 ? (
             <EmptyHint message="Your watchlist is empty. Add symbols from Markets." />
           ) : (
             <WatchlistPanel items={watchlistPreview} />
@@ -149,19 +165,21 @@ function TerminalHomePage() {
         </section>
       </div>
 
-      <section>
-        <SectionHeader title="Market movers" href="/terminal/markets" />
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div>
-            <p className="mb-2 text-[12px] text-[var(--terminal-muted)]">Gainers</p>
-            <MarketTable rows={movers.gainers} />
+      {marketDataAvailable && (movers.gainers.length > 0 || movers.losers.length > 0) ? (
+        <section>
+          <SectionHeader title="Market movers" href="/terminal/markets" />
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div>
+              <p className="mb-2 text-[12px] text-[var(--terminal-muted)]">Gainers</p>
+              <MarketTable rows={movers.gainers} />
+            </div>
+            <div>
+              <p className="mb-2 text-[12px] text-[var(--terminal-muted)]">Losers</p>
+              <MarketTable rows={movers.losers} />
+            </div>
           </div>
-          <div>
-            <p className="mb-2 text-[12px] text-[var(--terminal-muted)]">Losers</p>
-            <MarketTable rows={movers.losers} />
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <CreatePortfolioDialog
         open={createOpen}
@@ -188,15 +206,7 @@ function TerminalHomePage() {
   );
 }
 
-function QuickAction({
-  href,
-  label,
-  primary,
-}: {
-  href: string;
-  label: string;
-  primary?: boolean;
-}) {
+function QuickAction({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
   return (
     <Link
       to={href}

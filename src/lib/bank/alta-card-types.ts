@@ -83,6 +83,19 @@ export const ALTA_CARD_TX_TYPE_LABELS: Record<AltaCardTransactionTypeCode, strin
   reversal: "Alta Card Reversal",
 };
 
+/** Short operator-facing labels (overview / ops summaries). Full ledger labels stay above. */
+export const ALTA_CARD_TX_TYPE_SHORT_LABELS: Record<AltaCardTransactionTypeCode, string> = {
+  purchase: "Purchase",
+  alta_pay: "Alta Pay",
+  cash_advance: "Cash advance",
+  payment: "Payment",
+  interest: "Interest",
+  fee: "Fee",
+  adjustment_credit: "Adjustment credit",
+  adjustment_debit: "Adjustment debit",
+  reversal: "Reversal",
+};
+
 export type AltaCardRow = {
   id: string;
   ownerUserId: string | null;
@@ -401,6 +414,22 @@ export function altaCardStatusLabel(status: AltaCardStatusCode): string {
 
 export function altaCardTransactionLabel(type: AltaCardTransactionTypeCode): string {
   return ALTA_CARD_TX_TYPE_LABELS[type];
+}
+
+/** Humanized short type for ops summaries (does not change stored enum values). */
+export function formatAltaCardTransactionType(type: string): string {
+  const key = type.trim().toLowerCase() as AltaCardTransactionTypeCode;
+  if (key in ALTA_CARD_TX_TYPE_SHORT_LABELS) {
+    return ALTA_CARD_TX_TYPE_SHORT_LABELS[key];
+  }
+  const spaced = type.trim().replace(/_/g, " ").toLowerCase();
+  if (!spaced) return type;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/** e.g. `Cash advance · ƒ100.00` */
+export function formatAltaCardTransactionSummary(type: string, amount: number): string {
+  return `${formatAltaCardTransactionType(type)} · ${formatAltaCardCurrency(amount)}`;
 }
 
 export function altaCardEmployeeTransactionAttribution(row: AltaCardTransactionRow): string | null {

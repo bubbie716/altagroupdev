@@ -14,13 +14,18 @@ export function MoneyValue({
   className,
   asPrice = false,
 }: {
-  value: number;
+  value: number | null;
   signed?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   asPrice?: boolean;
 }) {
-  const text = asPrice ? formatTerminalPrice(value) : formatTerminalMoney(value, { signed });
+  const text =
+    value == null
+      ? "—"
+      : asPrice
+        ? formatTerminalPrice(value)
+        : formatTerminalMoney(value, { signed });
   return (
     <span
       className={cn(
@@ -43,11 +48,26 @@ export function PriceChange({
   className,
   compact = false,
 }: {
-  amount: number;
-  percent: number;
+  amount: number | null;
+  percent: number | null;
   className?: string;
   compact?: boolean;
 }) {
+  if (amount == null || percent == null) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-baseline tabular-nums text-[var(--terminal-muted)]",
+          compact ? "text-[12px]" : "text-[13px] sm:text-[14px]",
+          className,
+        )}
+        aria-label="Day change unavailable"
+      >
+        —
+      </span>
+    );
+  }
+
   const positive = amount > 0 || (amount === 0 && percent > 0);
   const negative = amount < 0 || percent < 0;
   const tone = positive ? "ticker-up" : negative ? "ticker-down" : "text-[var(--terminal-muted)]";

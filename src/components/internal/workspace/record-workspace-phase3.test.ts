@@ -83,7 +83,9 @@ describe("record workspace primitives", () => {
   it("actions sheet is mobile-friendly", () => {
     const sheet = read("components/internal/workspace/record-actions-sheet.tsx");
     assert.match(sheet, /SheetContent/);
-    assert.match(sheet, /sticky bottom-0/);
+    assert.match(sheet, /min-h-0 flex-1 overflow-y-auto/);
+    assert.match(sheet, /shrink-0 border-t/);
+    assert.match(sheet, /safe-area-inset-bottom/);
     assert.match(sheet, /data-record-actions/);
   });
 

@@ -3,6 +3,12 @@
 const ACTION_TITLES: Record<string, string> = {
   LOAN_APPROVED: "Accepted",
   LOAN_DENIED: "Denied",
+  LOAN_PAYMENT_MADE: "Loan payment made",
+  LOAN_PAYMENT: "Loan payment",
+  LOAN_PAID_OFF: "Loan paid off",
+  LOAN_FROZEN: "Loan frozen",
+  LOAN_UNFROZEN: "Loan unfrozen",
+  LOAN_CLOSED: "Loan closed",
   LOAN_THREAD_CREATED: "Secure Deal Room opened",
   LOAN_THREAD_MESSAGE_SENT: "Secure Deal Room message",
   LOAN_THREAD_STATUS_CHANGED: "Application review status updated",
@@ -21,7 +27,11 @@ const DESCRIPTION_REPLACEMENTS: Array<[RegExp, string]> = [
 ];
 
 export function formatLendingAuditActionTitle(action: string): string {
-  return ACTION_TITLES[action] ?? action.replace(/_/g, " ");
+  const key = action.trim().toUpperCase().replace(/\s+/g, "_");
+  if (ACTION_TITLES[key]) return ACTION_TITLES[key];
+  const sentence = key.replace(/_/g, " ").toLowerCase();
+  if (!sentence) return action;
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 export function formatLendingAuditDescription(description: string): string {

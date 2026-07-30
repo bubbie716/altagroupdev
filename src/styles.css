@@ -17,6 +17,9 @@
     calc(100dvh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px)),
     calc(100svh - var(--bank-mobile-nav-offset) - var(--ui-lab-banner-height, 0px))
   );
+  /* Internal console usable height (UI Lab banner subtracted when present). */
+  --internal-shell-available-height: calc(100dvh - var(--ui-lab-banner-height, 0px));
+  --internal-sheet-available-height: calc(100dvh - var(--ui-lab-banner-height, 0px));
 }
 
 /*
@@ -857,6 +860,45 @@
 .internal-shell {
   font-size: 13px;
   line-height: 1.45;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
+/*
+ * Lock document scroll while the console is mounted. Size the app column under the
+ * optional UI Lab banner to the remaining viewport so `<main.internal-main>` scrolls.
+ */
+html:has(.internal-shell),
+body:has(.internal-shell) {
+  overflow: hidden;
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+body:has(.internal-shell) .flex.min-h-screen {
+  min-height: 0;
+  height: var(--internal-shell-available-height);
+  max-height: var(--internal-shell-available-height);
+  overflow: hidden;
+}
+
+.internal-shell-column {
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.internal-main {
+  min-height: 0;
+  flex: 1 1 0%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .internal-console-content .internal-page > section + section,
@@ -871,6 +913,30 @@
 
   .internal-shell {
     flex-direction: column;
+  }
+
+  .internal-contextual-nav {
+    overflow-x: hidden;
+    padding-inline-end: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+
+  .internal-contextual-nav-mobile {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .internal-contextual-nav-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding-inline-end: 0.5rem;
+  }
+
+  .internal-contextual-nav-more {
+    position: relative;
+    z-index: 1;
+    background: var(--background);
   }
 }
 

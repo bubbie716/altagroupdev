@@ -14,7 +14,6 @@ import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops
 import { formatTerminalOrderSearchSublabel } from "@/lib/terminal/terminal-desk";
 import { UI_LAB_MOCK_USER } from "@/lib/auth/ui-lab";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
-import type { OrderRecord } from "@/lib/terminal/types";
 
 function daysFromNow(days: number): string {
   const d = new Date();
@@ -180,14 +179,7 @@ export function getUiLabTerminalPortfolios(): TerminalOpsPortfolioRow[] {
   ];
 }
 
-function baseOrder(
-  partial: OrderRecord & {
-    portfolioName: string;
-    investorLabel: string;
-    ownerUserId: string | null;
-    ownerCompanyId: string | null;
-  },
-): TerminalOpsOrderRow {
+function baseOrder(partial: TerminalOpsOrderRow): TerminalOpsOrderRow {
   return {
     ...partial,
     needsAttention: partial.status === "rejected" || Boolean(partial.rejectReason),

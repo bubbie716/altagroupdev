@@ -49,7 +49,16 @@ export function WatchlistPanel({
             </div>
             <p className="mt-0.5 truncate text-[12px] text-[var(--terminal-muted)]">{item.name}</p>
           </Link>
-          <Sparkline data={item.sparkline} positive={item.dayChange >= 0} width={56} height={24} />
+          {item.quoteAvailable && item.sparkline.length > 0 ? (
+            <Sparkline
+              data={item.sparkline}
+              positive={(item.dayChange ?? 0) >= 0}
+              width={56}
+              height={24}
+            />
+          ) : (
+            <span className="w-14 text-center text-[12px] text-[var(--terminal-muted)]">—</span>
+          )}
           <div className="min-w-[88px] text-right">
             <MoneyValue value={item.lastPrice} asPrice size="sm" />
             <div className="mt-0.5">

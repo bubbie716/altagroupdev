@@ -152,10 +152,6 @@ function InternalInterestPage() {
         <SheetContent
           side="right"
           className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
-          style={{
-            maxHeight: "calc(100dvh - var(--ui-lab-banner-height, 0px))",
-            top: "var(--ui-lab-banner-height, 0px)",
-          }}
         >
           <SheetHeader className="shrink-0 border-b border-border/60 px-4 py-3 pr-12 text-left">
             <SheetTitle className="text-left text-[15px]">Interest actions</SheetTitle>
@@ -163,7 +159,7 @@ function InternalInterestPage() {
               Preview accrual, authorized apply, and manual category credits.
             </SheetDescription>
           </SheetHeader>
-          <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-4 py-4">
+          <div className="min-h-0 flex-1 space-y-8 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
             <div>
               <h3 className="mb-2 text-[13px] font-medium">Deposit account accrual</h3>
               <InternalAccountInterestOps summary={interestOps} mode="actions" />

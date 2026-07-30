@@ -21,8 +21,14 @@ import {
   getUiLabInvoiceDetail,
   UI_LAB_CORE_COMPANY_ID,
 } from "@/lib/bank/ui-lab-commercial-fixtures";
-import { normalizeInternalSearch, serializeInternalSearch } from "@/lib/internal/normalize-internal-search";
-import { internalDocumentTitle, internalDocumentTitleSuffix } from "@/lib/internal/internal-document-title";
+import {
+  normalizeInternalSearch,
+  serializeInternalSearch,
+} from "@/lib/internal/normalize-internal-search";
+import {
+  internalDocumentTitle,
+  internalDocumentTitleSuffix,
+} from "@/lib/internal/internal-document-title";
 import { resolveInternalRouteTitle } from "@/lib/internal/internal-route-title";
 import { measureOpsSearchPhaseMs } from "@/server/ops-global-search.service";
 
@@ -74,8 +80,11 @@ describe("final remediation — Inbox primary-action navigation", () => {
     }
     const normalize = read("lib/internal/inbox-normalize.ts");
     assert.match(normalize, /destination:\s*\{/);
-    assert.match(normalize, /actions:.*"review"|actions:.*"open"|includes\("review"\)|includes\("open"\)/);
-    const terminalInbox = read("lib/terminal/ui-lab-terminal-ops-fixtures.ts");
+    assert.match(
+      normalize,
+      /actions:.*"review"|actions:.*"open"|includes\("review"\)|includes\("open"\)/,
+    );
+    const terminalInbox = read("lib/terminal/ui-lab/ui-lab-terminal-ops-fixtures.ts");
     assert.match(terminalInbox, /terminal_order|restricted/);
   });
 });
@@ -110,7 +119,10 @@ describe("final remediation — Alta Pay related-record integrity", () => {
   });
 
   it("enumerates INV-UILAB-104 recipient Harbor Line as resolvable", () => {
-    const detail = getUiLabInvoiceDetail(UI_LAB_CORE_COMPANY_ID, `ui-lab-inv-${UI_LAB_CORE_COMPANY_ID}-1`);
+    const detail = getUiLabInvoiceDetail(
+      UI_LAB_CORE_COMPANY_ID,
+      `ui-lab-inv-${UI_LAB_CORE_COMPANY_ID}-1`,
+    );
     assert.ok(detail);
     assert.equal(detail!.referenceCode, "INV-UILAB-104");
     assert.equal(detail!.recipientUserId, "ui-lab-person-harbor");
@@ -144,14 +156,32 @@ describe("final remediation — complete account catalog", () => {
 
 describe("final remediation — UI Lab mutation inventory", () => {
   it("gates platform settings mutations on client and server", () => {
-    assert.match(read("lib/platform/platform-settings.functions.ts"), /assertNotUiLabMutation\("Maintenance mode update"\)/);
-    assert.match(read("lib/platform/platform-settings.functions.ts"), /assertNotUiLabMutation\("Credit Desk status change"\)/);
-    assert.match(read("lib/platform/platform-settings.functions.ts"), /assertNotUiLabMutation\("Commercial plan settings"\)/);
+    assert.match(
+      read("lib/platform/platform-settings.functions.ts"),
+      /assertNotUiLabMutation\("Maintenance mode update"\)/,
+    );
+    assert.match(
+      read("lib/platform/platform-settings.functions.ts"),
+      /assertNotUiLabMutation\("Credit Desk status change"\)/,
+    );
+    assert.match(
+      read("lib/platform/platform-settings.functions.ts"),
+      /assertNotUiLabMutation\("Commercial plan settings"\)/,
+    );
     assert.match(read("components/internal/credit-desk-panel.tsx"), /useUiLabMutationGate/);
-    assert.match(read("components/internal/credit-desk-panel.tsx"), /Unavailable in UI Lab|unavailableLabel/);
-    assert.match(read("components/internal/maintenance-mode-panel.tsx"), /unavailableLabel\("Enable"\)|unavailableLabel\(`Enable/);
+    assert.match(
+      read("components/internal/credit-desk-panel.tsx"),
+      /Unavailable in UI Lab|unavailableLabel/,
+    );
+    assert.match(
+      read("components/internal/maintenance-mode-panel.tsx"),
+      /unavailableLabel\("Enable"\)|unavailableLabel\(`Enable/,
+    );
     assert.match(read("components/internal/maintenance-mode-panel.tsx"), /Save message/);
-    assert.match(read("components/internal/commercial-plan-settings-panel.tsx"), /useUiLabMutationGate/);
+    assert.match(
+      read("components/internal/commercial-plan-settings-panel.tsx"),
+      /useUiLabMutationGate/,
+    );
   });
 });
 

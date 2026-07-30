@@ -1,13 +1,18 @@
 import type {
+  CancelOrderResult,
   HomeDashboard,
   MarketStatusSnapshot,
   OrderRecord,
   OrderPreviewInput,
+  OrderPreviewResult,
   PortfolioActivityRecord,
+  PortfolioSnapshot,
+  PricePoint,
+  SecurityDetail,
   SecuritySummary,
+  SubmitOrderResult,
   TerminalChartRange,
   TerminalPortfolioSummary,
-  TseClient,
   TseClientContext,
   WatchlistItem,
 } from "@/lib/terminal/types";
@@ -21,14 +26,15 @@ import {
   mockPortfolioIds,
   watchlistFromSymbols,
   type FixtureLot,
-} from "@/lib/terminal/terminal-fixtures";
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-market-fixtures";
 import {
   FIXTURE_PROFILES,
   applyFixtureLedger,
   buildSnapshotFromLedger,
   type FixtureProfileKey,
-} from "@/lib/terminal/terminal-fixture-ledger";
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-fixture-ledger";
 import { validateOrderPreview } from "@/lib/terminal/order-validation";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 
 type PortfolioMarketState = {
   profile: FixtureProfileKey;
@@ -57,10 +63,10 @@ function stateFromProfile(portfolioId: string, key: FixtureProfileKey): Portfoli
 }
 
 /**
- * In-memory demonstration client. Deterministic fixtures; session mutations
- * do not touch Bank balances. All portfolio/order methods require portfolioId.
+ * UI Lab ONLY — in-memory demonstration market/portfolio state.
+ * Must never execute outside `isUiLabMode()`. Does not write to PostgreSQL.
  */
-export class MockTseClient implements TseClient {
+export class UiLabDemonstrationTseClient {
   readonly mode = "mock" as const;
   readonly context: TseClientContext;
 
@@ -68,7 +74,7 @@ export class MockTseClient implements TseClient {
   private orderSeq = 100;
   private readonly portfolios = new Map<string, PortfolioMarketState>();
 
-  constructor(context: TseClientContext = { userId: "terminal-demo-user" }) {
+  constructor(context: TseClientContext = { userId: "ui-lab-user" }) {
     this.context = context;
     this.seedDefaultPortfolios();
   }
@@ -128,54 +134,33 @@ export class MockTseClient implements TseClient {
   }
 
   async listSecurities(query?: string): Promise<SecuritySummary[]> {
-    const q = query?.trim().toLowerCase() ?? "";
-    const all = listFixtureSecurities();
-    if (!q) return all;
-    return all.filter(
-      (s) => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q),
-    );
+    return listFixtureSecurities(query);
   }
 
-  async getSecurity(symbol: string) {
+  async getSecurity(symbol: string): Promise<SecurityDetail | null> {
     return getFixtureSecurity(symbol);
   }
 
-  async getQuote(symbol: string) {
+  async getQuote(symbol: string): Promise<SecuritySummary | null> {
     const detail = getFixtureSecurity(symbol);
     if (!detail) return null;
     const { open: _o, high: _h, low: _l, description: _d, sector: _s, ...summary } = detail;
     return summary;
   }
 
-  async getPriceHistory(symbol: string, range: TerminalChartRange) {
+  async getPriceHistory(symbol: string, range: TerminalChartRange): Promise<PricePoint[]> {
     return getFixturePriceHistory(symbol, range);
   }
 
-  async getPortfolio(portfolioId: string) {
-    await this.ensurePortfolioMarketState(portfolioId, "empty");
+  async getPortfolio(portfolioId: string): Promise<PortfolioSnapshot> {
     const state = this.requireState(portfolioId);
-    const profile = FIXTURE_PROFILES[state.profile];
     const applied = {
-      profile: state.profile,
       cash: state.cash,
       lots: state.lots,
       orders: state.orders,
       activity: state.activity,
-      equityMarks: [],
-      totalDeposits: 0,
-      totalWithdrawals: 0,
-      realizedGainLoss: 0,
     };
-    if (state.lots.length === 0) {
-      return buildSnapshotFromLedger(portfolioId, applied, {
-        ...profile,
-        seriesSeed: state.seriesSeed,
-      });
-    }
-    return buildSnapshotFromLedger(portfolioId, applied, {
-      ...profile,
-      seriesSeed: state.seriesSeed,
-    });
+    return buildSnapshotFromLedger(portfolioId, applied, FIXTURE_PROFILES[state.profile]);
   }
 
   async getHoldings(portfolioId: string) {
@@ -186,119 +171,100 @@ export class MockTseClient implements TseClient {
     return watchlistFromSymbols(this.watchlistSymbols);
   }
 
-  async addToWatchlist(symbol: string) {
-    const upper = symbol.toUpperCase();
-    if (!getFixtureSecurity(upper)) return this.getWatchlist();
-    if (!this.watchlistSymbols.includes(upper)) {
-      this.watchlistSymbols = [...this.watchlistSymbols, upper];
+  async addToWatchlist(symbol: string): Promise<WatchlistItem[]> {
+    const upper = symbol.trim().toUpperCase();
+    if (!this.watchlistSymbols.includes(upper) && getFixtureSecurity(upper)) {
+      this.watchlistSymbols.push(upper);
     }
     return this.getWatchlist();
   }
 
-  async removeFromWatchlist(symbol: string) {
-    const upper = symbol.toUpperCase();
+  async removeFromWatchlist(symbol: string): Promise<WatchlistItem[]> {
+    const upper = symbol.trim().toUpperCase();
     this.watchlistSymbols = this.watchlistSymbols.filter((s) => s !== upper);
     return this.getWatchlist();
   }
 
-  async listOrders(portfolioId: string) {
-    await this.ensurePortfolioMarketState(portfolioId, "empty");
-    const state = this.requireState(portfolioId);
-    return [...state.orders].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  async listOrders(portfolioId: string): Promise<OrderRecord[]> {
+    return this.requireState(portfolioId).orders.map((o) => ({ ...o }));
   }
 
   async listPortfolioActivity(portfolioId: string): Promise<PortfolioActivityRecord[]> {
-    await this.ensurePortfolioMarketState(portfolioId, "empty");
-    const state = this.requireState(portfolioId);
-    return [...state.activity].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+    return this.requireState(portfolioId).activity.map((a) => ({ ...a }));
   }
 
-  async previewOrder(input: OrderPreviewInput) {
-    if (!input.portfolioId?.trim()) {
-      return {
-        ok: false,
-        portfolioId: "",
-        symbol: input.symbol,
-        side: input.side,
-        type: input.type,
-        quantity: input.quantity,
-        limitPrice: input.limitPrice ?? null,
-        estimatedValue: 0,
-        estimatedFees: 0,
-        buyingPowerAfter: null,
-        holdingsAfter: null,
-        warnings: [],
-        errors: ["Portfolio is required"],
-      };
-    }
+  async previewOrder(input: OrderPreviewInput): Promise<OrderPreviewResult> {
+    const state = this.requireState(input.portfolioId);
     const security = getFixtureSecurity(input.symbol);
-    const portfolio = await this.getPortfolio(input.portfolioId);
-    const market = await this.getMarketStatus();
-    const holding = portfolio.holdings.find((h) => h.symbol === input.symbol.toUpperCase()) ?? null;
-    const preview = validateOrderPreview({
-      order: { ...input, symbol: input.symbol.toUpperCase() },
+    const lot = state.lots.find((l) => l.symbol === input.symbol.toUpperCase());
+    const holding = lot
+      ? {
+          symbol: lot.symbol,
+          name: lot.symbol,
+          quantity: lot.quantity,
+          averageCost: lot.averageCost,
+          lastPrice: security?.lastPrice ?? null,
+          marketValue: null,
+          totalReturn: null,
+          totalReturnPercent: null,
+          dayReturn: null,
+          dayReturnPercent: null,
+          weightPercent: null,
+          sparkline: [],
+        }
+      : null;
+    return validateOrderPreview({
+      order: input,
       security,
-      marketStatus: market.status,
-      buyingPower: portfolio.buyingPower,
+      buyingPower: state.cash,
       holding,
+      marketStatus: FIXTURE_MARKET_STATUS.status,
     });
-    return { ...preview, portfolioId: input.portfolioId };
   }
 
-  async submitOrder(input: OrderPreviewInput) {
-    if (!input.portfolioId?.trim()) {
-      return {
-        ok: false as const,
-        errors: ["Portfolio is required"],
-        code: "portfolio_required" as const,
-      };
-    }
+  async submitOrder(input: OrderPreviewInput): Promise<SubmitOrderResult> {
     const preview = await this.previewOrder(input);
     if (!preview.ok) {
-      const code = preview.errors.some((e) => /halted/i.test(e))
-        ? ("halted" as const)
-        : preview.errors.some((e) => /closed/i.test(e))
-          ? ("market_closed" as const)
-          : preview.errors.some((e) => /portfolio/i.test(e))
-            ? ("portfolio_required" as const)
-            : ("validation" as const);
-      return { ok: false as const, errors: preview.errors, code };
+      return { ok: false, errors: preview.errors, code: "validation" };
     }
-
-    const security = getFixtureSecurity(input.symbol)!;
     const state = this.requireState(input.portfolioId);
+    const security = getFixtureSecurity(input.symbol)!;
+    const id = `ord_uilab_${++this.orderSeq}`;
     const now = "2026-07-21T16:05:00.000Z";
-    this.orderSeq += 1;
+    const isMarket = input.type === "market";
     const order: OrderRecord = {
-      id: `ord_mock_${this.orderSeq}`,
+      id,
       portfolioId: input.portfolioId,
       symbol: security.symbol,
       name: security.name,
       side: input.side,
       type: input.type,
-      status: input.type === "market" ? "filled" : "open",
+      status: isMarket ? "filled" : "open",
       quantity: input.quantity,
-      filledQuantity: input.type === "market" ? input.quantity : 0,
-      limitPrice: input.type === "limit" ? (input.limitPrice ?? null) : null,
-      averageFillPrice: input.type === "market" ? security.lastPrice : null,
+      filledQuantity: isMarket ? input.quantity : 0,
+      limitPrice: input.limitPrice ?? null,
+      averageFillPrice: isMarket ? security.lastPrice : null,
       estimatedValue: preview.estimatedValue,
       submittedAt: now,
       updatedAt: now,
       rejectReason: null,
     };
-
-    if (input.type === "market") {
+    state.orders = [order, ...state.orders];
+    if (isMarket) {
+      const notional = input.quantity * security.lastPrice;
+      const fee = Number((notional * 0.001).toFixed(2));
       if (input.side === "buy") {
-        state.cash = Number(
-          (state.cash - preview.estimatedValue - preview.estimatedFees).toFixed(2),
-        );
+        state.cash = Number((state.cash - notional - fee).toFixed(2));
         const existing = state.lots.find((l) => l.symbol === security.symbol);
         if (existing) {
           const totalQty = existing.quantity + input.quantity;
-          const totalCost =
-            existing.quantity * existing.averageCost + input.quantity * security.lastPrice;
+          existing.averageCost = Number(
+            (
+              (existing.averageCost * existing.quantity + security.lastPrice * input.quantity) /
+              totalQty
+            ).toFixed(6),
+          );
           existing.quantity = totalQty;
-          existing.averageCost = Number((totalCost / totalQty).toFixed(4));
         } else {
           state.lots.push({
             symbol: security.symbol,
@@ -306,70 +272,56 @@ export class MockTseClient implements TseClient {
             averageCost: security.lastPrice,
           });
         }
-        state.activity = [
-          {
-            id: `act_live_${this.orderSeq}`,
-            portfolioId: input.portfolioId,
-            kind: "buy_fill",
-            occurredAt: now,
-            amount: -preview.estimatedValue,
-            symbol: security.symbol,
-            quantity: input.quantity,
-            price: security.lastPrice,
-            orderId: order.id,
-            description: `Bought ${input.quantity} ${security.symbol}`,
-            cashAfter: state.cash,
-          },
-          ...state.activity,
-        ];
+        state.activity.unshift({
+          id: `act_${id}`,
+          portfolioId: input.portfolioId,
+          kind: "buy_fill",
+          occurredAt: now,
+          amount: Number((-(notional + fee)).toFixed(2)),
+          symbol: security.symbol,
+          quantity: input.quantity,
+          price: security.lastPrice,
+          orderId: id,
+          description: `Bought ${input.quantity} ${security.symbol}`,
+          cashAfter: state.cash,
+        });
       } else {
-        state.cash = Number(
-          (state.cash + preview.estimatedValue - preview.estimatedFees).toFixed(2),
-        );
+        state.cash = Number((state.cash + notional - fee).toFixed(2));
         const existing = state.lots.find((l) => l.symbol === security.symbol);
-        if (existing) {
-          existing.quantity -= input.quantity;
-          if (existing.quantity <= 0) {
-            state.lots = state.lots.filter((l) => l.symbol !== security.symbol);
-          }
-        }
-        state.activity = [
-          {
-            id: `act_live_${this.orderSeq}`,
-            portfolioId: input.portfolioId,
-            kind: "sell_fill",
-            occurredAt: now,
-            amount: preview.estimatedValue,
-            symbol: security.symbol,
-            quantity: input.quantity,
-            price: security.lastPrice,
-            orderId: order.id,
-            description: `Sold ${input.quantity} ${security.symbol}`,
-            cashAfter: state.cash,
-          },
-          ...state.activity,
-        ];
+        if (existing) existing.quantity = Number((existing.quantity - input.quantity).toFixed(8));
+        state.lots = state.lots.filter((l) => l.quantity > 0);
+        state.activity.unshift({
+          id: `act_${id}`,
+          portfolioId: input.portfolioId,
+          kind: "sell_fill",
+          occurredAt: now,
+          amount: Number((notional - fee).toFixed(2)),
+          symbol: security.symbol,
+          quantity: input.quantity,
+          price: security.lastPrice,
+          orderId: id,
+          description: `Sold ${input.quantity} ${security.symbol}`,
+          cashAfter: state.cash,
+        });
       }
     }
-
-    state.orders = [order, ...state.orders];
-    return { ok: true as const, order };
+    return { ok: true, order };
   }
 
-  async cancelOrder(portfolioId: string, orderId: string) {
+  async cancelOrder(portfolioId: string, orderId: string): Promise<CancelOrderResult> {
     const state = this.requireState(portfolioId);
     const order = state.orders.find((o) => o.id === orderId);
-    if (!order) return { ok: false as const, errors: ["Order not found"] };
+    if (!order) return { ok: false, errors: ["Order not found"] };
     if (order.status !== "open" && order.status !== "partial") {
-      return { ok: false as const, errors: ["Only open orders can be cancelled"] };
+      return { ok: false, errors: ["Only open orders can be cancelled"] };
     }
     const updated: OrderRecord = {
       ...order,
       status: "cancelled",
-      updatedAt: "2026-07-21T16:06:00.000Z",
+      updatedAt: "2026-07-21T16:10:00.000Z",
     };
     state.orders = state.orders.map((o) => (o.id === orderId ? updated : o));
-    return { ok: true as const, order: updated };
+    return { ok: true, order: updated };
   }
 
   async getHomeDashboard(portfolios: TerminalPortfolioSummary[]): Promise<HomeDashboard> {
@@ -387,13 +339,15 @@ export class MockTseClient implements TseClient {
     for (const p of portfolios) {
       try {
         const snap = await this.getPortfolio(p.id);
-        combinedValue += snap.totalValue;
-        combinedDayChange += snap.dayChange;
+        combinedValue += snap.totalValue ?? 0;
+        combinedDayChange += snap.dayChange ?? 0;
         enriched.push({
           ...p,
           totalValue: snap.totalValue,
           dayChange: snap.dayChange,
           dayChangePercent: snap.dayChangePercent,
+          valuationAvailable: true,
+          cashBalance: snap.cashBalance,
         });
         allOrders.push(...(await this.listOrders(p.id)));
       } catch {
@@ -412,6 +366,7 @@ export class MockTseClient implements TseClient {
 
     return {
       marketStatus,
+      marketDataAvailable: true,
       combinedValue: Number(combinedValue.toFixed(2)),
       combinedDayChange: Number(combinedDayChange.toFixed(2)),
       combinedDayChangePercent:
@@ -424,4 +379,26 @@ export class MockTseClient implements TseClient {
         .slice(0, 8),
     };
   }
+}
+
+/** @deprecated Use UiLabDemonstrationTseClient — alias for test migration. */
+export const MockTseClient = UiLabDemonstrationTseClient;
+
+const uiLabClients = new Map<string, UiLabDemonstrationTseClient>();
+
+/** UI Lab ONLY — returns demonstration client when gate succeeds. */
+export function getUiLabDemonstrationClient(userId: string): UiLabDemonstrationTseClient {
+  if (!isUiLabMode()) {
+    throw new Error("UI Lab demonstration client is not available outside UI Lab mode");
+  }
+  let client = uiLabClients.get(userId);
+  if (!client) {
+    client = new UiLabDemonstrationTseClient({ userId });
+    uiLabClients.set(userId, client);
+  }
+  return client;
+}
+
+export function resetUiLabDemonstrationClientsForTests() {
+  uiLabClients.clear();
 }

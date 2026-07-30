@@ -8,11 +8,7 @@ import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { AllocationBars, HoldingsTable } from "@/components/terminal/holdings-table";
 import { OrdersList } from "@/components/terminal/orders-list";
 import { ActivityList } from "@/components/terminal/activity-list";
-import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
-import {
-  CreatePortfolioDialog,
-  PortfolioSwitcher,
-} from "@/components/terminal/portfolio-switcher";
+import { CreatePortfolioDialog, PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 import {
   archiveTerminalPortfolioFn,
@@ -88,10 +84,6 @@ function TerminalPortfolioDetailPage() {
     );
   }
 
-  if (data.mode === "unavailable") {
-    return <TerminalUnavailableState />;
-  }
-
   if (data.onboarding || !data.selectedPortfolio || !data.portfolio) {
     return (
       <div className="mx-auto max-w-lg space-y-6 py-10 text-center">
@@ -127,6 +119,16 @@ function TerminalPortfolioDetailPage() {
 
   return (
     <div className="space-y-8" key={selectedPortfolio.id}>
+      {!portfolio.valuationAvailable ? (
+        <div
+          role="status"
+          className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
+        >
+          Market valuation and trading are currently unavailable. Holdings, cash, orders, and
+          activity below are from your local portfolio records.
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
           <PortfolioSwitcher
@@ -159,6 +161,7 @@ function TerminalPortfolioDetailPage() {
         equityValue={portfolio.totalValue}
         dayChange={portfolio.dayChange}
         dayChangePercent={portfolio.dayChangePercent}
+        valuationAvailable={portfolio.valuationAvailable}
         range={range}
         onRangeChange={(next) => {
           void navigate({
@@ -170,7 +173,10 @@ function TerminalPortfolioDetailPage() {
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label="Equity" value={<MoneyValue value={portfolio.equityValue} size="md" />} />
+        <SummaryCard
+          label="Equity"
+          value={<MoneyValue value={portfolio.equityValue} size="md" />}
+        />
         <SummaryCard label="Cash" value={<MoneyValue value={portfolio.cashBalance} size="md" />} />
         <SummaryCard
           label="Buying power"
@@ -214,7 +220,7 @@ function TerminalPortfolioDetailPage() {
         )}
       </section>
 
-      {!empty ? (
+      {!empty && portfolio.valuationAvailable ? (
         <section>
           <h2 className="mb-3 text-[15px] font-medium">Allocation</h2>
           <AllocationBars holdings={portfolio.holdings} />

@@ -1,6 +1,6 @@
 /**
  * Terminal ops environment / TSE connection presentation.
- * Centralizes live · mock · unavailable · degraded labeling.
+ * Centralizes live · UI Lab demonstration · unavailable · degraded labeling.
  */
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveTerminalTseMode } from "@/lib/terminal/tse-client";
@@ -28,18 +28,17 @@ export function resolveTerminalOpsEnvironmentStatus(
   const uiLab = isUiLabMode();
   const lastCheckedAt = now.toISOString();
 
-  if (uiLab || mode === "mock") {
+  if (uiLab) {
     return {
       connectionState: "mock",
-      mode: uiLab ? "mock" : mode,
-      label: uiLab ? "UI Lab · demonstration" : "Mock market data",
-      detail:
-        "Demonstration data only. Not live market quotes. No real orders will be submitted.",
+      mode: "mock",
+      label: "UI Lab · demonstration",
+      detail: "Demonstration data only. Not live market quotes. No real orders will be submitted.",
       isDemonstration: true,
       marketDataTrustworthy: false,
       // Mock/UI Lab never submit real (or pretend-live) order mutations.
       ordersMutable: false,
-      adapterName: "MockTseClient",
+      adapterName: "UiLabDemonstrationTseClient",
       endpointHost: null,
       lastCheckedAt,
     };

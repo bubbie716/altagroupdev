@@ -376,7 +376,7 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
       >
         <SheetContent
           side="bottom"
-          className="flex max-h-[calc(100dvh-var(--ui-lab-banner-height,0px)-0.5rem)] h-[min(92dvh,40rem)] flex-col gap-0 overflow-hidden p-0 lg:hidden"
+          className="flex h-[min(var(--internal-sheet-available-height,92dvh),40rem)] max-h-[var(--internal-sheet-available-height,100dvh)] flex-col gap-0 overflow-hidden p-0 lg:hidden"
           hideCloseButton={false}
         >
           {selected ? (
@@ -387,10 +387,10 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
                   {selected.partyLabel} · {selected.statusLabel}
                 </SheetDescription>
               </SheetHeader>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
                 <InboxCaseDetailBody item={selected} />
               </div>
-              <div className="sticky bottom-0 shrink-0 border-t border-border/60 bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="shrink-0 border-t border-border/60 bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
                 <InboxCaseActions
                   item={selected}
                   inboxSearch={search}

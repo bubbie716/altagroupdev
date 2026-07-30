@@ -85,10 +85,7 @@ export function TerminalSignInPage({
               ) : null}
 
               <div className="mt-8">
-                <DiscordSignInButton
-                  redirectTo={destination}
-                  label="Continue with Discord"
-                />
+                <DiscordSignInButton redirectTo={destination} label="Continue with Discord" />
               </div>
 
               <p className="mt-6 text-[12px] leading-relaxed text-[var(--terminal-muted)]">
@@ -109,11 +106,11 @@ export function TerminalSignInPage({
             <div className="mt-2 space-y-2 leading-relaxed">
               <p>
                 Alta Terminal is a fictional brokerage product operated for roleplay within the Alta
-                ecosystem. Market data shown in demonstration mode is synthetic and not live.
+                ecosystem.
               </p>
               <p>
-                Orders placed against unavailable or demonstration data sources do not settle in a
-                live TSE.
+                Market quotes and order submission remain unavailable until a live Newport TSE
+                connection is configured.
               </p>
             </div>
           </details>

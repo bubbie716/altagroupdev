@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { OrdersList, OrderStatusBadge } from "@/components/terminal/orders-list";
 import { MoneyValue } from "@/components/terminal/money-value";
-import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
 import { PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
 import {
   cancelTerminalOrder,
@@ -90,12 +89,17 @@ function TerminalOrdersPage() {
     });
   }
 
-  if (mode === "unavailable") {
-    return <TerminalUnavailableState />;
-  }
-
   return (
     <div className="space-y-6">
+      {mode === "unavailable" ? (
+        <div
+          role="status"
+          className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
+        >
+          Trading is currently unavailable. Existing local order records remain available below.
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[24px] font-medium tracking-tight">Orders</h1>
@@ -131,12 +135,16 @@ function TerminalOrdersPage() {
       <OrdersList
         orders={filtered}
         onSelect={setSelected}
-        onCancel={(orderId) => {
-          if (!selectedPortfolio) return;
-          void cancelFn({
-            data: { portfolioId: selectedPortfolio.id, orderId },
-          }).then(() => invalidateRouteData(router));
-        }}
+        onCancel={
+          mode === "unavailable"
+            ? undefined
+            : (orderId) => {
+                if (!selectedPortfolio) return;
+                void cancelFn({
+                  data: { portfolioId: selectedPortfolio.id, orderId },
+                }).then(() => invalidateRouteData(router));
+              }
+        }
       />
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -173,7 +181,9 @@ function TerminalOrdersPage() {
                 <Detail label="Updated" value={formatActivityDateTime(selected.updatedAt)} />
               </dl>
               {selected.rejectReason ? (
-                <p className="mt-3 text-[13px] text-[var(--terminal-red)]">{selected.rejectReason}</p>
+                <p className="mt-3 text-[13px] text-[var(--terminal-red)]">
+                  {selected.rejectReason}
+                </p>
               ) : null}
             </>
           ) : null}
