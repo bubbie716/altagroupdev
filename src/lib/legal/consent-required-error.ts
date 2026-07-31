@@ -2,6 +2,10 @@
  * Structured product-consent errors (safe for client + server).
  */
 import type { LegalConsentScopeId } from "@/lib/legal/consent-scopes";
+import {
+  encodeConsentRequiredMessage,
+  parseConsentRequiredFromError,
+} from "@/lib/legal/parse-consent-required";
 
 export class ConsentRequiredError extends Error {
   readonly code = "CONSENT_REQUIRED" as const;
@@ -9,7 +13,7 @@ export class ConsentRequiredError extends Error {
   readonly companyId: string | null;
 
   constructor(missingScopes: LegalConsentScopeId[], companyId?: string | null) {
-    super("CONSENT_REQUIRED");
+    super(encodeConsentRequiredMessage(missingScopes, companyId));
     this.name = "ConsentRequiredError";
     this.missingScopes = missingScopes;
     this.companyId = companyId ?? null;
@@ -25,11 +29,6 @@ export class ConsentRequiredError extends Error {
 }
 
 export function isConsentRequiredError(error: unknown): error is ConsentRequiredError {
-  return (
-    error instanceof ConsentRequiredError ||
-    (typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code?: string }).code === "CONSENT_REQUIRED")
-  );
+  if (error instanceof ConsentRequiredError) return true;
+  return parseConsentRequiredFromError(error) !== null;
 }

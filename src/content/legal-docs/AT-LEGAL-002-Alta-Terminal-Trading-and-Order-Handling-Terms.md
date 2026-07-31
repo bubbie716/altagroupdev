@@ -2,9 +2,9 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-002  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Effective only when trading is enabled and accepted  
-**Last Updated:** July 21, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -40,6 +40,8 @@ Passing Alta Terminal validation does not guarantee provider acceptance or execu
 
 Eligible orders may be transmitted to an approved independent provider. Alta Terminal may select among available providers using reliability, supported instruments, price information, liquidity, costs, technical compatibility, conflicts, and service availability.
 
+Alta Terminal may route orders through a pooled or omnibus Alta provider account rather than a separate provider account for each Customer. Alta may aggregate compatible instructions, receive one or more provider fills, and allocate those fills to Customer portfolios using a consistently applied method reflected in Alta Terminal's internal ledger. A provider may identify Alta as its account holder and may not maintain the Customer's identity or portfolio as a separate provider account.
+
 Alta Terminal does not promise access to every venue or the most favorable possible outcome. Because this is a fictional virtual-economy service, references to routing quality are operational standards and are not claims of compliance with real-world broker-dealer “best execution” regulation.
 
 ## 7. Timing and Prices
@@ -60,33 +62,41 @@ A cancellation or modification request is not effective until confirmed. An orde
 
 Alta Terminal or a provider may reject, hold, or restrict an order because of insufficient funds or positions, invalid instructions, closed sessions, instrument restrictions, volatility, low liquidity, provider limits, stale data, security review, suspected manipulation, technical failure, or applicable rules.
 
-## 11. Confirmations and Status
+## 11. Scheduled and Recurring Instructions
+
+Scheduled or recurring trades are available only when the feature is visibly enabled. Creating such an instruction authorizes Alta Terminal to attempt the displayed order on the displayed schedule; it does not guarantee submission or execution.
+
+At each scheduled attempt, Alta Terminal may revalidate account authority, product consent, available cash or positions, limits, market session, instrument status, order parameters, and provider availability. An attempt may be skipped, delayed, rejected, or failed. Cancelling a schedule prevents future attempts only after cancellation is confirmed and does not reverse an order already submitted or executed.
+
+## 12. Confirmations and Status
 
 Alta Terminal may display statuses such as pending, received, transmitted, accepted, partially filled, filled, cancel pending, cancelled, rejected, failed, corrected, or reversed.
 
 A locally displayed “submitted” or “pending” status is not execution. A provider execution response or reconciled authoritative record controls when inconsistent with an earlier provisional display.
 
-## 12. Errors and Corrections
+## 13. Errors and Corrections
 
 Alta Terminal may correct duplicate, clearly erroneous, unauthorized, technically malformed, or provider-corrected activity. Corrections may affect cash, positions, average cost, realized results, fees, and statements.
 
 The Customer must promptly report unexpected activity and must not knowingly retain value created by an obvious error.
 
-## 13. Trading Interruptions
+## 14. Trading Interruptions
 
 Alta Terminal may disable order entry or routing during maintenance, provider outages, stale data, reconciliation issues, unusual activity, security incidents, community emergencies, or other conditions that make operation unsafe or misleading.
 
-## 14. Conflicts and Compensation
+## 15. Conflicts and Compensation
 
 Alta Terminal may pay or receive disclosed service, connectivity, data, or routing-related fees. Alta Terminal will not describe provider compensation as independent advice. Material arrangements affecting a specific service will be disclosed where reasonably practicable.
 
-## 15. Records
+## 16. Records
 
 Alta Terminal may retain Customer instructions, validation results, provider messages, timestamps, status changes, confirmations, and corrections as operational evidence.
 
-## 16. Customer Acceptance
+## 17. Customer Acceptance
 
 By submitting an enabled order, the Customer accepts these Terms and the risks associated with the selected order type and provider model.
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

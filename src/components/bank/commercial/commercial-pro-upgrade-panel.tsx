@@ -33,6 +33,8 @@ import {
   purchaseCommercialProPlan,
 } from "@/lib/bank/commercial-banking.functions";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -70,6 +72,7 @@ export function CommercialProUpgradePanel({
   const router = useRouter();
   const fetchPreview = useServerFn(fetchCommercialBillingPreview);
   const purchasePro = useServerFn(purchaseCommercialProPlan);
+  const consentAction = useOptionalProductConsentAction();
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -162,9 +165,14 @@ export function CommercialProUpgradePanel({
     setPhase("submitting");
 
     try {
-      const result = await purchasePro({
-        data: { companyId, billingAccountId },
-      });
+      const result = await executeWithProductConsentResume(async () => {
+        if (consentAction) {
+          await consentAction.requestConsent(["BANK", "COMMERCIAL"], companyId);
+        }
+        return purchasePro({
+          data: { companyId, billingAccountId },
+        });
+      }, consentAction);
 
       setSubmission({
         referenceCode: result.referenceCode,

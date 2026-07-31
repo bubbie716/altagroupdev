@@ -244,18 +244,20 @@ export const fetchCompany360 = createServerFn({ method: "GET" })
     const includeTimeline = typeof data === "string" ? true : (data.includeTimeline ?? true);
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
+      const { getUiLabCompany360 } = await import("@/lib/bank/ui-lab-party-catalog");
+      const fixture = getUiLabCompany360(companyId, { includeTimeline });
+      if (fixture) return fixture;
       const { canonicalizeUiLabPartyId, getUiLabParty } =
         await import("@/lib/bank/ui-lab-party-catalog");
       const canonical = canonicalizeUiLabPartyId(companyId);
       const party = getUiLabParty(canonical);
       if (party?.kind === "company" && party.hasInternalRecord && canonical !== companyId) {
-        // Resolve Harbor alias → seed company id before Prisma.
-        const { getInternalCompany360 } = await import("@/server/ops-company-360.service");
-        try {
-          return await getInternalCompany360(canonical, { includeTimeline });
-        } catch {
-          /* fall through */
-        }
+        const aliased = getUiLabCompany360(canonical, { includeTimeline });
+        if (aliased) return aliased;
+      }
+      // Unknown IDs remain honest not-found (do not fall through to Prisma for known catalog IDs).
+      if (party?.kind === "company") {
+        throw new Error("NOT_FOUND");
       }
     }
     const { getInternalCompany360 } = await import("@/server/ops-company-360.service");
@@ -378,6 +380,13 @@ export const exportAuditLogsOps = createServerFn({ method: "GET" })
 export const fetchInternalLoanDetailOps = createServerFn({ method: "GET" })
   .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalLoanDetail } = await import("@/lib/bank/ui-lab-lending-fixtures");
+      const fixture = getUiLabInternalLoanDetail(loanId);
+      if (fixture) return fixture;
+      throw new Error("NOT_FOUND");
+    }
     const { getInternalLoanDetail } = await import("@/server/loan.service");
     return getInternalLoanDetail(loanId);
   });

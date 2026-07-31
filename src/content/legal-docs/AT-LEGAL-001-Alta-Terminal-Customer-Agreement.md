@@ -2,10 +2,10 @@
 
 **Entity:** Alta Terminal LLC
 **Document ID:** AT-LEGAL-001  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Effective when accepted by a customer
 **Effective Date:** Upon acceptance
-**Last Updated:** July 27, 2026
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -56,6 +56,7 @@ The Customer must:
 - provide accurate and current information;
 - have authority to act for any represented organization;
 - complete requested verification or risk review;
+- complete required Alta onboarding, Minecraft verification, and current Terminal consent;
 - comply with this Agreement and applicable community rules; and
 - use the account only for lawful, authorized virtual-economy purposes.
 
@@ -79,6 +80,8 @@ Alta Terminal may require reauthentication, invalidate sessions, restrict activi
 
 Displayed cash, available funds, buying power, pending funds, and settled funds may differ. Funding may be provided through Alta Bank or another approved payment or settlement provider.
 
+A Bank-to-Terminal funding transfer moves eligible virtual Florins from an Alta Bank account to the cash ledger of the selected Terminal portfolio. A Terminal-to-Bank funding transfer moves eligible portfolio cash to the selected Bank account. A funding transfer is not a securities order and does not by itself move value into or out of an external execution provider's account.
+
 A displayed balance is subject to pending activity, holds, fees, reversals, corrections, provider confirmation, and settlement status. Alta Terminal may reject or delay an order when available funds are insufficient or uncertain.
 
 Alta Terminal does not pay interest on uninvested virtual cash unless a separate product notice expressly provides otherwise.
@@ -93,7 +96,9 @@ Detailed order handling, third-party routing, correction, and execution terms ar
 
 ## 9. Positions and Custody Records
 
-Positions displayed by Alta Terminal reflect records received from, or reconciled with, applicable platform and third-party systems. Depending on the service model, a third-party provider may execute transactions, maintain authoritative position records, hold virtual assets, or process corporate actions.
+Alta Terminal maintains a customer-level internal ledger for each portfolio's virtual cash, positions, orders, fills, and funding activity. An external execution provider may operate one pooled or omnibus account for Alta rather than a separate provider account for every Customer. In that model, the Customer's beneficial virtual interest is the amount allocated to the Customer in Alta Terminal's internal ledger; the Customer does not receive direct ownership or control of the provider account.
+
+Positions displayed by Alta Terminal reflect records received from, allocated from, or reconciled with applicable platform and third-party systems. A third-party provider may execute transactions, maintain pooled authoritative records, hold virtual assets, or process corporate actions. Alta Terminal may aggregate eligible instructions, allocate provider executions to Customer portfolios, and reconcile pooled provider activity against its internal customer records using a consistently applied operational method.
 
 Alta Terminal may mark a position pending, unsettled, restricted, frozen, suspended, or unavailable while records are reconciled or an issue is investigated.
 
@@ -199,7 +204,7 @@ The Customer agrees to protect Alta Terminal, Alta Group, their affiliates, and 
 
 ## 25. Changes
 
-We may update this Agreement prospectively. Material changes will be posted or otherwise communicated. Continued use after the stated effective date constitutes acceptance; if the Customer does not agree, the Customer must stop using the affected service and resolve open obligations.
+We may update this Agreement prospectively. Material changes will be posted or otherwise communicated and may require renewed affirmative acceptance before new Terminal activity. If affirmative acceptance is not required, continued use after the stated effective date constitutes acceptance. A Customer who does not agree must stop initiating new activity but may be permitted to review records, cancel eligible open instructions, resolve obligations, transfer eligible remaining virtual cash, close a product, or contact support.
 
 ## 26. Disputes and Support
 
@@ -217,5 +222,5 @@ By accepting electronically or using an enabled Alta Terminal account after rece
 
 **Adopted by:** Alta Terminal LLC
 **Approved by:** Alta Group N.V.
-**Version:** 1.1
-**Last Updated:** July 27, 2026
+**Version:** 1.2
+**Last Updated:** July 31, 2026

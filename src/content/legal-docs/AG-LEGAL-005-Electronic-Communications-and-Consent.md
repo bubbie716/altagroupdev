@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.
 **Document ID:** AG-LEGAL-005
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Active upon publication
 **Effective Date:** Upon acceptance
-**Last Updated:** July 21, 2026
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -44,7 +44,13 @@ Sensitive information may be withheld from an insecure or public channel.
 
 A button press, checkbox, typed confirmation, Discord interaction, digital signature, authenticated submission, or other recorded affirmative action may serve as acceptance when the surrounding screen or message identifies the document or action being accepted.
 
-Alta may retain the document version, timestamp, account identifier, interaction record, and related audit information as evidence of acceptance.
+Alta may retain the document identifier, version, content hash, consent scope, acceptance type, timestamp, account identifier, subject, interaction record, and related audit information as evidence of acceptance. Acceptance history may be append-only: a new version may supersede an earlier acceptance without erasing the earlier record.
+
+Alta may request consent progressively. Platform-wide documents may be presented during onboarding, while Bank, Terminal, Alta Pay, Alta Card, Lending, Commercial, or other product documents may be presented only when the user first enters or attempts an action in that product. Accepting one product's documents does not accept another product's documents.
+
+When a user accepts on behalf of a company, the recorded acceptance may identify the company and the representative. The representative confirms that they have authority to bind that company under its Alta roles and governing rules.
+
+An acknowledgment of a standard Alta Card or lending template confirms receipt and review of the template; it is not a finalized individualized card or loan agreement. Any finalized agreement must separately identify the applicable account, approved terms, parties, and affirmative acceptance.
 
 ## 5. Delivery and Availability
 
@@ -60,7 +66,7 @@ Alta operates primarily online. A user may request another electronic copy throu
 
 ## 8. Withdrawal of Consent
 
-A user may ask to withdraw consent to electronic communications. Because Alta services operate electronically, withdrawal may prevent Alta from opening or continuing an account or product. Withdrawal does not affect records or agreements already delivered or accepted.
+A user may ask to withdraw consent to electronic communications. Because Alta services operate electronically, withdrawal may prevent Alta from opening or continuing an account or product. Withdrawal does not affect records or agreements already delivered or accepted. Alta may continue to provide electronic access needed to review records, repay or resolve an existing obligation, close a product, or obtain support even when new product activity is unavailable.
 
 ## 9. Contact Information
 
@@ -72,8 +78,8 @@ This consent governs records for Alta's Minecraft, Discord, roleplay, simulated,
 
 ## 11. Changes
 
-Alta may update this document when communication methods or services change. Material updates will be made available through an official Alta channel.
+Alta may update this document when communication methods or services change. Material updates will be made available through an official Alta channel and may require renewed affirmative acceptance before new activity in the affected service.
 
 **Approved by:** Alta Group N.V.
-**Version:** 1.0
-**Last Updated:** July 21, 2026
+**Version:** 1.1
+**Last Updated:** July 31, 2026

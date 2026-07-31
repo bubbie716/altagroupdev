@@ -24,6 +24,14 @@ import {
   fetchTerminalFundingEligibility,
   submitTerminalFundingTransferFn,
 } from "@/lib/terminal/terminal-funding.functions";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
+import { isConsentCancelledError } from "@/lib/legal/ui-lab-action-consent";
+import {
+  getUiLabAcceptedOverlaySnapshot,
+  getUiLabProductConsentScenario,
+} from "@/lib/legal/ui-lab-product-consent";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { resolveTerminalFundingPreselection } from "@/lib/terminal/terminal-funding-preselection";
 import type {
   TerminalFundingDirection,
@@ -45,7 +53,14 @@ const inputClass =
 const EMPTY_ACCOUNTS: TerminalFundingEligibility["accounts"] = [];
 const EMPTY_PORTFOLIOS: TerminalFundingEligibility["portfolios"] = [];
 
-type Step = "direction" | "details" | "review" | "submitting" | "success" | "error";
+type Step =
+  | "direction"
+  | "details"
+  | "review"
+  | "awaiting_consent"
+  | "submitting"
+  | "success"
+  | "error";
 
 export function TerminalFundingActionFlow({
   phase,
@@ -67,6 +82,7 @@ export function TerminalFundingActionFlow({
 }) {
   const loadEligibility = useServerFn(fetchTerminalFundingEligibility);
   const submitFunding = useServerFn(submitTerminalFundingTransferFn);
+  const consentAction = useOptionalProductConsentAction();
   const {
     status: refreshStatus,
     refreshAfterSuccess,
@@ -269,6 +285,14 @@ export function TerminalFundingActionFlow({
       setFooter(null);
       return;
     }
+    if (step === "awaiting_consent") {
+      setTitle("Review funding transfer");
+      setDescription("Accept required product terms to continue.");
+      setShowBack(false);
+      registerBack(null);
+      setFooter(null);
+      return;
+    }
     if (step === "error") {
       setTitle("Funding unsuccessful");
       setDescription("Your entries were preserved.");
@@ -308,21 +332,35 @@ export function TerminalFundingActionFlow({
 
   async function submit() {
     if (submittingLockRef.current || !direction) return;
+    if (step === "awaiting_consent" || step === "submitting") return;
     submittingLockRef.current = true;
-    setStep("submitting");
+    setStep("awaiting_consent");
     const startedAt = Date.now();
     try {
+      if (consentAction) {
+        await consentAction.requestConsent(["BANK", "TERMINAL"]);
+      }
+
+      setStep("submitting");
       const key = ensureIdempotencyKey(idempotencyKeyRef);
-      const result = await submitFunding({
-        data: {
-          direction,
-          bankAccountId,
-          portfolioId,
-          amount: amountNumber,
-          idempotencyKey: key,
-          uiLabScenario: getBankActionUiLabScenario(),
-        },
-      });
+      const result = await executeWithProductConsentResume(async () => {
+        return submitFunding({
+          data: {
+            direction,
+            bankAccountId,
+            portfolioId,
+            amount: amountNumber,
+            idempotencyKey: key,
+            uiLabScenario: getBankActionUiLabScenario(),
+            uiLabProductConsentScenario: isUiLabMode()
+              ? getUiLabProductConsentScenario()
+              : undefined,
+            uiLabAcceptedOverlay: isUiLabMode()
+              ? getUiLabAcceptedOverlaySnapshot(getUiLabProductConsentScenario())
+              : undefined,
+          },
+        });
+      }, consentAction);
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setReceipt(result);
       idempotencyKeyRef.current = null;
@@ -336,6 +374,10 @@ export function TerminalFundingActionFlow({
         }
       });
     } catch (err) {
+      if (isConsentCancelledError(err)) {
+        setStep("review");
+        return;
+      }
       const raw =
         err instanceof Error
           ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN:/, "")
@@ -411,7 +453,13 @@ export function TerminalFundingActionFlow({
           </BankActionPrimaryButton>
         </BankActionFooter>,
       );
-    } else if (step !== "error" && step !== "success" && step !== "submitting" && !loadError) {
+    } else if (
+      step !== "error" &&
+      step !== "success" &&
+      step !== "submitting" &&
+      step !== "awaiting_consent" &&
+      !loadError
+    ) {
       setFooter(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

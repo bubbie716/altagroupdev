@@ -2,10 +2,10 @@
 
 **Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-005  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -48,11 +48,14 @@ Alta Bank may support other currencies if approved by Alta Bank or Alta Group.
 | Personal Deposit Account | ƒ0 | No standard monthly fee |
 | Business Banking Account | ƒ0 | No standard monthly fee |
 | Standard Internal Transfer | ƒ0 | No standard transfer fee |
+| Bank ↔ Terminal Funding Transfer | ƒ0 | No standard funding-transfer fee |
 | Standard Deposit Request | ƒ0 | No standard deposit fee |
 | Standard Withdrawal Request | ƒ0 | No standard withdrawal fee |
 | Standard Alta Pay Payment | ƒ0 | No standard payment fee currently |
 | Standard Merchant Invoice | ƒ0 | Included with standard merchant access |
 | Standard Payment Link | ƒ0 | Included with standard merchant access |
+| Alta Card Cash Advance | ƒ0 | No standard cash-advance fee; the advance increases the card balance |
+| Alta Card Late Payment Fee | ƒ100 | Charged once for an eligible statement that remains unpaid after its due date |
 | Alta Commercial Core | ƒ0 / month | Free business/merchant tier |
 | Alta Commercial Pro | ƒ10,000 / month | Paid premium commercial tier |
 
@@ -111,6 +114,7 @@ At the time of this Fee Schedule, Alta Bank does not currently charge standard f
 - standard deposits;
 - standard withdrawals;
 - standard internal transfers;
+- standard Bank-to-Terminal or Terminal-to-Bank funding transfers;
 - standard Alta Pay payments;
 - standard invoices;
 - standard payment links;
@@ -147,7 +151,7 @@ Alta Bank may update this Fee Schedule at any time.
 
 Updated fees become effective when posted, published, or otherwise made available, unless Alta Bank states a later effective date.
 
-Continued use of Alta Bank services after a fee update means the user, business, or merchant accepts the updated fees.
+Material fee changes may require renewed affirmative acceptance before the affected new activity. If affirmative acceptance is not required, continued use after the stated effective date means the user, business, or merchant accepts the updated fees. A fee change does not retroactively alter a completed transaction.
 
 ---
 
@@ -196,5 +200,5 @@ This Fee Schedule is adopted by Alta Bank as the standard fee schedule for Alta 
 
 **Approved by:** Alta Bank N.V.
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

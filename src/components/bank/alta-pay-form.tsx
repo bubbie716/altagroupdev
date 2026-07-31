@@ -34,6 +34,8 @@ import {
   withdrawalBlockedReason,
 } from "@/lib/bank/account-status-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 import {
   BankRequestErrorCard,
   BankRequestSubmitButton,
@@ -137,6 +139,7 @@ export function AltaPayForm({
   const searchRecipients = useServerFn(searchPayableRecipientsForPay);
   const payCompany = useServerFn(submitAltaPay);
   const payPerson = useServerFn(submitAltaPayToPersonPayment);
+  const consentAction = useOptionalProductConsentAction();
 
   const [view, setView] = useState<FormView>("compose");
   const [fundingKeyValue, setFundingKeyValue] = useState(() =>
@@ -287,23 +290,29 @@ export function AltaPayForm({
     const idempotencyKey = idempotencyKeyRef.current;
 
     try {
-      let result: SubmitAltaPayResult;
+      const result = await executeWithProductConsentResume(async () => {
+        if (consentAction) {
+          await consentAction.requestConsent(["BANK", "ALTA_PAY"]);
+        }
 
-      if (selectedRecipient.kind === "company") {
-        result = await payCompany({
-          data: {
-            fundingSource: parseFundingKey(fundingKeyValue),
-            companyId: selectedRecipient.id,
-            amount: Number(amount),
-            memo: memo.trim() || undefined,
-            idempotencyKey,
-          },
-        });
-      } else {
+        if (selectedRecipient.kind === "company") {
+          return payCompany({
+            data: {
+              fundingSource: parseFundingKey(fundingKeyValue),
+              companyId: selectedRecipient.id,
+              amount: Number(amount),
+              memo: memo.trim() || undefined,
+              idempotencyKey,
+            },
+          });
+        }
+
         const funding = parseFundingKey(fundingKeyValue);
-        if (funding.kind !== "bank_account") return;
+        if (funding.kind !== "bank_account") {
+          throw new Error("Person payments require a bank account.");
+        }
 
-        result = await payPerson({
+        return payPerson({
           data: {
             fundingSource: funding,
             recipientUserId: selectedRecipient.id,
@@ -312,7 +321,7 @@ export function AltaPayForm({
             idempotencyKey,
           },
         });
-      }
+      }, consentAction);
 
       idempotencyKeyRef.current = null;
 

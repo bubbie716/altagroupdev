@@ -2,9 +2,9 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-004  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Effective when applicable services are used  
-**Last Updated:** July 27, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -70,6 +70,8 @@ Some features may require acceptance of provider-specific terms. Alta Terminal w
 
 Alta Terminal may share identifiers, account details, instructions, security information, and operational data with a provider when reasonably necessary to deliver, secure, reconcile, or support a requested service.
 
+Where a provider uses a pooled or omnibus Alta account, the provider may identify Alta rather than the individual Customer as its account holder. Alta Terminal may transmit Customer-authorized instructions through that account and use its own internal ledger to allocate provider responses, executions, cash, and positions among Customer portfolios.
+
 Data handling remains subject to the Alta Group Privacy Policy and applicable disclosed provider terms.
 
 ## 12. Attribution and Conflicts
@@ -90,3 +92,5 @@ These Terms are incorporated into the Alta Terminal Customer Agreement whenever 
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

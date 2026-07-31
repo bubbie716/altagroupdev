@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.  
 **Document ID:** AG-LEGAL-001  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 27, 2026
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -55,7 +55,9 @@ Users are responsible for understanding the difference between roleplay services
 
 ## 4. User Accounts
 
-Users may be required to create an account, connect Discord, verify identity within the platform, or provide information to access certain Alta services.
+Users may be required to create an account, connect Discord, verify identity within the platform, verify a Minecraft identity, complete onboarding, or provide information to access certain Alta services. Minecraft verification may require the user to claim a Minecraft username and move that player to a displayed X/Z block in the supported world while Alta checks the official live-player feed. The verification process is described more fully in the Alta Group Privacy Policy.
+
+Users must satisfy the minimum age required by Discord and any other connected platform in their country. If a user is not old enough to accept these Terms independently under applicable rules, a parent or legal guardian must review and accept them on the user's behalf. Alta may restrict access when age, authority, or guardian consent cannot be established as reasonably required.
 
 Users agree to:
 
@@ -110,6 +112,8 @@ Alta may publish service-specific rules, including:
 - security policies.
 
 Users agree to follow all rules that apply to the services they use.
+
+Alta may present product-specific terms progressively when a user first enters or attempts to use Alta Bank, Alta Terminal, Alta Pay, Alta Card, Lending, Commercial, or another product. Access to one product does not constitute acceptance of every other product's terms. A material change may require renewed affirmative acceptance before new activity in the affected product.
 
 ---
 
@@ -305,7 +309,9 @@ Alta may update these Terms at any time.
 
 Updated Terms become effective when posted, published, or otherwise made available.
 
-Continued use of Alta services after an update means the user accepts the updated Terms.
+Alta will make updated Terms available through an official channel. When Alta identifies a change as material, Alta may require recorded affirmative acceptance before permitting new activity in the affected service. If affirmative acceptance is not required, continued use after the stated effective date constitutes acceptance.
+
+A user who does not accept updated terms must stop initiating new activity under those terms. Alta may still permit access reasonably necessary to review records, repay or resolve an existing obligation, withdraw or transfer eligible remaining virtual value, close a product, or contact support.
 
 ---
 
@@ -343,5 +349,5 @@ These Terms are adopted by Alta Group N.V. as the platform-wide Terms of Service
 
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
-**Version:** 1.1
-**Last Updated:** July 27, 2026
+**Version:** 1.2
+**Last Updated:** July 31, 2026

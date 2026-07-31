@@ -1,5 +1,6 @@
 import { formatBankActionError, type BankMoneyAction } from "@/lib/bank/account-status-copy";
 import { BANK_SUBMISSION_ERROR_FALLBACK } from "@/lib/bank/bank-shared-copy";
+import { isConsentRequiredWireError } from "@/lib/legal/parse-consent-required";
 
 export type CustomerSubmissionAction =
   | BankMoneyAction
@@ -72,6 +73,14 @@ export function formatCustomerActionError(
   action: CustomerSubmissionAction,
   context?: { accountId?: string },
 ): string {
+  // Never expose structured consent codes to customers — action controller should intercept.
+  if (isConsentRequiredWireError(err) || extractRawMessage(err).startsWith("CONSENT_REQUIRED")) {
+    return "Additional product terms are required before this action can continue.";
+  }
+  if (extractRawMessage(err) === "CONSENT_CANCELLED") {
+    return "Product terms were not accepted. Your form was preserved — try again when ready.";
+  }
+
   const raw = extractRawMessage(err);
   const bankAction = bankActionFor(action);
 

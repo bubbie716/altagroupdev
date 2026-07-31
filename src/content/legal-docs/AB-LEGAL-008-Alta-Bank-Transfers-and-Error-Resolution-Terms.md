@@ -2,16 +2,16 @@
 
 **Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-008
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Active upon publication
 **Effective Date:** Immediately upon publication
-**Last Updated:** July 21, 2026
+**Last Updated:** July 31, 2026
 
 ---
 
 ## 1. Scope
 
-These Terms apply to deposits, withdrawals, internal transfers, scheduled transfers, Alta Pay transactions, card-funded payments, payroll instructions, and other movements of virtual value processed through Alta Bank.
+These Terms apply to deposits, withdrawals, internal transfers, scheduled transfers, Bank-to-Terminal and Terminal-to-Bank funding transfers, Alta Pay transactions, card-funded payments, payroll instructions, and other movements of virtual value processed through Alta Bank.
 
 They supplement the applicable account, Alta Pay, merchant, card, loan, and business banking agreements.
 
@@ -25,6 +25,8 @@ An authenticated instruction, confirmed payment, approved scheduled transfer, au
 
 Customers are responsible for reviewing recipient, account, amount, currency, date, frequency, and funding-source information before confirming.
 
+For Terminal funding, the customer must also review the direction and selected Terminal portfolio. The instruction authorizes Alta to debit one internal ledger and credit the other as one coordinated operation.
+
 ## 4. Processing Status
 
 A submitted instruction may be pending, scheduled, processing, completed, failed, cancelled, held, reversed, or rejected.
@@ -37,17 +39,23 @@ Credits may be unavailable while Alta verifies a deposit, withdrawal, transfer, 
 
 Alta may place a reasonable hold when necessary to investigate fraud, duplication, technical errors, authorization, reversals, or platform integrity.
 
-## 6. Scheduled and Recurring Instructions
+## 6. Bank and Terminal Funding
+
+A Bank-to-Terminal funding transfer moves eligible virtual Florins from an Alta Bank account to the cash ledger of the selected Alta Terminal portfolio. A Terminal-to-Bank funding transfer moves eligible portfolio cash to the selected Alta Bank account. Neither direction is a securities order or a direct deposit to or withdrawal from an external execution provider.
+
+Alta records both sides of the transfer and uses an idempotency record to reduce duplicate processing. A transfer may fail or be reversed when both ledger entries cannot be completed consistently. Alta may restrict a transfer for insufficient available funds, frozen or closed accounts, archived or inaccessible portfolios, invalid authority, product-consent requirements, reconciliation issues, or platform risk.
+
+## 7. Scheduled and Recurring Instructions
 
 Customers must maintain sufficient available funds and valid authorization on the processing date. Alta may retry, skip, fail, or cancel an instruction when funds, permissions, recipient status, or system availability are insufficient.
 
 Cancelling a recurring instruction does not reverse transactions already completed.
 
-## 7. Payroll and Business Transfers
+## 8. Payroll and Business Transfers
 
 A company's authorized representative is responsible for recipient information, compensation amounts, schedule, authority, and sufficient funding. Alta does not decide employment, contractor, or compensation disputes between a company and recipient.
 
-## 8. Unauthorized or Incorrect Activity
+## 9. Unauthorized or Incorrect Activity
 
 Customers should report promptly:
 
@@ -60,7 +68,7 @@ Customers should report promptly:
 
 Delay may reduce Alta's ability to recover virtual value or identify the cause.
 
-## 9. How to Submit an Error Notice
+## 10. How to Submit an Error Notice
 
 The customer should contact official Alta support and provide, where available:
 
@@ -73,13 +81,13 @@ The customer should contact official Alta support and provide, where available:
 
 Customers must not publish credentials, full account identifiers, or private records in public channels.
 
-## 10. Investigation
+## 11. Investigation
 
 Alta may review authentication events, transaction records, account permissions, device or session information, audit logs, statements, support messages, recipient records, and connected-provider information.
 
 Alta may temporarily restrict related activity while an investigation is open. A restriction is not a final determination of fault.
 
-## 11. Resolution
+## 12. Resolution
 
 If Alta determines an error occurred, it may correct records, reverse or repost a transaction, restore virtual value, refund an associated Alta fee, or take another reasonable corrective action.
 
@@ -87,22 +95,22 @@ If Alta determines no error occurred, it may deny the claim and provide a concis
 
 Alta cannot guarantee recovery from a recipient or external community once value has been withdrawn, transferred onward, spent, or otherwise made unavailable.
 
-## 12. Customer-Caused Mistakes
+## 13. Customer-Caused Mistakes
 
 Alta may attempt to assist with a payment sent to the wrong recipient or with incorrect information, but is not required to reverse a correctly executed instruction that the customer authorized. Recovery may depend on recipient consent or available balance.
 
-## 13. Records and Statements
+## 14. Records and Statements
 
 Customers should review statements and account history regularly. Alta's system records control unless corrected after review.
 
-## 14. Security
+## 15. Security
 
 Customers must protect Discord accounts, Alta sessions, credentials, company roles, and authorized devices. Customers should remove obsolete representatives and report suspected compromise immediately.
 
-## 15. Changes and Contact
+## 16. Changes and Contact
 
 Alta may update these Terms as transfer features change. Error notices and questions may be submitted through official Alta support channels.
 
 **Approved by:** Alta Bank N.V.
-**Version:** 1.0
-**Last Updated:** July 21, 2026
+**Version:** 1.1
+**Last Updated:** July 31, 2026

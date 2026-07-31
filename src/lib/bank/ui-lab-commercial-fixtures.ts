@@ -231,6 +231,124 @@ export function getUiLabBankAccounts(): UserBankAccount[] {
   return [toUserBankAccount(UI_LAB_CORE_ACCOUNT_ID), toUserBankAccount(UI_LAB_PRO_ACCOUNT_ID)];
 }
 
+/**
+ * Active customer Bank accounts for UI Lab action sheets (Pay, transfer, deposit, etc.).
+ * Canonical IDs align with money-ops + commercial catalogs — never Prisma.
+ */
+export function getUiLabActiveCustomerBankAccounts(): UserBankAccount[] {
+  if (!isUiLabMode()) return [];
+  const personal: UserBankAccount[] = getUiLabPayFundingSources()
+    .filter((s) => s.kind === "bank_account" && !s.companyId)
+    .map((s) => {
+      const type =
+        s.id.includes("SAV")
+          ? ("savings" as const)
+          : s.id.includes("ACCESS")
+            ? ("alta_access" as const)
+            : ("checking" as const);
+      return {
+        id: s.id,
+        accountName: s.label,
+        accountType: type,
+        accountTypeLabel:
+          type === "savings" ? "Savings" : type === "alta_access" ? "Alta Access" : "Checking",
+        accountNumber: s.detail,
+        routingNumber: getRoutingNumber(),
+        balance: s.availableBalance,
+        availableBalance: s.availableBalance,
+        status: "active" as const,
+        statusLabel: "Active",
+        currency: "FLD",
+        companyId: null,
+        companyName: null,
+        isCompanyAccount: false,
+        openingNotes: null,
+        restrictDeposits: false,
+        restrictWithdrawals: false,
+        restrictTransfers: false,
+        createdAt: "2025-06-01T00:00:00.000Z",
+        recentActivity: "Payment · Jul 22",
+        name: s.label,
+        product: type === "savings" ? "Savings" : type === "alta_access" ? "Access" : "Checking",
+        type: type === "savings" ? "Savings" : "Personal",
+        interestAccrualEnabled: type === "savings",
+        interestRateLabel: type === "savings" ? "2.50%" : null,
+        accountStatusInfo: s.accountStatusInfo ?? goodStandingStatus(s.availableBalance),
+      };
+    });
+  return [...personal, ...getUiLabBankAccounts()];
+}
+
+/**
+ * Eligible Alta Pay funding sources for UI Lab.
+ * Canonical IDs align with the internal money-ops account catalog.
+ */
+export function getUiLabPayFundingSources(): import("@/lib/bank/alta-pay-types").PayFundingSourceOption[] {
+  if (!isUiLabMode()) return [];
+  const rows: Array<{
+    id: string;
+    companyId: string | null;
+    companyName: string | null;
+    accountName: string;
+    accountNumber: string;
+    balance: number;
+  }> = [
+    {
+      id: "BA-LAB-ACCESS",
+      companyId: null,
+      companyName: null,
+      accountName: "Carter — Alta Access",
+      accountNumber: "AB-1000-100001",
+      balance: 12_450.75,
+    },
+    {
+      id: "BA-LAB-CHK",
+      companyId: null,
+      companyName: null,
+      accountName: "Carter — Everyday Checking",
+      accountNumber: "AB-2000-100002",
+      balance: 38_214.2,
+    },
+    {
+      id: "BA-LAB-SAV",
+      companyId: null,
+      companyName: null,
+      accountName: "Carter — High-Yield Savings",
+      accountNumber: "AB-3000-100003",
+      balance: 127_500,
+    },
+    {
+      id: "BA-LAB-ALTG-OP",
+      companyId: UI_LAB_CORE_COMPANY_ID,
+      companyName: companyName(UI_LAB_CORE_COMPANY_ID),
+      accountName: "Alta Group — Operating",
+      accountNumber: "AB-5000-100020",
+      balance: 840_220.1,
+    },
+    {
+      id: "BA-LAB-NPC-OP",
+      companyId: UI_LAB_PRO_COMPANY_ID,
+      companyName: companyName(UI_LAB_PRO_COMPANY_ID),
+      accountName: "Newport Petroleum — Operating",
+      accountNumber: "AB-5000-100010",
+      balance: 2_480_300.55,
+    },
+  ];
+
+  return rows.map((row) => ({
+    kind: "bank_account" as const,
+    id: row.id,
+    label:
+      row.companyId && row.companyName
+        ? `${row.companyName} · ${row.accountName}`
+        : row.accountName,
+    detail: row.accountNumber,
+    availableBalance: row.balance,
+    companyId: row.companyId,
+    accountStatusInfo: goodStandingStatus(row.balance),
+  }));
+}
+
 function toBusinessTreasuryCompany(accountId: string): BusinessTreasuryCompany {
   const meta = accountMeta(accountId);
   const membership = UI_LAB_MOCK_USER.companyMemberships.find((m) => m.companyId === meta.companyId);

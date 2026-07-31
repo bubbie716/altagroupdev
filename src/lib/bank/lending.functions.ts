@@ -132,6 +132,40 @@ export type InternalLoansSearchInput = {
 export const fetchInternalLoansFiltered = createServerFn({ method: "GET" })
   .inputValidator((filters: InternalLoansSearchInput) => filters)
   .handler(async ({ data }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { listUiLabInternalLoans } = await import("@/lib/bank/ui-lab-lending-fixtures");
+      const {
+        loanBorrowerType,
+        loanDirectoryMatchesQuery,
+        loanNeedsDirectoryAttention,
+        sortLoansForDirectory,
+      } = await import("@/lib/internal/lending-desk");
+      let rows = listUiLabInternalLoans();
+      if (data.status) {
+        const normalized = data.status.toUpperCase().replace("-", "_");
+        rows = rows.filter((row) => row.status === normalized);
+      }
+      if (data.borrowerType) {
+        rows = rows.filter((row) => loanBorrowerType(row) === data.borrowerType);
+      }
+      if (data.attention === "1" || data.attention === "true") {
+        rows = rows.filter((row) => loanNeedsDirectoryAttention(row));
+      }
+      if (data.q?.trim()) {
+        rows = rows.filter((row) => loanDirectoryMatchesQuery(row, data.q!.trim()));
+      }
+      rows = sortLoansForDirectory(rows);
+      const offset = data.offset ?? 0;
+      const limit = 50;
+      const page = rows.slice(offset, offset + limit);
+      return {
+        rows: page,
+        offset,
+        limit,
+        hasMore: offset + limit < rows.length,
+      };
+    }
     const { listInternalLoansFiltered } = await import("@/server/loan.service");
     return listInternalLoansFiltered({
       q: data.q,

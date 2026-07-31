@@ -205,3 +205,130 @@ export function getUiLabCustomer360(userId: string): {
 export function listUiLabResolvablePartyIds(): string[] {
   return UI_LAB_PARTY_CATALOG.filter((p) => p.hasInternalRecord).map((p) => p.id);
 }
+
+/** Company 360 fixture for resolvable UI Lab companies — never hits Prisma. */
+export function getUiLabCompany360(
+  companyId: string,
+  options?: { includeTimeline?: boolean },
+): {
+  company: {
+    id: string;
+    name: string;
+    ticker: string | null;
+    type: string;
+    sector: string | null;
+    status: string;
+    verificationStatus: string;
+    createdAt: string;
+    updatedAt: string;
+    members: Array<{
+      membershipId: string;
+      userId: string;
+      discordUsername: string;
+      minecraftUsername: string | null;
+      role: string;
+      roleLabel: string;
+      joinedAt: string;
+    }>;
+  };
+  notes: [];
+  timeline: [];
+  relationshipManager: null;
+  verificationTimeline: Array<{ label: string; at: string }>;
+  bankAccounts: Array<{
+    id: string;
+    accountNumber: string;
+    accountName: string;
+    accountTypeLabel: string;
+    status: string;
+    balance: number;
+  }>;
+  loans: Array<{
+    id: string;
+    status: string;
+    principalAmount: number;
+    outstandingBalance: number;
+    createdAt: string;
+  }>;
+  altaPayActivity: [];
+  statements: [];
+  commercialPlan: {
+    commercialPlan: string;
+    grantSource: null;
+    expiresAt: null;
+    billingStatus: string;
+  };
+} | null {
+  void options;
+  const party = getUiLabParty(companyId);
+  if (!party || party.kind !== "company" || !party.hasInternalRecord) return null;
+
+  const createdAt = "2025-06-01T00:00:00.000Z";
+  const updatedAt = "2026-07-20T12:00:00.000Z";
+  const isPro = party.id === UI_LAB_PRO_COMPANY_ID;
+
+  return {
+    company: {
+      id: party.id,
+      name: party.name,
+      ticker: party.subtitle,
+      type: "Corporation",
+      sector: "Finance",
+      status: "Active",
+      verificationStatus: "Verified",
+      createdAt,
+      updatedAt,
+      members: [
+        {
+          membershipId: `mem-${party.id}`,
+          userId: "ui-lab-user",
+          discordUsername: "carter",
+          minecraftUsername: "carter",
+          role: "owner",
+          roleLabel: "Owner",
+          joinedAt: createdAt,
+        },
+      ],
+    },
+    notes: [],
+    timeline: [],
+    relationshipManager: null,
+    verificationTimeline: [
+      { label: "Registered", at: createdAt },
+      { label: "Verification: Verified", at: updatedAt },
+    ],
+    bankAccounts:
+      party.primaryAccountId && party.accountNumber
+        ? [
+            {
+              id: party.primaryAccountId,
+              accountNumber: party.accountNumber,
+              accountName: `${party.name} · Operating`,
+              accountTypeLabel: "Operating",
+              status: "ACTIVE",
+              balance: isPro ? 2_480_300.55 : 840_220.1,
+            },
+          ]
+        : [],
+    loans:
+      party.id === UI_LAB_CORE_COMPANY_ID
+        ? [
+            {
+              id: "LN-LAB-COMPANY",
+              status: "ACTIVE",
+              principalAmount: 150_000,
+              outstandingBalance: 113_250,
+              createdAt: "2026-01-15T00:00:00.000Z",
+            },
+          ]
+        : [],
+    altaPayActivity: [],
+    statements: [],
+    commercialPlan: {
+      commercialPlan: isPro ? "PRO" : "CORE",
+      grantSource: null,
+      expiresAt: null,
+      billingStatus: isPro ? "CURRENT" : "NOT_BILLED",
+    },
+  };
+}

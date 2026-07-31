@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { AltaWordmark } from "@/components/alta-logo";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "@tanstack/react-router";
 import { LEGAL_CENTER_PATH } from "@/lib/site/site-links";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -170,13 +171,12 @@ export function OnboardingCheckbox({
         disabled && "cursor-not-allowed opacity-60",
       )}
     >
-      <input
+      <Checkbox
         id={id}
-        type="checkbox"
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-5 w-5 shrink-0 rounded border-white/30 bg-transparent text-[var(--gold)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]/60"
+        className="border-white/30 checked:border-[var(--gold)] checked:bg-[var(--gold)] focus-visible:ring-[var(--gold)]/60"
       />
       <span className="text-[13px] leading-snug text-white/90 sm:text-[14px] sm:leading-relaxed">
         {children}

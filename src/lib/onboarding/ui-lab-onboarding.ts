@@ -418,6 +418,82 @@ export function getUiLabCustomerOnboardingSummary(_userId: string): CustomerOnbo
   const docs = coreDocumentsForLab();
   const coreComplete = Boolean(user.coreOnboardingCompletedAt);
   const verified = Boolean(user.minecraftVerifiedAt);
+  const acceptedAt = user.coreOnboardingCompletedAt ?? "2026-07-01T12:00:00.000Z";
+
+  const productConsentScopes: NonNullable<CustomerOnboardingSummary["productConsentScopes"]> = [
+    {
+      scope: "BANK",
+      label: "Alta Bank",
+      status: "Current",
+      currentVersions: ["AB-LEGAL-001 v1.1", "AB-LEGAL-005 v1.1", "AB-LEGAL-008 v1.1"],
+      acceptedVersions: ["AB-LEGAL-001 v1.1", "AB-LEGAL-005 v1.1", "AB-LEGAL-008 v1.1"],
+      acceptedAt,
+      acceptanceSemantics: ["Agreed", "Acknowledged", "Acknowledged"],
+      sourceSite: "bank",
+      companyId: null,
+      companyName: null,
+    },
+    {
+      scope: "TERMINAL",
+      label: "Alta Terminal",
+      status: "Current",
+      currentVersions: [
+        "AT-LEGAL-001 v1.2",
+        "AT-LEGAL-002 v1.1",
+        "AT-LEGAL-003 v1.1",
+        "AT-LEGAL-004 v1.1",
+        "AT-LEGAL-005 v1.1",
+      ],
+      acceptedVersions: [
+        "AT-LEGAL-001 v1.2",
+        "AT-LEGAL-002 v1.1",
+        "AT-LEGAL-003 v1.1",
+        "AT-LEGAL-004 v1.1",
+        "AT-LEGAL-005 v1.1",
+      ],
+      acceptedAt,
+      acceptanceSemantics: ["Agreed", "Agreed", "Acknowledged", "Acknowledged", "Acknowledged"],
+      sourceSite: "terminal",
+      companyId: null,
+      companyName: null,
+    },
+    {
+      scope: "ALTA_PAY",
+      label: "Alta Pay",
+      status: "Current",
+      currentVersions: ["AB-LEGAL-003 v1.0"],
+      acceptedVersions: ["AB-LEGAL-003 v1.0"],
+      acceptedAt,
+      acceptanceSemantics: ["Agreed"],
+      sourceSite: "bank",
+      companyId: null,
+      companyName: null,
+    },
+    {
+      scope: "ALTA_CARD",
+      label: "Alta Card",
+      status: "Not accepted",
+      currentVersions: ["AB-LEGAL-006 v1.0"],
+      acceptedVersions: [],
+      acceptedAt: null,
+      acceptanceSemantics: [],
+      sourceSite: null,
+      companyId: null,
+      companyName: null,
+    },
+    {
+      scope: "LENDING",
+      label: "Lending",
+      status: "Not accepted",
+      currentVersions: ["AB-LEGAL-007 v1.0"],
+      acceptedVersions: [],
+      acceptedAt: null,
+      acceptanceSemantics: [],
+      sourceSite: null,
+      companyId: null,
+      companyName: null,
+    },
+  ];
 
   return {
     coreOnboardingComplete: coreComplete,
@@ -438,6 +514,18 @@ export function getUiLabCustomerOnboardingSummary(_userId: string): CustomerOnbo
           acceptedAt: user.coreOnboardingCompletedAt!,
         }))
       : [],
+    productConsentScopes,
+    commercialActingFor: [
+      {
+        scope: "COMMERCIAL",
+        label: "Commercial banking · Alta Group N.V.",
+        status: "Current",
+        companyId: "CO-ALTG",
+        companyName: "Alta Group N.V.",
+        acceptedAt,
+        sourceSite: "bank",
+      },
+    ],
     challenge:
       coreComplete && !verified
         ? {

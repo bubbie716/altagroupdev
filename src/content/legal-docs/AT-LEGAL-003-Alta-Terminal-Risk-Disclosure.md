@@ -2,9 +2,9 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-003  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active disclosure  
-**Last Updated:** July 27, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -42,9 +42,13 @@ Alta Terminal cannot guarantee a provider’s solvency, governance, fairness, se
 
 Positions and balances may depend on provider or platform records rather than possession of a transferable real-world asset. Records may require reconciliation and may be frozen while discrepancies are investigated.
 
+An external provider may hold positions or cash in one pooled or omnibus Alta account. Customers depend on Alta Terminal's internal ledger and allocation process to identify their virtual interests. An allocation error, duplicate or missing provider message, delayed reconciliation, or difference between internal and provider records may temporarily or permanently affect displayed cash, positions, buying power, or access.
+
 ## 9. Settlement and Counterparty Risk
 
 A completed execution may still fail to settle. A provider, company, counterparty, payment source, or settlement service may fail to deliver required virtual cash or assets. Corrections or reversals may occur after an earlier provisional display.
+
+A Bank-to-Terminal or Terminal-to-Bank funding transfer updates separate internal ledgers. A partial technical failure or later reconciliation issue may delay availability, produce a temporary mismatch, or require a correction or reversal.
 
 ## 10. Company and Security Risk
 
@@ -74,6 +78,8 @@ Splits, distributions, mergers, symbol changes, cancellations, and other actions
 
 Risk limits, account restrictions, trading interruptions, provider controls, or emergency procedures may prevent a Customer from acting when desired. Controls may be introduced or changed in response to new threats.
 
+If scheduled or recurring trading is enabled, each future attempt remains exposed to insufficient funds, closed sessions, price changes, stale instructions, provider outages, and account or instrument restrictions. A schedule does not guarantee that any attempt will be submitted or filled.
+
 ## 17. No Advice
 
 Alta Terminal does not evaluate whether a transaction is suitable for a Customer and does not provide personalized investment advice. Research, rankings, analytics, and educational content are informational or roleplay tools.
@@ -88,3 +94,5 @@ By using an enabled trading or position feature, the Customer acknowledges the p
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

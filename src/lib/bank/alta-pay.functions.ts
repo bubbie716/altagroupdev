@@ -1,16 +1,38 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { SubmitAltaPayInput, SubmitAltaPayToPersonInput } from "@/lib/bank/alta-pay-types";
 
-export const fetchPaySourceAccounts = createServerFn({ method: "GET" }).handler(async () => {
-  const { requireAuth } = await import("@/server/auth.service");
-  const { listPaySourceAccounts } = await import("@/server/alta-pay.service");
-  return listPaySourceAccounts(await requireAuth());
-});
-
 export const fetchPayFundingSources = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabPayFundingSources } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+    return getUiLabPayFundingSources();
+  }
   const { requireAuth } = await import("@/server/auth.service");
   const { listPayFundingSources } = await import("@/server/alta-pay.service");
   return listPayFundingSources(await requireAuth());
+});
+
+export const fetchPaySourceAccounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabPayFundingSources } = await import("@/lib/bank/ui-lab-commercial-fixtures");
+    return getUiLabPayFundingSources()
+      .filter((s) => s.kind === "bank_account")
+      .map((s) => ({
+        id: s.id,
+        accountName: s.label,
+        accountNumber: s.detail,
+        balance: s.availableBalance,
+        availableBalance: s.availableBalance,
+        companyId: s.companyId ?? null,
+        companyName: null,
+        isCompanyAccount: Boolean(s.companyId),
+        accountStatusInfo: s.accountStatusInfo,
+      }));
+  }
+  const { requireAuth } = await import("@/server/auth.service");
+  const { listPaySourceAccounts } = await import("@/server/alta-pay.service");
+  return listPaySourceAccounts(await requireAuth());
 });
 
 /** @deprecated Use fetchPaySourceAccounts */

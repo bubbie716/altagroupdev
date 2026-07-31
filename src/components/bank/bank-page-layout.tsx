@@ -16,6 +16,7 @@ import { BankMobileBottomNav } from "@/components/bank/bank-mobile-nav";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankActionHost } from "@/components/bank/actions/bank-action-host";
 import { ProductConsentRouteGate } from "@/components/legal/product-consent-route-gate";
+import { ProductConsentActionProvider } from "@/components/legal/product-consent-action-controller";
 import { useResolvedPathname } from "@/components/navigation/use-resolved-pathname";
 import { cn } from "@/lib/utils";
 
@@ -188,6 +189,7 @@ function BankChromeLayout() {
 
   return (
     <BankPageLayoutContext.Provider value={layoutValue}>
+      <ProductConsentActionProvider sourceSite="bank" theme="bank">
       <div
         className={cn(
           "flex min-h-0 w-full flex-1 flex-col overflow-x-clip bg-background",
@@ -198,66 +200,67 @@ function BankChromeLayout() {
           <BankTopNav />
         </div>
 
-        <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1120px] flex-1 flex-col px-4 sm:px-6">
-          {showSubNav ? (
-            <div className={cn("pt-3", meta.printDocument && "print:hidden")}>
-              <BankSubNav />
-            </div>
-          ) : null}
+        <ProductConsentRouteGate sourceSite="bank" theme="bank">
+          <div className="mx-auto flex min-h-0 w-full min-w-0 max-w-[1120px] flex-1 flex-col px-4 sm:px-6">
+            {showSubNav ? (
+              <div className={cn("pt-3", meta.printDocument && "print:hidden")}>
+                <BankSubNav />
+              </div>
+            ) : null}
 
-          {showTitle ? (
-            <div
-              className={cn(
-                "shrink-0 border-b border-border/50 pb-4 pt-6 sm:pb-5 sm:pt-8",
-                meta.printDocument && "print:hidden",
-              )}
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  {meta.eyebrow ? (
-                    <div className="truncate text-[12px] font-medium text-muted-foreground">
-                      {meta.eyebrow}
+            {showTitle ? (
+              <div
+                className={cn(
+                  "shrink-0 border-b border-border/50 pb-4 pt-6 sm:pb-5 sm:pt-8",
+                  meta.printDocument && "print:hidden",
+                )}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                  <div className="min-w-0 flex-1 overflow-hidden">
+                    {meta.eyebrow ? (
+                      <div className="truncate text-[12px] font-medium text-muted-foreground">
+                        {meta.eyebrow}
+                      </div>
+                    ) : null}
+                    <h1 className="mt-1 truncate text-[1.5rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
+                      {meta.title}
+                    </h1>
+                    {meta.description ? (
+                      <p className="mt-2 max-w-2xl min-w-0 break-all text-[14px] leading-relaxed text-muted-foreground sm:break-words">
+                        {meta.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  {meta.action ? (
+                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+                      {meta.action}
                     </div>
                   ) : null}
-                  <h1 className="mt-1 truncate text-[1.5rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
-                    {meta.title}
-                  </h1>
-                  {meta.description ? (
-                    <p className="mt-2 max-w-2xl min-w-0 break-all text-[14px] leading-relaxed text-muted-foreground sm:break-words">
-                      {meta.description}
-                    </p>
-                  ) : null}
                 </div>
-                {meta.action ? (
-                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
-                    {meta.action}
-                  </div>
-                ) : null}
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <main
-            className={cn(
-              "flex min-h-0 flex-1 flex-col py-6 sm:py-8",
-              "pb-[calc(var(--bank-mobile-nav-offset)+1.5rem)] md:pb-10",
-              meta.printDocument && "print:py-0",
-              isRoutePending && "opacity-60",
-            )}
-            aria-busy={isRoutePending || undefined}
-          >
-            <ProductConsentRouteGate sourceSite="bank" theme="bank">
+            <main
+              className={cn(
+                "flex min-h-0 flex-1 flex-col py-6 sm:py-8",
+                "pb-[calc(var(--bank-mobile-nav-offset)+1.5rem)] md:pb-10",
+                meta.printDocument && "print:py-0",
+                isRoutePending && "opacity-60",
+              )}
+              aria-busy={isRoutePending || undefined}
+            >
               <Outlet />
-            </ProductConsentRouteGate>
-          </main>
-        </div>
+            </main>
+          </div>
 
-        <div className={cn(meta.printDocument && "print:hidden")}>
-          <BankMobileBottomNav />
-        </div>
+          <div className={cn(meta.printDocument && "print:hidden")}>
+            <BankMobileBottomNav />
+          </div>
 
-        <BankActionHost />
+          <BankActionHost />
+        </ProductConsentRouteGate>
       </div>
+      </ProductConsentActionProvider>
     </BankPageLayoutContext.Provider>
   );
 }

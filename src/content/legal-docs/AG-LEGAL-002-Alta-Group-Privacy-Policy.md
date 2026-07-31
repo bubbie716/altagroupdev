@@ -2,10 +2,10 @@
 
 **Entity:** Alta Group N.V.  
 **Document ID:** AG-LEGAL-002  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 27, 2026
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -43,6 +43,8 @@ This may include:
 - Discord username;
 - Minecraft username;
 - Minecraft UUID, if used;
+- a Minecraft verification challenge's world and assigned X/Z block;
+- verification status and challenge, check, expiration, and completion timestamps;
 - account profile information;
 - email address, if provided;
 - company or business information;
@@ -55,6 +57,9 @@ This may include:
 - transfer records;
 - trading or market activity;
 - brokerage applications and order activity;
+- Terminal portfolios, holdings, cash-ledger entries, orders, fills, and Bank-to-Terminal funding records;
+- legal document identifiers, versions, content hashes, consent scopes, acceptance types, timestamps, and superseded consent history;
+- company identity and representative authority when a user accepts terms for a company;
 - audit logs;
 - staff action logs;
 - device, browser, or technical information;
@@ -62,6 +67,12 @@ This may include:
 - cookies or similar website data, if used.
 
 Alta does not require users to provide more information than is reasonably needed to operate the relevant service.
+
+### Minecraft verification
+
+During Minecraft verification, Alta assigns an X/Z block within a fixed verification area and checks the DistrictRP BlueMap live-player feed after the user asks Alta to confirm. Alta compares the claimed Minecraft username and the whole-block X/Z position reported by that feed. Alta does not use the player's Y coordinate for verification and does not intentionally store the Y coordinate, rotation, movement history, or other players returned by the feed.
+
+Alta stores the claimed Minecraft username, verified Minecraft UUID, assigned world and X/Z block, challenge status, and relevant timestamps. Other players may appear transiently in the provider response while the server performs a check, but Alta's verification service is designed not to return or persist that player list. A new challenge does not by itself erase a UUID previously associated with an account, because retaining that association helps prevent account hijacking and duplicate identity claims.
 
 ---
 
@@ -74,6 +85,8 @@ Alta may use information to:
 - operate banking, payment, brokerage, trading-interface, clearing, and settlement services;
 - process transfers, payments, invoices, orders, applications, and support requests;
 - maintain transaction and account records;
+- verify that a claimed Minecraft identity controls the online player at an assigned block;
+- record, prove, and manage platform-wide and product-specific legal acceptance;
 - prevent fraud, abuse, bugs, exploits, and unauthorized access;
 - enforce rules, agreements, and policies;
 - provide customer support;
@@ -127,6 +140,8 @@ These records may include:
 
 These records may be kept to operate services, resolve disputes, prevent abuse, maintain audit trails, and protect the integrity of the platform.
 
+Alta Terminal may maintain customer-level portfolio, cash, order, fill, and funding records even when an external execution provider uses a pooled or omnibus Alta account. Alta uses those internal records to allocate provider activity and reconcile each customer's virtual positions and cash.
+
 Unless a specific service states otherwise, Alta services are intended for Minecraft, Discord, roleplay, simulated, or virtual economy environments and do not represent real-world bank accounts or real-world securities accounts.
 
 ---
@@ -148,6 +163,7 @@ Alta may share information with:
 - participating institutions, when needed for payment operations;
 - merchants, when needed for payments or invoices;
 - brokerage, execution, custody, or market-data providers when needed for Alta Terminal services;
+- Minecraft server or live-map providers when needed to verify a claimed Minecraft identity;
 - law enforcement, legal authorities, or platform administrators if required or reasonably necessary;
 - other parties when the user gives permission.
 
@@ -214,6 +230,8 @@ Alta may retain certain records even after an account is closed, including:
 - dispute records;
 - banned or restricted user records.
 
+Verification and consent evidence may also be retained after access ends when reasonably needed to prevent duplicate identity claims, prove which document version was accepted, preserve append-only audit history, resolve disputes, or protect platform integrity.
+
 Alta may delete or anonymize information when it is no longer needed.
 
 ---
@@ -252,13 +270,13 @@ Users may control cookies through their browser settings, but disabling cookies 
 
 ## 13. Children and Minors
 
-Alta services may be used in Minecraft, Discord, and roleplay communities where users may be minors.
+Alta services may be used in Minecraft, Discord, and roleplay communities where users may be minors. A user must satisfy Discord's and other connected platforms' minimum-age rules. Alta does not intend its services for a child who is below the minimum age permitted for the connected account or who cannot provide any legally required guardian authorization.
 
 Users should not submit sensitive personal information unless it is required for the service.
 
 Parents or guardians may contact Alta through official support channels regarding privacy concerns involving a minor.
 
-Alta may restrict, remove, or delete information if it determines that retaining it creates unnecessary risk.
+Alta may restrict, remove, or delete information if it determines that retaining it creates unnecessary risk. Parents or guardians should not send government identifiers or other sensitive information through public Discord channels.
 
 ---
 
@@ -324,7 +342,7 @@ Alta may update this Privacy Policy at any time.
 
 Updated versions become effective when posted, published, or otherwise made available.
 
-Continued use of Alta services after an update means the user accepts the updated Policy.
+Alta will make updated versions available through an official channel. Material changes may require renewed affirmative acknowledgment or consent before further use of an affected product. Otherwise, continued use after the stated effective date means the user accepts the updated Policy.
 
 ---
 
@@ -340,5 +358,5 @@ This Privacy Policy is adopted by Alta Group N.V. as the platform-wide privacy p
 
 **Approved by:** Alta Group N.V.  
 **Effective Date:** Immediately upon publication  
-**Version:** 1.1
-**Last Updated:** July 27, 2026
+**Version:** 1.2
+**Last Updated:** July 31, 2026

@@ -28,16 +28,38 @@ export const fetchTerminalFundingEligibility = createServerFn({ method: "GET" })
 
 export const submitTerminalFundingTransferFn = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: SubmitTerminalFundingTransferInput & { uiLabScenario?: BankActionUiLabScenario }) =>
-      input,
+    (
+      input: SubmitTerminalFundingTransferInput & {
+        uiLabScenario?: BankActionUiLabScenario;
+        uiLabProductConsentScenario?: string;
+        uiLabAcceptedOverlay?: {
+          user: Partial<Record<import("@/lib/legal/consent-scopes").LegalConsentScopeId, true>>;
+          companies: Record<string, true>;
+        } | null;
+      },
+    ) => input,
   )
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
+      const { assertUiLabProductConsentForAction } = await import(
+        "@/lib/legal/ui-lab-action-consent"
+      );
+      assertUiLabProductConsentForAction("terminal.funding", {
+        uiLabScenario: data.uiLabProductConsentScenario,
+        uiLabAcceptedOverlay: data.uiLabAcceptedOverlay,
+      });
       const { mockUiLabTerminalFundingSubmission } = await import(
         "@/lib/terminal/ui-lab/ui-lab-terminal-funding-fixtures"
       );
-      const { uiLabScenario, ...payload } = data;
+      const {
+        uiLabScenario,
+        uiLabProductConsentScenario: _pcs,
+        uiLabAcceptedOverlay: _overlay,
+        ...payload
+      } = data;
+      void _pcs;
+      void _overlay;
       return mockUiLabTerminalFundingSubmission(payload, uiLabScenario ?? "success");
     }
     const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
@@ -51,8 +73,15 @@ export const submitTerminalFundingTransferFn = createServerFn({ method: "POST" }
     assertUserRateLimit(user.id, "terminal-funding", 20, 60_000);
 
     const { submitTerminalFundingTransfer } = await import("@/server/terminal-funding.service");
-    const { uiLabScenario: _ignored, ...payload } = data;
+    const {
+      uiLabScenario: _ignored,
+      uiLabProductConsentScenario: _pcs2,
+      uiLabAcceptedOverlay: _overlay2,
+      ...payload
+    } = data;
     void _ignored;
+    void _pcs2;
+    void _overlay2;
     return submitTerminalFundingTransfer(user, payload);
   });
 

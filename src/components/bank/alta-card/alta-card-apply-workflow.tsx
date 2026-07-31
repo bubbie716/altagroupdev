@@ -13,6 +13,7 @@ import {
 } from "@/components/bank/actions/bank-action-chrome";
 import { BankProcessError } from "@/components/bank/actions/bank-process-ui";
 import { AltaCardVisual } from "@/components/bank/alta-card/alta-card-visual";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
@@ -20,6 +21,8 @@ import {
   submitBusinessAltaCardApplication,
   submitPersonalAltaCardApplication,
 } from "@/lib/bank/alta-card.functions";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 import type { AltaCardTierCode } from "@/lib/bank/alta-card-types";
 import {
   ALTA_CARD_DEFAULT_LIMITS,
@@ -85,6 +88,7 @@ export function AltaCardApplyWorkflow({
   const router = useRouter();
   const submitPersonal = useServerFn(submitPersonalAltaCardApplication);
   const submitBusiness = useServerFn(submitBusinessAltaCardApplication);
+  const consentAction = useOptionalProductConsentAction();
 
   const steps = kind === "business" ? BUSINESS_STEPS : PERSONAL_STEPS;
   const eligibleCompanies = context.businessCompanies.filter(
@@ -259,35 +263,33 @@ export function AltaCardApplyWorkflow({
     try {
       const limit = requestedLimit.trim() ? Number(requestedLimit) : undefined;
 
-      if (shouldUseBankActionUiLabMock()) {
-        const mock = mockBankActionSubmission({
-          kind: kind === "personal" ? "card_apply" : "biz_card_apply",
-          amount: limit ?? 0,
-        });
-        await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-        setSubmittedId(mock.referenceCode);
-        setPhase("success");
-        return;
-      }
+      const submittedId = await executeWithProductConsentResume(async () => {
+        if (consentAction) {
+          await consentAction.requestConsent(["BANK", "ALTA_CARD"]);
+        }
 
-      if (kind === "personal") {
-        const app = await submitPersonal({
-          data: {
-            requestedTier: tier,
-            requestedLimit: limit,
-            purpose: purpose.trim() || undefined,
-            paymentSourceAccountId: paymentAccountId || undefined,
-            acknowledged: true,
-          },
-        });
-        await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-        setSubmittedId(app.id);
-        setPhase("success");
-      } else {
+        if (shouldUseBankActionUiLabMock()) {
+          return mockBankActionSubmission({
+            kind: kind === "personal" ? "card_apply" : "biz_card_apply",
+            amount: limit ?? 0,
+          }).referenceCode;
+        }
+
+        if (kind === "personal") {
+          const app = await submitPersonal({
+            data: {
+              requestedTier: tier,
+              requestedLimit: limit,
+              purpose: purpose.trim() || undefined,
+              paymentSourceAccountId: paymentAccountId || undefined,
+              acknowledged: true,
+            },
+          });
+          return app.id;
+        }
+
         if (!companyId) {
-          setSubmitError("Select a company");
-          setPhase("error");
-          return;
+          throw new Error("Select a company");
         }
         const app = await submitBusiness({
           data: {
@@ -300,10 +302,12 @@ export function AltaCardApplyWorkflow({
             acknowledged: true,
           },
         });
-        await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-        setSubmittedId(app.id);
-        setPhase("success");
-      }
+        return app.id;
+      }, consentAction);
+
+      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
+      setSubmittedId(submittedId);
+      setPhase("success");
     } catch (err) {
       setSubmitError(formatCustomerActionError(err, "card_apply"));
       setPhase("error");
@@ -315,6 +319,7 @@ export function AltaCardApplyWorkflow({
     phase,
     requestedLimit,
     kind,
+    consentAction,
     submitPersonal,
     tier,
     purpose,
@@ -610,11 +615,9 @@ export function AltaCardApplyWorkflow({
               </label>
             ) : null}
             <label className="flex items-start gap-2 text-[13px]">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)}
-                className="mt-1"
               />
               <span>
                 I understand that Alta Card is a revolving credit product subject to approval.

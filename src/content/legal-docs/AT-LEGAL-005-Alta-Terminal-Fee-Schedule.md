@@ -2,10 +2,10 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-005  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Pre-launch fee schedule  
 **Currency:** Florin (FLR), unless stated otherwise  
-**Last Updated:** July 27, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -23,6 +23,7 @@ Alta Terminal is in development. Live execution and provider-connected custody a
 | Watchlists | 0 FLR |
 | Standard research tools | 0 FLR |
 | Standard statements | 0 FLR |
+| Bank ↔ Terminal funding transfer | 0 FLR |
 | Trading commission | Not applicable until trading launches |
 | Market-data subscription | Not currently offered |
 | Margin interest | Not offered |
@@ -60,3 +61,5 @@ Alta Terminal will not charge real-world money unless a separate checkout clearl
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

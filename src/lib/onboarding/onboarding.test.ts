@@ -202,10 +202,10 @@ describe("core legal consent bundle", () => {
       docs.map((d) => d.documentId),
       ["AG-LEGAL-001", "AG-LEGAL-004", "AG-LEGAL-002", "AG-LEGAL-005"],
     );
-    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-001")?.version, "1.1");
+    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-001")?.version, "1.2");
     assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-004")?.version, "1.0");
-    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-002")?.version, "1.1");
-    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-005")?.version, "1.0");
+    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-002")?.version, "1.2");
+    assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-005")?.version, "1.1");
     assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-001")?.acceptanceType, "AGREED");
     assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-002")?.acceptanceType, "ACKNOWLEDGED");
     assert.equal(docs.find((d) => d.documentId === "AG-LEGAL-005")?.acceptanceType, "CONSENTED");

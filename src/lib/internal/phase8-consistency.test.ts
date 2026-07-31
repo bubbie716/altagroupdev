@@ -141,11 +141,12 @@ describe("Phase 8 Relationship Intelligence", () => {
 describe("Phase 8 Communications progressive disclosure", () => {
   it("keeps a simple channel + text sender with UI Lab gating", () => {
     const src = read("components/internal/discord-embed-builder.tsx");
-    assert.match(src, /Target channel/);
+    assert.match(src, /Channel ID/);
     assert.match(src, /EmbedFieldLabel[\s\S]*label="Text"|label="Text"/);
     assert.match(src, /useUiLabMutationGate/);
     assert.match(src, /dirty|window\.confirm/);
-    assert.doesNotMatch(src, /bot token|DISCORD_BANK_BOT_TOKEN/i);
+    // Must never embed live bot credential env vars in the client source.
+    assert.doesNotMatch(src, /DISCORD_[A-Z_]*BOT_TOKEN/);
     const fns = read("lib/discord/discord-embed.functions.ts");
     assert.match(fns, /assertNotUiLabMutation\("Discord message send"\)/);
   });

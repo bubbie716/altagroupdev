@@ -90,17 +90,27 @@ describe("private proof storage URLs", () => {
 
 describe("commercial plan privilege escalation", { skip: !hasDatabaseUrl() }, () => {
   it("rejects privileged plan fields without operator override", async () => {
-    const company = await prisma.company.findFirst();
-    assert.ok(company, "Need a company row");
+    const company = await prisma.company.create({
+      data: {
+        id: `test-priv-esc-${Date.now()}`,
+        name: "Privilege Escalation Fixture Co",
+        type: "PRIVATE_COMPANY",
+        status: "ACTIVE",
+      },
+    });
 
-    await assert.rejects(
-      () =>
-        updateCommercialPlanSettings("merchant-user", company.id, {
-          planStatus: "ACTIVE",
-          enabledFeatures: ["payroll"],
-        }),
-      (error: Error) => error.message === "FORBIDDEN",
-    );
+    try {
+      await assert.rejects(
+        () =>
+          updateCommercialPlanSettings("merchant-user", company.id, {
+            planStatus: "ACTIVE",
+            enabledFeatures: ["payroll"],
+          }),
+        (error: Error) => error.message === "FORBIDDEN",
+      );
+    } finally {
+      await prisma.company.delete({ where: { id: company.id } }).catch(() => undefined);
+    }
   });
 });
 
@@ -280,9 +290,14 @@ describe("financial idempotency", { skip: !hasDatabaseUrl() }, () => {
 
 describe("loan interest guarantee race", { skip: !hasDatabaseUrl() }, () => {
   it("allows only one PENDING→GUARANTEED transition per schedule item", async (t) => {
+    // Creating a Loan requires LoanApplication + approver User FKs and is out of
+    // scope for this hardening suite. Prefer an existing loan when present;
+    // otherwise skip rather than expanding into lending seed infrastructure.
     const loan = await prisma.loan.findFirst();
     if (!loan) {
-      t.skip("Need a loan row");
+      t.skip(
+        "Need a loan row — deterministic Loan creation requires LoanApplication + approver User fixtures beyond this suite's scope",
+      );
       return;
     }
 

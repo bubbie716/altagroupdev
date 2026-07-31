@@ -17,11 +17,14 @@ import {
   submitProductConsentFn,
 } from "@/lib/legal/product-consent.functions";
 import {
+  getUiLabAcceptedOverlaySnapshot,
   getUiLabProductConsentScenario,
   isUiLabProductConsentScenario,
+  recordUiLabAcceptedScope,
 } from "@/lib/legal/ui-lab-product-consent";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { ProductConsentDialog } from "@/components/legal/product-consent-dialog";
+import { ProductConsentSoftNotice } from "@/components/legal/product-consent-soft-notice";
 
 type GateState = Awaited<ReturnType<typeof fetchProductConsentStatus>>;
 
@@ -31,8 +34,9 @@ export type ProductConsentBoundaryProps = {
   companyId?: string | null;
   companyName?: string | null;
   /**
-   * Soft gate: still load children for view/repay exceptions; consent only blocks
-   * when `blockChildren` is true (default for hard product entry).
+   * Soft gate: children always render for view/repay exceptions.
+   * Shows a dismissible notice instead of a blocking overlay.
+   * Mutations remain enforced server-side.
    */
   soft?: boolean;
   theme?: "bank" | "terminal";
@@ -43,8 +47,8 @@ export type ProductConsentBoundaryProps = {
 
 /**
  * Reusable progressive product-consent boundary.
- * Blocks the requested product until current required scopes are accepted.
- * Preserves the current route; no hard reload after acceptance.
+ * Blocks the requested product until current required scopes are accepted (hard gate).
+ * Soft gate allows existing-obligation viewing with an optional dismissible notice.
  */
 export function ProductConsentBoundary({
   scopes,
@@ -67,7 +71,11 @@ export function ProductConsentBoundary({
   const [successFlash, setSuccessFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [softDismissed, setSoftDismissed] = useState(false);
+  const [softReviewOpen, setSoftReviewOpen] = useState(false);
   const loadedKeyRef = useRef<string>("");
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const initialMissingRef = useRef<LegalConsentScopeId[]>([]);
 
   const scenario = isUiLabMode() ? getUiLabProductConsentScenario() : undefined;
   const [scenarioTick, setScenarioTick] = useState(0);
@@ -76,7 +84,10 @@ export function ProductConsentBoundary({
   useEffect(() => {
     if (!isUiLabMode()) return;
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "alta.productConsent.uiLabScenario") {
+      if (
+        event.key === "alta.productConsent.uiLabScenario" ||
+        event.key === "alta.productConsent.uiLabAcceptedOverlay"
+      ) {
         setScenarioTick((n) => n + 1);
       }
     };
@@ -89,6 +100,12 @@ export function ProductConsentBoundary({
     };
   }, []);
 
+  useEffect(() => {
+    setSoftDismissed(false);
+    setSoftReviewOpen(false);
+    initialMissingRef.current = [];
+  }, [loadKey]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -99,12 +116,32 @@ export function ProductConsentBoundary({
           companyId,
           companyName,
           uiLabScenario: scenario,
+          uiLabAcceptedOverlay: isUiLabMode()
+            ? getUiLabAcceptedOverlaySnapshot(scenario)
+            : undefined,
         },
       });
+      if (initialMissingRef.current.length === 0 && state.missingScopes.length > 0) {
+        initialMissingRef.current = [...state.missingScopes];
+      }
+      // Reconcile presentation progress against the original missing set for this visit.
+      if (state.current && initialMissingRef.current.length > 1) {
+        const progressIndex = initialMissingRef.current.indexOf(state.current.scope);
+        if (progressIndex >= 0) {
+          state.current = {
+            ...state.current,
+            sequence: {
+              index: progressIndex + 1,
+              total: initialMissingRef.current.length,
+            },
+          };
+        }
+      }
       setGate(state);
       setChecked({});
       if (!state.current) {
         setSuccessFlash(false);
+        setSoftReviewOpen(false);
       }
     } catch {
       setError("Unable to verify product terms right now. Try again shortly.");
@@ -121,6 +158,15 @@ export function ProductConsentBoundary({
 
   const presentation = gate?.current ?? null;
   const blocking = Boolean(presentation) && !soft;
+  const showSoftNotice =
+    soft && Boolean(presentation) && !softDismissed && !softReviewOpen && !loading;
+  const showBlockingDialog = blocking && Boolean(presentation);
+  const showSoftReviewDialog = soft && softReviewOpen && Boolean(presentation);
+
+  // Keep action sheets mounted across consent refreshes once the hard gate has cleared.
+  // Hiding children while `loading` remounts BankActionHost and aborts in-flight resumes.
+  const showChildren =
+    soft || (gate !== null && !presentation) || (!loading && !presentation);
 
   const allChecked = useMemo(() => {
     if (!presentation) return false;
@@ -148,23 +194,20 @@ export function ProductConsentBoundary({
           uiLabScenario: scenario,
         },
       });
-      setSuccessFlash(true);
-      // Brief success, then advance to next missing scope or clear.
-      await new Promise((r) => setTimeout(r, 450));
-      if (isUiLabMode() && scenario) {
-        // UI Lab scenarios are sticky; after a successful mock accept, advance so the
-        // dialog does not immediately reappear for the same first-visit scenario.
-        const { setUiLabProductConsentScenario } = await import(
-          "@/lib/legal/ui-lab-product-consent"
-        );
-        const remaining = (gate?.missingScopes ?? []).filter((s) => s !== presentation.scope);
-        if (remaining.length === 0) {
-          setUiLabProductConsentScenario("already_accepted_no_flash");
-        }
+      if (isUiLabMode()) {
+        recordUiLabAcceptedScope(presentation.scope, companyId, scenario);
       }
+      setSuccessFlash(true);
+      await new Promise((r) => setTimeout(r, 450));
       await refresh();
+      // Keep the selected UI Lab scenario stable. Overlay tracks accepted scopes so
+      // action-level consent still sees remaining product scopes (e.g. Terminal).
       await router.invalidate();
       setSuccessFlash(false);
+      if (soft) setSoftReviewOpen(false);
+      const focusEl = returnFocusRef.current;
+      returnFocusRef.current = null;
+      if (focusEl) window.setTimeout(() => focusEl.focus(), 0);
     } catch (err) {
       const message =
         err instanceof Error && err.message === "CONSENT_AUTHORITY_FORBIDDEN"
@@ -178,18 +221,35 @@ export function ProductConsentBoundary({
     }
   };
 
-  const showDialog = Boolean(presentation);
-  const showChildren = soft || (!loading && !presentation);
-
   return (
     <>
-      {blocking && loading ? (
+      {blocking && loading && gate === null ? (
         <div className="flex min-h-[40vh] items-center justify-center px-6 text-[13px] text-muted-foreground">
           Checking product terms…
         </div>
       ) : null}
 
-      {showChildren ? children : null}
+      {showChildren ? (
+        <>
+          {showSoftNotice && presentation ? (
+            <ProductConsentSoftNotice
+              title={
+                presentation.isUpdate
+                  ? `${presentation.title} terms updated`
+                  : `${presentation.title} terms available`
+              }
+              explanation={presentation.explanation}
+              theme={theme}
+              onReview={() => {
+                returnFocusRef.current = document.activeElement as HTMLElement | null;
+                setSoftReviewOpen(true);
+              }}
+              onDismiss={() => setSoftDismissed(true)}
+            />
+          ) : null}
+          {children}
+        </>
+      ) : null}
 
       {blocking && presentation && !soft ? (
         <div aria-hidden className="pointer-events-none min-h-[40vh] opacity-30 blur-[1px]">
@@ -199,9 +259,10 @@ export function ProductConsentBoundary({
         </div>
       ) : null}
 
-      {showDialog && presentation ? (
+      {(showBlockingDialog || showSoftReviewDialog) && presentation ? (
         <ProductConsentDialog
           open
+          blocking={showBlockingDialog}
           theme={theme}
           presentation={presentation}
           checked={checked}
@@ -213,6 +274,7 @@ export function ProductConsentBoundary({
           allChecked={allChecked}
           safeExitHref={safeExitHref}
           safeExitLabel={safeExitLabel}
+          onDismiss={() => setSoftReviewOpen(false)}
         />
       ) : null}
     </>
@@ -240,6 +302,9 @@ export function useProductConsentGate(input: {
             companyId: input.companyId,
             companyName: input.companyName,
             uiLabScenario: scenario,
+            uiLabAcceptedOverlay: isUiLabMode()
+            ? getUiLabAcceptedOverlaySnapshot(scenario)
+            : undefined,
           },
         });
         if (cancelled) return;

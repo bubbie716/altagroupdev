@@ -140,6 +140,13 @@ export const fetchUserBankAccountDetail = createServerFn({ method: "GET" })
   });
 
 export const fetchActiveBankAccounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabActiveCustomerBankAccounts } = await import(
+      "@/lib/bank/ui-lab-commercial-fixtures"
+    );
+    return getUiLabActiveCustomerBankAccounts();
+  }
   const { listActiveDepositAccounts } = await import("@/server/bank.service");
   const userId = await actorId();
   return listActiveDepositAccounts(userId);

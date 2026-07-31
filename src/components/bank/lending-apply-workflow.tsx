@@ -26,6 +26,8 @@ import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { BANK_PROCESS_MOTION, waitBankProcessMin } from "@/lib/bank/bank-process";
 import { florin } from "@/lib/bank/api";
 import { submitLoanApplication } from "@/lib/bank/lending.functions";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 import { LOAN_APPLICATION_WHAT_HAPPENS_NEXT } from "@/lib/bank/lending-application-status-copy";
 import type {
   CompanyLendingOption,
@@ -90,6 +92,7 @@ export function LendingApplyWorkflow({
 }) {
   const router = useRouter();
   const submit = useServerFn(submitLoanApplication);
+  const consentAction = useOptionalProductConsentAction();
 
   const productOptions = useMemo<LoanProductTypeCode[]>(
     () => ["personal_credit_line", "business_credit_line"],
@@ -351,19 +354,24 @@ export function LendingApplyWorkflow({
     const startedAt = Date.now();
 
     try {
-      const result = await submit({
-        data: {
-          productType,
-          requestedAmount: Number(requestedAmount),
-          termMonths: Number(termMonths),
-          linkedBankAccountId: effectiveLinkedAccountId || undefined,
-          companyId: productType === "business_credit_line" ? companyId : undefined,
-          purpose,
-          repaymentPlan,
-          collateralDescription: collateralDescription || undefined,
-          notes: notes || undefined,
-        },
-      });
+      const result = await executeWithProductConsentResume(async () => {
+        if (consentAction) {
+          await consentAction.requestConsent(["BANK", "LENDING"]);
+        }
+        return submit({
+          data: {
+            productType,
+            requestedAmount: Number(requestedAmount),
+            termMonths: Number(termMonths),
+            linkedBankAccountId: effectiveLinkedAccountId || undefined,
+            companyId: productType === "business_credit_line" ? companyId : undefined,
+            purpose,
+            repaymentPlan,
+            collateralDescription: collateralDescription || undefined,
+            notes: notes || undefined,
+          },
+        });
+      }, consentAction);
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmitted(result);
       setPhase("success");
@@ -376,6 +384,7 @@ export function LendingApplyWorkflow({
   }, [
     phase,
     submit,
+    consentAction,
     productType,
     requestedAmount,
     termMonths,

@@ -19,6 +19,9 @@ import { closeThenRun } from "@/lib/ui/close-then-run";
 import { getUiLabAltaCardOverlay } from "@/lib/bank/ui-lab-alta-card-state";
 import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
 import { cn } from "@/lib/utils";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
+import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 
 type ManageView = "menu" | "autopay";
 
@@ -80,9 +83,11 @@ export function AltaCardManageSheet({
   const router = useRouter();
   const creditDeskNav = useCreditDeskCustomerNav();
   const { openAction } = useBankActionLauncher();
+  const consentAction = useOptionalProductConsentAction();
   const [view, setView] = useState<ManageView>(initialView);
   const [autopayDirty, setAutopayDirty] = useState(false);
   const [autopayPhase, setAutopayPhase] = useState<BankActionPhase>("details");
+  const [activateError, setActivateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -161,12 +166,28 @@ export function AltaCardManageSheet({
               description="Activate your card to start using it."
               variant="primary"
               onClick={() => {
-                void activateAltaCardRecord({ data: card.id }).then(() => {
-                  closeSheet();
-                  void router.invalidate();
-                });
+                void (async () => {
+                  setActivateError(null);
+                  try {
+                    await executeWithProductConsentResume(async () => {
+                      if (consentAction) {
+                        await consentAction.requestConsent(["BANK", "ALTA_CARD"]);
+                      }
+                      return activateAltaCardRecord({ data: card.id });
+                    }, consentAction);
+                    closeSheet();
+                    void router.invalidate();
+                  } catch (err) {
+                    setActivateError(formatCustomerActionError(err, "card_apply"));
+                  }
+                })();
               }}
             />
+          ) : null}
+          {activateError ? (
+            <p className="px-1 text-[12px] text-destructive" role="alert">
+              {activateError}
+            </p>
           ) : null}
 
           {card.status === "active" ? (

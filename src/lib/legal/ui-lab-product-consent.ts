@@ -61,6 +61,145 @@ const ALL: UiLabProductConsentScenario[] = [
 ];
 
 const STORAGE_KEY = "alta.productConsent.uiLabScenario";
+/** Session overlay of scopes accepted during the current browser session (UI Lab only). */
+const ACCEPTED_OVERLAY_KEY = "alta.productConsent.uiLabAcceptedOverlay";
+
+export type UiLabAcceptedOverlay = {
+  /** User-scoped acceptances recorded this session. */
+  user: Partial<Record<LegalConsentScopeId, true>>;
+  /** Company-scoped COMMERCIAL acceptances keyed by companyId. */
+  companies: Record<string, true>;
+};
+
+type StoredOverlay = UiLabAcceptedOverlay & {
+  /** Scenario that owns this overlay — mismatched scenarios read as empty. */
+  scenario: string | null;
+};
+
+/** In-memory fallback for Node unit tests (no sessionStorage). Never trust this across HTTP without a client snapshot. */
+let memoryOverlay: StoredOverlay = { scenario: null, user: {}, companies: {} };
+
+/** Bumped on every scenario change so in-flight fetches can be discarded. */
+let scenarioGeneration = 0;
+
+export function getUiLabProductConsentScenarioGeneration(): number {
+  return scenarioGeneration;
+}
+
+function emptyOverlay(): UiLabAcceptedOverlay {
+  return { user: {}, companies: {} };
+}
+
+function emptyStoredOverlay(): StoredOverlay {
+  return { scenario: null, user: {}, companies: {} };
+}
+
+function readStoredOverlay(): StoredOverlay {
+  if (typeof window === "undefined") {
+    return {
+      scenario: memoryOverlay.scenario,
+      user: { ...memoryOverlay.user },
+      companies: { ...memoryOverlay.companies },
+    };
+  }
+  try {
+    const raw = window.sessionStorage.getItem(ACCEPTED_OVERLAY_KEY);
+    if (!raw) return emptyStoredOverlay();
+    const parsed = JSON.parse(raw) as StoredOverlay;
+    return {
+      scenario: typeof parsed.scenario === "string" ? parsed.scenario : null,
+      user: parsed.user ?? {},
+      companies: parsed.companies ?? {},
+    };
+  } catch {
+    return emptyStoredOverlay();
+  }
+}
+
+/**
+ * Browser-session overlay snapshot for the given (or current) scenario.
+ * Acceptances from a different scenario never apply.
+ */
+export function getUiLabAcceptedOverlaySnapshot(
+  forScenario?: string | null,
+): UiLabAcceptedOverlay {
+  const scenario =
+    forScenario && isUiLabProductConsentScenario(forScenario)
+      ? forScenario
+      : getUiLabProductConsentScenario();
+  const stored = readStoredOverlay();
+  if (!stored.scenario || stored.scenario !== scenario) {
+    return emptyOverlay();
+  }
+  return { user: { ...stored.user }, companies: { ...stored.companies } };
+}
+
+function writeStoredOverlay(overlay: StoredOverlay): void {
+  memoryOverlay = {
+    scenario: overlay.scenario,
+    user: { ...overlay.user },
+    companies: { ...overlay.companies },
+  };
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(ACCEPTED_OVERLAY_KEY, JSON.stringify(memoryOverlay));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearUiLabAcceptedScopeOverlay(): void {
+  memoryOverlay = emptyStoredOverlay();
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(ACCEPTED_OVERLAY_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Record a successful mock acceptance so multi-scope sequences advance within the session
+ * without writing production LegalAcceptance rows.
+ */
+export function recordUiLabAcceptedScope(
+  scope: LegalConsentScopeId,
+  companyId?: string | null,
+  scenario?: string | null,
+): void {
+  const scen =
+    scenario && isUiLabProductConsentScenario(scenario)
+      ? scenario
+      : getUiLabProductConsentScenario();
+  const current = getUiLabAcceptedOverlaySnapshot(scen);
+  const next: StoredOverlay = {
+    scenario: scen,
+    user: { ...current.user },
+    companies: { ...current.companies },
+  };
+  if (scope === "COMMERCIAL" && companyId) {
+    next.companies[companyId] = true;
+  } else {
+    next.user[scope] = true;
+  }
+  writeStoredOverlay(next);
+}
+
+function applyAcceptedOverlay(
+  map: AcceptedMap,
+  companyId?: string | null,
+  overlay?: UiLabAcceptedOverlay | null,
+): AcceptedMap {
+  const source = overlay ?? emptyOverlay();
+  const next: AcceptedMap = { ...map };
+  for (const [scope, accepted] of Object.entries(source.user)) {
+    if (accepted) next[scope as LegalConsentScopeId] = true;
+  }
+  if (companyId && source.companies[companyId]) {
+    next.COMMERCIAL = true;
+  }
+  return next;
+}
 
 export function isUiLabProductConsentScenario(
   value: string | null | undefined,
@@ -91,6 +230,9 @@ export function setUiLabProductConsentScenario(scenario: UiLabProductConsentScen
   if (!isUiLabMode() || typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(STORAGE_KEY, scenario);
+    // Changing scenario resets the session overlay so demos stay deterministic.
+    scenarioGeneration += 1;
+    clearUiLabAcceptedScopeOverlay();
     window.dispatchEvent(new Event("alta:product-consent-scenario"));
   } catch {
     /* ignore */
@@ -239,6 +381,8 @@ export function getUiLabProductConsentGateState(input: {
   companyId?: string | null;
   companyName?: string | null;
   uiLabScenario?: string;
+  /** When provided (browser → server), this session overlay is authoritative. */
+  uiLabAcceptedOverlay?: UiLabAcceptedOverlay | null;
 }) {
   const scenario = isUiLabProductConsentScenario(input.uiLabScenario)
     ? input.uiLabScenario
@@ -248,7 +392,16 @@ export function getUiLabProductConsentGateState(input: {
     return { missingScopes: [], sequence: [], current: null };
   }
 
-  const map = scenarioAcceptedMap(scenario, input.companyId);
+  const baseMap = scenarioAcceptedMap(scenario, input.companyId);
+  const overlay =
+    input.uiLabAcceptedOverlay !== undefined
+      ? input.uiLabAcceptedOverlay
+      : getUiLabAcceptedOverlaySnapshot(scenario);
+  const map = applyAcceptedOverlay(baseMap, input.companyId, overlay);
+  const scenarioMissingScopes = input.scopes.filter((scope) => {
+    const state = baseMap[scope];
+    return state === false || state === "update";
+  });
   const missingScopes = input.scopes.filter((scope) => {
     const state = map[scope];
     return state === false || state === "update";
@@ -260,13 +413,19 @@ export function getUiLabProductConsentGateState(input: {
   }
 
   const isUpdate = map[first.scope] === "update";
+  const progressIndex = scenarioMissingScopes.indexOf(first.scope);
+  const sequenceProgress =
+    progressIndex >= 0 && scenarioMissingScopes.length > 1
+      ? { index: progressIndex + 1, total: scenarioMissingScopes.length }
+      : { index: first.index, total: first.total };
+
   return {
     missingScopes,
     sequence,
     current: mockPresentation(first.scope, {
       isUpdate,
       companyName: input.companyName,
-      sequence: { index: first.index, total: first.total },
+      sequence: sequenceProgress,
     }),
   };
 }
@@ -320,6 +479,9 @@ export function mockUiLabProductConsentSubmit(
       throw new Error("CONSENT_CONTROLS_INCOMPLETE");
     }
   }
+
+  // Persist mid-sequence acceptance in session so Bank → Card/Lending/funding advances.
+  recordUiLabAcceptedScope(input.scope, input.companyId, scenario);
 
   const docs = resolveConsentBundleDocuments(getConsentBundleDefinition(input.scope));
   return {

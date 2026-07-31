@@ -193,6 +193,18 @@ export function formatBankActionError(
   context?: { action?: BankMoneyAction; accountId?: string },
 ): { message: string; accountId?: string } {
   const normalized = rawMessage.replace(/^BAD_REQUEST:/, "").trim();
+  if (normalized.startsWith("CONSENT_REQUIRED")) {
+    return {
+      message: "Additional product terms are required before this action can continue.",
+      accountId: context?.accountId,
+    };
+  }
+  if (normalized === "CONSENT_CANCELLED") {
+    return {
+      message: "Product terms were not accepted. Your form was preserved — try again when ready.",
+      accountId: context?.accountId,
+    };
+  }
   const mapped = SERVER_MESSAGE_MAP[normalized];
 
   if (mapped) {

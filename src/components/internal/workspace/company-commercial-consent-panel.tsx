@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { fetchCompanyCommercialConsentSummary } from "@/lib/legal/product-consent.functions";
 import { WorkspaceField, WorkspaceFieldGrid } from "@/components/internal/workspace/workspace-fields";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
+import { getUiLabParty } from "@/lib/bank/ui-lab-party-catalog";
 
 function formatTs(value: string | null): string {
   if (!value) return "—";
@@ -24,25 +25,38 @@ export function CompanyCommercialConsentPanel({ companyId }: { companyId: string
 
   useEffect(() => {
     if (isUiLabMode()) {
+      const party = getUiLabParty(companyId);
+      const companyName = party?.name ?? "UI Lab Company";
       setSummary({
         companyId,
-        companyName: "UI Lab Company",
+        companyName,
         commercial: {
           scope: "COMMERCIAL",
           label: "Commercial banking",
-          status: "Not accepted",
-          currentVersions: ["AB-LEGAL-002 v1.1", "AB-LEGAL-004 v1.0", "AB-LEGAL-005 v1.0"],
-          acceptedVersions: [],
-          acceptedAt: null,
-          acceptanceSemantics: [],
-          sourceSite: null,
+          status: "Current",
+          currentVersions: ["AB-LEGAL-002 v1.1", "AB-LEGAL-004 v1.0", "AB-LEGAL-005 v1.1"],
+          acceptedVersions: ["AB-LEGAL-002 v1.1", "AB-LEGAL-004 v1.0", "AB-LEGAL-005 v1.1"],
+          acceptedAt: "2026-07-01T12:00:00.000Z",
+          acceptanceSemantics: ["Agreed", "Agreed", "Acknowledged"],
+          sourceSite: "bank",
           companyId,
-          companyName: "UI Lab Company",
+          companyName,
           subjectKey: `company:${companyId}`,
-          actorUserId: null,
+          actorUserId: "ui-lab-user",
           technical: [],
         },
-        history: [],
+        history: [
+          {
+            documentId: "AB-LEGAL-002",
+            title: "Business Deposit Account Agreement",
+            version: "1.1",
+            acceptanceType: "Agreed",
+            actorUserId: "ui-lab-user",
+            acceptedAt: "2026-07-01T12:00:00.000Z",
+            sourceSite: "bank",
+            supersededAt: null,
+          },
+        ],
       });
       return;
     }
@@ -77,9 +91,14 @@ export function CompanyCommercialConsentPanel({ companyId }: { companyId: string
         <WorkspaceField label="Source site">
           {summary.commercial.sourceSite ?? "—"}
         </WorkspaceField>
-        <WorkspaceField label="Actor">
-          {summary.commercial.actorUserId ?? "—"}
+        <WorkspaceField label="Accepted by">
+          {summary.commercial.actorUserId === "ui-lab-user"
+            ? "Carter Townshend (owner)"
+            : summary.commercial.actorUserId
+              ? "Authorized representative"
+              : "—"}
         </WorkspaceField>
+        <WorkspaceField label="Legal company">{summary.companyName}</WorkspaceField>
       </WorkspaceFieldGrid>
       <p className="text-[11px] text-muted-foreground">
         Required: {summary.commercial.currentVersions.join(", ")}

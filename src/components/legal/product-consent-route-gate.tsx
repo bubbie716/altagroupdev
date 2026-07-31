@@ -8,15 +8,48 @@ import {
   resolveProductConsentRequirements,
 } from "@/lib/legal/product-consent-requirements";
 import type { SiteKey } from "@/config/sites";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
+import type { AccountCommercialLayoutData } from "@/lib/bank/account-commercial-loader.functions";
+
+function useAuthoritativeCommercialCompany(): {
+  companyId: string | null;
+  companyName: string | null;
+} {
+  const matches = useRouterState({ select: (s) => s.matches });
+  return useMemo(() => {
+    for (const match of [...matches].reverse()) {
+      const layout = (match.context as { commercialLayout?: AccountCommercialLayoutData } | undefined)
+        ?.commercialLayout;
+      if (layout?.context?.companyId) {
+        return {
+          companyId: layout.context.companyId,
+          companyName: layout.context.companyName ?? null,
+        };
+      }
+      const accountContext = layout?.accountContext as
+        | { companyId?: string; companyName?: string }
+        | null
+        | undefined;
+      if (accountContext?.companyId) {
+        return {
+          companyId: accountContext.companyId,
+          companyName: accountContext.companyName ?? null,
+        };
+      }
+    }
+    return { companyId: null, companyName: null };
+  }, [matches]);
+}
 
 /**
  * Route-aware progressive consent gate for authenticated Bank / Terminal shells.
+ * Company subject comes from authoritative commercial layout context — never bare query IDs in production.
  */
 export function ProductConsentRouteGate({
   sourceSite,
   theme,
   companyId: companyIdProp,
-  companyName,
+  companyName: companyNameProp,
   children,
 }: {
   sourceSite: SiteKey;
@@ -26,25 +59,50 @@ export function ProductConsentRouteGate({
   children: ReactNode;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const searchCompanyId = useRouterState({
-    select: (s) => {
-      const search = s.location.search as Record<string, unknown>;
-      return typeof search.companyId === "string" ? search.companyId : null;
-    },
+  const search = useRouterState({
+    select: (s) => s.location.search as Record<string, unknown>,
   });
+  const searchCompanyId = typeof search.companyId === "string" ? search.companyId : null;
+  const authoritative = useAuthoritativeCommercialCompany();
 
-  const companyId = companyIdProp ?? searchCompanyId;
+  // Production: prop → commercial layout context only.
+  // UI Lab: allow query-string override for scenario demos (still verified server-side on accept).
+  const companyId =
+    companyIdProp ??
+    authoritative.companyId ??
+    (isUiLabMode() ? searchCompanyId : null);
+  const companyName = companyNameProp ?? authoritative.companyName;
 
   const requirement = useMemo(() => {
     if (isProductConsentExemptPath(pathname)) return null;
-    return resolveProductConsentRequirements(pathname);
-  }, [pathname]);
+    const base = resolveProductConsentRequirements(pathname);
+    if (!base) return null;
+
+    // Legacy apply/activate deep links redirect to search params on soft list routes.
+    // Those workflows create new exposure and must remain hard-gated.
+    const applyFlag = search.apply === "1" || search.apply === 1;
+    const activateFlag = search.activate === "1" || search.activate === 1;
+    if (
+      base.softForExistingObligations &&
+      pathname.startsWith("/bank/alta-card") &&
+      (applyFlag || activateFlag)
+    ) {
+      return { ...base, softForExistingObligations: false };
+    }
+    if (
+      base.softForExistingObligations &&
+      pathname.startsWith("/bank/lending") &&
+      (applyFlag || search.new === "1" || search.new === 1)
+    ) {
+      return { ...base, softForExistingObligations: false };
+    }
+    return base;
+  }, [pathname, search.apply, search.activate, search.new]);
 
   if (!requirement || requirement.scopes.length === 0) {
     return <>{children}</>;
   }
 
-  // Soft for existing obligation views (card/loan detail) — mutations still enforce.
   const soft = Boolean(requirement.softForExistingObligations);
 
   // Commercial without a selected company: require BANK only at the shell;

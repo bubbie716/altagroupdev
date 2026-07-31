@@ -61,6 +61,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
+import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
+import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
+import {
+  assertUiLabProductConsentForAction,
+  isConsentCancelledError,
+} from "@/lib/legal/ui-lab-action-consent";
+import {
+  getUiLabAcceptedOverlaySnapshot,
+  getUiLabProductConsentScenario,
+} from "@/lib/legal/ui-lab-product-consent";
 
 const ALTA_PAY_SELF_COMPANY_BLOCKED = "Companies cannot send Alta Pay to themselves.";
 const PERSON_RECEIVE_ACCOUNT_MISSING =
@@ -131,6 +141,7 @@ export function PayActionFlow({
   const searchRecipients = useServerFn(searchPayableRecipientsForPay);
   const payCompany = useServerFn(submitAltaPay);
   const payPerson = useServerFn(submitAltaPayToPersonPayment);
+  const consentAction = useOptionalProductConsentAction();
 
   const preferredAccountId = useMemo(
     () =>
@@ -206,7 +217,7 @@ export function PayActionFlow({
   });
 
   useEffect(() => {
-    setDirty(dirty && phase !== "success" && phase !== "submitting");
+    setDirty(dirty && phase !== "success" && phase !== "submitting" && phase !== "awaiting_consent");
   }, [dirty, phase, setDirty]);
 
   useEffect(() => {
@@ -225,6 +236,14 @@ export function PayActionFlow({
     if (phase === "submitting") {
       setTitle("Pay");
       setDescription(undefined);
+      setShowBack(false);
+      setFooter(null);
+      registerBack(null);
+      return;
+    }
+    if (phase === "awaiting_consent") {
+      setTitle("Review payment");
+      setDescription("Accept required product terms to continue.");
       setShowBack(false);
       setFooter(null);
       registerBack(null);
@@ -364,52 +383,56 @@ export function PayActionFlow({
   }
 
   async function submit() {
-    if (submittingLockRef.current || phase === "submitting") return;
+    if (submittingLockRef.current || phase === "submitting" || phase === "awaiting_consent") return;
     if (!selectedRecipient || !selectedFunding) return;
     submittingLockRef.current = true;
-    setPhase("submitting");
+    setPhase("awaiting_consent");
     const startedAt = Date.now();
     const key = ensureIdempotencyKey(idempotencyKeyRef);
 
     try {
-      if (shouldUseBankActionUiLabMock()) {
-        const result = mockBankActionSubmission({
-          kind: "pay",
-          amount: Number(amount),
-          accountName: selectedFunding.label,
-        });
-        await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-        setReferenceCode(result.referenceCode);
-        setResultLabel(selectedRecipient.name);
-        setPhase("success");
-        idempotencyKeyRef.current = null;
-        const refreshPromise = refreshAfterSuccess("bank");
-        refreshPromiseRef.current = refreshPromise;
-        void refreshPromise.finally(() => {
-          if (refreshPromiseRef.current === refreshPromise) {
-            refreshPromiseRef.current = null;
-          }
-        });
-        return;
+      if (consentAction) {
+        await consentAction.requestConsent(["BANK", "ALTA_PAY"]);
       }
 
-      let result: SubmitAltaPayResult;
-      if (selectedRecipient.kind === "company") {
-        result = await payCompany({
-          data: {
-            fundingSource: parsePayFundingKey(fundingKeyValue),
-            companyId: selectedRecipient.id,
-            amount: Number(amount),
-            memo: memo.trim() || undefined,
-            idempotencyKey: key,
-          },
-        });
-      } else {
+      setPhase("submitting");
+      const result = await executeWithProductConsentResume(async () => {
+        if (shouldUseBankActionUiLabMock()) {
+          assertUiLabProductConsentForAction("alta_pay.submit", {
+            uiLabScenario: getUiLabProductConsentScenario(),
+            uiLabAcceptedOverlay: getUiLabAcceptedOverlaySnapshot(
+              getUiLabProductConsentScenario(),
+            ),
+          });
+          return {
+            referenceCode: mockBankActionSubmission({
+              kind: "pay",
+              amount: Number(amount),
+              accountName: selectedFunding.label,
+            }).referenceCode,
+            companyName: selectedRecipient.name,
+            mock: true as const,
+          };
+        }
+
+        if (selectedRecipient.kind === "company") {
+          const paid = await payCompany({
+            data: {
+              fundingSource: parsePayFundingKey(fundingKeyValue),
+              companyId: selectedRecipient.id,
+              amount: Number(amount),
+              memo: memo.trim() || undefined,
+              idempotencyKey: key,
+            },
+          });
+          return { ...paid, mock: false as const };
+        }
+
         const funding = parsePayFundingKey(fundingKeyValue);
         if (funding.kind !== "bank_account") {
           throw new Error("Person payments require a bank account.");
         }
-        result = await payPerson({
+        const paid = await payPerson({
           data: {
             fundingSource: funding,
             recipientUserId: selectedRecipient.id,
@@ -418,12 +441,17 @@ export function PayActionFlow({
             idempotencyKey: key,
           },
         });
-      }
+        return { ...paid, mock: false as const };
+      }, consentAction);
 
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       idempotencyKeyRef.current = null;
       setReferenceCode(result.referenceCode);
-      setResultLabel(result.companyName || selectedRecipient.name);
+      setResultLabel(
+        "companyName" in result && result.companyName
+          ? result.companyName
+          : selectedRecipient.name,
+      );
       setPhase("success");
       const refreshPromise = refreshAfterSuccess("bank");
       refreshPromiseRef.current = refreshPromise;
@@ -433,6 +461,10 @@ export function PayActionFlow({
         }
       });
     } catch (err) {
+      if (isConsentCancelledError(err)) {
+        setPhase("review");
+        return;
+      }
       const raw = err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "";
       const accountId =
         selectedFunding?.kind === "bank_account" ? selectedFunding.id : undefined;

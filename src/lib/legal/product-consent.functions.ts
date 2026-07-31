@@ -15,6 +15,10 @@ export const fetchProductConsentStatus = createServerFn({ method: "GET" })
       companyId?: string | null;
       companyName?: string | null;
       uiLabScenario?: string;
+      uiLabAcceptedOverlay?: {
+        user: Partial<Record<LegalConsentScopeId, true>>;
+        companies: Record<string, true>;
+      } | null;
     }) => input,
   )
   .handler(async ({ data }) => {

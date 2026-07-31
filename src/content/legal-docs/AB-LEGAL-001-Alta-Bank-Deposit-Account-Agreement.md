@@ -2,10 +2,10 @@
 
 **Entity:** Alta Bank N.V.
 **Document ID:** AB-LEGAL-001  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon publication  
 **Effective Date:** Immediately upon publication  
-**Last Updated:** July 6, 2026  
+**Last Updated:** July 31, 2026
 
 ---
 
@@ -47,7 +47,9 @@ Alta Bank may require a user to:
 - provide a username or identifier;
 - provide accurate account information;
 - complete verification steps;
+- complete required platform onboarding and Minecraft verification;
 - agree to this Agreement;
+- accept any current product-specific disclosures required for the requested action;
 - follow Alta Bank and Alta Group rules.
 
 Alta Bank may approve, deny, suspend, or close an account at its discretion.
@@ -138,6 +140,10 @@ The account holder is responsible for entering correct recipient information, am
 Alta Bank may delay, reject, reverse, review, or cancel transfers when necessary to protect users, prevent abuse, correct errors, enforce limits, resolve disputes, or protect platform integrity.
 
 A completed transfer may not be reversible unless Alta Bank determines that reversal is appropriate.
+
+Alta Bank may also allow a customer to transfer virtual Florins between an eligible Alta Bank account and an eligible Alta Terminal portfolio. Such a transfer moves value between Alta's Bank ledger and the selected Terminal portfolio cash ledger. It is not itself a securities order and does not by itself deposit value with, or withdraw value from, an external execution provider. The customer must review the direction, Bank account, Terminal portfolio, and amount before confirming.
+
+Bank-to-Terminal and Terminal-to-Bank funding may be held, rejected, failed, corrected, or reversed if either ledger cannot be updated consistently, an account or portfolio is restricted, funds are insufficient, authorization is invalid, or reconciliation identifies a mismatch. Additional terms are provided in the Alta Bank Transfers and Error Resolution Terms and applicable Alta Terminal documents.
 
 ---
 
@@ -402,7 +408,7 @@ Alta Bank may update this Agreement at any time.
 
 Updated versions become effective when posted, published, or otherwise made available.
 
-Continued use of an Alta Bank account after an update means the account holder accepts the updated Agreement.
+Material changes may require recorded affirmative acceptance before new Bank activity. If affirmative acceptance is not required, continued use after the stated effective date means the account holder accepts the updated Agreement. A customer who declines an update may still be allowed to review records, resolve an existing obligation, transfer eligible remaining virtual value, close the account, or contact support.
 
 ---
 
@@ -418,6 +424,7 @@ Other Alta Bank products may have separate agreements, including:
 - Lending Agreement;
 - Cardholder Agreement;
 - Fee Schedule;
+- Transfers and Error Resolution Terms;
 - product-specific disclosures.
 
 If there is a conflict between this Agreement and a more specific product agreement, the more specific agreement controls for that product unless Alta Bank states otherwise.
@@ -436,5 +443,5 @@ This Deposit Account Agreement is adopted by Alta Bank as the governing agreemen
 
 **Approved by:** Alta Bank N.V.
 **Effective Date:** Immediately upon publication  
-**Version:** 1.0
-**Last Updated:** July 6, 2026  
+**Version:** 1.1
+**Last Updated:** July 31, 2026
