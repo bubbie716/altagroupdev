@@ -139,15 +139,15 @@ describe("Phase 8 Relationship Intelligence", () => {
 });
 
 describe("Phase 8 Communications progressive disclosure", () => {
-  it("uses template-first start fields and expandable optional sections", () => {
+  it("keeps a simple channel + text sender with UI Lab gating", () => {
     const src = read("components/internal/discord-embed-builder.tsx");
-    assert.match(src, /Review message|flow.*review|"review"/);
-    assert.match(src, /<details/);
-    assert.match(src, /Branding|Media|useUiLabMutationGate/);
-    assert.match(src, /dirty|isDraftDirty|window\.confirm/);
-    assert.doesNotMatch(src, /bot token|DISCORD_BOT_TOKEN/i);
+    assert.match(src, /Target channel/);
+    assert.match(src, /EmbedFieldLabel[\s\S]*label="Text"|label="Text"/);
+    assert.match(src, /useUiLabMutationGate/);
+    assert.match(src, /dirty|window\.confirm/);
+    assert.doesNotMatch(src, /bot token|DISCORD_BANK_BOT_TOKEN/i);
     const fns = read("lib/discord/discord-embed.functions.ts");
-    assert.match(fns, /assertNotUiLabMutation\("Discord embed send"\)/);
+    assert.match(fns, /assertNotUiLabMutation\("Discord message send"\)/);
   });
 });
 

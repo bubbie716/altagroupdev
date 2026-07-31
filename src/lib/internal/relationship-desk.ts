@@ -5,6 +5,7 @@ import type {
   RelationshipTierCode,
 } from "@/lib/bank/relationship-intelligence-types";
 import { displayRelationshipTierLabelFromCode } from "@/lib/bank/relationship-terminology";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 export const RELATIONSHIP_LIST_PAGE_SIZE = 25;
 
@@ -51,7 +52,7 @@ export function buildRelationshipDirectoryRows(
     const drop = change ? relationshipHasScoreDrop(change) : false;
     return {
       userId: row.userId,
-      label: row.discordUsername,
+      label: formatAltaUserHandle(row),
       tier: row.relationshipTier,
       score: row.relationshipScore,
       recentChange: formatRelationshipScoreChange(change),
@@ -68,7 +69,7 @@ export function buildRelationshipDirectoryRows(
     if (seen.has(change.userId) || !relationshipHasScoreDrop(change)) continue;
     fromTop.push({
       userId: change.userId,
-      label: change.discordUsername,
+      label: formatAltaUserHandle(change),
       tier: change.newTier,
       score: change.newScore,
       recentChange: formatRelationshipScoreChange(change),

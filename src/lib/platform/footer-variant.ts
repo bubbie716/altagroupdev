@@ -36,6 +36,7 @@ export function extractLegalDocIdFromPath(pathname: string): string | undefined 
 
 export function resolveFooterVariant(pathname: string): FooterVariant {
   if (pathname.startsWith("/internal")) return "none";
+  if (pathname === "/onboarding" || pathname.startsWith("/onboarding/")) return "none";
   if (pathname.startsWith("/pay/")) return "auth";
   if (isStatementPrintPath(pathname)) return "auth";
 
@@ -57,8 +58,7 @@ export function resolveFooterVariant(pathname: string): FooterVariant {
     pathname.startsWith("/bank") ||
     pathname.startsWith("/terminal") ||
     pathname.startsWith("/exchange") ||
-    pathname.startsWith("/companies") ||
-    pathname === "/profile"
+    pathname.startsWith("/companies")
   ) {
     return "dashboard";
   }

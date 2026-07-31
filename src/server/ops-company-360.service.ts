@@ -68,6 +68,7 @@ export async function getInternalCompany360(
         membershipId: m.id,
         userId: m.userId,
         discordUsername: m.user.discordUsername,
+        minecraftUsername: m.user.minecraftUsername,
         role: fromDbCompanyRole(m.role),
         roleLabel: COMPANY_ROLE_LABELS[fromDbCompanyRole(m.role)],
         joinedAt: m.createdAt.toISOString(),

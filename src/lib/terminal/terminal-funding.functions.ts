@@ -44,6 +44,9 @@ export const submitTerminalFundingTransferFn = createServerFn({ method: "POST" }
     assertNotUiLabMutation("Terminal funding transfer");
 
     const user = await requireActor();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "terminal.funding");
+
     const { assertUserRateLimit } = await import("@/server/rate-limit.service");
     assertUserRateLimit(user.id, "terminal-funding", 20, 60_000);
 

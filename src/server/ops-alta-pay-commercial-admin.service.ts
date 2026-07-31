@@ -4,6 +4,7 @@ import type {
 } from "@/lib/bank/merchant-invoice-types";
 import type { PaymentLinkDetail, PaymentLinkSummaryRow } from "@/lib/bank/payment-link-types";
 import { paymentLinkCheckoutPath } from "@/lib/bank/payment-link-checkout-url";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { requireOperator } from "@/server/permissions.service";
 import { prisma } from "@/server/db";
 
@@ -35,7 +36,7 @@ function mapInvoiceSummary(invoice: {
   cancelledAt: Date | null;
   createdAt: Date;
   merchantCompany: { name: string };
-  recipient: { discordUsername: string } | null;
+  recipient: { discordUsername: string; minecraftUsername?: string | null } | null;
   recipientCompany: { name: string } | null;
 }): MerchantInvoiceSummaryRow {
   const recipientKind = invoice.recipientCompanyId ? "company" : "person";
@@ -48,7 +49,9 @@ function mapInvoiceSummary(invoice: {
     recipientUserId: invoice.recipientUserId,
     recipientCompanyId: invoice.recipientCompanyId,
     recipientName:
-      invoice.recipientCompany?.name ?? invoice.recipient?.discordUsername ?? "Recipient",
+      invoice.recipientCompany?.name ??
+      (invoice.recipient ? formatAltaUserHandle(invoice.recipient) : null) ??
+      "Recipient",
     amount: decimalToNumber(invoice.amount),
     amountPaid: decimalToNumber(invoice.amountPaid),
     currency: invoice.currency,
@@ -86,7 +89,7 @@ export async function searchMerchantInvoicesAdmin(filters: {
       where,
       include: {
         merchantCompany: { select: { name: true } },
-        recipient: { select: { discordUsername: true } },
+        recipient: { select: { discordUsername: true, minecraftUsername: true } },
         recipientCompany: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -102,7 +105,7 @@ export async function getMerchantInvoiceAdminDetail(invoiceId: string): Promise<
     where: { id: invoiceId },
     include: {
       merchantCompany: { select: { name: true } },
-      recipient: { select: { discordUsername: true } },
+      recipient: { select: { discordUsername: true, minecraftUsername: true } },
       recipientCompany: { select: { name: true } },
       lineItems: { orderBy: { sortOrder: "asc" } },
       events: { orderBy: { createdAt: "desc" }, take: 30 },

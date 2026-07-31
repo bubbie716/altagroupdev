@@ -423,7 +423,7 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
     dealRoomType: input.dealRoomType,
     channelName: channelResult.channelName ?? channelName,
     discordChannelUrl: buildDiscordGuildChannelUrl(
-      process.env.DISCORD_GUILD_ID?.trim() ?? "",
+      process.env.DISCORD_BANK_GUILD_ID?.trim() ?? "",
       channelResult.channelId,
     ),
   });
@@ -432,7 +432,7 @@ async function notifyCustomerDealRoomOpened(input: DealRoomOpenedNotifyInput): P
     title: dmTitle,
     body: dmBody,
     discordChannelUrl: buildDiscordGuildChannelUrl(
-      process.env.DISCORD_GUILD_ID?.trim() ?? "",
+      process.env.DISCORD_BANK_GUILD_ID?.trim() ?? "",
       channelResult.channelId,
     ),
     websiteLinkUrl: linkUrl,

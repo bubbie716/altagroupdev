@@ -110,10 +110,11 @@ describe("bank home navigation", () => {
     const items = buildBankAccountMenuItems({ showInternal: true });
     const tos = items.map((i) => i.to);
     assert.ok(tos.includes("/bank/products"));
-    assert.equal(items.find((i) => i.label === "Profile")?.to, "/profile");
+    assert.equal(items.find((i) => i.label === "Profile"), undefined);
     assert.equal(items.find((i) => i.label === "Companies")?.to, "/companies");
     assert.equal(items.find((i) => i.label === "Support")?.to, "/support");
     assert.ok(tos.includes("/internal"));
+    assert.equal(tos.includes("/profile"), false);
     assert.equal(tos.includes("/bank/alta-card"), false);
     assert.equal(tos.includes("/bank/lending"), false);
     assert.equal(tos.includes("/bank/statements"), false);

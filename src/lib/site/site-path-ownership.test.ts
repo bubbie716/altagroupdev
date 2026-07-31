@@ -19,13 +19,13 @@ describe("site-path-ownership", () => {
     assert.equal(siteKeyForEntityPath("/bank"), "bank");
   });
 
-  it("treats legal and support as shared", () => {
+  it("treats legal, onboarding, and support as shared", () => {
     assert.equal(siteKeyForOwnedPath("/legal/terms"), null);
+    assert.equal(siteKeyForOwnedPath("/onboarding"), null);
     assert.equal(siteKeyForOwnedPath("/support"), null);
   });
 
-  it("treats profile, companies, and internal as shared", () => {
-    assert.equal(siteKeyForOwnedPath("/profile"), null);
+  it("treats companies and internal as shared", () => {
     assert.equal(siteKeyForOwnedPath("/companies"), null);
     assert.equal(siteKeyForOwnedPath("/internal/bank"), null);
   });

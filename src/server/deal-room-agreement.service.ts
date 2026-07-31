@@ -5,6 +5,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   canAccessBankInternal,
   canNegotiateCompanyDealRoom,
@@ -75,26 +76,26 @@ function canSignAsBorrower(user: AltaUser, room: DealRoomRecord): boolean {
 const agreementInclude = {
   drafts: {
     include: {
-      generatedBy: { select: { id: true, discordUsername: true } },
+      generatedBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
       signatures: {
-        include: { user: { select: { id: true, discordUsername: true, discordId: true } } },
+        include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true, discordId: true } } },
       },
     },
     orderBy: { versionNumber: "desc" as const },
   },
   activeDraft: {
     include: {
-      generatedBy: { select: { id: true, discordUsername: true } },
+      generatedBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
       signatures: {
-        include: { user: { select: { id: true, discordUsername: true, discordId: true } } },
+        include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true, discordId: true } } },
       },
     },
   },
   executedDraft: {
     include: {
-      generatedBy: { select: { id: true, discordUsername: true } },
+      generatedBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
       signatures: {
-        include: { user: { select: { id: true, discordUsername: true, discordId: true } } },
+        include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true, discordId: true } } },
       },
     },
   },
@@ -154,7 +155,7 @@ async function getOrCreateAgreement(dealRoom: DealRoomRecord): Promise<Agreement
   const productType = dealRoom.loanApplication?.productType ?? "PERSONAL_CREDIT_LINE";
   const template = resolveAgreementTemplateForProduct(productType);
   const suggested = suggestAgreementFieldsFromDealRoom({
-    borrowerName: dealRoom.borrowerUser.discordUsername,
+    borrowerName: formatAltaUserHandle(dealRoom.borrowerUser),
     companyName: dealRoom.company?.name ?? null,
     acceptedPrincipal: dealRoom.acceptedPrincipal ? Number(dealRoom.acceptedPrincipal) : null,
     acceptedInterestRate: dealRoom.acceptedInterestRate ? Number(dealRoom.acceptedInterestRate) : null,
@@ -163,7 +164,9 @@ async function getOrCreateAgreement(dealRoom: DealRoomRecord): Promise<Agreement
     acceptedSpecialConditions: dealRoom.acceptedSpecialConditions,
     acceptedPaymentFrequency: dealRoom.acceptedPaymentFrequency,
     loanApplicationId: dealRoom.loanApplicationId,
-    assignedOfficerName: dealRoom.assignedOfficer?.discordUsername ?? null,
+    assignedOfficerName: dealRoom.assignedOfficer
+      ? formatAltaUserHandle(dealRoom.assignedOfficer)
+      : null,
   });
 
   const created = await prisma.dealRoomAgreement.create({
@@ -196,7 +199,7 @@ function mapDraftRow(
     status,
     statusLabel: DRAFT_STATUS_LABELS[status],
     pdfSha256: draft.pdfSha256,
-    generatedByName: draft.generatedBy?.discordUsername ?? null,
+    generatedByName: draft.generatedBy ? formatAltaUserHandle(draft.generatedBy) : null,
     generatedAt: draft.generatedAt?.toISOString() ?? null,
     voidedAt: draft.voidedAt?.toISOString() ?? null,
     executedAt: draft.executedAt?.toISOString() ?? null,
@@ -204,7 +207,7 @@ function mapDraftRow(
     signatures: draft.signatures.map((s) => ({
       party: s.party === "BORROWER" ? "borrower" : "bank",
       userId: s.userId,
-      userName: s.user.discordUsername,
+      userName: formatAltaUserHandle(s.user),
       signatureName: s.signatureName,
       discordId: s.discordId,
       signedAt: s.signedAt.toISOString(),

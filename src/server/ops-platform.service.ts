@@ -5,6 +5,7 @@ import type {
   OpsReportRow,
   TimelineEvent,
 } from "@/lib/internal/ops-types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
@@ -124,7 +125,7 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
       category: "negative_balance",
       severity: "critical",
       title: `Negative balance · ${a.accountNumber}`,
-      detail: a.company?.name ?? a.user.discordUsername,
+      detail: a.company?.name ?? formatAltaUserHandle(a.user),
       href: `/internal/bank/accounts/${a.id}`,
       amount: decimalToNumber(a.balance),
       createdAt: a.updatedAt.toISOString(),
@@ -181,7 +182,7 @@ export async function getExceptionCenterItems(): Promise<ExceptionItem[]> {
       category: "large_adjustment",
       severity: "medium",
       title: `Large adjustment · ${tx.referenceCode}`,
-      detail: tx.bankAccount.company?.name ?? tx.bankAccount.user.discordUsername,
+      detail: tx.bankAccount.company?.name ?? formatAltaUserHandle(tx.bankAccount.user),
       href: `/internal/bank/transactions/${tx.id}`,
       amount: decimalToNumber(tx.amount),
       createdAt: tx.createdAt.toISOString(),
@@ -266,7 +267,7 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
       accountLabel: account ? formatAccountLabel(account) : null,
       accountId: account?.id ?? null,
       href: "/internal/audit",
-      actorLabel: a.actor.discordUsername,
+      actorLabel: formatAltaUserHandle(a.actor),
       createdAt: a.createdAt.toISOString(),
     });
   }
@@ -279,7 +280,7 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
       accountLabel: formatAccountLabel(d.bankAccount),
       accountId: d.bankAccountId,
       href: `/internal/bank/transactions/${d.id}`,
-      actorLabel: d.reviewedBy?.discordUsername ?? null,
+      actorLabel: d.reviewedBy ? formatAltaUserHandle(d.reviewedBy) : null,
       createdAt: (d.reviewedAt ?? d.createdAt).toISOString(),
     });
   }
@@ -292,7 +293,7 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
       accountLabel: formatAccountLabel(w.bankAccount),
       accountId: w.bankAccountId,
       href: `/internal/bank/transactions/${w.id}`,
-      actorLabel: w.reviewedBy?.discordUsername ?? null,
+      actorLabel: w.reviewedBy ? formatAltaUserHandle(w.reviewedBy) : null,
       createdAt: (w.reviewedAt ?? w.createdAt).toISOString(),
     });
   }
@@ -314,7 +315,10 @@ export async function getOpsActivityFeed(limit = 30): Promise<ActivityFeedItem[]
       id: `loan-${l.id}`,
       category: "loan",
       title: `Loan ${humanizeLoanStatus(l.status)}`,
-      detail: l.company?.name ?? l.borrowerUser?.discordUsername ?? l.id.slice(0, 8),
+      detail:
+        l.company?.name ??
+        (l.borrowerUser ? formatAltaUserHandle(l.borrowerUser) : null) ??
+        l.id.slice(0, 8),
       accountLabel: l.linkedBankAccount ? formatAccountLabel(l.linkedBankAccount) : null,
       accountId: l.linkedBankAccountId,
       href: `/internal/lending/loans/${l.id}`,
@@ -432,7 +436,7 @@ export async function buildActivityTimeline(
       detail: isLendingAuditAction(a.action)
         ? formatLendingAuditDescription(a.description)
         : a.description,
-      actorLabel: a.actor.discordUsername,
+      actorLabel: formatAltaUserHandle(a.actor),
       createdAt: a.createdAt.toISOString(),
       href: null,
       accountLabel: showAccount ? formatAccountLabel(account) : null,

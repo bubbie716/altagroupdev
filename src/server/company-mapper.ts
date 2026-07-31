@@ -18,6 +18,7 @@ import {
 } from "@/server/enum-map";
 import type { Company, CompanyInvitation, CompanyMembership, User } from "@prisma/client";
 import type { CompanyInvitationSummary } from "@/lib/company/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 type CompanyWithMembers = Company & {
   memberships: (CompanyMembership & { user: User })[];
@@ -155,7 +156,7 @@ export function mapCompanyInvitation(invitation: InvitationWithRelations): Compa
     companyName: invitation.company.name,
     companyType: formatDbCompanyType(invitation.company.type),
     role: fromDbCompanyRole(invitation.role),
-    invitedByUsername: invitation.invitedBy.discordUsername,
+    invitedByUsername: formatAltaUserHandle(invitation.invitedBy),
     status: invitation.status.charAt(0) + invitation.status.slice(1).toLowerCase(),
     createdAt: invitation.createdAt.toISOString(),
     expiresAt: invitation.expiresAt?.toISOString() ?? null,

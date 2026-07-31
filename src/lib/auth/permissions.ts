@@ -146,6 +146,11 @@ export function canManageCompany(user: AltaUser, scope: CompanyScope): boolean {
   return hasCompanyRole(user, scope, COMPANY_MANAGEMENT_ROLES);
 }
 
+/** Authorized to accept binding company legal terms (owner/executive only). */
+export function canAcceptCompanyLegalTerms(user: AltaUser, scope: CompanyScope): boolean {
+  return canManageCompany(user, scope);
+}
+
 /** Roles that may view business treasury (Business Banking). VIEWER excluded. */
 export const BUSINESS_TREASURY_VIEW_ROLES: readonly CompanyRole[] = [
   "owner",

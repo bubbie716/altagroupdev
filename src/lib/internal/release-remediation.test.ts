@@ -360,9 +360,8 @@ describe("Release remediation — Communications readiness copy", () => {
     assert.match(src, /Discord connected/);
     assert.match(src, /Preview only/);
     assert.match(src, /Needs information/);
-    assert.match(src, /Ready to review/);
     assert.match(src, /Ready to send/);
-    assert.match(src, /valid=\{validation\.valid\}/);
+    assert.match(src, /validation\.valid/);
     assert.match(src, /window\.confirm\("Discard this draft/);
     // Credential badge must not claim Ready to send.
     assert.doesNotMatch(src, /configured \? "Ready to send"/);

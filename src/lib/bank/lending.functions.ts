@@ -42,9 +42,12 @@ export const fetchLendingFormContext = createServerFn({ method: "GET" }).handler
 export const submitLoanApplication = createServerFn({ method: "POST" })
   .inputValidator((input: CreateLoanApplicationInput) => input)
   .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "lending.apply");
     const { createLoanApplication } = await import("@/server/lending.service");
-    const userId = await actorId();
-    return createLoanApplication(userId, data);
+    return createLoanApplication(user.id, data);
   });
 
 export const fetchUserLoanApplications = createServerFn({ method: "GET" }).handler(async () => {

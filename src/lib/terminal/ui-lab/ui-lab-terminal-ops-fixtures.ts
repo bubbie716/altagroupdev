@@ -13,6 +13,7 @@ import type {
 import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
 import { formatTerminalOrderSearchSublabel } from "@/lib/terminal/terminal-desk";
 import { UI_LAB_MOCK_USER } from "@/lib/auth/ui-lab";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
 import {
   UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES,
@@ -21,6 +22,8 @@ import {
 } from "@/lib/terminal/ui-lab/ui-lab-terminal-canonical-ids";
 
 export { UI_LAB_TERMINAL_PORTFOLIO_IDS };
+
+const UI_LAB_OWNER_LABEL = formatAltaUserHandle(UI_LAB_MOCK_USER);
 
 function daysFromNow(days: number): string {
   const d = new Date();
@@ -33,7 +36,7 @@ export function getUiLabTerminalInvestors(): TerminalInvestorRow[] {
     {
       id: `user:${UI_LAB_MOCK_USER.id}`,
       kind: "individual",
-      label: UI_LAB_MOCK_USER.discordUsername,
+      label: UI_LAB_OWNER_LABEL,
       portfolioCount: 3,
       activePortfolioCount: 3,
       accessStatus: "active",
@@ -79,7 +82,7 @@ export function getUiLabTerminalPortfolios(): TerminalOpsPortfolioRow[] {
       id: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
       name: "Core Portfolio",
       ownerType: "personal",
-      ownerLabel: UI_LAB_MOCK_USER.discordUsername,
+      ownerLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       status: "active",
@@ -99,7 +102,7 @@ export function getUiLabTerminalPortfolios(): TerminalOpsPortfolioRow[] {
       id: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalGrowth,
       name: "Growth Portfolio",
       ownerType: "personal",
-      ownerLabel: UI_LAB_MOCK_USER.discordUsername,
+      ownerLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       status: "active",
@@ -119,7 +122,7 @@ export function getUiLabTerminalPortfolios(): TerminalOpsPortfolioRow[] {
       id: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalEmpty,
       name: "New empty portfolio",
       ownerType: "personal",
-      ownerLabel: UI_LAB_MOCK_USER.discordUsername,
+      ownerLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       status: "active",
@@ -159,7 +162,7 @@ export function getUiLabTerminalPortfolios(): TerminalOpsPortfolioRow[] {
       id: UI_LAB_TERMINAL_PORTFOLIO_IDS.archived,
       name: "Legacy sleeve",
       ownerType: "personal",
-      ownerLabel: UI_LAB_MOCK_USER.discordUsername,
+      ownerLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       status: "archived",
@@ -191,7 +194,7 @@ export function getUiLabTerminalOrders(): TerminalOpsOrderRow[] {
       id: "ui-lab-term-ord-open-1",
       portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
       portfolioName: "Core Portfolio",
-      investorLabel: UI_LAB_MOCK_USER.discordUsername,
+      investorLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       symbol: "NPT",
@@ -235,7 +238,7 @@ export function getUiLabTerminalOrders(): TerminalOpsOrderRow[] {
       id: "ui-lab-term-ord-filled-1",
       portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalGrowth,
       portfolioName: "Growth Portfolio",
-      investorLabel: UI_LAB_MOCK_USER.discordUsername,
+      investorLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       symbol: "HARB",
@@ -257,7 +260,7 @@ export function getUiLabTerminalOrders(): TerminalOpsOrderRow[] {
       id: "ui-lab-term-ord-cancelled-1",
       portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
       portfolioName: "Core Portfolio",
-      investorLabel: UI_LAB_MOCK_USER.discordUsername,
+      investorLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       symbol: "NPT",
@@ -279,7 +282,7 @@ export function getUiLabTerminalOrders(): TerminalOpsOrderRow[] {
       id: "ui-lab-term-ord-rejected-1",
       portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
       portfolioName: "Core Portfolio",
-      investorLabel: UI_LAB_MOCK_USER.discordUsername,
+      investorLabel: UI_LAB_OWNER_LABEL,
       ownerUserId: UI_LAB_MOCK_USER.id,
       ownerCompanyId: null,
       symbol: "NPT",

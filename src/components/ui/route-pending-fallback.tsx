@@ -69,7 +69,7 @@ export function resolveRouteSkeleton(pathname: string): ReactNode {
     return <SkeletonMarketsDashboard />;
   }
 
-  if (path === "/profile" || path.startsWith("/companies")) {
+  if (path.startsWith("/companies")) {
     return <SkeletonAccountSurface />;
   }
 

@@ -55,6 +55,7 @@ import type { BankingStaffAuditContext } from "@/lib/staff-audit/staff-audit-typ
 import { auditSourceMetadata } from "@/lib/internal/audit-metadata";
 import { canManageBusinessTreasury } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import {
   bankAccountAccessWhere,
@@ -95,7 +96,11 @@ async function notifyIncomingTransferBestEffort(
     where: { id: senderUserId },
     select: { discordUsername: true, minecraftUsername: true },
   });
-  const senderName = sender?.minecraftUsername?.trim() || sender?.discordUsername || "An Alta customer";
+  const senderName =
+    formatAltaUserHandle({
+      minecraftUsername: sender?.minecraftUsername,
+      discordUsername: sender?.discordUsername,
+    }) || "An Alta customer";
 
   const { notifyTransferReceived, notifyTransferReceivedToCompany } = await import(
     "@/server/banking-notification.service"
@@ -401,7 +406,7 @@ export async function getUserBankAccountDetail(
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { discordUsername: true },
+      select: { discordUsername: true, minecraftUsername: true },
     }),
     prisma.bankTransaction.findMany({
       where: {
@@ -459,7 +464,10 @@ export async function getUserBankAccountDetail(
       bankAccount: {
         accountName: tx.bankAccount.accountName,
         accountNumber: tx.bankAccount.accountNumber,
-        user: { discordUsername: user?.discordUsername ?? "" },
+        user: {
+          discordUsername: user?.discordUsername ?? "",
+          minecraftUsername: user?.minecraftUsername ?? null,
+        },
         company: null,
       },
     }),
@@ -472,7 +480,10 @@ export async function getUserBankAccountDetail(
       bankAccount: {
         accountName: tx.bankAccount.accountName,
         accountNumber: tx.bankAccount.accountNumber,
-        user: { discordUsername: user?.discordUsername ?? "" },
+        user: {
+          discordUsername: user?.discordUsername ?? "",
+          minecraftUsername: user?.minecraftUsername ?? null,
+        },
         company: null,
       },
     })),
@@ -488,7 +499,13 @@ export async function getUserBankAccountDetail(
 
   const { buildAccountInterestInfo } = await import("@/lib/bank/account-interest-service");
   const interestInfo = buildAccountInterestInfo(account, lastInterestCredit);
-  const ownerLabel = account.company?.name ?? user?.discordUsername ?? "Personal";
+  const ownerLabel =
+    account.company?.name ??
+    (formatAltaUserHandle({
+      minecraftUsername: user?.minecraftUsername,
+      discordUsername: user?.discordUsername,
+    }) ||
+      "Personal");
 
   return {
     ...summary,

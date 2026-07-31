@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { CompanyVerificationActions } from "@/components/internal/company-verification-actions";
 import { AdminCommercialProGrantPanel } from "@/components/internal/admin-commercial-pro-grant-panel";
 import { CompanyBrandingAdminPanel } from "@/components/internal/workspace/company-branding-admin-panel";
+import { CompanyCommercialConsentPanel } from "@/components/internal/workspace/company-commercial-consent-panel";
 import { AdminOnly } from "@/components/internal/admin-only";
 import { OpsReviewFlagsPanel } from "@/components/internal/ops-review-flags-panel";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
@@ -42,6 +43,7 @@ import { formatCompanyRole } from "@/lib/internal/format";
 import { florin } from "@/lib/bank/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { canAccessBankInternal } from "@/lib/auth/permissions";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { TerminalOwnerPortfoliosBlock } from "@/components/internal/workspace/terminal-owner-portfolios-block";
 import { COMPANY_RELATIONSHIP_TIER_LABELS } from "@/lib/bank/company-relationship-intelligence-config";
 import { limitRelatedRecords } from "@/lib/internal/directory-desk";
@@ -273,7 +275,7 @@ export function CompanyWorkspaceView({
                   search={withInternalSiteSearch(INTERNAL_USER_WORKSPACE_SEARCH, search.site)}
                   className="min-w-0 break-words hover:text-gold"
                 >
-                  {m.discordUsername}
+                  {formatAltaUserHandle(m)}
                 </Link>
                 <span className="text-muted-foreground">{formatCompanyRole(m.role)}</span>
               </li>
@@ -454,7 +456,7 @@ export function CompanyWorkspaceView({
                     search={withInternalSiteSearch(INTERNAL_USER_WORKSPACE_SEARCH, search.site)}
                     className="hover:text-gold"
                   >
-                    {m.discordUsername}
+                    {formatAltaUserHandle(m)}
                   </Link>
                   <span className="text-muted-foreground">
                     {formatCompanyRole(m.role)} · {m.joinedAt.slice(0, 10)}
@@ -486,6 +488,15 @@ export function CompanyWorkspaceView({
               companyName={company.name}
               commercialPlan={commercialPlan}
             />
+          </AdminOnly>
+        </RecordMoreSection>
+        <RecordMoreSection
+          id={recordSectionId("commercial-consent")}
+          title="Commercial consent"
+          defaultOpen={search.section === "commercial-consent"}
+        >
+          <AdminOnly siteKey="bank">
+            <CompanyCommercialConsentPanel companyId={company.id} />
           </AdminOnly>
         </RecordMoreSection>
         <RecordMoreSection

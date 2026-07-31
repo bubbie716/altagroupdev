@@ -5,6 +5,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { canAccessBankInternal, isAdmin } from "@/lib/auth/permissions";
 import {
   hoursInStage,
@@ -62,7 +63,7 @@ async function requireOpsUser(userId: string): Promise<AltaUser> {
 
 const opsRoomInclude = {
   ...dealRoomInclude,
-  createdBy: { select: { id: true, discordUsername: true } },
+  createdBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
   agreement: { include: { activeDraft: { select: { status: true } } } },
   _count: { select: { tasks: { where: { status: { in: ["OPEN", "IN_PROGRESS"] as const } } } } },
 } satisfies Prisma.DealRoomInclude;
@@ -71,7 +72,10 @@ type OpsRoomRecord = Prisma.DealRoomGetPayload<{ include: typeof opsRoomInclude 
 
 function mapTaskRow(
   task: Prisma.DealRoomTaskGetPayload<{
-    include: { assignedTo: { select: { discordUsername: true } }; createdBy: { select: { discordUsername: true } } };
+    include: {
+      assignedTo: { select: { discordUsername: true; minecraftUsername: true } };
+      createdBy: { select: { discordUsername: true; minecraftUsername: true } };
+    };
   }>,
 ): DealRoomTaskRow {
   return {
@@ -80,13 +84,13 @@ function mapTaskRow(
     title: task.title,
     description: task.description,
     assignedToUserId: task.assignedToUserId,
-    assignedToName: task.assignedTo?.discordUsername ?? null,
+    assignedToName: task.assignedTo ? formatAltaUserHandle(task.assignedTo) : null,
     priority: PRIORITY_FROM_DB[task.priority] as DealRoomPriorityCode,
     priorityLabel: task.priority.charAt(0) + task.priority.slice(1).toLowerCase(),
     dueDate: task.dueDate?.toISOString() ?? null,
     status: TASK_STATUS_FROM_DB[task.status] as DealRoomTaskStatusCode,
     statusLabel: task.status.replaceAll("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase()),
-    createdByName: task.createdBy.discordUsername,
+    createdByName: formatAltaUserHandle(task.createdBy),
     completedAt: task.completedAt?.toISOString() ?? null,
     createdAt: task.createdAt.toISOString(),
     isOverdue: Boolean(
@@ -126,7 +130,7 @@ function mapOpsListRow(room: OpsRoomRecord): DealRoomOpsListRow {
     workflowStageLabel: WORKFLOW_STAGE_LABELS[stage],
     priority: PRIORITY_FROM_DB[room.priority] as DealRoomPriorityCode,
     assignedTeam: room.assignedTeamLabel,
-    createdByName: room.createdBy?.discordUsername ?? null,
+    createdByName: room.createdBy ? formatAltaUserHandle(room.createdBy) : null,
     openTaskCount: room._count.tasks,
     hoursInStage: hoursInStage(room.stageEnteredAt),
     isStalled: isStalled(room.stageEnteredAt, room.workflowStage) || Boolean(room.stalledAt),
@@ -227,9 +231,9 @@ export async function getDealRoomOperationsDashboard(
   const officerIds = [...new Set(rooms.map((r) => r.assignedOfficerId).filter(Boolean))] as string[];
   const officers = await prisma.user.findMany({
     where: { id: { in: officerIds } },
-    select: { id: true, discordUsername: true },
+    select: { id: true, discordUsername: true, minecraftUsername: true },
   });
-  const officerMap = new Map(officers.map((o) => [o.id, o.discordUsername]));
+  const officerMap = new Map(officers.map((o) => [o.id, formatAltaUserHandle(o)]));
 
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - 7);
@@ -270,12 +274,12 @@ export async function getDealRoomOpsContext(actorUserId: string, dealRoomId: str
       stageHistory: {
         orderBy: { enteredAt: "desc" },
         take: 20,
-        include: { owner: { select: { discordUsername: true } } },
+        include: { owner: { select: { discordUsername: true, minecraftUsername: true } } },
       },
       tasks: {
         include: {
-          assignedTo: { select: { discordUsername: true } },
-          createdBy: { select: { discordUsername: true } },
+          assignedTo: { select: { discordUsername: true, minecraftUsername: true } },
+          createdBy: { select: { discordUsername: true, minecraftUsername: true } },
         },
         orderBy: [{ status: "asc" }, { dueDate: "asc" }],
       },
@@ -293,7 +297,7 @@ export async function getDealRoomOpsContext(actorUserId: string, dealRoomId: str
     stageEnteredAt: room.stageEnteredAt.toISOString(),
     hoursInStage: hoursInStage(room.stageEnteredAt),
     assignedTeam: room.assignedTeamLabel,
-    createdByName: room.createdBy?.discordUsername ?? null,
+    createdByName: room.createdBy ? formatAltaUserHandle(room.createdBy) : null,
     createdAt: room.createdAt.toISOString(),
     priority: PRIORITY_FROM_DB[room.priority] as DealRoomPriorityCode,
     isStalled: isStalled(room.stageEnteredAt, room.workflowStage) || Boolean(room.stalledAt),
@@ -302,7 +306,7 @@ export async function getDealRoomOpsContext(actorUserId: string, dealRoomId: str
     stageHistory: room.stageHistory.map((h) => ({
       stage: WORKFLOW_STAGE_FROM_DB[h.stage],
       stageLabel: WORKFLOW_STAGE_LABELS[WORKFLOW_STAGE_FROM_DB[h.stage]],
-      ownerName: h.owner?.discordUsername ?? null,
+      ownerName: h.owner ? formatAltaUserHandle(h.owner) : null,
       enteredAt: h.enteredAt.toISOString(),
       exitedAt: h.exitedAt?.toISOString() ?? null,
       timeInStageHours: h.exitedAt ? hoursInStage(h.enteredAt, h.exitedAt) : hoursInStage(h.enteredAt),
@@ -313,10 +317,10 @@ export async function getDealRoomOpsContext(actorUserId: string, dealRoomId: str
 export async function listDealRoomOfficers(): Promise<{ id: string; name: string }[]> {
   const users = await prisma.user.findMany({
     where: { tags: { some: { tag: { in: ["CORPORATE_ADMIN", "BANK_ADMIN"] } } } },
-    select: { id: true, discordUsername: true },
+    select: { id: true, discordUsername: true, minecraftUsername: true },
     orderBy: { discordUsername: "asc" },
   });
-  return users.map((u) => ({ id: u.id, name: u.discordUsername }));
+  return users.map((u) => ({ id: u.id, name: formatAltaUserHandle(u) }));
 }
 
 export async function unassignDealRoomOfficer(actorUserId: string, dealRoomId: string): Promise<void> {
@@ -402,8 +406,8 @@ export async function createDealRoomTask(actorUserId: string, input: CreateDealR
       createdByUserId: actorUserId,
     },
     include: {
-      assignedTo: { select: { discordUsername: true } },
-      createdBy: { select: { discordUsername: true } },
+      assignedTo: { select: { discordUsername: true, minecraftUsername: true } },
+      createdBy: { select: { discordUsername: true, minecraftUsername: true } },
     },
   });
 
@@ -447,8 +451,8 @@ export async function updateDealRoomTask(actorUserId: string, input: UpdateDealR
       completedAt: input.status === "completed" ? now : input.status ? null : undefined,
     },
     include: {
-      assignedTo: { select: { discordUsername: true } },
-      createdBy: { select: { discordUsername: true } },
+      assignedTo: { select: { discordUsername: true, minecraftUsername: true } },
+      createdBy: { select: { discordUsername: true, minecraftUsername: true } },
     },
   });
 

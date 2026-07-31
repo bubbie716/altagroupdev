@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { canPayReceivedMerchantInvoice } from "@/lib/auth/permissions";
 import {
   MERCHANT_INVOICE_PAY_REFERENCE_PREFIX,
@@ -168,7 +169,7 @@ export async function payMerchantInvoice(
     invoice.merchantCompanyId,
   );
   const referenceBase = generatePaymentReferenceBase();
-  const payerLabel = user.minecraftUsername?.trim() || user.discordUsername;
+  const payerLabel = formatAltaUserHandle(user);
   const memo = `Invoice ${invoice.referenceCode}`;
 
   let fundingSourceLabel = selectedFunding.label;
@@ -274,7 +275,7 @@ export async function payMerchantInvoice(
           referenceBase,
           user,
           cardId: input.fundingSource.cardId,
-          payerLabel: user.discordUsername,
+          payerLabel,
           companyId: locked.merchantCompanyId,
           companyName: locked.merchantCompany.name,
           destinationAccountId: locked.destinationAccountId,
@@ -287,11 +288,11 @@ export async function payMerchantInvoice(
             feeAmount: fees.feeAmount,
             netAmount: fees.netAmount,
           },
-          inDescription: `Merchant invoice payment from ${user.discordUsername}`,
+          inDescription: `Merchant invoice payment from ${payerLabel}`,
         });
         settlement = cardSettlement;
         fundingSourceLabel = cardSettlement.fundingSourceLabel;
-        resolvedPayerLabel = user.discordUsername;
+        resolvedPayerLabel = payerLabel;
       }
 
       paymentId = settlement.paymentId;

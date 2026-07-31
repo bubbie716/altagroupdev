@@ -57,10 +57,10 @@ function CompaniesDashboardError({
             Try again
           </button>
           <Link
-            to="/profile"
+            to="/"
             className="rounded-md border border-border px-5 py-2.5 text-[13px] font-medium tracking-wide"
           >
-            Back to profile
+            Go home
           </Link>
         </div>
       </Card>

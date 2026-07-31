@@ -63,7 +63,7 @@ describe("resolveCrossSitePathRedirect", () => {
       null,
     );
     assert.equal(
-      resolveCrossSitePathRedirect("/profile", { host: "exchange.altagroup.dev" }),
+      resolveCrossSitePathRedirect("/companies", { host: "exchange.altagroup.dev" }),
       null,
     );
     assert.equal(resolveCrossSitePathRedirect("/internal", { host: "bank.altagroup.dev" }), null);

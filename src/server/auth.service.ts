@@ -43,7 +43,22 @@ function setCachedSessionUser(token: string, user: AltaUser): void {
 }
 
 export function invalidateSessionUserCache(token?: string): void {
-  if (token) sessionUserCache.delete(token);
+  if (token) {
+    sessionUserCache.delete(token);
+    return;
+  }
+  sessionUserCache.clear();
+}
+
+/** Replace a cached session user in-place after profile/onboarding mutations. */
+export function setSessionUserCacheForCurrentRequest(user: AltaUser): void {
+  try {
+    const cookieHeader = getRequestHeader("cookie");
+    const token = readCookie(getSessionCookieName(), cookieHeader);
+    if (token) setCachedSessionUser(token, user);
+  } catch {
+    /* no request context */
+  }
 }
 
 export async function readCurrentUser(): Promise<AltaUser | null> {

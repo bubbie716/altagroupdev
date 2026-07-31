@@ -11,6 +11,7 @@ import type {
   ScheduledTransferScope,
 } from "@prisma/client";
 import type { CompanyRole } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { formatPayDayLabel } from "@/lib/bank/payroll-pay-day";
 import { fromDbCompanyRole } from "@/server/enum-map";
 import type {
@@ -276,12 +277,22 @@ export function mapPayrollRun(row: PayrollRun): PayrollRunRow {
 }
 
 export function mapRepresentative(
-  membership: { id: string; userId: string; role: import("@prisma/client").CompanyRole; createdAt: Date; user: { discordUsername: string } },
+  membership: {
+    id: string;
+    userId: string;
+    role: import("@prisma/client").CompanyRole;
+    createdAt: Date;
+    user: { discordUsername: string; minecraftUsername: string | null };
+  },
 ): BusinessRepresentativeRow {
   const role = fromDbCompanyRole(membership.role);
   return {
     membershipId: membership.id,
     userId: membership.userId,
+    displayName: formatAltaUserHandle({
+      minecraftUsername: membership.user.minecraftUsername,
+      discordUsername: membership.user.discordUsername,
+    }),
     discordUsername: membership.user.discordUsername,
     role,
     roleLabel: COMPANY_ROLE_LABELS[role],

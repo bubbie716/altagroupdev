@@ -185,7 +185,9 @@ function CompanyDetailPage() {
               <tbody>
                 {company.members.map((m) => (
                   <tr key={m.membershipId} className="border-b border-border/50 last:border-0">
-                    <td className="px-4 py-3 font-mono text-[12px]">{m.discordUsername}</td>
+                    <td className="px-4 py-3 font-mono text-[12px]">
+                      {m.minecraftUsername?.trim() || m.discordUsername}
+                    </td>
                     <td className="px-4 py-3">{formatCompanyRole(m.role)}</td>
                     <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
                       {m.joinedAt.slice(0, 10)}

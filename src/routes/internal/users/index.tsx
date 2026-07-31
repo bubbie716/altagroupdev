@@ -13,6 +13,7 @@ import { fetchInternalUsers } from "@/lib/internal/user-management.functions";
 import type { InternalUserListRow } from "@/lib/internal/user-management.types";
 import {
   customerNeedsDirectoryAttention,
+  customerPrimaryLabel,
   customerProductSummary,
   customerSecondaryId,
   customerStandingLabel,
@@ -151,7 +152,7 @@ function InternalUsers() {
                             search={recordSearch()}
                             className="font-medium hover:text-gold"
                           >
-                            {u.discordUsername}
+                            {customerPrimaryLabel(u)}
                           </Link>
                           {secondary ? (
                             <div className="text-[11px] text-muted-foreground">{secondary}</div>
@@ -194,11 +195,11 @@ function InternalUsers() {
                       className={cn(
                         "block rounded border border-border/60 px-3 py-2.5 hover:border-gold/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold",
                       )}
-                      aria-label={`Review customer ${u.discordUsername}`}
+                      aria-label={`Review customer ${customerPrimaryLabel(u)}`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="font-medium text-[13px]">{u.discordUsername}</div>
+                          <div className="font-medium text-[13px]">{customerPrimaryLabel(u)}</div>
                           <div className="mt-0.5 text-[12px] text-muted-foreground">
                             {customerProductSummary(u, { includeTerminal })}
                           </div>

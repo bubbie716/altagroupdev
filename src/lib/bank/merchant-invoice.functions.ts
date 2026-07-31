@@ -100,9 +100,14 @@ export const createMerchantInvoiceDraftRecord = createServerFn({ method: "POST" 
       const { createUiLabInvoiceDraft } = await import("@/lib/bank/ui-lab-commercial-fixtures");
       return createUiLabInvoiceDraft(data);
     }
+    const user = await actor();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "commercial.merchant_mutation", {
+      companyId: data.companyId,
+    });
     const { createMerchantInvoiceDraft } = await import("@/server/merchant-invoice.service");
     try {
-      return await createMerchantInvoiceDraft(await actor(), data);
+      return await createMerchantInvoiceDraft(user, data);
     } catch (error) {
       rethrowServiceError(error);
     }

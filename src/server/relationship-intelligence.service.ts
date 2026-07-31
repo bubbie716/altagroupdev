@@ -1018,12 +1018,12 @@ export async function getRelationshipIntelligenceDashboard(): Promise<Relationsh
       prisma.relationshipProfile.findMany({
         orderBy: { totalAltaAssets: "desc" },
         take: 10,
-        include: { user: { select: { id: true, discordUsername: true } } },
+        include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true } } },
       }),
       prisma.relationshipProfileSnapshot.findMany({
         orderBy: { calculatedAt: "desc" },
         take: 40,
-        include: { user: { select: { id: true, discordUsername: true } } },
+        include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true } } },
       }),
     ]);
 
@@ -1041,6 +1041,7 @@ export async function getRelationshipIntelligenceDashboard(): Promise<Relationsh
     recentlyChanged.push({
       userId: snapshot.userId,
       discordUsername: snapshot.user.discordUsername,
+      minecraftUsername: snapshot.user.minecraftUsername,
       oldScore,
       newScore: snapshot.relationshipScore,
       oldTier: oldTier as RelationshipTierCode,
@@ -1057,6 +1058,7 @@ export async function getRelationshipIntelligenceDashboard(): Promise<Relationsh
     topByAssets: topByAssets.map((row) => ({
       userId: row.userId,
       discordUsername: row.user.discordUsername,
+      minecraftUsername: row.user.minecraftUsername,
       relationshipScore: row.relationshipScore,
       relationshipTier: tierToCode(row.relationshipTier),
       totalAltaAssets: decimalToNumber(row.totalAltaAssets),

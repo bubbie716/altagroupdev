@@ -1,4 +1,5 @@
 import { buildCompanyInvitationDmPayload } from "@/lib/discord/invitation-dm";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { sendDiscordInvitationDm } from "@/server/discord-dm.service";
 import { prisma } from "@/server/db";
 
@@ -35,7 +36,7 @@ export async function deliverCompanyInvitationDm(
     where: { id: invitationId },
     include: {
       company: { select: { name: true } },
-      invitedBy: { select: { id: true, discordUsername: true } },
+      invitedBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
       invitedUser: { select: { id: true, discordId: true } },
     },
   });
@@ -57,7 +58,7 @@ export async function deliverCompanyInvitationDm(
     invitationId: invitation.id,
     companyName: invitation.company.name,
     role: invitation.role,
-    invitedByUsername: invitation.invitedBy.discordUsername,
+    invitedByUsername: formatAltaUserHandle(invitation.invitedBy),
   });
 
   try {

@@ -749,6 +749,6 @@ export async function listAutopayAuditHistory(cardId: string, limit = 20) {
     },
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: { actor: { select: { discordUsername: true } } },
+    include: { actor: { select: { discordUsername: true, minecraftUsername: true } } },
   });
 }

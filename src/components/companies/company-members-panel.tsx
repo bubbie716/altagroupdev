@@ -121,7 +121,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
           <thead>
             <tr className="border-b border-border text-left type-meta">
               <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">Minecraft</th>
+              <th className="px-4 py-3">Discord</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Joined</th>
               <th className="px-4 py-3">Status</th>
@@ -132,12 +132,13 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
             {company.members.map((m) => {
               const canEditMember = canManageCompanyMember(company.currentUserRole, m.role);
               const memberRoleOptions = assignableRoleOptions(company.currentUserRole);
+              const displayName = m.minecraftUsername?.trim() || m.discordUsername;
 
               return (
               <tr key={m.membershipId} className="border-b border-border/50 last:border-0">
-                <td className="px-4 py-3 font-mono text-[12px]">{m.discordUsername}</td>
+                <td className="px-4 py-3 font-mono text-[12px]">{displayName}</td>
                 <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
-                  {m.minecraftUsername ?? "—"}
+                  {m.discordUsername}
                 </td>
                 <td className="px-4 py-3">
                   {company.canManageMembers && canEditMember ? (

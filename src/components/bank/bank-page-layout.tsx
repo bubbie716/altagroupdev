@@ -15,6 +15,7 @@ import { BankTopNav } from "@/components/bank/bank-top-nav";
 import { BankMobileBottomNav } from "@/components/bank/bank-mobile-nav";
 import { BankSubNav } from "@/components/bank/bank-sub-nav";
 import { BankActionHost } from "@/components/bank/actions/bank-action-host";
+import { ProductConsentRouteGate } from "@/components/legal/product-consent-route-gate";
 import { useResolvedPathname } from "@/components/navigation/use-resolved-pathname";
 import { cn } from "@/lib/utils";
 
@@ -245,7 +246,9 @@ function BankChromeLayout() {
             )}
             aria-busy={isRoutePending || undefined}
           >
-            <Outlet />
+            <ProductConsentRouteGate sourceSite="bank" theme="bank">
+              <Outlet />
+            </ProductConsentRouteGate>
           </main>
         </div>
 

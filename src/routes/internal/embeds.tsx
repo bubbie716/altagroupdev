@@ -11,14 +11,14 @@ export const Route = createFileRoute("/internal/embeds")({
 });
 
 function InternalEmbedsPage() {
-  const { sendingConfigured, channelPresets } = Route.useLoaderData();
+  const { sendingConfigured, servers } = Route.useLoaderData();
 
   return (
     <InternalPageShell
       title="Communications"
-      description="Compose Alta Discord embeds for operations announcements and status updates."
+      description="Send plain-text Discord messages through the Corporate, Terminal, or Bank bot."
     >
-      <DiscordEmbedBuilder sendingConfigured={sendingConfigured} channelPresets={channelPresets} />
+      <DiscordEmbedBuilder sendingConfigured={sendingConfigured} servers={servers} />
     </InternalPageShell>
   );
 }

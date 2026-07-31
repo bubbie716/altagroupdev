@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { TerminalAppShell } from "@/components/terminal/terminal-app-shell";
+import { ProductConsentRouteGate } from "@/components/legal/product-consent-route-gate";
 import { fetchTerminalHome } from "@/lib/terminal/terminal.functions";
 
 export const Route = createFileRoute("/terminal")({
@@ -27,7 +28,9 @@ function TerminalLayoutRoute() {
   const { mode, marketStatus } = Route.useLoaderData();
   return (
     <TerminalAppShell mode={mode} marketStatus={marketStatus}>
-      <Outlet />
+      <ProductConsentRouteGate sourceSite="terminal" theme="terminal">
+        <Outlet />
+      </ProductConsentRouteGate>
     </TerminalAppShell>
   );
 }

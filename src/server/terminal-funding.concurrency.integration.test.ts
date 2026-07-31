@@ -84,6 +84,11 @@ describe("terminal funding concurrency (database)", { skip: skipSuite }, () => {
         discordId: `discord-tfd-${tag}`,
         discordUsername: `tfd_${tag}`,
         minecraftUsername: `tfd_${tag}`,
+    minecraftUuid: null,
+    minecraftVerifiedAt: null,
+    eligibilityConfirmedAt: null,
+    coreOnboardingCompletedAt: null,
+    onboardingCompletedAt: null,
       },
     });
     const account = await prisma.bankAccount.create({

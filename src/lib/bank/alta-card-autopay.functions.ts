@@ -6,6 +6,7 @@ import type {
   UpdateAltaCardAutopayInput,
 } from "@/lib/bank/alta-card-autopay-types";
 import type { RunAutopayForCardResult } from "@/server/alta-card-autopay.service";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 async function actorId(): Promise<string> {
   const { requireAuth } = await import("@/server/auth.service");
@@ -69,7 +70,7 @@ export const fetchInternalAltaCardAutopayContext = createServerFn({ method: "GET
           id: row.id,
           action: row.action,
           description: row.description,
-          actorUsername: row.actor.discordUsername,
+          actorUsername: formatAltaUserHandle(row.actor),
           createdAt: row.createdAt.toISOString(),
           metadata:
             row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)

@@ -18,6 +18,7 @@ import {
 } from "@/lib/bank/deal-room-types";
 import { LOAN_PRODUCT_LABELS, type LoanProductTypeCode } from "@/lib/bank/lending-types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 export const dealRoomInclude = {
   loanApplication: {
@@ -32,17 +33,17 @@ export const dealRoomInclude = {
     },
   },
   borrowerUser: {
-    select: { id: true, discordUsername: true },
+    select: { id: true, discordUsername: true, minecraftUsername: true },
   },
   company: {
     select: { id: true, name: true },
   },
   assignedOfficer: {
-    select: { id: true, discordUsername: true },
+    select: { id: true, discordUsername: true, minecraftUsername: true },
   },
   participants: {
     include: {
-      user: { select: { id: true, discordUsername: true } },
+      user: { select: { id: true, discordUsername: true, minecraftUsername: true } },
     },
   },
 } satisfies Prisma.DealRoomInclude;
@@ -50,7 +51,7 @@ export const dealRoomInclude = {
 export type DealRoomRecord = Prisma.DealRoomGetPayload<{ include: typeof dealRoomInclude }>;
 
 export const dealRoomMessageInclude = {
-  sender: { select: { id: true, discordUsername: true } },
+  sender: { select: { id: true, discordUsername: true, minecraftUsername: true } },
 } satisfies Prisma.DealRoomMessageInclude;
 
 export type DealRoomMessageRecord = Prisma.DealRoomMessageGetPayload<{
@@ -58,7 +59,7 @@ export type DealRoomMessageRecord = Prisma.DealRoomMessageGetPayload<{
 }>;
 
 export const dealRoomOfferInclude = {
-  createdBy: { select: { id: true, discordUsername: true } },
+  createdBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
 } satisfies Prisma.DealRoomOfferInclude;
 
 export type DealRoomOfferRecord = Prisma.DealRoomOfferGetPayload<{
@@ -141,7 +142,7 @@ export function mapDealRoomMessage(message: DealRoomMessageRecord): DealRoomMess
     messageType: MESSAGE_TYPE_FROM_DB[message.messageType],
     body: message.body,
     senderUserId: message.senderUserId,
-    senderName: message.sender?.discordUsername ?? null,
+    senderName: message.sender ? formatAltaUserHandle(message.sender) : null,
     createdAt: message.createdAt.toISOString(),
     editedAt: message.editedAt?.toISOString() ?? null,
     metadata:
@@ -172,7 +173,7 @@ export function mapDealRoomOfferRow(offer: DealRoomOfferRecord): DealRoomOfferRo
     statusLabel:
       isExpired && offer.status === "SENT" ? "Expired" : OFFER_STATUS_LABELS[status],
     createdByUserId: offer.createdByUserId,
-    createdByName: offer.createdBy.discordUsername,
+    createdByName: formatAltaUserHandle(offer.createdBy),
     proposedPrincipal: decimalToNumber(offer.proposedPrincipal),
     proposedInterestRate: decimalToNumber(offer.proposedInterestRate),
     proposedTermMonths: offer.proposedTermMonths,
@@ -204,10 +205,10 @@ export function mapDealRoomListRow(room: DealRoomRecord): DealRoomListRow {
     id: room.id,
     loanApplicationId: room.loanApplicationId,
     loanProduct: loanProductLabel(room),
-    applicant: room.borrowerUser.discordUsername,
-    applicantHandle: room.borrowerUser.discordUsername,
+    applicant: formatAltaUserHandle(room.borrowerUser),
+    applicantHandle: formatAltaUserHandle(room.borrowerUser),
     company: room.company?.name ?? null,
-    assignedOfficer: room.assignedOfficer?.discordUsername ?? null,
+    assignedOfficer: room.assignedOfficer ? formatAltaUserHandle(room.assignedOfficer) : null,
     assignedOfficerId: room.assignedOfficerId,
     requestedAmount,
     proposedAmount,

@@ -1,5 +1,6 @@
 import type { PaginatedResult, TransactionDetail, TransactionExplorerRow } from "@/lib/internal/ops-types";
 import { isAdjustmentReversalNote, adjustmentReversalNote } from "@/lib/bank/adjustment-reversal";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 import type { Prisma } from "@prisma/client";
@@ -13,7 +14,8 @@ function mapTxRow(
     include: { bankAccount: { include: { user: true; company: true } }; reviewedBy: true };
   }>,
 ): TransactionExplorerRow {
-  const holder = tx.bankAccount.company?.name ?? tx.bankAccount.user.discordUsername;
+  const holder =
+    tx.bankAccount.company?.name ?? formatAltaUserHandle(tx.bankAccount.user);
   return {
     id: tx.id,
     referenceCode: tx.referenceCode,
@@ -185,7 +187,7 @@ export async function getTransactionDetail(transactionId: string): Promise<Trans
     balanceAfter: isCredit || isDebit ? balanceAfter : null,
     memo: tx.memo,
     reviewNote: tx.reviewNote,
-    reviewedByLabel: tx.reviewedBy?.discordUsername ?? null,
+    reviewedByLabel: tx.reviewedBy ? formatAltaUserHandle(tx.reviewedBy) : null,
     reviewedAt: tx.reviewedAt?.toISOString() ?? null,
     proofImageUrl: tx.proofImageUrl,
     linkedTransactions,

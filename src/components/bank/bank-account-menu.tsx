@@ -24,6 +24,10 @@ import { resolveSiteInternalLink } from "@/components/site/site-internal-link";
 import { readRequestHost } from "@/lib/site/site-context";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
+import {
+  formatAltaUserDisplayName,
+  formatAltaUserInitials,
+} from "@/lib/auth/user-display";
 
 const GROUP_LABELS = {
   products: "Products",
@@ -58,7 +62,8 @@ export function BankAccountMenu() {
     );
   }
 
-  const initials = user.discordUsername.slice(0, 2).toUpperCase();
+  const displayName = formatAltaUserDisplayName(user);
+  const initials = formatAltaUserInitials(user);
 
   function navigateTo(to: string) {
     if (menu.isNavigating()) return;
@@ -91,7 +96,7 @@ export function BankAccountMenu() {
       <DropdownMenuTrigger className="flex h-10 min-w-11 items-center gap-2 rounded-md border border-border bg-surface-2/60 py-1 pl-3 pr-1 text-[12px] font-medium tracking-wide text-foreground outline-none transition-colors hover:border-border-strong hover:bg-[var(--menu-item-hover)] focus-visible:ring-2 focus-visible:ring-primary/30 data-[state=open]:border-border-strong data-[state=open]:bg-surface-2">
         Account
         <Avatar className="size-7 border border-border/60">
-          {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.discordUsername} /> : null}
+          {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={displayName} /> : null}
           <AvatarFallback className="bg-surface-2 text-[10px] font-medium">{initials}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -103,7 +108,7 @@ export function BankAccountMenu() {
         }}
       >
         <DropdownMenuLabel className="font-normal">
-          <div className="truncate text-sm font-medium">{user.discordUsername}</div>
+          <div className="truncate text-sm font-medium">{displayName}</div>
         </DropdownMenuLabel>
         {groups.map((section) =>
           section.entries.length === 0 ? null : (

@@ -6,8 +6,10 @@ import {
   fetchRelationshipOperatorPanel,
   fetchRelationshipWorkspaceChrome,
 } from "@/lib/internal/relationship-intelligence.functions";
+import { fetchCustomerOnboardingSummary } from "@/lib/onboarding/onboarding.functions";
 import { parseCustomerWorkspaceSearch } from "@/lib/internal/record-workspace-search";
 import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 export const Route = createFileRoute("/internal/users/$userId")({
   validateSearch: (search: Record<string, unknown>) => parseCustomerWorkspaceSearch(search),
@@ -20,7 +22,7 @@ export const Route = createFileRoute("/internal/users/$userId")({
     const includeTimeline = deps.tab === "activity";
     const loadFullRelationship =
       deps.tab === "overview" || deps.section === "relationship" || deps.tab === "more";
-    const [customer360, operatorPanel, reviewFlags] = await Promise.all([
+    const [customer360, operatorPanel, reviewFlags, onboardingSummary] = await Promise.all([
       fetchCustomer360({ data: { userId: params.userId, includeTimeline } }),
       loadFullRelationship
         ? fetchRelationshipOperatorPanel({ data: params.userId }).catch(() =>
@@ -28,12 +30,13 @@ export const Route = createFileRoute("/internal/users/$userId")({
           )
         : fetchRelationshipWorkspaceChrome({ data: params.userId }),
       fetchOpsReviewFlagsForCustomer({ data: params.userId }),
+      fetchCustomerOnboardingSummary({ data: params.userId }).catch(() => null),
     ]);
-    return { ...customer360, operatorPanel, reviewFlags };
+    return { ...customer360, operatorPanel, reviewFlags, onboardingSummary };
   },
 
   head: ({ loaderData, match }) => ({
-    meta: [{ title: internalDocumentTitle(`${loaderData?.user.discordUsername ?? "Customer"}`, (match.search as { site?: string }).site) }],
+    meta: [{ title: internalDocumentTitle(`${loaderData?.user ? formatAltaUserHandle(loaderData.user) : "Customer"}`, (match.search as { site?: string }).site) }],
   }),
   component: CustomerWorkspaceRoute,
 });

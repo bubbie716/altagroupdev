@@ -47,7 +47,7 @@ function sortStatementsNewestGeneratedFirst(
 const periodTransactionInclude = {
   bankAccount: {
     include: {
-      user: { select: { discordUsername: true } },
+      user: { select: { discordUsername: true, minecraftUsername: true } },
       company: true,
     },
   },

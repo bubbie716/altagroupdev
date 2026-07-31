@@ -28,6 +28,7 @@ import { fetchUserPendingAltaCardApplication } from "@/lib/bank/alta-card-applic
 import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
 import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
 import { useCreditDeskCustomerNav } from "@/hooks/use-credit-desk-nav";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 type AltaCardIndexSearch = {
   apply?: "1";
@@ -106,7 +107,10 @@ function BankAltaCardIndex() {
   }
 
   const cardholderName =
-    user?.discordUsername ?? cardDetail?.ownerUsername ?? card?.ownerUsername ?? "Cardholder";
+    (user ? formatAltaUserHandle(user) : null) ||
+    cardDetail?.ownerUsername ||
+    card?.ownerUsername ||
+    "Cardholder";
 
   return (
     <>

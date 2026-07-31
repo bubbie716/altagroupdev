@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/page-shell";
 import { LoginPortalShell } from "@/components/auth/auth-gate";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { formatAltaUserDisplayName } from "@/lib/auth/user-display";
 
 export const Route = createFileRoute("/access-restricted")({
   head: () => ({ meta: [{ title: "Access Restricted — Alta Group" }] }),
@@ -23,8 +24,9 @@ function AccessRestrictedPage() {
         <Card className="mt-8 border-border/80 bg-card/95 !p-6 text-left shadow-sm backdrop-blur-sm">
           {user ? (
             <p className="text-sm text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">{user.discordUsername}</span>. Contact Alta
-            operations if you believe this is an error.
+              Signed in as{" "}
+              <span className="font-medium text-foreground">{formatAltaUserDisplayName(user)}</span>. Contact Alta
+              operations if you believe this is an error.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">You must sign in with an authorized Alta account.</p>
@@ -32,9 +34,6 @@ function AccessRestrictedPage() {
           <div className="mt-6 flex justify-center gap-4">
             <Link to="/" className="text-sm text-gold hover:underline">
               Return home
-            </Link>
-            <Link to="/profile" className="text-sm text-muted-foreground hover:text-foreground">
-              View profile
             </Link>
           </div>
         </Card>

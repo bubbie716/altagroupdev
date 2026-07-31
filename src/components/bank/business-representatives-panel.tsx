@@ -76,7 +76,7 @@ export function BusinessRepresentativesPanel({
               <BankMobileStack>
                 {bankingTeam.map((r) => (
                   <BankMobileStackRow key={r.membershipId}>
-                    <p className="font-medium break-words">{r.discordUsername}</p>
+                    <p className="font-medium break-words">{r.displayName}</p>
                     <BankMobileStackField label="Company role">
                       {COMPANY_ROLE_LABELS[r.role]}
                     </BankMobileStackField>
@@ -109,7 +109,7 @@ export function BusinessRepresentativesPanel({
                   <tbody>
                     {bankingTeam.map((r) => (
                       <tr key={r.membershipId}>
-                        <td className="font-medium">{r.discordUsername}</td>
+                        <td className="font-medium">{r.displayName}</td>
                         <td>{COMPANY_ROLE_LABELS[r.role]}</td>
                         <td>{BANKING_ACCESS[r.role]}</td>
                         <td className="max-w-xs text-muted-foreground">{CAPABILITIES[r.role]}</td>

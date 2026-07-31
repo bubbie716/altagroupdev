@@ -1,5 +1,6 @@
 import { formatStaffAuditMessage } from "@/lib/staff-audit/staff-audit-format";
 import type { SendStaffAuditMessageInput } from "@/lib/staff-audit/staff-audit-types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import { dispatchStaffAuditDiscordMessage } from "@/server/staff-audit-discord-dispatch.service";
 
@@ -41,7 +42,7 @@ export async function resolveStaffAuditActorName(
   });
   if (!user) return "Unknown user";
 
-  return (user.minecraftUsername?.trim() || user.discordUsername).slice(0, 100);
+  return formatAltaUserHandle(user).slice(0, 100);
 }
 
 export async function sendStaffAuditMessageAsync(

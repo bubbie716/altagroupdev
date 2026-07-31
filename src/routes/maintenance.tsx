@@ -14,6 +14,7 @@ import { Card } from "@/components/page-shell";
 import { Link } from "@tanstack/react-router";
 import { siteFromRouteContext } from "@/lib/site/site-context";
 import { buildSignInSearch, resolveSiteSignInPath } from "@/lib/site/site-sign-in-path";
+import { formatAltaUserDisplayName } from "@/lib/auth/user-display";
 
 export const Route = createFileRoute("/maintenance")({
   beforeLoad: async ({ context }) => {
@@ -133,7 +134,7 @@ function AltaMaintenancePage({
 
         {user && !isBypassUser ? (
           <p className="mt-6 text-center text-[12px] text-muted-foreground">
-            Signed in as {user.discordUsername}. Platform access will resume when maintenance ends.
+            Signed in as {formatAltaUserDisplayName(user)}. Platform access will resume when maintenance ends.
           </p>
         ) : null}
       </div>

@@ -69,8 +69,15 @@ export function customerStandingLabel(status: AccountStatus): string {
   return formatAccountStatus(status);
 }
 
+export function customerPrimaryLabel(user: InternalUserListRow): string {
+  return user.minecraftUsername?.trim() || user.discordUsername;
+}
+
 export function customerSecondaryId(user: InternalUserListRow): string | null {
-  if (user.minecraftUsername) return `MC ${user.minecraftUsername}`;
+  // When Minecraft is the primary label, show Discord as secondary identity.
+  if (user.minecraftUsername?.trim()) {
+    return `Discord ${user.discordUsername}`;
+  }
   if (user.email) {
     const at = user.email.indexOf("@");
     return at > 0 ? user.email.slice(0, Math.min(at + 1, 18)) + (at < user.email.length - 1 ? "…" : "") : user.email;

@@ -34,6 +34,7 @@ import { WorkspaceField, WorkspaceFieldGrid } from "@/components/internal/worksp
 import type { RecordWorkspaceTab } from "@/components/internal/workspace/record-workspace-layout";
 import { formatAccountStatus } from "@/lib/auth/tags";
 import { florin } from "@/lib/bank/api";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { displayRelationshipTierLabel } from "@/lib/bank/relationship-terminology";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import type { TimelineEvent } from "@/lib/internal/ops-types";
@@ -51,6 +52,8 @@ import { parseReturnPath } from "@/lib/internal/record-return-context";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { canAccessBankInternal } from "@/lib/auth/permissions";
 import { TerminalOwnerPortfoliosBlock } from "@/components/internal/workspace/terminal-owner-portfolios-block";
+import { CustomerOnboardingSummaryPanel } from "@/components/internal/workspace/customer-onboarding-summary-panel";
+import type { CustomerOnboardingSummary } from "@/lib/onboarding/onboarding-types";
 
 type CustomerWorkspaceData = {
   user: InternalUserDetail;
@@ -74,6 +77,7 @@ type CustomerWorkspaceData = {
     altaCardId: string | null;
   };
   reviewFlags?: OpsReviewFlagRow[];
+  onboardingSummary?: CustomerOnboardingSummary | null;
 };
 
 export function CustomerWorkspaceView({
@@ -89,7 +93,7 @@ export function CustomerWorkspaceView({
   const siteKey = search.site ?? "corporate";
   const isTerminalSite = siteKey === "terminal";
   const isBankSite = siteKey === "bank";
-  const { user, notes, timeline, operatorPanel, reviewFlags = [] } = data;
+  const { user, notes, timeline, operatorPanel, reviewFlags = [], onboardingSummary = null } = data;
   const creditExposure = user.activeLoans.reduce((s, l) => s + l.currentPayoffAmount, 0);
   const panel = operatorPanel.panel;
   const unresolvedFlags = reviewFlags.filter((f) => f.status === "ACTIVE");
@@ -149,6 +153,7 @@ export function CustomerWorkspaceView({
   }
 
   const returnCtx = parseReturnPath(search.from);
+  const customerLabel = formatAltaUserHandle(user);
   const breadcrumbs =
     returnCtx?.pathname === "/internal/inbox" || returnCtx?.pathname === "/internal/terminal/investors"
       ? workspaceBreadcrumbs([
@@ -158,12 +163,12 @@ export function CustomerWorkspaceView({
             to: returnCtx.pathname as "/",
             search: returnCtx.search,
           },
-          { label: user.discordUsername },
+          { label: customerLabel },
         ])
       : workspaceBreadcrumbs([
           { label: "Home", to: "/internal", search: withInternalSiteSearch({}, search.site) },
           { label: "Customers", to: "/internal/users", search: withInternalSiteSearch({}, search.site) },
-          { label: user.discordUsername },
+          { label: customerLabel },
         ]);
 
   const bankAccountsBlock = (
@@ -569,6 +574,17 @@ export function CustomerWorkspaceView({
           </div>
         </RecordMoreSection>
         <RecordMoreSection
+          id={recordSectionId("onboarding")}
+          title="Onboarding & legal"
+          defaultOpen={search.section === "onboarding"}
+        >
+          {onboardingSummary ? (
+            <CustomerOnboardingSummaryPanel summary={onboardingSummary} userId={user.id} />
+          ) : (
+            <RecordEmptyCopy>Onboarding status unavailable.</RecordEmptyCopy>
+          )}
+        </RecordMoreSection>
+        <RecordMoreSection
           id={recordSectionId("identity")}
           title="Technical identity"
           defaultOpen={search.section === "identity"}
@@ -581,8 +597,11 @@ export function CustomerWorkspaceView({
               <span className="break-all font-mono text-[11px]">{user.discordId}</span>
             </WorkspaceField>
             <WorkspaceField label="Email">{user.email ?? "—"}</WorkspaceField>
-            <WorkspaceField label="Minecraft">
+            <WorkspaceField label="Minecraft username">
               <span className="font-mono text-[11px]">{user.minecraftUsername ?? "—"}</span>
+            </WorkspaceField>
+            <WorkspaceField label="Minecraft status">
+              {onboardingSummary?.minecraftStatus ?? "Not verified"}
             </WorkspaceField>
           </WorkspaceFieldGrid>
         </RecordMoreSection>
@@ -591,7 +610,7 @@ export function CustomerWorkspaceView({
   };
 
   const actions = (
-    <RecordActionsSheet title="Customer actions" description={`Actions for ${user.discordUsername}`}>
+    <RecordActionsSheet title="Customer actions" description={`Actions for ${customerLabel}`}>
       <RecordActionGroup title="Standing & access">
         <p className="text-[12px] text-muted-foreground">
           Change standing and staff access in More, or jump there now.
@@ -622,14 +641,14 @@ export function CustomerWorkspaceView({
 
   return (
     <RecordWorkspacePage
-      title={user.discordUsername}
+      title={customerLabel}
       breadcrumbs={breadcrumbs}
       recordType="Customer"
       primaryId={<>Discord {user.discordId}</>}
       status={formatAccountStatus(user.accountStatus)}
       meta={
         <>
-          {user.minecraftUsername ? <span>MC {user.minecraftUsername}</span> : null}
+          <span>Discord {user.discordUsername}</span>
           {panel ? (
             <span>
               {displayRelationshipTierLabel(panel.relationshipTier, panel.relationshipScore)} ·{" "}

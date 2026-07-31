@@ -213,6 +213,10 @@ export const purchaseCommercialProPlan = createServerFn({ method: "POST" })
     }
     const { purchaseCommercialPro } = await import("@/server/commercial-billing.service");
     const user = await actor();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "commercial.purchase_pro", {
+      companyId: data.companyId,
+    });
     return purchaseCommercialPro(user, data);
   });
 

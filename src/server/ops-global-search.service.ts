@@ -1,6 +1,7 @@
 import type { GlobalSearchResult } from "@/lib/internal/ops-types";
 import { formatOpsAuditActionTitle } from "@/lib/internal/ops-activity-title";
 import { formatOpsJobRunHealthDetail } from "@/lib/internal/ops-job-run-display";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import { requireOperator } from "@/server/permissions.service";
 
@@ -93,7 +94,7 @@ export async function globalOpsSearch(
             ],
           },
           include: {
-            ownerUser: { select: { discordUsername: true } },
+            ownerUser: { select: { discordUsername: true, minecraftUsername: true } },
             ownerCompany: { select: { name: true } },
           },
           take: perType,
@@ -110,12 +111,12 @@ export async function globalOpsSearch(
       name: string;
       ownerType: string;
       status: string;
-      ownerUser: { discordUsername: string } | null;
+      ownerUser: { discordUsername: string; minecraftUsername?: string | null } | null;
       ownerCompany: { name: string } | null;
     }>) {
       const ownerLabel =
         p.ownerType === "PERSONAL"
-          ? (p.ownerUser?.discordUsername ?? "Individual")
+          ? (p.ownerUser ? formatAltaUserHandle(p.ownerUser) : null) || "Individual"
           : (p.ownerCompany?.name ?? "Company");
       const status = p.status === "ACTIVE" ? "active" : "archived";
       const typeLabel = p.ownerType === "COMPANY" ? "Company" : "Personal";
@@ -133,7 +134,7 @@ export async function globalOpsSearch(
       ranked.push({
         id: u.id,
         type: "user",
-        label: u.discordUsername,
+        label: formatAltaUserHandle(u),
         sublabel: [u.discordId, u.relationshipProfile?.relationshipTier, "Investor"]
           .filter(Boolean)
           .join(" · "),
@@ -374,7 +375,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: u.id,
       type: "user",
-      label: u.discordUsername,
+      label: formatAltaUserHandle(u),
       sublabel: [u.discordId, u.relationshipProfile?.relationshipTier, "Customer"].filter(Boolean).join(" · "),
       href: `/internal/users/${u.id}`,
       status: u.accountStatus,
@@ -399,7 +400,7 @@ export async function globalOpsSearch(
       id: a.id,
       type: "account",
       label: `${a.accountName} •••• ${a.accountNumber.slice(-4)}`,
-      sublabel: `${florin(decimalToNumber(a.balance))} · ${a.status} · ${a.company?.name ?? a.user.discordUsername}`,
+      sublabel: `${florin(decimalToNumber(a.balance))} · ${a.status} · ${a.company?.name ?? formatAltaUserHandle(a.user)}`,
       href: `/internal/bank/accounts/${a.id}`,
       status: a.status,
       amount: florin(decimalToNumber(a.balance)),
@@ -412,7 +413,7 @@ export async function globalOpsSearch(
     if (seenTx.has(tx.id)) continue;
     seenTx.add(tx.id);
     const isPay = tx.referenceCode.startsWith("PAY-");
-    const owner = tx.bankAccount.company?.name ?? tx.bankAccount.user.discordUsername;
+    const owner = tx.bankAccount.company?.name ?? formatAltaUserHandle(tx.bankAccount.user);
     if (tx.type === "DEPOSIT") {
       pushResult(results, {
         id: tx.id,
@@ -454,7 +455,10 @@ export async function globalOpsSearch(
   }
 
   for (const l of loans) {
-    const borrower = l.company?.name ?? l.borrowerUser?.discordUsername ?? "Borrower";
+    const borrower =
+      l.company?.name ??
+      (l.borrowerUser ? formatAltaUserHandle(l.borrowerUser) : null) ??
+      "Borrower";
     const product =
       l.productType === "BUSINESS_CREDIT_LINE"
         ? "Business Credit Line"
@@ -474,7 +478,7 @@ export async function globalOpsSearch(
   }
 
   for (const s of statements) {
-    const owner = s.bankAccount.company?.name ?? s.bankAccount.user.discordUsername;
+    const owner = s.bankAccount.company?.name ?? formatAltaUserHandle(s.bankAccount.user);
     pushResult(results, {
       id: s.id,
       type: "statement",
@@ -490,7 +494,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: app.id,
       type: "lending_application",
-      label: app.applicantUser.discordUsername,
+      label: formatAltaUserHandle(app.applicantUser),
       sublabel: `${florin(decimalToNumber(app.requestedAmount))} · ${app.productType} · ${app.status}`,
       href: `/internal/lending/applications/${app.id}`,
       status: app.status,
@@ -506,7 +510,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: dr.id,
       type: "deal_room",
-      label: dr.company?.name ?? dr.borrowerUser.discordUsername,
+      label: dr.company?.name ?? formatAltaUserHandle(dr.borrowerUser),
       sublabel: `${dr.workflowStage} · ${dr.status}`,
       href,
       status: dr.status,
@@ -516,7 +520,8 @@ export async function globalOpsSearch(
   }
 
   for (const card of altaCards) {
-    const owner = card.company?.name ?? card.owner?.discordUsername ?? "—";
+    const owner =
+      card.company?.name ?? (card.owner ? formatAltaUserHandle(card.owner) : null) ?? "—";
     pushResult(results, {
       id: card.id,
       type: "alta_card",
@@ -533,7 +538,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: app.id,
       type: "alta_card_application",
-      label: app.applicant.discordUsername,
+      label: formatAltaUserHandle(app.applicant),
       sublabel: `${app.requestedTier} · ${app.cardType} · ${app.status}`,
       href: `/internal/alta-card/applications/${app.id}`,
       status: app.status,
@@ -545,7 +550,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: review.id,
       type: "alta_card_review",
-      label: review.applicantUser.discordUsername,
+      label: formatAltaUserHandle(review.applicantUser),
       sublabel: `•••• ${review.altaCard.cardLastFour} · ${review.status}`,
       href: `/internal/alta-card/reviews/${review.id}`,
       status: review.status,
@@ -554,7 +559,10 @@ export async function globalOpsSearch(
   }
 
   for (const stmt of altaCardStatements) {
-    const owner = stmt.altaCard.company?.name ?? stmt.altaCard.owner?.discordUsername ?? "—";
+    const owner =
+      stmt.altaCard.company?.name ??
+      (stmt.altaCard.owner ? formatAltaUserHandle(stmt.altaCard.owner) : null) ??
+      "—";
     pushResult(results, {
       id: stmt.id,
       type: "alta_card_statement",
@@ -570,7 +578,7 @@ export async function globalOpsSearch(
     pushResult(results, {
       id: rp.userId,
       type: "relationship_profile",
-      label: rp.user.discordUsername,
+      label: formatAltaUserHandle(rp.user),
       sublabel: `${rp.relationshipTier} · score ${rp.relationshipScore}`,
       href: `/internal/users/${rp.userId}?tab=overview&section=relationship`,
       status: rp.relationshipTier,

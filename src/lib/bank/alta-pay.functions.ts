@@ -41,6 +41,8 @@ export const submitAltaPay = createServerFn({ method: "POST" })
     const { requireAuth } = await import("@/server/auth.service");
     const { assertUserRateLimit } = await import("@/server/rate-limit.service");
     const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_pay.submit");
     assertUserRateLimit(user.id, "alta-pay", 30, 60_000);
     try {
       return await submitAltaPayPayment(user, data);
@@ -64,6 +66,8 @@ export const submitAltaPayToPersonPayment = createServerFn({ method: "POST" })
     const { requireAuth } = await import("@/server/auth.service");
     const { assertUserRateLimit } = await import("@/server/rate-limit.service");
     const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_pay.submit");
     assertUserRateLimit(user.id, "alta-pay", 30, 60_000);
     try {
       return await submitAltaPayToPerson(user, data);

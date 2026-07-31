@@ -3,6 +3,7 @@ import { AuthGate, LoginPortalShell } from "@/components/auth/auth-gate";
 import { TerminalSignInPage } from "@/components/terminal/terminal-sign-in-page";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useSiteContext } from "@/hooks/use-site-context";
+import { formatAltaUserDisplayName } from "@/lib/auth/user-display";
 
 const ERROR_MESSAGES: Record<string, string> = {
   oauth_denied: "Discord authorization was cancelled.",
@@ -33,8 +34,6 @@ export function EntityLoginPage({
   }
 
   if (user) {
-    const displayName = user.minecraftUsername?.trim() || user.discordUsername;
-
     return (
       <LoginPortalShell brandEyebrow={`${site.displayName} · Welcome Back`}>
         <div className="w-full max-w-md">
@@ -42,7 +41,7 @@ export function EntityLoginPage({
             Already signed in
           </p>
           <h2 className="mt-3 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
-            Welcome back, {displayName}.
+            Welcome back, {formatAltaUserDisplayName(user)}.
           </h2>
           <div className="mt-8 rounded-lg border border-border bg-surface-1 p-7">
             <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">

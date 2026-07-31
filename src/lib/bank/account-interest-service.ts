@@ -9,6 +9,7 @@ import {
 } from "@/lib/bank/customer-transaction-copy";
 import { fromDbBankAccountType } from "@/server/bank-mapper";
 import { prisma } from "@/server/db";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 export interface DefaultInterestSettings {
   interestAccrualEnabled: boolean;
@@ -203,14 +204,19 @@ export async function getInterestEligibleAccounts(): Promise<BankAccount[]> {
   });
 }
 
-function mapDueRow(account: BankAccount & { user: { discordUsername: string }; company: { name: string } | null }): AccountInterestDueRow {
+function mapDueRow(account: BankAccount & { user: { discordUsername: string; minecraftUsername: string | null }; company: { name: string } | null }): AccountInterestDueRow {
   const balance = decimalToNumber(account.balance);
   const rate = decimalToNumber(account.interestRate);
   return {
     accountId: account.id,
     accountNumber: account.accountNumber,
     accountName: account.accountName,
-    holder: account.company?.name ?? account.user.discordUsername,
+    holder:
+      account.company?.name ??
+      formatAltaUserHandle({
+        minecraftUsername: account.user.minecraftUsername,
+        discordUsername: account.user.discordUsername,
+      }),
     balance,
     interestRate: rate,
     rateLabel: formatMonthlyInterestRateLabel(rate),

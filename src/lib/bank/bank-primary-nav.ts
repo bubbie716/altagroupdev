@@ -6,7 +6,6 @@ import {
   LayoutGrid,
   Settings,
   Shield,
-  User,
   Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -106,13 +105,12 @@ export type BankSecondaryNavItem = {
   group: "products" | "manage" | "support";
 };
 
-/** Account avatar menu — products entry plus profile and support links. */
+/** Account avatar menu — products entry plus companies and support links. */
 export function buildBankAccountMenuItems(options: {
   showInternal: boolean;
 }): BankSecondaryNavItem[] {
   const items: BankSecondaryNavItem[] = [
     { label: "Products", to: "/bank/products", icon: LayoutGrid, group: "products" },
-    { label: "Profile", to: "/profile", icon: User, group: "support" },
     { label: "Companies", to: "/companies", icon: Building2, group: "support" },
     { label: "Support", to: "/support", icon: HelpCircle, group: "support" },
   ];

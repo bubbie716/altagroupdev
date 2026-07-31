@@ -579,6 +579,9 @@ export const submitTerminalOrder = createServerFn({ method: "POST" })
       return getUiLabDemonstrationClient(user.id).submitOrder(data);
     }
 
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "terminal.place_order");
+
     const { getTerminalPortfolioForUser, assertCanTradePortfolio } = await import(
       "@/lib/terminal/terminal-portfolio.service"
     );
@@ -778,6 +781,8 @@ export const createTerminalPortfolioFn = createServerFn({ method: "POST" })
       rememberUiLabSelectedPortfolio(user, created.id);
       return created;
     }
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "terminal.create_portfolio");
     const { createTerminalPortfolio, rememberSelectedTerminalPortfolio } = await import(
       "@/lib/terminal/terminal-portfolio.service"
     );

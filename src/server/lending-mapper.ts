@@ -10,6 +10,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   loanInterestChargePaymentDescription,
   normalizeTransactionDescriptionSeparators,
@@ -190,7 +191,7 @@ function accountLabel(account: { accountName: string; accountNumber: string } | 
 }
 
 export const loanApplicationInclude = {
-  applicantUser: { select: { id: true, discordUsername: true } },
+  applicantUser: { select: { id: true, discordUsername: true, minecraftUsername: true } },
   company: { select: { id: true, name: true, verificationStatus: true } },
   linkedBankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
   dealRoom: { select: { id: true } },
@@ -252,8 +253,8 @@ export function mapInternalLoanApplicationRow(record: LoanApplicationRecord): In
     reviewNote: record.reviewNote,
     applicantUserId: record.applicantUserId,
     applicantLabel: record.company?.name
-      ? `${record.applicantUser.discordUsername} · ${record.company.name}`
-      : record.applicantUser.discordUsername,
+      ? `${formatAltaUserHandle(record.applicantUser)} · ${record.company.name}`
+      : formatAltaUserHandle(record.applicantUser),
     linkedAccountNumber: record.linkedBankAccount?.accountNumber ?? null,
     dealRoomId: record.dealRoom?.id ?? null,
     threadId: record.thread?.id ?? null,
@@ -298,7 +299,7 @@ function formatScheduleStatusLabel(status: LoanScheduleInstallmentStatusCode): s
 }
 
 const loanInclude = {
-  borrowerUser: { select: { discordUsername: true } },
+  borrowerUser: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { id: true, name: true } },
   linkedBankAccount: { select: { id: true, accountName: true, accountNumber: true } },
   autoPaySourceBankAccount: { select: { id: true, accountName: true, accountNumber: true } },
@@ -309,7 +310,7 @@ const loanInclude = {
 } as const satisfies Prisma.LoanInclude;
 
 const loanDetailInclude = {
-  borrowerUser: { select: { discordUsername: true } },
+  borrowerUser: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { id: true, name: true } },
   linkedBankAccount: { select: { id: true, accountName: true, accountNumber: true } },
   autoPaySourceBankAccount: { select: { id: true, accountName: true, accountNumber: true } },
@@ -321,7 +322,7 @@ const loanDetailInclude = {
 } as const satisfies Prisma.LoanInclude;
 
 const internalLoanInclude = {
-  borrowerUser: { select: { discordUsername: true } },
+  borrowerUser: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { name: true } },
   linkedBankAccount: { select: { accountNumber: true } },
   payments: { orderBy: { paymentDate: "desc" as const } },
@@ -334,10 +335,10 @@ type LoanDetailRecord = Prisma.LoanGetPayload<{ include: typeof loanDetailInclud
 
 function borrowerLabelForLoan(record: {
   company: { name: string } | null;
-  borrowerUser: { discordUsername: string } | null;
+  borrowerUser: { discordUsername: string; minecraftUsername?: string | null } | null;
 }): string | null {
   if (record.company) return record.company.name;
-  return record.borrowerUser?.discordUsername ?? null;
+  return record.borrowerUser ? formatAltaUserHandle(record.borrowerUser) : null;
 }
 
 function sumCompletedLoanPayments(
@@ -681,7 +682,9 @@ export function mapInternalActiveLoanRow(
     accruedInterest: guaranteedInterestOwed,
   });
   const borrowerLabel =
-    record.company?.name ?? record.borrowerUser?.discordUsername ?? "Unknown borrower";
+    record.company?.name ??
+    (record.borrowerUser ? formatAltaUserHandle(record.borrowerUser) : null) ??
+    "Unknown borrower";
 
   const paymentSchedule = (record.paymentSchedule ?? []).map((item) => {
     const draft = buildScheduleDraftsForLoan(record).find(

@@ -9,7 +9,7 @@ Alta staff with **admin** or **operator** access can compose Discord embeds at `
 - Server actions: `requireOperator()` on all embed send/config endpoints
 - API route: `POST /api/internal/discord/embed` validates session cookie server-side
 
-Never expose `DISCORD_BOT_TOKEN` to the browser. The token is read only in server code (`src/server/discord-embed.service.ts`).
+Never expose `DISCORD_BANK_BOT_TOKEN` to the browser. The token is read only in server code (`src/server/discord-embed.service.ts`).
 
 ## Environment variables
 
@@ -17,8 +17,8 @@ Add to `.env` (see `.env.example`):
 
 | Variable | Purpose |
 |----------|---------|
-| `DISCORD_BOT_TOKEN` | Bot token for Discord REST API |
-| `DISCORD_GUILD_ID` | Target guild (required to confirm sending is configured) |
+| `DISCORD_BANK_BOT_TOKEN` | Bot token for Discord REST API |
+| `DISCORD_BANK_GUILD_ID` | Target guild (required to confirm sending is configured) |
 | `DISCORD_CHANNEL_INFORMATION` | Override channel ID for `#information` |
 | `DISCORD_CHANNEL_ANNOUNCEMENTS` | Override for `#announcements` |
 | `DISCORD_CHANNEL_BANK_NOTICES` | Override for `#bank-notices` |
@@ -30,10 +30,10 @@ If a channel env var is unset, quick-fill presets use mock IDs. You can also pas
 ### Bot setup
 
 1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications).
-2. Add a **Bot** user and copy the token into `DISCORD_BOT_TOKEN`.
+2. Add a **Bot** user and copy the token into `DISCORD_BANK_BOT_TOKEN`.
 3. Enable **Message Content Intent** if you plan to read messages later (not required for sending embeds).
 4. Invite the bot to your Alta guild with `Send Messages` and `Embed Links` permissions.
-5. Copy the guild ID into `DISCORD_GUILD_ID`.
+5. Copy the guild ID into `DISCORD_BANK_GUILD_ID`.
 6. Enable Developer Mode in Discord, right-click each target channel, copy ID, and set the `DISCORD_CHANNEL_*` variables.
 
 ## Embed limits
@@ -61,7 +61,7 @@ Templates are starting points; staff can edit all fields before sending.
 
 ## Sending behavior
 
-### Configured (`DISCORD_BOT_TOKEN` + `DISCORD_GUILD_ID`)
+### Configured (`DISCORD_BANK_BOT_TOKEN` + `DISCORD_BANK_GUILD_ID`)
 
 - `sendDiscordEmbedRecord` server function posts to Discord REST API:
   `POST https://discord.com/api/v10/channels/{channelId}/messages`

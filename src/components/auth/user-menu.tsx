@@ -20,6 +20,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAccountMenuItems } from "@/lib/account/account-menu-config";
 import { resolveSiteInternalLink } from "@/components/site/site-internal-link";
 import { readRequestHost } from "@/lib/site/site-context";
+import {
+  formatAltaUserDisplayName,
+  formatAltaUserInitials,
+} from "@/lib/auth/user-display";
 
 export function AuthUserMenu() {
   const user = useCurrentUser();
@@ -40,7 +44,8 @@ export function AuthUserMenu() {
     );
   }
 
-  const initials = user.discordUsername.slice(0, 2).toUpperCase();
+  const displayName = formatAltaUserDisplayName(user);
+  const initials = formatAltaUserInitials(user);
   const showInternal = canAccessAnyInternal(user);
   const menuItems = getAccountMenuItems(site.key, { showInternal });
 
@@ -71,7 +76,7 @@ export function AuthUserMenu() {
       >
         Account
         <Avatar className="size-7 border border-border/60">
-          {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.discordUsername} /> : null}
+          {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={displayName} /> : null}
           <AvatarFallback className="bg-surface-2 text-[10px] font-medium">{initials}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -83,7 +88,7 @@ export function AuthUserMenu() {
         }}
       >
         <DropdownMenuLabel className="font-normal">
-          <div className="truncate text-sm font-medium">{user.discordUsername}</div>
+          <div className="truncate text-sm font-medium">{displayName}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {menuItems.map((item) => {

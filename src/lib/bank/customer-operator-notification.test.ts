@@ -71,17 +71,17 @@ describe("customer operator notification copy", () => {
 });
 
 describe("customer operator Discord delivery", () => {
-  const originalBotToken = process.env.DISCORD_BOT_TOKEN;
+  const originalBotToken = process.env.DISCORD_BANK_BOT_TOKEN;
   const originalBotSecret = process.env.BOT_API_SECRET;
 
   beforeEach(() => {
-    delete process.env.DISCORD_BOT_TOKEN;
+    delete process.env.DISCORD_BANK_BOT_TOKEN;
     delete process.env.BOT_API_SECRET;
   });
 
   afterEach(() => {
-    if (originalBotToken === undefined) delete process.env.DISCORD_BOT_TOKEN;
-    else process.env.DISCORD_BOT_TOKEN = originalBotToken;
+    if (originalBotToken === undefined) delete process.env.DISCORD_BANK_BOT_TOKEN;
+    else process.env.DISCORD_BANK_BOT_TOKEN = originalBotToken;
     if (originalBotSecret === undefined) delete process.env.BOT_API_SECRET;
     else process.env.BOT_API_SECRET = originalBotSecret;
   });

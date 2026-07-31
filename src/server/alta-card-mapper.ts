@@ -20,21 +20,22 @@ import type {
   AltaCardTypeCode,
   AltaEmployeeCardRow,
 } from "@/lib/bank/alta-card-types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 export const altaCardTransactionInclude = {
   merchantCompany: { select: { name: true } },
-  createdBy: { select: { discordUsername: true } },
+  createdBy: { select: { discordUsername: true, minecraftUsername: true } },
   altaEmployeeCard: {
-    include: { authorizedUser: { select: { discordUsername: true, id: true } } },
+    include: { authorizedUser: { select: { discordUsername: true, minecraftUsername: true, id: true } } },
   },
 } satisfies Prisma.AltaCardTransactionInclude;
 
 export const altaCardInclude = {
-  owner: { select: { discordUsername: true } },
+  owner: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { name: true } },
   employeeCards: {
     include: {
-      authorizedUser: { select: { discordUsername: true } },
+      authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" as const },
@@ -42,10 +43,10 @@ export const altaCardInclude = {
 } satisfies Prisma.AltaCardInclude;
 
 export const altaCardApplicationInclude = {
-  applicant: { select: { discordUsername: true } },
+  applicant: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { name: true } },
   card: { select: { id: true, status: true } },
-  thread: { include: { assignedStaff: { select: { discordUsername: true } } } },
+  thread: { include: { assignedStaff: { select: { discordUsername: true, minecraftUsername: true } } } },
 } satisfies Prisma.AltaCardApplicationInclude;
 
 type DbAltaCard = Prisma.AltaCardGetPayload<{ include: typeof altaCardInclude }>;
@@ -120,7 +121,7 @@ function decimalToNumber(value: Prisma.Decimal): number {
 export function mapAltaEmployeeCardRow(
   row: Prisma.AltaEmployeeCardGetPayload<{
     include: {
-      authorizedUser: { select: { discordUsername: true } };
+      authorizedUser: { select: { discordUsername: true; minecraftUsername: true } };
       company: { select: { name: true } };
     };
   }>,
@@ -130,7 +131,7 @@ export function mapAltaEmployeeCardRow(
     companyId: row.companyId,
     companyName: row.company.name,
     authorizedUserId: row.authorizedUserId,
-    authorizedUsername: row.authorizedUser.discordUsername,
+    authorizedUsername: formatAltaUserHandle(row.authorizedUser),
     parentBusinessCardId: row.parentBusinessCardId,
     status: toAltaCardStatusCode(row.status),
     employeeSpendLimit: decimalToNumber(row.employeeSpendLimit),
@@ -148,7 +149,7 @@ export function mapAltaCardRow(row: DbAltaCard): AltaCardRow {
   return {
     id: row.id,
     ownerUserId: row.ownerUserId,
-    ownerUsername: row.owner?.discordUsername ?? null,
+    ownerUsername: row.owner ? formatAltaUserHandle(row.owner) : null,
     companyId: row.companyId,
     companyName: row.company?.name ?? null,
     applicationId: row.applicationId,
@@ -200,9 +201,10 @@ export function mapAltaCardTransactionRow(row: DbAltaCardTransaction): AltaCardT
     row.altaEmployeeCard?.authorizedUser.id ??
     (typeof metadata?.spenderUserId === "string" ? metadata.spenderUserId : row.createdByUserId);
   const spenderUsername =
-    row.altaEmployeeCard?.authorizedUser.discordUsername ??
-    row.createdBy?.discordUsername ??
-    null;
+    (row.altaEmployeeCard?.authorizedUser
+      ? formatAltaUserHandle(row.altaEmployeeCard.authorizedUser)
+      : null) ??
+    (row.createdBy ? formatAltaUserHandle(row.createdBy) : null);
 
   return {
     id: row.id,
@@ -219,7 +221,7 @@ export function mapAltaCardTransactionRow(row: DbAltaCardTransaction): AltaCardT
     relatedAltaPayPaymentId: row.relatedAltaPayPaymentId,
     referenceCode: row.referenceCode,
     createdByUserId: row.createdByUserId,
-    createdByUsername: row.createdBy?.discordUsername ?? null,
+    createdByUsername: row.createdBy ? formatAltaUserHandle(row.createdBy) : null,
     spenderUserId,
     spenderUsername,
     employeeCardLastFour: row.altaEmployeeCard?.cardLastFour ?? null,
@@ -235,7 +237,7 @@ export function mapAltaCardApplicationRow(row: DbAltaCardApplication): AltaCardA
   return {
     id: row.id,
     applicantUserId: row.applicantUserId,
-    applicantUsername: row.applicant.discordUsername,
+    applicantUsername: formatAltaUserHandle(row.applicant),
     companyId: row.companyId,
     companyName: row.company?.name ?? null,
     cardType: toAltaCardTypeCode(row.cardType),
@@ -278,7 +280,9 @@ export function mapInternalAltaCardApplicationDetail(
   return {
     ...base,
     threadStatus,
-    assignedStaffName: row.thread?.assignedStaff?.discordUsername ?? null,
+    assignedStaffName: row.thread?.assignedStaff
+      ? formatAltaUserHandle(row.thread.assignedStaff)
+      : null,
   };
 }
 
@@ -290,6 +294,8 @@ export function mapAltaCardApplicationDetail(row: DbAltaCardApplication): import
   return {
     ...base,
     threadStatus,
-    assignedStaffName: row.thread?.assignedStaff?.discordUsername ?? null,
+    assignedStaffName: row.thread?.assignedStaff
+      ? formatAltaUserHandle(row.thread.assignedStaff)
+      : null,
   };
 }

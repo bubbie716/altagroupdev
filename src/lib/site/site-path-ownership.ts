@@ -21,13 +21,13 @@ const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
 /** Paths available on every site (content may vary by site context). */
 const SHARED_PATH_PREFIXES = [
   "/legal",
+  "/onboarding",
   "/support",
   "/maintenance",
   "/access-restricted",
   "/pay",
   "/discord",
   "/status",
-  "/profile",
   "/companies",
   "/internal",
   "/dashboard",

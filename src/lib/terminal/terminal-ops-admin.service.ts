@@ -11,6 +11,7 @@ import type {
   TerminalOpsPortfolioRow,
 } from "@/lib/terminal/terminal-ops-types";
 import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 function isMissingTerminalPortfolioTable(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -23,7 +24,7 @@ export async function listTerminalOpsPortfoliosFromDb(): Promise<TerminalOpsPort
     const rows = await prisma.terminalPortfolio.findMany({
       include: {
         ownerCompany: { select: { id: true, name: true } },
-        ownerUser: { select: { id: true, discordUsername: true } },
+        ownerUser: { select: { id: true, discordUsername: true, minecraftUsername: true } },
         cashAccount: { select: { availableCash: true } },
         orders: {
           where: { status: { in: ["OPEN", "PARTIAL"] } },
@@ -37,7 +38,7 @@ export async function listTerminalOpsPortfoliosFromDb(): Promise<TerminalOpsPort
       const ownerType = row.ownerType === "PERSONAL" ? ("personal" as const) : ("company" as const);
       const ownerLabel =
         ownerType === "personal"
-          ? (row.ownerUser?.discordUsername ?? "Individual")
+          ? (row.ownerUser ? formatAltaUserHandle(row.ownerUser) : null) || "Individual"
           : (row.ownerCompany?.name ?? "Company");
       return {
         id: row.id,
@@ -75,7 +76,7 @@ export async function listTerminalOpsOrdersFromDb(): Promise<TerminalOpsOrderRow
           name: true,
           ownerUserId: true,
           ownerCompanyId: true,
-          ownerUser: { select: { discordUsername: true } },
+          ownerUser: { select: { discordUsername: true, minecraftUsername: true } },
           ownerCompany: { select: { name: true } },
         },
       },
@@ -85,7 +86,9 @@ export async function listTerminalOpsOrdersFromDb(): Promise<TerminalOpsOrderRow
   });
   return orders.map((order) => {
     const investorLabel =
-      order.portfolio.ownerUser?.discordUsername ??
+      (order.portfolio.ownerUser
+        ? formatAltaUserHandle(order.portfolio.ownerUser)
+        : null) ??
       order.portfolio.ownerCompany?.name ??
       "Unknown investor";
     return {

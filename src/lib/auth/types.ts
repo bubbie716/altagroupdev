@@ -50,6 +50,19 @@ export interface AltaUser {
   avatarUrl: string | null;
   email: string | null;
   minecraftUsername: string | null;
+  /** Formal Minecraft UUID — only set after Phase 2 verification. Never inferred from username. */
+  minecraftUuid: string | null;
+  /** ISO timestamp of Minecraft verification. Null means not verified. */
+  minecraftVerifiedAt: string | null;
+  /** ISO timestamp of 13+ eligibility self-attestation. */
+  eligibilityConfirmedAt: string | null;
+  /** ISO timestamp of core legal + eligibility completion. Phase 1 gate uses this. */
+  coreOnboardingCompletedAt: string | null;
+  /**
+   * ISO timestamp of full unified onboarding completion.
+   * Phase 1 does not set this while Minecraft verification remains outstanding.
+   */
+  onboardingCompletedAt: string | null;
   /** Backend tags (bank_admin, terminal_admin, …). Not shown as “roles” in the UI. */
   tags: UserTag[];
   accountStatus: AccountStatus;

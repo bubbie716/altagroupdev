@@ -1,19 +1,13 @@
 import { canAccessBankInternal } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
 import {
-  DISCORD_CHANNELS,
-  type DiscordEmbedDraft,
-  type DiscordEmbedPayload,
-  type SendDiscordEmbedResult,
+  DISCORD_SERVERS,
+  type DiscordMessageDraft,
+  type DiscordServerKey,
+  type SendDiscordMessageResult,
 } from "@/lib/discord/embed-types";
-import {
-  hexToDiscordColor,
-  isValidDiscordChannelId,
-  isValidHttpUrl,
-  normalizeChannelId,
-  resolveEmbedColorHex,
-} from "@/lib/discord/embed-utils";
-import { validateEmbedDraft } from "@/lib/discord/embed-validation";
+import { isValidDiscordChannelId, normalizeChannelId } from "@/lib/discord/embed-utils";
+import { validateMessageDraft } from "@/lib/discord/embed-validation";
 import { readCookie, getSessionCookieName } from "@/server/session";
 import { loadUserBySessionToken } from "@/server/session.service";
 
@@ -24,118 +18,43 @@ type DiscordBotConfig = {
   guildId: string;
 };
 
-function trim(value: string): string {
-  return value.trim();
-}
-
-function optionalUrl(value: string): string | undefined {
-  const trimmed = trim(value);
-  return trimmed && isValidHttpUrl(trimmed) ? trimmed : undefined;
-}
-
+/** Shared Bank bot used by deal rooms, DMs, staff audit, guild roles. */
 export function getDiscordBotConfig(): DiscordBotConfig | null {
-  const botToken = process.env.DISCORD_BOT_TOKEN?.trim();
-  const guildId = process.env.DISCORD_GUILD_ID?.trim();
+  const botToken = process.env.DISCORD_BANK_BOT_TOKEN?.trim();
+  const guildId = process.env.DISCORD_BANK_GUILD_ID?.trim();
   if (!botToken || !guildId) return null;
   return { botToken, guildId };
 }
 
-export function isDiscordSendingConfigured(): boolean {
-  return getDiscordBotConfig() !== null;
+export type DiscordServerConfig = {
+  key: DiscordServerKey;
+  label: string;
+  configured: boolean;
+};
+
+function readCommunicationsBotToken(serverKey: DiscordServerKey): string | null {
+  const server = DISCORD_SERVERS.find((item) => item.key === serverKey);
+  if (!server) return null;
+  return process.env[server.envKey]?.trim() || null;
 }
 
-export function listChannelPresets(): { label: string; channelId: string }[] {
-  return DISCORD_CHANNELS.map((channel) => ({
-    label: channel.label,
-    channelId: process.env[channel.envKey]?.trim() || channel.mockId,
+/** Communications bots — Corporate / Terminal / Bank. */
+export function listDiscordServers(): DiscordServerConfig[] {
+  return DISCORD_SERVERS.map((server) => ({
+    key: server.key,
+    label: server.label,
+    configured: Boolean(readCommunicationsBotToken(server.key)),
   }));
+}
+
+export function isDiscordSendingConfigured(): boolean {
+  return DISCORD_SERVERS.some((server) => Boolean(readCommunicationsBotToken(server.key)));
 }
 
 export function resolveChannelId(channelId: string): string {
   const normalized = normalizeChannelId(channelId);
   if (!isValidDiscordChannelId(normalized)) throw new Error("INVALID_CHANNEL");
   return normalized;
-}
-
-export function buildDiscordEmbedPayload(draft: DiscordEmbedDraft): Record<string, unknown> {
-  const embed: Record<string, unknown> = {
-    color: hexToDiscordColor(resolveEmbedColorHex(draft)),
-  };
-
-  const title = trim(draft.title);
-  const description = trim(draft.description);
-  const url = optionalUrl(draft.url);
-  const authorName = trim(draft.authorName);
-  const footerText = trim(draft.footerText);
-
-  if (title) embed.title = title;
-  if (description) embed.description = description;
-  if (url) embed.url = url;
-
-  const authorIcon = optionalUrl(draft.authorIconUrl);
-  if (authorName || authorIcon) {
-    embed.author = {
-      ...(authorName ? { name: authorName.slice(0, 256) } : {}),
-      ...(authorIcon ? { icon_url: authorIcon } : {}),
-    };
-  }
-
-  const thumbnail = optionalUrl(draft.thumbnailUrl);
-  if (thumbnail) embed.thumbnail = { url: thumbnail };
-
-  const image = optionalUrl(draft.imageUrl);
-  if (image) embed.image = { url: image };
-
-  const fields = draft.fields
-    .filter((field) => trim(field.name) && trim(field.value))
-    .map((field) => ({
-      name: trim(field.name).slice(0, 256),
-      value: trim(field.value).slice(0, 1024),
-      inline: field.inline,
-    }));
-
-  if (fields.length > 0) embed.fields = fields;
-
-  const footerIcon = optionalUrl(draft.footerIconUrl);
-  if (footerText || footerIcon) {
-    embed.footer = {
-      ...(footerText ? { text: footerText.slice(0, 2048) } : {}),
-      ...(footerIcon ? { icon_url: footerIcon } : {}),
-    };
-  }
-
-  if (draft.includeTimestamp) {
-    embed.timestamp = new Date().toISOString();
-  }
-
-  return embed;
-}
-
-export function buildDiscordButtonComponents(
-  draft: DiscordEmbedDraft,
-): Record<string, unknown>[] | undefined {
-  const buttons = draft.buttons.filter((b) => trim(b.label) && optionalUrl(b.url));
-  if (buttons.length === 0) return undefined;
-
-  return [
-    {
-      type: 1,
-      components: buttons.slice(0, 5).map((button) => ({
-        type: 2,
-        style: 5,
-        label: trim(button.label).slice(0, 80),
-        url: optionalUrl(button.url),
-      })),
-    },
-  ];
-}
-
-export function buildSendPayload(draft: DiscordEmbedDraft): DiscordEmbedPayload {
-  return {
-    channelId: resolveChannelId(draft.channelId),
-    embed: buildDiscordEmbedPayload(draft),
-    components: buildDiscordButtonComponents(draft),
-  };
 }
 
 export async function requireOperatorFromRequest(request: Request): Promise<AltaUser> {
@@ -153,14 +72,14 @@ export async function requireOperatorFromRequest(request: Request): Promise<Alta
 }
 
 async function postDiscordMessage(
-  config: DiscordBotConfig,
+  botToken: string,
   channelId: string,
   body: Record<string, unknown>,
 ): Promise<string> {
   const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: "POST",
     headers: {
-      Authorization: `Bot ${config.botToken}`,
+      Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -175,47 +94,55 @@ async function postDiscordMessage(
   return data.id ?? "unknown";
 }
 
-export async function sendDiscordEmbed(draft: DiscordEmbedDraft): Promise<SendDiscordEmbedResult> {
-  const validation = validateEmbedDraft(draft);
+export async function sendDiscordMessage(
+  draft: DiscordMessageDraft,
+): Promise<SendDiscordMessageResult> {
+  const validation = validateMessageDraft(draft);
   if (!validation.valid) {
     return {
       ok: false,
       mode: "simulated",
-      message: "Embed validation failed.",
+      message: "Message validation failed.",
       validationErrors: validation.errors,
     };
   }
 
-  const payload = buildSendPayload(draft);
-  const config = getDiscordBotConfig();
+  const serverKey = draft.serverKey as DiscordServerKey;
+  const channelId = resolveChannelId(draft.channelId);
+  const content = draft.content.trim();
+  const botToken = readCommunicationsBotToken(serverKey);
+  const serverLabel =
+    DISCORD_SERVERS.find((server) => server.key === serverKey)?.label ?? serverKey;
 
-  if (!config) {
+  if (!botToken) {
     return {
       ok: true,
       mode: "simulated",
-      message: "Embed validated. Discord sending is not configured.",
+      message: `Message validated. ${serverLabel} bot token is not configured.`,
     };
   }
 
-  const body: Record<string, unknown> = {
-    embeds: [payload.embed],
-  };
-  if (payload.components) body.components = payload.components;
-
-  const messageId = await postDiscordMessage(config, payload.channelId, body);
+  const messageId = await postDiscordMessage(botToken, channelId, { content });
 
   return {
     ok: true,
     mode: "sent",
-    message: "Embed sent to Discord.",
+    message: `Message sent via ${serverLabel} bot.`,
     messageId,
   };
 }
 
+/** @deprecated Use sendDiscordMessage. */
+export async function sendDiscordEmbed(
+  draft: DiscordMessageDraft,
+): Promise<SendDiscordMessageResult> {
+  return sendDiscordMessage(draft);
+}
+
 export async function handleDiscordEmbedRequest(
   request: Request,
-  draft: DiscordEmbedDraft,
-): Promise<SendDiscordEmbedResult> {
+  draft: DiscordMessageDraft,
+): Promise<SendDiscordMessageResult> {
   await requireOperatorFromRequest(request);
-  return sendDiscordEmbed(draft);
+  return sendDiscordMessage(draft);
 }

@@ -29,7 +29,6 @@ export const BANK_STATIC_ROUTES = [
   "/bank/business/payments",
   "/bank/business/payroll",
   "/bank/credit-desk-closed",
-  "/profile",
 ] as const;
 
 /** Static internal console routes. */

@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   PAYMENT_LINK_PAY_REFERENCE_PREFIX,
   type PayPaymentLinkInput,
@@ -158,7 +159,7 @@ export async function payPaymentLink(
   const fees = await quotePaymentLinkFees(grossAmount, link.merchantCompanyId);
   const referenceBase = generatePaymentReferenceBase();
   const source = auditContext?.source ?? "website";
-  const payerLabel = user.minecraftUsername?.trim() || user.discordUsername;
+  const payerLabel = formatAltaUserHandle(user);
   const memo = `Payment link ${link.referenceCode}`;
 
   let fundingSourceLabel = selectedFunding.label;
@@ -261,7 +262,7 @@ export async function payPaymentLink(
           referenceBase,
           user,
           cardId: input.fundingSource.cardId,
-          payerLabel: user.discordUsername,
+          payerLabel,
           companyId: locked.merchantCompanyId,
           companyName: locked.merchantCompany.name,
           destinationAccountId: locked.destinationAccountId,
@@ -275,11 +276,11 @@ export async function payPaymentLink(
             feeAmount: fees.feeAmount,
             netAmount: fees.netAmount,
           },
-          inDescription: `Payment link from ${user.discordUsername}`,
+          inDescription: `Payment link from ${payerLabel}`,
         });
         settlement = cardSettlement;
         fundingSourceLabel = cardSettlement.fundingSourceLabel;
-        resolvedPayerLabel = user.discordUsername;
+        resolvedPayerLabel = payerLabel;
       }
 
       paymentId = settlement.paymentId;

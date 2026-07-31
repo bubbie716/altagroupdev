@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Building2, Shield, User } from "lucide-react";
+import { Building2, Shield } from "lucide-react";
 import type { SiteKey } from "@/config/sites";
 import { getSiteConfig } from "@/config/sites";
 
@@ -14,7 +14,6 @@ export function getAccountMenuItems(
   options: { showInternal: boolean },
 ): AccountMenuItem[] {
   const items: AccountMenuItem[] = [
-    { label: "Profile", to: "/profile", icon: User },
     { label: "Companies", to: "/companies", icon: Building2 },
   ];
 

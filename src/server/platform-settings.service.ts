@@ -1,4 +1,5 @@
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   canAccessBankInternal,
   canBypassMaintenanceMode,
@@ -220,9 +221,9 @@ export async function getMaintenanceMode(): Promise<MaintenanceModeState> {
     if (updatedById) {
       const updater = await prisma.user.findUnique({
         where: { id: updatedById },
-        select: { discordUsername: true },
+        select: { discordUsername: true, minecraftUsername: true },
       });
-      updatedByUsername = updater?.discordUsername ?? null;
+      updatedByUsername = updater ? formatAltaUserHandle(updater) : null;
     }
 
     const latestRow = [...settings.values()].sort(
@@ -440,9 +441,9 @@ export async function getCreditDeskState(): Promise<CreditDeskState> {
     if (updatedById) {
       const updater = await prisma.user.findUnique({
         where: { id: updatedById },
-        select: { discordUsername: true },
+        select: { discordUsername: true, minecraftUsername: true },
       });
-      updatedByUsername = updater?.discordUsername ?? null;
+      updatedByUsername = updater ? formatAltaUserHandle(updater) : null;
     }
 
     const latestRow = [...settings.values()].sort(

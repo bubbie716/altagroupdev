@@ -1,23 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
-import type { DiscordEmbedDraft, SendDiscordEmbedResult } from "@/lib/discord/embed-types";
+import type { DiscordMessageDraft, SendDiscordMessageResult } from "@/lib/discord/embed-types";
 
 export const sendDiscordEmbedRecord = createServerFn({ method: "POST" })
-  .inputValidator((input: DiscordEmbedDraft) => input)
-  .handler(async ({ data }): Promise<SendDiscordEmbedResult> => {
+  .inputValidator((input: DiscordMessageDraft) => input)
+  .handler(async ({ data }): Promise<SendDiscordMessageResult> => {
     const { requireOperator } = await import("@/server/permissions.service");
     const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
-    const { sendDiscordEmbed } = await import("@/server/discord-embed.service");
+    const { sendDiscordMessage } = await import("@/server/discord-embed.service");
     await requireOperator();
-    assertNotUiLabMutation("Discord embed send");
-    return sendDiscordEmbed(data);
+    assertNotUiLabMutation("Discord message send");
+    return sendDiscordMessage(data);
   });
 
 export const fetchDiscordEmbedConfig = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOperator } = await import("@/server/permissions.service");
-  const { isDiscordSendingConfigured, listChannelPresets } = await import("@/server/discord-embed.service");
+  const { isDiscordSendingConfigured, listDiscordServers } = await import(
+    "@/server/discord-embed.service"
+  );
   await requireOperator();
   return {
     sendingConfigured: isDiscordSendingConfigured(),
-    channelPresets: listChannelPresets(),
+    servers: listDiscordServers(),
   };
 });

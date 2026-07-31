@@ -31,7 +31,6 @@ describe("resolveRouteSkeleton", () => {
   });
 
   it("maps account and corporate surfaces", () => {
-    assert.equal(skeletonName("/profile"), "SkeletonAccountSurface");
     assert.equal(skeletonName("/companies"), "SkeletonAccountSurface");
     assert.equal(skeletonName("/support"), "SkeletonCorporatePage");
   });

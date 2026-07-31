@@ -20,6 +20,7 @@ import { getRoutingNumber } from "@/lib/bank/routing";
 import { formatBankTransactionTypeLabel } from "@/lib/bank/transaction-display";
 import { formatMonthlyInterestRateLabel } from "@/lib/bank/account-interest-service";
 import { buildCustomerAccountStatus } from "@/lib/bank/account-status-copy";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 
 const ACCOUNT_TYPE_TO_DB: Record<BankAccountTypeCode, DbBankAccountType> = {
   alta_access: "ALTA_ACCESS",
@@ -193,7 +194,7 @@ type BankTransactionRecord = {
   bankAccount: {
     accountName: string;
     accountNumber: string;
-    user: { discordUsername: string };
+    user: { discordUsername: string; minecraftUsername?: string | null };
     company?: { name: string } | null;
   };
 };
@@ -226,13 +227,14 @@ export function mapUserBankTransaction(tx: BankTransactionRecord): UserBankTrans
 }
 
 export function mapInternalBankAccountRow(account: BankAccountRecord & {
-  user: { discordUsername: string };
+  user: { discordUsername: string; minecraftUsername?: string | null };
 }): InternalBankAccountRow {
   const accountType = fromDbBankAccountType(account.accountType);
   const status = fromDbBankAccountStatus(account.status);
+  const userHandle = formatAltaUserHandle(account.user);
   const holder = account.company?.name
-    ? `${account.user.discordUsername} · ${account.company.name}`
-    : account.user.discordUsername;
+    ? `${userHandle} · ${account.company.name}`
+    : userHandle;
 
   return {
     id: account.id,
@@ -250,9 +252,10 @@ export function mapInternalBankAccountRow(account: BankAccountRecord & {
 export function mapInternalBankTransactionRow(tx: BankTransactionRecord): InternalBankTransactionRow {
   const type = fromDbBankTransactionType(tx.type);
   const status = fromDbBankTransactionStatus(tx.status);
+  const userHandle = formatAltaUserHandle(tx.bankAccount.user);
   const holder = tx.bankAccount.company?.name
-    ? `${tx.bankAccount.user.discordUsername} · ${tx.bankAccount.company.name}`
-    : tx.bankAccount.user.discordUsername;
+    ? `${userHandle} · ${tx.bankAccount.company.name}`
+    : userHandle;
 
   return {
     id: tx.id,

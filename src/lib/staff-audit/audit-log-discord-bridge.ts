@@ -64,6 +64,23 @@ const DISCORD_SKIP_ACTIONS = new Set([
 ]);
 
 const ACTION_LABELS: Record<string, string> = {
+  ONBOARDING_ELIGIBILITY_CONFIRMED: "Eligibility confirmed",
+  ONBOARDING_CORE_LEGAL_ACCEPTED: "Core legal bundle accepted",
+  ONBOARDING_CORE_COMPLETED: "Core onboarding completed",
+  BANK_TERMS_ACCEPTED: "Bank terms accepted",
+  TERMINAL_TERMS_ACCEPTED: "Terminal terms accepted",
+  ALTA_PAY_TERMS_ACCEPTED: "Alta Pay terms accepted",
+  ALTA_CARD_TERMS_ACKNOWLEDGED: "Alta Card terms acknowledged",
+  LENDING_TERMS_ACKNOWLEDGED: "Lending terms acknowledged",
+  COMMERCIAL_TERMS_ACCEPTED: "Commercial terms accepted for company",
+  PRODUCT_CONSENT_REACCEPTED: "Product terms updated/reaccepted",
+  MINECRAFT_CHALLENGE_CREATED: "Minecraft challenge created",
+  MINECRAFT_CHALLENGE_REGENERATED: "Minecraft challenge regenerated",
+  MINECRAFT_LOCATION_CHECK_ATTEMPTED: "Minecraft location check attempted",
+  MINECRAFT_VERIFICATION_COMPLETED: "Minecraft verification completed",
+  MINECRAFT_CHALLENGE_EXPIRED: "Minecraft challenge expired",
+  MINECRAFT_VERIFICATION_RESET: "Minecraft verification reset by staff",
+  MINECRAFT_REVERIFICATION_REQUIRED: "Minecraft reverification required",
   BANK_ACCOUNT_OPENED: "Account opened",
   BANK_DEPOSIT_REQUEST_SUBMITTED: "Deposit request submitted",
   BANK_DEPOSIT_REQUEST_FAILED: "Deposit request failed",

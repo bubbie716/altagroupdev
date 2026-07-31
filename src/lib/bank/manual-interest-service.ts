@@ -18,6 +18,7 @@ import type {
   ManualInterestPreviewResult,
 } from "@/lib/bank/manual-interest-types";
 import { MANUAL_INTEREST_CATEGORY_OPTIONS } from "@/lib/bank/manual-interest-types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { fromDbBankAccountStatus, fromDbBankAccountType, toDbBankAccountType } from "@/server/bank-mapper";
 import { prisma } from "@/server/db";
 
@@ -32,7 +33,7 @@ const ALL_ELIGIBLE_TYPES: BankAccountTypeCode[] = [
 ];
 
 type AccountRecord = BankAccount & {
-  user: { discordUsername: string };
+  user: { discordUsername: string; minecraftUsername?: string | null };
   company: { name: string } | null;
 };
 
@@ -48,9 +49,10 @@ function formatStatusLabel(status: BankAccountStatusCode): string {
 }
 
 function ownerLabelForAccount(account: AccountRecord): string {
+  const userHandle = formatAltaUserHandle(account.user);
   return account.company?.name
-    ? `${account.user.discordUsername} · ${account.company.name}`
-    : account.user.discordUsername;
+    ? `${userHandle} · ${account.company.name}`
+    : userHandle;
 }
 
 export function generateManualInterestBatchReference(): string {
@@ -217,7 +219,7 @@ async function fetchCandidateAccounts(
       status: "ACTIVE",
     },
     include: {
-      user: { select: { discordUsername: true } },
+      user: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
     },
     orderBy: [{ accountType: "asc" }, { accountName: "asc" }],
@@ -342,7 +344,7 @@ export async function applyManualInterestApplication(
       const account = await prisma.bankAccount.findUnique({
         where: { id: row.accountId },
         include: {
-          user: { select: { discordUsername: true } },
+          user: { select: { discordUsername: true, minecraftUsername: true } },
           company: { select: { name: true } },
         },
       });

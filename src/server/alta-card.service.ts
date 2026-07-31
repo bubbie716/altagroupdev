@@ -29,6 +29,7 @@ import { canAccessBankInternal,
   canManageCompanyAltaCard,
 } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 import { writeAuditLog } from "@/server/audit.service";
 import { mapDbUserToAltaUser, userWithMembershipsInclude } from "@/server/user-mapper";
@@ -278,7 +279,7 @@ export async function getCompanyAltaCards(userId: string, companyId: string): Pr
     prisma.altaEmployeeCard.findMany({
       where: { companyId, status: { not: "CLOSED" } },
       include: {
-        authorizedUser: { select: { discordUsername: true } },
+        authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
         company: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -302,7 +303,7 @@ export async function getCompanyAltaCards(userId: string, companyId: string): Pr
     const refreshedEmployees = await prisma.altaEmployeeCard.findMany({
       where: { companyId, status: { not: "CLOSED" } },
       include: {
-        authorizedUser: { select: { discordUsername: true } },
+        authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
         company: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -333,7 +334,7 @@ export async function listCompanyEmployeeCardMemberOptions(
   const [memberships, activeEmployeeCards] = await Promise.all([
     prisma.companyMembership.findMany({
       where: { companyId },
-      include: { user: { select: { id: true, discordUsername: true } } },
+      include: { user: { select: { id: true, discordUsername: true, minecraftUsername: true } } },
       orderBy: { user: { discordUsername: "asc" } },
     }),
     prisma.altaEmployeeCard.findMany({
@@ -346,7 +347,7 @@ export async function listCompanyEmployeeCardMemberOptions(
 
   return memberships.map((membership) => ({
     userId: membership.userId,
-    username: membership.user.discordUsername,
+    username: formatAltaUserHandle(membership.user),
     role: membership.role.toLowerCase(),
     hasActiveEmployeeCard: activeCardUserIds.has(membership.userId),
   }));
@@ -735,7 +736,7 @@ export async function createEmployeeCard(
         openedAt: new Date(),
       },
       include: {
-        authorizedUser: { select: { discordUsername: true } },
+        authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
         company: { select: { name: true } },
       },
     });
@@ -749,7 +750,7 @@ export async function createEmployeeCard(
     action: "ALTA_EMPLOYEE_CARD_CREATED",
     entityType: "ALTA_CARD",
     entityId: employeeCard.id,
-    description: `Employee Alta Card created for ${employeeCard.authorizedUser.discordUsername}`,
+    description: `Employee Alta Card created for ${formatAltaUserHandle(employeeCard.authorizedUser)}`,
     targetUserId: input.authorizedUserId,
     targetCompanyId: input.companyId,
     metadata: {
@@ -768,7 +769,7 @@ export async function updateEmployeeCardLimit(
   const employeeCard = await prisma.altaEmployeeCard.findUnique({
     where: { id: input.employeeCardId },
     include: {
-      authorizedUser: { select: { discordUsername: true } },
+      authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
       parentBusinessCard: true,
     },
@@ -808,7 +809,7 @@ export async function updateEmployeeCardLimit(
         employeeAvailableLimit: toDecimal(available),
       },
       include: {
-        authorizedUser: { select: { discordUsername: true } },
+        authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
         company: { select: { name: true } },
       },
     });
@@ -842,7 +843,7 @@ export async function freezeEmployeeCard(
   const employeeCard = await prisma.altaEmployeeCard.findUnique({
     where: { id: employeeCardId },
     include: {
-      authorizedUser: { select: { discordUsername: true } },
+      authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
     },
   });
@@ -859,7 +860,7 @@ export async function freezeEmployeeCard(
     where: { id: employeeCardId },
     data: { status: "FROZEN" },
     include: {
-      authorizedUser: { select: { discordUsername: true } },
+      authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
     },
   });
@@ -884,7 +885,7 @@ export async function closeEmployeeCard(
   const employeeCard = await prisma.altaEmployeeCard.findUnique({
     where: { id: employeeCardId },
     include: {
-      authorizedUser: { select: { discordUsername: true } },
+      authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { name: true } },
       parentBusinessCard: { select: { id: true } },
     },
@@ -903,7 +904,7 @@ export async function closeEmployeeCard(
       where: { id: employeeCardId },
       data: { status: "CLOSED", closedAt: new Date() },
       include: {
-        authorizedUser: { select: { discordUsername: true } },
+        authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
         company: { select: { name: true } },
       },
     });
@@ -1078,7 +1079,7 @@ export async function listUserBusinessAltaCardCompanies(userId: string): Promise
 }
 
 const employeeCardListInclude = {
-  authorizedUser: { select: { discordUsername: true } },
+  authorizedUser: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { name: true } },
   parentBusinessCard: {
     select: {

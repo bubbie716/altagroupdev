@@ -75,41 +75,56 @@ export const fetchUserEmployeeAltaCardDetail = createServerFn({ method: "GET" })
 export const submitPersonalAltaCardApplication = createServerFn({ method: "POST" })
   .inputValidator((input: CreatePersonalAltaCardApplicationInput) => input)
   .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_card.apply");
     const { createPersonalAltaCardApplication } = await import("@/server/alta-card.service");
-    const userId = await actorId();
-    return createPersonalAltaCardApplication(userId, data);
+    return createPersonalAltaCardApplication(user.id, data);
   });
 
 export const submitBusinessAltaCardApplication = createServerFn({ method: "POST" })
   .inputValidator((input: CreateBusinessAltaCardApplicationInput) => input)
   .handler(async ({ data }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_card.apply");
     const { createBusinessAltaCardApplication } = await import("@/server/alta-card.service");
-    const userId = await actorId();
-    return createBusinessAltaCardApplication(userId, data);
+    return createBusinessAltaCardApplication(user.id, data);
   });
 
 export const activateAltaCardRecord = createServerFn({ method: "POST" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_card.activate");
     const { activateAltaCard } = await import("@/server/alta-card.service");
-    const userId = await actorId();
-    return activateAltaCard(userId, cardId);
+    return activateAltaCard(user.id, cardId);
   });
 
 export const freezeAltaCardRecord = createServerFn({ method: "POST" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_card.new_activity");
     const { freezeAltaCard } = await import("@/server/alta-card.service");
-    const userId = await actorId();
-    return freezeAltaCard(userId, cardId);
+    return freezeAltaCard(user.id, cardId);
   });
 
 export const unfreezeAltaCardRecord = createServerFn({ method: "POST" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
+    const { requireAuth } = await import("@/server/auth.service");
+    const user = await requireAuth();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "alta_card.new_activity");
     const { unfreezeAltaCard } = await import("@/server/alta-card.service");
-    const userId = await actorId();
-    return unfreezeAltaCard(userId, cardId);
+    return unfreezeAltaCard(user.id, cardId);
   });
 
 export const closeAltaCardRecord = createServerFn({ method: "POST" })

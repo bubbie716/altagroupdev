@@ -4,6 +4,7 @@
  */
 import type { AltaUser } from "@/lib/auth/types";
 import { isUiLabMode, UI_LAB_MOCK_USER } from "@/lib/auth/ui-lab";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import type { UserBankAccount, UserBankAccountDetail } from "@/lib/bank/backend-types";
 import type {
   CommercialBankingContext,
@@ -1450,6 +1451,7 @@ export function getUiLabRepresentatives(companyId: string): BusinessRepresentati
     {
       membershipId: `ui-lab-mem-${companyId}-owner`,
       userId: UI_LAB_MOCK_USER.id,
+      displayName: formatAltaUserHandle(UI_LAB_MOCK_USER),
       discordUsername: UI_LAB_MOCK_USER.discordUsername,
       role: "owner",
       roleLabel: COMPANY_ROLE_LABELS.owner,
@@ -1458,6 +1460,10 @@ export function getUiLabRepresentatives(companyId: string): BusinessRepresentati
     {
       membershipId: `ui-lab-mem-${companyId}-finance`,
       userId: "ui-lab-finance",
+      displayName: formatAltaUserHandle({
+        discordUsername: "maya.finance",
+        minecraftUsername: "MayaFinance",
+      }),
       discordUsername: "maya.finance",
       role: "finance_manager",
       roleLabel: COMPANY_ROLE_LABELS.finance_manager,
@@ -1466,6 +1472,10 @@ export function getUiLabRepresentatives(companyId: string): BusinessRepresentati
     {
       membershipId: `ui-lab-mem-${companyId}-exec`,
       userId: "ui-lab-exec",
+      displayName: formatAltaUserHandle({
+        discordUsername: "noah.exec",
+        minecraftUsername: "NoahExec",
+      }),
       discordUsername: "noah.exec",
       role: "executive",
       roleLabel: COMPANY_ROLE_LABELS.executive,

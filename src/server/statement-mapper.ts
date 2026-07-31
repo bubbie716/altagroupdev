@@ -1,5 +1,6 @@
 import type { BankStatement, BankStatementStatus, BankAccount, Company, User } from "@prisma/client";
 import type { BankStatementStatusCode, BankStatementDetail, BankStatementSummary } from "@/lib/bank/statement-types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { mapUserBankTransaction } from "@/server/bank-mapper";
 import { getRoutingNumber } from "@/lib/bank/routing";
 import { formatBankAccountTypeLabel } from "@/lib/bank/backend-types";
@@ -30,7 +31,7 @@ function decimalToNumber(value: { toString(): string }): number {
 
 function ownerLabel(account: BankAccount & { user: User; company: Company | null }): string {
   if (account.company) return account.company.name;
-  return account.user.discordUsername;
+  return formatAltaUserHandle(account.user);
 }
 
 export function mapBankStatementSummary(row: StatementWithAccount): BankStatementSummary {

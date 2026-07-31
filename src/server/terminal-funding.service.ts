@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import type {
   SubmitTerminalFundingTransferInput,
   TerminalFundingEligibility,
@@ -589,8 +590,7 @@ function mapFundingRow(
 ): TerminalFundingTransferRow {
   const ownerLabel =
     row.ownerCompany?.name ??
-    row.ownerUser?.minecraftUsername?.trim() ??
-    row.ownerUser?.discordUsername ??
+    (row.ownerUser ? formatAltaUserHandle(row.ownerUser) : null) ??
     "Owner";
   return {
     id: row.id,

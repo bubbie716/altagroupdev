@@ -10,6 +10,7 @@ import {
   useTerminalPointerGlow,
 } from "@/hooks/use-terminal-pointer-glow";
 import { useTheme } from "@/components/theme";
+import { formatAltaUserDisplayName } from "@/lib/auth/user-display";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +48,7 @@ export function TerminalSignInPage({
   const rootRef = useRef<HTMLDivElement>(null);
   useTerminalPointerGlow(rootRef);
 
-  const displayName = user
-    ? user.minecraftUsername?.trim() || user.discordUsername
-    : null;
+  const displayName = user ? formatAltaUserDisplayName(user) || null : null;
 
   return (
     <div

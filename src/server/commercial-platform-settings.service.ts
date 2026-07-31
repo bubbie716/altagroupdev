@@ -1,4 +1,5 @@
 import { canAccessBankInternal } from "@/lib/auth/permissions";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   COMMERCIAL_PLATFORM_SETTING_KEYS,
   DEFAULT_COMMERCIAL_PLATFORM_SETTINGS,
@@ -124,9 +125,9 @@ export async function getCommercialPlatformSettingsView(): Promise<CommercialPla
   if (updatedById) {
     const updater = await prisma.user.findUnique({
       where: { id: updatedById },
-      select: { discordUsername: true },
+      select: { discordUsername: true, minecraftUsername: true },
     });
-    updatedByUsername = updater?.discordUsername ?? null;
+    updatedByUsername = updater ? formatAltaUserHandle(updater) : null;
   }
 
   return {

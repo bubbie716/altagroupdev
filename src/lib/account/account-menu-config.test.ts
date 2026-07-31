@@ -3,12 +3,12 @@ import { describe, it } from "node:test";
 import { getAccountMenuItems } from "@/lib/account/account-menu-config";
 
 describe("account-menu-config", () => {
-  it("includes profile and companies on every site", () => {
+  it("includes companies on every site", () => {
     for (const siteKey of ["corporate", "bank", "exchange", "terminal"] as const) {
       const items = getAccountMenuItems(siteKey, { showInternal: false });
       assert.deepEqual(
         items.map((item) => item.to),
-        ["/profile", "/companies"],
+        ["/companies"],
       );
     }
   });
@@ -28,7 +28,7 @@ describe("account-menu-config", () => {
   it("omits internal link when access is denied", () => {
     assert.deepEqual(
       getAccountMenuItems("bank", { showInternal: false }).map((item) => item.to),
-      ["/profile", "/companies"],
+      ["/companies"],
     );
   });
 });

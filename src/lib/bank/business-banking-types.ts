@@ -119,6 +119,9 @@ export interface PayrollRunRow {
 export interface BusinessRepresentativeRow {
   membershipId: string;
   userId: string;
+  /** Primary display identity (Minecraft preferred). */
+  displayName: string;
+  /** Discord handle — designated Discord identity field. */
   discordUsername: string;
   role: CompanyRole;
   roleLabel: string;

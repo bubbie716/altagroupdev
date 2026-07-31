@@ -1,4 +1,5 @@
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import type {
   CreateRecurringInvoiceScheduleInput,
   RecurringInvoiceScheduleRow,
@@ -32,12 +33,15 @@ function decimalToNumber(value: { toString(): string }): number {
   return Number(value.toString());
 }
 
-function mapSchedule(row: MerchantRecurringInvoiceSchedule & { recipientUser?: { discordUsername: string } | null; recipientCompany?: { name: string } | null }): RecurringInvoiceScheduleRow {
+function mapSchedule(row: MerchantRecurringInvoiceSchedule & {
+  recipientUser?: { discordUsername: string; minecraftUsername?: string | null } | null;
+  recipientCompany?: { name: string } | null;
+}): RecurringInvoiceScheduleRow {
   const frequency = paymentFrequencyFromDb(row.frequency);
   const status = row.status === "ACTIVE" ? "active" : row.status === "PAUSED" ? "paused" : "cancelled";
   const recipientLabel =
     row.recipientCompany?.name ??
-    row.recipientUser?.discordUsername ??
+    (row.recipientUser ? formatAltaUserHandle(row.recipientUser) : null) ??
     "Recipient";
   return {
     id: row.id,
@@ -84,7 +88,7 @@ export async function listRecurringInvoiceSchedules(
   const rows = await prisma.merchantRecurringInvoiceSchedule.findMany({
     where: { merchantCompanyId: companyId, status: { not: "CANCELLED" } },
     include: {
-      recipientUser: { select: { discordUsername: true } },
+      recipientUser: { select: { discordUsername: true, minecraftUsername: true } },
       recipientCompany: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -134,7 +138,7 @@ export async function createRecurringInvoiceSchedule(
       nextRunDate,
     },
     include: {
-      recipientUser: { select: { discordUsername: true } },
+      recipientUser: { select: { discordUsername: true, minecraftUsername: true } },
       recipientCompany: { select: { name: true } },
     },
   });
@@ -177,7 +181,7 @@ async function updateScheduleStatus(
     where: { id: scheduleId },
     data: { status },
     include: {
-      recipientUser: { select: { discordUsername: true } },
+      recipientUser: { select: { discordUsername: true, minecraftUsername: true } },
       recipientCompany: { select: { name: true } },
     },
   });
@@ -283,7 +287,7 @@ export async function executeDueRecurringInvoiceSchedules(options?: { now?: Date
       const recipientLabel = schedule.recipientCompany
         ? schedule.recipientCompany.name
         : schedule.recipientUser
-          ? schedule.recipientUser.minecraftUsername?.trim() || schedule.recipientUser.discordUsername
+          ? formatAltaUserHandle(schedule.recipientUser)
           : null;
 
       const { notifyMerchantRecurringInvoiceFailedBestEffort } = await import(

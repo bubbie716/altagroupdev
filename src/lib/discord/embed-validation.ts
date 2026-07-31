@@ -1,8 +1,16 @@
 import {
   DISCORD_EMBED_LIMITS,
+  DISCORD_MESSAGE_LIMITS,
+  DISCORD_SERVERS,
   type DiscordEmbedDraft,
+  type DiscordMessageDraft,
+  type DiscordServerKey,
 } from "@/lib/discord/embed-types";
 import { countEmbedCharacters, isValidDiscordChannelId, isValidHttpUrl, normalizeHex } from "@/lib/discord/embed-utils";
+
+function isDiscordServerKey(value: string): value is DiscordServerKey {
+  return DISCORD_SERVERS.some((server) => server.key === value);
+}
 
 export type EmbedValidationResult = {
   valid: boolean;
@@ -11,10 +19,35 @@ export type EmbedValidationResult = {
   totalCharacters: number;
 };
 
+export type MessageValidationResult = {
+  valid: boolean;
+  errors: string[];
+};
+
 function pushIfOver(errors: string[], label: string, value: string, max: number) {
   if (value.length > max) {
     errors.push(`${label} exceeds ${max} characters (${value.length}/${max}).`);
   }
+}
+
+export function validateMessageDraft(draft: DiscordMessageDraft): MessageValidationResult {
+  const errors: string[] = [];
+
+  if (!isDiscordServerKey(draft.serverKey)) {
+    errors.push("Select a Discord server (Corporate, Terminal, or Bank).");
+  }
+
+  if (!isValidDiscordChannelId(draft.channelId)) {
+    errors.push("Channel ID must be a valid Discord snowflake (17–20 digits).");
+  }
+
+  const content = draft.content.trim();
+  if (!content) {
+    errors.push("Message text is required.");
+  }
+  pushIfOver(errors, "Text", draft.content, DISCORD_MESSAGE_LIMITS.content);
+
+  return { valid: errors.length === 0, errors };
 }
 
 export function validateEmbedDraft(draft: DiscordEmbedDraft): EmbedValidationResult {

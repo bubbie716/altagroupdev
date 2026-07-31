@@ -22,6 +22,29 @@ enum AccountStatus {
   PENDING_REVIEW
 }
 
+enum LegalAcceptanceType {
+  AGREED
+  ACKNOWLEDGED
+  CONSENTED
+}
+
+/// Product consent scope. CORE + product scopes enforced from Phase 3.
+enum LegalConsentScope {
+  CORE
+  BANK
+  TERMINAL
+  ALTA_PAY
+  ALTA_CARD
+  LENDING
+  COMMERCIAL
+}
+
+/// Legal consent subject identity (who the acceptance binds).
+enum LegalConsentSubjectType {
+  USER
+  COMPANY
+}
+
 enum CompanyType {
   PRIVATE_COMPANY
   LISTED_COMPANY
@@ -87,21 +110,41 @@ enum CommercialSubscriptionChargeStatus {
   FAILED
 }
 
+enum MinecraftChallengeStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  REPLACED
+}
+
 model User {
-  id                String        @id @default(cuid())
-  discordId         String        @unique
-  discordUsername   String
-  discordAvatar     String?
-  email             String?
-  minecraftUsername String?
-  accountStatus     AccountStatus @default(ACTIVE)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  lastLoginAt       DateTime      @default(now())
+  id                        String        @id @default(cuid())
+  discordId                 String        @unique
+  discordUsername           String
+  discordAvatar             String?
+  email                     String?
+  minecraftUsername         String?
+  /// Formal Minecraft identity UUID from Phase 2 verification. Never inferred from minecraftUsername.
+  minecraftUuid             String?       @unique
+  /// Set only after successful Minecraft verification (Phase 2). Do not backfill.
+  minecraftVerifiedAt       DateTime?
+  /// 13+ eligibility self-attestation timestamp.
+  eligibilityConfirmedAt    DateTime?
+  /// Core legal bundle + eligibility complete. Phase 1 route gate uses this.
+  coreOnboardingCompletedAt DateTime?
+  /// Entire unified onboarding complete (core + Minecraft + any future required stages).
+  /// Phase 1 must not set this while Minecraft verification is still outstanding.
+  onboardingCompletedAt     DateTime?
+  accountStatus             AccountStatus @default(ACTIVE)
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  lastLoginAt               DateTime      @default(now())
 
   tags                                       UserTagAssignment[]
   companyMemberships                         CompanyMembership[]
   sessions                                   Session[]
+  legalAcceptances                           LegalAcceptance[]
+  minecraftVerificationChallenges            MinecraftVerificationChallenge[]
   financialIdempotencyRecords                FinancialIdempotencyRecord[]
   bankAccounts                               BankAccount[]
   transferContacts                           TransferContact[]
@@ -200,6 +243,75 @@ model User {
   recurringInvoicesReceived                  MerchantRecurringInvoiceSchedule[]   @relation("RecurringInvoiceRecipientUser")
 
   @@index([accountStatus])
+  @@index([coreOnboardingCompletedAt])
+  @@index([minecraftVerifiedAt])
+}
+
+/// Append-only legal acceptance record. New document versions create new rows.
+/// userId is the accepting actor. subjectKey identifies the bound subject (user or company).
+/// Active uniqueness is enforced by a partial unique index in the Phase 3 migration
+/// (subjectKey, documentId, documentVersion, acceptanceType, contentHash) WHERE active.
+model LegalAcceptance {
+  id              String                   @id @default(cuid())
+  /// Accepting actor (the user who clicked Agree). For USER subjects this matches the subject.
+  userId          String
+  subjectType     LegalConsentSubjectType
+  /// Stable subject identity: "user:<id>" or "company:<id>".
+  subjectKey      String
+  /// Set when subjectType = COMPANY. Survives actor membership changes.
+  companyId       String?
+  documentId      String
+  documentVersion String
+  /// SHA-256 hex of the exact document body accepted.
+  contentHash     String
+  acceptanceType  LegalAcceptanceType
+  consentScope    LegalConsentScope
+  /// Site key where acceptance occurred (corporate | bank | terminal).
+  sourceSite      String
+  acceptedAt      DateTime                 @default(now())
+  supersededAt    DateTime?
+  withdrawnAt     DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([documentId])
+  @@index([consentScope])
+  @@index([acceptedAt])
+  @@index([userId, consentScope])
+  @@index([userId, documentId])
+  @@index([subjectKey])
+  @@index([subjectType])
+  @@index([companyId])
+  @@index([subjectKey, consentScope])
+}
+
+/// Minecraft location-proof challenge. Coordinates are server-owned; history retained for audit.
+model MinecraftVerificationChallenge {
+  id                 String                   @id @default(cuid())
+  userId             String
+  claimedUsername    String
+  targetWorld        String                   @default("world")
+  targetX            Int
+  targetZ            Int
+  status             MinecraftChallengeStatus @default(PENDING)
+  expiresAt          DateTime
+  attemptCount       Int                      @default(0)
+  regenerationCount  Int                      @default(0)
+  lastCheckedAt      DateTime?
+  verifiedAt         DateTime?
+  replacedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([expiresAt])
+  @@index([userId, createdAt])
 }
 
 model BotDailyTransferUsage {
@@ -244,6 +356,7 @@ model Company {
   updatedAt                     DateTime           @updatedAt
 
   memberships                    CompanyMembership[]
+  legalAcceptances               LegalAcceptance[]
   bankAccounts                   BankAccount[]
   invitations                    CompanyInvitation[]
   scheduledPayments              ScheduledPayment[]
@@ -1879,6 +1992,8 @@ enum AuditEntityType {
   MERCHANT_AUTOPAY_APPROVAL
   MERCHANT_RECURRING_INVOICE
   TERMINAL_FUNDING_TRANSFER
+  LEGAL_ACCEPTANCE
+  ONBOARDING
 }
 
 enum InternalNoteTargetType {

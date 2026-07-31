@@ -181,26 +181,30 @@ export const fetchUserBankRequestsInProgress = createServerFn({ method: "GET" })
 export const openBankAccountRecord = createServerFn({ method: "POST" })
   .inputValidator((input: OpenBankAccountInput) => input)
   .handler(async ({ data }) => {
+    const user = await actor();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "bank.open_account");
     const { openBankAccount } = await import("@/server/bank.service");
-    const userId = await actorId();
-    return openBankAccount(userId, data);
+    return openBankAccount(user.id, data);
   });
 
 
 export const submitBankInternalTransfer = createServerFn({ method: "POST" })
   .inputValidator((input: SubmitInternalTransferInput) => input)
   .handler(async ({ data }) => {
+    const user = await actor();
+    const { assertProductConsentForAction } = await import("@/server/product-consent-guard");
+    await assertProductConsentForAction(user, "bank.internal_transfer");
     const { submitInternalTransfer } = await import("@/server/bank.service");
-    const userId = await actorId();
     const { assertUserRateLimit } = await import("@/server/rate-limit.service");
-    assertUserRateLimit(userId, "internal-transfer", 30, 60_000);
+    assertUserRateLimit(user.id, "internal-transfer", 30, 60_000);
     try {
-      return await submitInternalTransfer(userId, data);
+      return await submitInternalTransfer(user.id, data);
     } catch (error) {
       const { notifyTransferFailedBestEffort, friendlyFailureReason } = await import(
         "@/server/banking-notification.service"
       );
-      await notifyTransferFailedBestEffort(userId, {
+      await notifyTransferFailedBestEffort(user.id, {
         amount: data.amount,
         reason: friendlyFailureReason(error),
       });

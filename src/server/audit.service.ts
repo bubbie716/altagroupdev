@@ -1,9 +1,10 @@
 import type { AuditEntityType, Prisma } from "@prisma/client";
 import type { AuditLogFilters, AuditLogRow, WriteAuditLogInput } from "@/lib/internal/audit.types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
 
 type AuditRowRecord = Prisma.AuditLogGetPayload<{
-  include: { actor: { select: { discordUsername: true } } };
+  include: { actor: { select: { discordUsername: true; minecraftUsername: true } } };
 }>;
 
 type AccountRef = {
@@ -20,7 +21,7 @@ function mapAuditRow(
   return {
     id: row.id,
     actorUserId: row.actorUserId,
-    actorUsername: row.actor.discordUsername,
+    actorUsername: formatAltaUserHandle(row.actor),
     targetUserId: row.targetUserId,
     targetUsername,
     targetAccountId: account?.id ?? row.targetAccountId,
@@ -205,9 +206,9 @@ async function resolveTargetUsernames(rows: { targetUserId: string | null }[]): 
   if (ids.length === 0) return new Map();
   const users = await prisma.user.findMany({
     where: { id: { in: ids } },
-    select: { id: true, discordUsername: true },
+    select: { id: true, discordUsername: true, minecraftUsername: true },
   });
-  return new Map(users.map((u) => [u.id, u.discordUsername]));
+  return new Map(users.map((u) => [u.id, formatAltaUserHandle(u)]));
 }
 
 async function resolveAuditAccounts(rows: AuditRowRecord[]): Promise<{
@@ -290,7 +291,7 @@ async function mapAuditRows(rows: AuditRowRecord[]): Promise<AuditLogRow[]> {
 
 export async function listRecentAuditLogs(limit = 25): Promise<AuditLogRow[]> {
   const rows = await prisma.auditLog.findMany({
-    include: { actor: { select: { discordUsername: true } } },
+    include: { actor: { select: { discordUsername: true, minecraftUsername: true } } },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
@@ -306,7 +307,7 @@ export async function queryAuditLogs(
   const where = buildAuditWhere(filters);
   const rows = await prisma.auditLog.findMany({
     where,
-    include: { actor: { select: { discordUsername: true } } },
+    include: { actor: { select: { discordUsername: true, minecraftUsername: true } } },
     orderBy: { createdAt: "desc" },
     take: pageSize + 1,
     skip: offset,
@@ -337,7 +338,7 @@ export async function listAuditLogsForTarget(
         { targetTransactionId: entityId },
       ],
     },
-    include: { actor: { select: { discordUsername: true } } },
+    include: { actor: { select: { discordUsername: true, minecraftUsername: true } } },
     orderBy: { createdAt: "desc" },
     take: limit,
   });

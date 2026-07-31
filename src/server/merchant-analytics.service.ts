@@ -1,4 +1,5 @@
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import type {
   BasicMerchantAnalytics,
   CommercialDashboard,
@@ -236,10 +237,7 @@ export async function getCommercialDashboard(
     ...recentInvoicePayments.map((row) => ({
       id: row.id,
       kind: "invoice_payment" as const,
-      label:
-        row.initiatedBy.minecraftUsername?.trim() ||
-        row.initiatedBy.discordUsername ||
-        "Customer",
+      label: formatAltaUserHandle(row.initiatedBy) || "Customer",
       amount: decimalToNumber(row.amount),
       status: row.status,
       referenceCode: row.invoice.referenceCode,
@@ -357,10 +355,7 @@ export async function getBasicMerchantAnalytics(
     ...invoicePayments.map((row) => ({
       id: row.id,
       source: "invoice" as const,
-      customerLabel:
-        row.initiatedBy.minecraftUsername?.trim() ||
-        row.initiatedBy.discordUsername ||
-        "Customer",
+      customerLabel: formatAltaUserHandle(row.initiatedBy) || "Customer",
       grossAmount: decimalToNumber(row.amount),
       netAmount: decimalToNumber(row.amount) - decimalToNumber(row.feeAmount),
       feeAmount: decimalToNumber(row.feeAmount),
@@ -479,10 +474,7 @@ export async function getMerchantAnalytics(
 
   const customerTotals = new Map<string, MerchantAnalyticsTopCustomer>();
   for (const row of invoicePayments) {
-    const label =
-      row.initiatedBy.minecraftUsername?.trim() ||
-      row.initiatedBy.discordUsername ||
-      "Customer";
+    const label = formatAltaUserHandle(row.initiatedBy) || "Customer";
     const existing = customerTotals.get(label) ?? {
       customerLabel: label,
       paymentCount: 0,
@@ -523,10 +515,7 @@ export async function getMerchantAnalytics(
     ...invoicePayments.map((row) => ({
       id: row.id,
       source: "invoice" as const,
-      customerLabel:
-        row.initiatedBy.minecraftUsername?.trim() ||
-        row.initiatedBy.discordUsername ||
-        "Customer",
+      customerLabel: formatAltaUserHandle(row.initiatedBy) || "Customer",
       grossAmount: decimalToNumber(row.amount),
       netAmount:
         Math.round((decimalToNumber(row.amount) - decimalToNumber(row.feeAmount)) * 100) / 100,

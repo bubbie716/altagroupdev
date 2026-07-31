@@ -1,4 +1,5 @@
 import { formatFlorin } from "@/lib/bank/format";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { buildNotificationDmPayload, resolvePublicLinkUrl } from "@/lib/discord/notification-dm";
 import { prisma } from "@/server/db";
 import { scheduleCreateUserNotification, scheduleCreateUserNotifications } from "@/server/notification.service";
@@ -50,7 +51,7 @@ function recipientLabel(invoice: {
 }): string {
   if (invoice.recipientCompany) return invoice.recipientCompany.name;
   if (invoice.recipient) {
-    return invoice.recipient.minecraftUsername?.trim() || invoice.recipient.discordUsername;
+    return formatAltaUserHandle(invoice.recipient);
   }
   return "Recipient";
 }

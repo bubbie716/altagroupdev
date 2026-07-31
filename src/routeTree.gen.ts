@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as MaintenanceRouteImport } from './routes/maintenance'
 import { Route as HomeRouteImport } from './routes/home'
@@ -291,9 +291,9 @@ import { Route as BankAltaCardBusinessCompanyIdReviewReviewIdIndexRouteImport } 
 import { Route as BankAltaCardBusinessCompanyIdReviewReviewIdThreadRouteImport } from './routes/bank/alta-card/business/$companyId/review/$reviewId/thread'
 import { Route as BankAccountAccountIdCommercialInvoicesInvoiceIdEditRouteImport } from './routes/bank/account/$accountId/commercial/invoices/$invoiceId/edit'
 
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketsRoute = MarketsRouteImport.update({
@@ -1857,7 +1857,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof HomeRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
-  '/profile': typeof ProfileRoute
+  '/onboarding': typeof OnboardingRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
   '/bank/pay': typeof BankPayRouteRouteWithChildren
@@ -2133,7 +2133,7 @@ export interface FileRoutesByTo {
   '/home': typeof HomeRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
-  '/profile': typeof ProfileRoute
+  '/onboarding': typeof OnboardingRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -2396,7 +2396,7 @@ export interface FileRoutesById {
   '/home': typeof HomeRoute
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
-  '/profile': typeof ProfileRoute
+  '/onboarding': typeof OnboardingRoute
   '/bank/business': typeof BankBusinessRouteRouteWithChildren
   '/bank/commercial': typeof BankCommercialRouteRouteWithChildren
   '/bank/pay': typeof BankPayRouteRouteWithChildren
@@ -2681,7 +2681,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/maintenance'
     | '/markets'
-    | '/profile'
+    | '/onboarding'
     | '/bank/business'
     | '/bank/commercial'
     | '/bank/pay'
@@ -2957,7 +2957,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/maintenance'
     | '/markets'
-    | '/profile'
+    | '/onboarding'
     | '/bank/accounts'
     | '/bank/activity'
     | '/bank/credit-desk-closed'
@@ -3219,7 +3219,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/maintenance'
     | '/markets'
-    | '/profile'
+    | '/onboarding'
     | '/bank/business'
     | '/bank/commercial'
     | '/bank/pay'
@@ -3503,7 +3503,7 @@ export interface RootRouteChildren {
   HomeRoute: typeof HomeRoute
   MaintenanceRoute: typeof MaintenanceRoute
   MarketsRoute: typeof MarketsRoute
-  ProfileRoute: typeof ProfileRoute
+  OnboardingRoute: typeof OnboardingRoute
   CompanyLeadershipRoute: typeof CompanyLeadershipRoute
   LegalSplatRoute: typeof LegalSplatRoute
   LegalDocIdRoute: typeof LegalDocIdRoute
@@ -3542,11 +3542,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/markets': {
@@ -6473,7 +6473,7 @@ const rootRouteChildren: RootRouteChildren = {
   HomeRoute: HomeRoute,
   MaintenanceRoute: MaintenanceRoute,
   MarketsRoute: MarketsRoute,
-  ProfileRoute: ProfileRoute,
+  OnboardingRoute: OnboardingRoute,
   CompanyLeadershipRoute: CompanyLeadershipRoute,
   LegalSplatRoute: LegalSplatRoute,
   LegalDocIdRoute: LegalDocIdRoute,

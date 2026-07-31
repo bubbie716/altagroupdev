@@ -22,6 +22,11 @@ function userWithTags(tags: AltaUser["tags"]): AltaUser {
     avatarUrl: null,
     email: null,
     minecraftUsername: null,
+    minecraftUuid: null,
+    minecraftVerifiedAt: null,
+    eligibilityConfirmedAt: null,
+    coreOnboardingCompletedAt: null,
+    onboardingCompletedAt: null,
     tags,
     accountStatus: "active",
     internalAccess: tags.some((t) =>

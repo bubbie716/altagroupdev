@@ -38,6 +38,12 @@ import { SiteFooterGate } from "@/components/site-footer-gate";
 import { NumberInputScrollGuard } from "@/components/number-input-scroll-guard";
 import { TransientOverlayRouteGuard } from "@/components/ui/transient-overlay-route-guard";
 import { UiLabBankActionScenarioControl } from "@/components/bank/actions/ui-lab-bank-action-scenario-control";
+import { UiLabOnboardingScenarioControl } from "@/components/onboarding/ui-lab-onboarding-scenario-control";
+import { UiLabProductConsentScenarioControl } from "@/components/legal/ui-lab-product-consent-scenario-control";
+import {
+  buildOnboardingRedirect,
+  shouldEnforceOnboarding,
+} from "@/lib/onboarding/onboarding-gate";
 
 function NotFoundComponent() {
   return (
@@ -102,6 +108,15 @@ function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   );
 }
 
+function tryOriginFromHref(href: string | null | undefined): string | null {
+  if (!href) return null;
+  try {
+    return new URL(href).origin;
+  } catch {
+    return null;
+  }
+}
+
 export const Route = createRootRouteWithContext<{
   user: AltaUser | null;
   site: import("@/config/sites").SiteConfig;
@@ -139,7 +154,24 @@ export const Route = createRootRouteWithContext<{
 
     // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
     const labUser = getUiLabUserIfEnabled();
-    if (labUser) return { user: labUser, site };
+    if (labUser) {
+      if (shouldEnforceOnboarding(labUser, location.pathname)) {
+        const onboardingRedirect = buildOnboardingRedirect({
+          pathname: location.pathname,
+          searchStr: typeof location.searchStr === "string" ? location.searchStr : undefined,
+          siteKey: site.key,
+          returnOrigin: tryOriginFromHref(
+            typeof location.href === "string" ? location.href : null,
+          ),
+        });
+        throw redirect({
+          to: onboardingRedirect.to,
+          search: onboardingRedirect.search,
+          replace: true,
+        });
+      }
+      return { user: labUser, site };
+    }
 
     let user: AltaUser | null = null;
     let maintenanceScopes = {
@@ -170,6 +202,20 @@ export const Route = createRootRouteWithContext<{
 
     if (pathname === "/maintenance" && !maintenanceEnabled && !isMaintenanceBypassUser(user)) {
       throw redirect({ to: "/" });
+    }
+
+    if (shouldEnforceOnboarding(user, pathname)) {
+      const onboardingRedirect = buildOnboardingRedirect({
+        pathname,
+        searchStr: typeof location.searchStr === "string" ? location.searchStr : undefined,
+        siteKey: site.key,
+        returnOrigin: typeof location.href === "string" ? tryOriginFromHref(location.href) : null,
+      });
+      throw redirect({
+        to: onboardingRedirect.to,
+        search: onboardingRedirect.search,
+        replace: true,
+      });
     }
 
     return { user, site };
@@ -304,6 +350,8 @@ function UiLabBannerClient() {
     >
       <span>UI Lab Mode Active — Using Mock Admin User</span>
       <UiLabBankActionScenarioControl />
+      <UiLabOnboardingScenarioControl />
+      <UiLabProductConsentScenarioControl />
     </div>
   );
 }

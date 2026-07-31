@@ -1,5 +1,6 @@
 import type { ScheduledPaymentStatus, ScheduledTransferExecutionStatus } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import type { InternalScheduledTransferRow } from "@/lib/bank/scheduled-transfer-admin-types";
 import {
   executeDueScheduledTransfers,
@@ -73,7 +74,12 @@ function mapAdminRow(
     sourceAccountNumber: row.bankAccount?.accountNumber ?? "—",
     destinationAccountNumber: row.recipientAccountNumber,
     destinationName: row.recipientName,
-    ownerLabel: row.company?.name ?? row.createdBy.discordUsername,
+    ownerLabel:
+      row.company?.name ??
+      formatAltaUserHandle({
+        minecraftUsername: row.createdBy.minecraftUsername,
+        discordUsername: row.createdBy.discordUsername,
+      }),
     ownerType: row.companyId ? "company" : "personal",
     companyId: row.companyId,
     nextRunAt: resolveScheduledRunAt(row)?.toISOString() ?? null,
@@ -91,7 +97,7 @@ async function fetchScheduledPaymentRows() {
     where: { transferScope: "INTRABANK" },
     include: {
       bankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
-      createdBy: { select: { discordUsername: true } },
+      createdBy: { select: { discordUsername: true, minecraftUsername: true } },
       company: { select: { id: true, name: true } },
     },
     orderBy: [{ status: "asc" }, { nextRunDate: "asc" }, { scheduledDate: "asc" }],
@@ -147,7 +153,7 @@ export async function getInternalScheduledTransfer(
     where: { id: paymentId, transferScope: "INTRABANK" },
     include: {
       bankAccount: { select: { id: true, accountName: true, accountNumber: true, status: true } },
-      createdBy: { select: { id: true, discordUsername: true } },
+      createdBy: { select: { id: true, discordUsername: true, minecraftUsername: true } },
       company: { select: { id: true, name: true } },
       executions: {
         orderBy: { scheduledRunAt: "desc" },

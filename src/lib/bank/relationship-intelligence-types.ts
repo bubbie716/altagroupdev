@@ -113,6 +113,7 @@ export type RelationshipIntelligenceDashboard = {
   topByAssets: Array<{
     userId: string;
     discordUsername: string;
+    minecraftUsername?: string | null;
     relationshipScore: number;
     relationshipTier: RelationshipTierCode;
     totalAltaAssets: number;
@@ -121,6 +122,7 @@ export type RelationshipIntelligenceDashboard = {
   recentlyChanged: Array<{
     userId: string;
     discordUsername: string;
+    minecraftUsername?: string | null;
     oldScore: number;
     newScore: number;
     oldTier: RelationshipTierCode;

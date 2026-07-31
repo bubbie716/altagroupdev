@@ -121,7 +121,6 @@ describe("private banking absence", () => {
       "components/site/homepages/bank-homepage.tsx",
       "lib/bank/data.ts",
       "routes/bank/products.tsx",
-      "routes/profile.tsx",
     ];
     for (const rel of files) {
       const text = await readFile(path.join(SRC, rel), "utf8");

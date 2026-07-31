@@ -15,6 +15,7 @@ import {
 } from "@/lib/bank/customer-transaction-copy";
 import { canAccessBankInternal, canViewCompanyDealRoom } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   createLoanInterestScheduleInTx,
   roundCurrency,
@@ -471,8 +472,8 @@ export async function getDealRoomExecutionSummary(
           paymentSchedule: { orderBy: { dueDate: "asc" }, take: 1 },
         },
       },
-      assignedOfficer: { select: { id: true, discordUsername: true } },
-      borrowerUser: { select: { discordUsername: true } },
+      assignedOfficer: { select: { id: true, discordUsername: true, minecraftUsername: true } },
+      borrowerUser: { select: { discordUsername: true, minecraftUsername: true } },
     },
   });
   if (!room) notFound();
@@ -509,8 +510,8 @@ export async function getDealRoomExecutionSummary(
       ? `${loan.linkedBankAccount.accountName} · ${loan.linkedBankAccount.accountNumber}`
       : null,
     officerId: room.assignedOfficerId,
-    officerName: room.assignedOfficer?.discordUsername ?? null,
-    borrowerName: room.borrowerUser.discordUsername,
+    officerName: room.assignedOfficer ? formatAltaUserHandle(room.assignedOfficer) : null,
+    borrowerName: formatAltaUserHandle(room.borrowerUser),
     principal: Number(loan.principalAmount),
     interestRate: Number(loan.interestRate),
     termMonths: loan.termMonths ?? 0,

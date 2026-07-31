@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   canManageMerchantInvoices,
   canViewMerchantInvoices,
@@ -151,7 +152,7 @@ function recipientDisplayName(invoice: {
 }): string {
   if (invoice.recipientCompany) return invoice.recipientCompany.name;
   if (invoice.recipient) {
-    return invoice.recipient.minecraftUsername?.trim() || invoice.recipient.discordUsername;
+    return formatAltaUserHandle(invoice.recipient);
   }
   return "Unknown recipient";
 }
@@ -330,7 +331,7 @@ export async function searchInvoiceRecipients(
     return {
       kind: "person",
       id: user.id,
-      displayName: user.minecraftUsername?.trim() || user.discordUsername,
+      displayName: formatAltaUserHandle(user),
       subtitle: user.discordUsername,
       canReceive,
       destinationLabel: canReceive

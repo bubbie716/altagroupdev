@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/site-nav";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { SiteInternalLink } from "@/components/site/site-internal-link";
+import { formatAltaUserDisplayName } from "@/lib/auth/user-display";
 import { cn } from "@/lib/utils";
 
 export function EntityMarketingShell({
@@ -21,7 +22,7 @@ export function EntityMarketingShell({
 }) {
   const site = useSiteContext();
   const user = useCurrentUser();
-  const displayName = user?.minecraftUsername?.trim() || user?.discordUsername;
+  const displayName = user ? formatAltaUserDisplayName(user) : "";
 
   return (
     <div className={cn("flex min-h-full w-full flex-1 flex-col bg-background", className)}>

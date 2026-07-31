@@ -1,3 +1,8 @@
+/** Discord plain-message content limit (bot channel messages). */
+export const DISCORD_MESSAGE_LIMITS = {
+  content: 2000,
+} as const;
+
 export const DISCORD_EMBED_LIMITS = {
   title: 256,
   description: 4096,
@@ -10,12 +15,35 @@ export const DISCORD_EMBED_LIMITS = {
   buttonLabel: 80,
 } as const;
 
-export type DiscordChannelKey =
-  | "information"
-  | "announcements"
-  | "bank_notices"
-  | "terminal_updates"
-  | "internal_log";
+export type DiscordServerKey = "corporate" | "terminal" | "bank";
+
+export type DiscordMessageDraft = {
+  /** Which Discord bot / server to send through. */
+  serverKey: DiscordServerKey | "";
+  channelId: string;
+  content: string;
+};
+
+export type SendDiscordMessageResult = {
+  ok: boolean;
+  mode: "sent" | "simulated";
+  message: string;
+  messageId?: string;
+  validationErrors?: string[];
+};
+
+export type DiscordServerOption = {
+  key: DiscordServerKey;
+  label: string;
+  envKey: string;
+};
+
+/** Communications bots — one token per Discord server (not guild ID). */
+export const DISCORD_SERVERS: DiscordServerOption[] = [
+  { key: "corporate", label: "Corporate", envKey: "DISCORD_CORPORATE_BOT_TOKEN" },
+  { key: "terminal", label: "Terminal", envKey: "DISCORD_TERMINAL_BOT_TOKEN" },
+  { key: "bank", label: "Bank", envKey: "DISCORD_BANK_BOT_TOKEN" },
+];
 
 export type EmbedTemplateKey =
   | "custom"
@@ -30,19 +58,6 @@ export type EmbedColorPreset =
   | "warning_amber"
   | "risk_red"
   | "custom";
-
-export const DISCORD_CHANNELS: {
-  key: DiscordChannelKey;
-  label: string;
-  mockId: string;
-  envKey: string;
-}[] = [
-  { key: "information", label: "#information", mockId: "1000000000000000001", envKey: "DISCORD_CHANNEL_INFORMATION" },
-  { key: "announcements", label: "#announcements", mockId: "1000000000000000002", envKey: "DISCORD_CHANNEL_ANNOUNCEMENTS" },
-  { key: "bank_notices", label: "#bank-notices", mockId: "1000000000000000003", envKey: "DISCORD_CHANNEL_BANK_NOTICES" },
-  { key: "terminal_updates", label: "#terminal-updates", mockId: "1000000000000000005", envKey: "DISCORD_CHANNEL_TERMINAL_UPDATES" },
-  { key: "internal_log", label: "#internal-log", mockId: "1000000000000000007", envKey: "DISCORD_CHANNEL_INTERNAL_LOG" },
-];
 
 export const EMBED_COLOR_PRESETS: Record<
   Exclude<EmbedColorPreset, "custom">,
@@ -100,10 +115,5 @@ export type DiscordEmbedPayload = {
   components?: Record<string, unknown>[];
 };
 
-export type SendDiscordEmbedResult = {
-  ok: boolean;
-  mode: "sent" | "simulated";
-  message: string;
-  messageId?: string;
-  validationErrors?: string[];
-};
+/** @deprecated Prefer SendDiscordMessageResult for plain-text sends. */
+export type SendDiscordEmbedResult = SendDiscordMessageResult;

@@ -15,14 +15,14 @@ import {
 describe("staff audit formatting", () => {
   const originalBaseUrl = process.env.ALTA_WEB_BASE_URL;
   const originalChannelId = process.env.DISCORD_STAFF_AUDIT_CHANNEL_ID;
-  const originalBotToken = process.env.DISCORD_BOT_TOKEN;
-  const originalGuildId = process.env.DISCORD_GUILD_ID;
+  const originalBotToken = process.env.DISCORD_BANK_BOT_TOKEN;
+  const originalGuildId = process.env.DISCORD_BANK_GUILD_ID;
 
   beforeEach(() => {
     process.env.ALTA_WEB_BASE_URL = "https://bank.alta.example";
     delete process.env.DISCORD_STAFF_AUDIT_CHANNEL_ID;
-    delete process.env.DISCORD_BOT_TOKEN;
-    delete process.env.DISCORD_GUILD_ID;
+    delete process.env.DISCORD_BANK_BOT_TOKEN;
+    delete process.env.DISCORD_BANK_GUILD_ID;
     resetStaffAuditDedupeCacheForTests();
   });
 
@@ -31,10 +31,10 @@ describe("staff audit formatting", () => {
     else process.env.ALTA_WEB_BASE_URL = originalBaseUrl;
     if (originalChannelId === undefined) delete process.env.DISCORD_STAFF_AUDIT_CHANNEL_ID;
     else process.env.DISCORD_STAFF_AUDIT_CHANNEL_ID = originalChannelId;
-    if (originalBotToken === undefined) delete process.env.DISCORD_BOT_TOKEN;
-    else process.env.DISCORD_BOT_TOKEN = originalBotToken;
-    if (originalGuildId === undefined) delete process.env.DISCORD_GUILD_ID;
-    else process.env.DISCORD_GUILD_ID = originalGuildId;
+    if (originalBotToken === undefined) delete process.env.DISCORD_BANK_BOT_TOKEN;
+    else process.env.DISCORD_BANK_BOT_TOKEN = originalBotToken;
+    if (originalGuildId === undefined) delete process.env.DISCORD_BANK_GUILD_ID;
+    else process.env.DISCORD_BANK_GUILD_ID = originalGuildId;
     resetStaffAuditDedupeCacheForTests();
   });
 

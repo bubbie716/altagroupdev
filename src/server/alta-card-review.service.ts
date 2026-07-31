@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { canAccessBankInternal,
   canManageBusinessTreasury,
   canManageCompanyAltaCard,
@@ -268,11 +269,11 @@ const REVIEW_THREAD_STATUS_FROM_DB: Record<
 function mapReviewRow(
   review: Prisma.AltaCardReviewRequestGetPayload<{
     include: {
-      applicantUser: { select: { discordUsername: true } };
+      applicantUser: { select: { discordUsername: true; minecraftUsername: true } };
       company: { select: { name: true } };
-      reviewer: { select: { discordUsername: true } };
+      reviewer: { select: { discordUsername: true; minecraftUsername: true } };
       altaCard: { select: { cardLastFour: true, cardType: true, tier: true, creditLimit: true, interestRate: true } };
-      thread: { include: { assignedStaff: { select: { discordUsername: true } } } };
+      thread: { include: { assignedStaff: { select: { discordUsername: true; minecraftUsername: true } } } };
     };
   }>,
   audience: "customer" | "internal" = "internal",
@@ -287,7 +288,7 @@ function mapReviewRow(
     cardLastFour: review.altaCard.cardLastFour,
     cardType: review.altaCard.cardType.toLowerCase(),
     applicantUserId: review.applicantUserId,
-    applicantUsername: review.applicantUser.discordUsername,
+    applicantUsername: formatAltaUserHandle(review.applicantUser),
     companyId: review.companyId,
     companyName: review.company?.name ?? null,
     currentTier: toAltaCardTierCode(review.altaCard.tier),
@@ -311,7 +312,7 @@ function mapReviewRow(
     approvedTierUpgrade: review.approvedTierUpgrade,
     decisionNote:
       audience === "customer" && status !== "needs_information" ? null : review.decisionNote,
-    reviewedByUsername: review.reviewer?.discordUsername ?? null,
+    reviewedByUsername: review.reviewer ? formatAltaUserHandle(review.reviewer) : null,
     reviewedAt: review.reviewedAt?.toISOString() ?? null,
     reviewedAtLabel: review.reviewedAt ? formatActivityDateTime(review.reviewedAt) : null,
     assignedStaffName: null,
@@ -321,9 +322,9 @@ function mapReviewRow(
 }
 
 const reviewInclude = {
-  applicantUser: { select: { discordUsername: true } },
+  applicantUser: { select: { discordUsername: true, minecraftUsername: true } },
   company: { select: { name: true } },
-  reviewer: { select: { discordUsername: true } },
+  reviewer: { select: { discordUsername: true, minecraftUsername: true } },
   altaCard: {
     select: {
       id: true,
@@ -334,7 +335,7 @@ const reviewInclude = {
       interestRate: true,
     },
   },
-  thread: { include: { assignedStaff: { select: { discordUsername: true } } } },
+  thread: { include: { assignedStaff: { select: { discordUsername: true, minecraftUsername: true } } } },
 } satisfies Prisma.AltaCardReviewRequestInclude;
 
 export async function getReviewFormContext(

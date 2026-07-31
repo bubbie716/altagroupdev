@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { canManageBusinessTreasury, canViewAltaPayReceived } from "@/lib/auth/permissions";
 import type {
   AltaPayPaymentRow,
@@ -74,7 +75,7 @@ async function notifyAltaPayCompanyReceivedBestEffort(input: {
 }): Promise<void> {
   try {
     const { notifyAltaPayReceivedToCompany } = await import("@/server/banking-notification.service");
-    const payerName = input.payer.minecraftUsername?.trim() || input.payer.discordUsername;
+    const payerName = formatAltaUserHandle(input.payer);
     await notifyAltaPayReceivedToCompany({
       companyId: input.company.id,
       companyName: input.company.name,
@@ -260,7 +261,7 @@ export async function searchPayableRecipients(
     const receiveAccount =
       configured?.status === "ACTIVE" ? configured : oldest?.status === "ACTIVE" ? oldest : null;
     const canReceive = !!receiveAccount;
-    const displayName = user.minecraftUsername?.trim() || user.discordUsername;
+    const displayName = formatAltaUserHandle(user);
     return {
       kind: "person",
       id: user.id,
@@ -359,8 +360,8 @@ async function executeAltaPayToPerson(
     { skipAuditLog: true, suppressRecipientNotification: true },
   );
 
-  const recipientLabel = recipient.minecraftUsername?.trim() || recipient.discordUsername;
-  const payerLabel = user.minecraftUsername?.trim() || user.discordUsername;
+  const recipientLabel = formatAltaUserHandle(recipient);
+  const payerLabel = formatAltaUserHandle(user);
 
   await recordAltaPaySentAudit({
     actorUserId: user.id,
@@ -550,7 +551,7 @@ export async function resolvePaySourceAccount(user: AltaUser, fromAccountId: str
 
   if (account.companyId === null) {
     if (account.userId !== user.id) forbidden();
-    return { account, payerLabel: account.user.discordUsername };
+    return { account, payerLabel: formatAltaUserHandle(account.user) };
   }
 
   if (account.accountType !== "BUSINESS_OPERATING") {
@@ -744,7 +745,7 @@ async function executeAltaPayPayment(
   }
 
   const { chargeAltaCardForAltaPay } = await import("@/server/alta-card-transaction.service");
-  const payerLabel = user.discordUsername;
+  const payerLabel = formatAltaUserHandle(user);
 
   let cardTxId = "";
   let fundingSourceLabel = "Alta Card";

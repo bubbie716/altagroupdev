@@ -4,6 +4,7 @@ import type {
   Prisma,
 } from "@prisma/client";
 import type { AltaUser } from "@/lib/auth/types";
+import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import {
   canAccessBankInternal,
   canManageBusinessTreasury,
@@ -83,7 +84,14 @@ const ROLE_FROM_DB: Record<DbSenderRole, ThreadSenderRoleCode> = {
 const threadInclude = {
   loanApplication: {
     include: {
-      applicantUser: { select: { discordUsername: true, discordId: true, discordAvatar: true } },
+      applicantUser: {
+        select: {
+          discordUsername: true,
+          minecraftUsername: true,
+          discordId: true,
+          discordAvatar: true,
+        },
+      },
       company: { select: { name: true } },
     },
   },
@@ -151,7 +159,7 @@ function parseAttachments(value: Prisma.JsonValue | null): ThreadAttachment[] {
 
 function mapMessageRow(
   msg: Prisma.LoanApplicationThreadMessageGetPayload<{
-    include: { sender: { select: { discordUsername: true; discordId: true; discordAvatar: true } } };
+    include: { sender: { select: { discordUsername: true; minecraftUsername: true; discordId: true; discordAvatar: true } } };
   }>,
   audience: ThreadMessageAudience = "customer",
 ): LoanApplicationThreadMessageRow {
@@ -165,7 +173,7 @@ function mapMessageRow(
         ? ALTA_CREDIT_DESK_NAME
         : msg.senderRole === "ALTA_STAFF"
           ? ALTA_CREDIT_DESK_NAME
-          : (msg.sender?.discordUsername ?? "Applicant"),
+          : (msg.sender ? formatAltaUserHandle(msg.sender) : "Applicant"),
     senderAvatarUrl:
       msg.senderRole === "APPLICANT" && msg.sender
         ? discordAvatarUrl(msg.sender.discordId, msg.sender.discordAvatar)
@@ -200,7 +208,7 @@ function mapThreadContext(
       ? thread.status !== "CLOSED"
       : canSendAsApplicant(user, thread),
     applicantUserId: app.applicantUserId,
-    applicantName: app.applicantUser.discordUsername,
+    applicantName: formatAltaUserHandle(app.applicantUser),
     applicantAvatarUrl: discordAvatarUrl(
       app.applicantUser.discordId,
       app.applicantUser.discordAvatar,
@@ -344,7 +352,7 @@ export async function getThreadMessages(
 
   const messages = await prisma.loanApplicationThreadMessage.findMany({
     where: { threadId: thread.id, deletedAt: null },
-    include: { sender: { select: { discordUsername: true, discordId: true, discordAvatar: true } } },
+    include: { sender: { select: { discordUsername: true, minecraftUsername: true, discordId: true, discordAvatar: true } } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -385,7 +393,7 @@ export async function sendThreadMessage(
         body,
         attachments: attachments.length > 0 ? attachments : undefined,
       },
-      include: { sender: { select: { discordUsername: true, discordId: true, discordAvatar: true } } },
+      include: { sender: { select: { discordUsername: true, minecraftUsername: true, discordId: true, discordAvatar: true } } },
     });
 
     await tx.loanApplicationThread.update({
@@ -414,7 +422,7 @@ export async function sendThreadMessage(
       threadId: thread.id,
       applicantUserId: thread.applicantUserId,
       staffUserId: userId,
-      staffDisplayName: user.discordUsername,
+      staffDisplayName: formatAltaUserHandle(user),
       messageId: message.id,
       messageBody: body,
       context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", thread.loanApplicationId),
@@ -428,7 +436,7 @@ export async function sendThreadMessage(
     messageId: message.id,
     messageBody: body,
     senderUserId: userId,
-    senderDisplayName: user.discordUsername,
+    senderDisplayName: formatAltaUserHandle(user),
     senderRole: as === "staff" ? "ALTA_STAFF" : "APPLICANT",
     context: await resolveDealRoomContextForStaffMessage("LOAN_APPLICATION", thread.loanApplicationId),
   });

@@ -274,20 +274,54 @@ export async function listLocalPortfolioActivity(
 export async function ensureDefaultWatchlist(userId: string): Promise<string> {
   const prisma = await requirePrisma();
   try {
-    const existing = await prisma.terminalWatchlist.findFirst({
+    const existingDefault = await prisma.terminalWatchlist.findFirst({
       where: { userId, isDefault: true },
       select: { id: true },
+      orderBy: { createdAt: "asc" },
     });
-    if (existing) return existing.id;
+    if (existingDefault) return existingDefault.id;
 
-    const created = await prisma.terminalWatchlist.create({
-      data: {
-        userId,
-        name: "Watchlist",
-        isDefault: true,
-      },
+    // Prefer an existing "Watchlist" row (unique on userId+name) over creating a duplicate.
+    const existingNamed = await prisma.terminalWatchlist.findUnique({
+      where: { userId_name: { userId, name: "Watchlist" } },
+      select: { id: true, isDefault: true },
     });
-    return created.id;
+    if (existingNamed) {
+      if (!existingNamed.isDefault) {
+        await prisma.terminalWatchlist.update({
+          where: { id: existingNamed.id },
+          data: { isDefault: true },
+        });
+      }
+      return existingNamed.id;
+    }
+
+    try {
+      const created = await prisma.terminalWatchlist.create({
+        data: {
+          userId,
+          name: "Watchlist",
+          isDefault: true,
+        },
+      });
+      return created.id;
+    } catch (error) {
+      // Concurrent Terminal loaders can race on first create.
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2002"
+      ) {
+        const raced = await prisma.terminalWatchlist.findFirst({
+          where: { userId, OR: [{ isDefault: true }, { name: "Watchlist" }] },
+          select: { id: true },
+          orderBy: { createdAt: "asc" },
+        });
+        if (raced) return raced.id;
+      }
+      throw error;
+    }
   } catch (error) {
     mapDbError(error);
   }
