@@ -6,9 +6,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
 import { OVERLAY_SCRIM_CLASS } from "@/lib/ui/overlay-layers";
+import { useOverlayScrollGuard } from "@/lib/ui/overlay-scroll-guard";
 import { cn } from "@/lib/utils";
 
-const Sheet = SheetPrimitive.Root;
+/**
+ * Non-modal by default: matches Dialog — no body scroll lock / RemoveScroll
+ * jump-to-top when opening or closing sheets site-wide.
+ */
+const Sheet = ({
+  modal = false,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Root>) => (
+  <SheetPrimitive.Root modal={modal} {...props} />
+);
 
 const SheetTrigger = SheetPrimitive.Trigger;
 
@@ -19,22 +29,58 @@ const SheetPortal = SheetPrimitive.Portal;
 /** Above sticky UI Lab banner (z-9999) so sheet chrome is not covered; top offset clears the banner. */
 const SHEET_Z = "z-[10050]";
 
+function scrollPageBehindOverlay(deltaX: number, deltaY: number) {
+  if (deltaX === 0 && deltaY === 0) return;
+  window.scrollBy({ left: deltaX, top: deltaY, behavior: "instant" });
+}
+
+/**
+ * Plain backdrop (Radix Overlay is omitted when modal=false). Captures pointer
+ * hits so controls behind stay inert, and forwards wheel/touch to the page.
+ */
 const SheetOverlay = React.forwardRef<
-  React.ElementRef<typeof SheetPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <SheetPrimitive.Overlay
-    className={cn(
-      "fixed inset-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      SHEET_Z,
-      OVERLAY_SCRIM_CLASS,
-      className,
-    )}
-    {...props}
-    ref={ref}
-  />
-));
-SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, onWheel, onTouchStart, onTouchMove, ...props }, ref) => {
+  const lastTouchRef = React.useRef<{ x: number; y: number } | null>(null);
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      data-state="open"
+      className={cn(
+        "fixed inset-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        SHEET_Z,
+        OVERLAY_SCRIM_CLASS,
+        className,
+      )}
+      onWheel={(event) => {
+        onWheel?.(event);
+        if (event.defaultPrevented) return;
+        scrollPageBehindOverlay(event.deltaX, event.deltaY);
+      }}
+      onTouchStart={(event) => {
+        onTouchStart?.(event);
+        if (event.defaultPrevented) return;
+        const touch = event.touches[0];
+        if (!touch) return;
+        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      onTouchMove={(event) => {
+        onTouchMove?.(event);
+        if (event.defaultPrevented) return;
+        const touch = event.touches[0];
+        const last = lastTouchRef.current;
+        if (!touch || !last) return;
+        scrollPageBehindOverlay(last.x - touch.clientX, last.y - touch.clientY);
+        lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+      }}
+      {...props}
+    />
+  );
+});
+SheetOverlay.displayName = "SheetOverlay";
 
 const sheetVariants = cva(
   cn(
@@ -71,28 +117,55 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, overlayClassName, hideCloseButton = false, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay className={overlayClassName} />
-    <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-      {hideCloseButton ? null : (
-        <SheetPrimitive.Close
-          data-dialog-close=""
-          className={cn(
-            "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
-            "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            "disabled:pointer-events-none data-[state=open]:bg-secondary",
-          )}
+>(
+  (
+    {
+      side = "right",
+      className,
+      overlayClassName,
+      hideCloseButton = false,
+      children,
+      onOpenAutoFocus,
+      onCloseAutoFocus,
+      ...props
+    },
+    ref,
+  ) => {
+    const { handleOpenAutoFocus, handleCloseAutoFocus } = useOverlayScrollGuard(
+      onOpenAutoFocus,
+      onCloseAutoFocus,
+    );
+
+    return (
+      <SheetPortal>
+        <SheetOverlay className={overlayClassName} />
+        <SheetPrimitive.Content
+          ref={ref}
+          className={cn(sheetVariants({ side }), className)}
+          onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
+          {...props}
         >
-          <X className="size-4 shrink-0" aria-hidden />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      )}
-      {children}
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
+          {hideCloseButton ? null : (
+            <SheetPrimitive.Close
+              data-dialog-close=""
+              className={cn(
+                "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
+                "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none data-[state=open]:bg-secondary",
+              )}
+            >
+              <X className="size-4 shrink-0" aria-hidden />
+              <span className="sr-only">Close</span>
+            </SheetPrimitive.Close>
+          )}
+          {children}
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
+);
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

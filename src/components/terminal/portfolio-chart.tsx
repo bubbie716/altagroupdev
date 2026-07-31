@@ -248,11 +248,15 @@ export function PortfolioChart({
     <section className={cn("min-w-0 space-y-4", className)} aria-label="Portfolio performance">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[12px] text-[var(--terminal-muted)]">Portfolio value</p>
+          <p className="text-[12px] text-[var(--terminal-muted)]">
+            {valuationAvailable ? "Portfolio value" : "Cash value"}
+          </p>
           <MoneyValue value={equityValue} size="xl" className="mt-1 block" />
-          <div className="mt-2">
-            <PriceChange amount={rangeChange.amount} percent={rangeChange.percent} />
-          </div>
+          {valuationAvailable ? (
+            <div className="mt-2">
+              <PriceChange amount={rangeChange.amount} percent={rangeChange.percent} />
+            </div>
+          ) : null}
         </div>
         <RangeSelector value={range} onChange={setRange} />
       </div>
@@ -266,7 +270,7 @@ export function PortfolioChart({
         />
       ) : (
         <div className="flex h-[220px] items-center justify-center rounded-lg border border-dashed border-[var(--terminal-border)] text-[13px] text-[var(--terminal-muted)] sm:h-[260px]">
-          Portfolio chart unavailable without market valuation
+          Performance chart will return when markets are online
         </div>
       )}
     </section>

@@ -127,9 +127,12 @@ describe("terminal funding UI Lab fixtures", () => {
 
 describe("terminal funding UI structure", () => {
   it("wires Move money chooser and funding flow", () => {
+    const chooser = read("components/bank/move-money-chooser.tsx");
     const move = read("components/bank/actions/flows/move-money-action-flow.tsx");
     const flow = read("components/bank/actions/flows/terminal-funding-action-flow.tsx");
     const host = read("components/bank/actions/bank-action-host.tsx");
+    assert.match(chooser, /launch\("terminal-funding"\)/);
+    assert.match(chooser, /Alta Terminal/);
     assert.match(move, /Transfer to or from Alta Terminal/);
     assert.match(move, /TerminalFundingActionFlow/);
     assert.match(flow, /BANK_TO_TERMINAL/);

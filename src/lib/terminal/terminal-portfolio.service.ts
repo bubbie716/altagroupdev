@@ -107,7 +107,7 @@ function toSummary(
     ownerLabel: record.ownerLabel,
     status: record.status,
     isDefault: record.isDefault,
-    totalValue: values?.totalValue ?? null,
+    totalValue: values?.totalValue ?? values?.cashBalance ?? null,
     dayChange: values?.dayChange ?? null,
     dayChangePercent: values?.dayChangePercent ?? null,
     valuationAvailable: values?.valuationAvailable ?? false,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Send } from "lucide-react";
+import { ArrowLeftRight, Landmark, Send } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +41,10 @@ export function MoveMoneyChooser({
     scope,
   };
 
-  function launch(action: "move-money" | "transfer" | "pay", fromElement?: HTMLElement | null) {
+  function launch(
+    action: "move-money" | "transfer" | "pay" | "terminal-funding",
+    fromElement?: HTMLElement | null,
+  ) {
     menu.runAfterClose(() => {
       openAction(action, extras, { fromElement });
     });
@@ -75,6 +78,13 @@ export function MoveMoneyChooser({
             <DropdownMenuItem className="cursor-pointer" onSelect={() => launch("pay")}>
               <Send className="mr-2 size-3.5" />
               Pay someone
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => launch("terminal-funding")}
+            >
+              <Landmark className="mr-2 size-3.5" />
+              Alta Terminal
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

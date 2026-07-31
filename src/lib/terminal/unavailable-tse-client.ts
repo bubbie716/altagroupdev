@@ -92,7 +92,7 @@ export function emptyLocalPortfolioSnapshot(portfolioId = ""): PortfolioSnapshot
     holdings: [],
     valuationAvailable: false,
     equityValue: null,
-    totalValue: null,
+    totalValue: 0,
     dayChange: null,
     dayChangePercent: null,
     totalReturn: null,

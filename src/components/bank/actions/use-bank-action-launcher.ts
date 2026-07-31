@@ -62,6 +62,7 @@ export function useBankActionLauncher() {
         to: pathname,
         search: next as never,
         replace: false,
+        resetScroll: false,
       });
     },
     [pathname, router, searchObj],
@@ -74,6 +75,7 @@ export function useBankActionLauncher() {
         to: pathname,
         search: next as never,
         replace: options?.replace ?? true,
+        resetScroll: false,
       });
     },
     [pathname, router, searchObj],
@@ -82,7 +84,7 @@ export function useBankActionLauncher() {
   const restoreLaunchFocus = useCallback(() => {
     const el = launchTargetRef.current;
     launchTargetRef.current = null;
-    queueMicrotask(() => el?.focus?.());
+    queueMicrotask(() => el?.focus?.({ preventScroll: true }));
   }, []);
 
   return {

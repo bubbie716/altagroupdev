@@ -11,6 +11,13 @@ import { ActivityList } from "@/components/terminal/activity-list";
 import { CreatePortfolioDialog, PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   archiveTerminalPortfolioFn,
   fetchTerminalPortfolio,
   renameTerminalPortfolioFn,
@@ -124,8 +131,8 @@ function TerminalPortfolioDetailPage() {
           role="status"
           className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
         >
-          Market valuation and trading are currently unavailable. Holdings, cash, orders, and
-          activity below are from your local portfolio records.
+          Markets and trading are currently offline. Portfolio value reflects your available cash;
+          holdings, orders, and activity are from your local portfolio records.
         </div>
       ) : null}
 
@@ -271,17 +278,30 @@ function TerminalPortfolioDetailPage() {
         />
       </section>
 
-      {settingsOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4 sm:items-center">
-          <div
-            role="dialog"
-            aria-modal
-            aria-labelledby="portfolio-settings-title"
-            className="w-full max-w-md rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-5 shadow-lg"
-          >
-            <h2 id="portfolio-settings-title" className="text-[16px] font-medium">
+      <Dialog
+        open={settingsOpen}
+        modal
+        onOpenChange={(next) => {
+          if (!next && busy === null) setSettingsOpen(false);
+        }}
+      >
+        <DialogContent
+          className="w-full max-w-md border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-5 text-[var(--terminal-text)]"
+          onEscapeKeyDown={(event) => {
+            if (busy !== null) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (busy !== null) event.preventDefault();
+          }}
+        >
+          <DialogHeader className="text-left">
+            <DialogTitle id="portfolio-settings-title" className="text-[16px] font-medium">
               Portfolio settings
-            </h2>
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-[var(--terminal-muted)]">
+              Rename or archive this Terminal portfolio.
+            </DialogDescription>
+          </DialogHeader>
             {selectedPortfolio.capabilities.canRename ? (
               <label htmlFor="terminal-portfolio-name" className="mt-4 block space-y-1.5">
                 <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
@@ -349,9 +369,8 @@ function TerminalPortfolioDetailPage() {
                 </button>
               ) : null}
             </div>
-          </div>
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

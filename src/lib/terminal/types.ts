@@ -71,12 +71,13 @@ export type PortfolioSnapshot = {
   buyingPower: number;
   holdings: Holding[];
   /**
-   * True only when equity/total/day change come from live TSE quotes.
-   * When false, UI must not display ƒ0.00 as if it were a live valuation.
+   * True only when holdings and performance fields come from live TSE quotes.
+   * When false, totalValue may still contain the authoritative cash-only value.
    */
   valuationAvailable: boolean;
-  /** Null when valuationAvailable is false. */
+  /** Holdings value is null when valuationAvailable is false. */
   equityValue: number | null;
+  /** Falls back to authoritative cash when market valuation is unavailable. */
   totalValue: number | null;
   dayChange: number | null;
   dayChangePercent: number | null;
@@ -96,7 +97,7 @@ export type TerminalPortfolioSummary = {
   ownerLabel: string;
   status: TerminalPortfolioStatusCode;
   isDefault: boolean;
-  /** Null when live valuation is unavailable. */
+  /** Falls back to authoritative cash when live valuation is unavailable. */
   totalValue: number | null;
   dayChange: number | null;
   dayChangePercent: number | null;

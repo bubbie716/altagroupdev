@@ -54,13 +54,17 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
     const marketStatus = await client.getMarketStatus();
     const watchlistPreview = (await listLocalWatchlistItems(user.id)).slice(0, 5);
     const recentOrders = await listLocalOrdersForPortfolios(portfolios.map((p) => p.id));
+    const combinedCashValue = portfolios.reduce(
+      (total, portfolio) => total + (portfolio.cashBalance ?? 0),
+      0,
+    );
 
     return {
       mode: client.mode,
       dashboard: {
         marketStatus,
         marketDataAvailable: false,
-        combinedValue: null,
+        combinedValue: combinedCashValue,
         combinedDayChange: null,
         combinedDayChangePercent: null,
         portfolios,

@@ -545,7 +545,7 @@ export function PortfolioOwnerBadge({
 }
 
 export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioSummary }) {
-  const showValuation = portfolio.valuationAvailable && portfolio.totalValue != null;
+  const showValue = portfolio.totalValue != null;
   return (
     <Link
       to="/terminal/portfolio/$portfolioId"
@@ -561,21 +561,24 @@ export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioS
         <PortfolioOwnerBadge portfolio={portfolio} decorative />
       </div>
       <div className="mt-3 flex items-end justify-between gap-2">
-        {showValuation ? (
-          <>
-            <MoneyValue value={portfolio.totalValue} size="md" />
-            <PriceChange amount={portfolio.dayChange} percent={portfolio.dayChangePercent} />
-          </>
-        ) : (
+        {showValue ? (
           <>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
-                Cash
-              </p>
-              <MoneyValue value={portfolio.cashBalance ?? 0} size="md" />
+              {!portfolio.valuationAvailable ? (
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
+                  Cash value
+                </p>
+              ) : null}
+              <MoneyValue value={portfolio.totalValue} size="md" />
             </div>
-            <span className="text-[11px] text-[var(--terminal-muted)]">Valuation unavailable</span>
+            {portfolio.valuationAvailable ? (
+              <PriceChange amount={portfolio.dayChange} percent={portfolio.dayChangePercent} />
+            ) : (
+              <span className="text-[11px] text-[var(--terminal-muted)]">Markets offline</span>
+            )}
           </>
+        ) : (
+          <MoneyValue value={portfolio.cashBalance} size="md" />
         )}
       </div>
     </Link>

@@ -78,18 +78,20 @@ function TerminalHomePage() {
         </div>
         <div className="text-right">
           <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
-            Total value
+            {marketDataAvailable ? "Total value" : "Cash value"}
           </p>
           {combinedValue == null ? (
             <p className="mt-1 text-[18px] font-medium text-[var(--terminal-muted)]">
-              Valuation unavailable
+              Cash balances unavailable
             </p>
           ) : (
             <>
               <MoneyValue value={combinedValue} size="lg" className="mt-1" />
-              <div className="mt-1 flex justify-end">
-                <PriceChange amount={combinedDayChange} percent={combinedDayChangePercent} />
-              </div>
+              {marketDataAvailable ? (
+                <div className="mt-1 flex justify-end">
+                  <PriceChange amount={combinedDayChange} percent={combinedDayChangePercent} />
+                </div>
+              ) : null}
             </>
           )}
         </div>

@@ -218,10 +218,10 @@ describe("unavailable TSE client", () => {
     if (!submit.ok) assert.equal(submit.code, "unavailable");
   });
 
-  it("empty local portfolio snapshot marks valuation unavailable", () => {
+  it("empty local portfolio snapshot uses cash as its total value", () => {
     const snap = emptyLocalPortfolioSnapshot("p1");
     assert.equal(snap.valuationAvailable, false);
-    assert.equal(snap.totalValue, null);
+    assert.equal(snap.totalValue, snap.cashBalance);
     assert.equal(snap.cashBalance, 0);
     assert.deepEqual(snap.holdings, []);
   });
@@ -326,9 +326,10 @@ describe("UI Lab fixture isolation", () => {
 });
 
 describe("public Terminal truthful copy", () => {
-  it("home keeps portfolios usable without fabricated combined value when unavailable", () => {
+  it("home identifies the cash-only value while market data is unavailable", () => {
     const home = readFileSync(join(process.cwd(), "src/routes/terminal/index.tsx"), "utf8");
-    assert.match(home, /Valuation unavailable|marketDataAvailable/);
+    assert.match(home, /Cash value|marketDataAvailable/);
+    assert.doesNotMatch(home, /Valuation unavailable/);
     assert.doesNotMatch(home, /TerminalUnavailableState/);
     assert.match(home, /Create your first portfolio|Create portfolio/);
   });

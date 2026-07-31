@@ -117,7 +117,7 @@ function emptySeries() {
 
 /**
  * Build a portfolio snapshot from local DB only.
- * Market valuation fields remain unavailable until TSE quotes exist.
+ * Total value falls back to authoritative cash; market-dependent fields remain unavailable.
  */
 export async function getLocalPortfolioSnapshot(portfolioId: string): Promise<PortfolioSnapshot> {
   const prisma = await requirePrisma();
@@ -168,7 +168,7 @@ export async function getLocalPortfolioSnapshot(portfolioId: string): Promise<Po
       holdings,
       valuationAvailable: false,
       equityValue: null,
-      totalValue: null,
+      totalValue: available,
       dayChange: null,
       dayChangePercent: null,
       totalReturn: null,

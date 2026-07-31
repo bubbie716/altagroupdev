@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { OVERLAY_SCRIM_CLASS } from "@/lib/ui/overlay-layers";
+import { useOverlayScrollGuard } from "@/lib/ui/overlay-scroll-guard";
 import { cn } from "@/lib/utils";
 
 /**
@@ -83,33 +84,54 @@ interface DialogContentProps
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, overlayClassName, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay className={overlayClassName} />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "pointer-events-auto fixed left-[50%] top-[50%] z-[110] grid w-[calc(100%-2rem)] max-w-lg max-h-[min(90dvh,calc(100dvh-4rem))] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overscroll-contain border border-border bg-surface-1 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close
-        data-dialog-close=""
-        className={cn(
-          "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
-          "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
-        )}
-      >
-        <X className="size-4 shrink-0" aria-hidden />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
+>(
+  (
+    {
+      className,
+      children,
+      overlayClassName,
+      onOpenAutoFocus,
+      onCloseAutoFocus,
+      ...props
+    },
+    ref,
+  ) => {
+    const { handleOpenAutoFocus, handleCloseAutoFocus } = useOverlayScrollGuard(
+      onOpenAutoFocus,
+      onCloseAutoFocus,
+    );
+
+    return (
+      <DialogPortal>
+        <DialogOverlay className={overlayClassName} />
+        <DialogPrimitive.Content
+          ref={ref}
+          className={cn(
+            "pointer-events-auto fixed left-[50%] top-[50%] z-[110] grid w-[calc(100%-2rem)] max-w-lg max-h-[min(90dvh,calc(100dvh-4rem))] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overscroll-contain border border-border bg-surface-1 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+            className,
+          )}
+          onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
+          {...props}
+        >
+          {children}
+          <DialogPrimitive.Close
+            data-dialog-close=""
+            className={cn(
+              "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
+              "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+            )}
+          >
+            <X className="size-4 shrink-0" aria-hidden />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    );
+  },
+);
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

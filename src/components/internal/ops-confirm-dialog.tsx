@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { SilentNotificationToggle } from "@/components/internal/silent-notification-toggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { OpsConfirmOptions } from "@/lib/internal/operator-notification-options";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 
@@ -34,43 +39,15 @@ export function OpsConfirmDialog({
   const [silentNotification, setSilentNotification] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descId = useId();
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !pending) onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, pending, onCancel]);
-
-  useEffect(() => {
-    if (!open) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    setReason("");
+    setSilentNotification(false);
+    setError(null);
   }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      setReason("");
-      setSilentNotification(false);
-      setError(null);
-      dialogRef.current?.focus();
-    }
-  }, [open]);
-
-  if (!open || !mounted) return null;
 
   async function handleConfirm() {
     if (requireReason && !reason.trim()) {
@@ -97,33 +74,39 @@ export function OpsConfirmDialog({
     }
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 p-4"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !pending) onCancel();
+  return (
+    <Dialog
+      open={open}
+      modal
+      onOpenChange={(next) => {
+        if (next) return;
+        if (!pending) onCancel();
       }}
     >
-      <div className="flex min-h-full items-center justify-center">
-        <div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={description ? descId : undefined}
-          tabIndex={-1}
-          className="my-auto w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-lg border border-border bg-surface-1 p-5 shadow-elevated outline-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-        <h3 id={titleId} className="text-[15px] font-medium tracking-tight">
+      <DialogContent
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
+        className="w-full max-w-md p-5"
+        onEscapeKeyDown={(event) => {
+          if (pending) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (pending) event.preventDefault();
+        }}
+      >
+        <DialogTitle id={titleId} className="text-[15px] font-medium tracking-tight">
           {title}
-        </h3>
+        </DialogTitle>
         {description ? (
-          <p id={descId} className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+          <DialogDescription
+            id={descId}
+            className="mt-2 text-[13px] leading-relaxed text-muted-foreground"
+          >
             {description}
-          </p>
-        ) : null}
+          </DialogDescription>
+        ) : (
+          <DialogDescription className="sr-only">Confirm operator action</DialogDescription>
+        )}
         {children ? <div className="mt-4 space-y-3">{children}</div> : null}
         {requireReason ? (
           <div className="mt-4">
@@ -178,9 +161,7 @@ export function OpsConfirmDialog({
             {pending ? SUBMITTING_COPY.processing : confirmLabel}
           </button>
         </div>
-        </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
