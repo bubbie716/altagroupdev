@@ -15,7 +15,7 @@ import {
   withInternalSiteSearch,
 } from "@/lib/internal/internal-route-search";
 import { validateDevSiteSearch } from "@/lib/site/preserve-dev-site-search";
-import { fetchTerminalOrders } from "@/lib/terminal/terminal-ops.functions";
+import { fetchTerminalOrders, fetchTerminalScheduledTrades } from "@/lib/terminal/terminal-ops.functions";
 import {
   TERMINAL_ORDER_FILTER_LABELS,
   TERMINAL_ORDER_LIST_FILTERS,
@@ -25,6 +25,7 @@ import {
   plainOrderStatusLabel,
   plainOrderTypeLabel,
   type TerminalOpsOrderRow,
+  type TerminalOpsScheduledTradeRow,
   type TerminalOrderListFilter,
 } from "@/lib/terminal/terminal-ops-types";
 import {
@@ -35,8 +36,10 @@ import {
 import { formatTerminalMoney } from "@/lib/terminal/format";
 import { cn } from "@/lib/utils";
 import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
+import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
 
 export type TerminalOrdersSearch = {
+  tab?: "orders" | "scheduled";
   status?: TerminalOrderListFilter;
   q?: string;
   side?: string;
@@ -51,6 +54,7 @@ export const Route = createFileRoute("/internal/terminal/orders/")({
     const side = s.side === "buy" || s.side === "sell" ? s.side : undefined;
     const orderType = s.orderType === "market" || s.orderType === "limit" ? s.orderType : undefined;
     return {
+      tab: s.tab === "scheduled" ? "scheduled" : "orders",
       status: status === "all" ? undefined : status,
       q: typeof s.q === "string" && s.q.trim() ? s.q.trim() : undefined,
       side,
@@ -59,15 +63,25 @@ export const Route = createFileRoute("/internal/terminal/orders/")({
       site: validateDevSiteSearch(s).site,
     };
   },
-  loader: (): Promise<TerminalOpsOrderRow[]> => fetchTerminalOrders(),
+  loaderDeps: ({ search }) => ({ tab: search.tab ?? "orders" }),
+  loader: async ({ deps }) => {
+    if (deps.tab === "scheduled") {
+      const scheduled = await fetchTerminalScheduledTrades();
+      return { tab: "scheduled" as const, orders: [] as TerminalOpsOrderRow[], scheduled };
+    }
+    const orders = await fetchTerminalOrders();
+    return { tab: "orders" as const, orders, scheduled: [] as TerminalOpsScheduledTradeRow[] };
+  },
   head: ({ match }) => ({ meta: [{ title: internalDocumentTitle("Orders", (match.search as { site?: string }).site ?? "terminal") }] }),
   component: TerminalOrdersPage,
 });
 
 function TerminalOrdersPage() {
-  const orders = Route.useLoaderData() as TerminalOpsOrderRow[];
+  const data = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = useNavigate();
+  const tab = search.tab ?? "orders";
+  const env = resolveTerminalOpsEnvironmentStatus();
   const filter = search.status ?? "all";
   const attentionOnly = search.attention === "1";
   const q = search.q?.toLowerCase() ?? "";
@@ -75,7 +89,7 @@ function TerminalOrdersPage() {
     (filter && filter !== "all") || search.q || search.side || search.orderType || search.attention,
   );
 
-  const filtered = orders.filter((row) => {
+  const filtered = data.orders.filter((row) => {
     if (!orderMatchesListFilter(row, filter)) return false;
     if (search.side && row.side !== search.side) return false;
     if (search.orderType && row.type !== search.orderType) return false;
@@ -94,13 +108,33 @@ function TerminalOrdersPage() {
     return hay.includes(q);
   });
   const sorted = sortOrdersForDirectory(filtered, attentionOnly);
+
+  const scheduledFiltered = data.scheduled.filter((row) => {
+    if (attentionOnly && !row.needsAttention) return false;
+    if (search.side && row.side !== search.side) return false;
+    if (!q) return true;
+    const hay = [
+      row.symbol,
+      row.portfolioName,
+      row.investorLabel,
+      row.status,
+      row.id,
+      row.lastFailureSummary ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(q);
+  });
+
   const [visible, setVisible] = useState(TERMINAL_LIST_PAGE_SIZE);
   useEffect(() => {
     setVisible(TERMINAL_LIST_PAGE_SIZE);
-  }, [filter, q, attentionOnly, search.side, search.orderType]);
+  }, [filter, q, attentionOnly, search.side, search.orderType, tab]);
   const page = sorted.slice(0, visible);
+  const scheduledPage = scheduledFiltered.slice(0, visible);
 
   const returnFrom = buildListReturnPath("/internal/terminal/orders", {
+    tab: tab === "orders" ? undefined : tab,
     status: filter === "all" ? undefined : filter,
     q: search.q,
     side: search.side,
@@ -114,6 +148,7 @@ function TerminalOrdersPage() {
       to: "/internal/terminal/orders",
       search: withInternalSiteSearch(
         {
+          tab: patch.tab ?? search.tab,
           status: patch.status === "all" ? undefined : (patch.status ?? search.status),
           q: patch.q !== undefined ? patch.q || undefined : search.q,
           side: patch.side !== undefined ? patch.side || undefined : search.side,
@@ -136,9 +171,44 @@ function TerminalOrdersPage() {
   return (
     <InternalPageShell title="Orders">
       <p className="mb-4 max-w-2xl text-[13px] text-muted-foreground">
-        Terminal order ledger for operator review.
+        {tab === "scheduled"
+          ? "Scheduled and recurring Terminal trade instructions."
+          : "Terminal order ledger for operator review."}
       </p>
 
+      {env.connectionState !== "live" ? (
+        <div
+          role="status"
+          className="mb-4 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12px] text-muted-foreground"
+        >
+          <span className="font-medium text-foreground">{env.label}</span>
+          <span className="mt-0.5 block">{env.detail}</span>
+        </div>
+      ) : null}
+
+      <div className="mb-4 flex gap-2">
+        {(
+          [
+            { id: "orders" as const, label: "Orders" },
+            { id: "scheduled" as const, label: "Scheduled" },
+          ] as const
+        ).map((item) => (
+          <OpsFilterChip
+            key={item.id}
+            to="/internal/terminal/orders"
+            search={withInternalSiteSearch(
+              { tab: item.id === "orders" ? undefined : item.id, q: search.q, attention: search.attention },
+              search.site,
+            )}
+            pressed={tab === item.id}
+          >
+            {item.label}
+          </OpsFilterChip>
+        ))}
+      </div>
+
+      {tab === "orders" ? (
+        <>
       <div className="mb-4 flex flex-wrap gap-2">
         {TERMINAL_ORDER_LIST_FILTERS.map((id) => (
           <OpsFilterChip
@@ -319,6 +389,108 @@ function TerminalOrdersPage() {
           </ul>
 
           {sorted.length > visible ? (
+            <div className="mt-4">
+              <button
+                type="button"
+                className="h-8 rounded border border-border px-3 text-[12px] hover:border-border-strong"
+                onClick={() => setVisible((n) => n + TERMINAL_LIST_PAGE_SIZE)}
+              >
+                Show more
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
+        </>
+      ) : (
+        <>
+          <OpsFilterBar
+            onClear={
+              filtersOn
+                ? () =>
+                    void navigate({
+                      to: "/internal/terminal/orders",
+                      search: withInternalSiteSearch({ tab: "scheduled" }, search.site),
+                      replace: true,
+                    })
+                : undefined
+            }
+          >
+            <OpsFilterField label="Search">
+              <input
+                className={OPS_FILTER_FIELD_CLASS}
+                value={search.q ?? ""}
+                onChange={(e) => patchSearch({ q: e.target.value || undefined })}
+                placeholder="Symbol, investor, portfolio, id"
+                aria-label="Search scheduled trades"
+              />
+            </OpsFilterField>
+            <OpsFilterField label="Attention">
+              <select
+                className={OPS_FILTER_FIELD_CLASS}
+                value={search.attention ?? ""}
+                onChange={(e) => patchSearch({ attention: e.target.value === "1" ? "1" : undefined })}
+                aria-label="Needs attention filter"
+              >
+                <option value="">Any</option>
+                <option value="1">Needs attention</option>
+              </select>
+            </OpsFilterField>
+          </OpsFilterBar>
+
+          {scheduledFiltered.length === 0 ? (
+            <p className="mt-6 text-[13px] text-muted-foreground">
+              {filtersOn ? "No scheduled trades match this filter." : "No scheduled trades yet."}
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {scheduledPage.map((row) => (
+                <li
+                  key={row.id}
+                  className={cn(
+                    "rounded-md border border-border/70 bg-surface-1/40 px-3 py-3",
+                    row.needsAttention ? "border-amber-500/40" : undefined,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono font-medium">
+                        {row.side.toUpperCase()} {row.quantity} {row.symbol}
+                      </div>
+                      <div className="mt-0.5 text-[12px] text-muted-foreground">
+                        {row.scheduleType === "one_time"
+                          ? "One-time"
+                          : `Recurring · ${row.frequency ?? ""}`}{" "}
+                        · {row.portfolioName} · {row.investorLabel}
+                      </div>
+                    </div>
+                    <StatusBadge status={row.status} />
+                  </div>
+                  <div className="mt-2 text-[12px] text-muted-foreground">
+                    Next attempt:{" "}
+                    {row.nextRunAt ? formatActivityDateTime(row.nextRunAt) : "—"}
+                  </div>
+                  {row.lastFailureSummary ? (
+                    <div className="mt-1 text-[12px] text-amber-700 dark:text-amber-300">
+                      {row.lastFailureSummary}
+                    </div>
+                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-3 text-[12px]">
+                    <Link
+                      to="/internal/terminal/portfolios/$portfolioId"
+                      params={{ portfolioId: row.portfolioId }}
+                      search={withInternalSiteSearch({}, search.site)}
+                      className="text-gold hover:underline"
+                    >
+                      Portfolio
+                    </Link>
+                    <span className="font-mono text-muted-foreground">{row.id}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {scheduledFiltered.length > visible ? (
             <div className="mt-4">
               <button
                 type="button"

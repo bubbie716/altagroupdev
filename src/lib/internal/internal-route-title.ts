@@ -41,6 +41,8 @@ export function resolveInternalRouteTitle(pathname: string): string {
     { test: /^\/internal\/terminal\/orders\/[^/]+/, title: "Order" },
     { test: /^\/internal\/terminal\/orders$/, title: "Orders" },
     { test: /^\/internal\/terminal\/investors/, title: "Investors" },
+    { test: /^\/internal\/terminal\/crypto\/[^/]+/, title: "Crypto market" },
+    { test: /^\/internal\/terminal\/crypto$/, title: "Crypto markets" },
     { test: /^\/internal\/terminal\/system/, title: "Terminal System" },
     { test: /^\/internal\/terminal\/settings/, title: "Terminal Settings" },
     { test: /^\/internal\/terminal\/inbox/, title: "Inbox" },

@@ -154,6 +154,9 @@ import { Route as BankAltaCardApplyRouteImport } from './routes/bank/alta-card/a
 import { Route as BankAdminLoansRouteImport } from './routes/bank/admin/loans'
 import { Route as BankAdminClientsRouteImport } from './routes/bank/admin/clients'
 import { Route as BankAccountsOpenRouteImport } from './routes/bank/accounts/open'
+import { Route as ApiCronTerminalScheduledTradesRouteImport } from './routes/api/cron/terminal-scheduled-trades'
+import { Route as ApiCronTerminalCryptoReconciliationRouteImport } from './routes/api/cron/terminal-crypto-reconciliation'
+import { Route as ApiCronTerminalCryptoCandleRollupRouteImport } from './routes/api/cron/terminal-crypto-candle-rollup'
 import { Route as ApiCronScheduledTransfersRouteImport } from './routes/api/cron/scheduled-transfers'
 import { Route as ApiCronRelationshipIntelligenceRouteImport } from './routes/api/cron/relationship-intelligence'
 import { Route as ApiCronOperationalControlsRouteImport } from './routes/api/cron/operational-controls'
@@ -176,6 +179,7 @@ import { Route as BankAccountAccountIdRouteRouteImport } from './routes/bank/acc
 import { Route as InternalTerminalPortfoliosIndexRouteImport } from './routes/internal/terminal/portfolios/index'
 import { Route as InternalTerminalOrdersIndexRouteImport } from './routes/internal/terminal/orders/index'
 import { Route as InternalTerminalInvestorsIndexRouteImport } from './routes/internal/terminal/investors/index'
+import { Route as InternalTerminalCryptoIndexRouteImport } from './routes/internal/terminal/crypto/index'
 import { Route as InternalLendingLoansIndexRouteImport } from './routes/internal/lending/loans/index'
 import { Route as InternalLendingDealRoomsIndexRouteImport } from './routes/internal/lending/deal-rooms/index'
 import { Route as InternalBankTransfersIndexRouteImport } from './routes/internal/bank/transfers/index'
@@ -196,9 +200,11 @@ import { Route as BankAltaCardBusinessIndexRouteImport } from './routes/bank/alt
 import { Route as BankAltaCardCardIdIndexRouteImport } from './routes/bank/alta-card/$cardId/index'
 import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/accounts/$accountId/index'
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
+import { Route as TerminalOrdersScheduledInstructionIdRouteImport } from './routes/terminal/orders/scheduled.$instructionId'
 import { Route as InternalTerminalPortfoliosPortfolioIdRouteImport } from './routes/internal/terminal/portfolios/$portfolioId'
 import { Route as InternalTerminalOrdersOrderIdRouteImport } from './routes/internal/terminal/orders/$orderId'
 import { Route as InternalTerminalFundingTransferIdRouteImport } from './routes/internal/terminal/funding/$transferId'
+import { Route as InternalTerminalCryptoSymbolRouteImport } from './routes/internal/terminal/crypto/$symbol'
 import { Route as InternalLendingLoansLoanIdRouteImport } from './routes/internal/lending/loans/$loanId'
 import { Route as InternalLendingDealRoomsDealRoomIdRouteImport } from './routes/internal/lending/deal-rooms/$dealRoomId'
 import { Route as InternalCompaniesCompanyIdRelationshipRouteImport } from './routes/internal/companies/$companyId/relationship'
@@ -1035,6 +1041,24 @@ const BankAccountsOpenRoute = BankAccountsOpenRouteImport.update({
   path: '/open',
   getParentRoute: () => BankAccountsRoute,
 } as any)
+const ApiCronTerminalScheduledTradesRoute =
+  ApiCronTerminalScheduledTradesRouteImport.update({
+    id: '/api/cron/terminal-scheduled-trades',
+    path: '/api/cron/terminal-scheduled-trades',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiCronTerminalCryptoReconciliationRoute =
+  ApiCronTerminalCryptoReconciliationRouteImport.update({
+    id: '/api/cron/terminal-crypto-reconciliation',
+    path: '/api/cron/terminal-crypto-reconciliation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiCronTerminalCryptoCandleRollupRoute =
+  ApiCronTerminalCryptoCandleRollupRouteImport.update({
+    id: '/api/cron/terminal-crypto-candle-rollup',
+    path: '/api/cron/terminal-crypto-candle-rollup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCronScheduledTransfersRoute =
   ApiCronScheduledTransfersRouteImport.update({
     id: '/api/cron/scheduled-transfers',
@@ -1159,6 +1183,12 @@ const InternalTerminalInvestorsIndexRoute =
     path: '/investors/',
     getParentRoute: () => InternalTerminalRoute,
   } as any)
+const InternalTerminalCryptoIndexRoute =
+  InternalTerminalCryptoIndexRouteImport.update({
+    id: '/crypto/',
+    path: '/crypto/',
+    getParentRoute: () => InternalTerminalRoute,
+  } as any)
 const InternalLendingLoansIndexRoute =
   InternalLendingLoansIndexRouteImport.update({
     id: '/loans/',
@@ -1276,6 +1306,12 @@ const BankAccountAccountIdIndexRoute =
     path: '/',
     getParentRoute: () => BankAccountAccountIdRouteRoute,
   } as any)
+const TerminalOrdersScheduledInstructionIdRoute =
+  TerminalOrdersScheduledInstructionIdRouteImport.update({
+    id: '/scheduled/$instructionId',
+    path: '/scheduled/$instructionId',
+    getParentRoute: () => TerminalOrdersRoute,
+  } as any)
 const InternalTerminalPortfoliosPortfolioIdRoute =
   InternalTerminalPortfoliosPortfolioIdRouteImport.update({
     id: '/portfolios/$portfolioId',
@@ -1292,6 +1328,12 @@ const InternalTerminalFundingTransferIdRoute =
   InternalTerminalFundingTransferIdRouteImport.update({
     id: '/funding/$transferId',
     path: '/funding/$transferId',
+    getParentRoute: () => InternalTerminalRoute,
+  } as any)
+const InternalTerminalCryptoSymbolRoute =
+  InternalTerminalCryptoSymbolRouteImport.update({
+    id: '/crypto/$symbol',
+    path: '/crypto/$symbol',
     getParentRoute: () => InternalTerminalRoute,
   } as any)
 const InternalLendingLoansLoanIdRoute =
@@ -1907,7 +1949,7 @@ export interface FileRoutesByFullPath {
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
-  '/terminal/orders': typeof TerminalOrdersRoute
+  '/terminal/orders': typeof TerminalOrdersRouteWithChildren
   '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
@@ -1946,6 +1988,9 @@ export interface FileRoutesByFullPath {
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
+  '/api/cron/terminal-crypto-candle-rollup': typeof ApiCronTerminalCryptoCandleRollupRoute
+  '/api/cron/terminal-crypto-reconciliation': typeof ApiCronTerminalCryptoReconciliationRoute
+  '/api/cron/terminal-scheduled-trades': typeof ApiCronTerminalScheduledTradesRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
@@ -2051,9 +2096,11 @@ export interface FileRoutesByFullPath {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/crypto/$symbol': typeof InternalTerminalCryptoSymbolRoute
   '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
+  '/terminal/orders/scheduled/$instructionId': typeof TerminalOrdersScheduledInstructionIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
@@ -2074,6 +2121,7 @@ export interface FileRoutesByFullPath {
   '/internal/bank/transfers/': typeof InternalBankTransfersIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
   '/internal/lending/loans/': typeof InternalLendingLoansIndexRoute
+  '/internal/terminal/crypto/': typeof InternalTerminalCryptoIndexRoute
   '/internal/terminal/investors/': typeof InternalTerminalInvestorsIndexRoute
   '/internal/terminal/orders/': typeof InternalTerminalOrdersIndexRoute
   '/internal/terminal/portfolios/': typeof InternalTerminalPortfoliosIndexRoute
@@ -2176,7 +2224,7 @@ export interface FileRoutesByTo {
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
-  '/terminal/orders': typeof TerminalOrdersRoute
+  '/terminal/orders': typeof TerminalOrdersRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
@@ -2206,6 +2254,9 @@ export interface FileRoutesByTo {
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
+  '/api/cron/terminal-crypto-candle-rollup': typeof ApiCronTerminalCryptoCandleRollupRoute
+  '/api/cron/terminal-crypto-reconciliation': typeof ApiCronTerminalCryptoReconciliationRoute
+  '/api/cron/terminal-scheduled-trades': typeof ApiCronTerminalScheduledTradesRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
@@ -2307,9 +2358,11 @@ export interface FileRoutesByTo {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/crypto/$symbol': typeof InternalTerminalCryptoSymbolRoute
   '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
+  '/terminal/orders/scheduled/$instructionId': typeof TerminalOrdersScheduledInstructionIdRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId': typeof BankAltaCardCardIdIndexRoute
@@ -2330,6 +2383,7 @@ export interface FileRoutesByTo {
   '/internal/bank/transfers': typeof InternalBankTransfersIndexRoute
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsIndexRoute
   '/internal/lending/loans': typeof InternalLendingLoansIndexRoute
+  '/internal/terminal/crypto': typeof InternalTerminalCryptoIndexRoute
   '/internal/terminal/investors': typeof InternalTerminalInvestorsIndexRoute
   '/internal/terminal/orders': typeof InternalTerminalOrdersIndexRoute
   '/internal/terminal/portfolios': typeof InternalTerminalPortfoliosIndexRoute
@@ -2446,7 +2500,7 @@ export interface FileRoutesById {
   '/terminal/leaderboard': typeof TerminalLeaderboardRoute
   '/terminal/markets': typeof TerminalMarketsRoute
   '/terminal/news': typeof TerminalNewsRoute
-  '/terminal/orders': typeof TerminalOrdersRoute
+  '/terminal/orders': typeof TerminalOrdersRouteWithChildren
   '/terminal/portfolio': typeof TerminalPortfolioRouteWithChildren
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
@@ -2485,6 +2539,9 @@ export interface FileRoutesById {
   '/api/cron/operational-controls': typeof ApiCronOperationalControlsRoute
   '/api/cron/relationship-intelligence': typeof ApiCronRelationshipIntelligenceRoute
   '/api/cron/scheduled-transfers': typeof ApiCronScheduledTransfersRoute
+  '/api/cron/terminal-crypto-candle-rollup': typeof ApiCronTerminalCryptoCandleRollupRoute
+  '/api/cron/terminal-crypto-reconciliation': typeof ApiCronTerminalCryptoReconciliationRoute
+  '/api/cron/terminal-scheduled-trades': typeof ApiCronTerminalScheduledTradesRoute
   '/bank/accounts/open': typeof BankAccountsOpenRoute
   '/bank/admin/clients': typeof BankAdminClientsRoute
   '/bank/admin/loans': typeof BankAdminLoansRoute
@@ -2590,9 +2647,11 @@ export interface FileRoutesById {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/crypto/$symbol': typeof InternalTerminalCryptoSymbolRoute
   '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
+  '/terminal/orders/scheduled/$instructionId': typeof TerminalOrdersScheduledInstructionIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
   '/bank/accounts/$accountId/': typeof BankAccountsAccountIdIndexRoute
   '/bank/alta-card/$cardId/': typeof BankAltaCardCardIdIndexRoute
@@ -2613,6 +2672,7 @@ export interface FileRoutesById {
   '/internal/bank/transfers/': typeof InternalBankTransfersIndexRoute
   '/internal/lending/deal-rooms/': typeof InternalLendingDealRoomsIndexRoute
   '/internal/lending/loans/': typeof InternalLendingLoansIndexRoute
+  '/internal/terminal/crypto/': typeof InternalTerminalCryptoIndexRoute
   '/internal/terminal/investors/': typeof InternalTerminalInvestorsIndexRoute
   '/internal/terminal/orders/': typeof InternalTerminalOrdersIndexRoute
   '/internal/terminal/portfolios/': typeof InternalTerminalPortfoliosIndexRoute
@@ -2770,6 +2830,9 @@ export interface FileRouteTypes {
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
+    | '/api/cron/terminal-crypto-candle-rollup'
+    | '/api/cron/terminal-crypto-reconciliation'
+    | '/api/cron/terminal-scheduled-trades'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
@@ -2875,9 +2938,11 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/crypto/$symbol'
     | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
+    | '/terminal/orders/scheduled/$instructionId'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/alta-card/$cardId/'
@@ -2898,6 +2963,7 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers/'
     | '/internal/lending/deal-rooms/'
     | '/internal/lending/loans/'
+    | '/internal/terminal/crypto/'
     | '/internal/terminal/investors/'
     | '/internal/terminal/orders/'
     | '/internal/terminal/portfolios/'
@@ -3030,6 +3096,9 @@ export interface FileRouteTypes {
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
+    | '/api/cron/terminal-crypto-candle-rollup'
+    | '/api/cron/terminal-crypto-reconciliation'
+    | '/api/cron/terminal-scheduled-trades'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
@@ -3131,9 +3200,11 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/crypto/$symbol'
     | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
+    | '/terminal/orders/scheduled/$instructionId'
     | '/bank/account/$accountId'
     | '/bank/accounts/$accountId'
     | '/bank/alta-card/$cardId'
@@ -3154,6 +3225,7 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers'
     | '/internal/lending/deal-rooms'
     | '/internal/lending/loans'
+    | '/internal/terminal/crypto'
     | '/internal/terminal/investors'
     | '/internal/terminal/orders'
     | '/internal/terminal/portfolios'
@@ -3308,6 +3380,9 @@ export interface FileRouteTypes {
     | '/api/cron/operational-controls'
     | '/api/cron/relationship-intelligence'
     | '/api/cron/scheduled-transfers'
+    | '/api/cron/terminal-crypto-candle-rollup'
+    | '/api/cron/terminal-crypto-reconciliation'
+    | '/api/cron/terminal-scheduled-trades'
     | '/bank/accounts/open'
     | '/bank/admin/clients'
     | '/bank/admin/loans'
@@ -3413,9 +3488,11 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/crypto/$symbol'
     | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
+    | '/terminal/orders/scheduled/$instructionId'
     | '/bank/account/$accountId/'
     | '/bank/accounts/$accountId/'
     | '/bank/alta-card/$cardId/'
@@ -3436,6 +3513,7 @@ export interface FileRouteTypes {
     | '/internal/bank/transfers/'
     | '/internal/lending/deal-rooms/'
     | '/internal/lending/loans/'
+    | '/internal/terminal/crypto/'
     | '/internal/terminal/investors/'
     | '/internal/terminal/orders/'
     | '/internal/terminal/portfolios/'
@@ -3527,6 +3605,9 @@ export interface RootRouteChildren {
   ApiCronOperationalControlsRoute: typeof ApiCronOperationalControlsRoute
   ApiCronRelationshipIntelligenceRoute: typeof ApiCronRelationshipIntelligenceRoute
   ApiCronScheduledTransfersRoute: typeof ApiCronScheduledTransfersRoute
+  ApiCronTerminalCryptoCandleRollupRoute: typeof ApiCronTerminalCryptoCandleRollupRoute
+  ApiCronTerminalCryptoReconciliationRoute: typeof ApiCronTerminalCryptoReconciliationRoute
+  ApiCronTerminalScheduledTradesRoute: typeof ApiCronTerminalScheduledTradesRoute
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute: typeof ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren
   ApiAltaCardThreadsApplicationIdAttachmentsRoute: typeof ApiAltaCardThreadsApplicationIdAttachmentsRouteWithChildren
   ApiAuthSessionHandoffRoute: typeof ApiAuthSessionHandoffRoute
@@ -4557,6 +4638,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountsOpenRouteImport
       parentRoute: typeof BankAccountsRoute
     }
+    '/api/cron/terminal-scheduled-trades': {
+      id: '/api/cron/terminal-scheduled-trades'
+      path: '/api/cron/terminal-scheduled-trades'
+      fullPath: '/api/cron/terminal-scheduled-trades'
+      preLoaderRoute: typeof ApiCronTerminalScheduledTradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/terminal-crypto-reconciliation': {
+      id: '/api/cron/terminal-crypto-reconciliation'
+      path: '/api/cron/terminal-crypto-reconciliation'
+      fullPath: '/api/cron/terminal-crypto-reconciliation'
+      preLoaderRoute: typeof ApiCronTerminalCryptoReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/terminal-crypto-candle-rollup': {
+      id: '/api/cron/terminal-crypto-candle-rollup'
+      path: '/api/cron/terminal-crypto-candle-rollup'
+      fullPath: '/api/cron/terminal-crypto-candle-rollup'
+      preLoaderRoute: typeof ApiCronTerminalCryptoCandleRollupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/scheduled-transfers': {
       id: '/api/cron/scheduled-transfers'
       path: '/api/cron/scheduled-transfers'
@@ -4711,6 +4813,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalTerminalInvestorsIndexRouteImport
       parentRoute: typeof InternalTerminalRoute
     }
+    '/internal/terminal/crypto/': {
+      id: '/internal/terminal/crypto/'
+      path: '/crypto'
+      fullPath: '/internal/terminal/crypto/'
+      preLoaderRoute: typeof InternalTerminalCryptoIndexRouteImport
+      parentRoute: typeof InternalTerminalRoute
+    }
     '/internal/lending/loans/': {
       id: '/internal/lending/loans/'
       path: '/loans'
@@ -4851,6 +4960,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankAccountAccountIdIndexRouteImport
       parentRoute: typeof BankAccountAccountIdRouteRoute
     }
+    '/terminal/orders/scheduled/$instructionId': {
+      id: '/terminal/orders/scheduled/$instructionId'
+      path: '/scheduled/$instructionId'
+      fullPath: '/terminal/orders/scheduled/$instructionId'
+      preLoaderRoute: typeof TerminalOrdersScheduledInstructionIdRouteImport
+      parentRoute: typeof TerminalOrdersRoute
+    }
     '/internal/terminal/portfolios/$portfolioId': {
       id: '/internal/terminal/portfolios/$portfolioId'
       path: '/portfolios/$portfolioId'
@@ -4870,6 +4986,13 @@ declare module '@tanstack/react-router' {
       path: '/funding/$transferId'
       fullPath: '/internal/terminal/funding/$transferId'
       preLoaderRoute: typeof InternalTerminalFundingTransferIdRouteImport
+      parentRoute: typeof InternalTerminalRoute
+    }
+    '/internal/terminal/crypto/$symbol': {
+      id: '/internal/terminal/crypto/$symbol'
+      path: '/crypto/$symbol'
+      fullPath: '/internal/terminal/crypto/$symbol'
+      preLoaderRoute: typeof InternalTerminalCryptoSymbolRouteImport
       parentRoute: typeof InternalTerminalRoute
     }
     '/internal/lending/loans/$loanId': {
@@ -6181,9 +6304,11 @@ interface InternalTerminalRouteChildren {
   InternalTerminalInboxRoute: typeof InternalTerminalInboxRoute
   InternalTerminalSettingsRoute: typeof InternalTerminalSettingsRoute
   InternalTerminalSystemRoute: typeof InternalTerminalSystemRoute
+  InternalTerminalCryptoSymbolRoute: typeof InternalTerminalCryptoSymbolRoute
   InternalTerminalFundingTransferIdRoute: typeof InternalTerminalFundingTransferIdRoute
   InternalTerminalOrdersOrderIdRoute: typeof InternalTerminalOrdersOrderIdRoute
   InternalTerminalPortfoliosPortfolioIdRoute: typeof InternalTerminalPortfoliosPortfolioIdRoute
+  InternalTerminalCryptoIndexRoute: typeof InternalTerminalCryptoIndexRoute
   InternalTerminalInvestorsIndexRoute: typeof InternalTerminalInvestorsIndexRoute
   InternalTerminalOrdersIndexRoute: typeof InternalTerminalOrdersIndexRoute
   InternalTerminalPortfoliosIndexRoute: typeof InternalTerminalPortfoliosIndexRoute
@@ -6193,11 +6318,13 @@ const InternalTerminalRouteChildren: InternalTerminalRouteChildren = {
   InternalTerminalInboxRoute: InternalTerminalInboxRoute,
   InternalTerminalSettingsRoute: InternalTerminalSettingsRoute,
   InternalTerminalSystemRoute: InternalTerminalSystemRoute,
+  InternalTerminalCryptoSymbolRoute: InternalTerminalCryptoSymbolRoute,
   InternalTerminalFundingTransferIdRoute:
     InternalTerminalFundingTransferIdRoute,
   InternalTerminalOrdersOrderIdRoute: InternalTerminalOrdersOrderIdRoute,
   InternalTerminalPortfoliosPortfolioIdRoute:
     InternalTerminalPortfoliosPortfolioIdRoute,
+  InternalTerminalCryptoIndexRoute: InternalTerminalCryptoIndexRoute,
   InternalTerminalInvestorsIndexRoute: InternalTerminalInvestorsIndexRoute,
   InternalTerminalOrdersIndexRoute: InternalTerminalOrdersIndexRoute,
   InternalTerminalPortfoliosIndexRoute: InternalTerminalPortfoliosIndexRoute,
@@ -6332,6 +6459,19 @@ const InternalRouteRouteWithChildren = InternalRouteRoute._addFileChildren(
   InternalRouteRouteChildren,
 )
 
+interface TerminalOrdersRouteChildren {
+  TerminalOrdersScheduledInstructionIdRoute: typeof TerminalOrdersScheduledInstructionIdRoute
+}
+
+const TerminalOrdersRouteChildren: TerminalOrdersRouteChildren = {
+  TerminalOrdersScheduledInstructionIdRoute:
+    TerminalOrdersScheduledInstructionIdRoute,
+}
+
+const TerminalOrdersRouteWithChildren = TerminalOrdersRoute._addFileChildren(
+  TerminalOrdersRouteChildren,
+)
+
 interface TerminalPortfolioRouteChildren {
   TerminalPortfolioPortfolioIdRoute: typeof TerminalPortfolioPortfolioIdRoute
   TerminalPortfolioIndexRoute: typeof TerminalPortfolioIndexRoute
@@ -6350,7 +6490,7 @@ interface TerminalRouteRouteChildren {
   TerminalLeaderboardRoute: typeof TerminalLeaderboardRoute
   TerminalMarketsRoute: typeof TerminalMarketsRoute
   TerminalNewsRoute: typeof TerminalNewsRoute
-  TerminalOrdersRoute: typeof TerminalOrdersRoute
+  TerminalOrdersRoute: typeof TerminalOrdersRouteWithChildren
   TerminalPortfolioRoute: typeof TerminalPortfolioRouteWithChildren
   TerminalResearchRoute: typeof TerminalResearchRoute
   TerminalTradeRoute: typeof TerminalTradeRoute
@@ -6364,7 +6504,7 @@ const TerminalRouteRouteChildren: TerminalRouteRouteChildren = {
   TerminalLeaderboardRoute: TerminalLeaderboardRoute,
   TerminalMarketsRoute: TerminalMarketsRoute,
   TerminalNewsRoute: TerminalNewsRoute,
-  TerminalOrdersRoute: TerminalOrdersRoute,
+  TerminalOrdersRoute: TerminalOrdersRouteWithChildren,
   TerminalPortfolioRoute: TerminalPortfolioRouteWithChildren,
   TerminalResearchRoute: TerminalResearchRoute,
   TerminalTradeRoute: TerminalTradeRoute,
@@ -6497,6 +6637,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronOperationalControlsRoute: ApiCronOperationalControlsRoute,
   ApiCronRelationshipIntelligenceRoute: ApiCronRelationshipIntelligenceRoute,
   ApiCronScheduledTransfersRoute: ApiCronScheduledTransfersRoute,
+  ApiCronTerminalCryptoCandleRollupRoute:
+    ApiCronTerminalCryptoCandleRollupRoute,
+  ApiCronTerminalCryptoReconciliationRoute:
+    ApiCronTerminalCryptoReconciliationRoute,
+  ApiCronTerminalScheduledTradesRoute: ApiCronTerminalScheduledTradesRoute,
   ApiAltaCardReviewThreadsReviewIdAttachmentsRoute:
     ApiAltaCardReviewThreadsReviewIdAttachmentsRouteWithChildren,
   ApiAltaCardThreadsApplicationIdAttachmentsRoute:

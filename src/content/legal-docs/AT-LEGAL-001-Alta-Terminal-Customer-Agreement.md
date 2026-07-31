@@ -2,7 +2,7 @@
 
 **Entity:** Alta Terminal LLC
 **Document ID:** AT-LEGAL-001  
-**Version:** 1.2
+**Version:** 1.3
 **Status:** Effective when accepted by a customer
 **Effective Date:** Upon acceptance
 **Last Updated:** July 31, 2026
@@ -22,7 +22,8 @@ This Agreement applies together with:
 - the Alta Terminal Trading and Order Handling Terms;
 - the Alta Terminal Risk Disclosure;
 - the Alta Terminal Market Data and Third-Party Services Terms;
-- the Alta Terminal Fee Schedule; and
+- the Alta Terminal Fee Schedule;
+- the Alta Terminal Crypto Trading and Custody Disclosure, when crypto trading is used; and
 - any product-specific notice accepted by the Customer.
 
 If a product-specific document conflicts with this Agreement, the more specific document controls for that product. Alta Group documents continue to control group-wide platform, privacy, intellectual-property, and acceptable-use matters.
@@ -46,7 +47,7 @@ Alta Terminal may provide account dashboards, watchlists, research tools, portfo
 
 A feature is available only when it is visibly enabled in the Customer’s account. Marketing pages, demonstrations, roadmaps, mock data, disabled controls, and documentation do not promise that a feature is live or will launch.
 
-Alta Terminal does not operate a trading venue. When trading is enabled, Alta Terminal may transmit eligible orders to an independent venue or service provider under the Trading and Order Handling Terms.
+Alta Terminal does not operate a public securities exchange. When stock trading is enabled, Alta Terminal may transmit eligible stock orders to an independent venue or service provider under the Trading and Order Handling Terms. When fictional crypto instruments are enabled, Alta Terminal may execute eligible market orders against Alta’s internal Alta Crypto ledger venue under the Crypto Trading and Custody Disclosure.
 
 ## 4. Eligibility and Account Approval
 
@@ -96,7 +97,7 @@ Detailed order handling, third-party routing, correction, and execution terms ar
 
 ## 9. Positions and Custody Records
 
-Alta Terminal maintains a customer-level internal ledger for each portfolio's virtual cash, positions, orders, fills, and funding activity. An external execution provider may operate one pooled or omnibus account for Alta rather than a separate provider account for every Customer. In that model, the Customer's beneficial virtual interest is the amount allocated to the Customer in Alta Terminal's internal ledger; the Customer does not receive direct ownership or control of the provider account.
+Alta Terminal maintains a customer-level internal ledger for each portfolio's virtual cash, stock positions, crypto wallet balances (when a wallet exists), orders, fills, and funding activity. An external execution provider may operate one pooled or omnibus account for Alta stock activity rather than a separate provider account for every Customer. Fictional crypto balances are custodial Alta ledger records only and are not held on any blockchain. In the stock omnibus model, the Customer's beneficial virtual interest is the amount allocated to the Customer in Alta Terminal's internal ledger; the Customer does not receive direct ownership or control of the provider account.
 
 Positions displayed by Alta Terminal reflect records received from, allocated from, or reconciled with applicable platform and third-party systems. A third-party provider may execute transactions, maintain pooled authoritative records, hold virtual assets, or process corporate actions. Alta Terminal may aggregate eligible instructions, allocate provider executions to Customer portfolios, and reconcile pooled provider activity against its internal customer records using a consistently applied operational method.
 
@@ -222,5 +223,5 @@ By accepting electronically or using an enabled Alta Terminal account after rece
 
 **Adopted by:** Alta Terminal LLC
 **Approved by:** Alta Group N.V.
-**Version:** 1.2
+**Version:** 1.3
 **Last Updated:** July 31, 2026

@@ -2,7 +2,7 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-002  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Effective only when trading is enabled and accepted  
 **Last Updated:** July 31, 2026
 
@@ -12,7 +12,9 @@
 
 These Terms govern how Alta Terminal receives, validates, transmits, displays, and records Customer orders for supported virtual-economy instruments. They supplement the Alta Terminal Customer Agreement.
 
-Alta Terminal does not operate a trading venue. An independent provider may determine whether and how an eligible order is accepted, matched, executed, cancelled, corrected, or settled.
+Alta Terminal does not operate a trading venue for securities listed through an external provider. An independent provider may determine whether and how an eligible stock order is accepted, matched, executed, cancelled, corrected, or settled.
+
+Separately, when fictional Alta Crypto instruments are enabled, Alta Terminal may execute eligible crypto market orders against Alta’s internal custodial ledger venue (“Alta Crypto”). Crypto execution rules are described in the Alta Terminal Crypto Trading and Custody Disclosure.
 
 ## 2. Feature Activation
 
@@ -98,5 +100,5 @@ By submitting an enabled order, the Customer accepts these Terms and the risks a
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** July 31, 2026

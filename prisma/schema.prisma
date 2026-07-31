@@ -33,6 +33,7 @@ enum LegalConsentScope {
   CORE
   BANK
   TERMINAL
+  CRYPTO
   ALTA_PAY
   ALTA_CARD
   LENDING
@@ -221,6 +222,7 @@ model User {
   terminalCashLedgerEntries                  TerminalCashLedgerEntry[]            @relation("TerminalCashLedgerActor")
   terminalFundingTransfersInitiated          TerminalFundingTransfer[]            @relation("TerminalFundingInitiatedBy")
   terminalFundingTransfersOwned              TerminalFundingTransfer[]            @relation("TerminalFundingOwnerUser")
+  terminalScheduledTradesCreated             TerminalScheduledTradeInstruction[]  @relation("TerminalScheduledTradeCreator")
   secureDealRoomDiscordSessions              SecureDealRoomDiscordSession[]
   notificationDeliveryQueue                  NotificationDeliveryQueue[]
   paymentsInitiated                          Payment[]                            @relation("PaymentInitiatedBy")
@@ -252,7 +254,7 @@ model User {
 /// Active uniqueness is enforced by a partial unique index in the Phase 3 migration
 /// (subjectKey, documentId, documentVersion, acceptanceType, contentHash) WHERE active.
 model LegalAcceptance {
-  id              String                   @id @default(cuid())
+  id              String                  @id @default(cuid())
   /// Accepting actor (the user who clicked Agree). For USER subjects this matches the subject.
   userId          String
   subjectType     LegalConsentSubjectType
@@ -268,11 +270,11 @@ model LegalAcceptance {
   consentScope    LegalConsentScope
   /// Site key where acceptance occurred (corporate | bank | terminal).
   sourceSite      String
-  acceptedAt      DateTime                 @default(now())
+  acceptedAt      DateTime                @default(now())
   supersededAt    DateTime?
   withdrawnAt     DateTime?
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
@@ -291,21 +293,21 @@ model LegalAcceptance {
 
 /// Minecraft location-proof challenge. Coordinates are server-owned; history retained for audit.
 model MinecraftVerificationChallenge {
-  id                 String                   @id @default(cuid())
-  userId             String
-  claimedUsername    String
-  targetWorld        String                   @default("world")
-  targetX            Int
-  targetZ            Int
-  status             MinecraftChallengeStatus @default(PENDING)
-  expiresAt          DateTime
-  attemptCount       Int                      @default(0)
-  regenerationCount  Int                      @default(0)
-  lastCheckedAt      DateTime?
-  verifiedAt         DateTime?
-  replacedAt         DateTime?
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
+  id                String                   @id @default(cuid())
+  userId            String
+  claimedUsername   String
+  targetWorld       String                   @default("world")
+  targetX           Int
+  targetZ           Int
+  status            MinecraftChallengeStatus @default(PENDING)
+  expiresAt         DateTime
+  attemptCount      Int                      @default(0)
+  regenerationCount Int                      @default(0)
+  lastCheckedAt     DateTime?
+  verifiedAt        DateTime?
+  replacedAt        DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -401,7 +403,8 @@ model Company {
   commercialSubscriptionCharges  CommercialSubscriptionCharge[]
   branding                       CompanyBranding?
   terminalPortfolios             TerminalPortfolio[]
-  terminalFundingTransfers       TerminalFundingTransfer[] @relation("TerminalFundingOwnerCompany")
+  terminalFundingTransfers       TerminalFundingTransfer[]            @relation("TerminalFundingOwnerCompany")
+  terminalScheduledTrades        TerminalScheduledTradeInstruction[]
 
   @@index([verificationStatus])
   @@index([commercialDowngradeScheduledAt])
@@ -1587,6 +1590,16 @@ enum UserNotificationType {
   COMMERCIAL_BILLING_LOW_BALANCE_WARNING
   LARGE_MONEY_MOVEMENT_ALERT
   MERCHANT_FIRST_PAYMENT_RECEIVED
+  TERMINAL_SCHEDULED_TRADE_CREATED
+  TERMINAL_SCHEDULED_TRADE_PAUSED
+  TERMINAL_SCHEDULED_TRADE_RESUMED
+  TERMINAL_SCHEDULED_TRADE_CANCELLED
+  TERMINAL_SCHEDULED_TRADE_ORDER_SUBMITTED
+  TERMINAL_SCHEDULED_TRADE_ATTEMPT_SKIPPED
+  TERMINAL_SCHEDULED_TRADE_ATTEMPT_FAILED
+  TERMINAL_SCHEDULED_TRADE_COMPLETED
+  TERMINAL_SCHEDULED_TRADE_ENDED
+  TERMINAL_CRYPTO_ORDER_FILLED
 }
 
 enum DealRoomParticipantRole {
@@ -1992,6 +2005,12 @@ enum AuditEntityType {
   MERCHANT_AUTOPAY_APPROVAL
   MERCHANT_RECURRING_INVOICE
   TERMINAL_FUNDING_TRANSFER
+  TERMINAL_SCHEDULED_TRADE_INSTRUCTION
+  TERMINAL_CRYPTO_ORDER
+  TERMINAL_CRYPTO_ASSET
+  TERMINAL_CRYPTO_RECONCILIATION
+  TERMINAL_CRYPTO_REVENUE_SWEEP
+  TERMINAL_CRYPTO_CONTRIBUTION
   LEGAL_ACCEPTANCE
   ONBOARDING
 }
@@ -3474,6 +3493,111 @@ model PaymentLinkEvent {
   @@index([paymentLinkId, createdAt])
 }
 
+/// Unified Terminal instrument classification. Existing stock records default to STOCK.
+enum TerminalInstrumentKind {
+  STOCK
+  CRYPTO
+}
+
+/// Where an order executes. Existing stock records default to TSE.
+enum TerminalExecutionVenue {
+  TSE
+  ALTA_CRYPTO
+}
+
+enum TerminalCryptoAssetKind {
+  STABLE
+  BONDING_CURVE
+}
+
+/// Lifecycle for fictional Alta crypto assets. Phase 1 seeds DRAFT only (non-tradable).
+enum TerminalCryptoAssetStatus {
+  DRAFT
+  ACTIVE
+  HALTED
+  REDEMPTION_ONLY
+  CLOSED
+}
+
+enum TerminalCryptoWalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum TerminalCryptoMarketLedgerKind {
+  BUY_SETTLEMENT
+  SELL_SETTLEMENT
+  MINT
+  BURN
+  STABILIZATION_ACCRUAL
+  REVENUE_ACCRUAL
+  ADJUSTMENT
+  CORRECTION_REVERSAL
+  EXTERNAL_PROTECTED_CONTRIBUTION
+  EXTERNAL_STABILIZATION_CONTRIBUTION
+  REVENUE_SWEEP
+  REVENUE_TO_STABILIZATION
+}
+
+enum TerminalCryptoReconciliationRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  PARTIAL
+}
+
+enum TerminalCryptoReconciliationIssueSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum TerminalCryptoReconciliationIssueStatus {
+  OPEN
+  RESOLVED
+}
+
+enum TerminalCryptoExternalContributionKind {
+  PROTECTED_RESERVE
+  STABILIZATION_FUND
+  REVENUE_TO_STABILIZATION
+}
+
+enum TerminalCryptoMarketLedgerAccount {
+  TREASURY_INVENTORY
+  CIRCULATING_SUPPLY
+  PROTECTED_RESERVE
+  STABILIZATION_FUND
+  TERMINAL_REVENUE
+}
+
+enum TerminalCryptoWalletLedgerKind {
+  BUY_CREDIT
+  SELL_DEBIT
+  ADJUSTMENT
+  CORRECTION_REVERSAL
+}
+
+enum TerminalCryptoWalletLedgerAccount {
+  AVAILABLE
+  RESERVED
+}
+
+enum TerminalCryptoWalletLedgerUnit {
+  COIN
+  FLORIN
+}
+
+enum TerminalCryptoCandleInterval {
+  M1
+  M5
+  M15
+  H1
+  H4
+  D1
+}
+
 enum TerminalPortfolioOwnerType {
   PERSONAL
   COMPANY
@@ -3505,6 +3629,61 @@ enum TerminalCashLedgerEntryStatus {
   POSTED
   PENDING
   VOIDED
+}
+
+enum TerminalScheduledTradeScheduleType {
+  ONE_TIME
+  RECURRING
+}
+
+enum TerminalScheduledTradeFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum TerminalScheduledTradeStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ENDED
+}
+
+enum TerminalScheduledTradeOccurrenceStatus {
+  PENDING
+  PROCESSING
+  SUBMITTED
+  SKIPPED
+  FAILED
+}
+
+enum TerminalScheduledTradeSizingMode {
+  QUANTITY
+  FLORIN_AMOUNT
+}
+
+enum TerminalScheduledTradeFailureCategory {
+  NONE
+  INSUFFICIENT_BUYING_POWER
+  INSUFFICIENT_HOLDINGS
+  MARKET_UNAVAILABLE
+  TSE_UNAVAILABLE
+  CONSENT_REQUIRED
+  PORTFOLIO_ARCHIVED
+  PORTFOLIO_RESTRICTED
+  SYMBOL_UNAVAILABLE
+  VALIDATION_FAILED
+  AUTHORIZATION_FAILED
+  TRANSIENT_ERROR
+  CRYPTO_UNAVAILABLE
+  ASSET_HALTED
+  REDEMPTION_ONLY
+  PRICE_IMPACT_TOO_HIGH
+  CRYPTO_CONSENT_REQUIRED
+  WALLET_FROZEN
+  REQUOTE_REQUIRED
+  OTHER
 }
 
 enum TerminalOrderSide {
@@ -3559,12 +3738,15 @@ model TerminalPortfolio {
   createdByUser User                   @relation("TerminalPortfolioCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   selectedBy    UserTerminalSettings[]
 
-  cashAccount       TerminalPortfolioCashAccount?
-  cashLedger        TerminalCashLedgerEntry[]
-  positions         TerminalPosition[]
-  orders            TerminalOrder[]
-  activity          TerminalPortfolioActivity[]
-  fundingTransfers  TerminalFundingTransfer[]
+  cashAccount      TerminalPortfolioCashAccount?
+  cashLedger       TerminalCashLedgerEntry[]
+  positions        TerminalPosition[]
+  orders           TerminalOrder[]
+  activity         TerminalPortfolioActivity[]
+  fundingTransfers TerminalFundingTransfer[]
+  scheduledTrades  TerminalScheduledTradeInstruction[]
+  /// Custodial fictional-crypto ledger wallet (lazy; one per portfolio). Not a blockchain wallet.
+  cryptoWallet     TerminalCryptoWallet?
 
   @@index([ownerUserId, status])
   @@index([ownerCompanyId, status])
@@ -3618,11 +3800,11 @@ model TerminalCashLedgerEntry {
   source             String                        @default("system")
   createdAt          DateTime                      @default(now())
 
-  portfolio                 TerminalPortfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  cashAccount               TerminalPortfolioCashAccount @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
-  relatedOrder              TerminalOrder?               @relation(fields: [relatedOrderId], references: [id], onDelete: SetNull)
-  actorUser                 User?                        @relation("TerminalCashLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  terminalFundingTransfer   TerminalFundingTransfer?
+  portfolio               TerminalPortfolio            @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  cashAccount             TerminalPortfolioCashAccount @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
+  relatedOrder            TerminalOrder?               @relation(fields: [relatedOrderId], references: [id], onDelete: SetNull)
+  actorUser               User?                        @relation("TerminalCashLedgerActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  terminalFundingTransfer TerminalFundingTransfer?
 
   @@unique([portfolioId, idempotencyKey])
   @@index([portfolioId, createdAt])
@@ -3632,7 +3814,8 @@ model TerminalCashLedgerEntry {
   @@index([kind, createdAt])
 }
 
-/// One position per portfolio/symbol. Market value is never stored as authoritative state.
+/// One TSE stock position per portfolio/symbol. Market value is never stored as authoritative state.
+/// Crypto holdings MUST NOT be stored here — TerminalCryptoWalletBalance is authoritative for CRYPTO.
 model TerminalPosition {
   id               String   @id @default(cuid())
   portfolioId      String
@@ -3650,37 +3833,44 @@ model TerminalPosition {
   @@index([portfolioId, updatedAt])
 }
 
-/// Local order foundation. Submission/fills require the external TSE adapter.
+/// Local order foundation. STOCK/TSE fills use the external TSE adapter; CRYPTO/ALTA_CRYPTO use Alta settlement.
 model TerminalOrder {
-  id                 String              @id @default(cuid())
+  id                 String                 @id @default(cuid())
   portfolioId        String
   symbol             String
+  instrumentKind     TerminalInstrumentKind @default(STOCK)
+  executionVenue     TerminalExecutionVenue @default(TSE)
   side               TerminalOrderSide
   orderType          TerminalOrderType
   status             TerminalOrderStatus
-  quantity           Decimal             @db.Decimal(28, 8)
-  filledQuantity     Decimal             @default(0) @db.Decimal(28, 8)
-  limitPrice         Decimal?            @db.Decimal(18, 6)
-  averageFillPrice   Decimal?            @db.Decimal(18, 6)
-  estimatedValue     Decimal?            @db.Decimal(18, 2)
+  quantity           Decimal                @db.Decimal(28, 8)
+  filledQuantity     Decimal                @default(0) @db.Decimal(28, 8)
+  /// Shared price precision raised for crypto marginal prices; stock values remain valid.
+  limitPrice         Decimal?               @db.Decimal(28, 12)
+  averageFillPrice   Decimal?               @db.Decimal(28, 12)
+  estimatedValue     Decimal?               @db.Decimal(18, 2)
   externalTseOrderId String?
   clientKey          String?
   rejectReason       String?
   createdByUserId    String
-  source             TerminalOrderSource @default(TERMINAL)
-  submittedAt        DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  source             TerminalOrderSource    @default(TERMINAL)
+  submittedAt        DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   completedAt        DateTime?
 
-  portfolio  TerminalPortfolio           @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  createdBy  User                        @relation("TerminalOrderCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
-  fills      TerminalOrderFill[]
-  activity   TerminalPortfolioActivity[]
-  cashLedger TerminalCashLedgerEntry[]
+  portfolio                       TerminalPortfolio                   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  createdBy                       User                                @relation("TerminalOrderCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  fills                           TerminalOrderFill[]
+  activity                        TerminalPortfolioActivity[]
+  cashLedger                      TerminalCashLedgerEntry[]
+  cryptoSettlement                TerminalCryptoOrderSettlement?
+  scheduledTradeOccurrences       TerminalScheduledTradeOccurrence[]  @relation("ScheduledTradeOccurrenceOrder")
+  lastSubmittedForScheduledTrades TerminalScheduledTradeInstruction[] @relation("ScheduledTradeLastSubmittedOrder")
 
   @@unique([portfolioId, clientKey])
   @@index([portfolioId, status, submittedAt])
   @@index([symbol, submittedAt])
+  @@index([instrumentKind, executionVenue, submittedAt])
   @@index([externalTseOrderId])
   @@index([createdByUserId, submittedAt])
   @@index([status, updatedAt])
@@ -3690,7 +3880,7 @@ model TerminalOrderFill {
   id             String   @id @default(cuid())
   orderId        String
   quantity       Decimal  @db.Decimal(28, 8)
-  price          Decimal  @db.Decimal(18, 6)
+  price          Decimal  @db.Decimal(28, 12)
   fee            Decimal  @default(0) @db.Decimal(18, 2)
   externalFillId String?
   idempotencyKey String?
@@ -3713,14 +3903,14 @@ model TerminalPortfolioActivity {
   amount      Decimal                       @db.Decimal(18, 2)
   symbol      String?
   quantity    Decimal?                      @db.Decimal(28, 8)
-  price       Decimal?                      @db.Decimal(18, 6)
+  price       Decimal?                      @db.Decimal(28, 12)
   orderId     String?
   description String
   cashAfter   Decimal?                      @db.Decimal(18, 2)
   createdAt   DateTime                      @default(now())
 
-  portfolio               TerminalPortfolio         @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  order                   TerminalOrder?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  portfolio               TerminalPortfolio        @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  order                   TerminalOrder?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
   terminalFundingTransfer TerminalFundingTransfer?
 
   @@index([portfolioId, occurredAt])
@@ -3731,38 +3921,38 @@ model TerminalPortfolioActivity {
 
 /// Authoritative Alta Bank ↔ Alta Terminal funding operation (internal cash only; not TSE custody).
 model TerminalFundingTransfer {
-  id                     String                   @id @default(cuid())
-  referenceCode          String                   @unique
-  direction              TerminalFundingDirection
-  status                 TerminalFundingStatus    @default(PENDING)
-  amount                 Decimal                  @db.Decimal(18, 2)
-  currency               String                   @default("FLR")
-  bankAccountId          String
-  portfolioId            String
-  ownerUserId            String?
-  ownerCompanyId         String?
-  initiatedByUserId      String
-  idempotencyKey         String?
-  failureCode            String?
-  failureMessage         String?
-  bankTransactionId      String?                  @unique
-  transferGroupId        String?                  @unique
-  terminalLedgerEntryId  String?                  @unique
-  terminalActivityId     String?                  @unique
-  operatorReason         String?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @updatedAt
-  completedAt            DateTime?
-  failedAt               DateTime?
+  id                    String                   @id @default(cuid())
+  referenceCode         String                   @unique
+  direction             TerminalFundingDirection
+  status                TerminalFundingStatus    @default(PENDING)
+  amount                Decimal                  @db.Decimal(18, 2)
+  currency              String                   @default("FLR")
+  bankAccountId         String
+  portfolioId           String
+  ownerUserId           String?
+  ownerCompanyId        String?
+  initiatedByUserId     String
+  idempotencyKey        String?
+  failureCode           String?
+  failureMessage        String?
+  bankTransactionId     String?                  @unique
+  transferGroupId       String?                  @unique
+  terminalLedgerEntryId String?                  @unique
+  terminalActivityId    String?                  @unique
+  operatorReason        String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  completedAt           DateTime?
+  failedAt              DateTime?
 
-  bankAccount         BankAccount               @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
-  portfolio           TerminalPortfolio         @relation(fields: [portfolioId], references: [id], onDelete: Restrict)
-  ownerUser           User?                     @relation("TerminalFundingOwnerUser", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  ownerCompany        Company?                  @relation("TerminalFundingOwnerCompany", fields: [ownerCompanyId], references: [id], onDelete: SetNull)
-  initiatedBy         User                      @relation("TerminalFundingInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
-  bankTransaction     BankTransaction?          @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
-  transferGroup       TransferGroup?            @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
-  terminalLedgerEntry TerminalCashLedgerEntry?  @relation(fields: [terminalLedgerEntryId], references: [id], onDelete: SetNull)
+  bankAccount         BankAccount                @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  portfolio           TerminalPortfolio          @relation(fields: [portfolioId], references: [id], onDelete: Restrict)
+  ownerUser           User?                      @relation("TerminalFundingOwnerUser", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  ownerCompany        Company?                   @relation("TerminalFundingOwnerCompany", fields: [ownerCompanyId], references: [id], onDelete: SetNull)
+  initiatedBy         User                       @relation("TerminalFundingInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  bankTransaction     BankTransaction?           @relation(fields: [bankTransactionId], references: [id], onDelete: SetNull)
+  transferGroup       TransferGroup?             @relation(fields: [transferGroupId], references: [id], onDelete: SetNull)
+  terminalLedgerEntry TerminalCashLedgerEntry?   @relation(fields: [terminalLedgerEntryId], references: [id], onDelete: SetNull)
   terminalActivity    TerminalPortfolioActivity? @relation(fields: [terminalActivityId], references: [id], onDelete: SetNull)
 
   @@unique([initiatedByUserId, idempotencyKey])
@@ -3773,6 +3963,84 @@ model TerminalFundingTransfer {
   @@index([status, createdAt])
   @@index([direction, status])
   @@index([createdAt])
+}
+
+/// Scheduled market-order instruction (V1: whole shares, UTC schedule times; STOCK/TSE only for now).
+model TerminalScheduledTradeInstruction {
+  id                    String                                  @id @default(cuid())
+  portfolioId           String
+  createdByUserId       String
+  companyId             String?
+  symbol                String
+  instrumentKind        TerminalInstrumentKind                  @default(STOCK)
+  executionVenue        TerminalExecutionVenue                  @default(TSE)
+  side                  TerminalOrderSide
+  orderType             TerminalOrderType                       @default(MARKET)
+  sizingMode            TerminalScheduledTradeSizingMode        @default(QUANTITY)
+  quantity              Decimal                                 @db.Decimal(28, 8)
+  florinAmount          Decimal?                                @db.Decimal(18, 2)
+  maxPriceImpactPercent Decimal                                 @default(10) @db.Decimal(8, 4)
+  scheduleType          TerminalScheduledTradeScheduleType
+  frequency             TerminalScheduledTradeFrequency?
+  startAt               DateTime
+  nextRunAt             DateTime?
+  endAt                 DateTime?
+  timeZonePolicy        String                                  @default("UTC")
+  status                TerminalScheduledTradeStatus            @default(ACTIVE)
+  version               Int                                     @default(0)
+  consecutiveFailures   Int                                     @default(0)
+  lastAttemptAt         DateTime?
+  lastAttemptStatus     TerminalScheduledTradeOccurrenceStatus?
+  lastFailureCategory   TerminalScheduledTradeFailureCategory   @default(NONE)
+  lastFailureSummary    String?
+  lastSubmittedOrderId  String?
+  createdAt             DateTime                                @default(now())
+  updatedAt             DateTime                                @updatedAt
+  pausedAt              DateTime?
+  resumedAt             DateTime?
+  cancelledAt           DateTime?
+  completedAt           DateTime?
+  endedAt               DateTime?
+
+  portfolio          TerminalPortfolio                  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  createdBy          User                               @relation("TerminalScheduledTradeCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  company            Company?                           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  lastSubmittedOrder TerminalOrder?                     @relation("ScheduledTradeLastSubmittedOrder", fields: [lastSubmittedOrderId], references: [id], onDelete: SetNull)
+  occurrences        TerminalScheduledTradeOccurrence[]
+
+  @@index([status, nextRunAt])
+  @@index([portfolioId])
+  @@index([createdByUserId])
+  @@index([companyId])
+  @@index([symbol])
+  @@index([instrumentKind, executionVenue])
+}
+
+model TerminalScheduledTradeOccurrence {
+  id                     String                                 @id @default(cuid())
+  instructionId          String
+  scheduledRunAt         DateTime
+  idempotencyKey         String                                 @unique
+  status                 TerminalScheduledTradeOccurrenceStatus @default(PENDING)
+  attemptCount           Int                                    @default(0)
+  terminalOrderId        String?
+  externalTseOrderId     String?
+  failureCategory        TerminalScheduledTradeFailureCategory?
+  customerFailureSummary String?
+  technicalDetails       String?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  nextRetryAt            DateTime?
+  createdAt              DateTime                               @default(now())
+  updatedAt              DateTime                               @updatedAt
+
+  instruction   TerminalScheduledTradeInstruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+  terminalOrder TerminalOrder?                    @relation("ScheduledTradeOccurrenceOrder", fields: [terminalOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([instructionId, scheduledRunAt])
+  @@index([status])
+  @@index([nextRetryAt])
+  @@index([instructionId, status])
 }
 
 enum TerminalFundingDirection {
@@ -3811,4 +4079,347 @@ model TerminalWatchlistItem {
 
   @@unique([watchlistId, symbol])
   @@index([symbol])
+}
+
+// ---------------------------------------------------------------------------
+// Alta Terminal fictional cryptocurrency market (florin-denominated roleplay).
+// Not connected to real-world crypto, blockchains, or exchanges.
+// ---------------------------------------------------------------------------
+
+/// Configuration for an Alta Terminal fictional crypto asset (NPFC / NVA / VLT).
+model TerminalCryptoAsset {
+  id                  String                    @id @default(cuid())
+  symbol              String                    @unique
+  displayName         String
+  kind                TerminalCryptoAssetKind
+  status              TerminalCryptoAssetStatus @default(DRAFT)
+  /// Optimistic concurrency for lifecycle transitions (Phase 4).
+  version             Int                       @default(0)
+  /// Null for variable-supply stables (NPFC).
+  maxSupply           Decimal?                  @db.Decimal(28, 8)
+  /// Peg (stable) or launch starting marginal price (bonding curve), in florins.
+  pegOrStartingPrice  Decimal                   @db.Decimal(28, 12)
+  /// Linear bonding-curve rate k where P(q)=P0+kq. Null for stables.
+  curveRate           Decimal?                  @db.Decimal(36, 18)
+  quantityPrecision   Int                       @default(8)
+  displayPrecision    Int                       @default(8)
+  /// Total trading/conversion fee in basis points of gross value.
+  totalFeeBps         Int
+  /// Portion of gross value allocated to Alta Terminal revenue (bps).
+  revenueFeeBps       Int
+  /// Portion of gross value allocated to the asset stabilization fund (bps).
+  stabilizationFeeBps Int
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  marketState           TerminalCryptoMarketState?
+  walletBalances        TerminalCryptoWalletBalance[]
+  settlements           TerminalCryptoOrderSettlement[]
+  marketLedger          TerminalCryptoMarketLedgerEntry[]
+  priceCandles          TerminalCryptoPriceCandle[]
+  statusChanges         TerminalCryptoAssetStatusChange[]
+  revenueSweeps         TerminalCryptoRevenueSweep[]
+  externalContributions TerminalCryptoExternalContribution[]
+  reconciliationIssues  TerminalCryptoReconciliationIssue[]
+
+  @@index([status])
+  @@index([kind, status])
+}
+
+/// Custodial internal-ledger wallet for one Terminal portfolio. Lazy-created on first crypto purchase.
+/// publicWalletId is opaque — never embeds username, company name, or sequential DB ids.
+model TerminalCryptoWallet {
+  id             String                     @id @default(cuid())
+  portfolioId    String                     @unique
+  publicWalletId String                     @unique
+  status         TerminalCryptoWalletStatus @default(ACTIVE)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  portfolio   TerminalPortfolio                 @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  balances    TerminalCryptoWalletBalance[]
+  settlements TerminalCryptoOrderSettlement[]
+  ledger      TerminalCryptoWalletLedgerEntry[]
+
+  @@index([status])
+  @@index([publicWalletId])
+}
+
+/// Authoritative crypto quantity for a wallet/asset. Do not mirror into TerminalPosition.
+model TerminalCryptoWalletBalance {
+  id                String   @id @default(cuid())
+  walletId          String
+  assetId           String
+  availableQuantity Decimal  @default(0) @db.Decimal(28, 8)
+  reservedQuantity  Decimal  @default(0) @db.Decimal(28, 8)
+  averageCost       Decimal  @default(0) @db.Decimal(28, 12)
+  /// Cumulative realized florin gain/loss from sells/redemptions (net of fees).
+  realizedGainLoss  Decimal  @default(0) @db.Decimal(28, 12)
+  version           Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  wallet TerminalCryptoWallet              @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  asset  TerminalCryptoAsset               @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  ledger TerminalCryptoWalletLedgerEntry[]
+
+  @@unique([walletId, assetId])
+  @@index([assetId])
+  @@index([walletId, updatedAt])
+}
+
+/// Authoritative market inventory / reserve / price cache for one crypto asset.
+model TerminalCryptoMarketState {
+  id                   String   @id @default(cuid())
+  assetId              String   @unique
+  treasuryInventory    Decimal  @default(0) @db.Decimal(28, 8)
+  circulatingSupply    Decimal  @default(0) @db.Decimal(28, 8)
+  /// Protected curve liability reserve (bonding) or 100% florin backing (stable).
+  protectedReserve     Decimal  @default(0) @db.Decimal(28, 12)
+  stabilizationFund    Decimal  @default(0) @db.Decimal(28, 12)
+  /// Accrued Alta Terminal trading/conversion revenue for this asset (florins).
+  accruedRevenue       Decimal  @default(0) @db.Decimal(28, 12)
+  /// Cached current marginal price P(q). Authoritative for display; always recomputable.
+  currentMarginalPrice Decimal  @db.Decimal(28, 12)
+  version              Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+/// One-to-one crypto settlement detail for a shared TerminalOrder (executionVenue=ALTA_CRYPTO).
+model TerminalCryptoOrderSettlement {
+  id                      String   @id @default(cuid())
+  orderId                 String   @unique
+  assetId                 String
+  walletId                String
+  priceBefore             Decimal  @db.Decimal(28, 12)
+  priceAfter              Decimal  @db.Decimal(28, 12)
+  averageExecutionPrice   Decimal  @db.Decimal(28, 12)
+  grossValue              Decimal  @db.Decimal(28, 12)
+  totalFee                Decimal  @db.Decimal(28, 12)
+  revenueAllocation       Decimal  @db.Decimal(28, 12)
+  stabilizationAllocation Decimal  @db.Decimal(28, 12)
+  /// Net florins contributed to (+) or redeemed from (−) protected reserve.
+  netReserveDelta         Decimal  @db.Decimal(28, 12)
+  executedQuantity        Decimal  @db.Decimal(28, 8)
+  treasuryInventoryBefore Decimal  @db.Decimal(28, 8)
+  treasuryInventoryAfter  Decimal  @db.Decimal(28, 8)
+  circulatingSupplyBefore Decimal  @db.Decimal(28, 8)
+  circulatingSupplyAfter  Decimal  @db.Decimal(28, 8)
+  protectedReserveBefore  Decimal  @db.Decimal(28, 12)
+  protectedReserveAfter   Decimal  @db.Decimal(28, 12)
+  roundingDust            Decimal  @default(0) @db.Decimal(28, 12)
+  /// Net Terminal cash delta for the customer (negative = debit, positive = credit).
+  customerCashDelta       Decimal  @db.Decimal(28, 12)
+  realizedGainLoss        Decimal? @db.Decimal(28, 12)
+  marketStateVersion      Int
+  requestHash             String
+  quoteFingerprint        String?
+  idempotencyKey          String?
+  externalReference       String?
+  executedAt              DateTime
+  createdAt               DateTime @default(now())
+
+  order        TerminalOrder                     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  asset        TerminalCryptoAsset               @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  wallet       TerminalCryptoWallet              @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  marketLedger TerminalCryptoMarketLedgerEntry[]
+  walletLedger TerminalCryptoWalletLedgerEntry[]
+
+  @@unique([walletId, idempotencyKey])
+  @@index([assetId, executedAt])
+  @@index([walletId, executedAt])
+  @@index([executedAt])
+  @@index([externalReference])
+  @@index([requestHash])
+}
+
+/// Immutable crypto market ledger. Corrections use reversing entries — never rewrite history.
+/// entryKey is unique per row so one settlement can post many account deltas safely.
+model TerminalCryptoMarketLedgerEntry {
+  id                String                            @id @default(cuid())
+  assetId           String
+  settlementId      String?
+  kind              TerminalCryptoMarketLedgerKind
+  account           TerminalCryptoMarketLedgerAccount
+  delta             Decimal                           @db.Decimal(28, 12)
+  balanceAfter      Decimal                           @db.Decimal(28, 12)
+  /// Stable unique key, e.g. settlement:{id}:PROTECTED_RESERVE:1 — never insertion-order JSON.
+  entryKey          String                            @unique
+  externalReference String?
+  actorUserId       String?
+  source            String                            @default("system")
+  createdAt         DateTime                          @default(now())
+
+  asset      TerminalCryptoAsset            @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  settlement TerminalCryptoOrderSettlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  @@index([assetId, createdAt])
+  @@index([settlementId])
+  @@index([account, createdAt])
+  @@index([kind, createdAt])
+  @@index([externalReference])
+}
+
+/// Immutable wallet holding ledger for customer coin (and optional florin) balance changes.
+model TerminalCryptoWalletLedgerEntry {
+  id           String                            @id @default(cuid())
+  walletId     String
+  balanceId    String?
+  assetId      String
+  settlementId String?
+  kind         TerminalCryptoWalletLedgerKind
+  account      TerminalCryptoWalletLedgerAccount
+  unit         TerminalCryptoWalletLedgerUnit    @default(COIN)
+  delta        Decimal                           @db.Decimal(28, 12)
+  balanceAfter Decimal                           @db.Decimal(28, 12)
+  entryKey     String                            @unique
+  actorUserId  String?
+  source       String                            @default("system")
+  createdAt    DateTime                          @default(now())
+
+  wallet     TerminalCryptoWallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  balance    TerminalCryptoWalletBalance?   @relation(fields: [balanceId], references: [id], onDelete: SetNull)
+  settlement TerminalCryptoOrderSettlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  @@index([walletId, createdAt])
+  @@index([assetId, createdAt])
+  @@index([settlementId])
+  @@index([balanceId, createdAt])
+}
+
+/// OHLC price history. Empty periods may later carry last close; never invent artificial movement.
+model TerminalCryptoPriceCandle {
+  id             String                       @id @default(cuid())
+  assetId        String
+  interval       TerminalCryptoCandleInterval
+  intervalStart  DateTime
+  open           Decimal                      @db.Decimal(28, 12)
+  high           Decimal                      @db.Decimal(28, 12)
+  low            Decimal                      @db.Decimal(28, 12)
+  close          Decimal                      @db.Decimal(28, 12)
+  tradedQuantity Decimal                      @default(0) @db.Decimal(28, 8)
+  florinVolume   Decimal                      @default(0) @db.Decimal(28, 12)
+  tradeCount     Int                          @default(0)
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, interval, intervalStart])
+  @@index([assetId, interval, intervalStart])
+  @@index([intervalStart])
+}
+
+/// Immutable lifecycle transition record for fictional crypto assets (Phase 4).
+model TerminalCryptoAssetStatusChange {
+  id              String                    @id @default(cuid())
+  assetId         String
+  fromStatus      TerminalCryptoAssetStatus
+  toStatus        TerminalCryptoAssetStatus
+  reason          String
+  actorUserId     String
+  idempotencyKey  String
+  expectedVersion Int
+  createdAt       DateTime                  @default(now())
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, idempotencyKey])
+  @@index([assetId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([toStatus, createdAt])
+}
+
+model TerminalCryptoReconciliationRun {
+  id              String                                @id @default(cuid())
+  status          TerminalCryptoReconciliationRunStatus @default(RUNNING)
+  startedAt       DateTime                              @default(now())
+  completedAt     DateTime?
+  checksPerformed Int                                   @default(0)
+  criticalCount   Int                                   @default(0)
+  warningCount    Int                                   @default(0)
+  infoCount       Int                                   @default(0)
+  summary         String                                @default("")
+  actorUserId     String?
+  source          String                                @default("system")
+  createdAt       DateTime                              @default(now())
+
+  issues TerminalCryptoReconciliationIssue[]
+
+  @@index([status, startedAt])
+  @@index([startedAt])
+  @@index([actorUserId, startedAt])
+}
+
+model TerminalCryptoReconciliationIssue {
+  id               String                                    @id @default(cuid())
+  runId            String
+  assetId          String?
+  portfolioId      String?
+  orderId          String?
+  settlementId     String?
+  walletId         String?
+  checkKey         String
+  severity         TerminalCryptoReconciliationIssueSeverity
+  summary          String
+  technicalDetails String?
+  status           TerminalCryptoReconciliationIssueStatus   @default(OPEN)
+  fingerprint      String
+  resolvedAt       DateTime?
+  resolvedByRunId  String?
+  createdAt        DateTime                                  @default(now())
+  updatedAt        DateTime                                  @updatedAt
+
+  run   TerminalCryptoReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  asset TerminalCryptoAsset?            @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@index([runId, severity])
+  @@index([assetId, status])
+  @@index([status, severity, createdAt])
+  @@index([fingerprint])
+  @@index([checkKey, status])
+}
+
+model TerminalCryptoRevenueSweep {
+  id                     String   @id @default(cuid())
+  assetId                String
+  amount                 Decimal  @db.Decimal(28, 12)
+  destinationPortfolioId String
+  cashLedgerEntryId      String?
+  marketLedgerEntryKey   String?
+  reason                 String
+  actorUserId            String
+  idempotencyKey         String   @unique
+  accruedRevenueBefore   Decimal  @db.Decimal(28, 12)
+  accruedRevenueAfter    Decimal  @db.Decimal(28, 12)
+  createdAt              DateTime @default(now())
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([assetId, createdAt])
+  @@index([destinationPortfolioId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model TerminalCryptoExternalContribution {
+  id                String                                 @id @default(cuid())
+  assetId           String
+  kind              TerminalCryptoExternalContributionKind
+  amount            Decimal                                @db.Decimal(28, 12)
+  externalReference String?
+  reason            String
+  actorUserId       String
+  idempotencyKey    String                                 @unique
+  createdAt         DateTime                               @default(now())
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([assetId, createdAt])
+  @@index([kind, createdAt])
+  @@index([actorUserId, createdAt])
 }

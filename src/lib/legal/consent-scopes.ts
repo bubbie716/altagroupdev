@@ -6,6 +6,7 @@ export const LEGAL_CONSENT_SCOPES = [
   "CORE",
   "BANK",
   "TERMINAL",
+  "CRYPTO",
   "ALTA_PAY",
   "ALTA_CARD",
   "LENDING",
@@ -42,6 +43,8 @@ export function humanizeConsentScope(scope: LegalConsentScopeId): string {
       return "Alta Bank";
     case "TERMINAL":
       return "Alta Terminal";
+    case "CRYPTO":
+      return "Alta Terminal Crypto";
     case "ALTA_PAY":
       return "Alta Pay";
     case "ALTA_CARD":

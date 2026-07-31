@@ -41,6 +41,16 @@ export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
       "Processes all due scheduled transfers immediately. Failed transfers increment consecutive failure counts.",
   },
   {
+    jobKey: "terminal_scheduled_trades",
+    label: "Terminal scheduled trades",
+    description: "Executes due Alta Terminal scheduled and recurring market-order instructions.",
+    cronEndpoint: "/api/cron/terminal-scheduled-trades",
+    nextSchedule: "Every 1–15 minutes via cron (future mini-PC: /opt/alta-cron/run.sh terminal-scheduled-trades)",
+    manualRunKey: "terminal_scheduled_trades",
+    manualImpact:
+      "Processes due Terminal scheduled trade occurrences. Transient TSE failures retry with backoff.",
+  },
+  {
     jobKey: "payroll",
     label: "Payroll batches",
     description: "Executes due company payroll payment batches.",
@@ -137,6 +147,28 @@ export const OPS_JOBS_CATALOG: OpsJobCatalogEntry[] = [
     nextSchedule: "Daily via cron",
     manualRunKey: "company_relationship_recommendations",
     manualImpact: "Regenerates recommendations for all company relationship profiles.",
+  },
+  {
+    jobKey: "terminal_crypto_reconciliation",
+    label: "Terminal crypto reconciliation",
+    description:
+      "Read-only reconciliation of Alta Terminal fictional crypto supply, reserves, wallets, fees, and ledgers.",
+    cronEndpoint: "/api/cron/terminal-crypto-reconciliation",
+    nextSchedule: "Daily via cron (or with operational controls)",
+    manualRunKey: "terminal_crypto_reconciliation",
+    manualImpact:
+      "Runs a full read-only crypto reconciliation. Does not auto-repair balances. Creates or resolves issue records.",
+  },
+  {
+    jobKey: "terminal_crypto_candle_rollup",
+    label: "Terminal crypto candle rollup",
+    description:
+      "Aggregates M1 crypto price candles into M5/M15/H1/H4/D1 from real trades only.",
+    cronEndpoint: "/api/cron/terminal-crypto-candle-rollup",
+    nextSchedule: "Hourly via cron",
+    manualRunKey: "terminal_crypto_candle_rollup",
+    manualImpact:
+      "Recomputes higher-interval candles from M1 data. Never invents trades or empty volatility.",
   },
 ];
 

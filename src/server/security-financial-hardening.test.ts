@@ -248,6 +248,62 @@ describe("financial idempotency", { skip: !hasDatabaseUrl() }, () => {
     });
   });
 
+  it("marks replayed=true on crypto-shaped results without mutating stored JSON", async (t) => {
+    if (!(await hasFinancialIdempotencyTable())) {
+      t.skip("FinancialIdempotencyRecord migration not applied");
+      return;
+    }
+
+    const user = await prisma.user.findFirst();
+    assert.ok(user, "Need a user row");
+
+    const key = `unit-replay-flag-${Date.now()}`;
+    const { beginFinancialIdempotency, markFinancialIdempotencyReplay } = await import(
+      "@/server/financial-idempotency.service"
+    );
+
+    assert.deepEqual(markFinancialIdempotencyReplay({ referenceCode: "X" }), {
+      referenceCode: "X",
+    });
+    assert.deepEqual(markFinancialIdempotencyReplay({ orderId: "1", replayed: false }), {
+      orderId: "1",
+      replayed: true,
+    });
+
+    const first = await beginFinancialIdempotency({
+      userId: user.id,
+      scope: "terminal_crypto_order",
+      idempotencyKey: key,
+      payload: { amount: 1 },
+      execute: async () => ({ orderId: "ord-1", replayed: false }),
+    });
+    const second = await beginFinancialIdempotency({
+      userId: user.id,
+      scope: "terminal_crypto_order",
+      idempotencyKey: key,
+      payload: { amount: 1 },
+      execute: async () => ({ orderId: "ord-2", replayed: false }),
+    });
+    assert.equal(first.replayed, false);
+    assert.equal(second.replayed, true);
+    assert.equal(second.orderId, "ord-1");
+
+    const stored = await prisma.financialIdempotencyRecord.findUniqueOrThrow({
+      where: {
+        userId_scope_idempotencyKey: {
+          userId: user.id,
+          scope: "terminal_crypto_order",
+          idempotencyKey: key,
+        },
+      },
+    });
+    assert.equal(JSON.parse(stored.resultJson).replayed, false);
+
+    await prisma.financialIdempotencyRecord.deleteMany({
+      where: { userId: user.id, idempotencyKey: key },
+    });
+  });
+
   it("rejects same key with different payload", async (t) => {
     if (!(await hasFinancialIdempotencyTable())) {
       t.skip("FinancialIdempotencyRecord migration not applied");

@@ -181,10 +181,13 @@ describe("Phase 8 shell and Terminal honesty", () => {
 
   it("keeps Terminal System honest about unavailable sync/recon", () => {
     const system = read("routes/internal/terminal/system.tsx");
-    assert.match(system, /not implemented/i);
+    // TSE portfolio sync and pooled-custody recon stay not_implemented in readiness.
+    assert.match(system, /not_implemented/);
     assert.match(system, /Readiness/);
     assert.match(system, /Reconciliation/);
+    assert.match(system, /Crypto markets/);
     assert.doesNotMatch(system, /Fully reconciled/);
+    // Manual crypto recon lives on the crypto desk, not System.
     assert.doesNotMatch(system, /Run reconciliation/);
   });
 

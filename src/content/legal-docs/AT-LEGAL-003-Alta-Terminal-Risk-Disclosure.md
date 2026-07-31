@@ -2,7 +2,7 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-003  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Active disclosure  
 **Last Updated:** July 31, 2026
 
@@ -22,11 +22,15 @@ Alta Terminal is under development. Features may be unavailable, incomplete, res
 
 ## 4. Market and Price Risk
 
-Prices may change rapidly. A position may lose some or all of its virtual value. Historical prices, simulated performance, rankings, and charts do not predict future results.
+Prices may change rapidly. A position or crypto holding may lose some or all of its virtual value. Historical prices, simulated performance, rankings, and charts do not predict future results.
+
+For bonding-curve crypto instruments, purchases and sales themselves move the marginal price. Displayed marginal price can differ from average execution price, and large trades can cause sharp price impact.
 
 ## 5. Liquidity Risk
 
-There may be few or no willing counterparties. A Customer may be unable to enter or exit a position at the displayed price, in the requested quantity, or at all.
+There may be few or no willing counterparties for provider-routed instruments. A Customer may be unable to enter or exit a position at the displayed price, in the requested quantity, or at all.
+
+For Alta Crypto instruments, sell liquidity depends on each asset’s protected florin reserve and operational status rather than an open public order book.
 
 ## 6. Order Risk
 
@@ -94,5 +98,5 @@ By using an enabled trading or position feature, the Customer acknowledges the p
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** July 31, 2026

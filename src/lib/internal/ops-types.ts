@@ -11,6 +11,7 @@ export type GlobalSearchResultType =
   | "company"
   | "terminal_portfolio"
   | "terminal_order"
+  | "terminal_crypto_market"
   | "account"
   | "transaction"
   | "deposit"

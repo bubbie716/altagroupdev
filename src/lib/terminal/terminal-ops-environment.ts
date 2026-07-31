@@ -8,6 +8,8 @@ import type { TseDataSourceMode } from "@/lib/terminal/types";
 
 export type TerminalOpsConnectionState = "live" | "mock" | "unavailable" | "degraded";
 
+export type TerminalOpsCryptoMarketsStatus = "not_activated" | "draft" | "demonstration";
+
 export type TerminalOpsEnvironmentStatus = {
   connectionState: TerminalOpsConnectionState;
   mode: TseDataSourceMode;
@@ -19,6 +21,10 @@ export type TerminalOpsEnvironmentStatus = {
   adapterName: string;
   endpointHost: string | null;
   lastCheckedAt: string;
+  /** Phase 3 — informational only. No activate/halt controls. */
+  cryptoMarketsStatus: TerminalOpsCryptoMarketsStatus;
+  cryptoMarketsLabel: string;
+  cryptoMarketsDetail: string;
 };
 
 export function resolveTerminalOpsEnvironmentStatus(
@@ -27,6 +33,20 @@ export function resolveTerminalOpsEnvironmentStatus(
   const mode = resolveTerminalTseMode();
   const uiLab = isUiLabMode();
   const lastCheckedAt = now.toISOString();
+
+  const crypto = uiLab
+    ? {
+        cryptoMarketsStatus: "demonstration" as const,
+        cryptoMarketsLabel: "Crypto markets · demonstration",
+        cryptoMarketsDetail:
+          "UI Lab demonstration crypto only. Production assets remain DRAFT / not activated. No admin activate controls in this view.",
+      }
+    : {
+        cryptoMarketsStatus: "not_activated" as const,
+        cryptoMarketsLabel: "Crypto markets · Not activated",
+        cryptoMarketsDetail:
+          "Alta Crypto assets remain DRAFT until Phase 4 activation. Customer production trading is unavailable. No activate, halt, or reserve controls here.",
+      };
 
   if (uiLab) {
     return {
@@ -41,6 +61,7 @@ export function resolveTerminalOpsEnvironmentStatus(
       adapterName: "UiLabDemonstrationTseClient",
       endpointHost: null,
       lastCheckedAt,
+      ...crypto,
     };
   }
 
@@ -57,6 +78,7 @@ export function resolveTerminalOpsEnvironmentStatus(
       adapterName: "UnavailableTseClient",
       endpointHost: safeEndpointHost(),
       lastCheckedAt,
+      ...crypto,
     };
   }
 
@@ -72,6 +94,7 @@ export function resolveTerminalOpsEnvironmentStatus(
     adapterName: "UnavailableTseClient",
     endpointHost: safeEndpointHost(),
     lastCheckedAt,
+    ...crypto,
   };
 }
 

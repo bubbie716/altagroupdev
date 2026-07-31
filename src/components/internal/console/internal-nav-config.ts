@@ -133,7 +133,7 @@ export const TERMINAL_PRIMARY_NAV: InternalNavLink[] = [
   {
     label: "System",
     to: "/internal/terminal/system",
-    matchPrefixes: ["/internal/terminal/system", "/internal/terminal/settings"],
+    matchPrefixes: ["/internal/terminal/system", "/internal/terminal/settings", "/internal/terminal/crypto"],
   },
 ];
 
@@ -354,6 +354,7 @@ export function getInternalContextualNav(
         label: "System",
         links: [
           { label: "Overview", to: "/internal/terminal/system", match: "/internal/terminal/system", exact: true },
+          { label: "Crypto markets", to: "/internal/terminal/crypto", match: "/internal/terminal/crypto" },
           { label: "Settings", to: "/internal/terminal/settings", match: "/internal/terminal/settings" },
         ],
       };

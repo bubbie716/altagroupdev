@@ -22,6 +22,7 @@ const typeLabels: Record<GlobalSearchResult["type"], string> = {
   company: "Company",
   terminal_portfolio: "Portfolio",
   terminal_order: "Order",
+  terminal_crypto_market: "Crypto market",
   account: "Bank Account",
   transaction: "Transaction",
   deposit: "Deposit",
@@ -51,7 +52,7 @@ function labelForResult(type: GlobalSearchResult["type"], siteKey: string): stri
 
 function searchPlaceholder(siteKey: string): string {
   if (siteKey === "terminal" || siteKey === "exchange") {
-    return "Search investors, portfolios, orders…";
+    return "Search investors, portfolios, orders, crypto…";
   }
   if (siteKey === "bank") {
     return "Search customers, accounts, transactions…";

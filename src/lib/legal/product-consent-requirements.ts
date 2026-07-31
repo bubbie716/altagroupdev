@@ -106,6 +106,7 @@ export const PRODUCT_CONSENT_ACTIONS = {
   "bank.deposit": { scopes: ["BANK"] as const },
   "bank.withdraw": { scopes: ["BANK"] as const },
   "terminal.place_order": { scopes: ["TERMINAL"] as const },
+  "terminal.crypto_trade": { scopes: ["TERMINAL", "CRYPTO"] as const },
   "terminal.create_portfolio": { scopes: ["TERMINAL"] as const },
   "terminal.funding": { scopes: ["BANK", "TERMINAL"] as const },
   "alta_pay.submit": { scopes: ["BANK", "ALTA_PAY"] as const },

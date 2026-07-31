@@ -8,6 +8,7 @@ import { AuthUserMenu } from "@/components/auth/user-menu";
 import { EcosystemSwitcher } from "@/components/site/ecosystem-switcher";
 import { MarketStatusBadge } from "@/components/terminal/market-status";
 import { SecurityStatusBadge } from "@/components/terminal/market-status";
+import { InstrumentKindBadge } from "@/components/terminal/instrument-kind-badge";
 import {
   Sheet,
   SheetContent,
@@ -108,7 +109,7 @@ function SearchResultList({
   onSelect,
 }: {
   results: SecuritySummary[];
-  onSelect: (symbol: string) => void;
+  onSelect: (row: SecuritySummary) => void;
 }) {
   if (results.length === 0) return null;
   return (
@@ -118,16 +119,19 @@ function SearchResultList({
       aria-label="Symbol results"
     >
       {results.map((row) => (
-        <li key={row.symbol} role="option">
+        <li key={`${row.instrumentKind ?? "STOCK"}-${row.symbol}`} role="option">
           <button
             type="button"
             className="flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left text-[13px] hover:bg-[var(--terminal-surface-2)]"
-            onClick={() => onSelect(row.symbol)}
+            onClick={() => onSelect(row)}
           >
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-[var(--terminal-text)]">{row.symbol}</span>
-                <SecurityStatusBadge status={row.tradingStatus} />
+                <InstrumentKindBadge kind={row.instrumentKind ?? "STOCK"} />
+                {row.instrumentKind !== "CRYPTO" ? (
+                  <SecurityStatusBadge status={row.tradingStatus} />
+                ) : null}
               </span>
               <span className="mt-0.5 block truncate text-[12px] text-[var(--terminal-muted)]">
                 {row.name}
@@ -165,12 +169,16 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
     search.clear();
   }
 
-  function selectResult(symbol: string) {
+  function selectResult(row: SecuritySummary) {
     closeThenRun(closeSearchSurface, () => {
       void navigate({
         to: "/terminal/security/$symbol",
-        params: { symbol },
-        search: { range: "1D", portfolioId: undefined },
+        params: { symbol: row.symbol },
+        search: {
+          range: "1D",
+          portfolioId: undefined,
+          instrument: row.instrumentKind === "CRYPTO" ? "crypto" : "stocks",
+        },
       });
     });
   }

@@ -2,7 +2,7 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-LEGAL-005  
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Pre-launch fee schedule  
 **Currency:** Florin (FLR), unless stated otherwise  
 **Last Updated:** July 31, 2026
@@ -11,7 +11,9 @@
 
 ## 1. Current Service Status
 
-Alta Terminal is in development. Live execution and provider-connected custody are not currently available. Alta Terminal does not charge a trading fee for functionality that is not enabled.
+Alta Terminal is in development. Live external stock execution and provider-connected custody are not currently available for ordinary customers. Alta Terminal does not charge a stock trading fee for functionality that is not enabled.
+
+When fictional Alta Crypto instruments are enabled for an account, the crypto fees in Section 2A apply to completed crypto market orders only.
 
 ## 2. Current Fees
 
@@ -24,10 +26,18 @@ Alta Terminal is in development. Live execution and provider-connected custody a
 | Standard research tools | 0 FLR |
 | Standard statements | 0 FLR |
 | Bank ↔ Terminal funding transfer | 0 FLR |
-| Trading commission | Not applicable until trading launches |
+| Stock trading commission | Not applicable until stock trading launches |
 | Market-data subscription | Not currently offered |
 | Margin interest | Not offered |
 | Securities lending | Not offered |
+
+## 2A. Alta Crypto Fees (when enabled)
+
+| Service | Fee |
+|---|---|
+| NVA / VLT completed buy or sell | 1.00% of gross florin value (0.75% Alta Terminal revenue; 0.25% asset stabilization fund) |
+| NPFC purchase or redemption | 0.10% conversion fee (Alta Terminal revenue) |
+| Rejected, failed, cancelled, or skipped crypto instructions | 0 FLR |
 
 ## 3. Provider and Pass-Through Charges
 

@@ -228,6 +228,24 @@ export const ALTA_PAY_LEGACY_TAB_MAP: Record<string, string> = {
   technical: "technical",
 };
 
+/** Terminal crypto asset workspace — Overview / Activity / More. */
+export const CRYPTO_ASSET_LEGACY_TAB_MAP: Record<string, RecordLegacyMapping> = {
+  overview: { tab: "overview" },
+  summary: { tab: "overview", section: "summary" },
+  reserves: { tab: "overview", section: "reserves" },
+  integrity: { tab: "overview", section: "integrity" },
+  activity: { tab: "activity" },
+  timeline: { tab: "activity" },
+  status: { tab: "activity", filter: "status" },
+  orders: { tab: "activity", filter: "orders" },
+  fees: { tab: "more", section: "fees" },
+  settlements: { tab: "more", section: "settlements" },
+  ledger: { tab: "more", section: "ledger" },
+  candles: { tab: "more", section: "candles" },
+  technical: { tab: "more", section: "technical" },
+  more: { tab: "more" },
+};
+
 /** Terminal portfolio legacy tab → canonical workspace state. */
 export const PORTFOLIO_LEGACY_TAB_MAP: Record<string, RecordLegacyMapping> = {
   overview: { tab: "overview" },
@@ -421,6 +439,12 @@ export function parseTerminalPortfolioWorkspaceSearch(
   search: Record<string, unknown> | undefined | null,
 ): RecordWorkspaceSearch {
   return normalizeRecordWorkspaceSearch(search, PORTFOLIO_LEGACY_TAB_MAP);
+}
+
+export function parseTerminalCryptoWorkspaceSearch(
+  search: Record<string, unknown> | undefined | null,
+): RecordWorkspaceSearch {
+  return normalizeRecordWorkspaceSearch(search, CRYPTO_ASSET_LEGACY_TAB_MAP);
 }
 
 export function parseTerminalOrderRecordSearch(

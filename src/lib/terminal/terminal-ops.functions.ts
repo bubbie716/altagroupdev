@@ -5,6 +5,7 @@ import type {
   TerminalOpsOrderRow,
   TerminalOpsPortfolioDetail,
   TerminalOpsPortfolioRow,
+  TerminalOpsScheduledTradeRow,
 } from "@/lib/terminal/terminal-ops-types";
 import type { TerminalOpsSystemStatus } from "@/lib/terminal/terminal-ops-admin.service";
 import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
@@ -28,11 +29,18 @@ export const fetchTerminalOpsHomeSummary = createServerFn({ method: "GET" }).han
       listTerminalOpsOrdersFromDb,
       buildInvestorsFromPortfolios,
       buildTerminalOpsHomeSummary,
+      loadCryptoCriticalAttentionIssues,
     } = await import("@/lib/terminal/terminal-ops-admin.service");
     const portfolios = await listTerminalOpsPortfoliosFromDb();
     const investors = buildInvestorsFromPortfolios(portfolios);
     const orders = await listTerminalOpsOrdersFromDb();
-    return buildTerminalOpsHomeSummary({ portfolios, investors, orders });
+    const cryptoCriticalIssues = await loadCryptoCriticalAttentionIssues();
+    return buildTerminalOpsHomeSummary({
+      portfolios,
+      investors,
+      orders,
+      cryptoCriticalIssues,
+    });
   },
 );
 
@@ -97,6 +105,42 @@ export const fetchTerminalOrders = createServerFn({ method: "GET" }).handler(
     const { listTerminalOpsOrdersFromDb } =
       await import("@/lib/terminal/terminal-ops-admin.service");
     return listTerminalOpsOrdersFromDb();
+  },
+);
+
+export const fetchTerminalScheduledTrades = createServerFn({ method: "GET" }).handler(
+  async (): Promise<TerminalOpsScheduledTradeRow[]> => {
+    await requireTerminalOperator();
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { listUiLabScheduledTrades } = await import(
+        "@/lib/terminal/ui-lab/ui-lab-scheduled-trade-fixtures"
+      );
+      return listUiLabScheduledTrades().map((row) => ({
+        id: row.id,
+        portfolioId: row.portfolioId,
+        portfolioName: row.portfolioName,
+        investorLabel: "UI Lab investor",
+        ownerUserId: null,
+        ownerCompanyId: null,
+        symbol: row.symbol,
+        side: row.side,
+        quantity: row.quantity,
+        scheduleType: row.scheduleType,
+        frequency: row.frequency,
+        status: row.status,
+        nextRunAt: row.nextRunAt,
+        lastFailureSummary: row.lastFailureSummary,
+        consecutiveFailures: row.consecutiveFailures,
+        needsAttention: Boolean(row.lastFailureSummary) || row.status === "paused",
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }));
+    }
+    const { listTerminalOpsScheduledTradesFromDb } = await import(
+      "@/lib/terminal/terminal-ops-admin.service"
+    );
+    return listTerminalOpsScheduledTradesFromDb();
   },
 );
 
@@ -173,15 +217,24 @@ export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler
                   ? "Review investor"
                   : a.kind === "portfolio_access"
                     ? "Review portfolio access"
-                    : "Review case",
+                    : a.kind.startsWith("crypto_")
+                      ? "Review crypto market"
+                      : "Review case",
           investorLabel: order?.investorLabel ?? portfolio?.ownerLabel ?? investor?.label ?? null,
           portfolioLabel: order?.portfolioName ?? portfolio?.name ?? null,
-          symbol: order?.symbol ?? null,
+          symbol: order?.symbol ?? a.symbol ?? null,
         };
       });
     }
-    const { buildTerminalOpsAttention } = await import("@/lib/terminal/terminal-ops-admin.service");
-    return buildTerminalOpsAttention().map((a) => ({
+    const {
+      buildTerminalOpsAttention,
+      listTerminalOpsOrdersFromDb,
+      loadCryptoCriticalAttentionIssues,
+    } = await import("@/lib/terminal/terminal-ops-admin.service");
+    const orders = await listTerminalOpsOrdersFromDb();
+    const rejected = orders.filter((o) => o.status === "rejected");
+    const cryptoCriticalIssues = await loadCryptoCriticalAttentionIssues();
+    return buildTerminalOpsAttention(undefined, rejected, cryptoCriticalIssues).map((a) => ({
       id: a.id,
       caseType: a.kind,
       title: a.title,
@@ -194,10 +247,12 @@ export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler
           ? "Review connection issue"
           : a.kind === "rejected_order"
             ? "Review rejected order"
-            : "Review case",
+            : a.kind === "crypto_reconciliation"
+              ? "Review crypto market"
+              : "Review case",
       investorLabel: null,
       portfolioLabel: null,
-      symbol: null,
+      symbol: a.symbol ?? null,
     }));
   },
 );

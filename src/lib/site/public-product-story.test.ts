@@ -93,7 +93,14 @@ describe("public product story excludes Alta Exchange and NCC", () => {
     assert.equal(legalDocFiles.some((name) => name.startsWith("AE-")), false);
     assert.equal(legalDocFiles.some((name) => /^NCC[-_]/i.test(name)), false);
     assert.ok(legalDocFiles.some((name) => name.startsWith("AT-COR-001")));
-    for (const id of ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"]) {
+    for (const id of [
+      "AT-LEGAL-001",
+      "AT-LEGAL-002",
+      "AT-LEGAL-003",
+      "AT-LEGAL-004",
+      "AT-LEGAL-005",
+      "AT-LEGAL-006",
+    ]) {
       assert.ok(legalDocFiles.some((name) => name.startsWith(id)), `missing ${id}`);
     }
     for (const id of ["AG-COR-004", "AG-LEGAL-004", "AG-LEGAL-005", "AB-LEGAL-008"]) {
@@ -107,7 +114,14 @@ describe("public product story excludes Alta Exchange and NCC", () => {
     }
     assert.deepEqual(
       siteEntitySectionDocuments("terminal").map((d) => d.id),
-      ["AT-LEGAL-001", "AT-LEGAL-002", "AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
+      [
+        "AT-LEGAL-001",
+        "AT-LEGAL-002",
+        "AT-LEGAL-003",
+        "AT-LEGAL-004",
+        "AT-LEGAL-005",
+        "AT-LEGAL-006",
+      ],
     );
   });
 

@@ -9,6 +9,7 @@ import type {
   TerminalOpsOrderRow,
   TerminalOpsPortfolioDetail,
   TerminalOpsPortfolioRow,
+  TerminalOpsScheduledTradeRow,
 } from "@/lib/terminal/terminal-ops-types";
 import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
 import { formatAltaUserHandle } from "@/lib/auth/user-display";
@@ -114,6 +115,65 @@ export async function listTerminalOpsOrdersFromDb(): Promise<TerminalOpsOrderRow
       needsAttention: order.status === "REJECTED" || Boolean(order.rejectReason),
     };
   });
+}
+
+export async function listTerminalOpsScheduledTradesFromDb(): Promise<TerminalOpsScheduledTradeRow[]> {
+  try {
+    const { prisma } = await import("@/server/db");
+    const rows = await prisma.terminalScheduledTradeInstruction.findMany({
+      include: {
+        portfolio: {
+          select: {
+            name: true,
+            ownerUserId: true,
+            ownerCompanyId: true,
+            ownerUser: { select: { discordUsername: true, minecraftUsername: true } },
+            ownerCompany: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ status: "asc" }, { nextRunAt: "asc" }, { updatedAt: "desc" }],
+      take: 500,
+    });
+    return rows.map((row) => {
+      const investorLabel =
+        (row.portfolio.ownerUser ? formatAltaUserHandle(row.portfolio.ownerUser) : null) ??
+        row.portfolio.ownerCompany?.name ??
+        "Unknown investor";
+      const status = row.status.toLowerCase() as TerminalOpsScheduledTradeRow["status"];
+      const needsAttention =
+        status === "paused" ||
+        row.consecutiveFailures > 0 ||
+        Boolean(row.lastFailureSummary) ||
+        (row.nextRunAt != null && row.nextRunAt.getTime() < Date.now() - 60 * 60 * 1000);
+      return {
+        id: row.id,
+        portfolioId: row.portfolioId,
+        portfolioName: row.portfolio.name,
+        investorLabel,
+        ownerUserId: row.portfolio.ownerUserId,
+        ownerCompanyId: row.portfolio.ownerCompanyId,
+        symbol: row.symbol,
+        side: row.side === "BUY" ? "buy" : "sell",
+        quantity: Number(row.quantity),
+        scheduleType: row.scheduleType === "ONE_TIME" ? "one_time" : "recurring",
+        frequency: row.frequency
+          ? (row.frequency.toLowerCase() as TerminalOpsScheduledTradeRow["frequency"])
+          : null,
+        status,
+        nextRunAt: row.nextRunAt?.toISOString() ?? null,
+        lastFailureSummary: row.lastFailureSummary,
+        consecutiveFailures: row.consecutiveFailures,
+        needsAttention,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/terminalscheduledtrade|does not exist|no such table/i.test(message)) return [];
+    throw error;
+  }
 }
 
 export async function getTerminalOpsPortfolioFromDb(
@@ -243,6 +303,12 @@ export function buildInvestorsFromPortfolios(
 export function buildTerminalOpsAttention(
   environment = resolveTerminalOpsEnvironmentStatus(),
   rejectedOrders: TerminalOpsOrderRow[] = [],
+  cryptoCriticalIssues: Array<{
+    id: string;
+    summary: string;
+    createdAt: string;
+    symbol: string | null;
+  }> = [],
 ): TerminalOpsAttentionItem[] {
   const items: TerminalOpsAttentionItem[] = [];
   if (environment.connectionState === "unavailable" || environment.connectionState === "degraded") {
@@ -267,18 +333,70 @@ export function buildTerminalOpsAttention(
       orderId: o.id,
     });
   }
+  const seenCrypto = new Set<string>();
+  for (const issue of cryptoCriticalIssues) {
+    const dedupeKey = issue.symbol ?? issue.id;
+    if (seenCrypto.has(dedupeKey)) continue;
+    seenCrypto.add(dedupeKey);
+    items.push({
+      id: `attn-crypto-${issue.id}`,
+      kind: "crypto_reconciliation",
+      title: issue.symbol
+        ? `Crypto recon · ${issue.symbol}`
+        : "Crypto reconciliation critical",
+      detail: issue.summary,
+      href: issue.symbol
+        ? `/internal/terminal/crypto/${issue.symbol}?tab=overview`
+        : "/internal/terminal/crypto",
+      createdAt: issue.createdAt,
+      symbol: issue.symbol ?? undefined,
+    });
+  }
   return items;
+}
+
+export async function loadCryptoCriticalAttentionIssues(): Promise<
+  Array<{ id: string; summary: string; createdAt: string; symbol: string | null }>
+> {
+  try {
+    const { isDatabaseConfigured, prisma } = await import("@/server/db");
+    if (!isDatabaseConfigured()) return [];
+    const issues = await prisma.terminalCryptoReconciliationIssue.findMany({
+      where: { status: "OPEN", severity: "CRITICAL" },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      include: { asset: { select: { symbol: true } } },
+    });
+    return issues.map((issue) => ({
+      id: issue.id,
+      summary: issue.summary,
+      createdAt: issue.createdAt.toISOString(),
+      symbol: issue.asset?.symbol ?? null,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export function buildTerminalOpsHomeSummary(input: {
   portfolios: TerminalOpsPortfolioRow[];
   investors: TerminalInvestorRow[];
   orders: TerminalOpsOrderRow[];
+  cryptoCriticalIssues?: Array<{
+    id: string;
+    summary: string;
+    createdAt: string;
+    symbol: string | null;
+  }>;
 }): TerminalOpsHomeSummary {
   const environment = resolveTerminalOpsEnvironmentStatus();
   const active = input.portfolios.filter((p) => p.status === "active");
   const rejected = input.orders.filter((o) => o.status === "rejected");
-  const attention = buildTerminalOpsAttention(environment, rejected);
+  const attention = buildTerminalOpsAttention(
+    environment,
+    rejected,
+    input.cryptoCriticalIssues ?? [],
+  );
   return {
     environment,
     attention,
@@ -334,6 +452,12 @@ export type TerminalOpsSystemStatus = {
     available: boolean;
     detail: string;
   };
+  cryptoMarkets: {
+    available: boolean;
+    statusLabel: string;
+    detail: string;
+    assetStatuses: Array<{ symbol: string; status: string }>;
+  };
 };
 
 export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemStatus> {
@@ -360,6 +484,91 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
     localDatabaseAvailable = false;
     localDatabaseDetail =
       "Local Terminal database is configured but unreachable or not migrated.";
+  }
+
+  let cryptoMarkets: TerminalOpsSystemStatus["cryptoMarkets"] = {
+    available: false,
+    statusLabel: "Not configured",
+    detail:
+      "Fictional Alta Crypto schema/state is not available yet. Apply Phase 1–4 migrations before activation.",
+    assetStatuses: [],
+  };
+  try {
+    const { isDatabaseConfigured, prisma } = await import("@/server/db");
+    if (isDatabaseConfigured()) {
+      const assets = await prisma.terminalCryptoAsset.findMany({
+        select: { symbol: true, status: true },
+        orderBy: { symbol: "asc" },
+      });
+      if (assets.length > 0) {
+        let openCritical = 0;
+        try {
+          openCritical = await prisma.terminalCryptoReconciliationIssue.count({
+            where: { status: "OPEN", severity: "CRITICAL" },
+          });
+        } catch {
+          openCritical = 0;
+        }
+
+        const statuses = new Set(assets.map((a) => a.status));
+        const anyActive = statuses.has("ACTIVE");
+        const anyHalted = statuses.has("HALTED");
+        const anyRedemption = statuses.has("REDEMPTION_ONLY");
+        const allDraft = assets.every((a) => a.status === "DRAFT");
+        const allClosed = assets.every((a) => a.status === "CLOSED");
+
+        let statusLabel = "Draft";
+        let detail =
+          "Assets remain DRAFT until a Corporate admin activates them after migration and staging checks. No activate controls on this System page.";
+        if (openCritical > 0) {
+          statusLabel = "Critical issue";
+          detail = `${openCritical} unresolved critical reconciliation issue(s). Review Crypto markets before activation or trading.`;
+        } else if (anyHalted && !anyActive && !anyRedemption) {
+          statusLabel = "Halted";
+          detail = "One or more assets are halted. New trades are blocked until Corporate admin resume.";
+        } else if (anyRedemption && !anyActive) {
+          statusLabel = "Redemption only";
+          detail = "Buys are blocked; legitimate sells/redemptions may still execute.";
+        } else if (anyHalted || (anyRedemption && anyActive)) {
+          statusLabel = "Degraded";
+          detail =
+            "Mixed asset lifecycle states — some markets may be halted or redemption-only. TSE status is separate.";
+        } else if (anyActive) {
+          statusLabel = "Active";
+          detail =
+            "One or more crypto assets are ACTIVE on Alta Crypto (separate from TSE). Manage from Crypto markets.";
+        } else if (allDraft) {
+          let ready = false;
+          try {
+            const { evaluateActivationReadiness } = await import(
+              "@/lib/terminal/crypto/crypto-activation-readiness.service"
+            );
+            const checks = await Promise.all(
+              assets.map((a) => evaluateActivationReadiness(a.symbol)),
+            );
+            ready = checks.length > 0 && checks.every((c) => c.allPassed);
+          } catch {
+            ready = false;
+          }
+          statusLabel = ready ? "Ready to activate" : "Draft";
+          detail = ready
+            ? "Readiness checks pass for launch assets. Corporate admin activation is required — not available from this System page or UI Lab."
+            : "Crypto assets remain DRAFT. Open Crypto markets for readiness details.";
+        } else if (allClosed) {
+          statusLabel = "Not configured";
+          detail = "All crypto assets are CLOSED.";
+        }
+
+        cryptoMarkets = {
+          available: anyActive,
+          statusLabel,
+          detail,
+          assetStatuses: assets.map((a) => ({ symbol: a.symbol, status: a.status })),
+        };
+      }
+    }
+  } catch {
+    // Keep default Not configured when crypto tables are unavailable.
   }
 
   return {
@@ -393,17 +602,19 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
       ],
     },
     jobs: {
-      available: false,
-      detail: "No Terminal-specific maintenance jobs are registered yet.",
+      available: true,
+      detail:
+        "Crypto reconciliation and candle-rollup jobs are registered in the ops catalog. Manual runs require Terminal admin; UI Lab blocks mutations.",
     },
     audit: {
       available: false,
       detail: "Terminal-specific audit aggregation is not implemented for this console.",
     },
     recurringTrades: {
-      available: false,
+      available: true,
       detail:
-        "Scheduled/recurring Terminal trades are not implemented (no models, execution jobs, or market-hours handlers).",
+        "Scheduled/recurring Terminal stock trades are implemented. Crypto schedules use ALTA_CRYPTO execution with automated price-impact skip.",
     },
+    cryptoMarkets,
   };
 }

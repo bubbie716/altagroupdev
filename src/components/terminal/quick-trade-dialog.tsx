@@ -13,6 +13,8 @@ import {
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { MarketStatusBadge, SecurityStatusBadge } from "@/components/terminal/market-status";
 import { OrderTicket } from "@/components/terminal/order-ticket";
+import { CryptoOrderTicket } from "@/components/terminal/crypto-order-ticket";
+import { InstrumentKindBadge } from "@/components/terminal/instrument-kind-badge";
 import {
   SecurityPortfolioDropdown,
 } from "@/components/terminal/security-portfolio-picker";
@@ -26,12 +28,14 @@ import {
 } from "@/lib/terminal/security-portfolio-picker";
 import { resetQuickTradeFields } from "@/lib/terminal/quick-trade";
 import { fetchQuickTradeContext, selectTerminalPortfolioFn } from "@/lib/terminal/terminal.functions";
+import type { CryptoAssetDetail, CryptoPortfolioBalance } from "@/lib/terminal/crypto/crypto-market-read.service";
 import type {
   Holding,
   MarketStatusSnapshot,
   OrderRecord,
   SecurityDetail,
   SecuritySummary,
+  TerminalInstrumentKind,
   TerminalPortfolioSummary,
   TseDataSourceMode,
 } from "@/lib/terminal/types";
@@ -47,6 +51,10 @@ type QuickTradeContext = {
   security: SecurityDetail | null;
   position: Holding | null;
   buyingPower: number;
+  instrumentKind: TerminalInstrumentKind;
+  cryptoAsset: CryptoAssetDetail | null;
+  cryptoHolding: CryptoPortfolioBalance | null;
+  walletPublicId: string | null;
 };
 
 type Phase = "form" | "success";
@@ -98,13 +106,24 @@ export function QuickTradeDialog({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [cryptoSuccess, setCryptoSuccess] = useState(false);
   const navigatingAwayRef = useRef(false);
   const openPathRef = useRef<string | null>(null);
   /** Skip the redundant fetch after applying server-resolved portfolioId. */
   const skipFetchForHydratedPortfolioRef = useRef(false);
 
   const security = ctx?.security ?? null;
-  const draft = useOrderTicketDraft(security?.lastPrice ?? 0);
+  const cryptoAsset = ctx?.cryptoAsset ?? null;
+  const isCrypto = ctx?.instrumentKind === "CRYPTO" && Boolean(cryptoAsset);
+  const draft = useOrderTicketDraft(
+    security?.lastPrice ?? (cryptoAsset ? Number.parseFloat(cryptoAsset.currentPrice) : 0),
+  );
+
+  // Crypto is market-only — never leave limit selected from a prior stock.
+  useEffect(() => {
+    if (!isCrypto) return;
+    if (draft.type !== "market") draft.setType("market");
+  }, [isCrypto, draft.type, draft.setType]);
 
   // Close cleanly on route change while open.
   useEffect(() => {
@@ -177,6 +196,7 @@ export function QuickTradeDialog({
   function resetAll() {
     setPhase("form");
     setLastOrder(null);
+    setCryptoSuccess(false);
     setSymbol(null);
     setPortfolioId(null);
     setCtx(null);
@@ -228,12 +248,13 @@ export function QuickTradeDialog({
   function tradeAnother() {
     setPhase("form");
     setLastOrder(null);
+    setCryptoSuccess(false);
     setSymbol(null);
     setLoadError(null);
     setReviewing(false);
     const fields = resetQuickTradeFields();
     draft.setSide(fields.side);
-    draft.setType(fields.type);
+    draft.setType("market");
     draft.setQuantity(fields.quantity);
     draft.setLimitPrice(fields.limitPrice);
     // portfolioId preserved
@@ -329,9 +350,11 @@ export function QuickTradeDialog({
             <DialogDescription className="text-[12px] text-[var(--terminal-muted)]">
               {phase === "success"
                 ? "Your order was submitted."
-                : reviewing
+                : reviewing && !isCrypto
                   ? "Confirm details before submitting. Back keeps your entries."
-                  : "Choose a portfolio and security, then review before submitting."}
+                  : isCrypto
+                    ? "Choose a portfolio and crypto asset. Market orders only."
+                    : "Choose a portfolio and security, then review before submitting."}
             </DialogDescription>
           </DialogHeader>
 
@@ -349,6 +372,41 @@ export function QuickTradeDialog({
                 onTradeAnother={tradeAnother}
                 onDone={done}
               />
+            ) : phase === "success" && cryptoSuccess ? (
+              <CryptoSuccessPanel
+                symbol={cryptoAsset?.symbol ?? symbol ?? ""}
+                portfolioLabel={portfolioLabel}
+                onTradeAnother={tradeAnother}
+                onDone={done}
+                onViewSecurity={() => {
+                  if (navigatingAwayRef.current) return;
+                  navigatingAwayRef.current = true;
+                  const sym = cryptoAsset?.symbol ?? symbol;
+                  closeThenRun(
+                    () => {
+                      onOpenChange(false);
+                      resetAll();
+                    },
+                    () => {
+                      if (!sym) {
+                        navigatingAwayRef.current = false;
+                        return;
+                      }
+                      void navigate({
+                        to: "/terminal/security/$symbol",
+                        params: { symbol: sym },
+                        search: {
+                          range: "1D",
+                          portfolioId: portfolioId ?? undefined,
+                          instrument: "crypto",
+                        },
+                      }).finally(() => {
+                        navigatingAwayRef.current = false;
+                      });
+                    },
+                  );
+                }}
+              />
             ) : (
               <div className="space-y-4">
                 {!reviewing ? (
@@ -360,7 +418,9 @@ export function QuickTradeDialog({
                         label={portfolioLabel}
                         portfolios={portfolios}
                         selectedId={portfolioId}
-                        securitySymbol={security?.symbol ?? "this trade"}
+                        securitySymbol={
+                          security?.symbol ?? cryptoAsset?.symbol ?? "this trade"
+                        }
                         onSelect={selectPortfolio}
                         compact
                       />
@@ -370,12 +430,18 @@ export function QuickTradeDialog({
                       selected={
                         security
                           ? { symbol: security.symbol, name: security.name }
-                          : null
+                          : cryptoAsset
+                            ? { symbol: cryptoAsset.symbol, name: cryptoAsset.displayName }
+                            : null
                       }
                       onSelect={(row: SecuritySummary) => {
                         setPickerOpen(false);
                         setSymbol(row.symbol);
+                        draft.setType("market");
                         draft.setLimitPrice(String(row.lastPrice));
+                        if (row.instrumentKind === "CRYPTO") {
+                          setReviewing(false);
+                        }
                       }}
                       onClear={() => {
                         setSymbol(null);
@@ -383,7 +449,33 @@ export function QuickTradeDialog({
                       disabled={loading}
                     />
 
-                    {security && ctx?.marketStatus ? (
+                    {isCrypto && cryptoAsset ? (
+                      <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <MoneyValue
+                            value={Number.parseFloat(cryptoAsset.currentPrice)}
+                            asPrice
+                            size="sm"
+                          />
+                          <PriceChange
+                            amount={
+                              cryptoAsset.dayChange == null
+                                ? null
+                                : Number.parseFloat(cryptoAsset.dayChange)
+                            }
+                            percent={
+                              cryptoAsset.dayChangePercent == null
+                                ? null
+                                : Number.parseFloat(cryptoAsset.dayChangePercent)
+                            }
+                          />
+                          <InstrumentKindBadge kind="CRYPTO" />
+                        </div>
+                        <p className="mt-2 text-[12px] text-[var(--terminal-muted)]">
+                          {cryptoAsset.tradingContextLabel}
+                        </p>
+                      </div>
+                    ) : security && ctx?.marketStatus ? (
                       <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <MoneyValue value={security.lastPrice} asPrice size="sm" />
@@ -392,6 +484,7 @@ export function QuickTradeDialog({
                             percent={security.dayChangePercent}
                           />
                           <SecurityStatusBadge status={security.tradingStatus} />
+                          <InstrumentKindBadge kind="STOCK" />
                         </div>
                         <div className="mt-2">
                           <MarketStatusBadge
@@ -414,32 +507,61 @@ export function QuickTradeDialog({
                   </>
                 ) : null}
 
-                <OrderTicket
-                  security={security}
-                  buyingPower={ctx?.buyingPower ?? selectedOption?.buyingPower ?? 0}
-                  position={ctx?.position ?? null}
-                  mode={ctx?.mode ?? mode}
-                  marketClosed={marketClosed}
-                  marketStatus={ctx?.marketStatus.status}
-                  portfolioId={portfolioId}
-                  portfolioLabel={portfolioLabel}
-                  canTradeSelected={!blockedReason}
-                  tradeBlockedReason={blockedReason}
-                  onRequestPortfolioChange={() => setPickerOpen(true)}
-                  hidePortfolioControl
-                  suppressInlineSuccess
-                  confirmPresentation="inline"
-                  confirmOpen={reviewing}
-                  onConfirmOpenChange={setReviewing}
-                  draft={draft}
-                  compact
-                  className="border-0 bg-transparent p-0"
-                  onSubmitted={({ order }) => {
-                    setReviewing(false);
-                    setLastOrder(order);
-                    setPhase("success");
-                  }}
-                />
+                {isCrypto && cryptoAsset ? (
+                  <CryptoOrderTicket
+                    symbol={cryptoAsset.symbol}
+                    assetName={cryptoAsset.displayName}
+                    lastPrice={Number.parseFloat(cryptoAsset.currentPrice)}
+                    buyingPower={ctx?.buyingPower ?? selectedOption?.buyingPower ?? 0}
+                    holdingQuantity={
+                      ctx?.cryptoHolding
+                        ? Number.parseFloat(ctx.cryptoHolding.quantity)
+                        : 0
+                    }
+                    portfolioId={portfolioId}
+                    portfolioLabel={portfolioLabel}
+                    canTradeSelected={!blockedReason}
+                    tradeBlockedReason={blockedReason}
+                    buyDisabled={!cryptoAsset.tradingCapabilities.canBuy}
+                    sellDisabled={!cryptoAsset.tradingCapabilities.canSell}
+                    statusLabel={cryptoAsset.tradingContextLabel}
+                    onRequestPortfolioChange={() => setPickerOpen(true)}
+                    hidePortfolioControl
+                    compact
+                    className="border-0 bg-transparent p-0"
+                    onSubmitted={() => {
+                      setCryptoSuccess(true);
+                      setPhase("success");
+                    }}
+                  />
+                ) : (
+                  <OrderTicket
+                    security={security}
+                    buyingPower={ctx?.buyingPower ?? selectedOption?.buyingPower ?? 0}
+                    position={ctx?.position ?? null}
+                    mode={ctx?.mode ?? mode}
+                    marketClosed={marketClosed}
+                    marketStatus={ctx?.marketStatus.status}
+                    portfolioId={portfolioId}
+                    portfolioLabel={portfolioLabel}
+                    canTradeSelected={!blockedReason}
+                    tradeBlockedReason={blockedReason}
+                    onRequestPortfolioChange={() => setPickerOpen(true)}
+                    hidePortfolioControl
+                    suppressInlineSuccess
+                    confirmPresentation="inline"
+                    confirmOpen={reviewing}
+                    onConfirmOpenChange={setReviewing}
+                    draft={draft}
+                    compact
+                    className="border-0 bg-transparent p-0"
+                    onSubmitted={({ order }) => {
+                      setReviewing(false);
+                      setLastOrder(order);
+                      setPhase("success");
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -483,6 +605,55 @@ function SuccessPanel({
           className="min-h-11 w-full rounded-md bg-[var(--terminal-green)] text-[14px] font-medium text-black"
         >
           View order
+        </button>
+        <button
+          type="button"
+          onClick={onTradeAnother}
+          className="min-h-11 w-full rounded-md border border-[var(--terminal-border)] text-[14px] text-[var(--terminal-text)]"
+        >
+          New order
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="min-h-11 w-full rounded-md text-[14px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CryptoSuccessPanel({
+  symbol,
+  portfolioLabel,
+  onViewSecurity,
+  onTradeAnother,
+  onDone,
+}: {
+  symbol: string;
+  portfolioLabel: string | null;
+  onViewSecurity: () => void;
+  onTradeAnother: () => void;
+  onDone: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-3 text-[13px]">
+        <p className="font-medium text-[var(--terminal-green)]">Crypto order filled</p>
+        <p className="mt-1 text-[12px] text-[var(--terminal-muted)]">
+          {symbol}
+          {portfolioLabel ? ` · ${portfolioLabel}` : ""}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onViewSecurity}
+          className="min-h-11 w-full rounded-md bg-[var(--terminal-green)] text-[14px] font-medium text-black"
+        >
+          View {symbol}
         </button>
         <button
           type="button"

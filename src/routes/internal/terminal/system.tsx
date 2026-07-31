@@ -105,6 +105,23 @@ function readinessFromStatus(status: TerminalOpsSystemStatus): TerminalReadiness
       label: "Audit",
       status: status.audit.available ? "ready" : "not_implemented",
     },
+    {
+      id: "crypto-markets",
+      label: "Crypto markets",
+      status:
+        status.cryptoMarkets.statusLabel === "Critical issue"
+          ? "failed"
+          : status.cryptoMarkets.statusLabel === "Active"
+            ? "ready"
+            : status.cryptoMarkets.statusLabel === "Ready to activate" ||
+                status.cryptoMarkets.statusLabel === "Draft" ||
+                status.cryptoMarkets.statusLabel === "Halted" ||
+                status.cryptoMarkets.statusLabel === "Redemption only" ||
+                status.cryptoMarkets.statusLabel === "Degraded"
+              ? "not_configured"
+              : "not_configured",
+      detail: `${status.cryptoMarkets.statusLabel} — ${status.cryptoMarkets.detail}`,
+    },
   ];
 }
 
@@ -127,6 +144,35 @@ function TerminalSystemPage() {
               Last checked · {env.lastCheckedAt.slice(0, 19).replace("T", " ")}
             </p>
           </div>
+          <div className="mt-3 rounded-md border border-border/50 px-4 py-3" role="status">
+            <p className="text-[13px] font-medium text-foreground/90">
+              <Link
+                to="/internal/terminal/crypto"
+                search={withInternalSiteSearch({}, search.site)}
+                className="text-gold hover:underline"
+              >
+                {env.cryptoMarketsLabel}
+              </Link>
+            </p>
+            <p className="mt-1 text-[12px] text-muted-foreground">{env.cryptoMarketsDetail}</p>
+            {status.cryptoMarkets.assetStatuses.length > 0 ? (
+              <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">
+                {status.cryptoMarkets.assetStatuses.map((a) => (
+                  <li key={a.symbol} className="flex flex-wrap items-baseline justify-between gap-2">
+                    <Link
+                      to="/internal/terminal/crypto/$symbol"
+                      params={{ symbol: a.symbol }}
+                      search={withInternalSiteSearch({ tab: "overview" }, search.site)}
+                      className="font-mono text-gold hover:underline"
+                    >
+                      {a.symbol}
+                    </Link>
+                    <span>{a.status === "DRAFT" ? "Draft" : a.status === "ACTIVE" ? "Active" : a.status === "HALTED" ? "Trading halted" : a.status === "REDEMPTION_ONLY" ? "Redemption only" : a.status === "CLOSED" ? "Closed" : a.status}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </Section>
 
         <Section title="Readiness">
@@ -137,7 +183,17 @@ function TerminalSystemPage() {
                   key={item.id}
                   className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/40 py-1.5 last:border-0"
                 >
-                  <span>{item.label}</span>
+                  {item.id === "crypto-markets" ? (
+                    <Link
+                      to="/internal/terminal/crypto"
+                      search={withInternalSiteSearch({}, search.site)}
+                      className="text-gold hover:underline"
+                    >
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
                   <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                     {terminalReadinessLabel(item.status)}
                   </span>
@@ -199,8 +255,25 @@ function TerminalSystemPage() {
               <li>{status.jobs.detail}</li>
               <li>{status.audit.detail}</li>
               <li>
-                Sync, reconciliation, Terminal jobs, and recurring trades are not implemented. No
-                controls are shown until those systems exist.
+                Crypto markets: {status.cryptoMarkets.statusLabel}. {status.cryptoMarkets.detail}
+                {status.cryptoMarkets.assetStatuses.length > 0
+                  ? ` Assets: ${status.cryptoMarkets.assetStatuses
+                      .map((a) => `${a.symbol}=${a.status}`)
+                      .join(", ")}.`
+                  : ""}{" "}
+                <Link
+                  to="/internal/terminal/crypto"
+                  search={withInternalSiteSearch({}, search.site)}
+                  className="text-gold hover:underline"
+                >
+                  Open crypto markets
+                </Link>
+                .
+              </li>
+              <li>{status.recurringTrades.detail}</li>
+              <li>
+                Sync, reconciliation, and Terminal-specific audit aggregation remain limited. No
+                crypto activate controls are shown here.
               </li>
             </ul>
           </div>

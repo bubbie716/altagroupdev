@@ -13,6 +13,7 @@ import type {
   PortfolioSnapshot,
   WatchlistItem,
 } from "@/lib/terminal/types";
+import type { Prisma } from "@prisma/client";
 import {
   decimalToNumberOrNull,
   normalizeTerminalSymbol,
@@ -182,30 +183,102 @@ export async function getLocalPortfolioSnapshot(portfolioId: string): Promise<Po
   }
 }
 
+function mapLocalOrderRow(row: {
+  id: string;
+  portfolioId: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  orderType: "MARKET" | "LIMIT";
+  status: "OPEN" | "FILLED" | "CANCELLED" | "REJECTED" | "PARTIAL";
+  quantity: Prisma.Decimal;
+  filledQuantity: Prisma.Decimal;
+  limitPrice: Prisma.Decimal | null;
+  averageFillPrice: Prisma.Decimal | null;
+  estimatedValue: Prisma.Decimal | null;
+  submittedAt: Date;
+  updatedAt: Date;
+  rejectReason: string | null;
+  instrumentKind: "STOCK" | "CRYPTO";
+  executionVenue: "TSE" | "ALTA_CRYPTO";
+  cryptoSettlement: {
+    executedQuantity: Prisma.Decimal;
+    grossValue: Prisma.Decimal;
+    totalFee: Prisma.Decimal;
+    averageExecutionPrice: Prisma.Decimal;
+    priceBefore: Prisma.Decimal;
+    priceAfter: Prisma.Decimal;
+    customerCashDelta: Prisma.Decimal;
+    wallet: { publicWalletId: string };
+  } | null;
+}): OrderRecord {
+  const settlement = row.cryptoSettlement;
+  let priceImpactPercent: string | null = null;
+  if (settlement) {
+    const before = Number.parseFloat(settlement.priceBefore.toString());
+    const after = Number.parseFloat(settlement.priceAfter.toString());
+    if (Number.isFinite(before) && before !== 0 && Number.isFinite(after)) {
+      priceImpactPercent = (((after - before) / before) * 100).toFixed(4);
+    }
+  }
+
+  const avgFill = settlement
+    ? serializePrice(settlement.averageExecutionPrice)
+    : serializePrice(row.averageFillPrice);
+
+  return {
+    id: row.id,
+    portfolioId: row.portfolioId,
+    symbol: row.symbol,
+    name: row.symbol,
+    side: mapOrderSide(row.side),
+    type: mapOrderType(row.orderType),
+    status: mapOrderStatus(row.status),
+    quantity: serializeQuantity(row.quantity),
+    filledQuantity: serializeQuantity(
+      settlement ? settlement.executedQuantity : row.filledQuantity,
+    ),
+    limitPrice: serializePrice(row.limitPrice),
+    averageFillPrice: avgFill,
+    estimatedValue: settlement
+      ? serializeMoney(settlement.grossValue)
+      : row.estimatedValue
+        ? serializeMoney(row.estimatedValue)
+        : 0,
+    submittedAt: row.submittedAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    rejectReason: row.rejectReason,
+    instrumentKind: row.instrumentKind,
+    executionVenue: row.executionVenue,
+    cryptoSettlement: settlement
+      ? {
+          executedQuantity: settlement.executedQuantity.toString(),
+          grossTradeValue: serializeMoney(settlement.grossValue).toFixed(2),
+          totalFee: serializeMoney(settlement.totalFee).toFixed(2),
+          averageExecutionPrice:
+            avgFill != null ? avgFill.toFixed(8).replace(/\.?0+$/, "") : null,
+          priceImpactPercent,
+          customerCashDelta: serializeMoney(settlement.customerCashDelta).toFixed(2),
+          walletPublicId: settlement.wallet.publicWalletId,
+        }
+      : row.instrumentKind === "CRYPTO"
+        ? null
+        : undefined,
+  };
+}
+
 export async function listLocalOrders(portfolioId: string): Promise<OrderRecord[]> {
   const prisma = await requirePrisma();
   try {
     const rows = await prisma.terminalOrder.findMany({
       where: { portfolioId },
+      include: {
+        cryptoSettlement: {
+          include: { wallet: { select: { publicWalletId: true } } },
+        },
+      },
       orderBy: [{ submittedAt: "desc" }],
     });
-    return rows.map((row) => ({
-      id: row.id,
-      portfolioId: row.portfolioId,
-      symbol: row.symbol,
-      name: row.symbol,
-      side: mapOrderSide(row.side),
-      type: mapOrderType(row.orderType),
-      status: mapOrderStatus(row.status),
-      quantity: serializeQuantity(row.quantity),
-      filledQuantity: serializeQuantity(row.filledQuantity),
-      limitPrice: serializePrice(row.limitPrice),
-      averageFillPrice: serializePrice(row.averageFillPrice),
-      estimatedValue: row.estimatedValue ? serializeMoney(row.estimatedValue) : 0,
-      submittedAt: row.submittedAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      rejectReason: row.rejectReason,
-    }));
+    return rows.map(mapLocalOrderRow);
   } catch (error) {
     mapDbError(error);
   }
@@ -217,26 +290,15 @@ export async function listLocalOrdersForPortfolios(portfolioIds: string[]): Prom
   try {
     const rows = await prisma.terminalOrder.findMany({
       where: { portfolioId: { in: portfolioIds } },
+      include: {
+        cryptoSettlement: {
+          include: { wallet: { select: { publicWalletId: true } } },
+        },
+      },
       orderBy: [{ submittedAt: "desc" }],
       take: 50,
     });
-    return rows.map((row) => ({
-      id: row.id,
-      portfolioId: row.portfolioId,
-      symbol: row.symbol,
-      name: row.symbol,
-      side: mapOrderSide(row.side),
-      type: mapOrderType(row.orderType),
-      status: mapOrderStatus(row.status),
-      quantity: serializeQuantity(row.quantity),
-      filledQuantity: serializeQuantity(row.filledQuantity),
-      limitPrice: serializePrice(row.limitPrice),
-      averageFillPrice: serializePrice(row.averageFillPrice),
-      estimatedValue: row.estimatedValue ? serializeMoney(row.estimatedValue) : 0,
-      submittedAt: row.submittedAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      rejectReason: row.rejectReason,
-    }));
+    return rows.map(mapLocalOrderRow);
   } catch (error) {
     mapDbError(error);
   }

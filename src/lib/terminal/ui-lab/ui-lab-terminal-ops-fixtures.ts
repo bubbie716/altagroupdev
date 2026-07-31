@@ -20,6 +20,7 @@ import {
   UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS,
   UI_LAB_TERMINAL_PORTFOLIO_IDS,
 } from "@/lib/terminal/ui-lab/ui-lab-terminal-canonical-ids";
+import { searchUiLabCryptoMarkets } from "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures";
 
 export { UI_LAB_TERMINAL_PORTFOLIO_IDS };
 
@@ -407,6 +408,15 @@ export function getUiLabTerminalAttention(): TerminalOpsAttentionItem[] {
       createdAt: investor.lastActivityAt ?? daysFromNow(-14),
     });
   }
+  items.push({
+    id: "attn-crypto-demo-nva",
+    kind: "crypto_reconciliation",
+    title: "NVA · Crypto market",
+    detail: "Demonstration data: review crypto markets desk (mutations disabled in UI Lab).",
+    href: "/internal/terminal/crypto/NVA?tab=overview",
+    createdAt: daysFromNow(-1),
+    symbol: "NVA",
+  });
   return items;
 }
 
@@ -509,6 +519,14 @@ export function searchUiLabTerminalOps(
     if (results.length >= limit) break;
     if (results.some((r) => r.type === row.type && r.id === row.id)) continue;
     results.push(row);
+  }
+
+  if (results.length < limit) {
+    for (const crypto of searchUiLabCryptoMarkets(query, limit - results.length)) {
+      if (results.some((r) => r.type === crypto.type && r.id === crypto.id)) continue;
+      results.push(crypto);
+      if (results.length >= limit) break;
+    }
   }
   return results;
 }

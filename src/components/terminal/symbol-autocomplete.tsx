@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { SecurityStatusBadge } from "@/components/terminal/market-status";
+import { InstrumentKindBadge } from "@/components/terminal/instrument-kind-badge";
 import { useSymbolSearch } from "@/hooks/use-symbol-search";
 import type { SecuritySummary } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
@@ -192,7 +193,11 @@ export function SymbolAutocomplete({
               </li>
             ) : (
               search.results.map((row, index) => (
-                <li key={row.symbol} role="option" aria-selected={index === activeIndex}>
+                <li
+                  key={`${row.instrumentKind ?? "STOCK"}-${row.symbol}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                >
                   <button
                     type="button"
                     id={`${listId}-opt-${row.symbol}`}
@@ -209,7 +214,10 @@ export function SymbolAutocomplete({
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-[var(--terminal-text)]">{row.symbol}</span>
-                        <SecurityStatusBadge status={row.tradingStatus} />
+                        <InstrumentKindBadge kind={row.instrumentKind ?? "STOCK"} />
+                        {row.instrumentKind !== "CRYPTO" ? (
+                          <SecurityStatusBadge status={row.tradingStatus} />
+                        ) : null}
                       </span>
                       <span className="mt-0.5 block truncate text-[12px] text-[var(--terminal-muted)]">
                         {row.name}

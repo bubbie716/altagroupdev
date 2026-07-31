@@ -185,6 +185,37 @@ export async function runManualOpsJob(
       summary = `${result.accountsChecked} accounts checked · ${result.mismatchCount} mismatch(es)`;
       break;
     }
+    case "terminal_scheduled_trades": {
+      const { runTerminalScheduledTradesJob } = await import(
+        "@/server/terminal-scheduled-trades-job.service"
+      );
+      const result = await runTerminalScheduledTradesJob();
+      summary = `Submitted: ${result.result.submittedCount} · Failed: ${result.result.failedCount} · Skipped: ${result.result.skippedCount}`;
+      break;
+    }
+    case "terminal_crypto_reconciliation": {
+      const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+      assertNotUiLabMutation("Terminal crypto reconciliation job");
+      const { runCryptoReconciliation } = await import(
+        "@/lib/terminal/crypto/crypto-reconciliation.service"
+      );
+      const result = await runCryptoReconciliation({
+        actorUserId: actorUserId,
+        source: "manual",
+      });
+      summary = `${result.status}: ${result.summary} · new issues ${result.newIssueCount} · resolved ${result.resolvedIssueCount}`;
+      break;
+    }
+    case "terminal_crypto_candle_rollup": {
+      const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+      assertNotUiLabMutation("Terminal crypto candle rollup job");
+      const { rollupCryptoCandles } = await import(
+        "@/lib/terminal/crypto/crypto-candle-rollup.service"
+      );
+      const result = await rollupCryptoCandles();
+      summary = `Assets ${result.assetsProcessed} · candles upserted ${result.candlesUpserted}`;
+      break;
+    }
     default:
       throw new Error(`BAD_REQUEST:Unknown or non-runnable job: ${jobKey}`);
   }

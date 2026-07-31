@@ -36,3 +36,4 @@ export { InvoiceWorkspaceView } from "./invoice-workspace-view";
 export { PaymentLinkWorkspaceView } from "./payment-link-workspace-view";
 export { TerminalPortfolioWorkspaceView } from "./terminal-portfolio-workspace-view";
 export { TerminalOrderWorkspaceView } from "./terminal-order-workspace-view";
+export { TerminalCryptoAssetWorkspaceView } from "./terminal-crypto-asset-workspace-view";

@@ -70,6 +70,21 @@ export const BANK_DISCORD_NOTIFICATION_GROUPS: DiscordNotificationGroup[] = [
     ],
   },
   {
+    id: "terminal",
+    label: "Alta Terminal",
+    options: [
+      { type: "TERMINAL_SCHEDULED_TRADE_CREATED", label: "Scheduled trade created" },
+      { type: "TERMINAL_SCHEDULED_TRADE_PAUSED", label: "Scheduled trade paused" },
+      { type: "TERMINAL_SCHEDULED_TRADE_RESUMED", label: "Scheduled trade resumed" },
+      { type: "TERMINAL_SCHEDULED_TRADE_CANCELLED", label: "Scheduled trade cancelled" },
+      { type: "TERMINAL_SCHEDULED_TRADE_ORDER_SUBMITTED", label: "Scheduled trade order submitted" },
+      { type: "TERMINAL_SCHEDULED_TRADE_ATTEMPT_SKIPPED", label: "Scheduled trade deferred" },
+      { type: "TERMINAL_SCHEDULED_TRADE_ATTEMPT_FAILED", label: "Scheduled trade attempt failed" },
+      { type: "TERMINAL_SCHEDULED_TRADE_COMPLETED", label: "Scheduled trade completed" },
+      { type: "TERMINAL_SCHEDULED_TRADE_ENDED", label: "Scheduled trade ended" },
+    ],
+  },
+  {
     id: "merchant",
     label: "Invoices & payment links",
     options: [

@@ -63,6 +63,10 @@ export const INTERNAL_TERMINAL_PORTFOLIO_WORKSPACE_SEARCH = {
 
 export const INTERNAL_TERMINAL_ORDER_RECORD_SEARCH = {} as const;
 
+export const INTERNAL_TERMINAL_CRYPTO_WORKSPACE_SEARCH = {
+  tab: "overview" as const,
+};
+
 export function internalWorkspaceTabSearch(tab: string) {
   return { tab };
 }
@@ -83,6 +87,7 @@ export {
   parseInvoiceRecordSearch,
   parsePaymentLinkRecordSearch,
   parseTerminalPortfolioWorkspaceSearch,
+  parseTerminalCryptoWorkspaceSearch,
   parseTerminalOrderRecordSearch,
   customerRelationshipSearch,
   companyRelationshipSearch,

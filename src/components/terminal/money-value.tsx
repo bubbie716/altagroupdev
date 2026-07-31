@@ -6,6 +6,13 @@ import {
   formatTerminalPercent,
   formatTerminalPrice,
 } from "@/lib/terminal/format";
+import {
+  cryptoChangeTone,
+  formatCryptoChangeAmount,
+  formatCryptoMoney,
+  formatCryptoPercent,
+  formatCryptoPrice,
+} from "@/lib/terminal/crypto/crypto-format";
 import { useEffect, useRef, useState } from "react";
 
 function useSoftNumberTransition(
@@ -77,6 +84,8 @@ export function MoneyValue({
   className,
   asPrice = false,
   animateOnChange = false,
+  /** When set, uses crypto-aware price/money formatting (negative-zero safe). */
+  cryptoSymbol,
 }: {
   value: number | null;
   signed?: boolean;
@@ -85,14 +94,19 @@ export function MoneyValue({
   asPrice?: boolean;
   /** Soft count when authoritative value changes (e.g. after funding refresh). */
   animateOnChange?: boolean;
+  cryptoSymbol?: string | null;
 }) {
   const { display, highlight } = useSoftNumberTransition(value, animateOnChange);
   const text =
     display == null
       ? "—"
-      : asPrice
-        ? formatTerminalPrice(display)
-        : formatTerminalMoney(display, { signed });
+      : cryptoSymbol
+        ? asPrice
+          ? formatCryptoPrice(display, cryptoSymbol, { signed })
+          : formatCryptoMoney(display, { signed })
+        : asPrice
+          ? formatTerminalPrice(display)
+          : formatTerminalMoney(display, { signed });
   return (
     <span
       className={cn(
@@ -115,11 +129,14 @@ export function PriceChange({
   percent,
   className,
   compact = false,
+  cryptoSymbol,
 }: {
   amount: number | null;
   percent: number | null;
   className?: string;
   compact?: boolean;
+  /** Asset-aware absolute change formatting for crypto (avoids -ƒ0.00). */
+  cryptoSymbol?: string | null;
 }) {
   if (amount == null || percent == null) {
     return (
@@ -136,21 +153,38 @@ export function PriceChange({
     );
   }
 
-  const positive = amount > 0 || (amount === 0 && percent > 0);
-  const negative = amount < 0 || percent < 0;
-  const tone = positive ? "ticker-up" : negative ? "ticker-down" : "text-[var(--terminal-muted)]";
-  const signWord = positive ? "up" : negative ? "down" : "unchanged";
+  const toneKind = cryptoSymbol
+    ? cryptoChangeTone(amount, percent, cryptoSymbol)
+    : amount > 0 || (amount === 0 && percent > 0)
+      ? "up"
+      : amount < 0 || percent < 0
+        ? "down"
+        : "flat";
+  const tone =
+    toneKind === "up"
+      ? "ticker-up"
+      : toneKind === "down"
+        ? "ticker-down"
+        : "text-[var(--terminal-muted)]";
+  const signWord =
+    toneKind === "up" ? "up" : toneKind === "down" ? "down" : "unchanged";
+  const amountText = cryptoSymbol
+    ? formatCryptoChangeAmount(amount, cryptoSymbol, { signed: true })
+    : formatTerminalMoney(amount, { signed: true });
+  const percentText = cryptoSymbol
+    ? formatCryptoPercent(percent)
+    : formatTerminalPercent(percent);
 
   return (
     <span
       className={cn("inline-flex items-baseline gap-1.5 tabular-nums", tone, className)}
-      aria-label={`Day change ${signWord} ${formatTerminalMoney(amount, { signed: true })} (${formatTerminalPercent(percent)})`}
+      aria-label={`Day change ${signWord} ${amountText} (${percentText})`}
     >
       <span className={cn(compact ? "text-[12px]" : "text-[13px] sm:text-[14px]")}>
-        {formatTerminalMoney(amount, { signed: true })}
+        {amountText}
       </span>
       <span className={cn(compact ? "text-[12px]" : "text-[13px] sm:text-[14px]")}>
-        ({formatTerminalPercent(percent)})
+        ({percentText})
       </span>
     </span>
   );

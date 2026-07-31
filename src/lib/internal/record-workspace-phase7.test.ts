@@ -236,12 +236,14 @@ describe("Phase 7 Terminal environment and fixtures", () => {
     assert.ok(attention.some((a) => a.kind === "connection_unavailable"));
   });
 
-  it("documents system sync/recon and recurring trades as unavailable", async () => {
+  it("documents system sync/recon and recurring trades honestly", async () => {
     const system = await getTerminalOpsSystemStatus();
     assert.equal(system.synchronization.available, false);
     assert.equal(system.reconciliation.available, false);
     assert.ok(system.reconciliation.readiness.length > 0);
-    assert.equal(system.recurringTrades.available, false);
+    // Scheduled stock/crypto trades and crypto ops jobs are implemented; TSE sync/recon are not.
+    assert.equal(system.recurringTrades.available, true);
+    assert.equal(system.jobs.available, true);
   });
 });
 

@@ -24,7 +24,7 @@ export function WatchlistPanel({
         </p>
         <Link
           to="/terminal/markets"
-          search={{ q: "", filter: "all" }}
+          search={{ q: "", filter: "all", instrument: "stocks" }}
           className="mt-4 inline-flex rounded-md bg-[var(--terminal-green)] px-4 py-2 text-[13px] font-medium text-black"
         >
           Discover markets
@@ -40,7 +40,7 @@ export function WatchlistPanel({
           <Link
             to="/terminal/security/$symbol"
             params={{ symbol: item.symbol }}
-            search={{ range: "1D", portfolioId: undefined }}
+            search={{ range: "1D", portfolioId: undefined, instrument: undefined }}
             className="min-w-0 flex-1"
           >
             <div className="flex items-center gap-2">

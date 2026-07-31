@@ -214,17 +214,19 @@ describe("Phase 7 Terminal search and System", () => {
     assert.match(system, /Order execution/);
     assert.match(system, /Portfolio sync/);
     assert.match(system, /Reconciliation/);
+    assert.match(system, /Crypto markets/);
     assert.match(system, /terminalReadinessLabel/);
     assert.match(system, /Technical details/);
-    assert.match(system, /not implemented/i);
+    // TSE sync / pooled-custody recon remain not_implemented; crypto desk is separate.
+    assert.match(system, /not_implemented/);
     assert.doesNotMatch(system, /Fully reconciled/);
     assert.doesNotMatch(system, /Run reconciliation/);
     assert.doesNotMatch(system, /Schedule recurring/);
     const status = await getTerminalOpsSystemStatus();
     assert.equal(status.synchronization.available, false);
     assert.equal(status.reconciliation.available, false);
-    assert.equal(status.jobs.available, false);
-    assert.equal(status.recurringTrades.available, false);
+    assert.equal(status.jobs.available, true);
+    assert.equal(status.recurringTrades.available, true);
     assert.equal(terminalReadinessLabel("not_implemented"), "Not implemented");
   });
 

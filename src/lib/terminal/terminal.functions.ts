@@ -54,8 +54,39 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
     const marketStatus = await client.getMarketStatus();
     const watchlistPreview = (await listLocalWatchlistItems(user.id)).slice(0, 5);
     const recentOrders = await listLocalOrdersForPortfolios(portfolios.map((p) => p.id));
-    const combinedCashValue = portfolios.reduce(
-      (total, portfolio) => total + (portfolio.cashBalance ?? 0),
+
+    const { getPortfolioCryptoSummary } = await import(
+      "@/lib/terminal/crypto/crypto-market-read.service"
+    );
+    const { parseCryptoMarkedValue } = await import(
+      "@/lib/terminal/crypto/crypto-instrument"
+    );
+
+    const cryptoByPortfolio = await Promise.all(
+      portfolios.map(async (portfolio) => {
+        try {
+          const summary = await getPortfolioCryptoSummary(portfolio.id);
+          return { portfolioId: portfolio.id, marked: parseCryptoMarkedValue(summary.totalMarkedValue) };
+        } catch {
+          return { portfolioId: portfolio.id, marked: 0 };
+        }
+      }),
+    );
+    const cryptoMarkedById = new Map(cryptoByPortfolio.map((row) => [row.portfolioId, row.marked]));
+
+    const portfoliosWithCrypto = portfolios.map((portfolio) => {
+      const cryptoMarked = cryptoMarkedById.get(portfolio.id) ?? 0;
+      const cash = portfolio.cashBalance ?? 0;
+      const baseTotal = portfolio.totalValue ?? cash;
+      return {
+        ...portfolio,
+        // Merge crypto marked value; do not leak wallet details across portfolios.
+        totalValue: baseTotal + cryptoMarked,
+      };
+    });
+
+    const combinedValue = portfoliosWithCrypto.reduce(
+      (total, portfolio) => total + (portfolio.totalValue ?? 0),
       0,
     );
 
@@ -64,10 +95,10 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
       dashboard: {
         marketStatus,
         marketDataAvailable: false,
-        combinedValue: combinedCashValue,
+        combinedValue,
         combinedDayChange: null,
         combinedDayChangePercent: null,
-        portfolios,
+        portfolios: portfoliosWithCrypto,
         watchlistPreview,
         movers: { gainers: [], losers: [] },
         recentOrders: recentOrders.slice(0, 8),
@@ -295,6 +326,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
           portfolios,
           selectedPortfolio: null,
           portfolio: null,
+          crypto: null,
           orders: [],
           activity: [],
           eligibleCompanies,
@@ -309,6 +341,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
           portfolios,
           selectedPortfolio: null,
           portfolio: null,
+          crypto: null,
           orders: [],
           activity: [],
           eligibleCompanies,
@@ -322,11 +355,39 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         client.listOrders(portfolioId),
         client.listPortfolioActivity(portfolioId),
       ]);
+      const { getUiLabPortfolioCrypto } = await import(
+        "@/lib/terminal/ui-lab/ui-lab-crypto-fixtures"
+      );
+      const { mergePortfolioSnapshotWithCrypto, parseCryptoMarkedValue } = await import(
+        "@/lib/terminal/crypto/crypto-instrument"
+      );
+      const crypto = getUiLabPortfolioCrypto({
+        portfolioId,
+        userKey: user.id,
+      });
+      const withCryptoValue = mergePortfolioSnapshotWithCrypto(portfolio, crypto);
+      // UI Lab fixtures lack real fill timelines — align the final chart point once with
+      // live marked crypto so headline totalValue and series end do not diverge.
+      const cryptoMarked = parseCryptoMarkedValue(crypto.totalMarkedValue);
+      let seriesByRange = withCryptoValue.seriesByRange;
+      if (cryptoMarked > 0) {
+        const next = { ...seriesByRange };
+        for (const range of Object.keys(next) as Array<keyof typeof next>) {
+          const series = [...(next[range] ?? [])];
+          if (series.length === 0) continue;
+          const last = series[series.length - 1]!;
+          // Fixture series already ends at stock/cash total; add crypto once.
+          series[series.length - 1] = { t: last.t, v: last.v + cryptoMarked };
+          next[range] = series;
+        }
+        seriesByRange = next;
+      }
       return {
         mode: client.mode,
         portfolios,
         selectedPortfolio,
-        portfolio,
+        portfolio: { ...withCryptoValue, seriesByRange },
+        crypto,
         orders,
         activity,
         eligibleCompanies,
@@ -381,16 +442,29 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
 
     await rememberSelectedTerminalPortfolio(user, portfolioId);
     const selectedPortfolio = await getTerminalPortfolioForUser(user, portfolioId);
-    const [portfolio, orders, activity] = await Promise.all([
+    const { getPortfolioCryptoSummary } = await import(
+      "@/lib/terminal/crypto/crypto-market-read.service"
+    );
+    const { mergePortfolioSnapshotWithCrypto } = await import(
+      "@/lib/terminal/crypto/crypto-instrument"
+    );
+    const [portfolio, orders, activity, crypto] = await Promise.all([
       getLocalPortfolioSnapshot(portfolioId),
       listLocalOrders(portfolioId),
       listLocalPortfolioActivity(portfolioId),
+      getPortfolioCryptoSummary(portfolioId),
     ]);
+    const { enrichPortfolioSnapshotWithCryptoHistory } = await import(
+      "@/lib/terminal/crypto/crypto-portfolio-history.service"
+    );
+    const withCryptoValue = mergePortfolioSnapshotWithCrypto(portfolio, crypto);
+    const withHistory = await enrichPortfolioSnapshotWithCryptoHistory(withCryptoValue);
     return {
       mode: client.mode,
       portfolios,
       selectedPortfolio,
-      portfolio,
+      portfolio: withHistory,
+      crypto,
       orders,
       activity,
       eligibleCompanies,
@@ -622,22 +696,225 @@ export const cancelTerminalOrder = createServerFn({ method: "POST" })
 export const searchTerminalSymbols = createServerFn({ method: "GET" })
   .inputValidator((query: string) => query)
   .handler(async ({ data: query }) => {
-    const user = await requireTerminalUser();
-    if (await isUiLab()) {
-      const { getUiLabDemonstrationClient } = await import(
-        "@/lib/terminal/ui-lab/ui-lab-demonstration-tse-client"
-      );
-      return getUiLabDemonstrationClient(user.id).listSecurities(query);
-    }
-    const { getTseClient } = await import("@/lib/terminal/tse-client");
-    return getTseClient({ userId: user.id }).listSecurities(query);
+    const { searchTerminalInstruments } = await import(
+      "@/lib/terminal/crypto/crypto-market.functions"
+    );
+    const { results } = await searchTerminalInstruments({ data: { q: query } });
+
+    return results.map((row) => {
+      const lastPrice = row.lastPrice ?? 0;
+      const tradingStatus =
+        row.instrumentKind === "CRYPTO"
+          ? mapCryptoSearchStatus(row.tradingStatus)
+          : mapStockSearchStatus(row.tradingStatus);
+
+      return {
+        symbol: row.symbol,
+        name: row.name,
+        lastPrice,
+        previousClose: lastPrice,
+        dayChange: 0,
+        dayChangePercent: 0,
+        volume: 0,
+        marketCap: null,
+        tradingStatus,
+        sparkline: [] as { t: number; v: number }[],
+        instrumentKind: row.instrumentKind,
+      };
+    });
   });
+
+function mapCryptoSearchStatus(
+  statusLabel: string,
+): "trading" | "halted" | "delayed" | "unavailable" {
+  const s = statusLabel.toLowerCase();
+  if (s.includes("halt")) return "halted";
+  if (s.includes("redemption")) return "delayed";
+  if (s.includes("active")) return "trading";
+  if (s.includes("closed") || s.includes("unavailable")) return "unavailable";
+  return "trading";
+}
+
+function mapStockSearchStatus(
+  status: string,
+): "trading" | "halted" | "delayed" | "unavailable" {
+  if (status === "trading" || status === "halted" || status === "delayed" || status === "unavailable") {
+    return status;
+  }
+  return "trading";
+}
 
 export const fetchQuickTradeContext = createServerFn({ method: "GET" })
   .inputValidator((input?: { symbol?: string; portfolioId?: string }) => input ?? {})
   .handler(async ({ data }) => {
     const user = await requireTerminalUser();
     const symbol = data.symbol?.trim() ? data.symbol.trim().toUpperCase() : null;
+    const { LAUNCH_ASSET_SYMBOLS } = await import("@/lib/terminal/crypto/crypto-constants");
+    const isCryptoSymbol =
+      symbol != null && (LAUNCH_ASSET_SYMBOLS as readonly string[]).includes(symbol);
+
+    if (isCryptoSymbol && symbol) {
+      if (await isUiLab()) {
+        const {
+          listUiLabTerminalPortfolios,
+          resolveUiLabTerminalPortfolioId,
+          rememberUiLabSelectedPortfolio,
+          getUiLabTerminalPortfolio,
+        } = await import("@/lib/terminal/ui-lab/ui-lab-terminal-portfolio");
+        const { getUiLabDemonstrationClient } = await import(
+          "@/lib/terminal/ui-lab/ui-lab-demonstration-tse-client"
+        );
+        const { getUiLabCryptoDetail, getUiLabPortfolioCrypto } = await import(
+          "@/lib/terminal/ui-lab/ui-lab-crypto-fixtures"
+        );
+        const client = getUiLabDemonstrationClient(user.id);
+        const listed = listUiLabTerminalPortfolios(user);
+        const portfolioId = resolveUiLabTerminalPortfolioId(user, data.portfolioId);
+        const marketStatus = await client.getMarketStatus();
+        const cryptoAsset = getUiLabCryptoDetail({ symbol, userKey: user.id });
+        const basePortfolios = listed.map((portfolio) => ({
+          ...portfolio,
+          buyingPower: 0,
+          holdingQuantity: 0,
+        }));
+
+        if (!portfolioId) {
+          return {
+            mode: client.mode,
+            marketStatus,
+            portfolios: basePortfolios,
+            selectedPortfolio: null,
+            security: null,
+            position: null,
+            buyingPower: 0,
+            instrumentKind: "CRYPTO" as const,
+            cryptoAsset,
+            cryptoHolding: null,
+            walletPublicId: null,
+          };
+        }
+
+        rememberUiLabSelectedPortfolio(user, portfolioId);
+        const [selectedPortfolio, portfolio, cryptoSummary] = await Promise.all([
+          Promise.resolve(getUiLabTerminalPortfolio(user, portfolioId)),
+          client.getPortfolio(portfolioId),
+          Promise.resolve(
+            getUiLabPortfolioCrypto({ portfolioId, userKey: user.id }),
+          ),
+        ]);
+        const cryptoHolding =
+          cryptoSummary.balances.find((b) => b.symbol === symbol) ?? null;
+
+        return {
+          mode: client.mode,
+          marketStatus,
+          portfolios: basePortfolios.map((row) =>
+            row.id === portfolioId
+              ? {
+                  ...row,
+                  totalValue: portfolio.totalValue,
+                  dayChange: portfolio.dayChange,
+                  dayChangePercent: portfolio.dayChangePercent,
+                  valuationAvailable: true,
+                  cashBalance: portfolio.cashBalance,
+                  buyingPower: portfolio.buyingPower,
+                  holdingQuantity: cryptoHolding
+                    ? Number.parseFloat(cryptoHolding.quantity)
+                    : 0,
+                }
+              : row,
+          ),
+          selectedPortfolio,
+          security: null,
+          position: null,
+          buyingPower: portfolio.buyingPower,
+          instrumentKind: "CRYPTO" as const,
+          cryptoAsset,
+          cryptoHolding,
+          walletPublicId: cryptoSummary.hasWallet ? cryptoSummary.walletPublicId : null,
+        };
+      }
+
+      const {
+        listAccessibleTerminalPortfolios,
+        resolveTerminalPortfolioId,
+        rememberSelectedTerminalPortfolio,
+        getTerminalPortfolioForUser,
+      } = await import("@/lib/terminal/terminal-portfolio.service");
+      const { getTseClient } = await import("@/lib/terminal/tse-client");
+      const { getLocalPortfolioSnapshot } = await import("@/lib/terminal/terminal-local.service");
+      const { getCryptoAssetDetail, getPortfolioCryptoSummary } = await import(
+        "@/lib/terminal/crypto/crypto-market-read.service"
+      );
+      const client = getTseClient({ userId: user.id });
+      const listed = await listAccessibleTerminalPortfolios(user);
+      const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
+      const marketStatus = await client.getMarketStatus();
+      const basePortfolios = listed.map((portfolio) => ({
+        ...portfolio,
+        buyingPower: portfolio.cashBalance ?? 0,
+        holdingQuantity: 0,
+      }));
+
+      let held = false;
+      if (portfolioId) {
+        const summary = await getPortfolioCryptoSummary(portfolioId);
+        held = summary.balances.some(
+          (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
+        );
+      }
+      const cryptoAsset = await getCryptoAssetDetail(symbol, { held });
+
+      if (!portfolioId) {
+        return {
+          mode: client.mode,
+          marketStatus,
+          portfolios: basePortfolios,
+          selectedPortfolio: null,
+          security: null,
+          position: null,
+          buyingPower: 0,
+          instrumentKind: "CRYPTO" as const,
+          cryptoAsset,
+          cryptoHolding: null,
+          walletPublicId: null,
+        };
+      }
+
+      await rememberSelectedTerminalPortfolio(user, portfolioId);
+      const [selectedPortfolio, portfolio, cryptoSummary] = await Promise.all([
+        getTerminalPortfolioForUser(user, portfolioId),
+        getLocalPortfolioSnapshot(portfolioId),
+        getPortfolioCryptoSummary(portfolioId),
+      ]);
+      const cryptoHolding =
+        cryptoSummary.balances.find((b) => b.symbol === symbol) ?? null;
+
+      return {
+        mode: client.mode,
+        marketStatus,
+        portfolios: basePortfolios.map((row) =>
+          row.id === portfolioId
+            ? {
+                ...row,
+                cashBalance: portfolio.cashBalance,
+                buyingPower: portfolio.buyingPower,
+                holdingQuantity: cryptoHolding
+                  ? Number.parseFloat(cryptoHolding.quantity)
+                  : 0,
+              }
+            : row,
+        ),
+        selectedPortfolio,
+        security: null,
+        position: null,
+        buyingPower: portfolio.buyingPower,
+        instrumentKind: "CRYPTO" as const,
+        cryptoAsset,
+        cryptoHolding,
+        walletPublicId: cryptoSummary.hasWallet ? cryptoSummary.walletPublicId : null,
+      };
+    }
 
     if (await isUiLab()) {
       const {
@@ -667,6 +944,10 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
           security: symbol ? await client.getSecurity(symbol) : null,
           position: null,
           buyingPower: 0,
+          instrumentKind: "STOCK" as const,
+          cryptoAsset: null,
+          cryptoHolding: null,
+          walletPublicId: null,
         };
       }
       rememberUiLabSelectedPortfolio(user, portfolioId);
@@ -700,6 +981,10 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
         security,
         position,
         buyingPower: portfolio.buyingPower,
+        instrumentKind: "STOCK" as const,
+        cryptoAsset: null,
+        cryptoHolding: null,
+        walletPublicId: null,
       };
     }
 
@@ -730,6 +1015,10 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
         security: symbol ? await client.getSecurity(symbol) : null,
         position: null,
         buyingPower: 0,
+        instrumentKind: "STOCK" as const,
+        cryptoAsset: null,
+        cryptoHolding: null,
+        walletPublicId: null,
       };
     }
 
@@ -761,6 +1050,10 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
       security,
       position,
       buyingPower: portfolio.buyingPower,
+      instrumentKind: "STOCK" as const,
+      cryptoAsset: null,
+      cryptoHolding: null,
+      walletPublicId: null,
     };
   });
 

@@ -44,6 +44,7 @@ const TYPE_GROUP: Record<GlobalSearchResultType, SearchResultGroupId> = {
   statement: "products",
   terminal_portfolio: "products",
   terminal_order: "products",
+  terminal_crypto_market: "products",
   deal_room: "products",
   transaction: "activity",
   deposit: "activity",
@@ -131,7 +132,8 @@ export function prioritizeTerminalSearchResults(
 ): GlobalSearchResult[] {
   const score = (row: GlobalSearchResult) => {
     const exact = isExactMatch(row, q) ? 0 : 1;
-    if (row.type === "terminal_order" || row.type === "terminal_portfolio") return exact;
+    if (row.type === "terminal_order" || row.type === "terminal_portfolio" || row.type === "terminal_crypto_market")
+      return exact;
     if (row.type === "user" || row.type === "company") return 10 + exact;
     return 20 + exact;
   };

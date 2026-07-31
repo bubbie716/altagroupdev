@@ -42,7 +42,7 @@ export async function globalOpsSearch(
   const idMatch = q.length >= 8 ? { contains: q } : undefined;
 
   if (terminalOnly) {
-    const [users, companies, portfolios] = await Promise.all([
+    const [users, companies, portfolios, cryptoAssets] = await Promise.all([
       prisma.user.findMany({
         where: {
           OR: [
@@ -101,10 +101,53 @@ export async function globalOpsSearch(
           orderBy: { updatedAt: "desc" },
         })
         .catch(() => [] as never[]),
+      prisma.terminalCryptoAsset
+        .findMany({
+          where: {
+            OR: [
+              { symbol: { contains: q, mode: "insensitive" } },
+              { displayName: { contains: q, mode: "insensitive" } },
+              ...(q.toLowerCase().includes("crypto") || q.toLowerCase().includes("market")
+                ? [{ symbol: { in: ["NPFC", "NVA", "VLT"] } }]
+                : []),
+            ],
+          },
+          take: perType,
+          orderBy: { symbol: "asc" },
+        })
+        .catch(() => [] as never[]),
     ]);
 
     const ranked: GlobalSearchResult[] = [];
     const qLower = q.toLowerCase();
+
+    for (const asset of cryptoAssets as Array<{
+      id: string;
+      symbol: string;
+      displayName: string;
+      status: string;
+    }>) {
+      const statusLabel =
+        asset.status === "DRAFT"
+          ? "Draft"
+          : asset.status === "ACTIVE"
+            ? "Active"
+            : asset.status === "HALTED"
+              ? "Trading halted"
+              : asset.status === "REDEMPTION_ONLY"
+                ? "Redemption only"
+                : asset.status === "CLOSED"
+                  ? "Closed"
+                  : asset.status;
+      ranked.push({
+        id: asset.id,
+        type: "terminal_crypto_market",
+        label: asset.symbol,
+        sublabel: `${asset.displayName} · Crypto market · ${statusLabel}`,
+        href: `/internal/terminal/crypto/${asset.symbol}?tab=overview`,
+        status: asset.status.toLowerCase(),
+      });
+    }
 
     for (const p of portfolios as Array<{
       id: string;
@@ -161,13 +204,17 @@ export async function globalOpsSearch(
       const aExact =
         a.label.toLowerCase() === qLower || a.id.toLowerCase() === qLower
           ? 0
-          : a.type === "terminal_portfolio" || a.type === "terminal_order"
+          : a.type === "terminal_portfolio" ||
+              a.type === "terminal_order" ||
+              a.type === "terminal_crypto_market"
             ? 1
             : 2;
       const bExact =
         b.label.toLowerCase() === qLower || b.id.toLowerCase() === qLower
           ? 0
-          : b.type === "terminal_portfolio" || b.type === "terminal_order"
+          : b.type === "terminal_portfolio" ||
+              b.type === "terminal_order" ||
+              b.type === "terminal_crypto_market"
             ? 1
             : 2;
       return aExact - bExact;

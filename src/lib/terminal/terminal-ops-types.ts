@@ -46,6 +46,27 @@ export type TerminalOpsOrderRow = OrderRecord & {
   needsAttention: boolean;
 };
 
+export type TerminalOpsScheduledTradeRow = {
+  id: string;
+  portfolioId: string;
+  portfolioName: string;
+  investorLabel: string;
+  ownerUserId: string | null;
+  ownerCompanyId: string | null;
+  symbol: string;
+  side: "buy" | "sell";
+  quantity: number;
+  scheduleType: "one_time" | "recurring";
+  frequency: "weekly" | "biweekly" | "monthly" | null;
+  status: "active" | "paused" | "completed" | "cancelled" | "ended";
+  nextRunAt: string | null;
+  lastFailureSummary: string | null;
+  consecutiveFailures: number;
+  needsAttention: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TerminalOpsAttentionItem = {
   id: string;
   kind:
@@ -54,13 +75,21 @@ export type TerminalOpsAttentionItem = {
     | "stale_open_order"
     | "connection_unavailable"
     | "portfolio_access"
-    | "maintenance";
+    | "maintenance"
+    | "crypto_reconciliation"
+    | "crypto_job_failure"
+    | "crypto_reserve"
+    | "crypto_supply"
+    | "crypto_wallet_ledger"
+    | "crypto_configuration"
+    | "crypto_lifecycle";
   title: string;
   detail: string;
   href: string;
   createdAt: string;
   portfolioId?: string;
   orderId?: string;
+  symbol?: string;
 };
 
 export type TerminalOpsHomeSummary = {

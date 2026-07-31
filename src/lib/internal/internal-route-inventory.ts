@@ -145,6 +145,11 @@ export const INTERNAL_ROUTE_INVENTORY: InternalRouteInventoryEntry[] = [
   },
   { file: "terminal/orders/index.tsx", classification: "canonical_visible" },
   { file: "terminal/orders/$orderId.tsx", classification: "dynamic_canonical_record" },
+  { file: "terminal/crypto/index.tsx", classification: "canonical_visible" },
+  {
+    file: "terminal/crypto/$symbol.tsx",
+    classification: "dynamic_canonical_record",
+  },
   { file: "terminal/system.tsx", classification: "canonical_visible" },
   { file: "terminal/settings.tsx", classification: "canonical_visible" },
   { file: "exchange.tsx", classification: "layout_only", note: "Legacy host layout" },
@@ -239,6 +244,7 @@ export const CANONICAL_VISIBLE_PATHS = [
   "/internal/terminal/investors",
   "/internal/terminal/portfolios",
   "/internal/terminal/orders",
+  "/internal/terminal/crypto",
   "/internal/terminal/system",
   "/internal/terminal/settings",
 ] as const;

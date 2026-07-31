@@ -18,6 +18,8 @@ export type PricePoint = {
   v: number;
 };
 
+export type TerminalInstrumentKind = "STOCK" | "CRYPTO";
+
 export type SecuritySummary = {
   symbol: string;
   name: string;
@@ -29,6 +31,8 @@ export type SecuritySummary = {
   marketCap: number | null;
   tradingStatus: SecurityTradingStatus;
   sparkline: PricePoint[];
+  /** Present on unified instrument search results; omit for stock-only TSE payloads. */
+  instrumentKind?: TerminalInstrumentKind;
 };
 
 export type SecurityDetail = SecuritySummary & {
@@ -124,6 +128,18 @@ export type WatchlistItem = {
   quoteAvailable: boolean;
 };
 
+/** Customer-safe crypto settlement fields for order presentation (never reserve internals). */
+export type OrderCryptoSettlementSummary = {
+  executedQuantity: string | null;
+  grossTradeValue: string | null;
+  /** Shown once — do not add cash-ledger fee rows on top of this. */
+  totalFee: string | null;
+  averageExecutionPrice: string | null;
+  priceImpactPercent: string | null;
+  customerCashDelta: string | null;
+  walletPublicId: string | null;
+};
+
 export type OrderRecord = {
   id: string;
   portfolioId: string;
@@ -140,6 +156,9 @@ export type OrderRecord = {
   submittedAt: string;
   updatedAt: string;
   rejectReason: string | null;
+  instrumentKind?: TerminalInstrumentKind;
+  executionVenue?: "TSE" | "ALTA_CRYPTO";
+  cryptoSettlement?: OrderCryptoSettlementSummary | null;
 };
 
 export type OrderPreviewInput = {
@@ -149,6 +168,8 @@ export type OrderPreviewInput = {
   type: OrderType;
   quantity: number;
   limitPrice?: number | null;
+  /** Idempotency key forwarded to TSE/local order persistence. */
+  clientKey?: string | null;
 };
 
 export type OrderPreviewResult = {

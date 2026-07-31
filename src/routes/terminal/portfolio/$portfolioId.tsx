@@ -6,6 +6,8 @@ import { Settings2 } from "lucide-react";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { AllocationBars, HoldingsTable } from "@/components/terminal/holdings-table";
+import { CryptoHoldingsTable } from "@/components/terminal/crypto-holdings-table";
+import { WalletDetailsSheet } from "@/components/terminal/wallet-details-sheet";
 import { OrdersList } from "@/components/terminal/orders-list";
 import { ActivityList } from "@/components/terminal/activity-list";
 import { CreatePortfolioDialog, PortfolioSwitcher } from "@/components/terminal/portfolio-switcher";
@@ -24,6 +26,8 @@ import {
 } from "@/lib/terminal/terminal.functions";
 import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import type { TerminalChartRange } from "@/lib/terminal/types";
+import type { CryptoPortfolioSummary } from "@/lib/terminal/crypto/crypto-market-read.service";
+import { buildPortfolioAllocation } from "@/lib/terminal/crypto/portfolio-allocation";
 
 export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -65,6 +69,7 @@ function TerminalPortfolioDetailPage() {
   const archiveFn = useServerFn(archiveTerminalPortfolioFn);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [busy, setBusy] = useState<"rename" | "archive" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +127,20 @@ function TerminalPortfolioDetailPage() {
   }
 
   const { selectedPortfolio, portfolio, orders, activity, portfolios, eligibleCompanies } = data;
-  const empty = portfolio.holdings.length === 0;
+  const crypto = (data as { crypto?: CryptoPortfolioSummary | null }).crypto ?? null;
+  const cryptoBalances = crypto?.balances ?? [];
+  const hasStockHoldings = portfolio.holdings.length > 0;
+  const hasCryptoHoldings = cryptoBalances.length > 0;
+  const empty = !hasStockHoldings && !hasCryptoHoldings;
+  const showWallet = Boolean(crypto?.hasWallet && crypto.walletPublicId);
+  const allocation = buildPortfolioAllocation({
+    holdings: portfolio.holdings,
+    cryptoBalances,
+  });
+  const showAllocation =
+    !empty &&
+    allocation != null &&
+    (portfolio.valuationAvailable || hasCryptoHoldings);
 
   return (
     <div className="space-y-8" key={selectedPortfolio.id}>
@@ -131,8 +149,10 @@ function TerminalPortfolioDetailPage() {
           role="status"
           className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
         >
-          Markets and trading are currently offline. Portfolio value reflects your available cash;
-          holdings, orders, and activity are from your local portfolio records.
+          Markets and trading are currently offline. Portfolio value reflects available cash
+          {hasCryptoHoldings ? " plus marked crypto balances" : ""}; stock holdings, orders, and
+          activity are from your local portfolio records. Crypto chart history uses fills and
+          persisted prices only — never invented pre-launch holdings.
         </div>
       ) : null}
 
@@ -145,7 +165,26 @@ function TerminalPortfolioDetailPage() {
             eligibleCompanies={eligibleCompanies}
           />
         </div>
-        {selectedPortfolio.capabilities.canRename || selectedPortfolio.capabilities.canArchive ? (
+        <div className="flex shrink-0 items-center gap-2">
+          {showWallet ? (
+            <button
+              type="button"
+              onClick={() => setWalletOpen(true)}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+            >
+              Wallet
+            </button>
+          ) : null}
+          {selectedPortfolio.capabilities.canTrade ? (
+            <Link
+              to="/terminal/orders"
+              search={{ tab: "scheduled", portfolioId: selectedPortfolio.id }}
+              className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
+            >
+              Schedule trade
+            </Link>
+          ) : null}
+          {selectedPortfolio.capabilities.canRename || selectedPortfolio.capabilities.canArchive ? (
           <button
             type="button"
             onClick={() => {
@@ -160,7 +199,8 @@ function TerminalPortfolioDetailPage() {
             <Settings2 className="size-4 sm:hidden" aria-hidden />
             <span className="hidden sm:inline">Portfolio settings</span>
           </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       <PortfolioChart
@@ -231,8 +271,8 @@ function TerminalPortfolioDetailPage() {
         />
       </div>
 
-      <section>
-        <h2 className="mb-3 text-[15px] font-medium">Holdings</h2>
+      <section className="space-y-6">
+        <h2 className="text-[15px] font-medium">Holdings</h2>
         {empty ? (
           <div className="rounded-lg border border-dashed border-[var(--terminal-border)] px-4 py-8">
             <p className="text-[14px] font-medium">No holdings yet</p>
@@ -241,14 +281,41 @@ function TerminalPortfolioDetailPage() {
             </p>
           </div>
         ) : (
-          <HoldingsTable holdings={portfolio.holdings} portfolioId={selectedPortfolio.id} />
+          <>
+            {hasStockHoldings ? (
+              <div>
+                {hasCryptoHoldings ? (
+                  <h3 className="mb-2 text-[12px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
+                    Stocks
+                  </h3>
+                ) : null}
+                <HoldingsTable holdings={portfolio.holdings} portfolioId={selectedPortfolio.id} />
+              </div>
+            ) : null}
+            {hasCryptoHoldings ? (
+              <div>
+                {hasStockHoldings ? (
+                  <h3 className="mb-2 text-[12px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
+                    Crypto
+                  </h3>
+                ) : null}
+                <CryptoHoldingsTable
+                  balances={cryptoBalances}
+                  portfolioId={selectedPortfolio.id}
+                />
+              </div>
+            ) : null}
+          </>
         )}
       </section>
 
-      {!empty && portfolio.valuationAvailable ? (
+      {showAllocation && allocation ? (
         <section>
-          <h2 className="mb-3 text-[15px] font-medium">Allocation</h2>
-          <AllocationBars holdings={portfolio.holdings} />
+          <h2 className="mb-1 text-[15px] font-medium">Allocation</h2>
+          <AllocationBars
+            rows={allocation.rows}
+            basisDescription={allocation.basisDescription}
+          />
         </section>
       ) : null}
 
@@ -376,6 +443,15 @@ function TerminalPortfolioDetailPage() {
             </div>
         </DialogContent>
       </Dialog>
+
+      {showWallet && crypto?.walletPublicId ? (
+        <WalletDetailsSheet
+          open={walletOpen}
+          onOpenChange={setWalletOpen}
+          publicWalletId={crypto.walletPublicId}
+          walletStatus={crypto.walletStatus}
+        />
+      ) : null}
     </div>
   );
 }

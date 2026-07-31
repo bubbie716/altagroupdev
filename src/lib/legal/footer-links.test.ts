@@ -127,6 +127,7 @@ describe("footer links", () => {
         "Risk Disclosure",
         "Market Data Terms",
         "Fee Schedule",
+        "Crypto Trading Disclosure",
       ],
     );
   });

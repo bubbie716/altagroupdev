@@ -23,6 +23,17 @@ function caseCategoryLabel(caseType: string): string {
   if (caseType === "rejected_order" || caseType === "failed_order") return "Rejected order";
   if (caseType === "stale_open_order") return "Stuck order";
   if (caseType === "connection_unavailable") return "Connection";
+  if (
+    caseType === "crypto_reconciliation" ||
+    caseType === "crypto_reserve" ||
+    caseType === "crypto_supply" ||
+    caseType === "crypto_wallet_ledger"
+  ) {
+    return "Crypto integrity";
+  }
+  if (caseType === "crypto_job_failure") return "Crypto jobs";
+  if (caseType === "crypto_configuration") return "Crypto configuration";
+  if (caseType === "crypto_lifecycle") return "Crypto lifecycle";
   return caseType.replace(/_/g, " ");
 }
 
@@ -33,6 +44,17 @@ function casePrimaryAction(caseType: string, fallback: string): string {
   if (caseType === "connection_unavailable") return "Review connection issue";
   if (caseType === "maintenance") return "Review investor";
   if (caseType === "investor_restriction") return "Review investor";
+  if (
+    caseType === "crypto_reconciliation" ||
+    caseType === "crypto_reserve" ||
+    caseType === "crypto_supply" ||
+    caseType === "crypto_wallet_ledger" ||
+    caseType === "crypto_job_failure" ||
+    caseType === "crypto_configuration" ||
+    caseType === "crypto_lifecycle"
+  ) {
+    return "Review crypto market";
+  }
   return fallback || "Review case";
 }
 
@@ -95,6 +117,30 @@ function caseLink(
       </Link>
     );
   }
+  const cryptoSymbolMatch = href.match(/^\/internal\/terminal\/crypto\/([^/?#]+)/);
+  if (cryptoSymbolMatch) {
+    return (
+      <Link
+        to="/internal/terminal/crypto/$symbol"
+        params={{ symbol: cryptoSymbolMatch[1]! }}
+        search={withFrom({ tab: "overview" as const })}
+        className="block rounded-md border border-border/70 bg-surface-1/40 px-3 py-3 hover:border-border-strong"
+      >
+        {children}
+      </Link>
+    );
+  }
+  if (href.startsWith("/internal/terminal/crypto")) {
+    return (
+      <Link
+        to="/internal/terminal/crypto"
+        search={withFrom({})}
+        className="block rounded-md border border-border/70 bg-surface-1/40 px-3 py-3 hover:border-border-strong"
+      >
+        {children}
+      </Link>
+    );
+  }
   return (
     <Link
       to={href as "/"}
@@ -114,8 +160,8 @@ function TerminalInboxPage() {
   return (
     <InternalPageShell title="Terminal Inbox">
       <p className="mb-4 max-w-2xl text-[13px] text-muted-foreground">
-        Cases that need operator attention — rejected orders, connection failures, and access
-        issues.
+        Cases that need operator attention — rejected orders, connection failures, crypto market
+        integrity, and access issues.
       </p>
 
       {cases.length === 0 ? (

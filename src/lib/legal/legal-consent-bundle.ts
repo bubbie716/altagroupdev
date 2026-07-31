@@ -57,6 +57,10 @@ export const PRODUCT_CONSENT_BUNDLES: Record<
       { documentId: "AT-LEGAL-005", acceptanceType: "ACKNOWLEDGED" },
     ],
   },
+  CRYPTO: {
+    scope: "CRYPTO",
+    documents: [{ documentId: "AT-LEGAL-006", acceptanceType: "ACKNOWLEDGED" }],
+  },
   ALTA_PAY: {
     scope: "ALTA_PAY",
     documents: [{ documentId: "AB-LEGAL-003", acceptanceType: "AGREED" }],
@@ -94,6 +98,7 @@ export const ENFORCED_CONSENT_SCOPES: readonly LegalConsentScopeId[] = [
   "CORE",
   "BANK",
   "TERMINAL",
+  "CRYPTO",
   "ALTA_PAY",
   "ALTA_CARD",
   "LENDING",
@@ -206,6 +211,16 @@ export function getConsentControlGroups(scope: LegalConsentScopeId): ConsentCont
           documentIds: ["AT-LEGAL-003", "AT-LEGAL-004", "AT-LEGAL-005"],
           label:
             "I acknowledge the Risk Disclosure, Market Data and Third-Party Services Terms, and Fee Schedule.",
+        },
+      ];
+    case "CRYPTO":
+      return [
+        {
+          id: "crypto_disclosure",
+          kind: "acknowledge",
+          documentIds: ["AT-LEGAL-006"],
+          label:
+            "I acknowledge the Alta Terminal Crypto Trading and Custody Disclosure.",
         },
       ];
     case "ALTA_PAY":

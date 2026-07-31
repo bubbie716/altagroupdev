@@ -45,6 +45,21 @@ function TerminalHomePage() {
     recentOrders,
   } = dashboard;
 
+  const scheduleHref = portfolios[0]
+    ? {
+        to: "/terminal/orders" as const,
+        search: {
+          tab: "scheduled" as const,
+          portfolioId: portfolios[0].id,
+          status: "all" as const,
+          side: "all" as const,
+        },
+      }
+    : {
+        to: "/terminal/orders" as const,
+        search: { tab: "scheduled" as const, status: "all" as const, side: "all" as const },
+      };
+
   const greetingName = userDisplayName?.trim() || "there";
   const emptyPortfolios = portfolios.length === 0;
 
@@ -78,7 +93,7 @@ function TerminalHomePage() {
         </div>
         <div className="text-right">
           <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--terminal-muted)]">
-            {marketDataAvailable ? "Total value" : "Cash value"}
+            {marketDataAvailable ? "Total value" : "Portfolio value"}
           </p>
           {combinedValue == null ? (
             <p className="mt-1 text-[18px] font-medium text-[var(--terminal-muted)]">
@@ -108,6 +123,13 @@ function TerminalHomePage() {
         >
           Trade
         </button>
+        <Link
+          to={scheduleHref.to}
+          search={scheduleHref.search}
+          className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
+        >
+          Schedule trade
+        </Link>
         {portfolios[0] ? (
           <Link
             to="/bank"
