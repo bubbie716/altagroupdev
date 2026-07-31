@@ -208,15 +208,19 @@ export function BankProcessError({
   message,
   onEdit,
   onRetry,
+  onClose,
   editLabel = "Edit details",
   retryLabel = "Back to review",
+  closeLabel = "Close",
 }: {
   title?: string;
   message: string;
   onEdit?: () => void;
   onRetry?: () => void;
+  onClose?: () => void;
   editLabel?: string;
   retryLabel?: string;
+  closeLabel?: string;
 }) {
   return (
     <div className="space-y-5">
@@ -224,6 +228,9 @@ export function BankProcessError({
         <p role="alert">{message}</p>
       </BankProcessState>
       <BankActionFooter>
+        {onClose ? (
+          <BankActionSecondaryButton onClick={onClose}>{closeLabel}</BankActionSecondaryButton>
+        ) : null}
         {onEdit ? (
           <BankActionSecondaryButton onClick={onEdit}>{editLabel}</BankActionSecondaryButton>
         ) : null}

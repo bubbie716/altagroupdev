@@ -52,6 +52,10 @@ export function parseReturnPath(from: string | undefined | null): {
       label = "Lending";
     } else if (pathname.startsWith("/internal/inbox")) {
       label = "Inbox";
+    } else if (pathname.startsWith("/internal/terminal/portfolios")) {
+      label = "Portfolio";
+    } else if (pathname.startsWith("/internal/terminal/")) {
+      label = "Terminal";
     } else if (pathname.startsWith("/internal/")) {
       const seg = pathname.split("/").filter(Boolean)[1];
       label = seg ? seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "Internal";

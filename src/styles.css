@@ -1155,3 +1155,233 @@ thead .ops-table-col-sticky-end {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Terminal entrance — full-viewport brokerage sign-in */
+.terminal-entrance {
+  --terminal-pointer-x: 62%;
+  --terminal-pointer-y: 38%;
+  background: var(--terminal-bg);
+}
+
+.terminal-entrance-frame {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: max(1.25rem, env(safe-area-inset-left))
+    max(1.25rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 768px) {
+  .terminal-entrance-frame {
+    padding-inline: max(2rem, env(safe-area-inset-left))
+      max(2rem, env(safe-area-inset-right));
+  }
+}
+
+@media (min-width: 1280px) {
+  .terminal-entrance-frame {
+    max-width: 1400px;
+    padding-inline: max(2.5rem, env(safe-area-inset-left))
+      max(2.5rem, env(safe-area-inset-right));
+  }
+}
+
+.terminal-entrance-hero {
+  /* Left-weighted on desktop; stacked full-width on mobile */
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: 0;
+}
+
+@media (min-width: 1024px) {
+  .terminal-entrance-hero {
+    width: min(52%, 45rem);
+    max-width: none;
+  }
+}
+
+.terminal-entrance-cta {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--terminal-green) 35%, transparent),
+    0 10px 28px color-mix(in oklch, var(--terminal-green) 18%, transparent);
+}
+
+.terminal-entrance-cta:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--terminal-bg),
+    0 0 0 3px var(--terminal-green),
+    0 10px 28px color-mix(in oklch, var(--terminal-green) 18%, transparent);
+}
+
+.terminal-entrance-backdrop {
+  overflow: hidden;
+}
+
+.terminal-entrance-ambient {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 18% 22%,
+      color-mix(in oklch, var(--terminal-green) 10%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 82% 68%,
+      color-mix(in oklch, var(--terminal-green) 8%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 80% 50% at 50% 100%,
+      color-mix(in oklch, var(--terminal-border) 55%, transparent),
+      transparent 55%
+    );
+  opacity: 0.9;
+}
+
+.dark .terminal-entrance-ambient {
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 18% 22%,
+      color-mix(in oklch, var(--terminal-green) 12%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 82% 68%,
+      color-mix(in oklch, var(--terminal-green) 9%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 80% 50% at 50% 100%,
+      color-mix(in oklch, var(--terminal-surface) 70%, transparent),
+      transparent 55%
+    );
+}
+
+.terminal-entrance-pointer-glow {
+  background: radial-gradient(
+    circle 26rem at var(--terminal-pointer-x) var(--terminal-pointer-y),
+    color-mix(in oklch, var(--terminal-green) 14%, transparent),
+    transparent 62%
+  );
+  opacity: 0.55;
+  transition: opacity 180ms ease;
+}
+
+.dark .terminal-entrance-pointer-glow {
+  background: radial-gradient(
+    circle 28rem at var(--terminal-pointer-x) var(--terminal-pointer-y),
+    color-mix(in oklch, var(--terminal-green) 16%, transparent),
+    transparent 64%
+  );
+  opacity: 0.65;
+}
+
+.terminal-entrance-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--terminal-border) 70%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--terminal-border) 70%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 85% 70% at 50% 45%, #000 20%, transparent 78%);
+  opacity: 0.09;
+}
+
+.dark .terminal-entrance-grid {
+  opacity: 0.11;
+}
+
+.terminal-entrance-graph {
+  opacity: 0.72;
+}
+
+.dark .terminal-entrance-graph {
+  opacity: 0.8;
+}
+
+.terminal-entrance-graph-line {
+  opacity: 0.95;
+}
+
+.terminal-entrance-graph-fade {
+  background: linear-gradient(
+    to top,
+    var(--terminal-bg) 0%,
+    color-mix(in oklch, var(--terminal-bg) 55%, transparent) 32%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.terminal-entrance-disclosures {
+  position: relative;
+}
+
+.terminal-entrance-disclosures summary {
+  position: relative;
+  z-index: 1;
+}
+
+.terminal-entrance-disclosures summary::-webkit-details-marker {
+  display: none;
+}
+
+.terminal-entrance-disclosures-panel {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 0;
+  width: min(100%, 36rem);
+  max-height: min(10.5rem, 28dvh);
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--terminal-border);
+  border-radius: 0.5rem;
+  background: var(--terminal-surface);
+  box-shadow: 0 12px 32px color-mix(in oklch, var(--terminal-bg) 45%, transparent);
+  z-index: 2;
+}
+
+@media (pointer: coarse) {
+  .terminal-entrance-pointer-glow {
+    background: radial-gradient(
+      ellipse 48% 36% at 62% 38%,
+      color-mix(in oklch, var(--terminal-green) 12%, transparent),
+      transparent 68%
+    );
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .terminal-entrance-pointer-glow {
+    background: radial-gradient(
+      ellipse 48% 36% at 62% 38%,
+      color-mix(in oklch, var(--terminal-green) 12%, transparent),
+      transparent 68%
+    );
+    opacity: 0.4;
+    transition: none;
+  }
+
+  .terminal-entrance-graph-line {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .terminal-entrance-graph-line {
+    stroke-dasharray: 1800;
+    stroke-dashoffset: 1800;
+    animation: terminal-entrance-draw 1.4s ease-out forwards;
+  }
+}
+
+@keyframes terminal-entrance-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

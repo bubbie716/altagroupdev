@@ -14,20 +14,19 @@ import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops
 import { formatTerminalOrderSearchSublabel } from "@/lib/terminal/terminal-desk";
 import { UI_LAB_MOCK_USER } from "@/lib/auth/ui-lab";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
+import {
+  UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES,
+  UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS,
+  UI_LAB_TERMINAL_PORTFOLIO_IDS,
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-canonical-ids";
+
+export { UI_LAB_TERMINAL_PORTFOLIO_IDS };
 
 function daysFromNow(days: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString();
 }
-
-export const UI_LAB_TERMINAL_PORTFOLIO_IDS = {
-  personalCore: "ui-lab-term-pf-core",
-  personalGrowth: "ui-lab-term-pf-growth",
-  personalEmpty: "ui-lab-term-pf-empty",
-  companyTreasury: "ui-lab-term-pf-altg",
-  archived: "ui-lab-term-pf-archived",
-} as const;
 
 export function getUiLabTerminalInvestors(): TerminalInvestorRow[] {
   return [
@@ -362,8 +361,8 @@ export function getUiLabTerminalPortfolioDetail(
       ? []
       : [
           {
-            id: "TFT-LAB-1",
-            referenceCode: "TFD-LAB-0001",
+            id: UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS.bankToTerminal,
+            referenceCode: UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES.bankToTerminal,
             direction: "BANK_TO_TERMINAL" as const,
             status: "COMPLETED" as const,
             amount: 500,

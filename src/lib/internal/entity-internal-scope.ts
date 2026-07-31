@@ -22,6 +22,15 @@ function isCorporateOnlyPath(path: string): boolean {
   );
 }
 
+function isCorporatePanelPath(path: string): boolean {
+  if (path === "/internal/bank" || path.startsWith("/internal/bank/")) return false;
+  if (path === "/internal/terminal" || path.startsWith("/internal/terminal/")) return false;
+  if (path === "/internal/exchange" || path.startsWith("/internal/exchange/")) return false;
+  if (path.startsWith("/internal/lending")) return false;
+  if (path.startsWith("/internal/alta-card")) return false;
+  return true;
+}
+
 function isBankPanelPath(path: string): boolean {
   if (path === "/internal/bank" || path.startsWith("/internal/bank/")) return true;
   if (path === "/internal/inbox" || path.startsWith("/internal/inbox/")) return true;
@@ -69,7 +78,15 @@ export function assertEntityInternalRouteAccess(
 ): void {
   const path = normalizePathname(pathname);
 
-  if (siteKey === "exchange") {
+  if (siteKey === "corporate") {
+    if (!isCorporatePanelPath(path)) {
+      throw redirect({ to: "/internal" });
+    }
+  } else if (siteKey === "bank") {
+    if (!isBankPanelPath(path)) {
+      throw redirect({ to: "/internal/bank" });
+    }
+  } else if (siteKey === "exchange") {
     if (!isTerminalPanelPath(path, "exchange")) {
       throw redirect({ to: "/internal" });
     }
@@ -121,6 +138,12 @@ export function isInternalPathAllowedForUser(
 ): boolean {
   const path = normalizePathname(pathname);
 
+  if (siteKey === "corporate" && !isCorporatePanelPath(path)) {
+    return false;
+  }
+  if (siteKey === "bank" && !isBankPanelPath(path)) {
+    return false;
+  }
   if (siteKey === "exchange") {
     return isTerminalPanelPath(path, "exchange");
   }

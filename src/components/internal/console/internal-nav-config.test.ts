@@ -37,13 +37,13 @@ function userWithTags(tags: AltaUser["tags"]): AltaUser {
 }
 
 describe("internal-nav-config", () => {
-  it("exposes six primary destinations for corporate, bank, and terminal", () => {
-    assert.equal(CORPORATE_PRIMARY_NAV.length, 6);
+  it("keeps corporate navigation group-only and six destinations on subsidiary sites", () => {
+    assert.equal(CORPORATE_PRIMARY_NAV.length, 4);
     assert.equal(BANK_PRIMARY_NAV.length, 6);
     assert.equal(TERMINAL_PRIMARY_NAV.length, 6);
     assert.deepEqual(
       CORPORATE_PRIMARY_NAV.map((l) => l.label),
-      ["Home", "Inbox", "Directory", "Money", "Products", "System"],
+      ["Home", "Inbox", "Directory", "System"],
     );
     assert.deepEqual(
       BANK_PRIMARY_NAV.map((l) => l.label),
@@ -81,14 +81,14 @@ describe("internal-nav-config", () => {
     assert.equal(resolveInternalPrimarySection("bank", "/internal/bank"), "home");
     assert.equal(resolveInternalPrimarySection("bank", "/internal/bank/accounts"), "money");
     assert.equal(resolveInternalPrimarySection("bank", "/internal/bank/alta-pay"), "money");
-    assert.equal(resolveInternalPrimarySection("corporate", "/internal/bank/transactions"), "money");
+    assert.equal(resolveInternalPrimarySection("corporate", "/internal/bank/transactions"), null);
   });
 
   it("activates Directory/Customers, Products, and System correctly", () => {
     assert.equal(resolveInternalPrimarySection("corporate", "/internal/users/abc"), "directory");
     assert.equal(resolveInternalPrimarySection("bank", "/internal/companies"), "customers");
-    assert.equal(resolveInternalPrimarySection("corporate", "/internal/lending"), "products");
-    assert.equal(resolveInternalPrimarySection("corporate", "/internal/alta-card/applications/x"), "products");
+    assert.equal(resolveInternalPrimarySection("bank", "/internal/lending"), "products");
+    assert.equal(resolveInternalPrimarySection("bank", "/internal/alta-card/applications/x"), "products");
     assert.equal(resolveInternalPrimarySection("corporate", "/internal/jobs"), "system");
     assert.equal(resolveInternalPrimarySection("bank", "/internal/bank/settings"), "system");
   });
@@ -109,7 +109,7 @@ describe("internal-nav-config", () => {
   });
 
   it("groups Money operations behind an overflow menu", () => {
-    const money = getInternalContextualNav("corporate", "/internal/bank/accounts");
+    const money = getInternalContextualNav("bank", "/internal/bank/accounts");
     assert.deepEqual(
       money?.links.map((l) => l.label),
       ["Accounts", "Transactions", "Transfers"],
@@ -122,7 +122,7 @@ describe("internal-nav-config", () => {
   });
 
   it("scopes Product contextual nav to Overview/Loans or Overview/Cards", () => {
-    const lending = getInternalContextualNav("corporate", "/internal/lending");
+    const lending = getInternalContextualNav("bank", "/internal/lending");
     assert.equal(lending?.label, "Lending");
     assert.deepEqual(
       lending?.links.map((l) => l.label),
@@ -136,7 +136,7 @@ describe("internal-nav-config", () => {
       ["/internal/lending", "/internal/lending/loans"],
     );
 
-    const cards = getInternalContextualNav("corporate", "/internal/alta-card/cards");
+    const cards = getInternalContextualNav("bank", "/internal/alta-card/cards");
     assert.equal(cards?.label, "Alta Card");
     assert.deepEqual(
       cards?.links.map((l) => l.label),

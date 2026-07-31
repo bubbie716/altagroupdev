@@ -4,7 +4,7 @@ import {
   latestOpsJobRunAt,
 } from "@/lib/internal/ops-job-run-display";
 import { listOpsJobRuns } from "@/server/ops-job-run.service";
-import { requireAdmin, requireOperator } from "@/server/permissions.service";
+import { requireOperator } from "@/server/permissions.service";
 import { writeAuditLog } from "@/server/audit.service";
 
 type OpsJobRunSummary = {
@@ -85,7 +85,8 @@ export async function runManualOpsJob(
   jobKey: string,
   reason: string,
 ): Promise<{ ok: true; summary: string }> {
-  await requireAdmin();
+  const actor = await requireOperator();
+  if (actor.id !== actorUserId) throw new Error("FORBIDDEN");
 
   let summary: string;
 

@@ -147,6 +147,8 @@ function TerminalSecurityPage() {
         ...prev,
         range: next,
       }),
+      replace: true,
+      resetScroll: false,
     });
   }
 

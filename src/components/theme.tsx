@@ -10,8 +10,7 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; set: (t: Them
 export const THEME_INIT_SCRIPT = `
 (function(){try{
   var s=localStorage.getItem('alta-theme');
-  var m=window.matchMedia('(prefers-color-scheme: dark)').matches;
-  var t=s||(m?'dark':'light');
+  var t=s==='light'?'light':'dark';
   var c=document.documentElement.classList;
   if(t==='dark')c.add('dark');else c.remove('dark');
 }catch(e){document.documentElement.classList.add('dark');}})();

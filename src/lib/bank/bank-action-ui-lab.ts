@@ -17,6 +17,7 @@ export type BankActionUiLabScenario =
   | "pending_review"
   | "validation_error"
   | "server_error"
+  | "eligibility_error"
   | "idempotent_replay";
 
 const SCENARIO_STORAGE_KEY = "alta.bank.action.uiLabScenario";
@@ -24,18 +25,24 @@ const SCENARIO_STORAGE_KEY = "alta.bank.action.uiLabScenario";
 /** @deprecated Prefer UI_LAB_PAYABLE_RECIPIENTS from ui-lab-commercial-fixtures. */
 export const UI_LAB_RECIPIENTS: PayableRecipient[] = UI_LAB_PAYABLE_RECIPIENTS;
 
+export function isBankActionUiLabScenario(
+  value: string | null | undefined,
+): value is BankActionUiLabScenario {
+  return (
+    value === "success" ||
+    value === "pending_review" ||
+    value === "validation_error" ||
+    value === "server_error" ||
+    value === "eligibility_error" ||
+    value === "idempotent_replay"
+  );
+}
+
 export function getBankActionUiLabScenario(): BankActionUiLabScenario {
   if (!isUiLabMode() || typeof window === "undefined") return "success";
   try {
     const raw = window.sessionStorage.getItem(SCENARIO_STORAGE_KEY);
-    if (
-      raw === "pending_review" ||
-      raw === "validation_error" ||
-      raw === "server_error" ||
-      raw === "idempotent_replay"
-    ) {
-      return raw;
-    }
+    if (isBankActionUiLabScenario(raw)) return raw;
   } catch {
     /* ignore */
   }

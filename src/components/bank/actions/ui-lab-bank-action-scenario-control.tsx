@@ -15,6 +15,7 @@ const SCENARIOS: { value: BankActionUiLabScenario; label: string }[] = [
   { value: "pending_review", label: "Pending review" },
   { value: "validation_error", label: "Validation error" },
   { value: "server_error", label: "Server error" },
+  { value: "eligibility_error", label: "Eligibility error" },
   { value: "idempotent_replay", label: "Idempotent replay" },
 ];
 
@@ -64,9 +65,12 @@ export function shouldShowBankActionScenarioControl(siteKey: SiteKey, pathname: 
 export function UiLabBankActionScenarioControl() {
   const site = useSiteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [scenario, setScenario] = useState<BankActionUiLabScenario>("success");
+  const [scenario, setScenario] = useState<BankActionUiLabScenario>(() =>
+    getBankActionUiLabScenario(),
+  );
 
   useEffect(() => {
+    // Re-sync after mount in case SSR/default differed from sessionStorage.
     setScenario(getBankActionUiLabScenario());
   }, []);
 

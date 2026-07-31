@@ -205,9 +205,7 @@ describe("phase4: Loan directory route and auth", () => {
     assert.match(src, /withInternalSiteSearch/);
     assert.match(src, /md:hidden/);
     assert.doesNotMatch(src, />\s*Open\s*</);
-    assert.doesNotThrow(() =>
-      assertEntityInternalRouteAccess("corporate", "/internal/lending/loans"),
-    );
+    assert.throws(() => assertEntityInternalRouteAccess("corporate", "/internal/lending/loans"));
     assert.doesNotThrow(() =>
       assertEntityInternalRouteAccess("bank", "/internal/lending/loans", userWithTags(["bank_admin"])),
     );
@@ -275,11 +273,12 @@ describe("phase4: redirects, nav, search", () => {
       lending?.links.map((l) => l.label),
       ["Overview", "Loans"],
     );
-    const cards = getInternalContextualNav("corporate", "/internal/alta-card");
+    const cards = getInternalContextualNav("bank", "/internal/alta-card");
     assert.deepEqual(
       cards?.links.map((l) => l.label),
       ["Overview", "Cards"],
     );
+    assert.equal(getInternalContextualNav("corporate", "/internal/alta-card"), null);
   });
 
   it("improves global search loan labels and borrower matching", () => {

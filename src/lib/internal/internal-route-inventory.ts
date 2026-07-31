@@ -46,6 +46,10 @@ export const INTERNAL_ROUTE_INVENTORY: InternalRouteInventoryEntry[] = [
   { file: "bank/transactions/$transactionId.tsx", classification: "dynamic_canonical_record" },
   { file: "bank/transfers/index.tsx", classification: "canonical_visible" },
   { file: "bank/transfers/$transferId.tsx", classification: "dynamic_canonical_record" },
+  {
+    file: "bank/transfers/funding.$transferId.tsx",
+    classification: "dynamic_canonical_record",
+  },
   { file: "bank/alta-pay/index.tsx", classification: "canonical_visible" },
   { file: "bank/alta-pay/$referenceCode.tsx", classification: "dynamic_canonical_record" },
   { file: "bank/alta-pay/invoices/$invoiceId.tsx", classification: "dynamic_canonical_record" },
@@ -135,6 +139,10 @@ export const INTERNAL_ROUTE_INVENTORY: InternalRouteInventoryEntry[] = [
   { file: "terminal/investors/index.tsx", classification: "canonical_visible" },
   { file: "terminal/portfolios/index.tsx", classification: "canonical_visible" },
   { file: "terminal/portfolios/$portfolioId.tsx", classification: "dynamic_canonical_record" },
+  {
+    file: "terminal/funding/$transferId.tsx",
+    classification: "dynamic_canonical_record",
+  },
   { file: "terminal/orders/index.tsx", classification: "canonical_visible" },
   { file: "terminal/orders/$orderId.tsx", classification: "dynamic_canonical_record" },
   { file: "terminal/system.tsx", classification: "canonical_visible" },

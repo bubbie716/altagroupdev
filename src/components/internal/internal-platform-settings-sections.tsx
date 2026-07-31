@@ -7,6 +7,7 @@ import type { CreditDeskSettings } from "@/lib/platform/credit-desk-types";
 import type { MaintenanceModeSettings, MaintenanceScope } from "@/lib/platform/maintenance-types";
 import type { CommercialPlatformSettingsView } from "@/lib/platform/commercial-plan-settings-types";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import type { SiteKey } from "@/config/sites";
 import { cn } from "@/lib/utils";
 
 export type InternalPlatformSettingsData = {
@@ -30,7 +31,7 @@ export function InternalPlatformSettingsSections({
   showCommercialPlans = true,
   section = "credit",
   sectionBasePath = "/internal/settings",
-  siteKey,
+  siteKey = "corporate",
 }: {
   data: InternalPlatformSettingsData;
   maintenanceScopes: MaintenanceScope[];
@@ -38,7 +39,7 @@ export function InternalPlatformSettingsSections({
   showCommercialPlans?: boolean;
   section?: SettingsSectionId;
   sectionBasePath?: "/internal/settings" | "/internal/bank/settings" | "/internal/terminal/settings";
-  siteKey?: string;
+  siteKey?: SiteKey;
 }) {
   const tabs = SECTION_TABS.filter((tab) => {
     if (tab.id === "credit") return showCreditDesk;
@@ -85,6 +86,7 @@ export function InternalPlatformSettingsSections({
 
       {activeSection === "commercial" ? (
         <AdminOnly
+          siteKey={siteKey}
           fallback={
             <p className="text-[13px] text-muted-foreground">
               Commercial plan settings require admin access.
@@ -103,6 +105,7 @@ export function InternalPlatformSettingsSections({
 
       {activeSection === "maintenance" ? (
         <AdminOnly
+          siteKey={siteKey}
           fallback={
             <p className="text-[13px] text-muted-foreground">
               Maintenance controls require admin access. Operators can view status on Home and Jobs.

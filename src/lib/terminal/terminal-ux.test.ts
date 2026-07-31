@@ -6,16 +6,27 @@ import { join } from "node:path";
 const root = join(process.cwd(), "src");
 
 describe("terminal sign-in experience", () => {
+  const signInSource = () =>
+    readFileSync(join(root, "components/terminal/terminal-sign-in-page.tsx"), "utf8");
+
+  const glowHookSource = () =>
+    readFileSync(join(root, "hooks/use-terminal-pointer-glow.ts"), "utf8");
+
+  const entranceCss = () => {
+    const styles = readFileSync(join(root, "styles.css"), "utf8");
+    const start = styles.indexOf("/* Terminal entrance");
+    assert.ok(start >= 0, "terminal entrance CSS block missing");
+    return styles.slice(start);
+  };
+
   it("ships a Terminal-specific sign-in page with required copy and Discord CTA", () => {
-    const source = readFileSync(
-      join(root, "components/terminal/terminal-sign-in-page.tsx"),
-      "utf8",
-    );
+    const source = signInSource();
     assert.match(source, /Invest in Newport/);
     assert.match(source, /Continue with Discord/);
     assert.match(source, /Alta Terminal/);
     assert.match(source, /DiscordSignInButton/);
     assert.match(source, /redirectTo/);
+    assert.match(source, /TERMINAL ACCESS/);
   });
 
   it("routes Terminal root login through the Terminal sign-in page only", () => {
@@ -31,6 +42,104 @@ describe("terminal sign-in experience", () => {
       authGate,
       /\/api\/auth\/discord\?redirect=\$\{encodeURIComponent\(redirectTo\)\}/,
     );
+  });
+
+  it("wires signed-out Discord CTA and signed-in continue destination without changing auth", () => {
+    const source = signInSource();
+    assert.match(source, /DiscordSignInButton[\s\S]*redirectTo=\{destination\}/);
+    assert.match(source, /label="Continue with Discord"/);
+    assert.match(source, /Continue to Terminal/);
+    assert.match(
+      source,
+      /const destination = redirectTo\.startsWith\("\/"\) \? redirectTo : "\/terminal"/,
+    );
+    assert.match(source, /<Link[\s\S]*to=\{destination\}/);
+    assert.doesNotMatch(source, /auto.?redirect|window\.location|navigate\(/i);
+  });
+
+  it("renders exactly one H1 in each auth branch and a single logo/name pair", () => {
+    const source = signInSource();
+    const h1Count = (source.match(/<h1[\s>]/g) ?? []).length;
+    assert.equal(h1Count, 2, "expected one H1 in signed-out and one in signed-in branches");
+    assert.match(source, /function SignedOutHero[\s\S]*?<h1[\s\S]*?Invest in Newport/);
+    assert.match(source, /function SignedInContinue[\s\S]*?<h1[\s\S]*?Welcome back/);
+    assert.match(
+      source,
+      /user && displayName \? \([\s\S]*?<SignedInContinue[\s\S]*?\) : \([\s\S]*?<SignedOutHero/,
+    );
+    assert.equal((source.match(/<AltaLogo[\s\S]*?\/>/g) ?? []).length, 1);
+    assert.match(
+      source,
+      /<header[\s\S]*?<AltaLogo[\s\S]*?>[\s\S]*?Alta Terminal[\s\S]*?<\/span>[\s\S]*?<\/header>/,
+    );
+    assert.doesNotMatch(source, /AltaWordmark/);
+    // No second branded logo/name cluster outside the header mark.
+    assert.equal((source.match(/<AltaLogo/g) ?? []).length, 1);
+  });
+
+  it("implements cursor glow via ref + RAF CSS variables without React-per-pointer state", () => {
+    const source = signInSource();
+    const hook = glowHookSource();
+    assert.match(source, /useTerminalPointerGlow\(rootRef\)/);
+    assert.match(source, /--terminal-pointer-x/);
+    assert.match(source, /--terminal-pointer-y/);
+    assert.match(hook, /requestAnimationFrame/);
+    assert.match(hook, /cancelAnimationFrame/);
+    assert.match(hook, /pointer: fine/);
+    assert.match(hook, /prefers-reduced-motion: reduce/);
+    assert.match(hook, /visibilityState/);
+    assert.match(hook, /removeEventListener\("pointermove"/);
+    assert.match(hook, /style\.setProperty\("--terminal-pointer-x"/);
+    assert.doesNotMatch(hook, /useState\(/);
+    assert.doesNotMatch(hook, /setState|setPointer|setGlow|setCoords/);
+  });
+
+  it("disables fine-pointer tracking for coarse pointers and reduced motion", () => {
+    const hook = glowHookSource();
+    const css = entranceCss();
+    assert.match(hook, /finePointer\.matches/);
+    assert.match(hook, /!reducedMotion\.matches/);
+    assert.match(css, /@media \(pointer: coarse\)/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+    assert.match(css, /--terminal-pointer-x:\s*62%/);
+    assert.match(css, /--terminal-pointer-y:\s*38%/);
+  });
+
+  it("keeps the decorative graph accessible and free of fake financial claims", () => {
+    const source = signInSource();
+    assert.match(source, /terminal-entrance-backdrop[\s\S]*aria-hidden/);
+    assert.match(source, /pointer-events-none/);
+    assert.match(source, /MARKET_LINE_PATH/);
+    assert.doesNotMatch(source, /\$\d|USD|volume|AAPL|TSLA|NVDA|ticker|bid|ask/i);
+    assert.doesNotMatch(source, /price|shares|market cap|% gain|up \d/i);
+    assert.doesNotMatch(source, /<text[\s>]/);
+    assert.doesNotMatch(source, /<circle[\s>]/);
+  });
+
+  it("uses Terminal theme tokens for light/dark entrance atmosphere", () => {
+    const source = signInSource();
+    const css = entranceCss();
+    assert.match(source, /terminal-shell/);
+    assert.match(source, /useTheme/);
+    assert.match(source, /Switch to \$\{theme === "dark" \? "light" : "dark"\} mode/);
+    assert.match(css, /\.dark \.terminal-entrance-ambient/);
+    assert.match(css, /\.dark \.terminal-entrance-pointer-glow/);
+    assert.match(css, /var\(--terminal-green\)/);
+    assert.match(css, /var\(--terminal-bg\)/);
+  });
+
+  it("keeps Legal & disclosures keyboard accessible with an opaque viewport-bounded panel", () => {
+    const source = signInSource();
+    const css = entranceCss();
+    assert.match(source, /<details[\s\S]*Legal & disclosures/);
+    assert.match(source, /fictional brokerage product/);
+    assert.match(source, /live Newport TSE/);
+    assert.match(source, /min-h-11/);
+    assert.match(css, /\.terminal-entrance-disclosures-panel/);
+    assert.match(css, /position:\s*absolute/);
+    assert.match(css, /bottom:\s*calc\(100%/);
+    assert.match(css, /max-height:\s*min\(/);
+    assert.match(css, /background:\s*var\(--terminal-surface\)/);
   });
 });
 

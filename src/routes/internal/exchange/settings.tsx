@@ -24,6 +24,7 @@ function ExchangeInternalSettingsPage() {
         maintenanceScopes={maintenanceScopesForInternalSettings("exchange")}
         showCreditDesk={false}
         showCommercialPlans={false}
+        siteKey="exchange"
       />
     </InternalPageShell>
   );

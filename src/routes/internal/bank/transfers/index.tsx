@@ -563,7 +563,7 @@ function InternalTransfersPage() {
                     <th className="py-2 pr-3 font-medium">Portfolio</th>
                     <th className="py-2 pr-3 font-medium">Status</th>
                     <th className="py-2 font-medium">
-                      <span className="sr-only">Open</span>
+                      <span className="sr-only">Actions</span>
                     </th>
                   </tr>
                 </thead>
@@ -589,7 +589,7 @@ function InternalTransfersPage() {
                           search={recordSearch()}
                           className="text-[12px] font-medium text-gold hover:underline"
                         >
-                          {row.status === "FAILED" ? "Review" : "Open"}
+                          {row.status === "FAILED" ? "Review funding" : "View funding"}
                         </Link>
                       </td>
                     </tr>

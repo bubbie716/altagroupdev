@@ -1,4 +1,4 @@
-import { isAdmin } from "@/lib/auth/permissions";
+import { canAccessBankInternal } from "@/lib/auth/permissions";
 import {
   COMMERCIAL_PLATFORM_SETTING_KEYS,
   DEFAULT_COMMERCIAL_PLATFORM_SETTINGS,
@@ -9,7 +9,7 @@ import {
   type UpdateCommercialPlatformSettingsInput,
 } from "@/lib/platform/commercial-plan-settings-types";
 import { prisma } from "@/server/db";
-import { requireAdmin } from "@/server/permissions.service";
+import { requireOperator } from "@/server/permissions.service";
 
 const SETTING_KEYS = [
   ...Object.values(COMMERCIAL_PLATFORM_SETTING_KEYS),
@@ -134,7 +134,7 @@ export async function getCommercialPlatformSettingsView(): Promise<CommercialPla
     updatedAt,
     updatedById,
     updatedByUsername,
-    canEdit: isAdmin(actor),
+    canEdit: canAccessBankInternal(actor),
   };
 }
 
@@ -142,7 +142,8 @@ export async function setCommercialPlatformSettings(
   actorUserId: string,
   input: UpdateCommercialPlatformSettingsInput,
 ): Promise<CommercialPlatformSettingsView> {
-  await requireAdmin();
+  const actor = await requireOperator();
+  if (actor.id !== actorUserId) throw new Error("FORBIDDEN");
   const reason = input.reason.trim();
   if (!reason) badRequest("Reason is required");
 

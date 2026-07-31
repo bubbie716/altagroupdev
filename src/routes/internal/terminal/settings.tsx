@@ -20,12 +20,6 @@ export const Route = createFileRoute("/internal/terminal/settings")({
 
 function TerminalInternalSettingsPage() {
   const maintenance = Route.useLoaderData();
-  const search = Route.useSearch();
-  const showLegacyHost = search.section === "legacy-host" || search.section === "exchange";
-  const terminalScopes = maintenanceScopesForInternalSettings("terminal");
-  const scopes = showLegacyHost
-    ? [...terminalScopes, ...maintenanceScopesForInternalSettings("exchange")]
-    : terminalScopes;
 
   return (
     <InternalPageShell
@@ -37,24 +31,13 @@ function TerminalInternalSettingsPage() {
       </p>
       <InternalPlatformSettingsSections
         data={{ maintenance }}
-        maintenanceScopes={scopes}
+        maintenanceScopes={maintenanceScopesForInternalSettings("terminal")}
         showCreditDesk={false}
         showCommercialPlans={false}
         section="maintenance"
         sectionBasePath="/internal/terminal/settings"
-        siteKey={search.site}
+        siteKey="terminal"
       />
-      {showLegacyHost ? (
-        <details className="mt-4 rounded-md border border-border/60 px-4 py-3">
-          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Legacy host maintenance
-          </summary>
-          <p className="mt-2 text-[12px] text-muted-foreground">
-            Compatibility controls for the retired Exchange host. Use the Legacy Host Maintenance
-            scope above when operators need to put the redirect host into maintenance.
-          </p>
-        </details>
-      ) : null}
     </InternalPageShell>
   );
 }

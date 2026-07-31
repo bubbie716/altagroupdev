@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { InternalPageShell } from "@/components/internal/internal-page-shell";
 import { InternalPlatformSettingsSections } from "@/components/internal/internal-platform-settings-sections";
-import { loadInternalPlatformSettings } from "@/lib/internal/internal-platform-settings-loader";
+import { fetchMaintenanceModeSettings } from "@/lib/platform/platform-settings.functions";
 import { maintenanceScopesForInternalSettings } from "@/lib/platform/maintenance-types";
 import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/internal/settings")({
       });
     }
   },
-  loader: () => loadInternalPlatformSettings(),
+  loader: async () => ({ maintenance: await fetchMaintenanceModeSettings() }),
   head: ({ match }) => ({
     meta: [{ title: internalDocumentTitle("Settings", (match.search as SettingsSearch).site) }],
   }),
@@ -48,8 +48,8 @@ function InternalSettingsPage() {
 
   return (
     <InternalPageShell
-      title="Internal Settings"
-      description="Credit Desk, commercial plans, and maintenance configuration."
+      title="Corporate Settings"
+      description="Alta Group corporate-site maintenance configuration."
       breadcrumbs={buildBreadcrumbs([
         { label: "System", to: "/internal/jobs", search: withInternalSiteSearch({}, search.site) },
         { label: "Settings" },
@@ -58,9 +58,11 @@ function InternalSettingsPage() {
       <InternalPlatformSettingsSections
         data={data}
         maintenanceScopes={maintenanceScopesForInternalSettings("corporate")}
-        section={search.section ?? "credit"}
+        showCreditDesk={false}
+        showCommercialPlans={false}
+        section="maintenance"
         sectionBasePath="/internal/settings"
-        siteKey={search.site ?? "corporate"}
+        siteKey="corporate"
       />
     </InternalPageShell>
   );

@@ -41,7 +41,7 @@ export type InternalContextualNav = {
   };
 };
 
-/** Corporate — six primary destinations. */
+/** Corporate — group administration only; subsidiary operations live on their own sites. */
 export const CORPORATE_PRIMARY_NAV: InternalNavLink[] = [
   { label: "Home", to: "/internal", exact: true, matchPrefixes: [] },
   { label: "Inbox", to: "/internal/inbox", match: "/internal/inbox", matchPrefixes: ["/internal/queues"] },
@@ -49,24 +49,6 @@ export const CORPORATE_PRIMARY_NAV: InternalNavLink[] = [
     label: "Directory",
     to: "/internal/users",
     matchPrefixes: ["/internal/users", "/internal/companies", "/internal/relationships"],
-  },
-  {
-    label: "Money",
-    to: "/internal/bank/accounts",
-    matchPrefixes: [
-      "/internal/bank/accounts",
-      "/internal/bank/transactions",
-      "/internal/bank/transfers",
-      "/internal/bank/alta-pay",
-      "/internal/bank/scheduled",
-      "/internal/bank/statements",
-      "/internal/bank/interest",
-    ],
-  },
-  {
-    label: "Products",
-    to: "/internal/lending",
-    matchPrefixes: ["/internal/lending", "/internal/alta-card"],
   },
   {
     label: "System",

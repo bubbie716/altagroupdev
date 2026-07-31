@@ -14,7 +14,7 @@ describe("resolveInternalRouteTitle", () => {
       "Lending Application",
     );
     assert.equal(
-      resolveInternalRouteTitle("/internal/terminal/portfolios/ui-lab-term-pf-core"),
+      resolveInternalRouteTitle("/internal/terminal/portfolios/tp_ui-lab-user_core"),
       "Portfolio",
     );
   });

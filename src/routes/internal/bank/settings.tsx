@@ -51,7 +51,7 @@ function BankInternalSettingsPage() {
         maintenanceScopes={maintenanceScopesForInternalSettings("bank")}
         section={search.section ?? "credit"}
         sectionBasePath="/internal/bank/settings"
-        siteKey={search.site ?? "bank"}
+        siteKey="bank"
       />
     </InternalPageShell>
   );

@@ -2,23 +2,26 @@
 
 import type { ReactNode } from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { isAdmin } from "@/lib/auth/permissions";
+import type { SiteKey } from "@/config/sites";
+import { canAccessInternalForSite } from "@/lib/auth/permissions";
 import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 
-export function useIsAdmin(): boolean {
+export function useIsAdmin(siteKey: SiteKey = "corporate"): boolean {
   const user = useCurrentUser();
-  return user ? isAdmin(user) : false;
+  return user ? canAccessInternalForSite(user, siteKey) : false;
 }
 
-/** Renders children only for admin users. */
+/** Renders children for an admin of the action's owning Alta site. */
 export function AdminOnly({
   children,
   fallback,
+  siteKey = "corporate",
 }: {
   children: ReactNode;
   fallback?: ReactNode;
+  siteKey?: SiteKey;
 }) {
-  const admin = useIsAdmin();
+  const admin = useIsAdmin(siteKey);
   if (!admin) {
     return (
       fallback ?? (

@@ -114,8 +114,9 @@ export function getMaintenanceScopeForSite(
 export function maintenanceScopesForInternalSettings(siteKey: SiteKey): MaintenanceScope[] {
   switch (siteKey) {
     case "corporate":
-      // Group console can toggle every Alta site scope.
-      return ["sitewide", "corporate", "bank", "terminal", "exchange"];
+      // Corporate can take the whole platform offline, but individual
+      // subsidiary maintenance is managed from that subsidiary's console.
+      return ["sitewide", "corporate"];
     case "bank":
       return ["bank"];
     case "exchange":

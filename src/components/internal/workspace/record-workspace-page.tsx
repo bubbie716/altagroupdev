@@ -40,7 +40,30 @@ function useReturnChrome(from: string | undefined, breadcrumbs: InternalBreadcru
           } as InternalBreadcrumbItem & { search?: Record<string, string> },
           ...breadcrumbs.slice(-1),
         ]
-      : crumbs;
+      : returnCtx && returnCtx.pathname.startsWith("/internal/bank/transfers")
+        ? [
+            {
+              label: "Transfers",
+              to: returnCtx.pathname,
+              search: returnCtx.search,
+            } as InternalBreadcrumbItem & { search?: Record<string, string> },
+            ...breadcrumbs.slice(-1),
+          ]
+        : returnCtx && returnCtx.pathname.startsWith("/internal/terminal/portfolios")
+          ? [
+              {
+                label: "Portfolios",
+                to: "/internal/terminal/portfolios",
+                search: { site: returnCtx.search.site ?? "terminal" },
+              } as InternalBreadcrumbItem & { search?: Record<string, string> },
+              {
+                label: "Portfolio",
+                to: returnCtx.pathname,
+                search: returnCtx.search,
+              } as InternalBreadcrumbItem & { search?: Record<string, string> },
+              ...breadcrumbs.slice(-1),
+            ]
+          : crumbs;
 
   return { returnCtx, resolvedCrumbs };
 }

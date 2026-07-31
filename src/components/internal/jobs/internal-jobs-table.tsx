@@ -51,7 +51,10 @@ function ManualRunControl({ job }: { job: OpsJobRow }) {
   }
 
   return (
-    <AdminOnly fallback={<p className="text-[12px] text-muted-foreground">Admin only</p>}>
+    <AdminOnly
+      siteKey="bank"
+      fallback={<p className="text-[12px] text-muted-foreground">Admin only</p>}
+    >
       <div className="space-y-2">
         {uiLab ? (
           <>

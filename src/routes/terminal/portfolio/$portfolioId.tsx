@@ -175,6 +175,8 @@ function TerminalPortfolioDetailPage() {
             to: "/terminal/portfolio/$portfolioId",
             params: { portfolioId: selectedPortfolio.id },
             search: (prev) => ({ ...prev, range: next }),
+            replace: true,
+            resetScroll: false,
           });
         }}
       />

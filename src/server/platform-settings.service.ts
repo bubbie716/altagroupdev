@@ -1,5 +1,8 @@
 import type { AltaUser } from "@/lib/auth/types";
-import { canBypassMaintenanceMode, isAdmin } from "@/lib/auth/permissions";
+import {
+  canAccessBankInternal,
+  canBypassMaintenanceMode,
+} from "@/lib/auth/permissions";
 import {
   DEFAULT_MAINTENANCE_MESSAGE,
   PLATFORM_SETTING_KEYS,
@@ -23,7 +26,7 @@ import {
 } from "@/lib/platform/credit-desk-types";
 import { CREDIT_DESK_SUBMISSION_BLOCKED } from "@/lib/platform/credit-desk-copy";
 import { prisma } from "@/server/db";
-import { requireAdmin } from "@/server/permissions.service";
+import { requireOperator } from "@/server/permissions.service";
 
 const MAINTENANCE_ENTITY_ID = "platform-maintenance";
 const MAINTENANCE_KEYS = [
@@ -477,14 +480,15 @@ export async function getCreditDeskSettings(): Promise<CreditDeskSettings> {
   const { requireOperator } = await import("@/server/permissions.service");
   const actor = await requireOperator();
   const state = await getCreditDeskState();
-  return { ...state, canEdit: isAdmin(actor) };
+  return { ...state, canEdit: canAccessBankInternal(actor) };
 }
 
 export async function setCreditDeskStatus(
   actorUserId: string,
   input: { status: CreditDeskStatus; reason: string },
 ): Promise<CreditDeskState> {
-  await requireAdmin();
+  const actor = await requireOperator();
+  if (actor.id !== actorUserId) throw new Error("FORBIDDEN");
   const trimmedReason = input.reason.trim();
   if (!trimmedReason) badRequest("Reason is required");
   if (input.status !== "open" && input.status !== "closed") {

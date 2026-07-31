@@ -55,15 +55,12 @@ export function resolveFooterVariant(pathname: string): FooterVariant {
 
   if (
     pathname.startsWith("/bank") ||
+    pathname.startsWith("/terminal") ||
     pathname.startsWith("/exchange") ||
     pathname.startsWith("/companies") ||
     pathname === "/profile"
   ) {
     return "dashboard";
-  }
-
-  if (pathname.startsWith("/terminal")) {
-    return "none";
   }
 
   return "marketing";

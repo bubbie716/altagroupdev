@@ -198,6 +198,7 @@ import { Route as BankAccountsAccountIdIndexRouteImport } from './routes/bank/ac
 import { Route as BankAccountAccountIdIndexRouteImport } from './routes/bank/account/$accountId/index'
 import { Route as InternalTerminalPortfoliosPortfolioIdRouteImport } from './routes/internal/terminal/portfolios/$portfolioId'
 import { Route as InternalTerminalOrdersOrderIdRouteImport } from './routes/internal/terminal/orders/$orderId'
+import { Route as InternalTerminalFundingTransferIdRouteImport } from './routes/internal/terminal/funding/$transferId'
 import { Route as InternalLendingLoansLoanIdRouteImport } from './routes/internal/lending/loans/$loanId'
 import { Route as InternalLendingDealRoomsDealRoomIdRouteImport } from './routes/internal/lending/deal-rooms/$dealRoomId'
 import { Route as InternalCompaniesCompanyIdRelationshipRouteImport } from './routes/internal/companies/$companyId/relationship'
@@ -1287,6 +1288,12 @@ const InternalTerminalOrdersOrderIdRoute =
     path: '/orders/$orderId',
     getParentRoute: () => InternalTerminalRoute,
   } as any)
+const InternalTerminalFundingTransferIdRoute =
+  InternalTerminalFundingTransferIdRouteImport.update({
+    id: '/funding/$transferId',
+    path: '/funding/$transferId',
+    getParentRoute: () => InternalTerminalRoute,
+  } as any)
 const InternalLendingLoansLoanIdRoute =
   InternalLendingLoansLoanIdRouteImport.update({
     id: '/loans/$loanId',
@@ -2044,6 +2051,7 @@ export interface FileRoutesByFullPath {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
@@ -2299,6 +2307,7 @@ export interface FileRoutesByTo {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
   '/bank/account/$accountId': typeof BankAccountAccountIdIndexRoute
@@ -2581,6 +2590,7 @@ export interface FileRoutesById {
   '/internal/companies/$companyId/relationship': typeof InternalCompaniesCompanyIdRelationshipRoute
   '/internal/lending/deal-rooms/$dealRoomId': typeof InternalLendingDealRoomsDealRoomIdRoute
   '/internal/lending/loans/$loanId': typeof InternalLendingLoansLoanIdRoute
+  '/internal/terminal/funding/$transferId': typeof InternalTerminalFundingTransferIdRoute
   '/internal/terminal/orders/$orderId': typeof InternalTerminalOrdersOrderIdRoute
   '/internal/terminal/portfolios/$portfolioId': typeof InternalTerminalPortfoliosPortfolioIdRoute
   '/bank/account/$accountId/': typeof BankAccountAccountIdIndexRoute
@@ -2865,6 +2875,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
     | '/bank/account/$accountId/'
@@ -3120,6 +3131,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
     | '/bank/account/$accountId'
@@ -3401,6 +3413,7 @@ export interface FileRouteTypes {
     | '/internal/companies/$companyId/relationship'
     | '/internal/lending/deal-rooms/$dealRoomId'
     | '/internal/lending/loans/$loanId'
+    | '/internal/terminal/funding/$transferId'
     | '/internal/terminal/orders/$orderId'
     | '/internal/terminal/portfolios/$portfolioId'
     | '/bank/account/$accountId/'
@@ -4852,6 +4865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalTerminalOrdersOrderIdRouteImport
       parentRoute: typeof InternalTerminalRoute
     }
+    '/internal/terminal/funding/$transferId': {
+      id: '/internal/terminal/funding/$transferId'
+      path: '/funding/$transferId'
+      fullPath: '/internal/terminal/funding/$transferId'
+      preLoaderRoute: typeof InternalTerminalFundingTransferIdRouteImport
+      parentRoute: typeof InternalTerminalRoute
+    }
     '/internal/lending/loans/$loanId': {
       id: '/internal/lending/loans/$loanId'
       path: '/loans/$loanId'
@@ -6161,6 +6181,7 @@ interface InternalTerminalRouteChildren {
   InternalTerminalInboxRoute: typeof InternalTerminalInboxRoute
   InternalTerminalSettingsRoute: typeof InternalTerminalSettingsRoute
   InternalTerminalSystemRoute: typeof InternalTerminalSystemRoute
+  InternalTerminalFundingTransferIdRoute: typeof InternalTerminalFundingTransferIdRoute
   InternalTerminalOrdersOrderIdRoute: typeof InternalTerminalOrdersOrderIdRoute
   InternalTerminalPortfoliosPortfolioIdRoute: typeof InternalTerminalPortfoliosPortfolioIdRoute
   InternalTerminalInvestorsIndexRoute: typeof InternalTerminalInvestorsIndexRoute
@@ -6172,6 +6193,8 @@ const InternalTerminalRouteChildren: InternalTerminalRouteChildren = {
   InternalTerminalInboxRoute: InternalTerminalInboxRoute,
   InternalTerminalSettingsRoute: InternalTerminalSettingsRoute,
   InternalTerminalSystemRoute: InternalTerminalSystemRoute,
+  InternalTerminalFundingTransferIdRoute:
+    InternalTerminalFundingTransferIdRoute,
   InternalTerminalOrdersOrderIdRoute: InternalTerminalOrdersOrderIdRoute,
   InternalTerminalPortfoliosPortfolioIdRoute:
     InternalTerminalPortfoliosPortfolioIdRoute,

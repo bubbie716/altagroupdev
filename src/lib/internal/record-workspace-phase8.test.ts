@@ -41,10 +41,10 @@ function userWithTags(tags: AltaUser["tags"]): AltaUser {
 }
 
 describe("Phase 8 navigation coherence", () => {
-  it("keeps six primary destinations per site with consistent labels", () => {
+  it("keeps corporate group-only and subsidiary navigation consistent", () => {
     assert.deepEqual(
       CORPORATE_PRIMARY_NAV.map((l) => l.label),
-      ["Home", "Inbox", "Directory", "Money", "Products", "System"],
+      ["Home", "Inbox", "Directory", "System"],
     );
     assert.deepEqual(
       BANK_PRIMARY_NAV.map((l) => l.label),

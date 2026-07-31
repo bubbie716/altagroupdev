@@ -480,7 +480,7 @@ export function CompanyWorkspaceView({
           title="Commercial plan"
           defaultOpen={search.section === "commercial-plan"}
         >
-          <AdminOnly>
+          <AdminOnly siteKey="bank">
             <AdminCommercialProGrantPanel
               companyId={company.id}
               companyName={company.name}
@@ -493,7 +493,7 @@ export function CompanyWorkspaceView({
           title="Commercial branding"
           defaultOpen={search.section === "branding"}
         >
-          <AdminOnly>
+          <AdminOnly siteKey="bank">
             <CompanyBrandingAdminPanel companyId={company.id} />
           </AdminOnly>
         </RecordMoreSection>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   INTERNAL_COMPANY_WORKSPACE_SEARCH,
   INTERNAL_TERMINAL_ORDER_RECORD_SEARCH,
+  INTERNAL_TERMINAL_PORTFOLIO_WORKSPACE_SEARCH,
   INTERNAL_TRANSFER_RECORD_SEARCH,
   INTERNAL_USER_WORKSPACE_SEARCH,
   withInternalSiteSearch,
@@ -22,6 +23,7 @@ import { WorkspaceField, WorkspaceFieldGrid } from "@/components/internal/worksp
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { parseReturnPath } from "@/lib/internal/record-return-context";
 import {
+  buildListReturnPath,
   recordSectionId,
   toRecordWorkspaceSearchParams,
   type RecordWorkspaceSearch,
@@ -200,11 +202,20 @@ export function TerminalPortfolioWorkspaceView({
                 <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 py-2">
                   <div className="min-w-0">
                     <Link
-                      to="/internal/bank/transfers/funding/$transferId"
+                      to="/internal/terminal/funding/$transferId"
                       params={{ transferId: row.id }}
                       search={withInternalSiteSearch(
-                        { ...INTERNAL_TRANSFER_RECORD_SEARCH, from: search.from },
-                        search.site,
+                        {
+                          ...INTERNAL_TRANSFER_RECORD_SEARCH,
+                          from: buildListReturnPath(
+                            `/internal/terminal/portfolios/${portfolio.id}`,
+                            {
+                              ...INTERNAL_TERMINAL_PORTFOLIO_WORKSPACE_SEARCH,
+                              site: search.site ?? "terminal",
+                            },
+                          ),
+                        },
+                        search.site ?? "terminal",
                       )}
                       className="font-mono text-[12px] text-gold hover:underline"
                     >

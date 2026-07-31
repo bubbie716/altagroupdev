@@ -97,8 +97,10 @@ describe("record workspace primitives", () => {
 
   it("inbox open-record preserves return context", () => {
     const actions = read("components/internal/inbox/inbox-case-actions.tsx");
-    assert.match(actions, /buildInboxReturnPath/);
-    assert.match(actions, /from:\s*returnFrom/);
+    const navigation = read("lib/internal/inbox-navigation.ts");
+    assert.match(actions, /buildInboxRecordHref/);
+    assert.match(navigation, /buildInboxReturnPath/);
+    assert.match(navigation, /from:\s*returnFrom/);
   });
 });
 

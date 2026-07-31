@@ -16,7 +16,7 @@ import { prisma } from "@/server/db";
 import { getCommercialPlatformSettings } from "@/server/commercial-platform-settings.service";
 import { loadCommercialPlanSettings } from "@/server/commercial-plan.service";
 import { getAccountAvailableBalance } from "@/server/account-balance.service";
-import { requireAdmin } from "@/server/permissions.service";
+import { requireOperator } from "@/server/permissions.service";
 import {
   executeCommercialSubscriptionChargeInTx,
   initialPurchaseBillingPeriod,
@@ -164,7 +164,8 @@ export async function adminGrantCommercialPro(
   input: { companyId: string; months: number; reason: string },
   source = "internal-admin",
 ): Promise<AdminCommercialProGrantResult> {
-  await requireAdmin();
+  const actor = await requireOperator();
+  if (actor.id !== actorUserId) forbidden();
   const reason = input.reason.trim();
   if (!reason) badRequest("Reason is required.");
   if (!Number.isInteger(input.months) || input.months < 1) {
@@ -255,7 +256,8 @@ export async function adminDowngradeCommercialProToCore(
   input: { companyId: string; reason: string },
   source = "internal-admin",
 ): Promise<AdminCommercialDowngradeResult> {
-  await requireAdmin();
+  const actor = await requireOperator();
+  if (actor.id !== actorUserId) forbidden();
   const reason = input.reason.trim();
   if (!reason) badRequest("Reason is required.");
 

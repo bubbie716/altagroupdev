@@ -110,23 +110,28 @@ describe("phase3: Jobs attention and sorting", () => {
   });
 
   it("flags failed and partial jobs for attention", () => {
-    const attention = jobsNeedingAttention([
-      job({ jobKey: "ok", label: "OK", lastStatus: "SUCCESS" }),
-      job({
-        jobKey: "bad",
-        label: "Bad",
-        lastStatus: "FAILED",
-        latestError: "timeout",
-      }),
-      job({
-        jobKey: "partial",
-        label: "Partial",
-        lastStatus: "SUCCESS",
-        failureCount: 2,
-        processedCount: 10,
-        successCount: 8,
-      }),
-    ]);
+    // Pin `now` near fixture lastRunAt so daily stale thresholds stay inactive.
+    const now = Date.parse("2026-07-28T14:00:00.000Z");
+    const attention = jobsNeedingAttention(
+      [
+        job({ jobKey: "ok", label: "OK", lastStatus: "SUCCESS" }),
+        job({
+          jobKey: "bad",
+          label: "Bad",
+          lastStatus: "FAILED",
+          latestError: "timeout",
+        }),
+        job({
+          jobKey: "partial",
+          label: "Partial",
+          lastStatus: "SUCCESS",
+          failureCount: 2,
+          processedCount: 10,
+          successCount: 8,
+        }),
+      ],
+      now,
+    );
     assert.equal(attention.some((a) => a.job.jobKey === "bad"), true);
     assert.equal(attention.some((a) => a.job.jobKey === "partial"), true);
     assert.equal(attention.some((a) => a.job.jobKey === "ok"), false);
@@ -255,10 +260,12 @@ describe("phase3: Settings canonicalization and scopes", () => {
     assert.doesNotMatch(src, /Operations status/);
   });
 
-  it("keeps Bank scopes bank-only and Corporate broader", () => {
+  it("keeps subsidiary scopes on their own settings pages", () => {
     assert.deepEqual(maintenanceScopesForInternalSettings("bank"), ["bank"]);
-    assert.ok(maintenanceScopesForInternalSettings("corporate").includes("sitewide"));
-    assert.ok(maintenanceScopesForInternalSettings("corporate").includes("terminal"));
+    assert.deepEqual(maintenanceScopesForInternalSettings("corporate"), [
+      "sitewide",
+      "corporate",
+    ]);
     const bank = read("routes/internal/bank/settings.tsx");
     assert.match(bank, /maintenanceScopesForInternalSettings\("bank"\)/);
     const corp = read("routes/internal/settings.tsx");

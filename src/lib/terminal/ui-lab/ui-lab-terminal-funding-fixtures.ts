@@ -2,7 +2,15 @@
  * UI Lab demonstration fixtures for Bank ↔ Terminal funding.
  * Never mutates production or local real financial rows.
  */
-import { getBankActionUiLabScenario } from "@/lib/bank/bank-action-ui-lab";
+import type { BankActionUiLabScenario } from "@/lib/bank/bank-action-ui-lab";
+import { UI_LAB_INTERNAL_ACCOUNT_CATALOG } from "@/lib/bank/ui-lab-money-ops-fixtures";
+import {
+  UI_LAB_TERMINAL_FUNDING_ACCOUNT_IDS,
+  UI_LAB_TERMINAL_FUNDING_OWNER_IDS,
+  UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES,
+  UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS,
+  UI_LAB_TERMINAL_PORTFOLIO_IDS,
+} from "@/lib/terminal/ui-lab/ui-lab-terminal-canonical-ids";
 import type {
   SubmitTerminalFundingTransferInput,
   TerminalFundingEligibility,
@@ -10,19 +18,23 @@ import type {
   TerminalFundingTransferRow,
 } from "@/lib/terminal/terminal-funding-types";
 
-const LAB_ACCOUNT_ID = "BA-LAB-CHECKING";
-const LAB_COMPANY_ACCOUNT_ID = "BA-LAB-OPERATING";
-const LAB_PORTFOLIO_ID = "TP-LAB-PERSONAL";
-const LAB_COMPANY_PORTFOLIO_ID = "TP-LAB-COMPANY";
+function accountFromCatalog(id: string) {
+  const row = UI_LAB_INTERNAL_ACCOUNT_CATALOG.find((a) => a.id === id);
+  if (!row) throw new Error(`Missing UI Lab bank account catalog entry: ${id}`);
+  return row;
+}
+
+const personalChecking = accountFromCatalog(UI_LAB_TERMINAL_FUNDING_ACCOUNT_IDS.personalChecking);
+const companyOperating = accountFromCatalog(UI_LAB_TERMINAL_FUNDING_ACCOUNT_IDS.companyOperating);
 
 export function getUiLabTerminalFundingEligibility(): TerminalFundingEligibility {
   return {
     accounts: [
       {
-        id: LAB_ACCOUNT_ID,
-        label: "Personal Checking · AB-2000-100002",
-        accountNumber: "AB-2000-100002",
-        availableBalance: 12_500,
+        id: personalChecking.id,
+        label: `${personalChecking.accountName} · ${personalChecking.accountNumber}`,
+        accountNumber: personalChecking.accountNumber,
+        availableBalance: personalChecking.balance,
         ownershipType: "PERSONAL",
         companyId: null,
         canDebit: true,
@@ -30,18 +42,18 @@ export function getUiLabTerminalFundingEligibility(): TerminalFundingEligibility
         blockedReason: null,
       },
       {
-        id: LAB_COMPANY_ACCOUNT_ID,
-        label: "Business Operating · AB-5000-100020",
-        accountNumber: "AB-5000-100020",
-        availableBalance: 84_000,
+        id: companyOperating.id,
+        label: `${companyOperating.accountName} · ${companyOperating.accountNumber}`,
+        accountNumber: companyOperating.accountNumber,
+        availableBalance: companyOperating.balance,
         ownershipType: "COMPANY",
-        companyId: "CO-LAB-1",
+        companyId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.companyId,
         canDebit: true,
         canCredit: true,
         blockedReason: null,
       },
       {
-        id: "BA-LAB-FROZEN",
+        id: UI_LAB_TERMINAL_FUNDING_ACCOUNT_IDS.frozenReserve,
         label: "Frozen Reserve · AB-2000-100099",
         accountNumber: "AB-2000-100099",
         availableBalance: 500,
@@ -54,31 +66,31 @@ export function getUiLabTerminalFundingEligibility(): TerminalFundingEligibility
     ],
     portfolios: [
       {
-        id: LAB_PORTFOLIO_ID,
-        name: "Primary",
+        id: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
+        name: "Core Portfolio",
         ownerType: "personal",
         ownerCompanyId: null,
-        ownerUserId: "UI-LAB-USER",
+        ownerUserId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.userId,
         availableCash: 2_450,
         canFund: true,
         blockedReason: null,
       },
       {
-        id: LAB_COMPANY_PORTFOLIO_ID,
-        name: "Treasury",
+        id: UI_LAB_TERMINAL_PORTFOLIO_IDS.companyTreasury,
+        name: "ALTG Treasury",
         ownerType: "company",
-        ownerCompanyId: "CO-LAB-1",
+        ownerCompanyId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.companyId,
         ownerUserId: null,
         availableCash: 18_200,
         canFund: true,
         blockedReason: null,
       },
       {
-        id: "TP-LAB-ARCHIVED",
+        id: UI_LAB_TERMINAL_PORTFOLIO_IDS.archived,
         name: "Archived book",
         ownerType: "personal",
         ownerCompanyId: null,
-        ownerUserId: "UI-LAB-USER",
+        ownerUserId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.userId,
         availableCash: 0,
         canFund: false,
         blockedReason: "This portfolio is archived.",
@@ -89,44 +101,44 @@ export function getUiLabTerminalFundingEligibility(): TerminalFundingEligibility
 
 const FIXTURE_HISTORY: TerminalFundingTransferRow[] = [
   {
-    id: "TFT-LAB-1",
-    referenceCode: "TFD-LAB-0001",
+    id: UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS.bankToTerminal,
+    referenceCode: UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES.bankToTerminal,
     direction: "BANK_TO_TERMINAL",
     status: "COMPLETED",
     amount: 500,
     currency: "FLR",
-    bankAccountId: LAB_ACCOUNT_ID,
-    bankAccountLabel: "Personal Checking · AB-2000-100002",
+    bankAccountId: personalChecking.id,
+    bankAccountLabel: `${personalChecking.accountName} · ${personalChecking.accountNumber}`,
     bankAccountMasked: "····0002",
-    portfolioId: LAB_PORTFOLIO_ID,
-    portfolioName: "Primary",
-    ownerUserId: "UI-LAB-USER",
+    portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
+    portfolioName: "Core Portfolio",
+    ownerUserId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.userId,
     ownerCompanyId: null,
     ownerLabel: "carter",
     bankTransactionId: "TX-LAB-FUND-1",
-    bankTransactionReference: "TFD-LAB-0001",
+    bankTransactionReference: UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES.bankToTerminal,
     failureMessage: null,
     createdAt: new Date(Date.now() - 86_400_000).toISOString(),
     completedAt: new Date(Date.now() - 86_400_000).toISOString(),
     failedAt: null,
   },
   {
-    id: "TFT-LAB-2",
-    referenceCode: "TFD-LAB-0002",
+    id: UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS.terminalToBank,
+    referenceCode: UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES.terminalToBank,
     direction: "TERMINAL_TO_BANK",
     status: "COMPLETED",
     amount: 125,
     currency: "FLR",
-    bankAccountId: LAB_ACCOUNT_ID,
-    bankAccountLabel: "Personal Checking · AB-2000-100002",
+    bankAccountId: personalChecking.id,
+    bankAccountLabel: `${personalChecking.accountName} · ${personalChecking.accountNumber}`,
     bankAccountMasked: "····0002",
-    portfolioId: LAB_PORTFOLIO_ID,
-    portfolioName: "Primary",
-    ownerUserId: "UI-LAB-USER",
+    portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
+    portfolioName: "Core Portfolio",
+    ownerUserId: UI_LAB_TERMINAL_FUNDING_OWNER_IDS.userId,
     ownerCompanyId: null,
     ownerLabel: "carter",
     bankTransactionId: "TX-LAB-FUND-2",
-    bankTransactionReference: "TFD-LAB-0002",
+    bankTransactionReference: UI_LAB_TERMINAL_FUNDING_REFERENCE_CODES.terminalToBank,
     failureMessage: null,
     createdAt: new Date(Date.now() - 172_800_000).toISOString(),
     completedAt: new Date(Date.now() - 172_800_000).toISOString(),
@@ -162,8 +174,8 @@ export function getUiLabTerminalFundingTransfer(
 
 export function mockUiLabTerminalFundingSubmission(
   input: SubmitTerminalFundingTransferInput,
+  scenario: BankActionUiLabScenario = "success",
 ): TerminalFundingReceipt {
-  const scenario = getBankActionUiLabScenario();
   const eligibility = getUiLabTerminalFundingEligibility();
   const account = eligibility.accounts.find((a) => a.id === input.bankAccountId);
   const portfolio = eligibility.portfolios.find((p) => p.id === input.portfolioId);
@@ -174,10 +186,16 @@ export function mockUiLabTerminalFundingSubmission(
   if (scenario === "server_error") {
     throw new Error("UI Lab: Temporary server issue. Your entries were preserved.");
   }
-  if (input.bankAccountId === "BA-LAB-FROZEN" || account?.canDebit === false) {
+  if (
+    input.bankAccountId === UI_LAB_TERMINAL_FUNDING_ACCOUNT_IDS.frozenReserve ||
+    account?.canDebit === false
+  ) {
     throw new Error("UI Lab: This Bank account is frozen.");
   }
-  if (input.portfolioId === "TP-LAB-ARCHIVED" || portfolio?.canFund === false) {
+  if (
+    input.portfolioId === UI_LAB_TERMINAL_PORTFOLIO_IDS.archived ||
+    portfolio?.canFund === false
+  ) {
     throw new Error("UI Lab: This portfolio cannot accept funding.");
   }
   if (
@@ -224,4 +242,13 @@ export function mockUiLabTerminalFundingSubmission(
     createdAt: new Date().toISOString(),
     completedAt: new Date().toISOString(),
   };
+}
+
+/** Throws when UI Lab scenario is eligibility_error. */
+export function assertUiLabTerminalFundingEligibilityScenario(
+  scenario: BankActionUiLabScenario | "eligibility_error",
+): void {
+  if (scenario === "eligibility_error") {
+    throw new Error("UI Lab: Unable to load funding accounts and portfolios.");
+  }
 }

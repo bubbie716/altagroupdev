@@ -168,7 +168,7 @@ describe("Release remediation — global search navigation", () => {
     },
     { href: "/internal/audit?action=LOGIN", site: "corporate", expectSite: "corporate" },
     {
-      href: "/internal/terminal/portfolios/ui-lab-term-pf-core?tab=overview&site=terminal",
+      href: "/internal/terminal/portfolios/tp_ui-lab-user_core?tab=overview&site=terminal",
       site: "terminal",
       expectSite: "terminal",
       expectTab: "overview",

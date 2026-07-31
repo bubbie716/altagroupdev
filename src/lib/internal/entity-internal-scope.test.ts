@@ -57,7 +57,7 @@ describe("entity-internal-scope", () => {
     assert.throws(() => assertEntityInternalRouteAccess("exchange", "/internal/bank"));
   });
 
-  it("lets corporate admins use any Alta internal path", () => {
+  it("lets corporate admins use each site's own internal paths", () => {
     const admin = userWithTags(["corporate_admin"]);
     assert.doesNotThrow(() =>
       assertEntityInternalRouteAccess("corporate", "/internal/settings", admin),
@@ -67,6 +67,12 @@ describe("entity-internal-scope", () => {
     );
     assert.doesNotThrow(() =>
       assertEntityInternalRouteAccess("terminal", "/internal/terminal/settings", admin),
+    );
+    assert.throws(() =>
+      assertEntityInternalRouteAccess("corporate", "/internal/bank/accounts", admin),
+    );
+    assert.throws(() =>
+      assertEntityInternalRouteAccess("bank", "/internal/terminal/settings", admin),
     );
   });
 
@@ -103,6 +109,14 @@ describe("entity-internal-scope", () => {
     assert.equal(isInternalPathAllowedForUser("bank", "/internal/queues/deposits", bankAdmin), true);
     assert.equal(isInternalPathAllowedForUser("bank", "/internal/inbox", bankAdmin), true);
     assert.equal(isInternalPathAllowedForUser("bank", "/internal/settings", bankAdmin), false);
+    assert.equal(
+      isInternalPathAllowedForUser(
+        "corporate",
+        "/internal/bank/accounts",
+        userWithTags(["corporate_admin"]),
+      ),
+      false,
+    );
     assert.equal(isInternalPathAllowedForUser("terminal", "/internal/terminal/settings", userWithTags(["terminal_admin"])), true);
     assert.equal(isInternalPathAllowedForUser("terminal", "/internal/terminal/orders", userWithTags(["terminal_admin"])), true);
     assert.equal(isInternalPathAllowedForUser("terminal", "/internal/users/x", userWithTags(["terminal_admin"])), true);

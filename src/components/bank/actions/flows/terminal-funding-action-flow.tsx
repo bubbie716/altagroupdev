@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BankActionFooter,
@@ -18,10 +18,12 @@ import { florin } from "@/lib/bank/api";
 import { ensureIdempotencyKey } from "@/lib/bank/bank-action-flow";
 import { waitBankProcessMin, BANK_PROCESS_MOTION } from "@/lib/bank/bank-process";
 import { formatBankActionError } from "@/lib/bank/account-status-copy";
+import { getBankActionUiLabScenario } from "@/lib/bank/bank-action-ui-lab";
 import {
   fetchTerminalFundingEligibility,
   submitTerminalFundingTransferFn,
 } from "@/lib/terminal/terminal-funding.functions";
+import { resolveTerminalFundingPreselection } from "@/lib/terminal/terminal-funding-preselection";
 import type {
   TerminalFundingDirection,
   TerminalFundingEligibility,
@@ -38,6 +40,9 @@ import {
 
 const inputClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-base sm:text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 disabled:opacity-60 min-h-11";
+
+const EMPTY_ACCOUNTS: TerminalFundingEligibility["accounts"] = [];
+const EMPTY_PORTFOLIOS: TerminalFundingEligibility["portfolios"] = [];
 
 type Step = "direction" | "details" | "review" | "submitting" | "success" | "error";
 
@@ -64,42 +69,83 @@ export function TerminalFundingActionFlow({
 
   const [eligibility, setEligibility] = useState<TerminalFundingEligibility | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(true);
+  const [portfolioNotice, setPortfolioNotice] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("direction");
   const [direction, setDirection] = useState<TerminalFundingDirection | null>(null);
-  const [bankAccountId, setBankAccountId] = useState(defaultAccountId ?? "");
-  const [portfolioId, setPortfolioId] = useState(defaultPortfolioId ?? "");
+  const [bankAccountId, setBankAccountId] = useState("");
+  const [portfolioId, setPortfolioId] = useState("");
   const [amount, setAmount] = useState("");
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<TerminalFundingReceipt | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const submittingLockRef = useRef(false);
+  const defaultsAppliedRef = useRef(false);
+  /** Deep-link / requested portfolio until the user explicitly picks another. */
+  const requestedPortfolioIdRef = useRef(defaultPortfolioId ?? "");
+  const selectionRef = useRef({
+    portfolioId: "",
+    bankAccountId: "",
+    direction: null as TerminalFundingDirection | null,
+    defaultPortfolioId,
+    defaultAccountId,
+  });
+  selectionRef.current = {
+    portfolioId,
+    bankAccountId,
+    direction,
+    defaultPortfolioId,
+    defaultAccountId,
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    void loadEligibility()
-      .then((data) => {
-        if (cancelled) return;
-        setEligibility(data);
-        if (!bankAccountId) {
-          const first = data.accounts.find((a) => a.canDebit || a.canCredit);
-          if (first) setBankAccountId(first.id);
-        }
-        if (!portfolioId) {
-          const first = data.portfolios.find((p) => p.canFund);
-          if (first) setPortfolioId(first.id);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError("Unable to load funding accounts and portfolios.");
+    requestedPortfolioIdRef.current = defaultPortfolioId ?? "";
+    defaultsAppliedRef.current = false;
+  }, [defaultPortfolioId]);
+
+  const reloadEligibility = useCallback(async () => {
+    setLoadingEligibility(true);
+    setLoadError(null);
+    try {
+      const data = await loadEligibility({
+        data: { uiLabScenario: getBankActionUiLabScenario() },
       });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      setEligibility(data);
+      const current = selectionRef.current;
+      const requestedPortfolio =
+        requestedPortfolioIdRef.current ||
+        (!defaultsAppliedRef.current ? current.defaultPortfolioId : "") ||
+        current.portfolioId;
+      const resolved = resolveTerminalFundingPreselection(data, {
+        portfolioId: requestedPortfolio,
+        bankAccountId: defaultsAppliedRef.current
+          ? current.bankAccountId || current.defaultAccountId
+          : current.defaultAccountId,
+        direction: current.direction,
+      });
+      setPortfolioId(resolved.portfolioId);
+      setBankAccountId(resolved.bankAccountId);
+      setPortfolioNotice(
+        resolved.portfolioUnavailable ? resolved.portfolioUnavailableReason : null,
+      );
+      defaultsAppliedRef.current = true;
+    } catch (err) {
+      setEligibility(null);
+      setLoadError(
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN:/, "")
+          : "Unable to load funding accounts and portfolios.",
+      );
+    } finally {
+      setLoadingEligibility(false);
+    }
   }, [loadEligibility]);
 
-  // Sync outer phase with inner step for chrome
+  useEffect(() => {
+    void reloadEligibility();
+  }, [reloadEligibility]);
+
   useEffect(() => {
     if (step === "submitting") setPhase("submitting");
     else if (step === "success") setPhase("success");
@@ -118,7 +164,8 @@ export function TerminalFundingActionFlow({
   );
 
   const compatibleAccounts = useMemo(() => {
-    if (!eligibility || !portfolio) return eligibility?.accounts ?? [];
+    if (!eligibility) return EMPTY_ACCOUNTS;
+    if (!portfolio) return eligibility.accounts;
     return eligibility.accounts.filter((a) => {
       if (portfolio.ownerType === "personal") {
         return a.ownershipType === "PERSONAL";
@@ -128,12 +175,34 @@ export function TerminalFundingActionFlow({
   }, [eligibility, portfolio]);
 
   const compatiblePortfolios = useMemo(() => {
-    if (!eligibility || !account) return eligibility?.portfolios ?? [];
+    if (!eligibility) return EMPTY_PORTFOLIOS;
+    if (!account) return eligibility.portfolios;
     return eligibility.portfolios.filter((p) => {
       if (account.ownershipType === "PERSONAL") return p.ownerType === "personal";
       return p.ownerType === "company" && p.ownerCompanyId === account.companyId;
     });
   }, [eligibility, account]);
+
+  // Keep selections inside the compatible sets without wiping entered amount/direction.
+  useEffect(() => {
+    if (!eligibility || step === "submitting" || step === "success") return;
+    if (portfolioId && !compatiblePortfolios.some((p) => p.id === portfolioId)) {
+      const next = compatiblePortfolios.find((p) => p.canFund) ?? compatiblePortfolios[0];
+      if (next) setPortfolioId(next.id);
+    }
+    if (bankAccountId && !compatibleAccounts.some((a) => a.id === bankAccountId)) {
+      const next =
+        compatibleAccounts.find((a) => a.canDebit || a.canCredit) ?? compatibleAccounts[0];
+      if (next) setBankAccountId(next.id);
+    }
+  }, [
+    eligibility,
+    step,
+    portfolioId,
+    bankAccountId,
+    compatiblePortfolios,
+    compatibleAccounts,
+  ]);
 
   const amountNumber = Number(amount) || 0;
   const bankAfter =
@@ -152,6 +221,15 @@ export function TerminalFundingActionFlow({
   }, [direction, amount, step, setDirty]);
 
   useEffect(() => {
+    if (loadError) {
+      setTitle("Transfer money");
+      setDescription("Funding options could not be loaded.");
+      setShowBack(Boolean(onExitToChooser));
+      registerBack(onExitToChooser ? () => onExitToChooser() : null);
+      // Error UI owns Retry/Close — avoid host footer churn that can loop setState.
+      setFooter(null);
+      return;
+    }
     if (step === "success") {
       setTitle("Funding completed");
       setDescription(undefined);
@@ -195,6 +273,7 @@ export function TerminalFundingActionFlow({
     setShowBack(Boolean(onExitToChooser));
     registerBack(onExitToChooser ? () => onExitToChooser() : null);
   }, [
+    loadError,
     step,
     setTitle,
     setDescription,
@@ -204,7 +283,44 @@ export function TerminalFundingActionFlow({
     setFooter,
   ]);
 
+  async function submit() {
+    if (submittingLockRef.current || !direction) return;
+    submittingLockRef.current = true;
+    setStep("submitting");
+    const startedAt = Date.now();
+    try {
+      const key = ensureIdempotencyKey(idempotencyKeyRef);
+      const result = await submitFunding({
+        data: {
+          direction,
+          bankAccountId,
+          portfolioId,
+          amount: amountNumber,
+          idempotencyKey: key,
+          uiLabScenario: getBankActionUiLabScenario(),
+        },
+      });
+      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
+      setReceipt(result);
+      idempotencyKeyRef.current = null;
+      setStep("success");
+    } catch (err) {
+      const raw =
+        err instanceof Error
+          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN:/, "")
+          : "Unable to complete funding transfer.";
+      const formatted = formatBankActionError(raw, { action: "transfer" });
+      setErrorReason(formatted.message);
+      setStep("error");
+    } finally {
+      submittingLockRef.current = false;
+    }
+  }
+
   useEffect(() => {
+    if (loadError || !eligibility) {
+      return;
+    }
     if (step === "details") {
       setFooter(
         <BankActionFooter>
@@ -231,7 +347,9 @@ export function TerminalFundingActionFlow({
                 }
               } else {
                 if (!account.canCredit) {
-                  setDetailsError(account.blockedReason ?? "This Bank account cannot receive funds.");
+                  setDetailsError(
+                    account.blockedReason ?? "This Bank account cannot receive funds.",
+                  );
                   return;
                 }
                 if (!portfolio.canFund) {
@@ -262,47 +380,31 @@ export function TerminalFundingActionFlow({
           </BankActionPrimaryButton>
         </BankActionFooter>,
       );
-    } else {
+    } else if (step !== "error" && step !== "success" && step !== "submitting" && !loadError) {
       setFooter(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, direction, bankAccountId, portfolioId, amountNumber, account, portfolio]);
+  }, [step, direction, bankAccountId, portfolioId, amountNumber, account, portfolio, loadError, eligibility]);
 
-  async function submit() {
-    if (submittingLockRef.current || !direction) return;
-    submittingLockRef.current = true;
-    setStep("submitting");
-    const startedAt = Date.now();
-    try {
-      const key = ensureIdempotencyKey(idempotencyKeyRef);
-      const result = await submitFunding({
-        data: {
-          direction,
-          bankAccountId,
-          portfolioId,
-          amount: amountNumber,
-          idempotencyKey: key,
-        },
-      });
-      await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-      setReceipt(result);
-      idempotencyKeyRef.current = null;
-      setStep("success");
-    } catch (err) {
-      const raw =
-        err instanceof Error
-          ? err.message.replace(/^BAD_REQUEST:/, "").replace(/^FORBIDDEN:/, "")
-          : "Unable to complete funding transfer.";
-      const formatted = formatBankActionError(raw, { action: "transfer" });
-      setErrorReason(formatted.message);
-      setStep("error");
-    } finally {
-      submittingLockRef.current = false;
-    }
+  if (loadingEligibility && !eligibility && !loadError) {
+    return (
+      <div className="animate-pulse space-y-3" aria-busy="true" aria-label="Loading">
+        <div className="h-10 rounded-md bg-surface-2" />
+        <div className="h-10 rounded-md bg-surface-2" />
+      </div>
+    );
   }
 
   if (loadError) {
-    return <p className="text-[14px] text-muted-foreground">{loadError}</p>;
+    return (
+      <BankProcessError
+        title="Unable to load funding options"
+        message={loadError}
+        onClose={onDone}
+        onRetry={() => void reloadEligibility()}
+        retryLabel="Retry"
+      />
+    );
   }
 
   if (!eligibility) {
@@ -353,8 +455,11 @@ export function TerminalFundingActionFlow({
     return (
       <BankProcessError
         message={errorReason ?? "Unable to complete funding transfer."}
+        onClose={onDone}
         onEdit={() => setStep("details")}
-        onRetry={() => setStep("review")}
+        editLabel="Edit details"
+        onRetry={() => void submit()}
+        retryLabel="Try again"
       />
     );
   }
@@ -393,12 +498,23 @@ export function TerminalFundingActionFlow({
 
   if (step === "details" && direction) {
     const sourceIsBank = direction === "BANK_TO_TERMINAL";
+    const accountSelectValue = compatibleAccounts.some((a) => a.id === bankAccountId)
+      ? bankAccountId
+      : undefined;
+    const portfolioSelectValue = compatiblePortfolios.some((p) => p.id === portfolioId)
+      ? portfolioId
+      : undefined;
     return (
       <div className="space-y-5">
         <BankActionProgress step={2} total={3} label="Details" />
+        {portfolioNotice ? (
+          <p className="rounded-md border border-amber-400/30 bg-amber-400/[0.06] px-3 py-2 text-[13px] text-foreground" role="status">
+            {portfolioNotice}
+          </p>
+        ) : null}
         <label className="block">
           <span className="type-meta">{sourceIsBank ? "From Bank account" : "To Bank account"}</span>
-          <Select value={bankAccountId} onValueChange={setBankAccountId}>
+          <Select value={accountSelectValue} onValueChange={setBankAccountId}>
             <SelectTrigger className={inputClass}>
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
@@ -415,7 +531,14 @@ export function TerminalFundingActionFlow({
           <span className="type-meta">
             {sourceIsBank ? "To Terminal portfolio" : "From Terminal portfolio"}
           </span>
-          <Select value={portfolioId} onValueChange={setPortfolioId}>
+          <Select
+            value={portfolioSelectValue}
+            onValueChange={(next) => {
+              requestedPortfolioIdRef.current = next;
+              setPortfolioId(next);
+              setPortfolioNotice(null);
+            }}
+          >
             <SelectTrigger className={inputClass}>
               <SelectValue placeholder="Select portfolio" />
             </SelectTrigger>
@@ -453,7 +576,6 @@ export function TerminalFundingActionFlow({
     );
   }
 
-  // direction chooser
   return (
     <div className="space-y-3">
       <BankActionProgress step={1} total={3} label="Direction" />
