@@ -1,13 +1,14 @@
 /**
  * High-impact acknowledgement UI state for crypto order tickets.
  * Server thresholds remain authoritative in crypto-settlement-math.
+ *
+ * Browser-safe: no Prisma / crypto-decimal imports.
  */
 
 import {
   CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT,
   CRYPTO_PRICE_IMPACT_WARN_PERCENT,
 } from "@/lib/terminal/crypto/crypto-order-types";
-import { d } from "@/lib/terminal/crypto/crypto-decimal";
 
 export const CRYPTO_IMPACT_WARN_THRESHOLD = Number(CRYPTO_PRICE_IMPACT_WARN_PERCENT);
 export const CRYPTO_IMPACT_CONFIRM_THRESHOLD = Number(CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT);
@@ -30,12 +31,11 @@ export function absoluteImpactPercent(
   priceImpactPercent: string | number | null | undefined,
 ): number {
   if (priceImpactPercent == null || priceImpactPercent === "") return 0;
-  try {
-    return d(priceImpactPercent).abs().toNumber();
-  } catch {
-    const n = Number(priceImpactPercent);
-    return Number.isFinite(n) ? Math.abs(n) : 0;
-  }
+  const n =
+    typeof priceImpactPercent === "number"
+      ? priceImpactPercent
+      : Number(String(priceImpactPercent).trim());
+  return Number.isFinite(n) ? Math.abs(n) : 0;
 }
 
 /**

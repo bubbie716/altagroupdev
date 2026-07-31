@@ -24,9 +24,14 @@ import {
   removeTerminalWatchlistSymbol,
 } from "@/lib/terminal/terminal.functions";
 import { fetchTerminalCryptoSecurityPage } from "@/lib/terminal/crypto/crypto-market.functions";
-import { LAUNCH_ASSET_SYMBOLS } from "@/lib/terminal/crypto/crypto-constants";
+import { LAUNCH_ASSET_SYMBOLS } from "@/lib/terminal/crypto/crypto-symbols";
 import type { CryptoAssetDetail, CryptoPortfolioBalance } from "@/lib/terminal/crypto/crypto-market-read.service";
-import { formatCompactVolume, formatMarketCap, formatTerminalMoney } from "@/lib/terminal/format";
+import {
+  formatCompactVolume,
+  formatMarketCap,
+  formatTerminalMoney,
+  formatTerminalPrice,
+} from "@/lib/terminal/format";
 import {
   formatCryptoMoney,
   formatCryptoPercent,
@@ -325,6 +330,8 @@ function StockSecurityPage({ data }: { data: StockSecurityLoaderData }) {
           onRangeChange={setChartRange}
           positive={security.dayChange >= 0}
           className="max-[359px]:space-y-1"
+          formatValue={formatTerminalPrice}
+          formatDelta={formatTerminalPrice}
         />
 
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -599,6 +606,10 @@ function CryptoSecurityPage({ data }: { data: CryptoSecurityLoaderData }) {
           onRangeChange={setChartRange}
           positive={(dayChange ?? 0) >= 0}
           className="max-[359px]:space-y-1"
+          formatValue={(value) => formatCryptoPrice(value, asset.symbol)}
+          formatDelta={(value) =>
+            formatCryptoPrice(value, asset.symbol, { forChange: true })
+          }
         />
 
         <section

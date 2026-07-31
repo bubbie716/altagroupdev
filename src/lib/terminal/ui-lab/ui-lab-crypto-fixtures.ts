@@ -39,6 +39,7 @@ import type {
   CryptoChartRange,
   CryptoMarketAssetSummary,
   CryptoPortfolioSummary,
+  CryptoPriceHistoryPoint,
   CryptoPriceHistoryResult,
 } from "@/lib/terminal/crypto/crypto-market-read.service";
 
@@ -276,31 +277,17 @@ export function getUiLabCryptoHistory(input: {
   }
 
   const now = Date.now();
+  const hour = 3_600_000;
   const day = 86_400_000;
   const cfg = CRYPTO_ASSET_CONFIGS[symbol];
-  const basePrice =
-    symbol === "NPFC"
-      ? 1
-      : symbol === "NVA"
-        ? 5.01
-        : 0.1;
 
   if (symbol === "NPFC") {
-    const points = [{ t: now - day, price: serializeCryptoPrice("1") }, { t: now, price: serializeCryptoPrice("1") }];
+    const points = [
+      { t: now - day, price: serializeCryptoPrice("1") },
+      { t: now, price: serializeCryptoPrice("1") },
+    ];
     return { points, limitedHistory: true, noTradesYet: true };
   }
-
-  const sparse =
-    symbol === "NVA"
-      ? [
-          { t: now - 7 * day, price: serializeCryptoPrice("5.00") },
-          { t: now - 3 * day, price: serializeCryptoPrice("5.005") },
-          { t: now, price: serializeCryptoPrice(String(basePrice)) },
-        ]
-      : [
-          { t: now - 14 * day, price: serializeCryptoPrice("0.102") },
-          { t: now, price: serializeCryptoPrice(String(basePrice)) },
-        ];
 
   const rangeMs =
     input.range === "1D"
@@ -313,9 +300,28 @@ export function getUiLabCryptoHistory(input: {
             ? 90 * day
             : input.range === "1Y"
               ? 365 * day
-              : Number.MAX_SAFE_INTEGER;
+              : 180 * day; // ALL demo window
 
-  const points = sparse.filter((p) => now - p.t <= rangeMs);
+  // Dense enough for drag-to-measure custom timeframes on every preset range.
+  const stepMs = input.range === "1D" ? hour : input.range === "1W" ? 6 * hour : day;
+  const startPrice = symbol === "NVA" ? 5.0 : 0.102;
+  const endPrice = symbol === "NVA" ? 5.01 : 0.1;
+  const steps = Math.max(2, Math.floor(rangeMs / stepMs));
+  const points: CryptoPriceHistoryPoint[] = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = now - rangeMs + i * stepMs;
+    const progress = i / steps;
+    // Mild path so sub-cent moves remain visible on NVA/VLT.
+    const wobble = Math.sin(progress * Math.PI * 4) * (symbol === "NVA" ? 0.004 : 0.0015);
+    const price = startPrice + (endPrice - startPrice) * progress + wobble;
+    points.push({ t, price: serializeCryptoPrice(price.toFixed(8)) });
+  }
+  // Ensure the series lands on the live mark.
+  points[points.length - 1] = {
+    t: now,
+    price: serializeCryptoPrice(endPrice.toFixed(8)),
+  };
+
   void cfg;
   return {
     points,
@@ -339,7 +345,7 @@ export function getUiLabPortfolioCrypto(input: {
       walletPublicId: null,
       walletStatus: null,
       balances: [],
-      totalMarkedValue: serializeCryptoMoney(0),
+      totalMarkedValue: serializeCryptoMoney("0"),
       hasWallet: false,
     };
   }

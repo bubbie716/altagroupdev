@@ -68,6 +68,12 @@ describe("portfolio chart period change percent", () => {
     const percent = computePeriodChangePercent(100_000, 110_000);
     assert.equal(percent, 10);
   });
+
+  it("preserves sub-cent crypto/security price moves", () => {
+    const percent = computePeriodChangePercent(5.0, 5.01);
+    assert.ok(Math.abs(percent - 0.2) < 1e-9);
+    assert.equal(computePeriodChangePercent(0.102, 0.1) < 0, true);
+  });
 });
 
 describe("portfolio chart range boundaries", () => {
@@ -163,6 +169,18 @@ describe("portfolio chart bucket increments", () => {
 
     const gaps = buckets.slice(1).map((bucket, index) => bucket.startAt - buckets[index].startAt);
     assert.equal(gaps.every((gap) => gap === 30 * DAY_MS), false);
+  });
+
+  it("short ALL histories use day buckets so range-drag stays selectable", () => {
+    const series = dailySeries(20);
+    const buckets = buildChartBucketsForRange(series, "ALL", NOW);
+    assert.ok(buckets.length >= 2);
+    assert.equal(new Date(buckets[0].startAt).getHours(), 0);
+    // Day buckets: consecutive starts are ~1 calendar day apart.
+    if (buckets.length >= 2) {
+      const gap = buckets[1].startAt - buckets[0].startAt;
+      assert.ok(gap >= 20 * HOUR_MS && gap <= 28 * HOUR_MS);
+    }
   });
 });
 
@@ -292,6 +310,11 @@ describe("portfolio chart tooltip labels", () => {
   it("formats ALL as month and year (e.g. Jun 2026)", () => {
     const label = formatPortfolioChartHoverDate(NOW.getTime(), "ALL");
     assert.match(label, /^[A-Za-z]{3} \d{4}$/);
+  });
+
+  it("formats short ALL histories with day granularity labels", () => {
+    const label = formatPortfolioChartHoverDate(NOW.getTime(), "ALL", { allBucketKind: "day" });
+    assert.match(label, /^[A-Za-z]{3} \d{1,2}$/);
   });
 
   it("1D bucket label matches bucket anchor time", () => {

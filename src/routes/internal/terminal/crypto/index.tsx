@@ -40,7 +40,7 @@ export const Route = createFileRoute("/internal/terminal/crypto/")({
   }> => {
     const result = await fetchCryptoOpsDeskSummaryFn();
     if (!result.ok) {
-      throw new Error("Failed to load crypto markets");
+      throw new Error(result.message || "Failed to load crypto markets");
     }
     return {
       summary: result.summary,

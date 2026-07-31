@@ -60,6 +60,9 @@ describe("Phase 3 product consent bundles", () => {
     assert.deepEqual(PRODUCT_CONSENT_BUNDLES.ALTA_PAY.documents, [
       { documentId: "AB-LEGAL-003", acceptanceType: "AGREED" },
     ]);
+    assert.deepEqual(PRODUCT_CONSENT_BUNDLES.CRYPTO.documents, [
+      { documentId: "AT-LEGAL-006", acceptanceType: "ACKNOWLEDGED" },
+    ]);
     assert.deepEqual(PRODUCT_CONSENT_BUNDLES.ALTA_CARD.documents, [
       { documentId: "AB-LEGAL-006", acceptanceType: "ACKNOWLEDGED" },
     ]);
@@ -99,6 +102,13 @@ describe("Phase 3 product consent bundles", () => {
     assert.equal(PRODUCT_CONSENT_BUNDLES.LENDING.documents[0]?.acceptanceType, "ACKNOWLEDGED");
     assert.match(getLegalDocument("AB-LEGAL-006")!.title, /Template/i);
     assert.match(getLegalDocument("AB-LEGAL-007")!.title, /Template/i);
+  });
+
+  it("versions the expanded crypto disclosure independently from Terminal consent", () => {
+    assert.equal(getLegalDocument("AT-LEGAL-006")?.version, "1.1");
+    assert.equal(resolveConsentBundleDocuments(PRODUCT_CONSENT_BUNDLES.CRYPTO)[0]?.version, "1.1");
+    assert.equal(getLegalDocument("AT-LEGAL-001")?.version, "1.3");
+    assert.equal(getLegalDocument("AT-LEGAL-002")?.version, "1.2");
   });
 
   it("groups consent controls by meaning", () => {

@@ -3,7 +3,7 @@
  * Authoritative financial values are decimal strings — never JS numbers.
  */
 
-import type { CryptoAssetSymbol } from "./crypto-constants";
+import type { CryptoAssetSymbol } from "./crypto-symbols";
 
 export const CRYPTO_QUOTE_TTL_MS = 15_000;
 export const CRYPTO_PRICE_IMPACT_WARN_PERCENT = "5";

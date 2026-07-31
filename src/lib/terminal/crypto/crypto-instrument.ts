@@ -1,23 +1,15 @@
 /**
  * Shared helpers for Terminal crypto instrument detection and valuation merge.
  */
-import {
-  LAUNCH_ASSET_SYMBOLS,
-  type CryptoAssetSymbol,
-} from "@/lib/terminal/crypto/crypto-constants";
 import { d } from "@/lib/terminal/crypto/crypto-decimal";
 import type { CryptoPortfolioSummary } from "@/lib/terminal/crypto/crypto-market-read.service";
 import type { PortfolioSnapshot } from "@/lib/terminal/types";
 
-export function isTerminalCryptoSymbol(symbol: string): boolean {
-  const upper = symbol.trim().toUpperCase();
-  return (LAUNCH_ASSET_SYMBOLS as readonly string[]).includes(upper);
-}
-
-export function asCryptoAssetSymbol(symbol: string): CryptoAssetSymbol | null {
-  const upper = symbol.trim().toUpperCase();
-  return isTerminalCryptoSymbol(upper) ? (upper as CryptoAssetSymbol) : null;
-}
+export {
+  asCryptoAssetSymbol,
+  isTerminalCryptoSymbol,
+  type CryptoAssetSymbol,
+} from "@/lib/terminal/crypto/crypto-symbols";
 
 /**
  * Parse marked crypto florin value for presentation merge into JS number portfolio totals.

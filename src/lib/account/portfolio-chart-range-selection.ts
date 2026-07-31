@@ -6,7 +6,10 @@ import {
   type PortfolioTimeRange,
 } from "./portfolio-chart-series.ts";
 
-const PERCENT_BASIS_EPSILON = 0.01;
+/** Display floor for percent labels only (0.01 percentage points). */
+const PERCENT_LABEL_EPSILON = 0.01;
+/** Float-noise floor for absolute deltas — not a cent-scale money floor. */
+const VALUE_DELTA_NOISE = 1e-10;
 
 /** Movement past this distance (px) promotes a press into range-drag; below it is a tap. */
 export const PORTFOLIO_CHART_DRAG_THRESHOLD_PX = 10;
@@ -101,7 +104,7 @@ export function formatSelectionAmountLabel(
   absoluteChange: number,
   formatFlorin: (value: number) => string,
 ): string {
-  if (Math.abs(absoluteChange) < PERCENT_BASIS_EPSILON) {
+  if (!Number.isFinite(absoluteChange) || Math.abs(absoluteChange) < VALUE_DELTA_NOISE) {
     return formatFlorin(0);
   }
   const sign = absoluteChange >= 0 ? "+" : "-";
@@ -109,7 +112,7 @@ export function formatSelectionAmountLabel(
 }
 
 export function formatSelectionPercentLabel(percentChange: number): string {
-  if (!Number.isFinite(percentChange) || Math.abs(percentChange) < PERCENT_BASIS_EPSILON) {
+  if (!Number.isFinite(percentChange) || Math.abs(percentChange) < PERCENT_LABEL_EPSILON) {
     return "0.00%";
   }
   const sign = percentChange >= 0 ? "+" : "-";
@@ -120,9 +123,10 @@ export function formatPortfolioChartSelectionRange(
   startAt: number,
   endAt: number,
   range: PortfolioTimeRange,
+  options?: { allBucketKind?: "day" | "week" | "month" },
 ): string {
-  const startLabel = formatPortfolioChartHoverDate(startAt, range);
-  const endLabel = formatPortfolioChartHoverDate(endAt, range);
+  const startLabel = formatPortfolioChartHoverDate(startAt, range, options);
+  const endLabel = formatPortfolioChartHoverDate(endAt, range, options);
   return `${startLabel} – ${endLabel}`;
 }
 
@@ -130,6 +134,7 @@ export function formatSelectionPerformanceDisplay(
   metrics: PortfolioChartSelectionMetrics,
   range: PortfolioTimeRange,
   formatFlorin: (value: number) => string,
+  options?: { allBucketKind?: "day" | "week" | "month" },
 ): {
   amountLabel: string;
   percentLabel: string;
@@ -143,6 +148,7 @@ export function formatSelectionPerformanceDisplay(
       metrics.startBucket.at,
       metrics.endBucket.at,
       range,
+      options,
     ),
     positive: metrics.positive,
   };

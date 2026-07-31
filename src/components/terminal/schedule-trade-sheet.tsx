@@ -26,7 +26,7 @@ import {
   getUiLabProductConsentScenario,
 } from "@/lib/legal/ui-lab-product-consent";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
-import { isTerminalCryptoSymbol } from "@/lib/terminal/crypto/crypto-instrument";
+import { isTerminalCryptoSymbol } from "@/lib/terminal/crypto/crypto-symbols";
 import { TERMINAL_SCHEDULED_TRADE_UTC_HELP } from "@/lib/terminal/scheduled-trade-schedule";
 import {
   createScheduledTradeFn,

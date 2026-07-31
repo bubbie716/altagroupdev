@@ -8,7 +8,6 @@ import { LAUNCH_ASSET_SYMBOLS } from "./crypto-constants";
 import { d, serializeCryptoMoney, serializeCryptoPrice, serializeCryptoQuantity } from "./crypto-decimal";
 import { reserveLiability } from "./crypto-curve-math";
 import { resolveRevenueSweepDestinationPortfolioId } from "./crypto-revenue-sweep.service";
-import { evaluateActivationReadiness } from "./crypto-activation-readiness.service";
 import { tradingCapabilitiesForStatus } from "./crypto-market-read.service";
 
 export type CryptoOpsAssetOverview = {
@@ -140,40 +139,40 @@ export async function getCryptoOpsAssetOverview(
     });
   }
 
-  const walletCount = await prisma.terminalCryptoWalletBalance.count({
-    where: {
-      assetId: asset.id,
-      OR: [{ availableQuantity: { gt: 0 } }, { reservedQuantity: { gt: 0 } }],
-    },
-  });
+  const [
+    walletCount,
+    lastSettlement,
+    openCriticalIssues,
+    openWarningIssues,
+    lastRun,
+  ] = await Promise.all([
+    prisma.terminalCryptoWalletBalance.count({
+      where: {
+        assetId: asset.id,
+        OR: [{ availableQuantity: { gt: 0 } }, { reservedQuantity: { gt: 0 } }],
+      },
+    }),
+    prisma.terminalCryptoOrderSettlement.findFirst({
+      where: { assetId: asset.id },
+      orderBy: { executedAt: "desc" },
+      select: { executedAt: true },
+    }),
+    prisma.terminalCryptoReconciliationIssue.count({
+      where: { assetId: asset.id, status: "OPEN", severity: "CRITICAL" },
+    }),
+    prisma.terminalCryptoReconciliationIssue.count({
+      where: { assetId: asset.id, status: "OPEN", severity: "WARNING" },
+    }),
+    prisma.terminalCryptoReconciliationRun.findFirst({
+      where: { status: { in: ["SUCCEEDED", "PARTIAL", "FAILED"] } },
+      orderBy: { completedAt: "desc" },
+    }),
+  ]);
 
-  const lastSettlement = await prisma.terminalCryptoOrderSettlement.findFirst({
-    where: { assetId: asset.id },
-    orderBy: { executedAt: "desc" },
-    select: { executedAt: true },
-  });
-
-  const openCriticalIssues = await prisma.terminalCryptoReconciliationIssue.count({
-    where: { assetId: asset.id, status: "OPEN", severity: "CRITICAL" },
-  });
-  const openWarningIssues = await prisma.terminalCryptoReconciliationIssue.count({
-    where: { assetId: asset.id, status: "OPEN", severity: "WARNING" },
-  });
-
-  const lastRun = await prisma.terminalCryptoReconciliationRun.findFirst({
-    where: { status: { in: ["SUCCEEDED", "PARTIAL", "FAILED"] } },
-    orderBy: { completedAt: "desc" },
-  });
-
-  let activationReadinessAllPassed: boolean | null = null;
-  if (asset.status === "DRAFT" || asset.status === "HALTED" || asset.status === "REDEMPTION_ONLY") {
-    try {
-      const readiness = await evaluateActivationReadiness(symbol);
-      activationReadinessAllPassed = readiness.allPassed;
-    } catch {
-      activationReadinessAllPassed = false;
-    }
-  }
+  // Desk/list paths must stay fast — full readiness is loaded on the asset page only.
+  // Calling evaluateActivationReadiness here for every DRAFT asset sequentializes ~3s of
+  // DB work per market and times out Vercel serverless on /internal/terminal/crypto.
+  const activationReadinessAllPassed: boolean | null = null;
 
   const coverageAmt = reserve.minus(liability);
   return {
@@ -205,11 +204,12 @@ export async function getCryptoOpsAssetOverview(
 }
 
 export async function getCryptoOpsDeskSummary(): Promise<CryptoOpsDeskSummary> {
-  const assets: CryptoOpsAssetOverview[] = [];
-  for (const symbol of LAUNCH_ASSET_SYMBOLS) {
-    const overview = await getCryptoOpsAssetOverview(symbol);
-    if (overview) assets.push(overview);
-  }
+  const overviews = await Promise.all(
+    LAUNCH_ASSET_SYMBOLS.map((symbol) => getCryptoOpsAssetOverview(symbol)),
+  );
+  const assets: CryptoOpsAssetOverview[] = overviews.filter(
+    (row): row is CryptoOpsAssetOverview => row != null,
+  );
 
   const openCritical = await prisma.terminalCryptoReconciliationIssue.findMany({
     where: { status: "OPEN", severity: "CRITICAL" },
@@ -595,7 +595,7 @@ export async function getCryptoOpsAssetWorkspace(
       balanceAfter: serializeCryptoMoney(row.balanceAfter),
       createdAt: row.createdAt.toISOString(),
     })),
-    volumeFlorins: serializeCryptoMoney(volumeAgg._sum.grossValue ?? 0),
+    volumeFlorins: serializeCryptoMoney(volumeAgg._sum.grossValue ?? "0"),
     candleCount,
   };
 }

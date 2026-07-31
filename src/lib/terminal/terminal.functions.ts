@@ -419,6 +419,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         portfolios,
         selectedPortfolio: null,
         portfolio: null,
+        crypto: null,
         orders: [],
         activity: [],
         eligibleCompanies,
@@ -433,6 +434,7 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
         portfolios,
         selectedPortfolio: null,
         portfolio: null,
+        crypto: null,
         orders: [],
         activity: [],
         eligibleCompanies,
@@ -448,12 +450,13 @@ export const fetchTerminalPortfolio = createServerFn({ method: "GET" })
     const { mergePortfolioSnapshotWithCrypto } = await import(
       "@/lib/terminal/crypto/crypto-instrument"
     );
-    const [portfolio, orders, activity, crypto] = await Promise.all([
+    const [portfolio, orders, activity, cryptoResult] = await Promise.all([
       getLocalPortfolioSnapshot(portfolioId),
       listLocalOrders(portfolioId),
       listLocalPortfolioActivity(portfolioId),
-      getPortfolioCryptoSummary(portfolioId),
+      getPortfolioCryptoSummary(portfolioId).catch(() => null),
     ]);
+    const crypto = cryptoResult;
     const { enrichPortfolioSnapshotWithCryptoHistory } = await import(
       "@/lib/terminal/crypto/crypto-portfolio-history.service"
     );
@@ -858,12 +861,16 @@ export const fetchQuickTradeContext = createServerFn({ method: "GET" })
 
       let held = false;
       if (portfolioId) {
-        const summary = await getPortfolioCryptoSummary(portfolioId);
-        held = summary.balances.some(
-          (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
-        );
+        try {
+          const summary = await getPortfolioCryptoSummary(portfolioId);
+          held = summary.balances.some(
+            (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
+          );
+        } catch {
+          held = false;
+        }
       }
-      const cryptoAsset = await getCryptoAssetDetail(symbol, { held });
+      const cryptoAsset = await getCryptoAssetDetail(symbol, { held }).catch(() => null);
 
       if (!portfolioId) {
         return {

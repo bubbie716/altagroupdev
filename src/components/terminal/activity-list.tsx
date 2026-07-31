@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { PortfolioActivityKind, PortfolioActivityRecord } from "@/lib/terminal/types";
-import { isTerminalCryptoSymbol } from "@/lib/terminal/crypto/crypto-instrument";
+import { isTerminalCryptoSymbol } from "@/lib/terminal/crypto/crypto-symbols";
 import { MoneyValue } from "@/components/terminal/money-value";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";

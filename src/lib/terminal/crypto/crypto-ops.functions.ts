@@ -109,13 +109,17 @@ export const fetchCryptoOpsDeskSummaryFn = createServerFn({ method: "GET" }).han
         capabilities: await resolveCapabilities(),
       };
     }
-    await requireTerminalOps();
-    const { getCryptoOpsDeskSummary } = await import("./crypto-ops-read.service");
-    return {
-      ok: true as const,
-      summary: await getCryptoOpsDeskSummary(),
-      capabilities: await resolveCapabilities(),
-    };
+    try {
+      await requireTerminalOps();
+      const { getCryptoOpsDeskSummary } = await import("./crypto-ops-read.service");
+      return {
+        ok: true as const,
+        summary: await getCryptoOpsDeskSummary(),
+        capabilities: await resolveCapabilities(),
+      };
+    } catch (error) {
+      return toClientError(error);
+    }
   },
 );
 
@@ -138,16 +142,20 @@ export const fetchCryptoOpsAssetOverviewFn = createServerFn({ method: "GET" })
       return { ok: true as const, overview, capabilities: await resolveCapabilities() };
     }
     await requireTerminalOps();
-    const { getCryptoOpsAssetOverview } = await import("./crypto-ops-read.service");
-    const overview = await getCryptoOpsAssetOverview(symbol);
-    if (!overview) {
-      return {
-        ok: false as const,
-        code: "NOT_FOUND",
-        message: cryptoOpsCustomerMessage("NOT_FOUND"),
-      };
+    try {
+      const { getCryptoOpsAssetOverview } = await import("./crypto-ops-read.service");
+      const overview = await getCryptoOpsAssetOverview(symbol);
+      if (!overview) {
+        return {
+          ok: false as const,
+          code: "NOT_FOUND",
+          message: cryptoOpsCustomerMessage("NOT_FOUND"),
+        };
+      }
+      return { ok: true as const, overview, capabilities: await resolveCapabilities() };
+    } catch (error) {
+      return toClientError(error);
     }
-    return { ok: true as const, overview, capabilities: await resolveCapabilities() };
   });
 
 export const fetchCryptoOpsAssetWorkspaceFn = createServerFn({ method: "GET" })
@@ -168,17 +176,21 @@ export const fetchCryptoOpsAssetWorkspaceFn = createServerFn({ method: "GET" })
       }
       return { ok: true as const, workspace, capabilities: await resolveCapabilities() };
     }
-    await requireTerminalOps();
-    const { getCryptoOpsAssetWorkspace } = await import("./crypto-ops-read.service");
-    const workspace = await getCryptoOpsAssetWorkspace(symbol);
-    if (!workspace) {
-      return {
-        ok: false as const,
-        code: "NOT_FOUND",
-        message: cryptoOpsCustomerMessage("NOT_FOUND"),
-      };
+    try {
+      await requireTerminalOps();
+      const { getCryptoOpsAssetWorkspace } = await import("./crypto-ops-read.service");
+      const workspace = await getCryptoOpsAssetWorkspace(symbol);
+      if (!workspace) {
+        return {
+          ok: false as const,
+          code: "NOT_FOUND",
+          message: cryptoOpsCustomerMessage("NOT_FOUND"),
+        };
+      }
+      return { ok: true as const, workspace, capabilities: await resolveCapabilities() };
+    } catch (error) {
+      return toClientError(error);
     }
-    return { ok: true as const, workspace, capabilities: await resolveCapabilities() };
   });
 
 export const fetchCryptoActivationReadinessFn = createServerFn({ method: "GET" })
@@ -191,11 +203,15 @@ export const fetchCryptoActivationReadinessFn = createServerFn({ method: "GET" }
       );
       return { ok: true as const, readiness: getUiLabCryptoActivationReadiness(symbol) };
     }
-    await requireTerminalOps();
-    const { evaluateActivationReadiness } = await import(
-      "./crypto-activation-readiness.service"
-    );
-    return { ok: true as const, readiness: await evaluateActivationReadiness(symbol) };
+    try {
+      await requireTerminalOps();
+      const { evaluateActivationReadiness } = await import(
+        "./crypto-activation-readiness.service"
+      );
+      return { ok: true as const, readiness: await evaluateActivationReadiness(symbol) };
+    } catch (error) {
+      return toClientError(error);
+    }
   });
 
 export type TransitionCryptoStatusFnInput = {

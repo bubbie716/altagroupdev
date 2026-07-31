@@ -15,6 +15,7 @@ import {
   mapTimestampToPlotX,
   mapValueToPlotY,
   PORTFOLIO_CHART_MARGIN,
+  resolveAllBucketKind,
   type PortfolioChartBucket,
   type PortfolioChartPoint,
   type PortfolioTimeRange,
@@ -164,6 +165,7 @@ export function PortfolioChartSelectionTooltip({
   geometry,
   containerWidth,
   containerHeight,
+  formatValue = florin,
 }: {
   timeRange: PortfolioTimeRange;
   selection: PortfolioChartSelectionIndices;
@@ -171,15 +173,24 @@ export function PortfolioChartSelectionTooltip({
   geometry: ChartSelectionGeometry;
   containerWidth: number;
   containerHeight: number;
+  /** Absolute/delta money formatter — price charts should pass asset-aware precision. */
+  formatValue?: (value: number) => string;
 }) {
   const metrics = useMemo(
     () => computeBucketSelectionMetrics(buckets, selection.startIndex, selection.endIndex),
     [buckets, selection.endIndex, selection.startIndex],
   );
 
+  const allBucketKind = useMemo(() => {
+    if (timeRange !== "ALL" || buckets.length === 0) return undefined;
+    return resolveAllBucketKind(buckets[0]!.startAt, buckets[buckets.length - 1]!.endAt);
+  }, [buckets, timeRange]);
+
   if (!metrics) return null;
 
-  const display = formatSelectionPerformanceDisplay(metrics, timeRange, florin);
+  const display = formatSelectionPerformanceDisplay(metrics, timeRange, formatValue, {
+    allBucketKind,
+  });
   const { left, top, transform } = resolveSelectionTooltipPosition({
     geometry,
     containerWidth,

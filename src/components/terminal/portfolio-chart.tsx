@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Area, AreaChart, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import {
   PortfolioChartSelectionOverlay,
   PortfolioChartSelectionTooltip,
@@ -16,41 +16,28 @@ import {
 import { RangeSelector } from "@/components/terminal/range-selector";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import {
-  bucketsToDisplaySeries,
+  attachPointDates,
+  buildChartBucketsForRange,
+  buildDisplaySeriesForRange,
   detectSeriesResolution,
+  getChartLineType,
+  getPeriodBoundaryValues,
   getSeriesValueBounds,
   PORTFOLIO_CHART_MARGIN,
-  type PortfolioChartBucket,
   type PortfolioChartPoint,
+  type PortfolioTimeRange,
 } from "@/lib/account/portfolio-chart-series";
 import { isSelectionVisible } from "@/lib/account/portfolio-chart-range-selection";
 import type { PricePoint, TerminalChartRange } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 
-function buildTerminalChartModel(data: PricePoint[]): {
-  buckets: PortfolioChartBucket[];
-  displaySeries: PortfolioChartPoint[];
-} {
-  const sorted = [...data]
-    .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.v))
-    .sort((a, b) => a.t - b.t)
-    .filter((point, index, rows) => index === rows.length - 1 || point.t !== rows[index + 1]?.t);
-
-  if (sorted.length === 0) return { buckets: [], displaySeries: [] };
-
-  const fallbackInterval =
-    sorted.length > 1 ? Math.max(1, sorted[sorted.length - 1].t - sorted[sorted.length - 2].t) : 1;
-  const buckets = sorted.map((point, index): PortfolioChartBucket => {
-    const next = sorted[index + 1];
-    return {
-      at: point.t,
-      startAt: point.t,
-      endAt: next?.t ?? point.t + fallbackInterval,
-      v: point.v,
-    };
-  });
-
-  return { buckets, displaySeries: bucketsToDisplaySeries(buckets) };
+/** Same series pipeline as account portfolio dashboard charts. */
+function toDatedSeries(data: PricePoint[]): PortfolioChartPoint[] {
+  return attachPointDates(
+    data
+      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.v))
+      .map((point) => ({ t: point.t, v: point.v, at: point.t })),
+  );
 }
 
 function InteractiveTerminalChart({
@@ -59,28 +46,50 @@ function InteractiveTerminalChart({
   positive,
   heightClass,
   ariaLabel,
+  formatValue,
+  formatDelta,
 }: {
   data: PricePoint[];
   range: TerminalChartRange;
   positive: boolean;
   heightClass: string;
   ariaLabel: string;
+  formatValue?: (value: number) => string;
+  formatDelta?: (value: number) => string;
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const gradientSeed = useId().replace(/:/g, "");
   const stroke = positive ? "var(--terminal-green)" : "var(--terminal-red)";
   const gradientId = `${gradientSeed}-${positive ? "up" : "down"}`;
+  const timeRange = range as PortfolioTimeRange;
 
-  const { buckets, displaySeries } = useMemo(() => buildTerminalChartModel(data), [data]);
+  const datedSeries = useMemo(() => toDatedSeries(data), [data]);
+  const seriesResolution = useMemo(
+    () => detectSeriesResolution(datedSeries),
+    [datedSeries],
+  );
+  const chartBuckets = useMemo(
+    () => buildChartBucketsForRange(datedSeries, timeRange),
+    [datedSeries, timeRange],
+  );
+  const displaySeries = useMemo(
+    () => buildDisplaySeriesForRange(datedSeries, timeRange),
+    [datedSeries, timeRange],
+  );
+  const chartLineType = useMemo(
+    () => getChartLineType(timeRange, seriesResolution),
+    [seriesResolution, timeRange],
+  );
   const bounds = useMemo(() => getSeriesValueBounds(displaySeries), [displaySeries]);
-  const periodStartValue = buckets[0]?.v ?? 0;
-  const periodEndValue = buckets[buckets.length - 1]?.v ?? periodStartValue;
-  const resolution = useMemo(() => detectSeriesResolution(displaySeries), [displaySeries]);
+  const { startValue: periodStartValue, endValue: periodEndValue } = useMemo(
+    () => getPeriodBoundaryValues(datedSeries, timeRange),
+    [datedSeries, timeRange],
+  );
 
   const { selection, isSelecting } = usePortfolioChartRangeSelection({
     containerRef: chartContainerRef,
-    buckets,
+    buckets: chartBuckets,
     displaySeries,
     margin: PORTFOLIO_CHART_MARGIN,
   });
@@ -97,17 +106,17 @@ function InteractiveTerminalChart({
       bottom: containerSize.height,
     } as DOMRect;
     return resolveSelectionGeometry(
-      buckets,
+      chartBuckets,
       displaySeries,
       selection,
       rect,
       PORTFOLIO_CHART_MARGIN,
     );
-  }, [buckets, containerSize.height, containerSize.width, displaySeries, selection]);
+  }, [chartBuckets, containerSize.height, containerSize.width, displaySeries, selection]);
 
   const { hover } = usePortfolioChartHover({
     containerRef: chartContainerRef,
-    buckets,
+    buckets: chartBuckets,
     displaySeries,
     periodStartValue,
     periodEndValue,
@@ -118,95 +127,89 @@ function InteractiveTerminalChart({
   useEffect(() => {
     const node = chartContainerRef.current;
     if (!node) return;
-    const updateSize = () => {
-      const width = Math.max(0, Math.floor(node.clientWidth));
-      const height = Math.max(0, Math.floor(node.clientHeight));
-      setContainerSize((prev) =>
-        prev.width === width && prev.height === height ? prev : { width, height },
-      );
-    };
+    const updateSize = () =>
+      setContainerSize({
+        width: node.clientWidth,
+        height: node.clientHeight,
+      });
     updateSize();
-    // Capture once after layout so the first paint isn’t stuck at 0×0.
-    const raf = window.requestAnimationFrame(updateSize);
     const observer = new ResizeObserver(updateSize);
     observer.observe(node);
-    return () => {
-      window.cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
+
+  const hasSeries = displaySeries.length > 0;
 
   return (
     <div
       ref={chartContainerRef}
-      className={cn(
-        "relative min-w-0 w-full touch-none cursor-crosshair overflow-hidden",
-        heightClass,
-      )}
+      className="relative min-w-0 w-full touch-none cursor-crosshair"
       role="img"
-      aria-label={`${ariaLabel}. Move across the chart for values or drag to measure performance between two points.`}
+      aria-label={`${ariaLabel}. Click and drag to measure performance between two points.`}
     >
-      {displaySeries.length && containerSize.width > 0 && containerSize.height > 0 ? (
-        <>
-          <AreaChart
-            width={containerSize.width}
-            height={containerSize.height}
-            data={displaySeries}
-            margin={PORTFOLIO_CHART_MARGIN}
-          >
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={stroke} stopOpacity={0.2} />
-                <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis hide type="number" dataKey="at" domain={["dataMin", "dataMax"]} />
-            <YAxis hide domain={[bounds.min, bounds.max]} />
-            <Area
-              type="stepAfter"
-              dataKey="v"
-              stroke={stroke}
-              strokeWidth={1.8}
-              fill={`url(#${gradientId})`}
-              isAnimationActive={false}
-              activeDot={false}
-            />
-          </AreaChart>
-          {selectionGeometry ? (
-            <PortfolioChartSelectionOverlay geometry={selectionGeometry} />
-          ) : null}
-          {showSelectionUi && selection && selectionGeometry ? (
-            <PortfolioChartSelectionTooltip
-              timeRange={range}
-              selection={selection}
-              buckets={buckets}
-              geometry={selectionGeometry}
-              containerWidth={containerSize.width}
-              containerHeight={containerSize.height}
-            />
-          ) : null}
-          {hover && !showSelectionUi ? <PortfolioHoverCrosshair hover={hover} /> : null}
-          {hover && !showSelectionUi && containerSize.width > 0 && containerSize.height > 0 ? (
-            <PortfolioHoverTooltip
-              hover={hover}
-              timeRange={range}
-              containerWidth={containerSize.width}
-              containerHeight={containerSize.height}
-              periodStartValue={periodStartValue}
-              resolution={resolution}
-            />
-          ) : null}
-        </>
-      ) : displaySeries.length === 0 ? (
-        <div className="flex h-full items-center justify-center text-[13px] text-[var(--terminal-muted)]">
-          Chart unavailable
-        </div>
-      ) : (
-        <div
-          className="h-full w-full animate-pulse rounded-md bg-[var(--terminal-surface-2)]"
-          aria-hidden
+      <div className={cn("min-w-0 w-full overflow-hidden", heightClass)}>
+        {hasSeries ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={displaySeries} margin={PORTFOLIO_CHART_MARGIN}>
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={stroke} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                hide
+                type="number"
+                dataKey="at"
+                domain={["dataMin", "dataMax"]}
+                scale="linear"
+              />
+              <YAxis hide domain={[bounds.min, bounds.max]} />
+              <Area
+                type={chartLineType}
+                dataKey="v"
+                stroke={stroke}
+                strokeWidth={1.8}
+                fill={`url(#${gradientId})`}
+                isAnimationActive={false}
+                activeDot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center text-[13px] text-[var(--terminal-muted)]">
+            Chart unavailable
+          </div>
+        )}
+      </div>
+      {hasSeries && selectionGeometry ? (
+        <PortfolioChartSelectionOverlay geometry={selectionGeometry} />
+      ) : null}
+      {hasSeries && showSelectionUi && selection && selectionGeometry ? (
+        <PortfolioChartSelectionTooltip
+          timeRange={timeRange}
+          selection={selection}
+          buckets={chartBuckets}
+          geometry={selectionGeometry}
+          containerWidth={containerSize.width}
+          containerHeight={containerSize.height}
+          formatValue={formatDelta ?? formatValue}
         />
-      )}
+      ) : null}
+      {hasSeries && hover && !showSelectionUi ? <PortfolioHoverCrosshair hover={hover} /> : null}
+      {hasSeries && hover && !showSelectionUi ? (
+        <PortfolioHoverTooltip
+          hover={hover}
+          timeRange={timeRange}
+          containerWidth={containerSize.width || chartContainerRef.current?.clientWidth || 0}
+          containerHeight={containerSize.height || chartContainerRef.current?.clientHeight || 0}
+          periodStartValue={periodStartValue}
+          resolution={seriesResolution}
+          formatValue={formatValue}
+          formatDelta={formatDelta ?? formatValue}
+          buckets={chartBuckets}
+        />
+      ) : null}
     </div>
   );
 }
@@ -287,6 +290,8 @@ export function SecurityChart({
   className,
   range,
   onRangeChange,
+  formatValue,
+  formatDelta,
   /** @deprecated Prefer controlled `range` + `onRangeChange` (URL-synced). */
   initialRange = "1D",
 }: {
@@ -295,6 +300,10 @@ export function SecurityChart({
   className?: string;
   range?: TerminalChartRange;
   onRangeChange?: (range: TerminalChartRange) => void;
+  /** Price level formatter (hover absolute). Defaults to portfolio florin 2dp. */
+  formatValue?: (value: number) => string;
+  /** Price-change formatter (hover delta + drag selection). Defaults to formatValue. */
+  formatDelta?: (value: number) => string;
   initialRange?: TerminalChartRange;
 }) {
   const [localRange, setLocalRange] = useState<TerminalChartRange>(initialRange);
@@ -313,6 +322,8 @@ export function SecurityChart({
         positive={positive}
         heightClass="max-[359px]:h-[min(148px,calc(100svh-29rem))] h-[148px] min-[360px]:h-[188px] min-[375px]:h-[220px] sm:h-[320px]"
         ariaLabel={`Price history ${activeRange}`}
+        formatValue={formatValue}
+        formatDelta={formatDelta}
       />
     </section>
   );

@@ -71,5 +71,5 @@ Alta Terminal will not charge real-world money unless a separate checkout clearl
 
 **Adopted by:** Alta Terminal LLC  
 **Approved by:** Alta Group N.V.  
-**Version:** 1.1
+**Version:** 1.2
 **Last Updated:** July 31, 2026

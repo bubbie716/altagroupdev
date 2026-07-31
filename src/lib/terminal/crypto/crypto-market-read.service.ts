@@ -432,6 +432,24 @@ export async function getCryptoPriceHistory(
 export async function getPortfolioCryptoSummary(
   portfolioId: string,
 ): Promise<CryptoPortfolioSummary> {
+  try {
+    return await getPortfolioCryptoSummaryUnsafe(portfolioId);
+  } catch {
+    // Fail closed for read paths — never 500 portfolio/markets loaders on crypto read faults.
+    return {
+      portfolioId,
+      walletPublicId: null,
+      walletStatus: null,
+      balances: [],
+      totalMarkedValue: serializeCryptoMoney("0"),
+      hasWallet: false,
+    };
+  }
+}
+
+async function getPortfolioCryptoSummaryUnsafe(
+  portfolioId: string,
+): Promise<CryptoPortfolioSummary> {
   const wallet = await prisma.terminalCryptoWallet.findUnique({
     where: { portfolioId },
     include: {
@@ -449,7 +467,8 @@ export async function getPortfolioCryptoSummary(
       walletPublicId: null,
       walletStatus: null,
       balances: [],
-      totalMarkedValue: serializeCryptoMoney(0),
+      // Decimal helpers reject JS numbers in authoritative math — use a decimal string.
+      totalMarkedValue: serializeCryptoMoney("0"),
       hasWallet: false,
     };
   }

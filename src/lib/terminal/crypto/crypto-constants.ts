@@ -19,6 +19,10 @@
 
 import { Prisma } from "@prisma/client";
 import { d, type CryptoDecimal } from "./crypto-decimal";
+import type { CryptoAssetSymbol } from "./crypto-symbols";
+
+export type { CryptoAssetSymbol } from "./crypto-symbols";
+export { LAUNCH_ASSET_SYMBOLS } from "./crypto-symbols";
 
 const Decimal = Prisma.Decimal;
 
@@ -27,8 +31,6 @@ export const BONDING_CURVE_TOTAL_FEE_BPS = 100;
 export const BONDING_CURVE_REVENUE_FEE_BPS = 75;
 export const BONDING_CURVE_STABILIZATION_FEE_BPS = 25;
 export const NPFC_CONVERSION_FEE_BPS = 10;
-
-export type CryptoAssetSymbol = "NPFC" | "NVA" | "VLT";
 
 export type CryptoAssetConfig = {
   symbol: CryptoAssetSymbol;
@@ -139,5 +141,3 @@ export const CRYPTO_ASSET_CONFIGS: Record<CryptoAssetSymbol, CryptoAssetConfig> 
 export function curveRateSeedString(rate: CryptoDecimal): string {
   return rate.toDecimalPlaces(18, Decimal.ROUND_HALF_UP).toFixed(18);
 }
-
-export const LAUNCH_ASSET_SYMBOLS: CryptoAssetSymbol[] = ["NPFC", "NVA", "VLT"];

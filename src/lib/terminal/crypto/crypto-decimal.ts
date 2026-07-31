@@ -34,7 +34,26 @@ export function d(value: CryptoDecimalInput): CryptoDecimal {
       "Authoritative crypto math rejects JavaScript number inputs; pass a Decimal or decimal string.",
     );
   }
+  // Dual-package / Prisma Decimal copies may fail `instanceof` — coerce via string.
+  if (typeof value === "object" && value !== null && typeof (value as { toFixed?: unknown }).toFixed === "function") {
+    return new Decimal((value as { toString: () => string }).toString());
+  }
   return new Decimal(value);
+}
+
+/**
+ * Presentation serializers may receive accidental JS numbers (e.g. `?? 0`).
+ * Coerce numbers to decimal strings so a display bug cannot 500 a page loader.
+ * Authoritative calc paths must still use `d()` / Decimal / decimal strings.
+ */
+function forSerialize(value: CryptoDecimalInput): CryptoDecimal {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("serializeCrypto* rejects non-finite numbers");
+    }
+    return new Decimal(String(value));
+  }
+  return d(value);
 }
 
 export function roundDownQuantity(value: CryptoDecimalInput, precision = CRYPTO_QUANTITY_DP): CryptoDecimal {
@@ -64,13 +83,13 @@ export function assertNonNegative(label: string, value: CryptoDecimalInput): voi
 }
 
 export function serializeCryptoQuantity(value: CryptoDecimalInput): string {
-  return roundDownQuantity(value).toFixed(CRYPTO_QUANTITY_DP);
+  return forSerialize(value).toDecimalPlaces(CRYPTO_QUANTITY_DP, Decimal.ROUND_DOWN).toFixed(CRYPTO_QUANTITY_DP);
 }
 
 export function serializeCryptoPrice(value: CryptoDecimalInput): string {
-  return roundPrice(value).toFixed(CRYPTO_PRICE_DP);
+  return forSerialize(value).toDecimalPlaces(CRYPTO_PRICE_DP, Decimal.ROUND_HALF_UP).toFixed(CRYPTO_PRICE_DP);
 }
 
 export function serializeCryptoMoney(value: CryptoDecimalInput): string {
-  return roundDownMoney(value).toFixed(CRYPTO_MONEY_DP);
+  return forSerialize(value).toDecimalPlaces(CRYPTO_MONEY_DP, Decimal.ROUND_DOWN).toFixed(CRYPTO_MONEY_DP);
 }

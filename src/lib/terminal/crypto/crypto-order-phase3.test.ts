@@ -59,7 +59,7 @@ describe("Phase 3 crypto consent", () => {
     ]);
     const doc = getLegalDocument("AT-LEGAL-006");
     assert.ok(doc);
-    assert.equal(doc!.version, "1.0");
+    assert.equal(doc!.version, "1.1");
     assert.match(doc!.title, /Crypto Trading and Custody/i);
   });
 

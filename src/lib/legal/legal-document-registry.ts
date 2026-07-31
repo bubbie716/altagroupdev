@@ -246,7 +246,7 @@ export const LEGAL_DOCUMENTS: LegalDocumentDefinition[] = [
     label: "Crypto Trading Disclosure",
     slug: "terminal/crypto-trading-custody",
     entity: "terminal",
-    version: "1.0",
+    version: "1.1",
     lastUpdated: "July 31, 2026",
     footerOrder: 6,
     showInGlobalFooter: false,

@@ -345,14 +345,15 @@ export function PortfolioDashboard({
             {!locked && hover && !showSelectionUi ? (
               <PortfolioHoverCrosshair hover={hover} />
             ) : null}
-            {!locked && hover && !showSelectionUi && containerSize.width > 0 && containerSize.height > 0 ? (
+            {!locked && hover && !showSelectionUi ? (
               <PortfolioHoverTooltip
                 hover={hover}
                 timeRange={timeRange}
-                containerWidth={containerSize.width}
-                containerHeight={containerSize.height}
+                containerWidth={containerSize.width || chartContainerRef.current?.clientWidth || 0}
+                containerHeight={containerSize.height || chartContainerRef.current?.clientHeight || 0}
                 periodStartValue={periodStartValue}
                 resolution={seriesResolution}
+                buckets={chartBuckets}
               />
             ) : null}
           </div>

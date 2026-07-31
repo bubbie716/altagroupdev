@@ -2,7 +2,7 @@
 
 **Entity:** Alta Terminal LLC  
 **Document ID:** AT-COR-001  
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** Active upon approval  
 **Approved By:** Alta Group N.V.  
 **Effective Date:** Immediately upon approval  
@@ -14,7 +14,7 @@
 
 Alta Terminal LLC (“Alta Terminal”) is a subsidiary of Alta Group N.V. responsible for brokerage-style account, portfolio, research, order-entry, and market-access services within supported virtual economies.
 
-Alta Terminal exists to connect eligible Customers to approved market infrastructure while providing a consistent Alta account experience. Alta Terminal is not itself a trading venue, securities exchange, bank, clearing agency, or real-world regulated broker-dealer.
+Alta Terminal exists to connect eligible Customers to approved market infrastructure while providing a consistent Alta account experience. Alta Terminal is not a real-world securities exchange, bank, clearing agency, broker-dealer, cryptocurrency exchange, or financial custodian. Subject to this Charter, it may operate an internal custodial ledger venue for fictional, florin-denominated Minecraft-economy crypto instruments.
 
 ## 2. Ownership
 
@@ -54,6 +54,10 @@ Subject to feature readiness, provider availability, and Alta Group approval, Al
 - provide portfolio, watchlist, research, statement, and reporting tools;
 - receive and validate Customer order instructions;
 - route eligible instructions to approved independent providers;
+- issue, administer, price, and retire approved fictional Alta Crypto instruments;
+- execute eligible Alta Crypto market orders against an approved internal custodial ledger venue;
+- maintain portfolio crypto wallets, treasury inventory, protected reserves, stabilization balances, and associated ledgers;
+- establish and administer disclosed crypto pricing formulas, fees, supply limits, lifecycle states, and market-integrity controls;
 - reconcile provider confirmations, positions, balances, and corporate actions;
 - provide market and reference data obtained from approved sources;
 - collect disclosed fees;
@@ -66,7 +70,7 @@ Subject to feature readiness, provider availability, and Alta Group approval, Al
 
 Alta Terminal may not, without an express amendment approved by Alta Group:
 
-- operate or represent itself as a securities exchange or trading venue;
+- operate or represent itself as a real-world securities exchange, cryptocurrency exchange, or public trading venue;
 - represent itself as a real-world regulated broker, adviser, bank, custodian, or clearing agency;
 - offer margin, lending, short selling, options, discretionary management, or securities lending;
 - guarantee returns, liquidity, execution, settlement, or provider performance;
@@ -94,6 +98,24 @@ Before enabling a provider-dependent feature, Alta Terminal shall document:
 - termination and transition procedures.
 
 Provider appointment does not transfer Alta Terminal’s responsibility for accurate Customer disclosures or reasonable oversight of its own systems.
+
+## 7A. Alta Crypto Market Authority
+
+Alta Group authorizes Alta Terminal to operate Alta Crypto solely as a fictional, florin-denominated Minecraft-economy service. Alta Crypto is an internal ledger venue, not a blockchain, public order book, external wallet network, or real-world financial market.
+
+Alta Group retains final authority to approve:
+
+- each crypto instrument and its initial configuration;
+- supply limits, treasury inventory, pricing formulas, fees, and reserve rules;
+- activation, material economic changes, redemption-only operation, closure, or retirement;
+- the permitted uses of stabilization balances and accrued revenue; and
+- any future customer-to-customer transfers, external transfers, payment functionality, or blockchain connectivity.
+
+Alta Terminal management may perform ordinary market operations within approved configurations, including processing market orders, maintaining custodial records, reconciling balances, halting unsafe activity, moving an asset to redemption-only status, and applying auditable corrections. Management may not silently change an authoritative pricing formula, divert a protected reserve, fabricate supply, erase transaction history, or activate a material new crypto capability without the approval required by Alta Group.
+
+Alta Terminal acts simultaneously as issuer or administrator, internal venue operator, custodian of ledger balances, reserve administrator, and fee recipient for Alta Crypto. Those roles create conflicts of interest. Customer disclosures must describe those roles, the absence of independent price discovery, the applicable fee allocation, and the limits of reserves and stabilization balances.
+
+Protected reserves, treasury inventory, stabilization balances, accrued revenue, and Customer portfolio balances must be separately identifiable in authoritative records. Protected reserves may be used only for the corresponding disclosed redemption or curve-liability purpose, corrections attributable to that purpose, or another use expressly approved by Alta Group and disclosed before it affects Customers. Stabilization balances do not belong to Customers and do not guarantee price support, liquidity, or recovery from loss.
 
 ## 8. Customer Protection Principles
 
@@ -153,7 +175,9 @@ Alta Terminal shall maintain, at minimum:
 - Market Data and Third-Party Services Terms; and
 - a Fee Schedule.
 
-Additional agreements shall be adopted before margin, lending, advisory services, institutional accounts, or other materially different products are enabled.
+Alta Terminal shall also maintain a crypto trading and custody disclosure while Alta Crypto is offered.
+
+Additional agreements shall be adopted before margin, lending, advisory services, institutional accounts, customer-to-customer crypto transfers, crypto payments, external wallets, blockchain connectivity, or other materially different products are enabled.
 
 ## 14. Amendments
 
@@ -164,5 +188,5 @@ Alta Group may amend this Charter. Alta Terminal management may propose amendmen
 This Charter establishes Alta Terminal as a standalone Alta Group subsidiary and supersedes any prior description of Terminal as a product or division of another market operator.
 
 **Approved by:** Alta Group N.V.  
-**Version:** 1.0  
-**Last Updated:** July 27, 2026  
+**Version:** 1.1
+**Last Updated:** July 31, 2026

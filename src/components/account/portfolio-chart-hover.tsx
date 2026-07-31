@@ -10,6 +10,7 @@ import {
   mapPointerToTimestamp,
   mapValueToPlotY,
   PORTFOLIO_CHART_MARGIN,
+  resolveAllBucketKind,
   resolveBucketHoverPoint,
   resolveDisplayLineValue,
   type PortfolioChartBucket,
@@ -107,6 +108,9 @@ export function PortfolioHoverTooltip({
   containerHeight,
   periodStartValue,
   resolution,
+  formatValue = florin,
+  formatDelta = florin,
+  buckets,
 }: {
   hover: ChartHoverState;
   timeRange: PortfolioTimeRange;
@@ -114,6 +118,9 @@ export function PortfolioHoverTooltip({
   containerHeight: number;
   periodStartValue: number;
   resolution: SeriesResolution;
+  formatValue?: (value: number) => string;
+  formatDelta?: (value: number) => string;
+  buckets?: PortfolioChartBucket[];
 }) {
   const { left, top, transform } = resolveTooltipPosition({
     pixelX: hover.pixelX,
@@ -122,6 +129,11 @@ export function PortfolioHoverTooltip({
     containerHeight,
   });
 
+  const allBucketKind =
+    timeRange === "ALL" && buckets && buckets.length > 0
+      ? resolveAllBucketKind(buckets[0]!.startAt, buckets[buckets.length - 1]!.endAt)
+      : undefined;
+
   return (
     <div
       className="pointer-events-none absolute z-[2] w-max max-w-[calc(100%-1rem)] transition-[left,top,transform] duration-75 ease-out"
@@ -129,10 +141,10 @@ export function PortfolioHoverTooltip({
     >
       <div className="rounded-lg border border-border-strong bg-surface-2 px-4 py-3 shadow-sm">
         <div className="font-mono text-[10px] uppercase tracking-wider leading-relaxed text-muted-foreground">
-          {formatPortfolioChartHoverDate(hover.at, timeRange, { resolution })}
+          {formatPortfolioChartHoverDate(hover.at, timeRange, { resolution, allBucketKind })}
         </div>
         <div className="tabular mt-1.5 text-sm font-semibold leading-relaxed text-foreground">
-          {florin(hover.v)}
+          {formatValue(hover.v)}
         </div>
         <div
           className={cn(
@@ -141,7 +153,7 @@ export function PortfolioHoverTooltip({
           )}
         >
           {hover.v - periodStartValue >= 0 ? "+" : "-"}
-          {florin(Math.abs(hover.v - periodStartValue))} · {pct(hover.percent)}
+          {formatDelta(Math.abs(hover.v - periodStartValue))} · {pct(hover.percent)}
         </div>
       </div>
     </div>
@@ -204,9 +216,11 @@ export function usePortfolioChartHover({
     setHover(null);
   }, []);
 
+  const seriesFingerprint = `${buckets.length}:${buckets[0]?.at ?? 0}:${buckets[buckets.length - 1]?.at ?? 0}:${sortedDisplay.length}:${sortedDisplay[0]?.at ?? 0}:${sortedDisplay[sortedDisplay.length - 1]?.at ?? 0}:${periodStartValue}:${periodEndValue}`;
+
   useEffect(() => {
     clearHover();
-  }, [buckets, sortedDisplay, periodStartValue, periodEndValue, clearHover]);
+  }, [clearHover, seriesFingerprint]);
 
   useEffect(() => {
     if (suppressHover) clearHover();
@@ -248,7 +262,7 @@ export function usePortfolioChartHover({
 
       setHover({ at: labelAt, v: tooltipV, percent, pixelX, pixelY });
     },
-    [buckets, margin, sortedDisplay.length, valueBounds],
+    [buckets, margin, sortedDisplay, valueBounds],
   );
 
   const scheduleHoverUpdate = useCallback(
@@ -321,7 +335,8 @@ export function usePortfolioChartHover({
       const node = containerRef.current;
       if (!node) return;
       updateHover(event.clientX, node.getBoundingClientRect());
-      stickyRef.current = true;
+      // Sticky only for touch — mouse hover already tracks without a click.
+      stickyRef.current = event.pointerType !== "mouse";
     };
 
     const handlePointerCancel = (event: PointerEvent) => {
@@ -332,25 +347,47 @@ export function usePortfolioChartHover({
       if (!stickyRef.current) clearHover();
     };
 
-    const handlePointerLeave = () => {
+    const handlePointerLeave = (event: PointerEvent) => {
       // Sticky tap tooltips must survive finger lift / pointerleave on touch.
       if (stickyRef.current) return;
       if (pressRef.current) return;
+      // Leaving into a child still inside the chart should not clear hover.
+      const related = event.relatedTarget;
+      if (related instanceof Node && element.contains(related)) return;
       clearHover();
     };
 
+    // Capture so hover tracks even when Recharts SVG is the event target.
     element.addEventListener("pointerdown", handlePointerDown);
-    element.addEventListener("pointermove", handlePointerMove);
+    element.addEventListener("pointermove", handlePointerMove, { capture: true });
     element.addEventListener("pointerup", handlePointerUp);
     element.addEventListener("pointercancel", handlePointerCancel);
     element.addEventListener("pointerleave", handlePointerLeave);
+    // Desktop mouse path — some environments skip pointermove until a click/gesture.
+    const handleMouseMove = (event: MouseEvent) => {
+      if (pressRef.current) return;
+      if (event.buttons !== 0) return;
+      stickyRef.current = false;
+      scheduleHoverUpdate(event.clientX, event.clientY);
+    };
+    const handleMouseLeave = (event: MouseEvent) => {
+      if (stickyRef.current) return;
+      if (pressRef.current) return;
+      const related = event.relatedTarget;
+      if (related instanceof Node && element.contains(related)) return;
+      clearHover();
+    };
+    element.addEventListener("mousemove", handleMouseMove, { capture: true });
+    element.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       element.removeEventListener("pointerdown", handlePointerDown);
-      element.removeEventListener("pointermove", handlePointerMove);
+      element.removeEventListener("pointermove", handlePointerMove, true);
       element.removeEventListener("pointerup", handlePointerUp);
       element.removeEventListener("pointercancel", handlePointerCancel);
       element.removeEventListener("pointerleave", handlePointerLeave);
+      element.removeEventListener("mousemove", handleMouseMove, true);
+      element.removeEventListener("mouseleave", handleMouseLeave);
     };
   }, [clearHover, containerRef, disabled, scheduleHoverUpdate, suppressHover, updateHover]);
 

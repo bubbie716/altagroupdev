@@ -538,22 +538,11 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
           detail =
             "One or more crypto assets are ACTIVE on Alta Crypto (separate from TSE). Manage from Crypto markets.";
         } else if (allDraft) {
-          let ready = false;
-          try {
-            const { evaluateActivationReadiness } = await import(
-              "@/lib/terminal/crypto/crypto-activation-readiness.service"
-            );
-            const checks = await Promise.all(
-              assets.map((a) => evaluateActivationReadiness(a.symbol)),
-            );
-            ready = checks.length > 0 && checks.every((c) => c.allPassed);
-          } catch {
-            ready = false;
-          }
-          statusLabel = ready ? "Ready to activate" : "Draft";
-          detail = ready
-            ? "Readiness checks pass for launch assets. Corporate admin activation is required — not available from this System page or UI Lab."
-            : "Crypto assets remain DRAFT. Open Crypto markets for readiness details.";
+          // Do not run full evaluateActivationReadiness here — it is multi-second per
+          // asset and times out Vercel on Terminal System. Point operators to Crypto markets.
+          statusLabel = "Draft";
+          detail =
+            "Crypto assets remain DRAFT. Open Crypto markets for readiness details and activation.";
         } else if (allClosed) {
           statusLabel = "Not configured";
           detail = "All crypto assets are CLOSED.";

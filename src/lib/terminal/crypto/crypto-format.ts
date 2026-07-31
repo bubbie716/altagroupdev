@@ -2,18 +2,28 @@
  * Customer/internal presentation formatters for Alta Terminal crypto.
  * Authoritative Decimal math stays in crypto-decimal / pricing — this module
  * formats only at the UI boundary and must never feed back into calculations.
+ *
+ * IMPORTANT: browser-safe. Do not import @prisma/client, crypto-decimal, or
+ * crypto-constants (those pull server Decimal/Prisma into client chunks and
+ * break production pages that only need display formatting).
  */
 
-import { Prisma } from "@prisma/client";
 import {
-  CRYPTO_ASSET_CONFIGS,
+  asCryptoAssetSymbol,
+  CRYPTO_QUANTITY_DISPLAY_PRECISION,
   type CryptoAssetSymbol,
-} from "@/lib/terminal/crypto/crypto-constants";
-import { asCryptoAssetSymbol } from "@/lib/terminal/crypto/crypto-instrument";
+} from "@/lib/terminal/crypto/crypto-symbols";
 
 export type CryptoFormatSymbol = CryptoAssetSymbol | string | null | undefined;
 
-const Decimal = Prisma.Decimal;
+type DisplayDec = {
+  /** Signed finite number used for comparisons / tone. */
+  n: number;
+  /** Absolute value as a finite number for digit selection. */
+  abs: number;
+  neg: boolean;
+  zero: boolean;
+};
 
 /** Collapse IEEE/-0 and values that round to zero at the chosen precision. */
 export function normalizeDisplaySignedZero(
@@ -28,18 +38,41 @@ export function normalizeDisplaySignedZero(
   return value;
 }
 
-function toDecimal(value: number | string): Prisma.Decimal | null {
+function toDisplayDec(value: number | string): DisplayDec | null {
   try {
     if (typeof value === "number") {
       if (!Number.isFinite(value)) return null;
-      return new Decimal(value);
+      const n = Object.is(value, -0) ? 0 : value;
+      return { n, abs: Math.abs(n), neg: n < 0, zero: n === 0 };
     }
     const trimmed = value.trim();
     if (!trimmed) return null;
-    return new Decimal(trimmed);
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return null;
+    const normalized = Object.is(n, -0) ? 0 : n;
+    return {
+      n: normalized,
+      abs: Math.abs(normalized),
+      neg: normalized < 0,
+      zero: normalized === 0,
+    };
   } catch {
     return null;
   }
+}
+
+/** HALF_UP round to `digits` fractional places using integer scaling. */
+function roundHalfUpAbs(abs: number, digits: number): number {
+  if (!Number.isFinite(abs)) return NaN;
+  const factor = 10 ** digits;
+  // Stabilize binary noise before scaling (mirrors prior 8dp stabilize for prices).
+  return Math.round(abs * factor + Number.EPSILON) / factor;
+}
+
+function roundHalfUpSigned(n: number, digits: number): number {
+  const abs = roundHalfUpAbs(Math.abs(n), digits);
+  if (abs === 0) return 0;
+  return n < 0 ? -abs : abs;
 }
 
 /**
@@ -52,60 +85,56 @@ export function cryptoPriceFractionDigits(
   opts?: { forChange?: boolean },
 ): number {
   const asset = asCryptoAssetSymbol(symbol ?? "");
-  const dec = toDecimal(value);
-  const abs = dec ? dec.abs() : new Decimal(0);
-  const absNum = abs.toNumber();
+  const dec = toDisplayDec(value);
+  const abs = dec?.abs ?? 0;
 
   if (asset === "NPFC") return 2;
 
   if (asset === "NVA") {
     if (opts?.forChange) {
-      if (abs.isZero()) return 2;
-      if (abs.greaterThanOrEqualTo("0.01")) return 2;
-      if (abs.greaterThanOrEqualTo("0.0001")) return 4;
+      if (abs === 0) return 2;
+      if (abs >= 0.01) return 2;
+      if (abs >= 0.0001) return 4;
       return 6;
     }
     // Prefer 2 dp when clean; use 4 when sub-cent precision is meaningful.
-    const at2 = abs.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-    if (abs.equals(at2) && abs.greaterThanOrEqualTo(1)) return 2;
+    const at2 = roundHalfUpAbs(abs, 2);
+    if (Math.abs(abs - at2) < 1e-12 && abs >= 1) return 2;
     return 4;
   }
 
   if (asset === "VLT") {
     if (opts?.forChange) {
-      if (abs.isZero()) return 4;
+      if (abs === 0) return 4;
       for (let digits = 4; digits <= 8; digits += 1) {
-        if (!abs.toDecimalPlaces(digits, Decimal.ROUND_HALF_UP).isZero()) return digits;
+        if (roundHalfUpAbs(abs, digits) !== 0) return digits;
       }
       return 8;
     }
-    if (absNum >= 1) return 4;
-    if (absNum >= 0.0001) return 4;
+    if (abs >= 1) return 4;
+    if (abs >= 0.0001) return 4;
     return 6;
   }
 
-  if (absNum >= 100) return 2;
-  if (absNum >= 1) return 2;
+  if (abs >= 100) return 2;
+  if (abs >= 1) return 2;
   return 4;
 }
 
-function formatAbsFlorin(abs: Prisma.Decimal, fractionDigits: number): string {
-  const rounded = abs.toDecimalPlaces(fractionDigits, Decimal.ROUND_HALF_UP);
-  const asNumber = rounded.toNumber();
+function formatAbsFlorin(abs: number, fractionDigits: number): string {
+  const rounded = roundHalfUpAbs(abs, fractionDigits);
   return (
     "ƒ" +
-    asNumber.toLocaleString("en-US", {
+    rounded.toLocaleString("en-US", {
       minimumFractionDigits: fractionDigits,
       maximumFractionDigits: fractionDigits,
     })
   );
 }
 
-/** Stabilize floating-point noise before display rounding. */
-function stabilizePrice(dec: Prisma.Decimal): Prisma.Decimal {
-  // Round through 8 dp first so values like 5.006249999997 become 5.00625,
-  // then customer digits can HALF_UP to 5.0063.
-  return dec.toDecimalPlaces(8, Decimal.ROUND_HALF_UP);
+/** Stabilize floating-point noise before display rounding (8 dp HALF_UP). */
+function stabilizePrice(n: number): number {
+  return roundHalfUpSigned(n, 8);
 }
 
 /**
@@ -117,10 +146,10 @@ export function formatCryptoPrice(
   symbol?: CryptoFormatSymbol,
   opts?: { signed?: boolean; forChange?: boolean; fine?: boolean },
 ): string {
-  const dec = toDecimal(value);
+  const dec = toDisplayDec(value);
   if (!dec) return "—";
-  const stable = stabilizePrice(dec);
-  let digits = cryptoPriceFractionDigits(symbol, stable.toFixed(), {
+  const stable = stabilizePrice(dec.n);
+  let digits = cryptoPriceFractionDigits(symbol, stable, {
     forChange: opts?.forChange,
   });
   if (opts?.fine) {
@@ -128,12 +157,12 @@ export function formatCryptoPrice(
     if (asset === "NVA") digits = Math.max(digits, 4);
     if (asset === "VLT") digits = Math.max(digits, 4);
   }
-  const rounded = stable.toDecimalPlaces(digits, Decimal.ROUND_HALF_UP);
-  if (rounded.isZero()) {
-    return formatAbsFlorin(new Decimal(0), digits);
+  const rounded = roundHalfUpSigned(stable, digits);
+  if (rounded === 0) {
+    return formatAbsFlorin(0, digits);
   }
-  const body = formatAbsFlorin(rounded.abs(), digits);
-  const negative = rounded.isNeg();
+  const body = formatAbsFlorin(Math.abs(rounded), digits);
+  const negative = rounded < 0;
   if (!opts?.signed) return negative ? `-${body}` : body;
   if (!negative) return `+${body}`;
   return `-${body}`;
@@ -147,16 +176,16 @@ export function formatCryptoMoney(
   value: number | string,
   opts?: { signed?: boolean },
 ): string {
-  const dec = toDecimal(value);
+  const dec = toDisplayDec(value);
   if (!dec) return "—";
-  const rounded = dec.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  if (rounded.isZero()) {
-    return formatAbsFlorin(new Decimal(0), 2);
+  const rounded = roundHalfUpSigned(dec.n, 2);
+  if (rounded === 0) {
+    return formatAbsFlorin(0, 2);
   }
-  const body = formatAbsFlorin(rounded.abs(), 2);
-  if (!opts?.signed) return rounded.isNeg() ? `-${body}` : body;
-  if (rounded.greaterThan(0)) return `+${body}`;
-  if (rounded.isNeg()) return `-${body}`;
+  const body = formatAbsFlorin(Math.abs(rounded), 2);
+  if (!opts?.signed) return rounded < 0 ? `-${body}` : body;
+  if (rounded > 0) return `+${body}`;
+  if (rounded < 0) return `-${body}`;
   return body;
 }
 
@@ -181,15 +210,15 @@ export function formatCryptoPercent(
   value: number | string,
   opts?: { signed?: boolean },
 ): string {
-  const dec = toDecimal(value);
+  const dec = toDisplayDec(value);
   if (!dec) return "—";
-  const rounded = dec.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  if (rounded.isZero()) return "0.00%";
-  const body = `${rounded.abs().toFixed(2)}%`;
+  const rounded = roundHalfUpSigned(dec.n, 2);
+  if (rounded === 0) return "0.00%";
+  const body = `${Math.abs(rounded).toFixed(2)}%`;
   const signed = opts?.signed !== false;
-  if (!signed) return rounded.isNeg() ? `-${body}` : body;
-  if (rounded.greaterThan(0)) return `+${body}`;
-  if (rounded.isNeg()) return `-${body}`;
+  if (!signed) return rounded < 0 ? `-${body}` : body;
+  if (rounded > 0) return `+${body}`;
+  if (rounded < 0) return `-${body}`;
   return body;
 }
 
@@ -216,15 +245,14 @@ export function formatCryptoQuantityDisplay(
   quantity: number | string,
   symbol?: CryptoFormatSymbol,
 ): string {
-  const dec = toDecimal(quantity);
+  const dec = toDisplayDec(quantity);
   if (!dec) return String(quantity);
   const asset = asCryptoAssetSymbol(symbol ?? "");
-  const digits = asset
-    ? Math.min(8, CRYPTO_ASSET_CONFIGS[asset].quantityPrecision)
-    : 8;
-  const fixed = dec.toFixed(digits);
+  const digits = asset ? Math.min(8, CRYPTO_QUANTITY_DISPLAY_PRECISION[asset]) : 8;
+  const fixed = dec.abs.toFixed(digits);
   const trimmed = fixed.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-  return symbol ? `${trimmed} ${String(symbol).toUpperCase()}` : trimmed;
+  const signed = dec.neg && trimmed !== "0" ? `-${trimmed}` : trimmed;
+  return symbol ? `${signed} ${String(symbol).toUpperCase()}` : signed;
 }
 
 export function cryptoMarketStatusLabel(operational = true): string {

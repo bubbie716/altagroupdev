@@ -87,6 +87,22 @@ describe("portfolio chart drag selection", () => {
     assert.equal(formatSelectionPercentLabel(0), "0.00%");
   });
 
+  it("keeps sub-cent absolute changes for price charts", () => {
+    assert.equal(formatSelectionAmountLabel(0.005, (v) => `ƒ${v.toFixed(4)}`), "+ƒ0.0050");
+    assert.equal(formatSelectionAmountLabel(0.01, (v) => `ƒ${v.toFixed(2)}`), "+ƒ0.01");
+    const metrics = computeBucketSelectionMetrics(
+      [
+        { at: 1, startAt: 1, endAt: 2, v: 5.0 },
+        { at: 2, startAt: 2, endAt: 3, v: 5.01 },
+      ],
+      0,
+      1,
+    );
+    assert.ok(metrics);
+    assert.ok(Math.abs(metrics.percentChange - 0.2) < 1e-9);
+    assert.equal(formatSelectionPercentLabel(metrics.percentChange), "+0.20%");
+  });
+
   it("does not interpolate inside the same bucket", () => {
     const buckets = buildChartBucketsForRange(dailySeries(30), "1W", NOW);
     const bucket = buckets[12];

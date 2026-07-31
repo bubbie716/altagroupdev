@@ -45,17 +45,25 @@ export const fetchTerminalCryptoMarkets = createServerFn({ method: "GET" })
       };
     }
 
-    const { listVisibleCryptoAssets } = await import(
-      "@/lib/terminal/crypto/crypto-market-read.service"
-    );
-    const assets = await listVisibleCryptoAssets({
-      heldSymbols: data.heldSymbols,
-    });
-    return {
-      available: assets.length > 0,
-      assets,
-      demonstration: false as const,
-    };
+    try {
+      const { listVisibleCryptoAssets } = await import(
+        "@/lib/terminal/crypto/crypto-market-read.service"
+      );
+      const assets = await listVisibleCryptoAssets({
+        heldSymbols: data.heldSymbols,
+      });
+      return {
+        available: assets.length > 0,
+        assets,
+        demonstration: false as const,
+      };
+    } catch {
+      return {
+        available: false,
+        assets: [],
+        demonstration: false as const,
+      };
+    }
   });
 
 export const fetchTerminalCryptoAsset = createServerFn({ method: "GET" })
@@ -91,32 +99,41 @@ export const fetchTerminalCryptoAsset = createServerFn({ method: "GET" })
       };
     }
 
-    const {
-      getCryptoAssetDetail,
-      getPortfolioCryptoSummary,
-    } = await import("@/lib/terminal/crypto/crypto-market-read.service");
+    try {
+      const {
+        getCryptoAssetDetail,
+        getPortfolioCryptoSummary,
+      } = await import("@/lib/terminal/crypto/crypto-market-read.service");
 
-    let held = false;
-    if (data.portfolioId) {
-      const summary = await getPortfolioCryptoSummary(data.portfolioId);
-      held = summary.balances.some(
-        (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
-      );
+      let held = false;
+      if (data.portfolioId) {
+        const summary = await getPortfolioCryptoSummary(data.portfolioId);
+        held = summary.balances.some(
+          (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
+        );
+      }
+
+      const asset = await getCryptoAssetDetail(symbol, { held });
+      const portfolio =
+        data.portfolioId != null
+          ? await getPortfolioCryptoSummary(data.portfolioId)
+          : null;
+      const holding = portfolio?.balances.find((b) => b.symbol === symbol) ?? null;
+
+      return {
+        demonstration: false as const,
+        asset,
+        portfolio,
+        holding,
+      };
+    } catch {
+      return {
+        demonstration: false as const,
+        asset: null,
+        portfolio: null,
+        holding: null,
+      };
     }
-
-    const asset = await getCryptoAssetDetail(symbol, { held });
-    const portfolio =
-      data.portfolioId != null
-        ? await getPortfolioCryptoSummary(data.portfolioId)
-        : null;
-    const holding = portfolio?.balances.find((b) => b.symbol === symbol) ?? null;
-
-    return {
-      demonstration: false as const,
-      asset,
-      portfolio,
-      holding,
-    };
   });
 
 export const fetchTerminalCryptoHistory = createServerFn({ method: "GET" })
@@ -135,14 +152,23 @@ export const fetchTerminalCryptoHistory = createServerFn({ method: "GET" })
       };
     }
 
-    const { getCryptoPriceHistory } = await import(
-      "@/lib/terminal/crypto/crypto-market-read.service"
-    );
-    const history = await getCryptoPriceHistory(symbol, data.range);
-    return {
-      demonstration: false as const,
-      ...history,
-    };
+    try {
+      const { getCryptoPriceHistory } = await import(
+        "@/lib/terminal/crypto/crypto-market-read.service"
+      );
+      const history = await getCryptoPriceHistory(symbol, data.range);
+      return {
+        demonstration: false as const,
+        ...history,
+      };
+    } catch {
+      return {
+        demonstration: false as const,
+        points: [],
+        limitedHistory: true,
+        noTradesYet: true,
+      };
+    }
   });
 
 export const fetchTerminalPortfolioCrypto = createServerFn({ method: "GET" })
@@ -164,32 +190,41 @@ export const fetchTerminalPortfolioCrypto = createServerFn({ method: "GET" })
       };
     }
 
-    const { getTerminalPortfolioForUser } = await import(
-      "@/lib/terminal/terminal-portfolio.service"
-    );
-    const portfolio = await getTerminalPortfolioForUser(user, data.portfolioId);
-    if (!portfolio) {
+    try {
+      const { getTerminalPortfolioForUser } = await import(
+        "@/lib/terminal/terminal-portfolio.service"
+      );
+      const portfolio = await getTerminalPortfolioForUser(user, data.portfolioId);
+      if (!portfolio) {
+        return {
+          demonstration: false as const,
+          summary: null,
+          forbidden: true as const,
+        };
+      }
+
+      const { getPortfolioCryptoSummary, getPortfolioCryptoOrders } = await import(
+        "@/lib/terminal/crypto/crypto-market-read.service"
+      );
+      const [summary, orders] = await Promise.all([
+        getPortfolioCryptoSummary(data.portfolioId),
+        getPortfolioCryptoOrders(data.portfolioId, 20).catch(() => []),
+      ]);
+
+      return {
+        demonstration: false as const,
+        summary,
+        orders,
+        forbidden: false as const,
+      };
+    } catch {
       return {
         demonstration: false as const,
         summary: null,
-        forbidden: true as const,
+        orders: [],
+        forbidden: false as const,
       };
     }
-
-    const { getPortfolioCryptoSummary, getPortfolioCryptoOrders } = await import(
-      "@/lib/terminal/crypto/crypto-market-read.service"
-    );
-    const [summary, orders] = await Promise.all([
-      getPortfolioCryptoSummary(data.portfolioId),
-      getPortfolioCryptoOrders(data.portfolioId, 20),
-    ]);
-
-    return {
-      demonstration: false as const,
-      summary,
-      orders,
-      forbidden: false as const,
-    };
   });
 
 export const searchTerminalInstruments = createServerFn({ method: "GET" })
@@ -436,94 +471,117 @@ export const fetchTerminalCryptoSecurityPage = createServerFn({ method: "GET" })
       getCryptoPriceHistory,
     } = await import("@/lib/terminal/crypto/crypto-market-read.service");
 
-    const client = getTseClient({ userId: user.id });
-    const listed = await listAccessibleTerminalPortfolios(user);
-    const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
+    try {
+      const client = getTseClient({ userId: user.id });
+      const listed = await listAccessibleTerminalPortfolios(user);
+      const portfolioId = await resolveTerminalPortfolioId(user, data.portfolioId);
 
-    let held = false;
-    if (portfolioId) {
-      const summary = await getPortfolioCryptoSummary(portfolioId);
-      held = summary.balances.some(
-        (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
-      );
-    }
+      let held = false;
+      if (portfolioId) {
+        const summary = await getPortfolioCryptoSummary(portfolioId);
+        held = summary.balances.some(
+          (b) => b.symbol === symbol && Number.parseFloat(b.quantity) > 0,
+        );
+      }
 
-    const asset = await getCryptoAssetDetail(symbol, { held });
-    const historyByRange = Object.fromEntries(
-      await Promise.all(
-        CRYPTO_CHART_RANGES.map(async (range) => {
-          const history = await getCryptoPriceHistory(symbol, range);
-          return [
-            range,
-            history.points.map((p) => ({ t: p.t, v: Number.parseFloat(p.price) })),
-          ];
-        }),
-      ),
-    ) as Record<(typeof CRYPTO_CHART_RANGES)[number], { t: number; v: number }[]>;
+      const asset = await getCryptoAssetDetail(symbol, { held });
+      const historyByRange = Object.fromEntries(
+        await Promise.all(
+          CRYPTO_CHART_RANGES.map(async (range) => {
+            try {
+              const history = await getCryptoPriceHistory(symbol, range);
+              return [
+                range,
+                history.points.map((p) => ({ t: p.t, v: Number.parseFloat(p.price) })),
+              ];
+            } catch {
+              return [range, [] as { t: number; v: number }[]];
+            }
+          }),
+        ),
+      ) as Record<(typeof CRYPTO_CHART_RANGES)[number], { t: number; v: number }[]>;
 
-    const portfolios = listed.map((portfolio) => ({
-      ...portfolio,
-      buyingPower: portfolio.cashBalance ?? 0,
-      holdingQuantity: 0,
-    }));
+      const portfolios = listed.map((portfolio) => ({
+        ...portfolio,
+        buyingPower: portfolio.cashBalance ?? 0,
+        holdingQuantity: 0,
+      }));
 
-    if (!asset) {
-      return {
-        kind: "crypto" as const,
-        demonstration: false as const,
-        mode: client.mode,
-        asset: null,
-        historyByRange,
-        holding: null,
-        walletPublicId: null,
-        buyingPower: 0,
-        portfolios,
-        selectedPortfolio: null,
-      };
-    }
+      if (!asset) {
+        return {
+          kind: "crypto" as const,
+          demonstration: false as const,
+          mode: client.mode,
+          asset: null,
+          historyByRange,
+          holding: null,
+          walletPublicId: null,
+          buyingPower: 0,
+          portfolios,
+          selectedPortfolio: null,
+        };
+      }
 
-    if (!portfolioId) {
+      if (!portfolioId) {
+        return {
+          kind: "crypto" as const,
+          demonstration: false as const,
+          mode: client.mode,
+          asset,
+          historyByRange,
+          holding: null,
+          walletPublicId: null,
+          buyingPower: 0,
+          portfolios,
+          selectedPortfolio: null,
+        };
+      }
+
+      await rememberSelectedTerminalPortfolio(user, portfolioId);
+      const [selectedPortfolio, portfolio, cryptoSummary] = await Promise.all([
+        getTerminalPortfolioForUser(user, portfolioId),
+        getLocalPortfolioSnapshot(portfolioId),
+        getPortfolioCryptoSummary(portfolioId),
+      ]);
+      const holding = cryptoSummary.balances.find((b) => b.symbol === symbol) ?? null;
+
       return {
         kind: "crypto" as const,
         demonstration: false as const,
         mode: client.mode,
         asset,
         historyByRange,
+        holding,
+        walletPublicId: cryptoSummary.hasWallet ? cryptoSummary.walletPublicId : null,
+        buyingPower: portfolio.buyingPower,
+        portfolios: portfolios.map((row) =>
+          row.id === portfolioId
+            ? {
+                ...row,
+                buyingPower: portfolio.buyingPower,
+                cashBalance: portfolio.cashBalance,
+                holdingQuantity: holding ? Number.parseFloat(holding.quantity) : 0,
+              }
+            : row,
+        ),
+        selectedPortfolio,
+      };
+    } catch {
+      const { getTseClient } = await import("@/lib/terminal/tse-client");
+      const client = getTseClient({ userId: user.id });
+      return {
+        kind: "crypto" as const,
+        demonstration: false as const,
+        mode: client.mode,
+        asset: null,
+        historyByRange: Object.fromEntries(
+          CRYPTO_CHART_RANGES.map((range) => [range, [] as { t: number; v: number }[]]),
+        ) as Record<(typeof CRYPTO_CHART_RANGES)[number], { t: number; v: number }[]>,
         holding: null,
         walletPublicId: null,
         buyingPower: 0,
-        portfolios,
+        portfolios: [],
         selectedPortfolio: null,
       };
     }
-
-    await rememberSelectedTerminalPortfolio(user, portfolioId);
-    const [selectedPortfolio, portfolio, cryptoSummary] = await Promise.all([
-      getTerminalPortfolioForUser(user, portfolioId),
-      getLocalPortfolioSnapshot(portfolioId),
-      getPortfolioCryptoSummary(portfolioId),
-    ]);
-    const holding = cryptoSummary.balances.find((b) => b.symbol === symbol) ?? null;
-
-    return {
-      kind: "crypto" as const,
-      demonstration: false as const,
-      mode: client.mode,
-      asset,
-      historyByRange,
-      holding,
-      walletPublicId: cryptoSummary.hasWallet ? cryptoSummary.walletPublicId : null,
-      buyingPower: portfolio.buyingPower,
-      portfolios: portfolios.map((row) =>
-        row.id === portfolioId
-          ? {
-              ...row,
-              buyingPower: portfolio.buyingPower,
-              cashBalance: portfolio.cashBalance,
-              holdingQuantity: holding ? Number.parseFloat(holding.quantity) : 0,
-            }
-          : row,
-      ),
-      selectedPortfolio,
-    };
   });

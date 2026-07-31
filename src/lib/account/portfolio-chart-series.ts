@@ -30,7 +30,13 @@ export const PORTFOLIO_RANGE_DAYS: Record<Exclude<PortfolioTimeRange, "1D" | "AL
 
 export const CHART_HISTORY_DAYS = 365;
 
+/** Treat near-zero portfolio cash as an unusable % basis (cent scale). */
 const PERCENT_BASIS_EPSILON = 0.01;
+/**
+ * Float-noise floor for value deltas. Must stay far below crypto/security price
+ * ticks (sub-cent) — the old 0.01 florin floor zeroed legitimate NVA/VLT moves.
+ */
+const VALUE_DELTA_NOISE = 1e-10;
 
 const NY_TIMEZONE = "America/New_York";
 
@@ -342,6 +348,23 @@ export function resolveDisplayInterval(
   return "monthly";
 }
 
+/**
+ * ALL histories vary from days to years. Month buckets make short crypto/new
+ * portfolios undraggable (often a single bucket). Step down granularity so
+ * range-drag always has multiple selectable buckets when data allows.
+ */
+export function resolveAllBucketKind(
+  startAt: number,
+  endAt: number,
+): "day" | "week" | "month" {
+  const span = Math.max(0, endAt - startAt);
+  if (span <= 45 * DAY_MS) return "day";
+  // Keep ~6mo crypto/demo histories on weeks (drag-selectable). True multi-year
+  // portfolio ALL stays on months.
+  if (span < 200 * DAY_MS) return "week";
+  return "month";
+}
+
 export function buildChartBucketsForRange(
   points: PortfolioChartPoint[],
   range: PortfolioTimeRange,
@@ -370,8 +393,12 @@ export function buildChartBucketsForRange(
     case "1Y":
       return buildCalendarWeekBuckets(sorted, startAt, endAt);
     case "ALL": {
+      const fullStart = sorted[0].at!;
       const fullEnd = Math.max(sorted[sorted.length - 1].at!, endAt);
-      return buildCalendarMonthBuckets(sorted, sorted[0].at!, fullEnd);
+      const kind = resolveAllBucketKind(fullStart, fullEnd);
+      if (kind === "day") return buildCalendarDayBuckets(sorted, fullStart, fullEnd);
+      if (kind === "week") return buildCalendarWeekBuckets(sorted, fullStart, fullEnd);
+      return buildCalendarMonthBuckets(sorted, fullStart, fullEnd);
     }
     default:
       return [];
@@ -559,14 +586,14 @@ export function computePeriodChangePercent(startValue: number, endValue: number)
   const end = Number.isFinite(endValue) ? endValue : 0;
   const delta = end - start;
 
-  if (Math.abs(delta) < PERCENT_BASIS_EPSILON) return 0;
+  if (Math.abs(delta) < VALUE_DELTA_NOISE) return 0;
   // Crossing from zero or negative into positive — % vs start is meaningless.
   if (start <= 0 && end > 0) return (delta / end) * 100;
-  if (start < 0 && end <= 0 && Math.abs(start) >= PERCENT_BASIS_EPSILON) {
+  if (start < 0 && end <= 0 && Math.abs(start) >= VALUE_DELTA_NOISE) {
     return (delta / Math.abs(start)) * 100;
   }
-  if (Math.abs(start) >= PERCENT_BASIS_EPSILON) return (delta / start) * 100;
-  if (Math.abs(end) >= PERCENT_BASIS_EPSILON) return (delta / end) * 100;
+  if (Math.abs(start) >= VALUE_DELTA_NOISE) return (delta / start) * 100;
+  if (Math.abs(end) >= VALUE_DELTA_NOISE) return (delta / end) * 100;
   return 0;
 }
 
@@ -580,13 +607,13 @@ export function computeHoverChangePercent(
   const end = Number.isFinite(periodEndValue) ? periodEndValue : hover;
   const delta = hover - start;
 
-  if (Math.abs(delta) < PERCENT_BASIS_EPSILON) return 0;
+  if (Math.abs(delta) < VALUE_DELTA_NOISE) return 0;
   if (start <= 0 && hover > 0) return (delta / hover) * 100;
-  if (start < 0 && hover <= 0 && Math.abs(start) >= PERCENT_BASIS_EPSILON) {
+  if (start < 0 && hover <= 0 && Math.abs(start) >= VALUE_DELTA_NOISE) {
     return (delta / Math.abs(start)) * 100;
   }
-  if (Math.abs(start) >= PERCENT_BASIS_EPSILON) return (delta / start) * 100;
-  if (Math.abs(hover) >= PERCENT_BASIS_EPSILON) return (delta / hover) * 100;
+  if (Math.abs(start) >= VALUE_DELTA_NOISE) return (delta / start) * 100;
+  if (Math.abs(hover) >= VALUE_DELTA_NOISE) return (delta / hover) * 100;
   return 0;
 }
 
@@ -613,10 +640,12 @@ export function formatPeriodChangeLabel(
 export function formatPortfolioChartHoverDate(
   atMs: number,
   range: PortfolioTimeRange,
-  _options?: {
+  options?: {
     resolution?: SeriesResolution;
     snapMode?: HoverSnapMode;
     now?: Date;
+    /** Override ALL label granularity when buckets are day/week for short histories. */
+    allBucketKind?: "day" | "week" | "month";
   },
 ): string {
   const date = new Date(atMs);
@@ -649,6 +678,23 @@ export function formatPortfolioChartHoverDate(
   }
 
   if (range === "1Y") {
+    const weekStart = startOfLocalWeek(date);
+    return `Week of ${new Intl.DateTimeFormat("en-US", {
+      timeZone: NY_TIMEZONE,
+      month: "short",
+      day: "numeric",
+    }).format(weekStart)}`;
+  }
+
+  const allKind = options?.allBucketKind ?? "month";
+  if (allKind === "day") {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: NY_TIMEZONE,
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  }
+  if (allKind === "week") {
     const weekStart = startOfLocalWeek(date);
     return `Week of ${new Intl.DateTimeFormat("en-US", {
       timeZone: NY_TIMEZONE,
