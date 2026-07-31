@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   formatAltaCardTransactionSummary,
@@ -16,6 +16,19 @@ const root = join(import.meta.dirname, "../..");
 
 function read(rel: string) {
   return readFileSync(join(root, rel), "utf8");
+}
+
+function walkTsx(relDir: string, out: string[] = []): string[] {
+  const abs = join(root, relDir);
+  for (const name of readdirSync(abs)) {
+    const child = join(relDir, name);
+    if (statSync(join(root, child)).isDirectory()) {
+      walkTsx(child, out);
+      continue;
+    }
+    if (name.endsWith(".tsx")) out.push(child);
+  }
+  return out;
 }
 
 describe("mobile-admin remediation: internal shell scroll architecture", () => {
@@ -77,6 +90,27 @@ describe("mobile-admin remediation: shared sheets", () => {
     const mobileNav = read("components/internal/console/internal-mobile-nav.tsx");
     assert.match(mobileNav, /overflow-hidden/);
     assert.match(mobileNav, /safe-area-inset-bottom/);
+  });
+
+  it("does not leave a click-blocking Sheet overlay when the panel is breakpoint-hidden", () => {
+    const offenders: string[] = [];
+    for (const file of [...walkTsx("components/internal"), ...walkTsx("routes/internal")]) {
+      const src = read(file);
+      if (!src.includes("SheetContent")) continue;
+      const blocks = src.match(/<SheetContent\b[\s\S]*?>/g) ?? [];
+      for (const block of blocks) {
+        const hide = block.match(/\b((?:sm|md|lg|xl|2xl):hidden)\b/);
+        if (!hide) continue;
+        const hideClass = hide[1]!;
+        const overlayOk = new RegExp(
+          `overlayClassName=["'\`][^"'\`]*${hideClass.replace(":", "\\:")}`,
+        ).test(block);
+        if (!overlayOk) {
+          offenders.push(`${file} hides panel with ${hideClass} but does not hide the overlay`);
+        }
+      }
+    }
+    assert.deepEqual(offenders, []);
   });
 });
 

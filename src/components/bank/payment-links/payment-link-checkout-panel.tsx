@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { Card } from "@/components/page-shell";
 import {
   Select,
@@ -158,7 +159,7 @@ export function PaymentLinkCheckoutPanel({
         accountNumber: payment.fundingSourceLabel,
       });
       setView("success");
-      await router.invalidate();
+      void refreshFinancialRouteData(router, "bank");
     } catch (err) {
       const raw = err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "";
       showSubmitError(

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import {
@@ -22,6 +21,7 @@ import { florin } from "@/lib/bank/api";
 import { submitLoanPayment } from "@/lib/bank/lending.functions";
 import type { LendingAccountOption, LoanRow } from "@/lib/bank/lending-types";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -47,7 +47,14 @@ export function LoanPaymentForm({
   suggestedAmount?: number;
   onSuccess?: () => void | Promise<void>;
 }) {
-  const router = useRouter();
+  const {
+    status: refreshStatus,
+    copy: refreshCopy,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const pay = useServerFn(submitLoanPayment);
   const payoff = loan.currentPayoffAmount ?? loan.outstandingBalance;
   const defaultAmount = suggestedAmount ?? payoff;
@@ -73,6 +80,7 @@ export function LoanPaymentForm({
     setAmount(String(defaultAmount));
     setMemo("");
     setSourceBankAccountId(sourceAccounts[0]?.id ?? "");
+    resetRefresh();
   }
 
   function goToReview() {
@@ -119,7 +127,13 @@ export function LoanPaymentForm({
       setSubmission(submitted);
       setView("success");
       await onSuccess?.();
-      await router.invalidate();
+      const refreshPromise = refreshAfterSuccess("lending");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       setErrorReason(parseServerError(err));
       setView("error");
@@ -140,11 +154,30 @@ export function LoanPaymentForm({
 
   if (view === "success" && submission) {
     return (
-      <BankRequestSuccessCard
-        kind="loan_payment"
-        result={submission}
-        onSubmitAnother={resetForm}
-      />
+      <div className="space-y-3">
+        <BankRequestSuccessCard
+          kind="loan_payment"
+          result={submission}
+          onSubmitAnother={resetForm}
+        />
+        {refreshCopy.visible ? (
+          <p className="text-center text-[12px] text-muted-foreground" role="status" aria-live="polite">
+            {refreshCopy.visible}
+            {refreshStatus === "failed" ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="underline underline-offset-2"
+                  onClick={() => void retryRefresh()}
+                >
+                  Retry refresh
+                </button>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+      </div>
     );
   }
 

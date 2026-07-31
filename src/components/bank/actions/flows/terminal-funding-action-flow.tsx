@@ -19,6 +19,7 @@ import { ensureIdempotencyKey } from "@/lib/bank/bank-action-flow";
 import { waitBankProcessMin, BANK_PROCESS_MOTION } from "@/lib/bank/bank-process";
 import { formatBankActionError } from "@/lib/bank/account-status-copy";
 import { getBankActionUiLabScenario } from "@/lib/bank/bank-action-ui-lab";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import {
   fetchTerminalFundingEligibility,
   submitTerminalFundingTransferFn,
@@ -66,6 +67,13 @@ export function TerminalFundingActionFlow({
 }) {
   const loadEligibility = useServerFn(fetchTerminalFundingEligibility);
   const submitFunding = useServerFn(submitTerminalFundingTransferFn);
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
 
   const [eligibility, setEligibility] = useState<TerminalFundingEligibility | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -163,6 +171,10 @@ export function TerminalFundingActionFlow({
     [eligibility, portfolioId],
   );
 
+  // Terminal → Bank: portfolio is chosen first; filter Bank accounts to match.
+  // Bank → Terminal: account is chosen first; filter portfolios to match.
+  const portfolioFirst = direction === "TERMINAL_TO_BANK";
+
   const compatibleAccounts = useMemo(() => {
     if (!eligibility) return EMPTY_ACCOUNTS;
     if (!portfolio) return eligibility.accounts;
@@ -176,16 +188,26 @@ export function TerminalFundingActionFlow({
 
   const compatiblePortfolios = useMemo(() => {
     if (!eligibility) return EMPTY_PORTFOLIOS;
-    if (!account) return eligibility.portfolios;
+    // When portfolio is the primary selector, do not narrow options by the Bank account.
+    if (portfolioFirst || !account) return eligibility.portfolios;
     return eligibility.portfolios.filter((p) => {
       if (account.ownershipType === "PERSONAL") return p.ownerType === "personal";
       return p.ownerType === "company" && p.ownerCompanyId === account.companyId;
     });
-  }, [eligibility, account]);
+  }, [eligibility, account, portfolioFirst]);
 
   // Keep selections inside the compatible sets without wiping entered amount/direction.
+  // Prefer the primary selector for the active direction (portfolio for Terminal → Bank).
   useEffect(() => {
     if (!eligibility || step === "submitting" || step === "success") return;
+    if (portfolioFirst) {
+      if (bankAccountId && !compatibleAccounts.some((a) => a.id === bankAccountId)) {
+        const next =
+          compatibleAccounts.find((a) => a.canCredit || a.canDebit) ?? compatibleAccounts[0];
+        if (next) setBankAccountId(next.id);
+      }
+      return;
+    }
     if (portfolioId && !compatiblePortfolios.some((p) => p.id === portfolioId)) {
       const next = compatiblePortfolios.find((p) => p.canFund) ?? compatiblePortfolios[0];
       if (next) setPortfolioId(next.id);
@@ -198,6 +220,7 @@ export function TerminalFundingActionFlow({
   }, [
     eligibility,
     step,
+    portfolioFirst,
     portfolioId,
     bankAccountId,
     compatiblePortfolios,
@@ -304,6 +327,14 @@ export function TerminalFundingActionFlow({
       setReceipt(result);
       idempotencyKeyRef.current = null;
       setStep("success");
+      // Soft refresh — never flips success into an error state.
+      const refreshPromise = refreshAfterSuccess("bank-terminal");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       const raw =
         err instanceof Error
@@ -427,7 +458,23 @@ export function TerminalFundingActionFlow({
         liveMessage={`Moved ${florin(receipt.amount)} ${
           receipt.direction === "BANK_TO_TERMINAL" ? "to" : "from"
         } ${receipt.portfolioName}.`}
-        onDone={onDone}
+        onDone={() => {
+          void (async () => {
+            if (refreshPromiseRef.current) {
+              try {
+                await refreshPromiseRef.current;
+              } catch {
+                /* soft — transaction already succeeded */
+              }
+            }
+            resetRefresh();
+            onDone();
+          })();
+        }}
+        refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+        onRetryRefresh={() => {
+          void retryRefresh();
+        }}
         summary={[
           { label: "Amount", value: florin(receipt.amount) },
           {
@@ -504,6 +551,68 @@ export function TerminalFundingActionFlow({
     const portfolioSelectValue = compatiblePortfolios.some((p) => p.id === portfolioId)
       ? portfolioId
       : undefined;
+
+    const bankAccountField = (
+      <label className="block">
+        <span className="type-meta">{sourceIsBank ? "From Bank account" : "To Bank account"}</span>
+        <Select value={accountSelectValue} onValueChange={setBankAccountId}>
+          <SelectTrigger className={inputClass}>
+            <SelectValue placeholder="Select account" />
+          </SelectTrigger>
+          <SelectContent>
+            {compatibleAccounts.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.label} · {florin(a.availableBalance)} avail.
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </label>
+    );
+
+    const portfolioField = (
+      <label className="block">
+        <span className="type-meta">
+          {sourceIsBank ? "To Terminal portfolio" : "From Terminal portfolio"}
+        </span>
+        <Select
+          value={portfolioSelectValue}
+          onValueChange={(next) => {
+            requestedPortfolioIdRef.current = next;
+            setPortfolioId(next);
+            setPortfolioNotice(null);
+            // Terminal → Bank: portfolio drives ownership — pick a matching Bank account.
+            if (!eligibility) return;
+            const nextPortfolio = eligibility.portfolios.find((p) => p.id === next);
+            if (!nextPortfolio) return;
+            const matching = eligibility.accounts.filter((a) => {
+              if (nextPortfolio.ownerType === "personal") {
+                return a.ownershipType === "PERSONAL";
+              }
+              return (
+                a.ownershipType === "COMPANY" && a.companyId === nextPortfolio.ownerCompanyId
+              );
+            });
+            if (matching.some((a) => a.id === bankAccountId)) return;
+            const preferred =
+              matching.find((a) => (sourceIsBank ? a.canDebit : a.canCredit)) ?? matching[0];
+            if (preferred) setBankAccountId(preferred.id);
+          }}
+        >
+          <SelectTrigger className={inputClass}>
+            <SelectValue placeholder="Select portfolio" />
+          </SelectTrigger>
+          <SelectContent>
+            {compatiblePortfolios.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.name} · {florin(p.availableCash)} cash
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </label>
+    );
+
     return (
       <div className="space-y-5">
         <BankActionProgress step={2} total={3} label="Details" />
@@ -512,45 +621,17 @@ export function TerminalFundingActionFlow({
             {portfolioNotice}
           </p>
         ) : null}
-        <label className="block">
-          <span className="type-meta">{sourceIsBank ? "From Bank account" : "To Bank account"}</span>
-          <Select value={accountSelectValue} onValueChange={setBankAccountId}>
-            <SelectTrigger className={inputClass}>
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {compatibleAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.label} · {florin(a.availableBalance)} avail.
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
-        <label className="block">
-          <span className="type-meta">
-            {sourceIsBank ? "To Terminal portfolio" : "From Terminal portfolio"}
-          </span>
-          <Select
-            value={portfolioSelectValue}
-            onValueChange={(next) => {
-              requestedPortfolioIdRef.current = next;
-              setPortfolioId(next);
-              setPortfolioNotice(null);
-            }}
-          >
-            <SelectTrigger className={inputClass}>
-              <SelectValue placeholder="Select portfolio" />
-            </SelectTrigger>
-            <SelectContent>
-              {compatiblePortfolios.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name} · {florin(p.availableCash)} cash
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
+        {portfolioFirst ? (
+          <>
+            {portfolioField}
+            {bankAccountField}
+          </>
+        ) : (
+          <>
+            {bankAccountField}
+            {portfolioField}
+          </>
+        )}
         <label className="block">
           <span className="type-meta">Amount</span>
           <input

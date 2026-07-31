@@ -33,6 +33,7 @@ import {
   formatBankActionError,
   withdrawalBlockedReason,
 } from "@/lib/bank/account-status-copy";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -93,6 +94,13 @@ export function WithdrawActionFlow({
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [referenceCode, setReferenceCode] = useState<string | null>(null);
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const submittingLockRef = useRef(false);
   const initialBankAccountIdRef = useRef(preferredAccountId ?? "");
   const selected = withdrawAccounts.find((a) => a.id === bankAccountId);
@@ -225,6 +233,13 @@ export function WithdrawActionFlow({
         await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
         setReferenceCode(result.referenceCode);
         setPhase("success");
+        const refreshPromise = refreshAfterSuccess("bank");
+        refreshPromiseRef.current = refreshPromise;
+        void refreshPromise.finally(() => {
+          if (refreshPromiseRef.current === refreshPromise) {
+            refreshPromiseRef.current = null;
+          }
+        });
         return;
       }
 
@@ -248,6 +263,13 @@ export function WithdrawActionFlow({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setReferenceCode(payload.referenceCode ?? "—");
       setPhase("success");
+      const refreshPromise = refreshAfterSuccess("bank");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Unable to submit withdrawal.";
       const formatted = formatBankActionError(raw, {
@@ -279,7 +301,23 @@ export function WithdrawActionFlow({
         kind="pending"
         title="Pending review"
         liveMessage={`Withdrawal of ${florin(Number(amount))} submitted and pending review.`}
-        onDone={onDone}
+        onDone={() => {
+          void (async () => {
+            if (refreshPromiseRef.current) {
+              try {
+                await refreshPromiseRef.current;
+              } catch {
+                /* soft — transaction already succeeded */
+              }
+            }
+            resetRefresh();
+            onDone();
+          })();
+        }}
+        refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+        onRetryRefresh={() => {
+          void retryRefresh();
+        }}
         onMakeAnother={() => {
           setAmount("");
           setDestination("");

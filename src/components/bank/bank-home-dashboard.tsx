@@ -6,6 +6,7 @@ import { ArrowDownLeft, ArrowUpRight, CreditCard } from "lucide-react";
 import { MoveMoneyChooser } from "@/components/bank/move-money-chooser";
 import { BankActionLauncher } from "@/components/bank/actions/bank-action-launcher";
 import { florin } from "@/lib/bank/api";
+import { BalanceValue } from "@/components/financial/balance-value";
 import {
   buildBankHomeContextOptions,
   companiesFromAccounts,
@@ -215,8 +216,8 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
           <div className="min-w-0">
             <p className="text-[13px] font-medium text-muted-foreground">{greeting}</p>
             <p className="mt-1 text-[12px] text-muted-foreground">Available balance</p>
-            <p className="mt-1 font-serif text-[2.15rem] font-medium tracking-tight tabular-nums sm:text-[2.5rem]">
-              {florin(available)}
+            <p className="mt-1 font-serif text-[2.15rem] font-medium tracking-tight sm:text-[2.5rem]">
+              <BalanceValue value={available} />
             </p>
             {scopedPending.length > 0 ? (
               <p className="mt-2 text-[13px] text-muted-foreground">

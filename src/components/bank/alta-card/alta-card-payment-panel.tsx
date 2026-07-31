@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import {
@@ -45,6 +44,7 @@ import {
 import { applyUiLabAltaCardPayment } from "@/lib/bank/ui-lab-alta-card-state";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { cn } from "@/lib/utils";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -66,7 +66,13 @@ export function AltaCardPaymentPanel({
   card: AltaCardRow;
   variant?: "button" | "quick" | "panel";
 }) {
-  const router = useRouter();
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const loadContext = useServerFn(fetchCardPaymentContext);
   const submit = useServerFn(submitCardPaymentRecord);
   const isModal = variant === "quick" || variant === "button";
@@ -123,7 +129,8 @@ export function AltaCardPaymentPanel({
     applyPaymentKind("current", balances);
     setSubmitting(false);
     submittingLockRef.current = false;
-  }, [balances]);
+    resetRefresh();
+  }, [balances, resetRefresh]);
 
   const openPanel = useCallback(async () => {
     // Close any other Bank workflow (Freeze sheet, cash advance, etc.) first.
@@ -272,9 +279,13 @@ export function AltaCardPaymentPanel({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmission(submitted);
       setView("success");
-      if (!shouldUseBankActionUiLabMock()) {
-        await router.invalidate();
-      }
+      const refreshPromise = refreshAfterSuccess("alta-card");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       setErrorReason(formatCustomerActionError(err, "card_payment"));
       setView("error");
@@ -313,7 +324,23 @@ export function AltaCardPaymentPanel({
             },
             { label: "Reference", value: submission.referenceCode, mono: true },
           ]}
-          onDone={() => handleOpenChange(false)}
+          refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+          onRetryRefresh={() => {
+            void retryRefresh();
+          }}
+          onDone={() => {
+            void (async () => {
+              if (refreshPromiseRef.current) {
+                try {
+                  await refreshPromiseRef.current;
+                } catch {
+                  /* soft — transaction already succeeded */
+                }
+              }
+              resetRefresh();
+              handleOpenChange(false);
+            })();
+          }}
         />
       );
     }

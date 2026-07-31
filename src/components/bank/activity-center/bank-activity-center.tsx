@@ -56,7 +56,7 @@ import {
   resumeAltaPayScheduleFn,
 } from "@/lib/bank/payments-engine.functions";
 import { cancelUserScheduledTransferRecord } from "@/lib/bank/scheduled-transfer.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { cn } from "@/lib/utils";
 import { overlayZClass } from "@/lib/ui/overlay-layers";
 
@@ -333,7 +333,7 @@ export function BankActivityCenter({
       } else {
         await cancelSchedule({ data: row.id });
       }
-      await invalidateRouteData(router);
+      await refreshFinancialRouteData(router, "bank");
       closeDetail();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Something went wrong. Try again.");
@@ -351,7 +351,7 @@ export function BankActivityCenter({
       } else {
         await cancelAutopay({ data: row.id });
       }
-      await invalidateRouteData(router);
+      await refreshFinancialRouteData(router, "bank");
       closeDetail();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Something went wrong. Try again.");

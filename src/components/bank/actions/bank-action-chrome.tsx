@@ -68,6 +68,8 @@ export function BankActionSuccess({
   liveMessage,
   kind = "success",
   summary,
+  refreshStatus,
+  onRetryRefresh,
 }: {
   title: string;
   children?: ReactNode;
@@ -77,6 +79,8 @@ export function BankActionSuccess({
   liveMessage?: string;
   kind?: "success" | "pending";
   summary?: BankProcessSummaryRow[];
+  refreshStatus?: "idle" | "refreshing" | "updated" | "failed";
+  onRetryRefresh?: () => void;
 }) {
   return (
     <BankProcessResult
@@ -87,6 +91,8 @@ export function BankActionSuccess({
       onDone={onDone}
       onSecondary={onMakeAnother}
       secondaryLabel={makeAnotherLabel}
+      refreshStatus={refreshStatus}
+      onRetryRefresh={onRetryRefresh}
     >
       {children}
     </BankProcessResult>

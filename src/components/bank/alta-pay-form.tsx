@@ -27,7 +27,7 @@ import type {
   SubmitAltaPayResult,
 } from "@/lib/bank/alta-pay-types";
 import { ALTA_PAY_FORM_INTRO } from "@/lib/bank/bank-shared-copy";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import {
   formatBankActionError,
   transferBlockedReason,
@@ -328,7 +328,7 @@ export function AltaPayForm({
       setView("success");
       onSubmissionSuccess?.(submitted);
       onSuccess?.();
-      await invalidateRouteData(router);
+      void refreshFinancialRouteData(router, "bank");
     } catch (err) {
       const raw =
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "";

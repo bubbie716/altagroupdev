@@ -186,10 +186,13 @@ function TerminalPortfolioDetailPage() {
           label="Equity"
           value={<MoneyValue value={portfolio.equityValue} size="md" />}
         />
-        <SummaryCard label="Cash" value={<MoneyValue value={portfolio.cashBalance} size="md" />} />
+        <SummaryCard
+          label="Cash"
+          value={<MoneyValue value={portfolio.cashBalance} size="md" animateOnChange />}
+        />
         <SummaryCard
           label="Buying power"
-          value={<MoneyValue value={portfolio.buyingPower} size="md" />}
+          value={<MoneyValue value={portfolio.buyingPower} size="md" animateOnChange />}
         />
         <SummaryCard
           label="Day change"

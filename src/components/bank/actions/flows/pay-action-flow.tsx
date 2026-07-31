@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Search, ShieldCheck, UserRound } from "lucide-react";
 import {
@@ -51,8 +50,8 @@ import {
   withdrawalBlockedReason,
 } from "@/lib/bank/account-status-copy";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/ui/route-loading";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -121,7 +120,13 @@ export function PayActionFlow({
   defaultAccountId?: string;
   onExitToChooser?: () => void;
 }) {
-  const router = useRouter();
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const loadFunding = useServerFn(fetchPayFundingSources);
   const searchRecipients = useServerFn(searchPayableRecipientsForPay);
   const payCompany = useServerFn(submitAltaPay);
@@ -378,6 +383,13 @@ export function PayActionFlow({
         setResultLabel(selectedRecipient.name);
         setPhase("success");
         idempotencyKeyRef.current = null;
+        const refreshPromise = refreshAfterSuccess("bank");
+        refreshPromiseRef.current = refreshPromise;
+        void refreshPromise.finally(() => {
+          if (refreshPromiseRef.current === refreshPromise) {
+            refreshPromiseRef.current = null;
+          }
+        });
         return;
       }
 
@@ -413,7 +425,13 @@ export function PayActionFlow({
       setReferenceCode(result.referenceCode);
       setResultLabel(result.companyName || selectedRecipient.name);
       setPhase("success");
-      await invalidateRouteData(router);
+      const refreshPromise = refreshAfterSuccess("bank");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       const raw = err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "";
       const accountId =
@@ -460,7 +478,23 @@ export function PayActionFlow({
       <BankActionSuccess
         title="Payment sent"
         liveMessage={`Sent ${florin(Number(amount))} to ${recipientName}`}
-        onDone={onDone}
+        onDone={() => {
+          void (async () => {
+            if (refreshPromiseRef.current) {
+              try {
+                await refreshPromiseRef.current;
+              } catch {
+                /* soft — transaction already succeeded */
+              }
+            }
+            resetRefresh();
+            onDone();
+          })();
+        }}
+        refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+        onRetryRefresh={() => {
+          void retryRefresh();
+        }}
         summary={[
           { label: "Amount", value: florin(Number(amount) || 0) },
           { label: "To", value: recipientName },

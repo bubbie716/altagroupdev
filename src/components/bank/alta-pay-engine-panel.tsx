@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useServerFn } from "@tanstack/react-start";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { Card } from "@/components/page-shell";
 import { AltaPayForm } from "@/components/bank/alta-pay-form";
 import { AltaPayHistoryTable } from "@/components/bank/alta-pay-received-panel";
@@ -460,7 +461,7 @@ export function AltaPayEnginePanel({
   const cancelAutopay = useServerFn(cancelMerchantAutopayApprovalFn);
 
   async function refresh() {
-    await router.invalidate();
+    await refreshFinancialRouteData(router, "bank");
   }
 
   return (

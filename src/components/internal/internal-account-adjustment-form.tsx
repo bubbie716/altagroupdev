@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { adminAdjustBankAccountRecord } from "@/lib/bank/bank.functions";
 import { florin } from "@/lib/bank/api";
 import { OpsAction } from "@/components/internal/ops-action";
 
 export function InternalAccountAdjustmentForm({ accountId }: { accountId: string }) {
-  const router = useRouter();
   const [direction, setDirection] = useState<"credit" | "debit">("credit");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -36,7 +34,7 @@ export function InternalAccountAdjustmentForm({ accountId }: { accountId: string
     setSuccess(`Adjustment recorded (${result.referenceCode}).`);
     setAmount("");
     setReason("");
-    await router.invalidate();
+    // OpsAction refreshes route data after confirm; no second invalidate here.
   }
 
   return (

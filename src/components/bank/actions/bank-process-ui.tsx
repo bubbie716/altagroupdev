@@ -165,6 +165,8 @@ export function BankProcessResult({
   secondaryLabel,
   liveMessage,
   graphicVariant,
+  refreshStatus,
+  onRetryRefresh,
 }: {
   kind: BankProcessOutcomeKind;
   title: string;
@@ -175,7 +177,19 @@ export function BankProcessResult({
   secondaryLabel?: string;
   liveMessage?: string;
   graphicVariant?: "pulse" | "transfer" | "progress";
+  /** Soft post-commit balance refresh status — never implies transaction failure. */
+  refreshStatus?: "idle" | "refreshing" | "updated" | "failed";
+  onRetryRefresh?: () => void;
 }) {
+  const refreshLive =
+    refreshStatus === "refreshing"
+      ? "Updating balances."
+      : refreshStatus === "updated"
+        ? "Balances updated."
+        : refreshStatus === "failed"
+          ? "Transfer completed. Updated balances may take a moment to appear."
+          : null;
+
   return (
     <div className="space-y-5">
       <BankProcessState
@@ -189,6 +203,29 @@ export function BankProcessResult({
       {summary && summary.length > 0 ? (
         <div className="rounded-xl border border-border/70 px-4 py-3 text-left">
           <BankProcessSummary rows={summary} />
+        </div>
+      ) : null}
+      {refreshStatus && refreshStatus !== "idle" ? (
+        <div className="space-y-2" role="status" aria-live="polite">
+          {refreshStatus === "refreshing" ? (
+            <p className="text-[12px] text-muted-foreground">Updating balances…</p>
+          ) : null}
+          {refreshStatus === "updated" ? (
+            <p className="text-[12px] text-muted-foreground">Balances updated.</p>
+          ) : null}
+          {refreshStatus === "failed" ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[12px] text-muted-foreground">
+                Transfer completed. Updated balances may take a moment to appear.
+              </p>
+              {onRetryRefresh ? (
+                <BankActionSecondaryButton onClick={onRetryRefresh}>
+                  Retry refresh
+                </BankActionSecondaryButton>
+              ) : null}
+            </div>
+          ) : null}
+          {refreshLive ? <span className="sr-only">{refreshLive}</span> : null}
         </div>
       ) : null}
       <BankActionFooter>

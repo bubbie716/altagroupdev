@@ -40,7 +40,7 @@ import {
   type InvoiceFormValues,
   type InvoiceWizardStep,
 } from "@/lib/bank/merchant-invoice-validation";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
@@ -287,7 +287,7 @@ export function MerchantInvoiceWorkflow({
       setSavedReferenceCode(draft.referenceCode);
       setSuccessMode("draft");
       setPhase("success");
-      await invalidateRouteData(router);
+      await refreshFinancialRouteData(router, "bank");
     } catch (err) {
       setErrorReason(formatWorkflowError(err, "Unable to save draft."));
       setPhase("error");
@@ -312,7 +312,7 @@ export function MerchantInvoiceWorkflow({
       setSavedReferenceCode(draft.referenceCode);
       setSuccessMode("sent");
       setPhase("success");
-      await invalidateRouteData(router);
+      await refreshFinancialRouteData(router, "bank");
     } catch (err) {
       setErrorReason(formatWorkflowError(err, "Unable to send invoice."));
       setPhase("error");

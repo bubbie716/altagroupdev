@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { useRouter } from "@tanstack/react-router";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { Card } from "@/components/page-shell";
 import { florin } from "@/lib/bank/api";
 import type { TransferContact } from "@/lib/bank/backend-types";
@@ -264,7 +265,7 @@ function ScheduledTransferForm({
         frequency: paymentType === "recurring" ? frequency : undefined,
         memo: memo || undefined,
       });
-      await router.invalidate();
+      await refreshFinancialRouteData(router, "bank");
       setRecipientName("");
       setRecipientAccountNumber("");
       setDestinationAccountId(availableDestinations[0]?.id ?? "");
@@ -583,7 +584,7 @@ function TransferHistoryTable({
                   type="button"
                   onClick={async () => {
                     await onCancel(p.id);
-                    await router.invalidate();
+                    await refreshFinancialRouteData(router, "bank");
                   }}
                   className="mt-1 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
                 >
@@ -657,7 +658,7 @@ function TransferHistoryTable({
                     className="mt-1 rounded border border-destructive/30 bg-destructive/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
                     onClick={async () => {
                       await onCancel(p.id);
-                      await router.invalidate();
+                      await refreshFinancialRouteData(router, "bank");
                     }}
                   >
                     Cancel
@@ -684,7 +685,7 @@ function TransferHistoryTable({
                       className="rounded border border-destructive/30 bg-destructive/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-destructive"
                       onClick={async () => {
                         await onCancel(p.id);
-                        await router.invalidate();
+                        await refreshFinancialRouteData(router, "bank");
                       }}
                     >
                       Cancel

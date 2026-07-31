@@ -26,8 +26,12 @@ import {
   type InboxPayload,
   type InboxSearch,
 } from "@/lib/internal/inbox-types";
+import { useMediaQueryMax } from "@/hooks/use-media-query-max";
 import { cn } from "@/lib/utils";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+
+/** Tailwind `lg` — mobile sheet only below this width; desktop uses the aside. */
+const INBOX_MOBILE_SHEET_MAX_PX = 1024;
 
 const CATEGORY_ORDER = Object.keys(INBOX_CATEGORY_LABELS) as Array<InboxCategory | "all">;
 
@@ -49,6 +53,7 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
   const [query, setQuery] = useState(search.q ?? "");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(search.caseId ?? null);
+  const isMobileSheet = useMediaQueryMax(INBOX_MOBILE_SHEET_MAX_PX);
   const listRef = useRef<HTMLDivElement>(null);
   const scrollRestore = useRef<number | null>(null);
   const caseTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -369,13 +374,14 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
       )}
 
       <Sheet
-        open={Boolean(selected)}
+        open={Boolean(selected) && isMobileSheet}
         onOpenChange={(open) => {
           if (!open && window.matchMedia("(max-width: 1023px)").matches) clearCase();
         }}
       >
         <SheetContent
           side="bottom"
+          overlayClassName="lg:hidden"
           className="flex h-[min(var(--internal-sheet-available-height,92dvh),40rem)] max-h-[var(--internal-sheet-available-height,100dvh)] flex-col gap-0 overflow-hidden p-0 lg:hidden"
           hideCloseButton={false}
         >

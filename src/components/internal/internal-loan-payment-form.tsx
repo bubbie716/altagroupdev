@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { florin } from "@/lib/bank/api";
 import { adminRecordLoanPaymentOps } from "@/lib/internal/ops-platform.functions";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
@@ -185,7 +186,7 @@ export function InternalLoanPaymentForm({
             },
           });
           setOpen(false);
-          await router.invalidate();
+          void refreshFinancialRouteData(router, "lending");
         }}
       />
     </div>

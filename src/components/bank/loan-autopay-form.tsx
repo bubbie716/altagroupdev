@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setLoanAutoPayRecord } from "@/lib/bank/lending.functions";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import type { LendingAccountOption, LoanRow } from "@/lib/bank/lending-types";
 
 const fieldLabel = "type-meta";
@@ -55,7 +56,7 @@ export function LoanAutoPayForm({
       });
       setSaved(true);
       await onUpdated?.();
-      await router.invalidate();
+      void refreshFinancialRouteData(router, "lending");
     } catch (err) {
       setError(parseServerError(err));
     } finally {

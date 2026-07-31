@@ -36,6 +36,7 @@ import {
   formatBankActionError,
   transferBlockedReason,
 } from "@/lib/bank/account-status-copy";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import { DEFAULT_SCHEDULED_TIME_ET } from "@/lib/scheduled-datetime";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -103,6 +104,13 @@ export function TransferActionFlow({
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [referenceCode, setReferenceCode] = useState<string | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const submittingLockRef = useRef(false);
 
@@ -298,6 +306,13 @@ export function TransferActionFlow({
         setReferenceCode(result.referenceCode);
         setPhase("success");
         idempotencyKeyRef.current = null;
+        const refreshPromise = refreshAfterSuccess("bank");
+        refreshPromiseRef.current = refreshPromise;
+        void refreshPromise.finally(() => {
+          if (refreshPromiseRef.current === refreshPromise) {
+            refreshPromiseRef.current = null;
+          }
+        });
         return;
       }
 
@@ -334,6 +349,13 @@ export function TransferActionFlow({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       idempotencyKeyRef.current = null;
       setPhase("success");
+      const refreshPromise = refreshAfterSuccess("bank");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       const raw =
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unable to complete transfer.";
@@ -374,7 +396,23 @@ export function TransferActionFlow({
             ? `Transferred ${florin(Number(amount))} to ${toAccount?.accountName ?? "destination"}.`
             : "Scheduled transfer created."
         }
-        onDone={onDone}
+        onDone={() => {
+          void (async () => {
+            if (refreshPromiseRef.current) {
+              try {
+                await refreshPromiseRef.current;
+              } catch {
+                /* soft — transaction already succeeded */
+              }
+            }
+            resetRefresh();
+            onDone();
+          })();
+        }}
+        refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+        onRetryRefresh={() => {
+          void retryRefresh();
+        }}
         summary={[
           { label: "Amount", value: florin(Number(amount) || 0) },
           {

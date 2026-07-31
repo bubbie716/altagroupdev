@@ -30,6 +30,7 @@ import {
 import { isDepositFormDirty } from "@/lib/bank/bank-action-dirty";
 import type { UserBankAccount } from "@/lib/bank/backend-types";
 import { depositBlockedReason, formatBankActionError } from "@/lib/bank/account-status-copy";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import { MAX_PROOF_BYTES, ACCEPTED_PROOF_INPUT } from "@/lib/storage/proof-upload.constants";
 import {
   Select,
@@ -92,6 +93,13 @@ export function DepositActionFlow({
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [referenceCode, setReferenceCode] = useState<string | null>(null);
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const proofInputRef = useRef<HTMLInputElement>(null);
   const submittingLockRef = useRef(false);
   const initialBankAccountIdRef = useRef(preferredAccountId ?? "");
@@ -223,6 +231,13 @@ export function DepositActionFlow({
         setReferenceCode(result.referenceCode);
         onPendingReference?.(result.referenceCode);
         setPhase("success");
+        const refreshPromise = refreshAfterSuccess("bank");
+        refreshPromiseRef.current = refreshPromise;
+        void refreshPromise.finally(() => {
+          if (refreshPromiseRef.current === refreshPromise) {
+            refreshPromiseRef.current = null;
+          }
+        });
         return;
       }
 
@@ -247,6 +262,13 @@ export function DepositActionFlow({
       setReferenceCode(payload.referenceCode ?? "—");
       onPendingReference?.(payload.referenceCode ?? "—");
       setPhase("success");
+      const refreshPromise = refreshAfterSuccess("bank");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       const raw =
         err instanceof Error ? err.message : "Proof upload failed. Please try again.";
@@ -276,7 +298,23 @@ export function DepositActionFlow({
         kind="pending"
         title="Pending review"
         liveMessage={`Deposit of ${florin(Number(amount))} submitted and pending review.`}
-        onDone={onDone}
+        onDone={() => {
+          void (async () => {
+            if (refreshPromiseRef.current) {
+              try {
+                await refreshPromiseRef.current;
+              } catch {
+                /* soft — transaction already succeeded */
+              }
+            }
+            resetRefresh();
+            onDone();
+          })();
+        }}
+        refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+        onRetryRefresh={() => {
+          void retryRefresh();
+        }}
         onMakeAnother={() => {
           setAmount("");
           setProofFile(null);

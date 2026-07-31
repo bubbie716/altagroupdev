@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/page-shell";
 import {
@@ -49,6 +48,7 @@ import {
 } from "@/lib/bank/bank-action-ui-lab";
 import { applyUiLabAltaCardCashAdvance } from "@/lib/bank/ui-lab-alta-card-state";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
+import { usePostFinancialRefresh } from "@/hooks/use-post-financial-refresh";
 import { cn } from "@/lib/utils";
 
 const fieldLabel = "type-meta";
@@ -69,7 +69,13 @@ export function AltaCardCashAdvancePanel({
   employeeCard,
   variant = "button",
 }: AltaCardCashAdvancePanelProps) {
-  const router = useRouter();
+  const {
+    status: refreshStatus,
+    refreshAfterSuccess,
+    retryRefresh,
+    reset: resetRefresh,
+  } = usePostFinancialRefresh();
+  const refreshPromiseRef = useRef<Promise<unknown> | null>(null);
   const isEmployee = Boolean(employeeCard);
   const loadCardContext = useServerFn(fetchCashAdvanceContext);
   const loadEmployeeContext = useServerFn(fetchEmployeeCashAdvanceContext);
@@ -285,9 +291,13 @@ export function AltaCardCashAdvancePanel({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setSubmission(submitted);
       setView("success");
-      if (!(shouldUseBankActionUiLabMock() && !isEmployee)) {
-        await router.invalidate();
-      }
+      const refreshPromise = refreshAfterSuccess("alta-card");
+      refreshPromiseRef.current = refreshPromise;
+      void refreshPromise.finally(() => {
+        if (refreshPromiseRef.current === refreshPromise) {
+          refreshPromiseRef.current = null;
+        }
+      });
     } catch (err) {
       setErrorReason(formatCustomerActionError(err, "cash_advance"));
       setView("error");
@@ -329,7 +339,23 @@ export function AltaCardCashAdvancePanel({
             },
             { label: "Reference", value: submission.referenceCode, mono: true },
           ]}
-          onDone={() => handleOpenChange(false)}
+          refreshStatus={refreshStatus === "idle" ? "refreshing" : refreshStatus}
+          onRetryRefresh={() => {
+            void retryRefresh();
+          }}
+          onDone={() => {
+            void (async () => {
+              if (refreshPromiseRef.current) {
+                try {
+                  await refreshPromiseRef.current;
+                } catch {
+                  /* soft — transaction already succeeded */
+                }
+              }
+              resetRefresh();
+              handleOpenChange(false);
+            })();
+          }}
         />
       );
     }

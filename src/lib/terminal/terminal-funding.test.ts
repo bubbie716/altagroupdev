@@ -298,6 +298,8 @@ describe("terminal funding UI structure", () => {
     assert.match(flow, /uiLabScenario/);
     assert.match(flow, /Try again/);
     assert.match(flow, /Unable to load funding options/);
+    assert.match(flow, /portfolioFirst/);
+    assert.match(flow, /TERMINAL_TO_BANK/);
     assert.match(host, /action === "terminal-funding"/);
   });
 

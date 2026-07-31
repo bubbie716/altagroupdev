@@ -31,7 +31,7 @@ import {
   validatePaymentLinkDetails,
   type PaymentLinkFormValues,
 } from "@/lib/bank/payment-link-validation";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
 import { absolutePaymentLinkCheckoutUrl } from "@/lib/bank/payment-link-checkout-url";
 import { cn } from "@/lib/utils";
 
@@ -212,7 +212,7 @@ export function PaymentLinkWorkflow({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setCreated(link);
       setPhase("success");
-      await invalidateRouteData(router);
+      await refreshFinancialRouteData(router, "bank");
     } catch (err) {
       setErrorReason(formatWorkflowError(err, "Unable to create payment link."));
       setPhase("error");

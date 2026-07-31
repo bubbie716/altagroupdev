@@ -249,6 +249,9 @@ describe("phase2: Inbox UI contracts", () => {
     const page = read("components/internal/inbox/inbox-page.tsx");
     assert.match(page, /lg:hidden/);
     assert.match(page, /SheetContent/);
+    assert.match(page, /overlayClassName="lg:hidden"/);
+    assert.match(page, /open=\{Boolean\(selected\) && isMobileSheet\}/);
+    assert.match(page, /useMediaQueryMax\(INBOX_MOBILE_SHEET_MAX_PX\)/);
     assert.match(page, /grid-cols-2 gap-2 sm:grid-cols-4/);
     assert.doesNotMatch(read("routes/internal/index.tsx"), /OpsTable/);
     assert.doesNotMatch(read("routes/internal/index.tsx"), /ActivityFeedTable/);
