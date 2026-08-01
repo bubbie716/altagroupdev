@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog,
@@ -18,6 +18,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { MoneyValue } from "@/components/terminal/money-value";
+import {
+  TERMINAL_PROCESS_MOTION,
+  TerminalProcessError,
+  TerminalProcessProcessing,
+  TerminalProcessResult,
+  waitTerminalProcessMin,
+  type TerminalProcessSummaryRow,
+} from "@/components/terminal/terminal-process-ui";
 import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
 import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 import { isConsentCancelledError } from "@/lib/legal/ui-lab-action-consent";
@@ -86,6 +94,7 @@ export function ScheduleTradeSheet({
   instrumentKind?: "STOCK" | "CRYPTO";
   onCreated?: (detail: ScheduledTradeDetail) => void;
 }) {
+  const navigate = useNavigate();
   const previewFn = useServerFn(previewScheduledTradeFn);
   const createFn = useServerFn(createScheduledTradeFn);
   const consentAction = useOptionalProductConsentAction();
@@ -185,12 +194,14 @@ export function ScheduleTradeSheet({
   async function runSubmit() {
     setError(null);
     const crypto = payload.instrumentKind === "CRYPTO";
+    let startedAt = Date.now();
     try {
       if (consentAction) {
         setStep("awaiting_consent");
         await consentAction.requestConsent(crypto ? ["TERMINAL", "CRYPTO"] : ["TERMINAL"]);
       }
       setStep("submitting");
+      startedAt = Date.now();
       const created = await executeWithProductConsentResume(async () => {
         return createFn({
           data: {
@@ -203,6 +214,7 @@ export function ScheduleTradeSheet({
           },
         });
       }, consentAction);
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       setResult(created);
       setStep("success");
       onCreated?.(created);
@@ -211,6 +223,7 @@ export function ScheduleTradeSheet({
         setStep("review");
         return;
       }
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Submit failed.");
       setStep("error");
     }
@@ -436,57 +449,50 @@ export function ScheduleTradeSheet({
       ) : null}
 
       {step === "awaiting_consent" ? (
-        <p className="text-[var(--terminal-muted)]">
-          {isCrypto
-            ? "Complete Terminal and crypto consent to continue…"
-            : "Complete Terminal consent to continue…"}
-        </p>
+        <TerminalProcessProcessing
+          label={
+            isCrypto
+              ? "Complete Terminal and crypto consent to continue…"
+              : "Complete Terminal consent to continue…"
+          }
+        />
       ) : null}
 
       {step === "submitting" ? (
-        <p className="text-[var(--terminal-muted)]">Creating schedule…</p>
+        <TerminalProcessProcessing label="Creating schedule…" />
       ) : null}
 
       {step === "success" && result ? (
-        <>
-          <p>
-            Scheduled {result.side} {sizeLabel} {result.symbol}.
-          </p>
-          <Link
-            to="/terminal/orders"
-            search={{
-              tab: "scheduled",
-              instructionId: result.id,
-              portfolioId,
-              status: "all",
-              side: "all",
-            }}
-            className="flex min-h-11 items-center justify-center rounded-md border border-[var(--terminal-border)] px-3 py-2"
-            onClick={() => handleClose(false)}
-          >
-            View scheduled trade
-          </Link>
-          <button
-            type="button"
-            className="w-full rounded-md bg-[var(--terminal-accent)] px-3 py-2 min-h-11"
-            onClick={() => handleClose(false)}
-          >
-            Done
-          </button>
-        </>
+        <TerminalProcessResult
+          kind="success"
+          title={`Scheduled ${result.side} ${sizeLabel} ${result.symbol}`}
+          summary={scheduleSuccessSummary(result, portfolioName, sizeLabel)}
+          onDone={() => handleClose(false)}
+          primaryLabel="View scheduled trade"
+          onPrimary={() => {
+            handleClose(false);
+            void navigate({
+              to: "/terminal/orders",
+              search: {
+                tab: "scheduled",
+                instructionId: result.id,
+                portfolioId,
+                status: "all",
+                side: "all",
+              },
+            });
+          }}
+          liveMessage={`Scheduled trade created for ${result.symbol}.`}
+        />
       ) : null}
 
       {step === "error" ? (
-        <>
-          <p className="text-[var(--terminal-red)]">{error ?? "Something went wrong."}</p>
-          <button
-            type="button"
-            className="w-full rounded-md border border-[var(--terminal-border)] px-3 py-2 min-h-11"
-            onClick={() => setStep("details")}
-          >
-            Try again
-          </button>
-        </>
+        <TerminalProcessError
+          title="Could not create schedule"
+          message={error ?? "Something went wrong."}
+          onEdit={() => setStep("details")}
+          editLabel="Try again"
+        />
       ) : null}
     </div>
   );
@@ -532,4 +538,18 @@ export function ScheduleTradeSheet({
       </DialogContent>
     </Dialog>
   );
+}
+
+function scheduleSuccessSummary(
+  result: ScheduledTradeDetail,
+  portfolioName: string,
+  sizeLabel: string,
+): TerminalProcessSummaryRow[] {
+  return [
+    { label: "Portfolio", value: portfolioName },
+    { label: "Side", value: result.side.toUpperCase() },
+    { label: "Symbol", value: result.symbol },
+    { label: "Size", value: sizeLabel },
+    { label: "Schedule", value: result.id, mono: true },
+  ];
 }

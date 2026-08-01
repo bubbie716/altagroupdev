@@ -8,7 +8,7 @@ import type { TseDataSourceMode } from "@/lib/terminal/types";
 
 export type TerminalOpsConnectionState = "live" | "mock" | "unavailable" | "degraded";
 
-export type TerminalOpsCryptoMarketsStatus = "not_activated" | "draft" | "demonstration";
+export type TerminalOpsCryptoMarketsStatus = "active" | "not_activated" | "draft" | "demonstration";
 
 export type TerminalOpsEnvironmentStatus = {
   connectionState: TerminalOpsConnectionState;
@@ -21,7 +21,7 @@ export type TerminalOpsEnvironmentStatus = {
   adapterName: string;
   endpointHost: string | null;
   lastCheckedAt: string;
-  /** Phase 3 — informational only. No activate/halt controls. */
+  /** Informational TSE/crypto ops banner — lifecycle controls live under /internal/terminal/crypto. */
   cryptoMarketsStatus: TerminalOpsCryptoMarketsStatus;
   cryptoMarketsLabel: string;
   cryptoMarketsDetail: string;
@@ -39,13 +39,13 @@ export function resolveTerminalOpsEnvironmentStatus(
         cryptoMarketsStatus: "demonstration" as const,
         cryptoMarketsLabel: "Crypto markets · demonstration",
         cryptoMarketsDetail:
-          "UI Lab demonstration crypto only. Production assets remain DRAFT / not activated. No admin activate controls in this view.",
+          "UI Lab demonstration crypto only. Not production balances. No admin activate controls in this view.",
       }
     : {
-        cryptoMarketsStatus: "not_activated" as const,
-        cryptoMarketsLabel: "Crypto markets · Not activated",
+        cryptoMarketsStatus: "active" as const,
+        cryptoMarketsLabel: "Crypto markets · Live",
         cryptoMarketsDetail:
-          "Alta Crypto assets remain DRAFT until Phase 4 activation. Customer production trading is unavailable. No activate, halt, or reserve controls here.",
+          "Launch assets NPFC / NVA / VLT are activated for customer trading (go-live migration). Halt, redemption-only, and resume remain under /internal/terminal/crypto.",
       };
 
   if (uiLab) {

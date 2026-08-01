@@ -262,7 +262,21 @@ describe("crypto ops permission and UI Lab source contracts", () => {
     assert.match(sql, /TerminalCryptoExternalContribution/);
     assert.match(sql, /EXTERNAL_PROTECTED_CONTRIBUTION/);
     assert.match(sql, /open_fingerprint/);
-    assert.doesNotMatch(sql, /UPDATE "TerminalCryptoAsset" SET "status" = 'ACTIVE'/);
+    // Phase 4 ops schema only — activation is a later go-live migration.
+    assert.doesNotMatch(sql, /UPDATE "TerminalCryptoAsset"[\s\S]*SET[\s\S]*"status"\s*=\s*'ACTIVE'/);
+  });
+
+  it("ships go-live migration that activates launch assets", () => {
+    const sql = read(
+      "prisma/migrations/20260731210000_terminal_crypto_go_live_activate/migration.sql",
+    );
+    assert.match(sql, /"status" = 'ACTIVE'/);
+    assert.match(sql, /'NPFC'/);
+    assert.match(sql, /'NVA'/);
+    assert.match(sql, /'VLT'/);
+    assert.match(sql, /AND "status" = 'DRAFT'/);
+    assert.match(sql, /TerminalCryptoAssetStatusChange/);
+    assert.match(sql, /go_live_activate_/);
   });
 
   it("registers reconciliation and candle rollup jobs", () => {

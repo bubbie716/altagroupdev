@@ -22,7 +22,7 @@ Do not paste secrets into this document, tickets, chat, or screenshots.
 - Price history: `TerminalCryptoPriceCandle` (real trades only; empty periods may carry last close — never invent volatility)
 - Portfolio charts: cash ledger + crypto fills/candles via `crypto-portfolio-history` merge (no fabricated pre-launch holdings)
 
-**Lifecycle statuses:** `DRAFT` → `ACTIVE` ↔ `HALTED` / `REDEMPTION_ONLY` → `CLOSED` (terminal). Seeded launch assets remain **DRAFT** until a Corporate admin activates them after migration and staging checks.
+**Lifecycle statuses:** `DRAFT` → `ACTIVE` ↔ `HALTED` / `REDEMPTION_ONLY` → `CLOSED` (terminal). Foundation migrations seed launch assets as **DRAFT**. Production go-live activation for NPFC / NVA / VLT is applied by migration `20260731210000_terminal_crypto_go_live_activate`. Corporate-admin Activate / Halt / Resume in `/internal/terminal/crypto` remain available for post-go-live lifecycle control.
 
 **Venues:** Stock orders use TSE. Crypto orders use ALTA_CRYPTO only. TSE outage must not be treated as Alta Crypto outage.
 
@@ -48,26 +48,31 @@ Server-side enforcement is the security boundary. UI visibility is not. Every mu
 
 ## Activation checklist (DRAFT → ACTIVE)
 
-Corporate admin only. Fail closed unless **all** readiness checks pass (see `evaluateActivationReadiness`):
+**Production launch assets (NPFC / NVA / VLT)** are activated by migration `20260731210000_terminal_crypto_go_live_activate` (idempotent; skips rows already non-DRAFT). Before deploying that migration to production:
 
 1. Phase 1–4 crypto migrations present and applied in the target environment
-2. Asset configuration validates; market state row exists
-3. `TERMINAL_CRYPTO_QUOTE_SECRET` configured strongly in production (min 32 chars)
-4. Current price recomputes correctly from curve / peg
-5. No unresolved **CRITICAL** reconciliation issues
-6. Supply conservation (NVA/VLT: treasury + circulation = max supply)
-7. Protected reserve coverage (NPFC ≥ circulation × ƒ1; curves ≥ recomputed liability)
-8. Wallet aggregates and market/wallet ledgers reconcile
-9. CRYPTO consent bundle + AT-LEGAL-006 registered/current
-10. Scheduled crypto execution configured correctly
-11. No impossible negative state
+2. `TERMINAL_CRYPTO_QUOTE_SECRET` configured strongly in production (min 32 chars) — trading fails closed without it
+3. CRYPTO consent bundle + AT-LEGAL-006 registered/current
+4. Staging smoke: Markets → preview → CRYPTO consent → submit fill
+5. Optional: `TERMINAL_CRYPTO_REVENUE_PORTFOLIO_ID` for revenue sweeps (not required for customer trades)
+
+**Manual Activate (Corporate admin)** remains for resume-after-halt and any future DRAFT assets. Fail closed unless **all** readiness checks pass (see `evaluateActivationReadiness`):
+
+1. Asset configuration validates; market state row exists
+2. Current price recomputes correctly from curve / peg
+3. No unresolved **CRITICAL** reconciliation issues
+4. Supply conservation (NVA/VLT: treasury + circulation = max supply)
+5. Protected reserve coverage (NPFC ≥ circulation × ƒ1; curves ≥ recomputed liability)
+6. Wallet aggregates and market/wallet ledgers reconcile
+7. Scheduled crypto execution configured correctly
+8. No impossible negative state
 
 **Initial-state expectations**
 
 - NPFC: circulation 0, protected reserve 0, price ƒ1
 - NVA/VLT: treasury = max supply, circulation 0, reserves/stabilization 0, price = starting price
 
-**UI:** readiness checklist, type the asset symbol, provide a reason. Do **not** activate in UI Lab (demonstrate with disabled controls). Do **not** activate production assets until staging verification below passes.
+**UI:** readiness checklist, type the asset symbol, provide a reason. Do **not** activate in UI Lab (demonstrate with disabled controls).
 
 ---
 
@@ -186,18 +191,19 @@ Apply forward-only, in order (do not rewrite completed migrations):
 2. `20260731160000_terminal_crypto_execution_hardening`
 3. `20260731180000_terminal_crypto_customer_phase3`
 4. `20260731200000_terminal_crypto_operations_phase4` (ops / reconciliation / lifecycle records)
+5. `20260731210000_terminal_crypto_go_live_activate` (DRAFT → ACTIVE for NPFC / NVA / VLT)
 
-Then: `prisma migrate deploy` in the target env (human-operated), generate client, run staging gates. **Do not activate assets in the same change as the first production migrate unless staging already proved activation.**
+Then: `prisma migrate deploy` in the target env (human-operated), generate client, smoke customer trading with `TERMINAL_CRYPTO_QUOTE_SECRET` set.
 
 ---
 
 ## Staging verification
 
-Mandatory post-migrate gate before production activation:
+Mandatory post-migrate gate after go-live activation:
 
-- [ ] Migrations applied; launch assets still DRAFT
+- [ ] Migrations applied through `terminal_crypto_go_live_activate`; launch assets **ACTIVE**
 - [ ] Quote secret set; weak/missing secret fails closed
-- [ ] Preview/submit reject DRAFT; ACTIVE path works on staging-only fixture if used
+- [ ] Customer Markets lists NPFC / NVA / VLT; preview + submit fill (CRYPTO consent dialog if needed)
 - [ ] Halt blocks preview/submit/scheduled immediately
 - [ ] Redemption-only: buy blocked, sell allowed
 - [ ] Reconciliation healthy on NPFC/NVA/VLT zero-circulation baseline

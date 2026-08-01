@@ -8,8 +8,17 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { MoneyValue } from "@/components/terminal/money-value";
 import { SecurityPortfolioTrigger } from "@/components/terminal/security-portfolio-picker";
+import {
+  TERMINAL_PROCESS_MOTION,
+  TerminalProcessError,
+  TerminalProcessProcessing,
+  TerminalProcessResult,
+  waitTerminalProcessMin,
+  type TerminalProcessSummaryRow,
+} from "@/components/terminal/terminal-process-ui";
 import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
 import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
+import { isConsentCancelledError } from "@/lib/legal/ui-lab-action-consent";
 import {
   previewTerminalCryptoOrderFn,
   submitTerminalCryptoOrderFn,
@@ -50,6 +59,8 @@ export function CryptoOrderTicket({
   statusLabel,
   onRequestPortfolioChange,
   onSubmitted,
+  onPhaseChange,
+  suppressInlineSuccess = false,
   className,
   compact = false,
   hidePortfolioControl = false,
@@ -68,6 +79,9 @@ export function CryptoOrderTicket({
   statusLabel?: string | null;
   onRequestPortfolioChange?: () => void;
   onSubmitted?: (result: CryptoOrderFillResult) => void;
+  onPhaseChange?: (phase: "entry" | "review" | "processing" | "success" | "error") => void;
+  /** Parent shows success UI (e.g. Quick Trade) — skip inline receipt. */
+  suppressInlineSuccess?: boolean;
   className?: string;
   compact?: boolean;
   hidePortfolioControl?: boolean;
@@ -99,6 +113,10 @@ export function CryptoOrderTicket({
     setAcceptHighImpact(false);
     setClientKey(newClientKey());
   }, [portfolioId, symbol]);
+
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   useEffect(() => {
     setAcceptHighImpact(false);
@@ -170,8 +188,13 @@ export function CryptoOrderTicket({
     }
     setBusy(true);
     setError(null);
-    setPhase("processing");
+    let startedAt = Date.now();
     try {
+      if (consentAction) {
+        await consentAction.requestConsent(["TERMINAL", "CRYPTO"]);
+      }
+      setPhase("processing");
+      startedAt = Date.now();
       const payload = {
         portfolioId,
         symbol,
@@ -191,6 +214,7 @@ export function CryptoOrderTicket({
       );
 
       if (!result || typeof result !== "object") {
+        await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
         setError("Submit failed");
         setPhase("error");
         return;
@@ -211,28 +235,66 @@ export function CryptoOrderTicket({
           }
           return;
         }
-        if (code === "CONSENT_REQUIRED") {
-          setPhase("review");
-          setError(null);
-          return;
-        }
+        await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
         setError(("message" in result && String(result.message)) || "Order failed");
         setPhase("error");
         return;
       }
 
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       const fill = result as CryptoOrderFillResult;
       setReceipt(fill);
-      setPhase("success");
       setClientKey(newClientKey());
+      if (suppressInlineSuccess) {
+        setPhase("entry");
+        onSubmitted?.(fill);
+        return;
+      }
+      setPhase("success");
       onSubmitted?.(fill);
     } catch (e) {
+      if (isConsentCancelledError(e)) {
+        setPhase("review");
+        return;
+      }
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       setError(e instanceof Error ? e.message : "Order failed");
       setPhase("error");
     } finally {
       setBusy(false);
     }
   }
+
+  function resetToEntry() {
+    setPhase("entry");
+    setReceipt(null);
+    setPreview(null);
+    setAcceptHighImpact(false);
+    setError(null);
+  }
+
+  const successSummary: TerminalProcessSummaryRow[] | undefined = receipt
+    ? [
+        { label: "Portfolio", value: portfolioLabel ?? "—" },
+        {
+          label: "Quantity",
+          value: formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol),
+        },
+        { label: "Total", value: formatCryptoMoney(receipt.grossTradeValue) },
+        { label: "Fee", value: formatCryptoMoney(receipt.totalFee) },
+        {
+          label: "Avg price",
+          value: formatCryptoDisplayPriceFromRaw(receipt.averageExecutionPrice, receipt.symbol),
+        },
+        { label: "Cash", value: formatCryptoMoney(receipt.resultingTerminalCash) },
+        {
+          label: "Holding",
+          value: formatCryptoQuantityDisplay(receipt.resultingWalletBalance, receipt.symbol),
+        },
+        { label: "Wallet", value: receipt.walletPublicId, mono: true },
+        { label: "Order", value: receipt.orderId, mono: true },
+      ]
+    : undefined;
 
   const impactWarn = useMemo(() => {
     if (!preview) return null;
@@ -241,14 +303,65 @@ export function CryptoOrderTicket({
 
   const submitDisabled = busy || !impactAck.submitEnabled;
 
+  const shellClass = cn(
+    "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
+    compact && "p-3",
+    className,
+  );
+
+  if (phase === "processing") {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessProcessing
+          label={side === "BUY" ? "Submitting buy order…" : "Submitting sell order…"}
+        />
+      </div>
+    );
+  }
+
+  if (phase === "success" && receipt && !suppressInlineSuccess) {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessResult
+          kind="success"
+          title={
+            receipt.side === "BUY"
+              ? `Bought ${formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol)}`
+              : `Sold ${formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol)}`
+          }
+          summary={successSummary}
+          onDone={resetToEntry}
+          onSecondary={resetToEntry}
+          secondaryLabel="New order"
+          liveMessage={`Crypto order filled. ${receipt.symbol}.`}
+        />
+      </div>
+    );
+  }
+
+  if (phase === "error" && error) {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessError
+          title="Order failed"
+          message={error}
+          onRetry={
+            preview
+              ? () => {
+                  setPhase("review");
+                  setError(null);
+                }
+              : undefined
+          }
+          onEdit={resetToEntry}
+          editLabel="Edit order"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
-        compact && "p-3",
-        className,
-      )}
-    >
+    <div className={shellClass}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[13px] font-medium text-[var(--terminal-text)]">Trade {symbol}</p>
@@ -272,7 +385,7 @@ export function CryptoOrderTicket({
         </div>
       ) : null}
 
-      {phase === "entry" || phase === "error" ? (
+      {phase === "entry" ? (
         <div className="mt-4 space-y-3">
           <div className="flex gap-1 rounded-md bg-[var(--terminal-bg)] p-1">
             {(["BUY", "SELL"] as const).map((s) => (
@@ -431,44 +544,6 @@ export function CryptoOrderTicket({
               {busy ? "Submitting…" : "Submit order"}
             </button>
           </div>
-        </div>
-      ) : null}
-
-      {phase === "processing" ? (
-        <p className="mt-4 text-[13px] text-[var(--terminal-muted)]">Processing your crypto order…</p>
-      ) : null}
-
-      {phase === "success" && receipt ? (
-        <div className="mt-4 space-y-2 text-[13px]">
-          <p className="font-medium text-[var(--terminal-green)]">
-            {receipt.side === "BUY" ? "Bought" : "Sold"}{" "}
-            {formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol)}
-          </p>
-          <ReviewRow label="Total" value={formatCryptoMoney(receipt.grossTradeValue)} />
-          <ReviewRow label="Fee" value={formatCryptoMoney(receipt.totalFee)} />
-          <ReviewRow
-            label="Avg price"
-            value={formatCryptoDisplayPriceFromRaw(receipt.averageExecutionPrice, receipt.symbol)}
-          />
-          <ReviewRow label="Cash" value={formatCryptoMoney(receipt.resultingTerminalCash)} />
-          <ReviewRow
-            label="Holding"
-            value={formatCryptoQuantityDisplay(receipt.resultingWalletBalance, receipt.symbol)}
-          />
-          <ReviewRow label="Wallet" value={receipt.walletPublicId} mono />
-          <ReviewRow label="Order" value={receipt.orderId} mono />
-          <button
-            type="button"
-            className="mt-2 min-h-11 w-full rounded-md border border-[var(--terminal-border)] text-[13px]"
-            onClick={() => {
-              setPhase("entry");
-              setReceipt(null);
-              setPreview(null);
-              setAcceptHighImpact(false);
-            }}
-          >
-            Done
-          </button>
         </div>
       ) : null}
     </div>

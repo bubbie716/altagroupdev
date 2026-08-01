@@ -58,13 +58,29 @@ describe("crypto schema foundation guards", () => {
     assert.match(sql, /'NPFC'/);
     assert.match(sql, /'NVA'/);
     assert.match(sql, /'VLT'/);
-    // Phase 1 must not activate assets in SQL seed.
+    // Phase 1 foundation seed stays DRAFT; activation is a later go-live migration.
     assert.doesNotMatch(sql, /INSERT INTO "TerminalCryptoAsset"[\s\S]*'ACTIVE'/);
-    assert.doesNotMatch(sql, /UPDATE "TerminalCryptoAsset" SET "status" = 'ACTIVE'/);
+    assert.doesNotMatch(sql, /UPDATE "TerminalCryptoAsset"[\s\S]*SET[\s\S]*"status"\s*=\s*'ACTIVE'/);
     assert.match(sql, /instrumentKind/);
     assert.match(sql, /executionVenue/);
     assert.match(sql, /DEFAULT 'STOCK'/);
     assert.match(sql, /DEFAULT 'TSE'/);
+  });
+
+  it("ships a go-live migration that activates NPFC/NVA/VLT from DRAFT", () => {
+    const sql = readFileSync(
+      join(repoRoot, "prisma/migrations/20260731210000_terminal_crypto_go_live_activate/migration.sql"),
+      "utf8",
+    );
+    assert.match(sql, /SET[\s\S]*"status"\s*=\s*'ACTIVE'/);
+    assert.match(sql, /'NPFC'/);
+    assert.match(sql, /'NVA'/);
+    assert.match(sql, /'VLT'/);
+    assert.match(sql, /AND "status" = 'DRAFT'/);
+    assert.match(sql, /TerminalCryptoAssetStatusChange/);
+    assert.match(sql, /go_live_activate_npfc/);
+    assert.match(sql, /system-crypto-go-live/);
+    assert.match(sql, /ON CONFLICT \("assetId", "idempotencyKey"\) DO NOTHING/);
   });
 
   it("does not remove instrument/venue defaults for existing stock records", () => {

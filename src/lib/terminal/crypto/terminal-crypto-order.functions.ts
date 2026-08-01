@@ -1,7 +1,10 @@
 /**
  * Server functions for Alta Terminal fictional crypto preview + submit.
- * Production assets remain DRAFT — submit/preview reject them until later activation.
+ * Launch assets are activated by the go-live migration; DRAFT assets still reject.
  * UI Lab uses demonstration fixtures only and never mutates production crypto tables.
+ *
+ * ConsentRequiredError must be re-thrown (not converted to { ok: false }) so
+ * ProductConsentActionProvider.runWithConsent can open the progressive consent dialog.
  */
 import { createServerFn } from "@tanstack/react-start";
 import type { CryptoOrderPreviewInput, CryptoOrderSubmitInput } from "./crypto-order-types";
@@ -10,6 +13,7 @@ import {
   CryptoOrderError,
   customerMessageForCode,
 } from "./crypto-order-types";
+import { isConsentRequiredError } from "@/lib/legal/consent-required-error";
 
 async function requireActor() {
   const { requireAuth } = await import("@/server/auth.service");
@@ -23,6 +27,9 @@ function toClientError(error: unknown): {
   details?: Record<string, string>;
   preview?: unknown;
 } {
+  if (isConsentRequiredError(error)) {
+    throw error;
+  }
   if (error instanceof CryptoOrderError) {
     return {
       ok: false,
@@ -38,13 +45,6 @@ function toClientError(error: unknown): {
         ok: false,
         code: "RATE_LIMITED",
         message: customerMessageForCode("RATE_LIMITED"),
-      };
-    }
-    if (error.message.startsWith("CONSENT_REQUIRED") || error.name === "ConsentRequiredError") {
-      return {
-        ok: false,
-        code: "CONSENT_REQUIRED",
-        message: customerMessageForCode("CONSENT_REQUIRED"),
       };
     }
   }

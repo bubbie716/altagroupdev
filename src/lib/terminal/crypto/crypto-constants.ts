@@ -36,7 +36,7 @@ export type CryptoAssetConfig = {
   symbol: CryptoAssetSymbol;
   displayName: string;
   kind: "STABLE" | "BONDING_CURVE";
-  /** Seed / lifecycle status for Phase 1 — must remain DRAFT until later phases activate. */
+  /** Seed status written by foundation helpers — go-live migration activates launch symbols. */
   phase1Status: "DRAFT";
   maxSupply: CryptoDecimal | null;
   pegOrStartingPrice: CryptoDecimal;

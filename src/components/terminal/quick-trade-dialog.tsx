@@ -16,6 +16,10 @@ import { OrderTicket } from "@/components/terminal/order-ticket";
 import { CryptoOrderTicket } from "@/components/terminal/crypto-order-ticket";
 import { InstrumentKindBadge } from "@/components/terminal/instrument-kind-badge";
 import {
+  TerminalProcessResult,
+  type TerminalProcessSummaryRow,
+} from "@/components/terminal/terminal-process-ui";
+import {
   SecurityPortfolioDropdown,
 } from "@/components/terminal/security-portfolio-picker";
 import { SymbolAutocomplete } from "@/components/terminal/symbol-autocomplete";
@@ -29,6 +33,12 @@ import {
 import { resetQuickTradeFields } from "@/lib/terminal/quick-trade";
 import { fetchQuickTradeContext, selectTerminalPortfolioFn } from "@/lib/terminal/terminal.functions";
 import type { CryptoAssetDetail, CryptoPortfolioBalance } from "@/lib/terminal/crypto/crypto-market-read.service";
+import type { CryptoOrderFillResult } from "@/lib/terminal/crypto/crypto-order-types";
+import {
+  formatCryptoDisplayPriceFromRaw,
+  formatCryptoMoney,
+  formatCryptoQuantityDisplay,
+} from "@/lib/terminal/crypto/crypto-format";
 import type {
   Holding,
   MarketStatusSnapshot,
@@ -98,6 +108,7 @@ export function QuickTradeDialog({
 
   const [phase, setPhase] = useState<Phase>("form");
   const [lastOrder, setLastOrder] = useState<OrderRecord | null>(null);
+  const [lastCryptoFill, setLastCryptoFill] = useState<CryptoOrderFillResult | null>(null);
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
   const [symbol, setSymbol] = useState<string | null>(null);
   const [ctx, setCtx] = useState<QuickTradeContext | null>(null);
@@ -106,7 +117,14 @@ export function QuickTradeDialog({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [reviewing, setReviewing] = useState(false);
-  const [cryptoSuccess, setCryptoSuccess] = useState(false);
+  const [cryptoPhase, setCryptoPhase] = useState<
+    "entry" | "review" | "processing" | "success" | "error"
+  >("entry");
+  const [stockProcessPhase, setStockProcessPhase] = useState<
+    "idle" | "processing" | "success" | "error"
+  >("idle");
+  const orderProcessing =
+    cryptoPhase === "processing" || stockProcessPhase === "processing";
   const navigatingAwayRef = useRef(false);
   const openPathRef = useRef<string | null>(null);
   /** Skip the redundant fetch after applying server-resolved portfolioId. */
@@ -196,7 +214,7 @@ export function QuickTradeDialog({
   function resetAll() {
     setPhase("form");
     setLastOrder(null);
-    setCryptoSuccess(false);
+    setLastCryptoFill(null);
     setSymbol(null);
     setPortfolioId(null);
     setCtx(null);
@@ -204,6 +222,8 @@ export function QuickTradeDialog({
     setLoadError(null);
     setPickerOpen(false);
     setReviewing(false);
+    setCryptoPhase("entry");
+    setStockProcessPhase("idle");
     skipFetchForHydratedPortfolioRef.current = false;
     const fields = resetQuickTradeFields();
     draft.setSide(fields.side);
@@ -214,6 +234,7 @@ export function QuickTradeDialog({
 
   function handleOpenChange(next: boolean) {
     if (!next) {
+      if (orderProcessing) return;
       setPickerOpen(false);
       onOpenChange(false);
       // Reset after close so reopen is fresh; portfolio preference stays server-side.
@@ -248,10 +269,12 @@ export function QuickTradeDialog({
   function tradeAnother() {
     setPhase("form");
     setLastOrder(null);
-    setCryptoSuccess(false);
+    setLastCryptoFill(null);
     setSymbol(null);
     setLoadError(null);
     setReviewing(false);
+    setCryptoPhase("entry");
+    setStockProcessPhase("idle");
     const fields = resetQuickTradeFields();
     draft.setSide(fields.side);
     draft.setType("market");
@@ -324,6 +347,10 @@ export function QuickTradeDialog({
             focusDialogCloseButton(event.currentTarget);
           }}
           onEscapeKeyDown={(event) => {
+            if (orderProcessing) {
+              event.preventDefault();
+              return;
+            }
             if (pickerOpen) {
               event.preventDefault();
               setPickerOpen(false);
@@ -343,18 +370,22 @@ export function QuickTradeDialog({
             <DialogTitle className="text-[16px] font-medium">
               {phase === "success"
                 ? "Order placed"
-                : reviewing
-                  ? "Review order"
-                  : "Quick Trade"}
+                : orderProcessing
+                  ? "Submitting order"
+                  : reviewing
+                    ? "Review order"
+                    : "Quick Trade"}
             </DialogTitle>
             <DialogDescription className="text-[12px] text-[var(--terminal-muted)]">
               {phase === "success"
                 ? "Your order was submitted."
-                : reviewing && !isCrypto
-                  ? "Confirm details before submitting. Back keeps your entries."
-                  : isCrypto
-                    ? "Choose a portfolio and crypto asset. Market orders only."
-                    : "Choose a portfolio and security, then review before submitting."}
+                : orderProcessing
+                  ? "Please wait while we place your order."
+                  : reviewing && !isCrypto
+                    ? "Confirm details before submitting. Back keeps your entries."
+                    : isCrypto
+                      ? "Choose a portfolio and crypto asset. Market orders only."
+                      : "Choose a portfolio and security, then review before submitting."}
             </DialogDescription>
           </DialogHeader>
 
@@ -372,26 +403,22 @@ export function QuickTradeDialog({
                 onTradeAnother={tradeAnother}
                 onDone={done}
               />
-            ) : phase === "success" && cryptoSuccess ? (
+            ) : phase === "success" && lastCryptoFill ? (
               <CryptoSuccessPanel
-                symbol={cryptoAsset?.symbol ?? symbol ?? ""}
+                fill={lastCryptoFill}
                 portfolioLabel={portfolioLabel}
                 onTradeAnother={tradeAnother}
                 onDone={done}
                 onViewSecurity={() => {
                   if (navigatingAwayRef.current) return;
                   navigatingAwayRef.current = true;
-                  const sym = cryptoAsset?.symbol ?? symbol;
+                  const sym = lastCryptoFill.symbol;
                   closeThenRun(
                     () => {
                       onOpenChange(false);
                       resetAll();
                     },
                     () => {
-                      if (!sym) {
-                        navigatingAwayRef.current = false;
-                        return;
-                      }
                       void navigate({
                         to: "/terminal/security/$symbol",
                         params: { symbol: sym },
@@ -409,7 +436,7 @@ export function QuickTradeDialog({
               />
             ) : (
               <div className="space-y-4">
-                {!reviewing ? (
+                {!reviewing && !orderProcessing ? (
                   <>
                     <div data-portfolio-dropdown="">
                       <SecurityPortfolioDropdown
@@ -527,10 +554,12 @@ export function QuickTradeDialog({
                     statusLabel={cryptoAsset.tradingContextLabel}
                     onRequestPortfolioChange={() => setPickerOpen(true)}
                     hidePortfolioControl
+                    suppressInlineSuccess
                     compact
                     className="border-0 bg-transparent p-0"
-                    onSubmitted={() => {
-                      setCryptoSuccess(true);
+                    onPhaseChange={setCryptoPhase}
+                    onSubmitted={(fill) => {
+                      setLastCryptoFill(fill);
                       setPhase("success");
                     }}
                   />
@@ -555,8 +584,10 @@ export function QuickTradeDialog({
                     draft={draft}
                     compact
                     className="border-0 bg-transparent p-0"
+                    onProcessPhaseChange={setStockProcessPhase}
                     onSubmitted={({ order }) => {
                       setReviewing(false);
+                      setStockProcessPhase("idle");
                       setLastOrder(order);
                       setPhase("success");
                     }}
@@ -584,92 +615,85 @@ function SuccessPanel({
   onTradeAnother: () => void;
   onDone: () => void;
 }) {
+  const summary: TerminalProcessSummaryRow[] = [
+    { label: "Portfolio", value: portfolioLabel ?? "—" },
+    { label: "Side", value: order.side.toUpperCase() },
+    { label: "Type", value: order.type },
+    { label: "Quantity", value: String(order.quantity) },
+    {
+      label: "Status",
+      value: order.status === "filled" ? "Filled" : order.status,
+    },
+    { label: "Est. value", value: `ƒ${order.estimatedValue.toFixed(2)}` },
+    { label: "Order", value: order.id, mono: true },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-3 text-[13px]">
-        <p className="font-medium text-[var(--terminal-text)]">
-          {order.side === "buy" ? "Bought" : "Sold"} {order.quantity} {order.symbol}
-        </p>
-        <p className="mt-1 text-[12px] text-[var(--terminal-muted)]">
-          {order.type} · {order.status}
-          {portfolioLabel ? ` · ${portfolioLabel}` : ""}
-        </p>
-        <p className="mt-2 tabular-nums text-[var(--terminal-muted)]">
-          Est. <MoneyValue value={order.estimatedValue} size="sm" />
-        </p>
-      </div>
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onViewOrder}
-          className="min-h-11 w-full rounded-md bg-[var(--terminal-green)] text-[14px] font-medium text-black"
-        >
-          View order
-        </button>
-        <button
-          type="button"
-          onClick={onTradeAnother}
-          className="min-h-11 w-full rounded-md border border-[var(--terminal-border)] text-[14px] text-[var(--terminal-text)]"
-        >
-          New order
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="min-h-11 w-full rounded-md text-[14px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
-        >
-          Done
-        </button>
-      </div>
-    </div>
+    <TerminalProcessResult
+      kind={order.status === "filled" ? "success" : "pending"}
+      title={
+        order.status === "filled"
+          ? `${order.side === "buy" ? "Bought" : "Sold"} ${order.quantity} ${order.symbol}`
+          : `Order accepted · ${order.symbol}`
+      }
+      summary={summary}
+      onDone={onDone}
+      onSecondary={onTradeAnother}
+      secondaryLabel="New order"
+      primaryLabel="View order"
+      onPrimary={onViewOrder}
+      liveMessage={
+        order.status === "filled"
+          ? `Order filled. ${order.quantity} ${order.symbol}.`
+          : `Order accepted. ${order.id}.`
+      }
+    />
   );
 }
 
 function CryptoSuccessPanel({
-  symbol,
+  fill,
   portfolioLabel,
   onViewSecurity,
   onTradeAnother,
   onDone,
 }: {
-  symbol: string;
+  fill: CryptoOrderFillResult;
   portfolioLabel: string | null;
   onViewSecurity: () => void;
   onTradeAnother: () => void;
   onDone: () => void;
 }) {
+  const summary: TerminalProcessSummaryRow[] = [
+    { label: "Portfolio", value: portfolioLabel ?? "—" },
+    {
+      label: "Quantity",
+      value: formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol),
+    },
+    { label: "Total", value: formatCryptoMoney(fill.grossTradeValue) },
+    { label: "Fee", value: formatCryptoMoney(fill.totalFee) },
+    {
+      label: "Avg price",
+      value: formatCryptoDisplayPriceFromRaw(fill.averageExecutionPrice, fill.symbol),
+    },
+    { label: "Order", value: fill.orderId, mono: true },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-3 text-[13px]">
-        <p className="font-medium text-[var(--terminal-green)]">Crypto order filled</p>
-        <p className="mt-1 text-[12px] text-[var(--terminal-muted)]">
-          {symbol}
-          {portfolioLabel ? ` · ${portfolioLabel}` : ""}
-        </p>
-      </div>
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onViewSecurity}
-          className="min-h-11 w-full rounded-md bg-[var(--terminal-green)] text-[14px] font-medium text-black"
-        >
-          View {symbol}
-        </button>
-        <button
-          type="button"
-          onClick={onTradeAnother}
-          className="min-h-11 w-full rounded-md border border-[var(--terminal-border)] text-[14px] text-[var(--terminal-text)]"
-        >
-          New order
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="min-h-11 w-full rounded-md text-[14px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
-        >
-          Done
-        </button>
-      </div>
-    </div>
+    <TerminalProcessResult
+      kind="success"
+      title={
+        fill.side === "BUY"
+          ? `Bought ${formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol)}`
+          : `Sold ${formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol)}`
+      }
+      summary={summary}
+      onDone={onDone}
+      onSecondary={onTradeAnother}
+      secondaryLabel="New order"
+      primaryLabel={`View ${fill.symbol}`}
+      onPrimary={onViewSecurity}
+      liveMessage={`Crypto order filled. ${fill.symbol}.`}
+    />
   );
 }

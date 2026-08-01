@@ -135,6 +135,9 @@ describe("Phase 3 instrument helpers and source contracts", () => {
     );
     assert.match(ticket, /Market order/);
     assert.doesNotMatch(ticket, /setOrderType|orderType.*limit/i);
+    assert.match(ticket, /requestConsent\(\["TERMINAL", "CRYPTO"\]\)/);
+    assert.match(ticket, /isConsentCancelledError/);
+    assert.doesNotMatch(ticket, /code === "CONSENT_REQUIRED"/);
   });
 
   it("wires submit to terminal.crypto_trade", () => {

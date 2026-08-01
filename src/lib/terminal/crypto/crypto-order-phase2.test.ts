@@ -194,7 +194,7 @@ describe("phase 2 schema/source guards", () => {
     assert.match(sql, /accruedRevenue/);
     assert.match(sql, /TerminalCryptoWalletLedgerEntry/);
     assert.match(sql, /TERMINAL_REVENUE/);
-    assert.doesNotMatch(sql, /SET "status" = 'ACTIVE'/);
+    assert.doesNotMatch(sql, /SET[\s\S]*"status"\s*=\s*'ACTIVE'/);
   });
 
   it("keeps pricing engine free of Prisma IO and execution gated from UI Lab", () => {
@@ -211,6 +211,9 @@ describe("phase 2 schema/source guards", () => {
     assert.match(fns, /terminal\.place_order/);
     // Phase 3: submit requires CRYPTO progressive consent (closed the prior TODO).
     assert.match(fns, /terminal\.crypto_trade/);
+    // ConsentRequiredError must rethrow so the progressive consent dialog can open.
+    assert.match(fns, /isConsentRequiredError/);
+    assert.match(fns, /throw error/);
   });
 
   it("documents lock order in execution service", () => {

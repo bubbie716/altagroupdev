@@ -4,7 +4,7 @@
  * Requires DATABASE_URL and migrations through
  * `20260731160000_terminal_crypto_execution_hardening`.
  *
- * Seeded launch assets remain DRAFT in production. These tests temporarily set
+ * Launch assets may be ACTIVE after go-live migration. These tests temporarily set
  * isolated fixture rows to ACTIVE inside the test DB only (never a runtime bypass).
  *
  *   npx tsx --test src/lib/terminal/crypto/terminal-crypto-order.concurrency.integration.test.ts

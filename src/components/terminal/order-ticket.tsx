@@ -11,6 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { MoneyValue } from "@/components/terminal/money-value";
 import { SecurityPortfolioTrigger } from "@/components/terminal/security-portfolio-picker";
+import {
+  TERMINAL_PROCESS_MOTION,
+  TerminalProcessError,
+  TerminalProcessProcessing,
+  TerminalProcessResult,
+  waitTerminalProcessMin,
+  type TerminalProcessSummaryRow,
+} from "@/components/terminal/terminal-process-ui";
 import type { OrderTicketDraft } from "@/hooks/use-order-ticket-draft";
 import { validateOrderPreview } from "@/lib/terminal/order-validation";
 import { requireExplicitPortfolioId } from "@/lib/terminal/quick-trade";
@@ -27,6 +35,8 @@ import type {
 } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 
+type ProcessPhase = "idle" | "processing" | "success" | "error";
+
 export function OrderTicket({
   security,
   buyingPower,
@@ -40,6 +50,7 @@ export function OrderTicket({
   tradeBlockedReason = null,
   onRequestPortfolioChange,
   onSubmitted,
+  onProcessPhaseChange,
   suppressInlineSuccess = false,
   draft,
   className,
@@ -63,6 +74,7 @@ export function OrderTicket({
   tradeBlockedReason?: string | null;
   onRequestPortfolioChange?: () => void;
   onSubmitted?: (result: { order: OrderRecord }) => void;
+  onProcessPhaseChange?: (phase: ProcessPhase) => void;
   /** Parent shows success UI (e.g. Quick Trade) — skip inline green message. */
   suppressInlineSuccess?: boolean;
   /** When provided, order inputs are controlled by the parent (mobile sheet + desktop share). */
@@ -97,7 +109,8 @@ export function OrderTicket({
     if (confirmOpenProp === undefined) setUncontrolledConfirmOpen(open);
   };
   const [submitting, setSubmitting] = useState(false);
-  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [processPhase, setProcessPhase] = useState<ProcessPhase>("idle");
+  const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const side = draft?.side ?? localSide;
@@ -115,10 +128,15 @@ export function OrderTicket({
     setPreview(null);
     setConfirmOpen(false);
     setError(null);
-    setResultMessage(null);
+    setProcessPhase("idle");
+    setSubmittedOrder(null);
     // Intentionally omit setConfirmOpen — only invalidate on portfolio/symbol change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [portfolioId, security?.symbol]);
+
+  useEffect(() => {
+    onProcessPhaseChange?.(processPhase);
+  }, [processPhase, onProcessPhaseChange]);
 
   const missingPortfolio = !portfolioId;
   const missingSecurity = !security;
@@ -193,9 +211,17 @@ export function OrderTicket({
       ? (clientValidation.errors[0] ?? null)
       : null;
 
+  function resetProcess() {
+    setProcessPhase("idle");
+    setSubmittedOrder(null);
+    setError(null);
+    setSubmitting(false);
+  }
+
   async function handlePreview() {
     setError(null);
-    setResultMessage(null);
+    setProcessPhase("idle");
+    setSubmittedOrder(null);
     if (!portfolioId) {
       setError("Select a portfolio before trading");
       onRequestPortfolioChange?.();
@@ -240,6 +266,8 @@ export function OrderTicket({
     }
     setSubmitting(true);
     setError(null);
+    setProcessPhase("processing");
+    const startedAt = Date.now();
     try {
       const explicitPortfolioId = requireExplicitPortfolioId(portfolioId);
       const result = await submitFn({
@@ -252,25 +280,47 @@ export function OrderTicket({
           limitPrice: type === "limit" ? Number(limitPrice) : null,
         },
       });
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       if (!result.ok) {
         setError(result.errors.join(". "));
+        setProcessPhase("error");
         return;
       }
-      if (!suppressInlineSuccess) {
-        setResultMessage(
-          result.order.status === "filled"
-            ? `Order filled · ${result.order.quantity} ${security.symbol} · ${portfolioLabel ?? "portfolio"}`
-            : `Order accepted · ${result.order.id} · ${portfolioLabel ?? "portfolio"}`,
-        );
-      }
       setConfirmOpen(false);
+      setSubmittedOrder(result.order);
+      if (suppressInlineSuccess) {
+        setProcessPhase("idle");
+        onSubmitted?.({ order: result.order });
+        return;
+      }
+      setProcessPhase("success");
       onSubmitted?.({ order: result.order });
     } catch (err) {
+      await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
       setError(err instanceof Error ? err.message : "Order submission failed");
+      setProcessPhase("error");
     } finally {
       setSubmitting(false);
     }
   }
+
+  const successSummary: TerminalProcessSummaryRow[] | undefined = submittedOrder
+    ? [
+        { label: "Portfolio", value: portfolioLabel ?? "—" },
+        { label: "Side", value: submittedOrder.side.toUpperCase() },
+        { label: "Type", value: submittedOrder.type },
+        { label: "Quantity", value: String(submittedOrder.quantity) },
+        {
+          label: "Status",
+          value: submittedOrder.status === "filled" ? "Filled" : submittedOrder.status,
+        },
+        {
+          label: "Est. value",
+          value: `ƒ${submittedOrder.estimatedValue.toFixed(2)}`,
+        },
+        { label: "Order", value: submittedOrder.id, mono: true },
+      ]
+    : undefined;
 
   const confirmSummary = preview ? (
     <OrderConfirmSummary
@@ -284,14 +334,68 @@ export function OrderTicket({
     />
   ) : null;
 
+  const shellClass = cn(
+    "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
+    className,
+  );
+
+  if (processPhase === "processing") {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessProcessing
+          label={side === "buy" ? "Submitting buy order…" : "Submitting sell order…"}
+        />
+      </div>
+    );
+  }
+
+  if (processPhase === "success" && submittedOrder && !suppressInlineSuccess) {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessResult
+          kind={submittedOrder.status === "filled" ? "success" : "pending"}
+          title={
+            submittedOrder.status === "filled" ? "Order filled" : "Order accepted"
+          }
+          summary={successSummary}
+          onDone={resetProcess}
+          onSecondary={resetProcess}
+          secondaryLabel="New order"
+          liveMessage={
+            submittedOrder.status === "filled"
+              ? `Order filled. ${submittedOrder.quantity} ${submittedOrder.symbol}.`
+              : `Order accepted. ${submittedOrder.id}.`
+          }
+        />
+      </div>
+    );
+  }
+
+  if (processPhase === "error" && error) {
+    return (
+      <div className={shellClass}>
+        <TerminalProcessError
+          title="Order failed"
+          message={error}
+          onRetry={() => {
+            setProcessPhase("idle");
+            setError(null);
+            setConfirmOpen(true);
+          }}
+          onEdit={() => {
+            setProcessPhase("idle");
+            setError(null);
+            setConfirmOpen(false);
+            setPreview(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   if (confirmPresentation === "inline" && confirmOpen) {
     return (
-      <div
-        className={cn(
-          "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
-          className,
-        )}
-      >
+      <div className={shellClass}>
         <div className="space-y-1">
           <h2 className="text-[15px] font-medium text-[var(--terminal-text)]">Review order</h2>
           <p className="text-[12px] text-[var(--terminal-muted)]">
@@ -309,12 +413,7 @@ export function OrderTicket({
   }
 
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
-        className,
-      )}
-    >
+    <div className={shellClass}>
       {!hidePortfolioControl ? (
         <div className={cn(compact ? "mb-2 space-y-1.5" : "space-y-2")}>
           {!compact ? (
@@ -450,9 +549,6 @@ export function OrderTicket({
         <p className="mt-3 text-[12px] text-[var(--terminal-red)]" role="alert">
           {error}
         </p>
-      ) : null}
-      {resultMessage ? (
-        <p className="mt-3 text-[12px] text-[var(--terminal-green)]">{resultMessage}</p>
       ) : null}
 
       <button
