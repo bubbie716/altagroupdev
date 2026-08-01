@@ -4,7 +4,12 @@
  */
 
 import { prisma } from "@/server/db";
-import { LAUNCH_ASSET_SYMBOLS } from "./crypto-constants";
+import {
+  CRYPTO_ASSET_CONFIGS,
+  LAUNCH_ASSET_SYMBOLS,
+  curveRatesMatch,
+  type CryptoAssetSymbol,
+} from "./crypto-constants";
 import { d, serializeCryptoMoney, serializeCryptoPrice, serializeCryptoQuantity } from "./crypto-decimal";
 import { reserveLiability } from "./crypto-curve-math";
 import { resolveRevenueSweepDestinationPortfolioId } from "./crypto-revenue-sweep.service";
@@ -84,6 +89,10 @@ export type CryptoOpsAssetWorkspace = CryptoOpsAssetOverview & {
   stabilizationFeeBps: number;
   quantityPrecision: number;
   displayPrecision: number;
+  /** Plain-language curve sensitivity from authoritative config. */
+  sensitivityLabel: string | null;
+  /** Whether DB peg/rate/fees match CRYPTO_ASSET_CONFIGS. */
+  matchesAuthoritativeConfig: boolean;
   openIssues: Array<{
     id: string;
     checkKey: string;
@@ -570,6 +579,25 @@ export async function getCryptoOpsAssetWorkspace(
     stabilizationFeeBps: asset.stabilizationFeeBps,
     quantityPrecision: asset.quantityPrecision,
     displayPrecision: asset.displayPrecision,
+    sensitivityLabel: (() => {
+      const sym = symbol as CryptoAssetSymbol;
+      return LAUNCH_ASSET_SYMBOLS.includes(sym)
+        ? CRYPTO_ASSET_CONFIGS[sym].sensitivityLabel
+        : null;
+    })(),
+    matchesAuthoritativeConfig: (() => {
+      const sym = symbol as CryptoAssetSymbol;
+      if (!LAUNCH_ASSET_SYMBOLS.includes(sym)) return true;
+      const cfg = CRYPTO_ASSET_CONFIGS[sym];
+      return (
+        serializeCryptoPrice(asset.pegOrStartingPrice) ===
+          serializeCryptoPrice(cfg.pegOrStartingPrice) &&
+        curveRatesMatch(asset.curveRate?.toString() ?? null, cfg.curveRate) &&
+        asset.totalFeeBps === cfg.totalFeeBps &&
+        asset.revenueFeeBps === cfg.revenueFeeBps &&
+        asset.stabilizationFeeBps === cfg.stabilizationFeeBps
+      );
+    })(),
     openIssues: openIssues.map((issue) => ({
       id: issue.id,
       checkKey: issue.checkKey,

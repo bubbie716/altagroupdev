@@ -26,6 +26,7 @@ import { SymbolAutocomplete } from "@/components/terminal/symbol-autocomplete";
 import { TerminalUnavailableState } from "@/components/terminal/terminal-app-shell";
 import { useOrderTicketDraft } from "@/hooks/use-order-ticket-draft";
 import {
+  formatPortfolioOwnerLine,
   formatPortfolioTicketLabel,
   tradeBlockReason,
   type SecurityPortfolioOption,
@@ -35,10 +36,10 @@ import { fetchQuickTradeContext, selectTerminalPortfolioFn } from "@/lib/termina
 import type { CryptoAssetDetail, CryptoPortfolioBalance } from "@/lib/terminal/crypto/crypto-market-read.service";
 import type { CryptoOrderFillResult } from "@/lib/terminal/crypto/crypto-order-types";
 import {
-  formatCryptoDisplayPriceFromRaw,
-  formatCryptoMoney,
-  formatCryptoQuantityDisplay,
-} from "@/lib/terminal/crypto/crypto-format";
+  buildCryptoCustomerReceiptRows,
+  CRYPTO_FILLED_ORDER_TITLE,
+  cryptoFilledOrderSubtitle,
+} from "@/lib/terminal/crypto/crypto-customer-review";
 import type {
   Holding,
   MarketStatusSnapshot,
@@ -320,9 +321,11 @@ export function QuickTradeDialog({
   }
 
   const selectedOption = portfolios.find((p) => p.id === portfolioId) ?? null;
-  const portfolioLabel = formatPortfolioTicketLabel(
-    selectedOption ?? ctx?.selectedPortfolio ?? null,
-  );
+  const portfolioForLabel = selectedOption ?? ctx?.selectedPortfolio ?? null;
+  const portfolioLabel = formatPortfolioTicketLabel(portfolioForLabel, { compact: true });
+  const portfolioOwnerLine = portfolioForLabel
+    ? formatPortfolioOwnerLine(portfolioForLabel)
+    : null;
   const blockedReason = selectedOption ? tradeBlockReason(selectedOption) : null;
   const marketClosed =
     ctx?.marketStatus.status === "closed" || ctx?.marketStatus.status === "holiday";
@@ -390,12 +393,7 @@ export function QuickTradeDialog({
           </DialogHeader>
 
           <div className="overflow-y-auto overscroll-contain p-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-lg:max-h-[min(70dvh,calc(100dvh-10rem))]">
-            {mode === "unavailable" && ctx ? (
-              <TerminalUnavailableState
-                title="Trading unavailable"
-                description="Alta Terminal cannot reach the Newport TSE right now. Quick Trade stays disabled until a live connection is configured."
-              />
-            ) : phase === "success" && lastOrder ? (
+            {phase === "success" && lastOrder ? (
               <SuccessPanel
                 order={lastOrder}
                 portfolioLabel={portfolioLabel}
@@ -436,6 +434,16 @@ export function QuickTradeDialog({
               />
             ) : (
               <div className="space-y-4">
+                {mode === "unavailable" && !isCrypto ? (
+                  <p
+                    role="status"
+                    className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 py-2 text-[12px] text-[var(--terminal-muted)]"
+                  >
+                    Stock trading is offline while the Newport TSE is unreachable. Search for an
+                    Alta crypto asset (NPFC, NVA, or VLT) to continue.
+                  </p>
+                ) : null}
+
                 {!reviewing && !orderProcessing ? (
                   <>
                     <div data-portfolio-dropdown="">
@@ -443,6 +451,7 @@ export function QuickTradeDialog({
                         open={pickerOpen}
                         onOpenChange={setPickerOpen}
                         label={portfolioLabel}
+                        ownerLine={portfolioOwnerLine}
                         portfolios={portfolios}
                         selectedId={portfolioId}
                         securitySymbol={
@@ -483,6 +492,7 @@ export function QuickTradeDialog({
                             value={Number.parseFloat(cryptoAsset.currentPrice)}
                             asPrice
                             size="sm"
+                            cryptoSymbol={cryptoAsset.symbol}
                           />
                           <PriceChange
                             amount={
@@ -495,6 +505,7 @@ export function QuickTradeDialog({
                                 ? null
                                 : Number.parseFloat(cryptoAsset.dayChangePercent)
                             }
+                            cryptoSymbol={cryptoAsset.symbol}
                           />
                           <InstrumentKindBadge kind="CRYPTO" />
                         </div>
@@ -562,6 +573,11 @@ export function QuickTradeDialog({
                       setLastCryptoFill(fill);
                       setPhase("success");
                     }}
+                  />
+                ) : mode === "unavailable" && symbol ? (
+                  <TerminalUnavailableState
+                    title="Stock trading unavailable"
+                    description="Alta Terminal cannot reach the Newport TSE right now. Choose an Alta crypto asset to trade, or try again when the live market connection is restored."
                   />
                 ) : (
                   <OrderTicket
@@ -664,36 +680,37 @@ function CryptoSuccessPanel({
   onTradeAnother: () => void;
   onDone: () => void;
 }) {
-  const summary: TerminalProcessSummaryRow[] = [
-    { label: "Portfolio", value: portfolioLabel ?? "—" },
-    {
-      label: "Quantity",
-      value: formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol),
-    },
-    { label: "Total", value: formatCryptoMoney(fill.grossTradeValue) },
-    { label: "Fee", value: formatCryptoMoney(fill.totalFee) },
-    {
-      label: "Avg price",
-      value: formatCryptoDisplayPriceFromRaw(fill.averageExecutionPrice, fill.symbol),
-    },
-    { label: "Order", value: fill.orderId, mono: true },
-  ];
+  const summary = buildCryptoCustomerReceiptRows(fill, portfolioLabel);
+  const filledSubtitle = cryptoFilledOrderSubtitle(fill);
 
   return (
     <TerminalProcessResult
       kind="success"
-      title={
-        fill.side === "BUY"
-          ? `Bought ${formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol)}`
-          : `Sold ${formatCryptoQuantityDisplay(fill.executedQuantity, fill.symbol)}`
-      }
+      title={CRYPTO_FILLED_ORDER_TITLE}
       summary={summary}
       onDone={onDone}
       onSecondary={onTradeAnother}
-      secondaryLabel="New order"
+      secondaryLabel="Trade again"
       primaryLabel={`View ${fill.symbol}`}
       onPrimary={onViewSecurity}
-      liveMessage={`Crypto order filled. ${fill.symbol}.`}
-    />
+      liveMessage={`${CRYPTO_FILLED_ORDER_TITLE}. ${filledSubtitle}.`}
+      details={
+        <details className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)]">
+          <summary className="min-h-11 cursor-pointer list-none font-medium text-[var(--terminal-text)] [&::-webkit-details-marker]:hidden">
+            Order details
+          </summary>
+          <div className="mt-2 space-y-1.5 border-t border-[var(--terminal-border)] pt-2">
+            <p>
+              <span className="text-[var(--terminal-muted)]">Full reference</span>
+            </p>
+            <p className="break-all font-mono text-[11px] text-[var(--terminal-text)]">
+              {fill.orderId}
+            </p>
+          </div>
+        </details>
+      }
+    >
+      <p className="text-[14px] font-medium text-[var(--terminal-text)]">{filledSubtitle}</p>
+    </TerminalProcessResult>
   );
 }

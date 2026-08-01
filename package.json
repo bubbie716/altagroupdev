@@ -22,6 +22,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:reset-terminal-crypto-prelaunch": "tsx scripts/reset-terminal-crypto-prelaunch.ts",
     "db:grant-tag": "tsx prisma/grant-tag.ts",
     "db:backfill-loan-interest": "tsx prisma/backfill-loan-interest.ts",
     "db:backfill-loan-balance-split": "tsx prisma/backfill-loan-balance-split.ts",

@@ -9,14 +9,16 @@ import {
   type CryptoAssetSymbol,
 } from "@/lib/terminal/crypto/crypto-constants";
 import { d, serializeCryptoMoney, serializeCryptoPrice, serializeCryptoQuantity } from "@/lib/terminal/crypto/crypto-decimal";
-import { marginalPrice } from "@/lib/terminal/crypto/crypto-curve-math";
+import { marginalPrice, reserveLiability } from "@/lib/terminal/crypto/crypto-curve-math";
 import {
   quoteBondingCurveBuy,
   quoteBondingCurveSell,
   quoteNpfcPurchase,
   quoteNpfcRedemption,
   launchMarketSnapshot,
+  resolveSellQuantityFromGrossFlorins,
 } from "@/lib/terminal/crypto/crypto-pricing";
+import type { CryptoQuote } from "@/lib/terminal/crypto/crypto-pricing-types";
 import {
   CryptoOrderError,
   customerMessageForCode,
@@ -25,6 +27,10 @@ import {
   type CryptoOrderPreviewResult,
   type CryptoOrderSubmitInput,
 } from "@/lib/terminal/crypto/crypto-order-types";
+import {
+  logUnexpectedCryptoOrderFailure,
+  mapCryptoPricingError,
+} from "@/lib/terminal/crypto/crypto-pricing-error-map";
 import { parseCryptoOrderPreviewInput, parseCryptoOrderSubmitInput } from "@/lib/terminal/crypto/crypto-order-validation";
 import {
   buildQuoteExpiry,
@@ -42,6 +48,12 @@ import type {
   CryptoPriceHistoryPoint,
   CryptoPriceHistoryResult,
 } from "@/lib/terminal/crypto/crypto-market-read.service";
+import {
+  getUiLabDemonstrationClient,
+} from "@/lib/terminal/ui-lab/ui-lab-demonstration-tse-client";
+import {
+  presentCryptoAssetStatus,
+} from "@/lib/terminal/crypto/crypto-status-presentation";
 
 export const UI_LAB_CRYPTO_SCENARIO_SESSION_KEY = "alta.terminal.crypto.uiLabScenario";
 
@@ -64,6 +76,13 @@ export type UiLabCryptoScenario =
   | "scheduled_price_impact_skip";
 
 const DEMONSTRATION_LABEL = "Demonstration data";
+
+/** Demo wallet holdings — markets are seeded to the same circulating supply. */
+const DEMO_WALLET_QUANTITIES: Record<CryptoAssetSymbol, string> = {
+  NPFC: "25.00000000",
+  NVA: "4.00000000",
+  VLT: "50.00000000",
+};
 
 type InMemoryMarketState = {
   symbol: CryptoAssetSymbol;
@@ -114,12 +133,89 @@ function launchMarkets(): Record<CryptoAssetSymbol, InMemoryMarketState> {
   return markets;
 }
 
+/** Launch markets with circulating supply / reserve matching demo wallet holdings. */
+function seedDemoMarkets(): Record<CryptoAssetSymbol, InMemoryMarketState> {
+  const markets = launchMarkets();
+  for (const symbol of LAUNCH_ASSET_SYMBOLS) {
+    const cfg = CRYPTO_ASSET_CONFIGS[symbol];
+    const circ = d(DEMO_WALLET_QUANTITIES[symbol]);
+    if (cfg.kind === "STABLE") {
+      markets[symbol] = {
+        ...markets[symbol],
+        circulatingSupply: serializeCryptoQuantity(circ),
+        protectedReserve: circ.mul(cfg.pegOrStartingPrice).toFixed(12),
+      };
+      continue;
+    }
+    const liability = reserveLiability({
+      startingPrice: cfg.pegOrStartingPrice,
+      curveRate: cfg.curveRate!,
+      circulatingSupply: circ,
+    });
+    markets[symbol] = {
+      ...markets[symbol],
+      circulatingSupply: serializeCryptoQuantity(circ),
+      treasuryInventory: serializeCryptoQuantity(cfg.maxSupply!.minus(circ)),
+      protectedReserve: liability.toFixed(12),
+    };
+  }
+  return markets;
+}
+
+function applyQuoteToMarket(market: InMemoryMarketState, quote: CryptoQuote) {
+  market.circulatingSupply = serializeCryptoQuantity(quote.circulatingSupplyAfter);
+  market.protectedReserve = quote.protectedReserveAfter.toFixed(12);
+  if ("treasuryInventoryAfter" in quote) {
+    market.treasuryInventory = serializeCryptoQuantity(quote.treasuryInventoryAfter);
+  }
+  market.stabilizationFund = d(market.stabilizationFund)
+    .plus(quote.fees.stabilizationAllocation)
+    .toFixed(12);
+}
+
+function toUiLabFailure(error: unknown): {
+  ok: false;
+  code: string;
+  message: string;
+  details?: Record<string, string>;
+  preview?: CryptoOrderPreviewResult;
+} {
+  if (!(error instanceof CryptoOrderError)) {
+    try {
+      mapCryptoPricingError(error);
+    } catch (mapped) {
+      if (mapped instanceof CryptoOrderError) {
+        return {
+          ok: false,
+          code: mapped.code,
+          message: mapped.customerMessage,
+          details: mapped.details,
+          preview: mapped.preview,
+        };
+      }
+    }
+    logUnexpectedCryptoOrderFailure("uiLabCrypto", error);
+    return {
+      ok: false,
+      code: "INTERNAL_FAILURE",
+      message: customerMessageForCode("INTERNAL_FAILURE"),
+    };
+  }
+  return {
+    ok: false,
+    code: error.code,
+    message: error.customerMessage,
+    details: error.details,
+    preview: error.preview,
+  };
+}
+
 function getStore(userKey = "default"): UiLabCryptoStore {
   assertUiLab();
   let store = stores.get(userKey);
   if (!store) {
     store = {
-      markets: launchMarkets(),
+      markets: seedDemoMarkets(),
       wallets: new Map(),
       orderSeq: 1000,
     };
@@ -162,18 +258,53 @@ function currentMarginalPrice(market: InMemoryMarketState): string {
   );
 }
 
-function seedWallet(store: UiLabCryptoStore, portfolioId: string): InMemoryWallet {
+/**
+ * Resolve terminal cash for crypto preview from the same demonstration ledger
+ * that powers ticket buying power. Never invents an unconditional ƒ10,000.00.
+ */
+function resolveUiLabTerminalCashFlorins(portfolioId: string, userKey: string): string | null {
+  try {
+    const client = getUiLabDemonstrationClient(userKey);
+    const cash = client.getAvailableCash(portfolioId);
+    if (cash == null) return null;
+    return cash.toFixed(2);
+  } catch {
+    return null;
+  }
+}
+
+function syncUiLabDemonstrationCash(portfolioId: string, userKey: string, cashFlorins: string) {
+  try {
+    getUiLabDemonstrationClient(userKey).setAvailableCash(portfolioId, Number(cashFlorins));
+  } catch {
+    // Portfolio may be fixture-only in unit tests.
+  }
+}
+
+function seedWallet(
+  store: UiLabCryptoStore,
+  portfolioId: string,
+  userKey: string,
+): InMemoryWallet {
   const existing = store.wallets.get(portfolioId);
   if (existing) return existing;
+  const cashFlorins = resolveUiLabTerminalCashFlorins(portfolioId, userKey);
+  if (cashFlorins == null) {
+    // Honest empty cash when no demonstration portfolio ledger exists.
+    const wallet: InMemoryWallet = {
+      publicWalletId: generateTerminalCryptoPublicWalletId(),
+      status: "ACTIVE",
+      cashFlorins: "0.00",
+      quantities: { ...DEMO_WALLET_QUANTITIES },
+    };
+    store.wallets.set(portfolioId, wallet);
+    return wallet;
+  }
   const wallet: InMemoryWallet = {
     publicWalletId: generateTerminalCryptoPublicWalletId(),
     status: "ACTIVE",
-    cashFlorins: "10000.00",
-    quantities: {
-      NPFC: "25.00000000",
-      NVA: "4.00000000",
-      VLT: "50.00000000",
-    },
+    cashFlorins,
+    quantities: { ...DEMO_WALLET_QUANTITIES },
   };
   store.wallets.set(portfolioId, wallet);
   return wallet;
@@ -196,8 +327,11 @@ function applyScenarioToMarkets(
 function toAssetSummary(market: InMemoryMarketState): CryptoMarketAssetSummary {
   const cfg = CRYPTO_ASSET_CONFIGS[market.symbol];
   const price = currentMarginalPrice(market);
-  const canTrade = market.status === "ACTIVE";
-  const canSell = market.status === "ACTIVE" || market.status === "REDEMPTION_ONLY";
+  const presented = presentCryptoAssetStatus({
+    status: market.status,
+    surface: "customer",
+    uiLab: true,
+  });
 
   return {
     symbol: market.symbol,
@@ -209,21 +343,11 @@ function toAssetSummary(market: InMemoryMarketState): CryptoMarketAssetSummary {
     dayChangePercent: market.symbol === "NPFC" ? null : market.symbol === "NVA" ? "0.20" : "-1.96",
     noTradesYet: market.symbol === "NPFC",
     tradingCapabilities: {
-      canBuy: canTrade,
-      canSell,
+      canBuy: presented.canBuy,
+      canSell: presented.canSell,
     },
-    statusLabel:
-      market.status === "ACTIVE"
-        ? "Active"
-        : market.status === "HALTED"
-          ? "Trading halted"
-          : "Redemption only",
-    tradingContextLabel:
-      market.status === "ACTIVE"
-        ? "Crypto · 24/7"
-        : market.status === "HALTED"
-          ? "Trading temporarily halted"
-          : "Purchases disabled — redemptions only",
+    statusLabel: presented.statusLabel,
+    tradingContextLabel: presented.tradingContextLabel,
   };
 }
 
@@ -352,26 +476,37 @@ export function getUiLabPortfolioCrypto(input: {
 
   const wallet =
     scenario === "frozen_wallet"
-      ? { ...seedWallet(store, input.portfolioId), status: "FROZEN" as const }
-      : seedWallet(store, input.portfolioId);
+      ? { ...seedWallet(store, input.portfolioId, userKey), status: "FROZEN" as const }
+      : seedWallet(store, input.portfolioId, userKey);
 
   const markets = applyScenarioToMarkets(store.markets, scenario);
+  // Demo average costs differ from the live mark so Total return ≠ Day change.
+  const DEMO_AVERAGE_COST: Record<CryptoAssetSymbol, string> = {
+    NPFC: "1.00000000",
+    NVA: "4.75000000",
+    VLT: "0.11000000",
+  };
   let total = d("0");
   const balances = LAUNCH_ASSET_SYMBOLS.map((symbol) => {
     const qty = d(wallet.quantities[symbol] ?? "0");
     const price = d(currentMarginalPrice(markets[symbol]));
+    const avgCost = d(DEMO_AVERAGE_COST[symbol]);
     const marked = qty.mul(price);
+    const costBasis = qty.mul(avgCost);
+    const ret = marked.minus(costBasis);
     total = total.plus(marked);
     const cfg = CRYPTO_ASSET_CONFIGS[symbol];
     return {
       symbol,
       displayName: cfg.displayName,
       quantity: serializeCryptoQuantity(qty),
-      averageCost: serializeCryptoPrice(price),
+      averageCost: serializeCryptoPrice(avgCost),
       currentPrice: serializeCryptoPrice(price),
       markedValue: serializeCryptoMoney(marked),
-      totalReturn: serializeCryptoMoney("0"),
-      totalReturnPercent: "0.00",
+      totalReturn: serializeCryptoMoney(ret),
+      totalReturnPercent: costBasis.greaterThan(0)
+        ? ret.div(costBasis).mul(100).toFixed(2)
+        : "0.00",
     };
   }).filter((b) => d(b.quantity).greaterThan(0));
 
@@ -427,15 +562,20 @@ export function previewUiLabCryptoOrder(
       scenario === "no_wallet" || scenario === "success_first_wallet"
         ? null
         : scenario === "frozen_wallet"
-          ? { ...seedWallet(store, parsed.portfolioId), status: "FROZEN" as const }
-          : seedWallet(store, parsed.portfolioId);
+          ? { ...seedWallet(store, parsed.portfolioId, userKey), status: "FROZEN" as const }
+          : seedWallet(store, parsed.portfolioId, userKey);
 
     if (wallet?.status === "FROZEN") {
       throw new CryptoOrderError("WALLET_FROZEN", customerMessageForCode("WALLET_FROZEN"));
     }
 
     const walletQty = wallet?.quantities[symbol] ?? "0";
-    const availableCash = d(wallet?.cashFlorins ?? "10000.00");
+    // Prefer live demonstration ledger cash so preview matches ticket buying power.
+    const ledgerCash = resolveUiLabTerminalCashFlorins(parsed.portfolioId, userKey);
+    const availableCash = d(ledgerCash ?? wallet?.cashFlorins ?? "0.00");
+    if (wallet && ledgerCash != null) {
+      wallet.cashFlorins = ledgerCash;
+    }
 
     if (scenario === "insufficient_cash" && parsed.side === "BUY") {
       throw new CryptoOrderError("INSUFFICIENT_CASH", customerMessageForCode("INSUFFICIENT_CASH"));
@@ -460,23 +600,31 @@ export function previewUiLabCryptoOrder(
       if (!wallet || d(walletQty).lessThanOrEqualTo(0)) {
         throw new CryptoOrderError("INSUFFICIENT_HOLDINGS", customerMessageForCode("INSUFFICIENT_HOLDINGS"));
       }
+      const sellQuantity =
+        parsed.quantity ??
+        resolveSellQuantityFromGrossFlorins({
+          market: snap,
+          grossFlorins: parsed.grossFlorins!,
+        }).toFixed(8);
       quote =
         cfg.kind === "STABLE"
-          ? quoteNpfcRedemption({ market: { ...snap, symbol: "NPFC" }, quantity: parsed.quantity! })
-          : quoteBondingCurveSell({ market: snap, quantity: parsed.quantity! });
+          ? quoteNpfcRedemption({ market: { ...snap, symbol: "NPFC" }, quantity: sellQuantity })
+          : quoteBondingCurveSell({ market: snap, quantity: sellQuantity });
     }
 
     const impact = "priceImpactPercent" in quote ? quote.priceImpactPercent : d("0");
-    let { warnings, requiresHighImpactConfirmation } = buildPriceImpactWarnings(impact);
+    let { warnings, requiresHighImpactConfirmation, exceedsHardLimit } =
+      buildPriceImpactWarnings(impact);
 
     if (scenario === "high_impact_warn") {
       requiresHighImpactConfirmation = false;
+      exceedsHardLimit = false;
       if (!warnings.some((w) => w.code === "HIGH_PRICE_IMPACT")) {
         warnings = [
           {
             code: "HIGH_PRICE_IMPACT",
             message:
-              "Demonstration: estimated price impact is about 5%. Large trades can move bonding-curve prices.",
+              "This order may noticeably move the market. Review your order before continuing.",
           },
           ...warnings,
         ];
@@ -484,16 +632,24 @@ export function previewUiLabCryptoOrder(
     }
     if (scenario === "high_impact_confirm" || scenario === "scheduled_price_impact_skip") {
       requiresHighImpactConfirmation = true;
+      exceedsHardLimit = false;
       if (!warnings.some((w) => w.code === "HIGH_PRICE_IMPACT")) {
         warnings = [
           {
             code: "HIGH_PRICE_IMPACT",
             message:
-              "Demonstration: estimated price impact is about 10% or greater. Confirm before submitting.",
+              "This order is large relative to current market activity and may significantly affect its execution.",
           },
           ...warnings,
         ];
       }
+    }
+    if (exceedsHardLimit) {
+      throw new CryptoOrderError(
+        "PRICE_IMPACT_LIMIT_EXCEEDED",
+        customerMessageForCode("PRICE_IMPACT_LIMIT_EXCEEDED"),
+        { priceImpactPercent: impact.abs().toFixed(4) },
+      );
     }
     if (scenario === "consent_required") {
       // Preview remains available; submit path asserts CRYPTO consent.
@@ -568,19 +724,7 @@ export function previewUiLabCryptoOrder(
 
     return { ok: true, preview };
   } catch (error) {
-    if (error instanceof CryptoOrderError) {
-      return {
-        ok: false,
-        code: error.code,
-        message: error.customerMessage,
-        details: error.details,
-      };
-    }
-    return {
-      ok: false,
-      code: "INTERNAL_FAILURE",
-      message: customerMessageForCode("INTERNAL_FAILURE"),
-    };
+    return toUiLabFailure(error);
   }
 }
 
@@ -646,13 +790,8 @@ export function submitUiLabCryptoOrder(
     let wallet = store.wallets.get(parsed.portfolioId);
     const isFirstWallet = !wallet;
     if (!wallet) {
-      wallet = {
-        publicWalletId: generateTerminalCryptoPublicWalletId(),
-        status: "ACTIVE",
-        cashFlorins: "10000.00",
-        quantities: {},
-      };
-      store.wallets.set(parsed.portfolioId, wallet);
+      wallet = seedWallet(store, parsed.portfolioId, userKey);
+      wallet.quantities = {};
     }
 
     if (wallet.status === "FROZEN") {
@@ -661,10 +800,38 @@ export function submitUiLabCryptoOrder(
 
     const symbol = parsed.symbol as CryptoAssetSymbol;
     const market = store.markets[symbol];
+    const cfg = CRYPTO_ASSET_CONFIGS[symbol];
+    const walletQty = wallet.quantities[symbol] ?? "0";
+    const snap = marketSnapshotInput(market, walletQty);
+    const fillQuote: CryptoQuote =
+      parsed.side === "BUY"
+        ? cfg.kind === "STABLE"
+          ? quoteNpfcPurchase({ market: { ...snap, symbol: "NPFC" }, grossFlorins: parsed.grossFlorins! })
+          : quoteBondingCurveBuy({ market: snap, grossFlorins: parsed.grossFlorins! })
+        : cfg.kind === "STABLE"
+          ? quoteNpfcRedemption({
+              market: { ...snap, symbol: "NPFC" },
+              quantity:
+                parsed.quantity ??
+                resolveSellQuantityFromGrossFlorins({
+                  market: snap,
+                  grossFlorins: parsed.grossFlorins!,
+                }).toFixed(8),
+            })
+          : quoteBondingCurveSell({
+              market: snap,
+              quantity:
+                parsed.quantity ??
+                resolveSellQuantityFromGrossFlorins({
+                  market: snap,
+                  grossFlorins: parsed.grossFlorins!,
+                }).toFixed(8),
+            });
+    applyQuoteToMarket(market, fillQuote);
     market.version += 1;
 
     const qty = d(preview.estimatedExecutedQuantity);
-    const prevQty = d(wallet.quantities[symbol] ?? "0");
+    const prevQty = d(walletQty);
     if (parsed.side === "BUY") {
       wallet.quantities[symbol] = serializeCryptoQuantity(prevQty.plus(qty));
       wallet.cashFlorins = preview.estimatedTerminalCashAfter;
@@ -672,6 +839,7 @@ export function submitUiLabCryptoOrder(
       wallet.quantities[symbol] = serializeCryptoQuantity(prevQty.minus(qty));
       wallet.cashFlorins = preview.estimatedTerminalCashAfter;
     }
+    syncUiLabDemonstrationCash(parsed.portfolioId, userKey, wallet.cashFlorins);
 
     store.orderSeq += 1;
     const filledAt = new Date().toISOString();
@@ -709,20 +877,7 @@ export function submitUiLabCryptoOrder(
     void scenario;
     return fill;
   } catch (error) {
-    if (error instanceof CryptoOrderError) {
-      return {
-        ok: false,
-        code: error.code,
-        message: error.customerMessage,
-        details: error.details,
-        preview: error.preview,
-      };
-    }
-    return {
-      ok: false,
-      code: "INTERNAL_FAILURE",
-      message: customerMessageForCode("INTERNAL_FAILURE"),
-    };
+    return toUiLabFailure(error);
   }
 }
 

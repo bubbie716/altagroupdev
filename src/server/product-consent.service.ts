@@ -71,6 +71,12 @@ const PRODUCT_COPY: Record<
     explanation:
       "Before using Alta Terminal, review and accept the customer agreement and trading terms.",
   },
+  CRYPTO: {
+    title: "Alta Terminal Crypto",
+    headline: "First use of Alta Terminal Crypto",
+    explanation:
+      "Before trading fictional crypto assets on Alta Terminal, acknowledge the crypto trading and custody disclosure.",
+  },
   ALTA_PAY: {
     title: "Alta Pay",
     headline: "First use of Alta Pay",

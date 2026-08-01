@@ -106,6 +106,40 @@ export function netFromSellQuantity(input: {
   });
 }
 
+/**
+ * Solve Δq for a sell that redeems `grossFlorins` from the curve at circulating `q0`.
+ * Inverse of netFromSellQuantity: N = P Δq − ½ k Δq²
+ *   Δq = (P − √(P² − 2 k N)) / k
+ */
+export function quantityFromGrossSell(input: {
+  startingPrice: CryptoDecimalInput;
+  curveRate: CryptoDecimalInput;
+  circulatingSupply: CryptoDecimalInput;
+  grossFlorins: CryptoDecimalInput;
+}): CryptoDecimal {
+  const k = d(input.curveRate);
+  const net = d(input.grossFlorins);
+  if (!net.greaterThan(0)) return d("0");
+  if (!k.greaterThan(0)) {
+    throw new Error("curveRate must be positive for bonding-curve sells");
+  }
+  const p = marginalPrice({
+    startingPrice: input.startingPrice,
+    curveRate: input.curveRate,
+    circulatingSupply: input.circulatingSupply,
+  });
+  const discriminant = p.mul(p).minus(k.mul(net).mul(2));
+  if (discriminant.lessThan(0)) {
+    throw new Error("Requested sell florin amount exceeds available curve liquidity");
+  }
+  const qty = p.minus(discriminant.sqrt()).div(k);
+  const circulating = d(input.circulatingSupply);
+  if (qty.greaterThan(circulating)) {
+    throw new Error("Sell quantity exceeds circulating supply");
+  }
+  return qty;
+}
+
 export function averageExecutionPrice(grossCurveValue: CryptoDecimalInput, quantity: CryptoDecimalInput): CryptoDecimal {
   const qty = d(quantity);
   if (!qty.greaterThan(0)) {

@@ -72,7 +72,7 @@ export function parseCryptoOrderPreviewInput(input: CryptoOrderPreviewInput): {
   if (hasGross && hasQty) {
     throw new CryptoOrderError(
       "VALIDATION_FAILED",
-      "Provide either a florin amount (buy) or a coin quantity (sell), not both.",
+      "Provide either a florin amount or a coin quantity, not both.",
     );
   }
 
@@ -89,8 +89,17 @@ export function parseCryptoOrderPreviewInput(input: CryptoOrderPreviewInput): {
     };
   }
 
+  if (hasGross) {
+    return {
+      portfolioId,
+      symbol,
+      side: "SELL",
+      grossFlorins: requireDecimalString("gross florin amount", input.grossFlorins),
+      quantity: null,
+    };
+  }
   if (!hasQty) {
-    throw new CryptoOrderError("VALIDATION_FAILED", "Enter a coin quantity to sell.");
+    throw new CryptoOrderError("VALIDATION_FAILED", "Enter a florin amount to sell.");
   }
   return {
     portfolioId,

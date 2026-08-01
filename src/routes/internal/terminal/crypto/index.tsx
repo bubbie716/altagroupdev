@@ -140,9 +140,10 @@ function TerminalCryptoDeskPage() {
             role="status"
             className="rounded-md border border-border/70 bg-surface-1/40 px-4 py-3"
           >
-            <p className="text-[13px] font-medium text-foreground">Demonstration mode</p>
+            <p className="text-[13px] font-medium text-foreground">Demonstration market</p>
             <p className="mt-0.5 text-[12px] text-muted-foreground">
-              Assets remain draft and all market mutations are disabled.
+              Operations disabled in UI Lab. Asset lifecycle below mirrors the customer demonstration
+              markets — mutations cannot activate or alter production state.
             </p>
           </div>
         ) : null}
@@ -210,7 +211,7 @@ function TerminalCryptoDeskPage() {
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-mono text-[14px] font-medium">{asset.symbol}</span>
-                  <StatusBadge status={cryptoOpsStatusLabel(asset.status)} />
+                  <StatusBadge status={cryptoOpsStatusLabel(asset.status, { uiLab: capabilities.uiLab })} />
                 </div>
                 <p className="mt-1 text-[12px] text-muted-foreground">{asset.displayName}</p>
                 <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-muted-foreground">

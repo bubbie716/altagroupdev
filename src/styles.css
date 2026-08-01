@@ -1131,6 +1131,19 @@ thead .ops-table-col-sticky-end {
   border-bottom: 1px solid var(--terminal-border);
 }
 
+/* Beat base th { text-align: left } so utility alignment matches body cells. */
+.terminal-table th.text-right {
+  text-align: right;
+}
+
+.terminal-table th.text-left {
+  text-align: left;
+}
+
+.terminal-table th.text-center {
+  text-align: center;
+}
+
 .terminal-table td {
   padding: 0.85rem 0.75rem;
   border-bottom: 1px solid var(--terminal-border);

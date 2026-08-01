@@ -28,6 +28,9 @@ describe("Home Quick Trade entry points", () => {
     assert.match(home, /initialPortfolios=\{portfolios\}/);
     assert.match(home, /tradeButtonRef/);
     assert.match(home, /onCloseAutoFocus/);
+    // Home Trade stays usable when TSE is offline (crypto remains tradeable).
+    assert.doesNotMatch(home, /disabled=\{mode === "unavailable"\}/);
+    assert.match(home, /Alta crypto trading stays open/);
   });
 });
 
@@ -49,10 +52,17 @@ describe("Quick Trade architecture contracts", () => {
     assert.match(dialog, /data-\[state=closed\]:pointer-events-none/);
     assert.match(dialog, /max-lg:bottom-\[calc\(3\.25rem\+env\(safe-area-inset-bottom/);
     assert.doesNotMatch(dialog, /useMediaQueryMax/);
-    assert.match(dialog, /New order/);
+    assert.match(dialog, /Trade again/);
     assert.match(dialog, /View order/);
     assert.match(dialog, /Done/);
     assert.match(dialog, /pathname !== openPathRef/);
+    // TSE offline must not hard-block crypto Quick Trade.
+    assert.doesNotMatch(
+      dialog,
+      /mode === "unavailable" && ctx \?/,
+    );
+    assert.match(dialog, /Stock trading is offline|Stock trading unavailable/);
+    assert.match(dialog, /NPFC, NVA, or VLT/);
   });
 
   it("reuses server preview/submit paths from the order ticket", () => {

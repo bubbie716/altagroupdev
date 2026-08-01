@@ -260,6 +260,70 @@ export const fetchTerminalInboxCases = createServerFn({ method: "GET" }).handler
 export const fetchTerminalSystemStatus = createServerFn({ method: "GET" }).handler(
   async (): Promise<TerminalOpsSystemStatus> => {
     await requireTerminalOperator();
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabCryptoOpsDeskSummary } = await import(
+        "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures"
+      );
+      const { presentCryptoSystemAggregate } = await import(
+        "@/lib/terminal/crypto/crypto-status-presentation"
+      );
+      const { resolveTerminalOpsEnvironmentStatus } = await import(
+        "@/lib/terminal/terminal-ops-environment"
+      );
+      const desk = getUiLabCryptoOpsDeskSummary();
+      const aggregate = presentCryptoSystemAggregate({
+        statuses: desk.assets.map((a) => a.status),
+        openCritical: desk.openCriticalIssueCount,
+        uiLab: true,
+      });
+      return {
+        environment: resolveTerminalOpsEnvironmentStatus(),
+        localDatabase: {
+          available: false,
+          detail:
+            "UI Lab demonstration — Terminal PostgreSQL is not the source of truth in this mode.",
+        },
+        marketData: {
+          available: false,
+          detail: "Demonstration market data — not a live TSE feed.",
+        },
+        orderExecution: {
+          available: false,
+          detail: "Demonstration order fixtures only — live TSE execution is unavailable.",
+        },
+        synchronization: {
+          available: false,
+          detail: "UI Lab does not synchronize with an external TSE.",
+        },
+        reconciliation: {
+          available: false,
+          detail: "Demonstration crypto integrity only — production reconciliation is separate.",
+          readiness: [
+            "UI Lab fixtures are demonstration-only",
+            "Operations disabled in UI Lab",
+          ],
+        },
+        jobs: {
+          available: false,
+          detail: "Crypto jobs are blocked from mutating in UI Lab.",
+        },
+        audit: {
+          available: false,
+          detail: "Demonstration audit detail is fixture-backed only.",
+        },
+        recurringTrades: {
+          available: true,
+          detail: "Demonstration scheduled-trade fixtures only.",
+        },
+        cryptoMarkets: {
+          available: aggregate.available,
+          statusLabel: aggregate.statusLabel,
+          detail: aggregate.detail,
+          assetStatuses: desk.assets.map((a) => ({ symbol: a.symbol, status: a.status })),
+        },
+      };
+    }
     const { getTerminalOpsSystemStatus } =
       await import("@/lib/terminal/terminal-ops-admin.service");
     return getTerminalOpsSystemStatus();

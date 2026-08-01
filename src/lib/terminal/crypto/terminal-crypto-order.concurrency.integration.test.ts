@@ -622,20 +622,32 @@ describe("terminal crypto order concurrency (database)", { skip: skipSuite }, ()
       return;
     }
     const fixture = await createPortfolioFixture();
-    await prisma.terminalCryptoAsset.update({
+    const prior = await prisma.terminalCryptoAsset.findUniqueOrThrow({
       where: { symbol: "NVA" },
-      data: { status: "DRAFT" },
+      select: { status: true, version: true },
     });
-    await assert.rejects(
-      () =>
-        previewTerminalCryptoOrder(fixture.altaUser, {
-          portfolioId: fixture.portfolio.id,
-          symbol: "NVA",
-          side: "BUY",
-          grossFlorins: "100",
-        }),
-      (err: unknown) => (err as { code?: string }).code === "ASSET_DRAFT",
-    );
+    try {
+      await prisma.terminalCryptoAsset.update({
+        where: { symbol: "NVA" },
+        data: { status: "DRAFT" },
+      });
+      await assert.rejects(
+        () =>
+          previewTerminalCryptoOrder(fixture.altaUser, {
+            portfolioId: fixture.portfolio.id,
+            symbol: "NVA",
+            side: "BUY",
+            grossFlorins: "100",
+          }),
+        (err: unknown) => (err as { code?: string }).code === "ASSET_DRAFT",
+      );
+    } finally {
+      // Restore prior launch status so this suite never leaves NVA stuck in DRAFT.
+      await prisma.terminalCryptoAsset.update({
+        where: { symbol: "NVA" },
+        data: { status: prior.status as "DRAFT" | "ACTIVE" | "HALTED" | "RETIRED" },
+      });
+    }
   });
 });
 

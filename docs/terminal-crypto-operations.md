@@ -11,8 +11,8 @@ Do not paste secrets into this document, tickets, chat, or screenshots.
 | Symbol | Kind | Peg / start | Notes |
 |--------|------|-------------|--------|
 | **NPFC** | Stable | ƒ1.00 peg | Conversion fee; protected reserve backs circulating NPFC at ƒ1 |
-| **NVA** | Bonding curve | Starts ƒ5 | Linear curve; fees split revenue + stabilization |
-| **VLT** | Bonding curve | Starts ƒ0.10 | Same curve model; higher price impact |
+| **NVA** | Bonding curve | Starts ƒ5.00 | ≈ +0.10% marginal price per ƒ100 from launch |
+| **VLT** | Bonding curve | Starts ƒ0.10 | ≈ +0.25% marginal price per ƒ100 from launch |
 
 **Authoritative stores**
 
@@ -192,6 +192,13 @@ Apply forward-only, in order (do not rewrite completed migrations):
 3. `20260731180000_terminal_crypto_customer_phase3`
 4. `20260731200000_terminal_crypto_operations_phase4` (ops / reconciliation / lifecycle records)
 5. `20260731210000_terminal_crypto_go_live_activate` (DRAFT → ACTIVE for NPFC / NVA / VLT)
+6. `20260731220000_terminal_crypto_curve_recalibration` (NVA/VLT curve rates; nondestructive)
+
+**Disposable prelaunch market reset** (never production):
+
+```bash
+CONFIRM_TERMINAL_CRYPTO_PRELAUNCH_RESET=YES npm run db:reset-terminal-crypto-prelaunch -- --apply
+```
 
 Then: `prisma migrate deploy` in the target env (human-operated), generate client, smoke customer trading with `TERMINAL_CRYPTO_QUOTE_SECRET` set.
 

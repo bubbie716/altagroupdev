@@ -83,6 +83,20 @@ describe("crypto schema foundation guards", () => {
     assert.match(sql, /ON CONFLICT \("assetId", "idempotencyKey"\) DO NOTHING/);
   });
 
+  it("ships a nondestructive curve recalibration migration for NVA/VLT", () => {
+    const sql = readFileSync(
+      join(
+        repoRoot,
+        "prisma/migrations/20260731220000_terminal_crypto_curve_recalibration/migration.sql",
+      ),
+      "utf8",
+    );
+    assert.match(sql, /0\.000252651515151515/);
+    assert.match(sql, /0\.000000252840909091/);
+    assert.match(sql, /NONDESTRUCTIVE/);
+    assert.doesNotMatch(sql, /DELETE FROM/);
+  });
+
   it("does not remove instrument/venue defaults for existing stock records", () => {
     const sql = readFileSync(join(migrationDir, "migration.sql"), "utf8");
     assert.match(

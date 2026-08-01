@@ -138,6 +138,9 @@ describe("Phase 3 instrument helpers and source contracts", () => {
     assert.match(ticket, /requestConsent\(\["TERMINAL", "CRYPTO"\]\)/);
     assert.match(ticket, /isConsentCancelledError/);
     assert.doesNotMatch(ticket, /code === "CONSENT_REQUIRED"/);
+    assert.match(ticket, /buildCryptoCustomerReviewRows/);
+    assert.doesNotMatch(ticket, /label=["']Price after["']/);
+    assert.doesNotMatch(ticket, /label=["']Market impact["']/);
   });
 
   it("wires submit to terminal.crypto_trade", () => {
@@ -146,6 +149,14 @@ describe("Phase 3 instrument helpers and source contracts", () => {
       "utf8",
     );
     assert.match(fns, /terminal\.crypto_trade/);
+  });
+
+  it("includes CRYPTO product consent presentation copy", () => {
+    const service = readFileSync(
+      join(process.cwd(), "src/server/product-consent.service.ts"),
+      "utf8",
+    );
+    assert.match(service, /CRYPTO:\s*\{\s*title:\s*"Alta Terminal Crypto"/);
   });
 
   it("executor routes CRYPTO away from TSE", () => {

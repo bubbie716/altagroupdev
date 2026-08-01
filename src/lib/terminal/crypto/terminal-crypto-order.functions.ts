@@ -13,6 +13,7 @@ import {
   CryptoOrderError,
   customerMessageForCode,
 } from "./crypto-order-types";
+import { logUnexpectedCryptoOrderFailure } from "./crypto-pricing-error-map";
 import { isConsentRequiredError } from "@/lib/legal/consent-required-error";
 
 async function requireActor() {
@@ -31,6 +32,9 @@ function toClientError(error: unknown): {
     throw error;
   }
   if (error instanceof CryptoOrderError) {
+    if (error.code === "INTERNAL_FAILURE") {
+      logUnexpectedCryptoOrderFailure("terminalCryptoOrderFn", error);
+    }
     return {
       ok: false,
       code: error.code,
@@ -48,6 +52,7 @@ function toClientError(error: unknown): {
       };
     }
   }
+  logUnexpectedCryptoOrderFailure("terminalCryptoOrderFn", error);
   return {
     ok: false,
     code: "INTERNAL_FAILURE",
@@ -64,10 +69,11 @@ export const previewTerminalCryptoOrderFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
+      const user = await requireActor();
       const { previewUiLabCryptoOrder } = await import(
         "@/lib/terminal/ui-lab/ui-lab-crypto-fixtures"
       );
-      return previewUiLabCryptoOrder(data);
+      return previewUiLabCryptoOrder(data, { userKey: user.id });
     }
 
     const user = await requireActor();
@@ -91,6 +97,7 @@ export const submitTerminalCryptoOrderFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
+      const user = await requireActor();
       const { assertUiLabProductConsentForAction } = await import(
         "@/lib/legal/ui-lab-action-consent"
       );
@@ -98,7 +105,7 @@ export const submitTerminalCryptoOrderFn = createServerFn({ method: "POST" })
       const { submitUiLabCryptoOrder } = await import(
         "@/lib/terminal/ui-lab/ui-lab-crypto-fixtures"
       );
-      return submitUiLabCryptoOrder(data);
+      return submitUiLabCryptoOrder(data, { userKey: user.id });
     }
 
     const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");

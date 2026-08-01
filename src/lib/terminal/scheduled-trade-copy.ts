@@ -20,7 +20,7 @@ const CRYPTO_FAILURE_COPY: Partial<Record<ScheduledTradeFailureCategory, string>
   asset_halted: "Trading is halted for this crypto asset.",
   redemption_only: "Purchases are disabled — this asset is redemption-only.",
   price_impact_too_high:
-    "This attempt was skipped because the estimated price impact exceeded the 10% limit.",
+    "This attempt was skipped because the order would move the market too much at execution time.",
   crypto_consent_required: "Terminal and crypto trading consent is required.",
   wallet_frozen: "This portfolio’s crypto wallet is frozen.",
   requote_required: "Market conditions changed — this attempt could not be completed.",

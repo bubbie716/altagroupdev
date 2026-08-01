@@ -164,6 +164,7 @@ export function PortfolioSwitcher({
             <button
               ref={triggerRef}
               type="button"
+              title={`${displayName} · ${displayOwner}`}
               className={cn(
                 "group -mx-1 max-w-full rounded-md px-1 py-1 text-left outline-none transition-colors",
                 "min-h-11 hover:bg-[var(--menu-item-hover)]/50",
@@ -173,7 +174,7 @@ export function PortfolioSwitcher({
               aria-label={ariaLabel}
             >
               <span className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-                <h1 className="min-w-0 truncate text-[26px] font-medium leading-[1.3] tracking-tight text-[var(--terminal-text)] sm:text-[30px]">
+                <h1 className="min-w-0 truncate text-[22px] font-medium leading-[1.3] tracking-tight text-[var(--terminal-text)] max-[359px]:text-[20px] sm:text-[30px]">
                   {displayName}
                 </h1>
                 <ChevronDown
@@ -184,7 +185,7 @@ export function PortfolioSwitcher({
                   aria-hidden
                 />
               </span>
-              <span className="mt-0.5 block truncate text-[13px] leading-snug text-[var(--terminal-muted)]">
+              <span className="mt-0.5 block truncate text-[12px] leading-snug text-[var(--terminal-muted)] sm:text-[13px]">
                 {displayOwner}
               </span>
             </button>

@@ -5,7 +5,7 @@
  *   P(q) = P0 + k q
  *   L(q) = P0 q + ½ k q²   (required protected reserve liability)
  *
- * Calibration (approved product decision):
+ * Calibration (approved product decision — recalibrated for lower prelaunch volatility):
  *   Gross launch purchase G = ƒ100
  *   Total fee = 1.00% → net to curve N = ƒ99
  *   At q₀ = 0, choose k so marginal price rises by the target impact:
@@ -13,6 +13,10 @@
  *     ΔP = P₁ − P0
  *     From L(Δq) = N and P(Δq) = P₁:
  *       k = (P0 · ΔP + ½ ΔP²) / N
+ *
+ * Targets:
+ *   NVA ≈ +0.10% per ƒ100 gross from launch
+ *   VLT ≈ +0.25% per ƒ100 gross from launch
  *
  * Rates are derived at module load via Decimal math — never hand-picked approximations.
  */
@@ -32,6 +36,10 @@ export const BONDING_CURVE_REVENUE_FEE_BPS = 75;
 export const BONDING_CURVE_STABILIZATION_FEE_BPS = 25;
 export const NPFC_CONVERSION_FEE_BPS = 10;
 
+/** Authoritative ƒ100-launch calibration targets (percent). */
+export const NVA_TARGET_IMPACT_PERCENT = "0.10";
+export const VLT_TARGET_IMPACT_PERCENT = "0.25";
+
 export type CryptoAssetConfig = {
   symbol: CryptoAssetSymbol;
   displayName: string;
@@ -49,6 +57,8 @@ export type CryptoAssetConfig = {
   /** Fixed seed primary keys for idempotent SQL/app seeding. */
   seedAssetId: string;
   seedMarketStateId: string;
+  /** Human-readable sensitivity for ops desk (null for stable). */
+  sensitivityLabel: string | null;
 };
 
 /**
@@ -78,12 +88,12 @@ export function deriveBondingCurveRate(input: {
 
 export const NVA_CURVE_RATE = deriveBondingCurveRate({
   startingPrice: "5",
-  targetImpactPercent: "0.25",
+  targetImpactPercent: NVA_TARGET_IMPACT_PERCENT,
 });
 
 export const VLT_CURVE_RATE = deriveBondingCurveRate({
   startingPrice: "0.1",
-  targetImpactPercent: "2.5",
+  targetImpactPercent: VLT_TARGET_IMPACT_PERCENT,
 });
 
 export const CRYPTO_ASSET_CONFIGS: Record<CryptoAssetSymbol, CryptoAssetConfig> = {
@@ -102,6 +112,7 @@ export const CRYPTO_ASSET_CONFIGS: Record<CryptoAssetSymbol, CryptoAssetConfig> 
     stabilizationFeeBps: 0,
     seedAssetId: "tca_npfc",
     seedMarketStateId: "tcms_npfc",
+    sensitivityLabel: "Stable ƒ1.00 peg",
   },
   NVA: {
     symbol: "NVA",
@@ -118,6 +129,7 @@ export const CRYPTO_ASSET_CONFIGS: Record<CryptoAssetSymbol, CryptoAssetConfig> 
     stabilizationFeeBps: BONDING_CURVE_STABILIZATION_FEE_BPS,
     seedAssetId: "tca_nva",
     seedMarketStateId: "tcms_nva",
+    sensitivityLabel: `≈ +${NVA_TARGET_IMPACT_PERCENT}% per ƒ100 from launch`,
   },
   VLT: {
     symbol: "VLT",
@@ -134,10 +146,21 @@ export const CRYPTO_ASSET_CONFIGS: Record<CryptoAssetSymbol, CryptoAssetConfig> 
     stabilizationFeeBps: BONDING_CURVE_STABILIZATION_FEE_BPS,
     seedAssetId: "tca_vlt",
     seedMarketStateId: "tcms_vlt",
+    sensitivityLabel: `≈ +${VLT_TARGET_IMPACT_PERCENT}% per ƒ100 from launch`,
   },
 };
 
 /** High-precision string forms for SQL seed / docs (18 dp curve rate). */
 export function curveRateSeedString(rate: CryptoDecimal): string {
   return rate.toDecimalPlaces(18, Decimal.ROUND_HALF_UP).toFixed(18);
+}
+
+/** True when a DB curve rate matches the authoritative application constant (18 dp). */
+export function curveRatesMatch(
+  dbRate: CryptoDecimal | string | null | undefined,
+  authoritative: CryptoDecimal | null,
+): boolean {
+  if (authoritative == null) return dbRate == null || String(dbRate).trim() === "";
+  if (dbRate == null || String(dbRate).trim() === "") return false;
+  return curveRateSeedString(d(dbRate)) === curveRateSeedString(authoritative);
 }

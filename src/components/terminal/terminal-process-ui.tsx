@@ -4,8 +4,8 @@
  * Terminal order process UI — same motion language as Bank actions
  * (Details → Review → Processing → Success | Pending | Error).
  */
-import type { ReactNode } from "react";
-import { AlertCircle, Check, Clock3 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AlertCircle, Check, Clock3, Copy } from "lucide-react";
 import {
   BANK_PROCESS_MOTION,
   type BankProcessOutcomeKind,
@@ -21,6 +21,76 @@ export {
   waitBankProcessMin as waitTerminalProcessMin,
 } from "@/lib/bank/bank-process";
 
+function SummaryCopyControl({
+  fullValue,
+  label,
+}: {
+  fullValue: string;
+  label: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+
+  useEffect(() => {
+    if (!copied && !copyError) return;
+    const timer = window.setTimeout(() => {
+      setCopied(false);
+      setCopyError(false);
+    }, 1600);
+    return () => window.clearTimeout(timer);
+  }, [copied, copyError]);
+
+  async function copyFull() {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullValue);
+      } else {
+        const area = document.createElement("textarea");
+        area.value = fullValue;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.left = "-9999px";
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(area);
+        if (!ok) throw new Error("copy_failed");
+      }
+      setCopyError(false);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+      setCopyError(true);
+    }
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => void copyFull()}
+        className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-[var(--terminal-border)] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--terminal-green)]"
+        aria-label={copied ? "Copied" : label}
+      >
+        {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+      </button>
+      <span className="sr-only" aria-live="polite">
+        {copied ? "Copied" : copyError ? "Could not copy. Long-press the reference to select it." : ""}
+      </span>
+      {copied ? (
+        <span className="text-[11px] font-normal text-[var(--terminal-muted)]" aria-hidden>
+          Copied
+        </span>
+      ) : null}
+      {copyError ? (
+        <span className="text-[11px] font-normal text-[var(--terminal-red)]" role="status">
+          Copy failed
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export function TerminalProcessSummary({
   rows,
   className,
@@ -31,15 +101,38 @@ export function TerminalProcessSummary({
   return (
     <dl className={cn("space-y-3 text-[14px]", className)}>
       {rows.map((row) => (
-        <div key={row.label} className="flex justify-between gap-4">
-          <dt className="shrink-0 text-[var(--terminal-muted)]">{row.label}</dt>
+        <div
+          key={row.label}
+          className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+        >
+          <dt className="shrink-0 text-[12px] text-[var(--terminal-muted)] sm:text-[14px]">
+            {row.label}
+          </dt>
           <dd
             className={cn(
-              "min-w-0 text-right font-medium text-[var(--terminal-text)]",
+              "min-w-0 font-medium text-[var(--terminal-text)] sm:text-right",
               row.mono && "font-mono text-[12px] font-normal",
             )}
           >
-            <span className="block break-words">{row.value}</span>
+            <span className="flex min-w-0 items-center gap-2 sm:justify-end">
+              <span
+                className={cn(
+                  "min-w-0 tabular-nums",
+                  row.copyValue
+                    ? "break-all"
+                    : "break-words [overflow-wrap:anywhere] sm:break-normal",
+                  !row.copyValue && "whitespace-normal",
+                )}
+              >
+                {row.value}
+              </span>
+              {row.copyValue ? (
+                <SummaryCopyControl
+                  fullValue={row.copyValue}
+                  label="Copy full order reference"
+                />
+              ) : null}
+            </span>
             {row.secondary ? (
               <span className="mt-0.5 block text-[12px] font-normal text-[var(--terminal-muted)]">
                 {row.secondary}
@@ -162,6 +255,7 @@ export function TerminalProcessResult({
   title,
   children,
   summary,
+  details,
   onDone,
   onSecondary,
   secondaryLabel,
@@ -173,6 +267,8 @@ export function TerminalProcessResult({
   title: string;
   children?: ReactNode;
   summary?: TerminalProcessSummaryRow[];
+  /** Optional collapsed / secondary content below the summary (e.g. full reference). */
+  details?: ReactNode;
   onDone: () => void;
   onSecondary?: () => void;
   secondaryLabel?: string;
@@ -190,7 +286,8 @@ export function TerminalProcessResult({
           <TerminalProcessSummary rows={summary} />
         </div>
       ) : null}
-      <div className="flex flex-col gap-2">
+      {details ? <div className="text-left">{details}</div> : null}
+      <div className="flex flex-col gap-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
           onClick={onPrimary ?? onDone}

@@ -13,6 +13,7 @@ import type {
 import { resolveTerminalOpsEnvironmentStatus } from "@/lib/terminal/terminal-ops-environment";
 import { formatTerminalOrderSearchSublabel } from "@/lib/terminal/terminal-desk";
 import { UI_LAB_MOCK_USER } from "@/lib/auth/ui-lab";
+import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
 import {
@@ -20,7 +21,10 @@ import {
   UI_LAB_TERMINAL_FUNDING_TRANSFER_IDS,
   UI_LAB_TERMINAL_PORTFOLIO_IDS,
 } from "@/lib/terminal/ui-lab/ui-lab-terminal-canonical-ids";
-import { searchUiLabCryptoMarkets } from "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures";
+import {
+  getUiLabCryptoOpsDeskSummary,
+  searchUiLabCryptoMarkets,
+} from "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures";
 
 export { UI_LAB_TERMINAL_PORTFOLIO_IDS };
 
@@ -301,6 +305,78 @@ export function getUiLabTerminalOrders(): TerminalOpsOrderRow[] {
       rejectReason: "Insufficient buying power",
       needsAttention: true,
     }),
+    baseOrder({
+      id: "ui-lab-term-ord-crypto-filled-nva",
+      portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
+      portfolioName: "Core Portfolio",
+      investorLabel: UI_LAB_OWNER_LABEL,
+      ownerUserId: UI_LAB_MOCK_USER.id,
+      ownerCompanyId: null,
+      symbol: "NVA",
+      name: "Nova Coin",
+      side: "buy",
+      type: "market",
+      status: "filled",
+      quantity: 4,
+      filledQuantity: 4,
+      limitPrice: null,
+      averageFillPrice: 5.0,
+      estimatedValue: 20.2,
+      submittedAt: daysFromNow(-3),
+      updatedAt: daysFromNow(-3),
+      rejectReason: null,
+      needsAttention: false,
+      instrumentKind: "CRYPTO",
+      executionVenue: "ALTA_CRYPTO",
+    }),
+    baseOrder({
+      id: "ui-lab-term-ord-crypto-filled-vlt",
+      portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore,
+      portfolioName: "Core Portfolio",
+      investorLabel: UI_LAB_OWNER_LABEL,
+      ownerUserId: UI_LAB_MOCK_USER.id,
+      ownerCompanyId: null,
+      symbol: "VLT",
+      name: "Volt Coin",
+      side: "buy",
+      type: "market",
+      status: "filled",
+      quantity: 50,
+      filledQuantity: 50,
+      limitPrice: null,
+      averageFillPrice: 0.1,
+      estimatedValue: 5.05,
+      submittedAt: daysFromNow(-5),
+      updatedAt: daysFromNow(-5),
+      rejectReason: null,
+      needsAttention: false,
+      instrumentKind: "CRYPTO",
+      executionVenue: "ALTA_CRYPTO",
+    }),
+    baseOrder({
+      id: "ui-lab-term-ord-crypto-rejected-npfc",
+      portfolioId: UI_LAB_TERMINAL_PORTFOLIO_IDS.companyTreasury,
+      portfolioName: "ALTG Treasury",
+      investorLabel: "Alta Group N.V.",
+      ownerUserId: null,
+      ownerCompanyId: UI_LAB_CORE_COMPANY_ID,
+      symbol: "NPFC",
+      name: "Newport Florin Coin",
+      side: "buy",
+      type: "market",
+      status: "rejected",
+      quantity: 10_000,
+      filledQuantity: 0,
+      limitPrice: null,
+      averageFillPrice: null,
+      estimatedValue: 10_010,
+      submittedAt: daysFromNow(-1),
+      updatedAt: daysFromNow(-1),
+      rejectReason: "Price impact limit exceeded (demonstration)",
+      needsAttention: true,
+      instrumentKind: "CRYPTO",
+      executionVenue: "ALTA_CRYPTO",
+    }),
   ];
 }
 
@@ -330,6 +406,32 @@ export function getUiLabTerminalPortfolioDetail(
             marketValue: 1_456,
             totalReturnPercent: -1.4,
           },
+          ...(portfolioId === UI_LAB_TERMINAL_PORTFOLIO_IDS.personalCore ||
+          portfolioId === UI_LAB_TERMINAL_PORTFOLIO_IDS.companyTreasury
+            ? [
+                {
+                  symbol: "NVA",
+                  name: "Nova Coin (demonstration)",
+                  quantity: 4,
+                  marketValue: 20,
+                  totalReturnPercent: 5.26,
+                },
+                {
+                  symbol: "VLT",
+                  name: "Volt Coin (demonstration)",
+                  quantity: 50,
+                  marketValue: 5,
+                  totalReturnPercent: -9.09,
+                },
+                {
+                  symbol: "NPFC",
+                  name: "Newport Florin Coin (demonstration)",
+                  quantity: 25,
+                  marketValue: 25,
+                  totalReturnPercent: 0,
+                },
+              ]
+            : []),
         ],
     openOrders: orders.filter((o) => o.status === "open" || o.status === "partial"),
     recentOrders: orders,
@@ -337,8 +439,16 @@ export function getUiLabTerminalPortfolioDetail(
       ? []
       : [
           {
+            id: `${portfolioId}-act-crypto-1`,
+            kind: "buy_fill" as const,
+            title: "Buy fill · NVA",
+            detail: "Demonstration crypto · 4 NVA @ ƒ5.00",
+            occurredAt: daysFromNow(-3),
+            amount: -20.2,
+          },
+          {
             id: `${portfolioId}-act-1`,
-            kind: "buy_fill",
+            kind: "buy_fill" as const,
             title: "Buy fill · NPT",
             detail: "25 shares @ ƒ31.40",
             occurredAt: daysFromNow(-4),
@@ -346,7 +456,7 @@ export function getUiLabTerminalPortfolioDetail(
           },
           {
             id: `${portfolioId}-act-2`,
-            kind: "dividend",
+            kind: "dividend" as const,
             title: "Dividend · ALTG",
             detail: "Cash dividend",
             occurredAt: daysFromNow(-10),
@@ -354,7 +464,7 @@ export function getUiLabTerminalPortfolioDetail(
           },
           {
             id: `${portfolioId}-act-3`,
-            kind: "cash_deposit",
+            kind: "cash_deposit" as const,
             title: "Cash deposit",
             detail: "Transfer from Alta Bank",
             occurredAt: daysFromNow(-20),
@@ -381,7 +491,9 @@ export function getUiLabTerminalOrderDetail(orderId: string): TerminalOpsOrderRo
   return getUiLabTerminalOrders().find((o) => o.id === orderId) ?? null;
 }
 
-export function getUiLabTerminalAttention(): TerminalOpsAttentionItem[] {
+export function getUiLabTerminalAttention(opts?: {
+  cryptoOpsScenario?: import("./ui-lab-crypto-ops-fixtures").UiLabCryptoOpsScenario;
+}): TerminalOpsAttentionItem[] {
   const rejected = getUiLabTerminalOrders().filter((o) => o.status === "rejected");
   const items: TerminalOpsAttentionItem[] = rejected.map((o) => ({
     id: `attn-order-${o.id}`,
@@ -408,15 +520,25 @@ export function getUiLabTerminalAttention(): TerminalOpsAttentionItem[] {
       createdAt: investor.lastActivityAt ?? daysFromNow(-14),
     });
   }
-  items.push({
-    id: "attn-crypto-demo-nva",
-    kind: "crypto_reconciliation",
-    title: "NVA · Crypto market",
-    detail: "Demonstration data: review crypto markets desk (mutations disabled in UI Lab).",
-    href: "/internal/terminal/crypto/NVA?tab=overview",
-    createdAt: daysFromNow(-1),
-    symbol: "NVA",
-  });
+  // Real integrity/recon/lifecycle incidents only — never demo/readiness banners.
+  if (isUiLabMode()) {
+    for (const item of getUiLabCryptoOpsDeskSummary(opts?.cryptoOpsScenario).needsAttention) {
+      if (item.severity !== "CRITICAL" && item.severity !== "WARNING") continue;
+      const kind =
+        item.kind === "lifecycle" || item.kind === "status"
+          ? ("crypto_lifecycle" as const)
+          : ("crypto_reconciliation" as const);
+      items.push({
+        id: `attn-crypto-${item.symbol ?? item.kind}-${item.severity}`,
+        kind,
+        title: item.symbol ? `${item.symbol} · Crypto market` : "Crypto markets",
+        detail: item.summary,
+        href: item.href,
+        createdAt: daysFromNow(-1),
+        symbol: item.symbol,
+      });
+    }
+  }
   return items;
 }
 

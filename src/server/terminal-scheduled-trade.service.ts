@@ -54,11 +54,11 @@ function resolveInstrumentKind(
 
 function resolveSizingMode(
   instrumentKind: ScheduledTradeInstrumentKind,
-  side: "buy" | "sell",
+  _side: "buy" | "sell",
   explicit?: ScheduledTradeSizingMode,
 ): ScheduledTradeSizingMode {
   if (instrumentKind === "CRYPTO") {
-    return side === "buy" ? "FLORIN_AMOUNT" : "QUANTITY";
+    return "FLORIN_AMOUNT";
   }
   return explicit === "FLORIN_AMOUNT" ? "FLORIN_AMOUNT" : "QUANTITY";
 }
@@ -192,15 +192,9 @@ function validateCreateInput(input: CreateScheduledTradeInput, now: Date) {
     input.maxPriceImpactPercent ?? DEFAULT_CRYPTO_MAX_PRICE_IMPACT;
 
   if (instrumentKind === "CRYPTO") {
-    if (input.side === "buy") {
-      const florins = input.florinAmount ?? 0;
-      if (!(florins > 0) || !Number.isFinite(florins)) {
-        errors.push("Enter a valid florin amount.");
-      }
-    } else {
-      if (!(input.quantity > 0) || !Number.isFinite(input.quantity)) {
-        errors.push("Enter a valid coin quantity.");
-      }
+    const florins = input.florinAmount ?? 0;
+    if (!(florins > 0) || !Number.isFinite(florins)) {
+      errors.push("Enter a valid florin amount.");
     }
     if (!(maxPriceImpactPercent > 0) || !Number.isFinite(maxPriceImpactPercent)) {
       errors.push("Max price impact must be a positive number.");
@@ -468,9 +462,7 @@ async function previewCryptoScheduledTrade(
       portfolioId: input.portfolioId,
       symbol,
       side: input.side === "buy" ? "BUY" : "SELL",
-      grossFlorins:
-        input.side === "buy" ? String(input.florinAmount ?? "") : undefined,
-      quantity: input.side === "sell" ? String(input.quantity) : undefined,
+      grossFlorins: String(input.florinAmount ?? ""),
     });
 
     estimatedValue = Number.parseFloat(preview.grossTradeValue);
@@ -526,8 +518,8 @@ async function previewCryptoScheduledTrade(
     portfolioId: input.portfolioId,
     symbol,
     side: input.side,
-    quantity: input.side === "sell" ? input.quantity : 0,
-    florinAmount: input.side === "buy" ? (input.florinAmount ?? null) : null,
+    quantity: 0,
+    florinAmount: input.florinAmount ?? null,
     instrumentKind,
     sizingMode,
     maxPriceImpactPercent,

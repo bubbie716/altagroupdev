@@ -541,19 +541,15 @@ export function previewUiLabScheduledTrade(
   const crypto =
     input.instrumentKind === "CRYPTO" ||
     ["NPFC", "NVA", "VLT"].includes(input.symbol.trim().toUpperCase());
-  const sizingMode = crypto
-    ? input.side === "buy"
-      ? ("FLORIN_AMOUNT" as const)
-      : ("QUANTITY" as const)
-    : ("QUANTITY" as const);
+  const sizingMode = crypto ? ("FLORIN_AMOUNT" as const) : ("QUANTITY" as const);
 
   if (input.portfolioId === UI_LAB_TERMINAL_PORTFOLIO_IDS.archived) {
     errors.push("Archived portfolios cannot be traded.");
   }
-  if (crypto && input.side === "buy") {
+  if (crypto) {
     if (!(Number(input.florinAmount) > 0)) errors.push("Enter a valid florin amount.");
-  } else if (!(input.quantity > 0) || (!crypto && !Number.isInteger(input.quantity))) {
-    errors.push(crypto ? "Enter a valid coin quantity." : "Share quantity must be a whole number.");
+  } else if (!(input.quantity > 0) || !Number.isInteger(input.quantity)) {
+    errors.push("Share quantity must be a whole number.");
   }
   if (input.scheduleType === "recurring" && !input.frequency) {
     errors.push("Frequency is required for recurring schedules.");
@@ -566,8 +562,8 @@ export function previewUiLabScheduledTrade(
     portfolioId: input.portfolioId,
     symbol: input.symbol.toUpperCase(),
     side: input.side,
-    quantity: crypto && input.side === "buy" ? 0 : input.quantity,
-    florinAmount: crypto && input.side === "buy" ? (input.florinAmount ?? null) : null,
+    quantity: crypto ? 0 : input.quantity,
+    florinAmount: crypto ? (input.florinAmount ?? null) : null,
     instrumentKind: crypto ? "CRYPTO" : "STOCK",
     sizingMode,
     maxPriceImpactPercent: input.maxPriceImpactPercent ?? 10,

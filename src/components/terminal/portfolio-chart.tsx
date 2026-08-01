@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import {
   PortfolioChartSelectionOverlay,
   PortfolioChartSelectionTooltip,
@@ -28,6 +28,11 @@ import {
   type PortfolioTimeRange,
 } from "@/lib/account/portfolio-chart-series";
 import { isSelectionVisible } from "@/lib/account/portfolio-chart-range-selection";
+import {
+  chartPixelSize,
+  isMeasurableChartSize,
+  type ChartContainerSize,
+} from "@/lib/terminal/terminal-chart-size";
 import type { PricePoint, TerminalChartRange } from "@/lib/terminal/types";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +63,10 @@ function InteractiveTerminalChart({
   formatDelta?: (value: number) => string;
 }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [containerSize, setContainerSize] = useState<ChartContainerSize>({
+    width: 0,
+    height: 0,
+  });
   const gradientSeed = useId().replace(/:/g, "");
   const stroke = positive ? "var(--terminal-green)" : "var(--terminal-red)";
   const gradientId = `${gradientSeed}-${positive ? "up" : "down"}`;
@@ -127,11 +135,13 @@ function InteractiveTerminalChart({
   useEffect(() => {
     const node = chartContainerRef.current;
     if (!node) return;
-    const updateSize = () =>
-      setContainerSize({
-        width: node.clientWidth,
-        height: node.clientHeight,
-      });
+    const updateSize = () => {
+      const width = node.clientWidth;
+      const height = node.clientHeight;
+      setContainerSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height },
+      );
+    };
     updateSize();
     const observer = new ResizeObserver(updateSize);
     observer.observe(node);
@@ -139,49 +149,60 @@ function InteractiveTerminalChart({
   }, []);
 
   const hasSeries = displaySeries.length > 0;
+  /**
+   * Avoid percentage-based responsive wrappers: Recharts initializes those at
+   * width/height -1 and warns on first paint even when the parent is measurable.
+   * Mount AreaChart only with explicit positive pixel dimensions from ResizeObserver.
+   */
+  const chartReady = isMeasurableChartSize(containerSize);
+  const pixelSize = chartReady ? chartPixelSize(containerSize) : null;
 
   return (
     <div
       ref={chartContainerRef}
-      className="relative min-w-0 w-full touch-none cursor-crosshair"
+      className={cn(
+        "relative min-w-0 w-full touch-none cursor-crosshair overflow-hidden",
+        heightClass,
+      )}
       role="img"
       aria-label={`${ariaLabel}. Click and drag to measure performance between two points.`}
     >
-      <div className={cn("min-w-0 w-full overflow-hidden", heightClass)}>
-        {hasSeries ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={displaySeries} margin={PORTFOLIO_CHART_MARGIN}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={stroke} stopOpacity={0.2} />
-                  <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                hide
-                type="number"
-                dataKey="at"
-                domain={["dataMin", "dataMax"]}
-                scale="linear"
-              />
-              <YAxis hide domain={[bounds.min, bounds.max]} />
-              <Area
-                type={chartLineType}
-                dataKey="v"
-                stroke={stroke}
-                strokeWidth={1.8}
-                fill={`url(#${gradientId})`}
-                isAnimationActive={false}
-                activeDot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex h-full items-center justify-center text-[13px] text-[var(--terminal-muted)]">
-            Chart unavailable
-          </div>
-        )}
-      </div>
+      {hasSeries && pixelSize ? (
+        <AreaChart
+          width={pixelSize.width}
+          height={pixelSize.height}
+          data={displaySeries}
+          margin={PORTFOLIO_CHART_MARGIN}
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis
+            hide
+            type="number"
+            dataKey="at"
+            domain={["dataMin", "dataMax"]}
+            scale="linear"
+          />
+          <YAxis hide domain={[bounds.min, bounds.max]} />
+          <Area
+            type={chartLineType}
+            dataKey="v"
+            stroke={stroke}
+            strokeWidth={1.8}
+            fill={`url(#${gradientId})`}
+            isAnimationActive={false}
+            activeDot={false}
+          />
+        </AreaChart>
+      ) : (
+        <div className="flex h-full items-center justify-center text-[13px] text-[var(--terminal-muted)]">
+          {hasSeries ? null : "Chart unavailable"}
+        </div>
+      )}
       {hasSeries && selectionGeometry ? (
         <PortfolioChartSelectionOverlay geometry={selectionGeometry} />
       ) : null}
@@ -320,7 +341,7 @@ export function SecurityChart({
         data={data}
         range={activeRange}
         positive={positive}
-        heightClass="max-[359px]:h-[min(148px,calc(100svh-29rem))] h-[148px] min-[360px]:h-[188px] min-[375px]:h-[220px] sm:h-[320px]"
+        heightClass="max-[359px]:h-[max(120px,min(148px,calc(100svh-29rem)))] h-[148px] min-[360px]:h-[188px] min-[375px]:h-[220px] sm:h-[320px]"
         ariaLabel={`Price history ${activeRange}`}
         formatValue={formatValue}
         formatDelta={formatDelta}

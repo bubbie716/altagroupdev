@@ -13,8 +13,10 @@ export function formatPortfolioOwnerLine(portfolio: Pick<TerminalPortfolioSummar
 
 export function formatPortfolioTicketLabel(
   portfolio: Pick<TerminalPortfolioSummary, "name" | "ownerType" | "ownerLabel"> | null | undefined,
+  opts?: { compact?: boolean },
 ): string | null {
   if (!portfolio) return null;
+  if (opts?.compact) return portfolio.name;
   return `${portfolio.name} · ${formatPortfolioOwnerLine(portfolio)}`;
 }
 

@@ -17,6 +17,7 @@ import {
 import { buildPortfolioAllocation } from "@/lib/terminal/crypto/portfolio-allocation";
 import {
   CRYPTO_IMPACT_CONFIRM_THRESHOLD,
+  CRYPTO_IMPACT_LIMIT_THRESHOLD,
   CRYPTO_IMPACT_WARN_THRESHOLD,
   resolveCryptoImpactAckState,
   shouldResetHighImpactAcknowledgement,
@@ -57,6 +58,8 @@ describe("crypto-aware price formatting", () => {
   it("keeps florin totals at two decimals", () => {
     assert.equal(formatCryptoMoney(49.996), "ƒ50.00");
     assert.equal(formatCryptoMoney("12.345"), "ƒ12.35");
+    assert.equal(formatCryptoMoney(65.21, { signed: true }), "+ƒ65.21");
+    assert.equal(formatCryptoMoney(65.2100, { signed: true }), "+ƒ65.21");
   });
 });
 
@@ -174,14 +177,20 @@ describe("high-impact acknowledgement state machine", () => {
     assert.equal(state.submitEnabled, true);
   });
 
-  it("requires acknowledgement at and above 10%", () => {
-    for (const impact of ["9.99", "10", "10.01", "25"] as const) {
+  it("requires acknowledgement at 10% through 15%, and blocks above 15%", () => {
+    for (const impact of ["9.99", "10", "10.01", "15", "15.01", "25"] as const) {
+      const n = Number(impact);
       const state = resolveCryptoImpactAckState({
         priceImpactPercent: impact,
-        requiresHighImpactConfirmation: Number(impact) >= 10,
+        requiresHighImpactConfirmation: n >= 10 && n <= 15,
+        exceedsHardLimit: n > 15,
         accepted: false,
       });
-      if (Number(impact) < CRYPTO_IMPACT_CONFIRM_THRESHOLD) {
+      if (n > CRYPTO_IMPACT_LIMIT_THRESHOLD) {
+        assert.equal(state.exceedsHardLimit, true);
+        assert.equal(state.requiresAcknowledgement, false);
+        assert.equal(state.submitEnabled, false);
+      } else if (n < CRYPTO_IMPACT_CONFIRM_THRESHOLD) {
         assert.equal(state.requiresAcknowledgement, false);
         assert.equal(state.submitEnabled, true);
       } else {
@@ -267,5 +276,12 @@ describe("crypto market status and quantity terminology", () => {
     const qty = formatCryptoQuantityDisplay("4.5", "NVA");
     assert.match(qty, /NVA/);
     assert.doesNotMatch(qty, /\bsh\b|shares/i);
+  });
+
+  it("formats quantities with thousands separators and no float noise", () => {
+    assert.equal(formatCryptoQuantityDisplay("18949.8298", "VLT"), "18,949.8298 VLT");
+    assert.equal(formatCryptoQuantityDisplay("1250.00000000", "VLT"), "1,250 VLT");
+    assert.equal(formatCryptoQuantityDisplay("0.00000000", "NPFC"), "0 NPFC");
+    assert.doesNotMatch(formatCryptoQuantityDisplay("9999999.12345678", "VLT"), /e[+-]?\d+/i);
   });
 });

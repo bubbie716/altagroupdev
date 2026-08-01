@@ -19,9 +19,9 @@ import {
   quoteBondingCurveSell,
   quoteNpfcPurchase,
   quoteNpfcRedemption,
+  resolveSellQuantityFromGrossFlorins,
 } from "./crypto-pricing";
 import { d, serializeCryptoMoney, serializeCryptoPrice, serializeCryptoQuantity } from "./crypto-decimal";
-import { CryptoPricingError } from "./crypto-pricing-types";
 import { generateTerminalCryptoPublicWalletId } from "./crypto-wallet-id";
 import { assertAssetAllowsSide, assertWalletCanTrade } from "./crypto-lifecycle";
 import {
@@ -30,6 +30,7 @@ import {
   type CryptoOrderFillResult,
   type CryptoOrderSubmitInput,
 } from "./crypto-order-types";
+import { mapCryptoPricingError } from "./crypto-pricing-error-map";
 import { parseCryptoOrderSubmitInput } from "./crypto-order-validation";
 import {
   isQuoteExpired,
@@ -45,27 +46,6 @@ import {
 import { previewTerminalCryptoOrder } from "./terminal-crypto-preview.service";
 
 type Tx = Prisma.TransactionClient;
-
-function mapPricingError(error: unknown): never {
-  if (error instanceof CryptoOrderError) throw error;
-  if (error instanceof CryptoPricingError) {
-    switch (error.code) {
-      case "INSUFFICIENT_TREASURY":
-      case "EXCEEDS_MAX_SUPPLY":
-        throw new CryptoOrderError("SUPPLY_EXHAUSTED", customerMessageForCode("SUPPLY_EXHAUSTED"));
-      case "INSUFFICIENT_WALLET_HOLDINGS":
-        throw new CryptoOrderError("INSUFFICIENT_HOLDINGS", customerMessageForCode("INSUFFICIENT_HOLDINGS"));
-      case "INSUFFICIENT_PROTECTED_RESERVE":
-        throw new CryptoOrderError("RESERVE_INSUFFICIENT", customerMessageForCode("RESERVE_INSUFFICIENT"));
-      case "BELOW_MINIMUM_ORDER":
-      case "INVALID_INPUT":
-        throw new CryptoOrderError("VALIDATION_FAILED", error.message);
-      default:
-        throw new CryptoOrderError("INTERNAL_FAILURE", customerMessageForCode("INTERNAL_FAILURE"));
-    }
-  }
-  throw new CryptoOrderError("INTERNAL_FAILURE", customerMessageForCode("INTERNAL_FAILURE"));
-}
 
 async function lockPortfolio(tx: Tx, portfolioId: string) {
   await tx.$queryRaw`SELECT id FROM "TerminalPortfolio" WHERE id = ${portfolioId} FOR UPDATE`;
@@ -385,23 +365,37 @@ async function executeTerminalCryptoOrder(
                   grossFlorins: parsed.grossFlorins!,
                 });
         } else {
+          const sellQuantity =
+            parsed.quantity ??
+            resolveSellQuantityFromGrossFlorins({
+              market: marketSnap,
+              grossFlorins: parsed.grossFlorins!,
+            }).toFixed(8);
           quote =
             asset.kind === "STABLE"
               ? quoteNpfcRedemption({
                   market: { ...marketSnap, symbol: "NPFC" },
-                  quantity: parsed.quantity!,
+                  quantity: sellQuantity,
                 })
               : quoteBondingCurveSell({
                   market: { ...marketSnap, symbol: asset.symbol as "NVA" | "VLT" },
-                  quantity: parsed.quantity!,
+                  quantity: sellQuantity,
                 });
         }
       } catch (error) {
-        mapPricingError(error);
+        mapCryptoPricingError(error);
       }
 
       const impact = quote.priceImpactPercent;
-      const { requiresHighImpactConfirmation } = buildPriceImpactWarnings(impact);
+      const { requiresHighImpactConfirmation, exceedsHardLimit } =
+        buildPriceImpactWarnings(impact);
+      if (exceedsHardLimit) {
+        throw new CryptoOrderError(
+          "PRICE_IMPACT_LIMIT_EXCEEDED",
+          customerMessageForCode("PRICE_IMPACT_LIMIT_EXCEEDED"),
+          { priceImpactPercent: impact.abs().toFixed(4) },
+        );
+      }
       if (requiresHighImpactConfirmation && !parsed.acceptHighPriceImpact) {
         throw new CryptoOrderError(
           "HIGH_PRICE_IMPACT_CONFIRMATION_REQUIRED",
@@ -955,7 +949,7 @@ async function executeTerminalCryptoOrder(
         });
       }
     }
-    mapPricingError(error);
+    mapCryptoPricingError(error);
   }
 
   // Post-commit audit + notification (never roll back settlement)

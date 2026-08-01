@@ -17,7 +17,9 @@ describe("portfolio chart mobile tap vs drag wiring", () => {
     assert.match(hover, /stickyRef/);
     assert.match(hover, /isPointerDragPastThreshold/);
     assert.match(hover, /pointerType !== "mouse"/);
-    assert.match(hover, /addEventListener\("mousemove"/);
+    // Document-level mousemove so hover works without a prior click on the chart.
+    assert.match(hover, /document\.addEventListener\("mousemove"/);
+    assert.match(hover, /lastMouseRef/);
   });
 
   it("range selection defers drag until movement past the shared threshold", () => {

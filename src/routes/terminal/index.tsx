@@ -27,7 +27,7 @@ export const Route = createFileRoute("/terminal/")({
 });
 
 function TerminalHomePage() {
-  const { mode, dashboard, userDisplayName, eligibleCompanies } = Route.useLoaderData();
+  const { dashboard, userDisplayName, eligibleCompanies } = Route.useLoaderData();
   const navigate = useNavigate();
   const [createOpen, setCreateOpen] = useState(false);
   const [quickTradeOpen, setQuickTradeOpen] = useState(false);
@@ -70,8 +70,8 @@ function TerminalHomePage() {
           role="status"
           className="rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-4 py-3 text-[13px] text-[var(--terminal-muted)]"
         >
-          Market data and trading are currently unavailable. Your portfolio details and local cash
-          records remain available.
+          Stock market data is currently unavailable. Your portfolio details and local cash records
+          remain available, and Alta crypto trading stays open when those assets are live.
         </div>
       ) : null}
 
@@ -117,9 +117,7 @@ function TerminalHomePage() {
           ref={tradeButtonRef}
           type="button"
           onClick={() => setQuickTradeOpen(true)}
-          disabled={mode === "unavailable"}
           className="min-h-11 rounded-md bg-[var(--terminal-green)] px-3.5 py-2 text-[13px] font-medium text-black"
-          title={mode === "unavailable" ? "Trading is unavailable" : undefined}
         >
           Trade
         </button>

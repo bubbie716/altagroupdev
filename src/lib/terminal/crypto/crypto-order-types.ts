@@ -8,6 +8,25 @@ import type { CryptoAssetSymbol } from "./crypto-symbols";
 export const CRYPTO_QUOTE_TTL_MS = 15_000;
 export const CRYPTO_PRICE_IMPACT_WARN_PERCENT = "5";
 export const CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT = "10";
+/** Absolute ceiling — impact strictly above this rejects preview/submit. */
+export const CRYPTO_PRICE_IMPACT_LIMIT_PERCENT = "15";
+
+/** Customer-facing impact copy — no exact percentages or post-trade prices. */
+export const CRYPTO_CUSTOMER_IMPACT_WARN_MESSAGE =
+  "This order may noticeably move the market. Review your order before continuing.";
+export const CRYPTO_CUSTOMER_IMPACT_CONFIRM_MESSAGE =
+  "This order is large relative to current market activity and may significantly affect its execution.";
+export const CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE =
+  "This order is too large for current market conditions. Enter a smaller amount and try again.";
+export const CRYPTO_CUSTOMER_IMPACT_ACK_LABEL =
+  "I understand this order may significantly affect its own execution.";
+export const CRYPTO_CUSTOMER_IMPACT_ACK_HINT =
+  "Submit stays disabled until you acknowledge this order.";
+export const CRYPTO_CUSTOMER_ESTIMATE_DISCLOSURE =
+  "Your final quantity or proceeds may change if the market moves before execution.";
+export const CRYPTO_CUSTOMER_REQUOTE_MESSAGE =
+  "The market changed. Review the updated estimate before submitting again.";
+
 export const CRYPTO_ORDER_RATE_LIMIT_PER_MIN = 30;
 
 /** Phase 3 closed the crypto disclosure TODO via CRYPTO scope + AT-LEGAL-006. */
@@ -29,6 +48,7 @@ export type CryptoOrderErrorCode =
   | "QUOTE_EXPIRED"
   | "REQUOTE_REQUIRED"
   | "HIGH_PRICE_IMPACT_CONFIRMATION_REQUIRED"
+  | "PRICE_IMPACT_LIMIT_EXCEEDED"
   | "IDEMPOTENCY_CONFLICT"
   | "VALIDATION_FAILED"
   | "RATE_LIMITED"
@@ -59,14 +79,14 @@ export class CryptoOrderError extends Error {
 
 export type CryptoOrderSide = "BUY" | "SELL";
 
-/** Buy: gross florins only. Sell: coin quantity only. Never both. */
+/** Buy and sell: gross florins. Sell may alternatively send coin quantity (legacy / scheduled). Never both. */
 export type CryptoOrderPreviewInput = {
   portfolioId: string;
   symbol: string;
   side: CryptoOrderSide;
-  /** Required for BUY — decimal string florins. */
+  /** Required for BUY; preferred for SELL — decimal string florins. */
   grossFlorins?: string;
-  /** Required for SELL — decimal string coin quantity. */
+  /** Optional for SELL — decimal string coin quantity when not sizing in florins. */
   quantity?: string;
 };
 
@@ -164,11 +184,13 @@ export function customerMessageForCode(code: CryptoOrderErrorCode): string {
     case "RESERVE_INSUFFICIENT":
       return "This redemption cannot be completed against the protected reserve.";
     case "QUOTE_EXPIRED":
-      return "Your review quote expired. Please preview again.";
+      return "Your review estimate expired. Review the updated estimate before submitting again.";
     case "REQUOTE_REQUIRED":
-      return "Market conditions changed. Please review the updated quote.";
+      return CRYPTO_CUSTOMER_REQUOTE_MESSAGE;
     case "HIGH_PRICE_IMPACT_CONFIRMATION_REQUIRED":
-      return "This order has high price impact and needs explicit confirmation.";
+      return CRYPTO_CUSTOMER_IMPACT_CONFIRM_MESSAGE;
+    case "PRICE_IMPACT_LIMIT_EXCEEDED":
+      return CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE;
     case "IDEMPOTENCY_CONFLICT":
       return "This order key was already used with different details.";
     case "VALIDATION_FAILED":

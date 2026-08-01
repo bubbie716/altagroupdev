@@ -23,6 +23,11 @@ export type BankProcessSummaryRow = {
   value: string;
   secondary?: string;
   mono?: boolean;
+  /**
+   * When set, `value` is treated as a shortened display form and a copy control
+   * copies this full unmodified string (e.g. order reference).
+   */
+  copyValue?: string;
 };
 
 export async function waitBankProcessMin(

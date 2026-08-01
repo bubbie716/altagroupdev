@@ -12,6 +12,7 @@ import { d, roundDownMoney, roundDownQuantity } from "./crypto-decimal";
 import {
   marginalPrice,
   netFromSellQuantity,
+  quantityFromGrossSell,
   quantityFromNetBuy,
   reserveLiability,
 } from "./crypto-curve-math";
@@ -22,6 +23,7 @@ import {
   quoteBondingCurveSell,
   quoteNpfcPurchase,
   quoteNpfcRedemption,
+  resolveSellQuantityFromGrossFlorins,
 } from "./crypto-pricing";
 import { CryptoPricingError } from "./crypto-pricing-types";
 import { generateTerminalCryptoPublicWalletId, isTerminalCryptoPublicWalletId } from "./crypto-wallet-id";
@@ -38,33 +40,51 @@ function approxEqual(actual: Prisma.Decimal, expected: Prisma.Decimal | string, 
 }
 
 describe("bonding-curve calibration constants", () => {
-  it("derives NVA k so a ƒ100 gross launch buy moves price by ~0.25%", () => {
-    const k = deriveBondingCurveRate({ startingPrice: "5", targetImpactPercent: "0.25" });
+  it("derives NVA k so a ƒ100 gross launch buy moves price by ~0.10%", () => {
+    const k = deriveBondingCurveRate({ startingPrice: "5", targetImpactPercent: "0.10" });
     assert.equal(k.toFixed(18), NVA_CURVE_RATE.toFixed(18));
     const buy = quoteBondingCurveBuy({
       market: launchMarketSnapshot("NVA"),
       grossFlorins: "100",
     });
     approxEqual(buy.priceBefore, "5", "0.000000000001");
-    approxEqual(buy.priceImpactPercent, "0.25", "0.0001");
-    approxEqual(buy.priceAfter, "5.0125", "0.0001");
+    approxEqual(buy.priceImpactPercent, "0.10", "0.0001");
+    approxEqual(buy.priceAfter, "5.005", "0.0001");
   });
 
-  it("derives VLT k so a ƒ100 gross launch buy moves price by ~2.5%", () => {
-    const k = deriveBondingCurveRate({ startingPrice: "0.1", targetImpactPercent: "2.5" });
+  it("derives VLT k so a ƒ100 gross launch buy moves price by ~0.25%", () => {
+    const k = deriveBondingCurveRate({ startingPrice: "0.1", targetImpactPercent: "0.25" });
     assert.equal(k.toFixed(18), VLT_CURVE_RATE.toFixed(18));
     const buy = quoteBondingCurveBuy({
       market: launchMarketSnapshot("VLT"),
       grossFlorins: "100",
     });
     approxEqual(buy.priceBefore, "0.1", "0.000000000001");
-    approxEqual(buy.priceImpactPercent, "2.5", "0.001");
-    approxEqual(buy.priceAfter, "0.1025", "0.0001");
+    approxEqual(buy.priceImpactPercent, "0.25", "0.001");
+    approxEqual(buy.priceAfter, "0.10025", "0.0001");
   });
 
   it("documents seed strings at 18 decimal places", () => {
-    assert.equal(curveRateSeedString(NVA_CURVE_RATE), "0.000632102272727273");
-    assert.equal(curveRateSeedString(VLT_CURVE_RATE), "0.000002556818181818");
+    assert.equal(curveRateSeedString(NVA_CURVE_RATE), "0.000252651515151515");
+    assert.equal(curveRateSeedString(VLT_CURVE_RATE), "0.000000252840909091");
+  });
+
+  it("approximates ƒ1,000 and ƒ5,000 cumulative impacts from launch", () => {
+    for (const [symbol, targets] of [
+      ["NVA", { k1: "1.0", k5: "4.9" }],
+      ["VLT", { k1: "2.5", k5: "11.8" }],
+    ] as const) {
+      const buy1k = quoteBondingCurveBuy({
+        market: launchMarketSnapshot(symbol),
+        grossFlorins: "1000",
+      });
+      approxEqual(buy1k.priceImpactPercent, targets.k1, "0.15");
+      const buy5k = quoteBondingCurveBuy({
+        market: launchMarketSnapshot(symbol),
+        grossFlorins: "5000",
+      });
+      approxEqual(buy5k.priceImpactPercent, targets.k5, "0.4");
+    }
   });
 });
 
@@ -173,6 +193,45 @@ describe("bonding-curve buy/sell mechanics", () => {
     });
     assert.ok(sell.customerPayout.lessThan(d("100")));
     assert.ok(sell.customerPayout.lessThan(buy.fees.grossValue.minus(buy.fees.totalFee)));
+  });
+
+  it("quantityFromGrossSell inverts netFromSellQuantity", () => {
+    const circulating = "1000";
+    const qty = d("25");
+    const gross = netFromSellQuantity({
+      startingPrice: "5",
+      curveRate: NVA_CURVE_RATE,
+      circulatingSupply: circulating,
+      quantity: qty,
+    });
+    const back = quantityFromGrossSell({
+      startingPrice: "5",
+      curveRate: NVA_CURVE_RATE,
+      circulatingSupply: circulating,
+      grossFlorins: gross,
+    });
+    approxEqual(back, qty, "0.000000000001");
+  });
+
+  it("florin-sized sell quotes via resolveSellQuantityFromGrossFlorins", () => {
+    const market = launchMarketSnapshot("VLT");
+    const buy = quoteBondingCurveBuy({ market, grossFlorins: "100" });
+    const postBuy = {
+      symbol: "VLT" as const,
+      treasuryInventory: buy.treasuryInventoryAfter.toFixed(8),
+      circulatingSupply: buy.circulatingSupplyAfter.toFixed(8),
+      protectedReserve: buy.protectedReserveAfter.toFixed(12),
+      walletAvailable: buy.executedQuantity.toFixed(8),
+    };
+    const sellQty = resolveSellQuantityFromGrossFlorins({
+      market: postBuy,
+      grossFlorins: "50",
+    });
+    const sell = quoteBondingCurveSell({
+      market: postBuy,
+      quantity: sellQty.toFixed(8),
+    });
+    approxEqual(sell.grossRedemption, "50", "0.02");
   });
 
   it("reserve never drops below calculated curve liability", () => {
@@ -360,8 +419,8 @@ describe("phase 1 seed documents", () => {
     for (const doc of docs) {
       assert.equal(doc.status, "DRAFT");
     }
-    assert.equal(docs.find((d) => d.symbol === "NVA")?.curveRate, "0.000632102272727273");
-    assert.equal(docs.find((d) => d.symbol === "VLT")?.curveRate, "0.000002556818181818");
+    assert.equal(docs.find((d) => d.symbol === "NVA")?.curveRate, "0.000252651515151515");
+    assert.equal(docs.find((d) => d.symbol === "VLT")?.curveRate, "0.000000252840909091");
   });
 });
 

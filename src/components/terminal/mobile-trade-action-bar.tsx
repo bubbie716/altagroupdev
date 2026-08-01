@@ -16,7 +16,7 @@ export function MobileTradeActionBar({
   return (
     <div
       className={cn(
-        "fixed inset-x-0 z-30 border-t border-[var(--terminal-border)] bg-[var(--terminal-bg)]/95 px-3 py-2.5 backdrop-blur-sm",
+        "fixed inset-x-0 z-[45] border-t border-[var(--terminal-border)] bg-[var(--terminal-bg)]/95 px-3 py-2.5 backdrop-blur-sm",
         // Sit above bottom nav (~52px) + safe area; hidden when desktop order aside shows.
         "bottom-[calc(3.25rem+env(safe-area-inset-bottom,0px))] md:bottom-0 lg:hidden",
         className,

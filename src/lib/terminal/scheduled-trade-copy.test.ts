@@ -14,7 +14,8 @@ describe("scheduled trade copy", () => {
   });
 
   it("humanizes crypto failure categories", () => {
-    assert.match(scheduledTradeFailureCopy("price_impact_too_high"), /price impact/i);
+    assert.match(scheduledTradeFailureCopy("price_impact_too_high"), /move the market too much/i);
+    assert.doesNotMatch(scheduledTradeFailureCopy("price_impact_too_high"), /10%/);
     assert.match(scheduledTradeFailureCopy("crypto_consent_required"), /consent/i);
     assert.match(scheduledTradeFailureCopy("wallet_frozen"), /frozen/i);
     assert.equal(

@@ -156,7 +156,7 @@ function TerminalPortfolioDetailPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+      <div className="flex flex-col gap-3 max-[389px]:gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
           <PortfolioSwitcher
             variant="heading"
@@ -165,7 +165,7 @@ function TerminalPortfolioDetailPage() {
             eligibleCompanies={eligibleCompanies}
           />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {showWallet ? (
             <button
               type="button"

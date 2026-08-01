@@ -69,7 +69,9 @@ describe("terminal scheduled trade integration guards", () => {
     assert.match(service, /executionVenue: instrumentKind === "CRYPTO" \? "ALTA_CRYPTO"/);
     assert.match(service, /FLORIN_AMOUNT/);
     assert.match(sheet, /Florin amount/);
-    assert.match(sheet, /price impact is 10%/);
+    assert.match(sheet, /move the market too\s+much at execution time/);
+    // Server policy remains stricter; customer copy must not advertise the exact threshold.
+    assert.doesNotMatch(sheet, /price impact is 10%/);
   });
 
   it("customer Orders nav stays Orders|Scheduled without a new primary nav item", () => {

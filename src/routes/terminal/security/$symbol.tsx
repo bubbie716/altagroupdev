@@ -280,7 +280,7 @@ function StockSecurityPage({ data }: { data: StockSecurityLoaderData }) {
   };
 
   return (
-    <div className="space-y-5 pb-[5.25rem] max-[359px]:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 lg:pb-0">
+    <div className="space-y-5 pb-[calc(7.75rem+env(safe-area-inset-bottom,0px))] max-[359px]:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 lg:pb-0">
       <div className="space-y-5 max-[359px]:space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-2 max-[359px]:gap-1.5 sm:gap-3">
           <div className="min-w-0">
@@ -566,7 +566,7 @@ function CryptoSecurityPage({ data }: { data: CryptoSecurityLoaderData }) {
   };
 
   return (
-    <div className="space-y-5 pb-[5.25rem] max-[359px]:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 lg:pb-0">
+    <div className="space-y-5 pb-[calc(7.75rem+env(safe-area-inset-bottom,0px))] max-[359px]:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-8 lg:space-y-0 lg:pb-0">
       <div className="space-y-5 max-[359px]:space-y-3">
         {data.demonstration ? (
           <p className="rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-surface)] px-3 py-2 text-[12px] text-[var(--terminal-muted)]">
@@ -646,11 +646,6 @@ function CryptoSecurityPage({ data }: { data: CryptoSecurityLoaderData }) {
               No holding in this portfolio
             </p>
           )}
-          {data.walletPublicId ? (
-            <p className="mt-3 font-mono text-[11px] text-[var(--terminal-muted)]">
-              Wallet · {data.walletPublicId}
-            </p>
-          ) : null}
         </section>
 
         <section>

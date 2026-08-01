@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Shared Terminal crypto order ticket — market-only florin buy / coin sell.
+ * Shared Terminal crypto order ticket — market-only florin buy / sell.
  * Reuses Terminal visual language and progressive CRYPTO consent on submit.
  */
 import { useEffect, useId, useMemo, useState } from "react";
@@ -28,14 +28,22 @@ import type {
   CryptoOrderPreviewResult,
 } from "@/lib/terminal/crypto/crypto-order-types";
 import {
-  formatCryptoDisplayPriceFromRaw,
-  formatCryptoMoney,
-  formatCryptoPercent,
-  formatCryptoPriceTransition,
-  formatCryptoQuantityDisplay,
-} from "@/lib/terminal/crypto/crypto-format";
+  buildCryptoCustomerReceiptRows,
+  buildCryptoCustomerReviewRows,
+  CRYPTO_CUSTOMER_ESTIMATE_DISCLOSURE,
+  CRYPTO_CUSTOMER_IMPACT_ACK_HINT,
+  CRYPTO_CUSTOMER_IMPACT_ACK_LABEL,
+  CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE,
+  CRYPTO_CUSTOMER_REQUOTE_MESSAGE,
+  CRYPTO_FILLED_ORDER_TITLE,
+  cryptoCustomerOrderTypeLabel,
+  cryptoFilledOrderSubtitle,
+  customerImpactWarningMessage,
+} from "@/lib/terminal/crypto/crypto-customer-review";
 import { resolveCryptoImpactAckState } from "@/lib/terminal/crypto/crypto-impact-ack";
 import { cn } from "@/lib/utils";
+
+const DEFAULT_GROSS_FLORINS = "100";
 
 function newClientKey(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -91,8 +99,7 @@ export function CryptoOrderTicket({
   const consentAction = useOptionalProductConsentAction();
 
   const [side, setSide] = useState<"BUY" | "SELL">("BUY");
-  const [grossFlorins, setGrossFlorins] = useState("100");
-  const [quantity, setQuantity] = useState("1");
+  const [grossFlorins, setGrossFlorins] = useState(DEFAULT_GROSS_FLORINS);
   const [phase, setPhase] = useState<"entry" | "review" | "processing" | "success" | "error">(
     "entry",
   );
@@ -120,15 +127,13 @@ export function CryptoOrderTicket({
 
   useEffect(() => {
     setAcceptHighImpact(false);
-  }, [side, grossFlorins, quantity]);
+  }, [side, grossFlorins]);
 
   const disabled =
     !portfolioId ||
     !canTradeSelected ||
     (side === "BUY" && buyDisabled) ||
     (side === "SELL" && sellDisabled);
-
-  const amountLabel = side === "BUY" ? "Florin amount" : "Coin quantity";
 
   const impactAck = useMemo(() => {
     if (!preview) {
@@ -160,21 +165,31 @@ export function CryptoOrderTicket({
           portfolioId,
           symbol,
           side,
-          grossFlorins: side === "BUY" ? grossFlorins : undefined,
-          quantity: side === "SELL" ? quantity : undefined,
+          grossFlorins,
         },
       });
       if (!result.ok || !("preview" in result) || !result.preview) {
-        setError(("message" in result && result.message) || "Preview unavailable");
-        setPhase("error");
+        const code = "code" in result ? String(result.code) : "";
+        setError(
+          ("message" in result && result.message) ||
+            (code === "PRICE_IMPACT_LIMIT_EXCEEDED"
+              ? CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE
+              : "Preview unavailable"),
+        );
+        setPhase(code === "PRICE_IMPACT_LIMIT_EXCEEDED" ? "entry" : "error");
         return;
       }
       setPreview(result.preview);
       setAcceptHighImpact(false);
       setPhase("review");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Preview failed");
-      setPhase("error");
+      const message = e instanceof Error ? e.message : "Preview failed";
+      setError(message);
+      setPhase(
+        message.includes("too large for current market") || message.includes(CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE)
+          ? "entry"
+          : "error",
+      );
     } finally {
       setBusy(false);
     }
@@ -183,7 +198,11 @@ export function CryptoOrderTicket({
   async function runSubmit() {
     if (!portfolioId || !preview) return;
     if (!impactAck.submitEnabled) {
-      setError("Confirm the high price impact before submitting.");
+      setError(
+        impactAck.requiresAcknowledgement
+          ? CRYPTO_CUSTOMER_IMPACT_ACK_HINT
+          : CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE,
+      );
       return;
     }
     setBusy(true);
@@ -199,13 +218,12 @@ export function CryptoOrderTicket({
         portfolioId,
         symbol,
         side,
-        grossFlorins: side === "BUY" ? grossFlorins : undefined,
-        quantity: side === "SELL" ? quantity : undefined,
+        grossFlorins,
         clientKey,
         expectedMarketStateVersion: preview.marketStateVersion,
         quoteExpiresAt: preview.quoteExpiresAt,
         quoteFingerprint: preview.quoteFingerprint,
-        acceptHighPriceImpact: acceptHighImpact,
+        acceptHighPriceImpact: acceptHighImpact || !impactAck.requiresAcknowledgement,
       };
 
       const result = await executeWithProductConsentResume(
@@ -223,8 +241,7 @@ export function CryptoOrderTicket({
         const code = "code" in result ? String(result.code) : "";
         if (code === "QUOTE_EXPIRED" || code === "REQUOTE_REQUIRED") {
           setError(
-            ("message" in result && String(result.message)) ||
-              "The market changed. Review the updated quote.",
+            ("message" in result && String(result.message)) || CRYPTO_CUSTOMER_REQUOTE_MESSAGE,
           );
           if ("preview" in result && result.preview) {
             setPreview(result.preview as CryptoOrderPreviewResult);
@@ -233,6 +250,12 @@ export function CryptoOrderTicket({
           } else {
             await runPreview();
           }
+          return;
+        }
+        if (code === "PRICE_IMPACT_LIMIT_EXCEEDED" || code === "HIGH_PRICE_IMPACT_CONFIRMATION_REQUIRED") {
+          await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
+          setError(("message" in result && String(result.message)) || "Order failed");
+          setPhase("review");
           return;
         }
         await waitTerminalProcessMin(startedAt, TERMINAL_PROCESS_MOTION.minProcessingMs);
@@ -265,43 +288,21 @@ export function CryptoOrderTicket({
     }
   }
 
+  /** Fresh entry — clears amount/preview/ack/error/receipt and rotates client key. */
   function resetToEntry() {
     setPhase("entry");
     setReceipt(null);
     setPreview(null);
     setAcceptHighImpact(false);
     setError(null);
+    setGrossFlorins(DEFAULT_GROSS_FLORINS);
+    setClientKey(newClientKey());
+    setBusy(false);
   }
 
   const successSummary: TerminalProcessSummaryRow[] | undefined = receipt
-    ? [
-        { label: "Portfolio", value: portfolioLabel ?? "—" },
-        {
-          label: "Quantity",
-          value: formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol),
-        },
-        { label: "Total", value: formatCryptoMoney(receipt.grossTradeValue) },
-        { label: "Fee", value: formatCryptoMoney(receipt.totalFee) },
-        {
-          label: "Avg price",
-          value: formatCryptoDisplayPriceFromRaw(receipt.averageExecutionPrice, receipt.symbol),
-        },
-        { label: "Cash", value: formatCryptoMoney(receipt.resultingTerminalCash) },
-        {
-          label: "Holding",
-          value: formatCryptoQuantityDisplay(receipt.resultingWalletBalance, receipt.symbol),
-        },
-        { label: "Wallet", value: receipt.walletPublicId, mono: true },
-        { label: "Order", value: receipt.orderId, mono: true },
-      ]
+    ? buildCryptoCustomerReceiptRows(receipt, portfolioLabel)
     : undefined;
-
-  const impactWarn = useMemo(() => {
-    if (!preview) return null;
-    return preview.warnings.find((w) => w.code === "HIGH_PRICE_IMPACT") ?? null;
-  }, [preview]);
-
-  const submitDisabled = busy || !impactAck.submitEnabled;
 
   const shellClass = cn(
     "rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-4",
@@ -320,21 +321,35 @@ export function CryptoOrderTicket({
   }
 
   if (phase === "success" && receipt && !suppressInlineSuccess) {
+    const filledSubtitle = cryptoFilledOrderSubtitle(receipt);
     return (
       <div className={shellClass}>
         <TerminalProcessResult
           kind="success"
-          title={
-            receipt.side === "BUY"
-              ? `Bought ${formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol)}`
-              : `Sold ${formatCryptoQuantityDisplay(receipt.executedQuantity, receipt.symbol)}`
-          }
+          title={CRYPTO_FILLED_ORDER_TITLE}
           summary={successSummary}
           onDone={resetToEntry}
           onSecondary={resetToEntry}
-          secondaryLabel="New order"
-          liveMessage={`Crypto order filled. ${receipt.symbol}.`}
-        />
+          secondaryLabel="Trade again"
+          liveMessage={`${CRYPTO_FILLED_ORDER_TITLE}. ${filledSubtitle}.`}
+          details={
+            <details className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)]">
+              <summary className="min-h-11 cursor-pointer list-none font-medium text-[var(--terminal-text)] [&::-webkit-details-marker]:hidden">
+                Order details
+              </summary>
+              <div className="mt-2 space-y-1.5 border-t border-[var(--terminal-border)] pt-2">
+                <p>
+                  <span className="text-[var(--terminal-muted)]">Full reference</span>
+                </p>
+                <p className="break-all font-mono text-[11px] text-[var(--terminal-text)]">
+                  {receipt.orderId}
+                </p>
+              </div>
+            </details>
+          }
+        >
+          <p className="text-[14px] font-medium text-[var(--terminal-text)]">{filledSubtitle}</p>
+        </TerminalProcessResult>
       </div>
     );
   }
@@ -410,12 +425,10 @@ export function CryptoOrderTicket({
           </div>
 
           <label className="block space-y-1.5">
-            <span className="text-[12px] text-[var(--terminal-muted)]">{amountLabel}</span>
+            <span className="text-[12px] text-[var(--terminal-muted)]">Florin amount</span>
             <input
-              value={side === "BUY" ? grossFlorins : quantity}
-              onChange={(e) =>
-                side === "BUY" ? setGrossFlorins(e.target.value) : setQuantity(e.target.value)
-              }
+              value={grossFlorins}
+              onChange={(e) => setGrossFlorins(e.target.value)}
               inputMode="decimal"
               className="min-h-11 w-full rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] px-3 text-[14px] outline-none focus:border-[var(--terminal-green)]"
             />
@@ -426,17 +439,21 @@ export function CryptoOrderTicket({
             <MoneyValue value={lastPrice} asPrice cryptoSymbol={symbol} />
           </div>
           <div className="flex justify-between text-[12px] text-[var(--terminal-muted)]">
-            <span>{side === "BUY" ? "Buying power" : "Holdings"}</span>
+            <span>{side === "BUY" ? "Buying power" : "Holdings value"}</span>
             <span>
               {side === "BUY" ? (
                 <MoneyValue value={buyingPower} animateOnChange />
               ) : (
-                formatCryptoQuantityDisplay(holdingQuantity, symbol)
+                <MoneyValue value={holdingQuantity * lastPrice} animateOnChange />
               )}
             </span>
           </div>
 
-          {error ? <p className="text-[12px] text-[var(--terminal-red)]">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-[12px] text-[var(--terminal-red)]">
+              {error}
+            </p>
+          ) : null}
           {tradeBlockedReason ? (
             <p className="text-[12px] text-[var(--terminal-muted)]">{tradeBlockedReason}</p>
           ) : null}
@@ -454,41 +471,37 @@ export function CryptoOrderTicket({
 
       {phase === "review" && preview ? (
         <div className="mt-4 space-y-3">
-          <ReviewRow
-            label="Estimated quantity"
-            value={formatCryptoQuantityDisplay(preview.estimatedExecutedQuantity, symbol)}
-          />
-          <ReviewRow label="Gross value" value={formatCryptoMoney(preview.grossTradeValue)} />
-          <ReviewRow label="Fee" value={formatCryptoMoney(preview.totalFee)} />
-          <ReviewRow
-            label="Avg execution"
-            value={formatCryptoDisplayPriceFromRaw(preview.averageExecutionPrice, symbol)}
-          />
-          <ReviewRow
-            label="Price before → after"
-            value={formatCryptoPriceTransition(preview.priceBefore, preview.priceAfter, symbol)}
-          />
-          <ReviewRow
-            label="Price impact"
-            value={formatCryptoPercent(preview.priceImpactPercent, { signed: false })}
-          />
-          <ReviewRow
-            label="Cash after"
-            value={formatCryptoMoney(preview.estimatedTerminalCashAfter)}
-          />
-          <ReviewRow
-            label="Wallet after"
-            value={formatCryptoQuantityDisplay(preview.estimatedWalletBalanceAfter, symbol)}
-          />
+          <div>
+            <p className="text-[15px] font-semibold tracking-tight text-[var(--terminal-text)]">
+              {cryptoCustomerOrderTypeLabel(side)}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[var(--terminal-muted)]">
+              {symbol} · {assetName}
+            </p>
+          </div>
 
-          {impactWarn || impactAck.showWarning ? (
-            <p
+          <div className="divide-y divide-[var(--terminal-border)] border-y border-[var(--terminal-border)]">
+            {buildCryptoCustomerReviewRows(side, preview)
+              .filter((row) => row.label !== "Order type")
+              .map((row) => (
+                <ReviewRow key={row.label} label={row.label} value={row.value} mono={row.mono} />
+              ))}
+          </div>
+
+          <p className="text-[11px] leading-relaxed text-[var(--terminal-muted)]">
+            {CRYPTO_CUSTOMER_ESTIMATE_DISCLOSURE}
+          </p>
+
+          {impactAck.showWarning && !impactAck.exceedsHardLimit ? (
+            <div
+              role="status"
               id={impactAck.requiresAcknowledgement ? undefined : impactHintId}
               className="rounded-md border border-[var(--terminal-red)]/30 bg-[var(--terminal-red)]/5 px-3 py-2 text-[12px] text-[var(--terminal-red)]"
             >
-              {impactWarn?.message ??
-                `Estimated price impact is ${formatCryptoPercent(preview.priceImpactPercent, { signed: false })}.`}
-            </p>
+              {customerImpactWarningMessage({
+                requiresAcknowledgement: impactAck.requiresAcknowledgement,
+              })}
+            </div>
           ) : null}
 
           {impactAck.requiresAcknowledgement ? (
@@ -503,19 +516,23 @@ export function CryptoOrderTicket({
                   checked={acceptHighImpact}
                   onChange={(e) => setAcceptHighImpact(e.target.checked)}
                   aria-describedby={impactHintId}
-                  className="mt-1 size-4"
+                  className="mt-1 size-4 shrink-0"
                 />
-                <span>I understand this order has high price impact and want to continue.</span>
+                <span>{CRYPTO_CUSTOMER_IMPACT_ACK_LABEL}</span>
               </label>
               <p id={impactHintId} className="text-[11px] text-[var(--terminal-muted)]">
-                Submit stays disabled until you acknowledge this high-impact order.
+                {CRYPTO_CUSTOMER_IMPACT_ACK_HINT}
               </p>
             </div>
           ) : null}
 
-          {error ? <p className="text-[12px] text-[var(--terminal-red)]">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="text-[12px] text-[var(--terminal-red)]">
+              {error}
+            </p>
+          ) : null}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
             <button
               type="button"
               disabled={busy}
@@ -531,8 +548,8 @@ export function CryptoOrderTicket({
             </button>
             <button
               type="button"
-              disabled={submitDisabled}
-              aria-disabled={submitDisabled}
+              disabled={busy || !impactAck.submitEnabled}
+              aria-disabled={busy || !impactAck.submitEnabled}
               aria-describedby={
                 impactAck.requiresAcknowledgement && !acceptHighImpact
                   ? impactHintId
@@ -560,9 +577,14 @@ function ReviewRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-[12px]">
+    <div className="flex items-start justify-between gap-3 py-2.5 text-[13px]">
       <span className="text-[var(--terminal-muted)]">{label}</span>
-      <span className={cn("text-right text-[var(--terminal-text)]", mono && "font-mono text-[11px]")}>
+      <span
+        className={cn(
+          "max-w-[60%] text-right font-medium text-[var(--terminal-text)]",
+          mono && "break-all font-mono text-[11px] font-normal",
+        )}
+      >
         {value}
       </span>
     </div>

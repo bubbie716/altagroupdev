@@ -44,15 +44,15 @@ export type CreateScheduledTradeInput = {
   side: "buy" | "sell";
   /**
    * Stock: whole-share quantity (always).
-   * Crypto sell: coin quantity. Crypto buy: omit / 0 — use florinAmount instead.
+   * Crypto: omit / 0 — use florinAmount instead.
    */
   quantity: number;
-  /** Crypto buy only — gross florins. Ignored for stock and crypto sell. */
+  /** Crypto buy and sell — gross florins. Ignored for stock. */
   florinAmount?: number | null;
   /** Optional override; inferred from symbol when omitted. */
   instrumentKind?: ScheduledTradeInstrumentKind;
   /**
-   * Crypto buy → FLORIN_AMOUNT; crypto sell / stock → QUANTITY.
+   * Crypto → FLORIN_AMOUNT; stock → QUANTITY.
    * Inferred when omitted.
    */
   sizingMode?: ScheduledTradeSizingMode;

@@ -4,7 +4,11 @@
 
 import { d, type CryptoDecimal, type CryptoDecimalInput } from "./crypto-decimal";
 import {
+  CRYPTO_CUSTOMER_IMPACT_CONFIRM_MESSAGE,
+  CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE,
+  CRYPTO_CUSTOMER_IMPACT_WARN_MESSAGE,
   CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT,
+  CRYPTO_PRICE_IMPACT_LIMIT_PERCENT,
   CRYPTO_PRICE_IMPACT_WARN_PERCENT,
   type CryptoOrderWarningCode,
 } from "./crypto-order-types";
@@ -40,19 +44,26 @@ export function absolutePriceImpactPercent(priceImpactPercent: CryptoDecimalInpu
 export function buildPriceImpactWarnings(priceImpactPercent: CryptoDecimalInput): {
   warnings: Array<{ code: CryptoOrderWarningCode; message: string }>;
   requiresHighImpactConfirmation: boolean;
+  /** True when absolute impact is strictly above the hard ceiling (15%). */
+  exceedsHardLimit: boolean;
 } {
   const abs = absolutePriceImpactPercent(priceImpactPercent);
   const warnings: Array<{ code: CryptoOrderWarningCode; message: string }> = [];
-  const requiresHighImpactConfirmation = abs.greaterThanOrEqualTo(
-    d(CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT),
-  );
+  const exceedsHardLimit = abs.greaterThan(d(CRYPTO_PRICE_IMPACT_LIMIT_PERCENT));
+  const requiresHighImpactConfirmation =
+    !exceedsHardLimit && abs.greaterThanOrEqualTo(d(CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT));
   if (abs.greaterThanOrEqualTo(d(CRYPTO_PRICE_IMPACT_WARN_PERCENT))) {
     warnings.push({
       code: "HIGH_PRICE_IMPACT",
-      message: `Estimated price impact is ${abs.toFixed(2)}%.`,
+      // Customer-facing: never include the exact impact percentage or post-trade price.
+      message: exceedsHardLimit
+        ? CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE
+        : requiresHighImpactConfirmation
+          ? CRYPTO_CUSTOMER_IMPACT_CONFIRM_MESSAGE
+          : CRYPTO_CUSTOMER_IMPACT_WARN_MESSAGE,
     });
   }
-  return { warnings, requiresHighImpactConfirmation };
+  return { warnings, requiresHighImpactConfirmation, exceedsHardLimit };
 }
 
 /** Floor UTC timestamp to the start of its UTC minute for M1 candles. */

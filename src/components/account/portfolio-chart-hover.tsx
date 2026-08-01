@@ -184,6 +184,8 @@ export function usePortfolioChartHover({
   const pendingRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const periodStartRef = useRef(periodStartValue);
   const periodEndRef = useRef(periodEndValue);
+  /** Last known mouse position — used to revive hover after series refreshes without requiring a click. */
+  const lastMouseRef = useRef<{ clientX: number; clientY: number } | null>(null);
   /** When true, keep the tapped point visible until another interaction or range-drag. */
   const stickyRef = useRef(false);
   const pressRef = useRef<{
@@ -217,10 +219,6 @@ export function usePortfolioChartHover({
   }, []);
 
   const seriesFingerprint = `${buckets.length}:${buckets[0]?.at ?? 0}:${buckets[buckets.length - 1]?.at ?? 0}:${sortedDisplay.length}:${sortedDisplay[0]?.at ?? 0}:${sortedDisplay[sortedDisplay.length - 1]?.at ?? 0}:${periodStartValue}:${periodEndValue}`;
-
-  useEffect(() => {
-    clearHover();
-  }, [clearHover, seriesFingerprint]);
 
   useEffect(() => {
     if (suppressHover) clearHover();
@@ -281,6 +279,37 @@ export function usePortfolioChartHover({
     [containerRef, updateHover],
   );
 
+  const isInsideChart = useCallback(
+    (clientX: number, clientY: number) => {
+      const node = containerRef.current;
+      if (!node) return false;
+      const rect = node.getBoundingClientRect();
+      return (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      );
+    },
+    [containerRef],
+  );
+
+  // Clear + immediately revive hover when series data changes while the cursor is already over the chart.
+  useEffect(() => {
+    stickyRef.current = false;
+    pendingRef.current = null;
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    setHover(null);
+
+    if (disabled || suppressHover) return;
+    const last = lastMouseRef.current;
+    if (!last || !isInsideChart(last.clientX, last.clientY)) return;
+    scheduleHoverUpdate(last.clientX, last.clientY);
+  }, [disabled, isInsideChart, scheduleHoverUpdate, seriesFingerprint, suppressHover]);
+
   useEffect(() => {
     const element = containerRef.current;
     if (!element || disabled || suppressHover) return;
@@ -294,6 +323,7 @@ export function usePortfolioChartHover({
         dragged: false,
       };
       stickyRef.current = false;
+      lastMouseRef.current = { clientX: event.clientX, clientY: event.clientY };
       const node = containerRef.current;
       if (node) updateHover(event.clientX, node.getBoundingClientRect());
     };
@@ -312,17 +342,14 @@ export function usePortfolioChartHover({
           return;
         }
         if (press.dragged) return;
+        // Finger still down but under threshold — keep the pressed point.
+        return;
       }
 
-      // Mouse hover (no active press) or press that has not become a drag yet.
-      if (!press || press.pointerId !== event.pointerId || !press.dragged) {
-        if (press && press.pointerId === event.pointerId) {
-          // Finger still down but under threshold — keep the pressed point.
-          return;
-        }
-        stickyRef.current = false;
-        scheduleHoverUpdate(event.clientX, event.clientY);
-      }
+      // Mouse / pen hover with no active press.
+      stickyRef.current = false;
+      lastMouseRef.current = { clientX: event.clientX, clientY: event.clientY };
+      scheduleHoverUpdate(event.clientX, event.clientY);
     };
 
     const handlePointerUp = (event: PointerEvent) => {
@@ -334,6 +361,7 @@ export function usePortfolioChartHover({
 
       const node = containerRef.current;
       if (!node) return;
+      lastMouseRef.current = { clientX: event.clientX, clientY: event.clientY };
       updateHover(event.clientX, node.getBoundingClientRect());
       // Sticky only for touch — mouse hover already tracks without a click.
       stickyRef.current = event.pointerType !== "mouse";
@@ -357,28 +385,52 @@ export function usePortfolioChartHover({
       clearHover();
     };
 
-    // Capture so hover tracks even when Recharts SVG is the event target.
+    /**
+     * Document-level mouse tracking: hover must work on first mouseover without a prior click.
+     * Element-only pointermove is unreliable over Recharts SVG in some browsers until a gesture.
+     */
+    const handleDocumentMouseMove = (event: MouseEvent) => {
+      lastMouseRef.current = { clientX: event.clientX, clientY: event.clientY };
+
+      // Primary button up → any leftover press from a missed pointerup is stale for mouse hover.
+      if (event.buttons === 0 && pressRef.current && !pressRef.current.dragged) {
+        pressRef.current = null;
+      }
+      if (pressRef.current?.dragged) return;
+      if (event.buttons !== 0) return;
+
+      if (!isInsideChart(event.clientX, event.clientY)) {
+        if (!stickyRef.current && !pressRef.current) {
+          stickyRef.current = false;
+          pendingRef.current = null;
+          if (rafRef.current != null) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+          }
+          setHover((current) => (current == null ? current : null));
+        }
+        return;
+      }
+
+      stickyRef.current = false;
+      scheduleHoverUpdate(event.clientX, event.clientY);
+    };
+
     element.addEventListener("pointerdown", handlePointerDown);
     element.addEventListener("pointermove", handlePointerMove, { capture: true });
     element.addEventListener("pointerup", handlePointerUp);
     element.addEventListener("pointercancel", handlePointerCancel);
     element.addEventListener("pointerleave", handlePointerLeave);
-    // Desktop mouse path — some environments skip pointermove until a click/gesture.
-    const handleMouseMove = (event: MouseEvent) => {
-      if (pressRef.current) return;
-      if (event.buttons !== 0) return;
-      stickyRef.current = false;
-      scheduleHoverUpdate(event.clientX, event.clientY);
-    };
-    const handleMouseLeave = (event: MouseEvent) => {
-      if (stickyRef.current) return;
-      if (pressRef.current) return;
-      const related = event.relatedTarget;
-      if (related instanceof Node && element.contains(related)) return;
-      clearHover();
-    };
-    element.addEventListener("mousemove", handleMouseMove, { capture: true });
-    element.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("mousemove", handleDocumentMouseMove, {
+      capture: true,
+      passive: true,
+    });
+
+    // If the cursor is already over the chart when listeners attach, show a value immediately.
+    const last = lastMouseRef.current;
+    if (last && isInsideChart(last.clientX, last.clientY)) {
+      scheduleHoverUpdate(last.clientX, last.clientY);
+    }
 
     return () => {
       element.removeEventListener("pointerdown", handlePointerDown);
@@ -386,10 +438,17 @@ export function usePortfolioChartHover({
       element.removeEventListener("pointerup", handlePointerUp);
       element.removeEventListener("pointercancel", handlePointerCancel);
       element.removeEventListener("pointerleave", handlePointerLeave);
-      element.removeEventListener("mousemove", handleMouseMove, true);
-      element.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mousemove", handleDocumentMouseMove, true);
     };
-  }, [clearHover, containerRef, disabled, scheduleHoverUpdate, suppressHover, updateHover]);
+  }, [
+    clearHover,
+    containerRef,
+    disabled,
+    isInsideChart,
+    scheduleHoverUpdate,
+    suppressHover,
+    updateHover,
+  ]);
 
   return { hover };
 }

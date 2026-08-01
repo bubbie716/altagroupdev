@@ -12,9 +12,12 @@ export {
   NPFC_CONVERSION_FEE_BPS,
   NVA_CURVE_RATE,
   VLT_CURVE_RATE,
+  NVA_TARGET_IMPACT_PERCENT,
+  VLT_TARGET_IMPACT_PERCENT,
   LAUNCH_ASSET_SYMBOLS,
   deriveBondingCurveRate,
   curveRateSeedString,
+  curveRatesMatch,
   type CryptoAssetSymbol,
   type CryptoAssetConfig,
 } from "./crypto-constants";
@@ -41,6 +44,7 @@ export {
   reserveLiability,
   curveIntegralValue,
   quantityFromNetBuy,
+  quantityFromGrossSell,
   netFromSellQuantity,
   averageExecutionPrice,
 } from "./crypto-curve-math";
@@ -51,6 +55,7 @@ export {
   quoteBondingCurveSell,
   quoteNpfcPurchase,
   quoteNpfcRedemption,
+  resolveSellQuantityFromGrossFlorins,
   launchMarketSnapshot,
 } from "./crypto-pricing";
 
@@ -82,7 +87,12 @@ export {
   CRYPTO_QUOTE_TTL_MS,
   CRYPTO_PRICE_IMPACT_WARN_PERCENT,
   CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT,
+  CRYPTO_PRICE_IMPACT_LIMIT_PERCENT,
   CRYPTO_ORDER_RATE_LIMIT_PER_MIN,
+  CRYPTO_CUSTOMER_IMPACT_WARN_MESSAGE,
+  CRYPTO_CUSTOMER_IMPACT_CONFIRM_MESSAGE,
+  CRYPTO_CUSTOMER_IMPACT_LIMIT_MESSAGE,
+  CRYPTO_CUSTOMER_REQUOTE_MESSAGE,
   CryptoOrderError,
   customerMessageForCode,
   type CryptoOrderErrorCode,
@@ -92,6 +102,14 @@ export {
   type CryptoOrderPreviewResult,
   type CryptoOrderFillResult,
 } from "./crypto-order-types";
+
+export {
+  buildCryptoCustomerReviewRows,
+  buildCryptoCustomerReceiptRows,
+  cryptoCustomerOrderTypeLabel,
+  customerImpactWarningMessage,
+  CRYPTO_CUSTOMER_REVIEW_FORBIDDEN_LABELS,
+} from "./crypto-customer-review";
 
 export {
   parseCryptoOrderPreviewInput,

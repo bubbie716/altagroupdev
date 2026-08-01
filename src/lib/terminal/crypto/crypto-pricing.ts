@@ -16,6 +16,7 @@ import {
   averageExecutionPrice,
   marginalPrice,
   netFromSellQuantity,
+  quantityFromGrossSell,
   quantityFromNetBuy,
   reserveLiability,
 } from "./crypto-curve-math";
@@ -115,6 +116,53 @@ function bondingConfig(symbol: CryptoAssetSymbol) {
     throw new CryptoPricingError("ASSET_KIND_MISMATCH", `${symbol} is not a bonding-curve asset`);
   }
   return cfg;
+}
+
+/**
+ * Convert a customer florin sell size into executed coin quantity (rounded down).
+ * Used when interactive tickets size sells in florins instead of coins.
+ */
+export function resolveSellQuantityFromGrossFlorins(input: {
+  market: MarketSnapshotInput;
+  grossFlorins: CryptoDecimalInput;
+}): CryptoDecimal {
+  const symbol = input.market.symbol;
+  const gross = requirePositive("grossFlorins", input.grossFlorins);
+  assertMinGross(gross);
+
+  if (symbol === "NPFC") {
+    const cfg = CRYPTO_ASSET_CONFIGS.NPFC;
+    const executedQuantity = roundDownQuantity(
+      gross.div(cfg.pegOrStartingPrice),
+      cfg.quantityPrecision,
+    );
+    if (!executedQuantity.greaterThan(0)) {
+      throw new CryptoPricingError("INVALID_INPUT", "Sell quantity rounds down to zero");
+    }
+    return executedQuantity;
+  }
+
+  const cfg = bondingConfig(symbol);
+  let idealQty: CryptoDecimal;
+  try {
+    idealQty = quantityFromGrossSell({
+      startingPrice: cfg.pegOrStartingPrice,
+      curveRate: cfg.curveRate!,
+      circulatingSupply: input.market.circulatingSupply,
+      grossFlorins: gross,
+    });
+  } catch {
+    throw new CryptoPricingError(
+      "INVALID_INPUT",
+      "Sell amount exceeds available market liquidity",
+      { grossFlorins: gross.toFixed(2) },
+    );
+  }
+  const executedQuantity = roundDownQuantity(idealQty, cfg.quantityPrecision);
+  if (!executedQuantity.greaterThan(0)) {
+    throw new CryptoPricingError("INVALID_INPUT", "Sell quantity rounds down to zero");
+  }
+  return executedQuantity;
 }
 
 function buildInvariants(input: {

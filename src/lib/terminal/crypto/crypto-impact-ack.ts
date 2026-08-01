@@ -7,15 +7,18 @@
 
 import {
   CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT,
+  CRYPTO_PRICE_IMPACT_LIMIT_PERCENT,
   CRYPTO_PRICE_IMPACT_WARN_PERCENT,
 } from "@/lib/terminal/crypto/crypto-order-types";
 
 export const CRYPTO_IMPACT_WARN_THRESHOLD = Number(CRYPTO_PRICE_IMPACT_WARN_PERCENT);
 export const CRYPTO_IMPACT_CONFIRM_THRESHOLD = Number(CRYPTO_PRICE_IMPACT_CONFIRM_PERCENT);
+export const CRYPTO_IMPACT_LIMIT_THRESHOLD = Number(CRYPTO_PRICE_IMPACT_LIMIT_PERCENT);
 
 export type CryptoImpactAckInput = {
   priceImpactPercent: string | number | null | undefined;
   requiresHighImpactConfirmation?: boolean;
+  exceedsHardLimit?: boolean;
   accepted: boolean;
 };
 
@@ -23,6 +26,7 @@ export type CryptoImpactAckState = {
   absImpactPercent: number;
   showWarning: boolean;
   requiresAcknowledgement: boolean;
+  exceedsHardLimit: boolean;
   submitEnabled: boolean;
   acknowledgementHintId: string;
 };
@@ -39,22 +43,26 @@ export function absoluteImpactPercent(
 }
 
 /**
- * UI gate for Submit order. Does not replace server-side confirmation checks.
+ * UI gate for Submit order. Does not replace server-side confirmation / hard-limit checks.
  */
 export function resolveCryptoImpactAckState(
   input: CryptoImpactAckInput,
   hintId = "crypto-high-impact-ack",
 ): CryptoImpactAckState {
   const abs = absoluteImpactPercent(input.priceImpactPercent);
+  const exceedsHardLimit =
+    input.exceedsHardLimit === true || abs > CRYPTO_IMPACT_LIMIT_THRESHOLD;
   const requiresAcknowledgement =
-    input.requiresHighImpactConfirmation === true ||
-    abs >= CRYPTO_IMPACT_CONFIRM_THRESHOLD;
-  const showWarning = abs >= CRYPTO_IMPACT_WARN_THRESHOLD || requiresAcknowledgement;
+    !exceedsHardLimit &&
+    (input.requiresHighImpactConfirmation === true || abs >= CRYPTO_IMPACT_CONFIRM_THRESHOLD);
+  const showWarning =
+    exceedsHardLimit || abs >= CRYPTO_IMPACT_WARN_THRESHOLD || requiresAcknowledgement;
   return {
     absImpactPercent: abs,
     showWarning,
     requiresAcknowledgement,
-    submitEnabled: !requiresAcknowledgement || input.accepted,
+    exceedsHardLimit,
+    submitEnabled: !exceedsHardLimit && (!requiresAcknowledgement || input.accepted),
     acknowledgementHintId: hintId,
   };
 }

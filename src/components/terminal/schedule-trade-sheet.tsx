@@ -140,10 +140,10 @@ export function ScheduleTradeSheet({
       portfolioId,
       symbol,
       side,
-      quantity: crypto && side === "buy" ? 0 : quantity,
-      florinAmount: crypto && side === "buy" ? florinAmount : null,
+      quantity: crypto ? 0 : quantity,
+      florinAmount: crypto ? florinAmount : null,
       instrumentKind: crypto ? "CRYPTO" : "STOCK",
-      sizingMode: crypto ? (side === "buy" ? "FLORIN_AMOUNT" : "QUANTITY") : "QUANTITY",
+      sizingMode: crypto ? "FLORIN_AMOUNT" : "QUANTITY",
       maxPriceImpactPercent: crypto ? 10 : undefined,
       scheduleType,
       frequency: scheduleType === "recurring" ? frequency : null,
@@ -229,10 +229,7 @@ export function ScheduleTradeSheet({
     }
   }
 
-  const sizeLabel =
-    isCrypto && side === "buy"
-      ? `ƒ${florinAmount}`
-      : `${isCrypto ? quantity : quantity}${isCrypto ? "" : " sh"}`;
+  const sizeLabel = isCrypto ? `ƒ${florinAmount}` : `${quantity} sh`;
 
   const body = (
     <div className="space-y-4 text-[13px]">
@@ -270,7 +267,7 @@ export function ScheduleTradeSheet({
               ))}
             </div>
           ) : null}
-          {isCrypto && side === "buy" ? (
+          {isCrypto ? (
             <label className="block">
               <span className="text-[var(--terminal-muted)]">Florin amount</span>
               <input
@@ -284,13 +281,11 @@ export function ScheduleTradeSheet({
             </label>
           ) : (
             <label className="block">
-              <span className="text-[var(--terminal-muted)]">
-                {isCrypto ? "Coin quantity" : "Whole shares"}
-              </span>
+              <span className="text-[var(--terminal-muted)]">Whole shares</span>
               <input
                 type="number"
-                min={isCrypto ? 0.00000001 : 1}
-                step={isCrypto ? "any" : 1}
+                min={1}
+                step={1}
                 className={inputClass}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
@@ -299,7 +294,8 @@ export function ScheduleTradeSheet({
           )}
           {isCrypto ? (
             <p className="text-[11px] text-[var(--terminal-muted)]">
-              Market orders only. Automated attempts skip if price impact is 10% or higher.
+              Market orders only. Automated attempts skip when the order would move the market too
+              much at execution time.
             </p>
           ) : null}
           <div className="flex gap-2">
@@ -416,8 +412,8 @@ export function ScheduleTradeSheet({
             </li>
             {preview.instrumentKind === "CRYPTO" ? (
               <li>
-                Automated crypto attempts skip when estimated price impact is{" "}
-                {preview.maxPriceImpactPercent}% or higher.
+                Automated crypto attempts skip when the order would move the market too much at
+                execution time. Impact is re-checked on each attempt.
               </li>
             ) : null}
             <li>An attempt may be skipped, delayed, rejected, or failed.</li>

@@ -10,6 +10,7 @@ import type {
   CryptoOpsAssetWorkspace,
   CryptoOpsDeskSummary,
 } from "@/lib/terminal/crypto/crypto-ops-read.service";
+import { presentCryptoAssetStatus } from "@/lib/terminal/crypto/crypto-status-presentation";
 
 export type UiLabCryptoOpsScenario =
   | "ready_to_activate"
@@ -37,6 +38,7 @@ function baseAsset(
   extras?: Partial<CryptoOpsAssetOverview>,
 ): CryptoOpsAssetOverview {
   const cfg = CRYPTO_ASSET_CONFIGS[symbol];
+  const presented = presentCryptoAssetStatus({ status, surface: "ops", uiLab: true });
   return {
     symbol,
     displayName: cfg.displayName,
@@ -60,8 +62,8 @@ function baseAsset(
     lastReconciliationAt: null,
     lastReconciliationStatus: null,
     tradingCapabilities: {
-      canBuy: status === "ACTIVE",
-      canSell: status === "ACTIVE" || status === "REDEMPTION_ONLY",
+      canBuy: presented.canBuy,
+      canSell: presented.canSell,
     },
     revenueSweepConfigured: extras?.revenueSweepConfigured ?? false,
     activationReadinessAllPassed: status === "DRAFT" ? true : null,
@@ -70,29 +72,32 @@ function baseAsset(
 }
 
 export function getUiLabCryptoOpsDeskSummary(
-  scenario: UiLabCryptoOpsScenario = "ready_to_activate",
+  scenario: UiLabCryptoOpsScenario = "active_healthy",
 ): CryptoOpsDeskSummary {
   assertUiLab();
 
-  let assets = LAUNCH_ASSET_SYMBOLS.map((s) => baseAsset(s, "DRAFT", { activationReadinessAllPassed: true }));
+  let assets = LAUNCH_ASSET_SYMBOLS.map((s) =>
+    baseAsset(s, "ACTIVE", {
+      accruedRevenue: s === "NVA" ? "12.50" : "0",
+      revenueSweepConfigured: true,
+      lastReconciliationAt: new Date().toISOString(),
+      lastReconciliationStatus: "SUCCEEDED",
+      walletCount: s === "NPFC" ? 2 : 1,
+      circulatingSupply:
+        s === "NPFC" ? "25.00000000" : s === "NVA" ? "4.00000000" : "50.00000000",
+      protectedReserve:
+        s === "NPFC" ? "25.000000000000" : s === "NVA" ? "20.000000000000" : "5.000000000000",
+      requiredLiability:
+        s === "NPFC" ? "25.000000000000" : s === "NVA" ? "20.000000000000" : "5.000000000000",
+    }),
+  );
   const needsAttention: CryptoOpsDeskSummary["needsAttention"] = [];
   let openCritical = 0;
 
   switch (scenario) {
     case "active_healthy":
     case "recon_success":
-      assets = LAUNCH_ASSET_SYMBOLS.map((s) =>
-        baseAsset(s, "ACTIVE", {
-          accruedRevenue: s === "NVA" ? "12.50" : "0",
-          revenueSweepConfigured: true,
-          lastReconciliationAt: new Date().toISOString(),
-          lastReconciliationStatus: "SUCCEEDED",
-          walletCount: s === "NPFC" ? 1 : 0,
-          circulatingSupply: s === "NPFC" ? "25.00000000" : "0.00000000",
-          protectedReserve: s === "NPFC" ? "25.000000000000" : "0.000000000000",
-          requiredLiability: s === "NPFC" ? "25.000000000000" : "0.000000000000",
-        }),
-      );
+      // Default healthy demonstration — matches customer ACTIVE markets.
       break;
     case "halted":
       assets = [
@@ -175,8 +180,12 @@ export function getUiLabCryptoOpsDeskSummary(
       });
       break;
     case "ready_to_activate":
-    default:
+      assets = LAUNCH_ASSET_SYMBOLS.map((s) =>
+        baseAsset(s, "DRAFT", { activationReadinessAllPassed: true, walletCount: 0 }),
+      );
       // Demonstration context is a banner, not an attention incident.
+      break;
+    default:
       break;
   }
 
@@ -245,7 +254,7 @@ export function getUiLabCryptoOpsDeskSummary(
 
 export function getUiLabCryptoOpsAssetWorkspace(
   symbolInput: string,
-  scenario: UiLabCryptoOpsScenario = "ready_to_activate",
+  scenario: UiLabCryptoOpsScenario = "active_healthy",
 ): CryptoOpsAssetWorkspace | null {
   assertUiLab();
   const symbol = symbolInput.trim().toUpperCase();
@@ -266,6 +275,8 @@ export function getUiLabCryptoOpsAssetWorkspace(
     stabilizationFeeBps: cfg.stabilizationFeeBps,
     quantityPrecision: cfg.quantityPrecision,
     displayPrecision: cfg.displayPrecision,
+    sensitivityLabel: cfg.sensitivityLabel,
+    matchesAuthoritativeConfig: true,
     openIssues:
       overview.openCriticalIssues > 0
         ? [
@@ -328,13 +339,19 @@ export function searchUiLabCryptoMarkets(
     const cfg = CRYPTO_ASSET_CONFIGS[symbol];
     const hay = `${symbol} ${cfg.displayName} crypto market`.toLowerCase();
     if (!matchAll && !hay.includes(q)) continue;
+    const deskAsset = getUiLabCryptoOpsDeskSummary().assets.find((a) => a.symbol === symbol);
+    const presented = presentCryptoAssetStatus({
+      status: deskAsset?.status ?? "ACTIVE",
+      surface: "ops",
+      uiLab: true,
+    });
     results.push({
       id: symbol,
       type: "terminal_crypto_market",
       label: symbol,
-      sublabel: `${cfg.displayName} · Crypto market · Draft`,
+      sublabel: `${cfg.displayName} · ${presented.statusLabel}`,
       href: `/internal/terminal/crypto/${symbol}?tab=overview&site=terminal`,
-      status: "draft",
+      status: presented.lifecycleStatus === "ACTIVE" ? "active" : "draft",
     });
     if (results.length >= limit) break;
   }

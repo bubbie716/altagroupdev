@@ -241,18 +241,78 @@ export function formatCryptoPriceTransition(
   return `${formatCryptoDisplayPriceFromRaw(beforeRaw, symbol)} → ${formatCryptoDisplayPriceFromRaw(afterRaw, symbol)}`;
 }
 
+/**
+ * Format a coin quantity for customer UI.
+ * Uses string/decimal digit math (not binary float) so large fills never show noise.
+ * Applies asset display precision, trims trailing zeros, adds thousands separators.
+ */
 export function formatCryptoQuantityDisplay(
   quantity: number | string,
   symbol?: CryptoFormatSymbol,
 ): string {
-  const dec = toDisplayDec(quantity);
-  if (!dec) return String(quantity);
   const asset = asCryptoAssetSymbol(symbol ?? "");
   const digits = asset ? Math.min(8, CRYPTO_QUANTITY_DISPLAY_PRECISION[asset]) : 8;
-  const fixed = dec.abs.toFixed(digits);
-  const trimmed = fixed.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
-  const signed = dec.neg && trimmed !== "0" ? `-${trimmed}` : trimmed;
-  return symbol ? `${signed} ${String(symbol).toUpperCase()}` : signed;
+  const formatted = formatQuantityDigits(quantity, digits);
+  if (!formatted) return String(quantity);
+  return symbol ? `${formatted} ${String(symbol).toUpperCase()}` : formatted;
+}
+
+/** Format quantity digits with thousands separators; null when unparseable. */
+export function formatQuantityDigits(
+  quantity: number | string,
+  fractionDigits: number,
+): string | null {
+  const raw =
+    typeof quantity === "number"
+      ? Object.is(quantity, -0) || quantity === 0
+        ? "0"
+        : Number.isFinite(quantity)
+          ? String(quantity)
+          : null
+      : String(quantity ?? "").trim();
+  if (raw == null || raw === "") return null;
+
+  const neg = raw.startsWith("-");
+  const body = neg ? raw.slice(1) : raw;
+  if (!/^(?:\d+)(?:\.\d+)?$/.test(body)) {
+    const dec = toDisplayDec(quantity);
+    if (!dec) return null;
+    const fixed = dec.abs.toFixed(fractionDigits);
+    const trimmed = trimTrailingZeros(fixed);
+    return dec.neg && trimmed !== "0" ? `-${trimmed}` : trimmed;
+  }
+
+  const [wholeRaw, fracRaw = ""] = body.split(".");
+  const digits = Math.max(0, Math.min(18, fractionDigits));
+  const fracPadded = (fracRaw + "0".repeat(digits)).slice(0, digits);
+  const extra = fracRaw.slice(digits);
+  let fracInt = BigInt(fracPadded || "0");
+  let wholeInt = BigInt(wholeRaw || "0");
+  // HALF_UP from the next digit when truncating.
+  if (extra.length > 0 && extra[0]! >= "5") {
+    fracInt += 1n;
+    const scale = 10n ** BigInt(digits);
+    if (digits > 0 && fracInt >= scale) {
+      fracInt -= scale;
+      wholeInt += 1n;
+    } else if (digits === 0) {
+      wholeInt += 1n;
+      fracInt = 0n;
+    }
+  }
+
+  const wholeGrouped = wholeInt.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const fracStr = digits > 0 ? fracInt.toString().padStart(digits, "0") : "";
+  const combined = digits > 0 ? `${wholeGrouped}.${fracStr}` : wholeGrouped;
+  const trimmed = trimTrailingZeros(combined);
+  // Never display negative zero.
+  if (trimmed === "0") return "0";
+  return neg ? `-${trimmed}` : trimmed;
+}
+
+function trimTrailingZeros(value: string): string {
+  if (!value.includes(".")) return value;
+  return value.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
 }
 
 export function cryptoMarketStatusLabel(operational = true): string {

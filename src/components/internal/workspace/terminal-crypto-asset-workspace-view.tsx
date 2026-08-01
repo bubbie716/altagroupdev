@@ -792,7 +792,23 @@ export function TerminalCryptoAssetWorkspaceView({
             <WorkspaceField label="Stabilization fee">
               {workspace.stabilizationFeeBps} bps
             </WorkspaceField>
-            <WorkspaceField label="Peg / start">{price(workspace.pegOrStartingPrice)}</WorkspaceField>
+            <WorkspaceField label="Launch price">{price(workspace.pegOrStartingPrice)}</WorkspaceField>
+            <WorkspaceField label="Current price">{price(workspace.currentPrice)}</WorkspaceField>
+            <WorkspaceField label="Circulating">
+              <span className="font-mono text-[12px]">{workspace.circulatingSupply}</span>
+            </WorkspaceField>
+            <WorkspaceField label="Protected reserve">
+              <span className="font-mono text-[12px]">{workspace.protectedReserve}</span>
+            </WorkspaceField>
+            <WorkspaceField label="Curve sensitivity">
+              {workspace.sensitivityLabel ?? "—"}
+            </WorkspaceField>
+            <WorkspaceField label="Status">{workspace.status}</WorkspaceField>
+            <WorkspaceField label="Config match">
+              {workspace.matchesAuthoritativeConfig
+                ? "Matches application config"
+                : "Drift from application config"}
+            </WorkspaceField>
             <WorkspaceField label="Max supply">
               <span className="font-mono text-[12px]">{workspace.maxSupply ?? "Variable"}</span>
             </WorkspaceField>

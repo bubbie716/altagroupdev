@@ -1,6 +1,11 @@
 /** Plain-language Terminal crypto ops labels (operators — not customer surface). */
 
-export function cryptoOpsStatusLabel(status: string): string {
+import { presentCryptoAssetStatus } from "@/lib/terminal/crypto/crypto-status-presentation";
+
+export function cryptoOpsStatusLabel(status: string, opts?: { uiLab?: boolean }): string {
+  if (opts?.uiLab) {
+    return presentCryptoAssetStatus({ status, surface: "ops", uiLab: true }).statusLabel;
+  }
   switch (status) {
     case "DRAFT":
       return "Draft";

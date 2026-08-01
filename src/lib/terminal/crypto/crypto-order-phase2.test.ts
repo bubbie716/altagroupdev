@@ -157,12 +157,23 @@ describe("settlement math", () => {
     assert.equal(rgl.toFixed(2), "10.00");
   });
 
-  it("warns at 5% and requires confirmation at 10%", () => {
+  it("warns at 5%, requires confirmation at 10%–15%, and hard-rejects above 15%", () => {
     const warn = buildPriceImpactWarnings("5");
     assert.equal(warn.warnings.length, 1);
     assert.equal(warn.requiresHighImpactConfirmation, false);
+    assert.equal(warn.exceedsHardLimit, false);
+    assert.doesNotMatch(warn.warnings[0]!.message, /\d+(\.\d+)?%/);
     const confirm = buildPriceImpactWarnings("-10");
     assert.equal(confirm.requiresHighImpactConfirmation, true);
+    assert.equal(confirm.exceedsHardLimit, false);
+    assert.doesNotMatch(confirm.warnings[0]!.message, /\d+(\.\d+)?%/);
+    const atCeiling = buildPriceImpactWarnings("15");
+    assert.equal(atCeiling.requiresHighImpactConfirmation, true);
+    assert.equal(atCeiling.exceedsHardLimit, false);
+    const over = buildPriceImpactWarnings("15.01");
+    assert.equal(over.exceedsHardLimit, true);
+    assert.equal(over.requiresHighImpactConfirmation, false);
+    assert.doesNotMatch(over.warnings[0]!.message, /\d+(\.\d+)?%/);
   });
 
   it("floors candle starts to UTC minutes", () => {

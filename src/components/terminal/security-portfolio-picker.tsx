@@ -27,6 +27,7 @@ export function SecurityPortfolioTrigger({
   className,
   expanded = false,
   dropdown = false,
+  ownerLine = null,
 }: {
   label: string | null;
   onClick: () => void;
@@ -36,11 +37,16 @@ export function SecurityPortfolioTrigger({
   expanded?: boolean;
   /** Use listbox semantics + down-chevron (Quick Trade). */
   dropdown?: boolean;
+  /** Optional owner context shown on a second line when compact. */
+  ownerLine?: string | null;
 }) {
+  const fullLabel =
+    label && ownerLine && !label.includes(ownerLine) ? `${label} · ${ownerLine}` : label;
   return (
     <button
       type="button"
       onClick={onClick}
+      title={fullLabel ?? undefined}
       className={cn(
         "group flex w-full items-center gap-2 rounded-md border border-[var(--terminal-border)] bg-[var(--terminal-bg)] text-left outline-none transition-colors",
         "hover:bg-[var(--menu-item-hover)] focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40",
@@ -51,8 +57,8 @@ export function SecurityPortfolioTrigger({
       aria-haspopup={dropdown ? "listbox" : "dialog"}
       aria-expanded={dropdown ? expanded : undefined}
       aria-label={
-        label
-          ? `Trading portfolio: ${label}. Change portfolio.`
+        fullLabel
+          ? `Trading portfolio: ${fullLabel}. Change portfolio.`
           : "Choose a portfolio for this order"
       }
     >
@@ -67,12 +73,17 @@ export function SecurityPortfolioTrigger({
         <span
           className={cn(
             "mt-0.5 block truncate font-medium",
-            compact ? "text-[12px]" : "text-[13px]",
+            compact ? "text-[13px]" : "text-[13px]",
             label ? "text-[var(--terminal-text)]" : "text-[var(--terminal-red)]",
           )}
         >
           {label ?? "Choose a portfolio"}
         </span>
+        {compact && ownerLine ? (
+          <span className="mt-0.5 block truncate text-[11px] text-[var(--terminal-muted)]">
+            {ownerLine}
+          </span>
+        ) : null}
       </span>
       {dropdown ? (
         <ChevronDown
@@ -104,6 +115,7 @@ export function SecurityPortfolioDropdown({
   securitySymbol,
   onSelect,
   compact = true,
+  ownerLine = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -113,6 +125,7 @@ export function SecurityPortfolioDropdown({
   securitySymbol: string;
   onSelect: (portfolioId: string) => void;
   compact?: boolean;
+  ownerLine?: string | null;
 }) {
   const { personal, company } = groupSecurityPortfolios(portfolios);
 
@@ -120,6 +133,7 @@ export function SecurityPortfolioDropdown({
     <div className="relative">
       <SecurityPortfolioTrigger
         label={label}
+        ownerLine={ownerLine}
         compact={compact}
         dropdown
         expanded={open}

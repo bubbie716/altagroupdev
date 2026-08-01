@@ -10,6 +10,7 @@ import { prisma } from "@/server/db";
 import {
   CRYPTO_ASSET_CONFIGS,
   LAUNCH_ASSET_SYMBOLS,
+  curveRatesMatch,
   type CryptoAssetSymbol,
 } from "./crypto-constants";
 import { d, roundPrice, serializeCryptoPrice } from "./crypto-decimal";
@@ -217,6 +218,27 @@ export async function evaluateActivationReadiness(
       : "Fee split or peg/starting price is invalid.",
     severity: "CRITICAL",
   });
+
+  if (cfg) {
+    const pegMatches = roundPrice(asset.pegOrStartingPrice).equals(
+      roundPrice(cfg.pegOrStartingPrice),
+    );
+    const rateMatches = curveRatesMatch(asset.curveRate?.toString() ?? null, cfg.curveRate);
+    const feeMatches =
+      asset.totalFeeBps === cfg.totalFeeBps &&
+      asset.revenueFeeBps === cfg.revenueFeeBps &&
+      asset.stabilizationFeeBps === cfg.stabilizationFeeBps;
+    const configAligned = pegMatches && rateMatches && feeMatches;
+    items.push({
+      key: "config_authoritative_match",
+      label: "Database matches authoritative application config",
+      passed: configAligned,
+      detail: configAligned
+        ? "Peg, curve rate, and fees match CRYPTO_ASSET_CONFIGS."
+        : "Stored asset configuration drifts from authoritative application constants. Apply the recalibration migration or prelaunch reset.",
+      severity: "CRITICAL",
+    });
+  }
 
   let priceOk = false;
   let priceDetail = "Could not recompute marginal price.";

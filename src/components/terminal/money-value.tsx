@@ -12,6 +12,7 @@ import {
   formatCryptoMoney,
   formatCryptoPercent,
   formatCryptoPrice,
+  normalizeDisplaySignedZero,
 } from "@/lib/terminal/crypto/crypto-format";
 import { useEffect, useRef, useState } from "react";
 
@@ -130,6 +131,8 @@ export function PriceChange({
   className,
   compact = false,
   cryptoSymbol,
+  amountAs = "price",
+  metricLabel = "Day change",
 }: {
   amount: number | null;
   percent: number | null;
@@ -137,6 +140,13 @@ export function PriceChange({
   compact?: boolean;
   /** Asset-aware absolute change formatting for crypto (avoids -ƒ0.00). */
   cryptoSymbol?: string | null;
+  /**
+   * `price` — asset mark/day move (may use fine decimals for VLT/NVA).
+   * `money` — customer florin P&L such as total return (always 2 dp).
+   */
+  amountAs?: "price" | "money";
+  /** Accessible metric name — must match the column/UI label. */
+  metricLabel?: string;
 }) {
   if (amount == null || percent == null) {
     return (
@@ -146,20 +156,23 @@ export function PriceChange({
           compact ? "text-[12px]" : "text-[13px] sm:text-[14px]",
           className,
         )}
-        aria-label="Day change unavailable"
+        aria-label={`${metricLabel} unavailable`}
       >
         —
       </span>
     );
   }
 
-  const toneKind = cryptoSymbol
-    ? cryptoChangeTone(amount, percent, cryptoSymbol)
-    : amount > 0 || (amount === 0 && percent > 0)
-      ? "up"
-      : amount < 0 || percent < 0
-        ? "down"
-        : "flat";
+  const toneKind =
+    cryptoSymbol && amountAs === "price"
+      ? cryptoChangeTone(amount, percent, cryptoSymbol)
+      : (() => {
+          const a = normalizeDisplaySignedZero(amount, 2);
+          const p = normalizeDisplaySignedZero(percent, 2);
+          if (a > 0 || (a === 0 && p > 0)) return "up" as const;
+          if (a < 0 || p < 0) return "down" as const;
+          return "flat" as const;
+        })();
   const tone =
     toneKind === "up"
       ? "ticker-up"
@@ -168,9 +181,12 @@ export function PriceChange({
         : "text-[var(--terminal-muted)]";
   const signWord =
     toneKind === "up" ? "up" : toneKind === "down" ? "down" : "unchanged";
-  const amountText = cryptoSymbol
-    ? formatCryptoChangeAmount(amount, cryptoSymbol, { signed: true })
-    : formatTerminalMoney(amount, { signed: true });
+  const amountText =
+    cryptoSymbol && amountAs === "price"
+      ? formatCryptoChangeAmount(amount, cryptoSymbol, { signed: true })
+      : cryptoSymbol
+        ? formatCryptoMoney(amount, { signed: true })
+        : formatTerminalMoney(amount, { signed: true });
   const percentText = cryptoSymbol
     ? formatCryptoPercent(percent)
     : formatTerminalPercent(percent);
@@ -178,7 +194,7 @@ export function PriceChange({
   return (
     <span
       className={cn("inline-flex items-baseline gap-1.5 tabular-nums", tone, className)}
-      aria-label={`Day change ${signWord} ${amountText} (${percentText})`}
+      aria-label={`${metricLabel} ${signWord} ${amountText} (${percentText})`}
     >
       <span className={cn(compact ? "text-[12px]" : "text-[13px] sm:text-[14px]")}>
         {amountText}

@@ -8,9 +8,9 @@ import {
   quoteBondingCurveSell,
   quoteNpfcPurchase,
   quoteNpfcRedemption,
+  resolveSellQuantityFromGrossFlorins,
 } from "./crypto-pricing";
 import { d, serializeCryptoMoney, serializeCryptoPrice, serializeCryptoQuantity } from "./crypto-decimal";
-import { CryptoPricingError } from "./crypto-pricing-types";
 import { assertAssetAllowsSide, assertWalletCanTrade } from "./crypto-lifecycle";
 import {
   CryptoOrderError,
@@ -18,6 +18,7 @@ import {
   type CryptoOrderPreviewInput,
   type CryptoOrderPreviewResult,
 } from "./crypto-order-types";
+import { mapCryptoPricingError } from "./crypto-pricing-error-map";
 import { parseCryptoOrderPreviewInput } from "./crypto-order-validation";
 import {
   buildQuoteExpiry,
@@ -25,34 +26,6 @@ import {
   isCryptoQuoteSecretConfigured,
 } from "./crypto-quote-token";
 import { buildPriceImpactWarnings } from "./crypto-settlement-math";
-
-function mapPricingError(error: unknown): never {
-  if (error instanceof CryptoOrderError) throw error;
-  if (error instanceof CryptoPricingError) {
-    switch (error.code) {
-      case "INSUFFICIENT_TREASURY":
-      case "EXCEEDS_MAX_SUPPLY":
-        throw new CryptoOrderError("SUPPLY_EXHAUSTED", customerMessageForCode("SUPPLY_EXHAUSTED"));
-      case "INSUFFICIENT_WALLET_HOLDINGS":
-        throw new CryptoOrderError("INSUFFICIENT_HOLDINGS", customerMessageForCode("INSUFFICIENT_HOLDINGS"));
-      case "INSUFFICIENT_PROTECTED_RESERVE":
-        throw new CryptoOrderError("RESERVE_INSUFFICIENT", customerMessageForCode("RESERVE_INSUFFICIENT"));
-      case "BELOW_MINIMUM_ORDER":
-      case "INVALID_INPUT":
-      case "ASSET_KIND_MISMATCH":
-        throw new CryptoOrderError("VALIDATION_FAILED", error.message);
-      default:
-        throw new CryptoOrderError("INTERNAL_FAILURE", customerMessageForCode("INTERNAL_FAILURE"));
-    }
-  }
-  if (
-    error instanceof Error &&
-    error.message.includes("TERMINAL_CRYPTO_QUOTE_SECRET")
-  ) {
-    throw new CryptoOrderError("CRYPTO_UNAVAILABLE", customerMessageForCode("CRYPTO_UNAVAILABLE"));
-  }
-  throw new CryptoOrderError("INTERNAL_FAILURE", customerMessageForCode("INTERNAL_FAILURE"));
-}
 
 export async function previewTerminalCryptoOrder(
   user: AltaUser,
@@ -92,7 +65,7 @@ export async function previewTerminalCryptoOrder(
   try {
     assertAssetAllowsSide(asset.status, parsed.side);
   } catch (error) {
-    mapPricingError(error);
+    mapCryptoPricingError(error);
   }
 
   const wallet = await prisma.terminalCryptoWallet.findUnique({
@@ -104,7 +77,7 @@ export async function previewTerminalCryptoOrder(
   try {
     assertWalletCanTrade(wallet?.status);
   } catch (error) {
-    mapPricingError(error);
+    mapCryptoPricingError(error);
   }
 
   const cashAccount = await prisma.terminalPortfolioCashAccount.findUnique({
@@ -148,24 +121,38 @@ export async function previewTerminalCryptoOrder(
       if (!wallet || walletQty.lessThanOrEqualTo(0)) {
         throw new CryptoOrderError("INSUFFICIENT_HOLDINGS", customerMessageForCode("INSUFFICIENT_HOLDINGS"));
       }
+      const sellQuantity =
+        parsed.quantity ??
+        resolveSellQuantityFromGrossFlorins({
+          market: { ...market, symbol: asset.symbol as "NPFC" | "NVA" | "VLT" },
+          grossFlorins: parsed.grossFlorins!,
+        }).toFixed(8);
       quote =
         asset.kind === "STABLE"
           ? quoteNpfcRedemption({
               market: { ...market, symbol: "NPFC" },
-              quantity: parsed.quantity!,
+              quantity: sellQuantity,
             })
           : quoteBondingCurveSell({
               market: { ...market, symbol: asset.symbol as "NVA" | "VLT" },
-              quantity: parsed.quantity!,
+              quantity: sellQuantity,
             });
     }
   } catch (error) {
-    mapPricingError(error);
+    mapCryptoPricingError(error);
   }
 
   const impact =
     "priceImpactPercent" in quote ? quote.priceImpactPercent : d("0");
-  const { warnings, requiresHighImpactConfirmation } = buildPriceImpactWarnings(impact);
+  const { warnings, requiresHighImpactConfirmation, exceedsHardLimit } =
+    buildPriceImpactWarnings(impact);
+  if (exceedsHardLimit) {
+    throw new CryptoOrderError(
+      "PRICE_IMPACT_LIMIT_EXCEEDED",
+      customerMessageForCode("PRICE_IMPACT_LIMIT_EXCEEDED"),
+      { priceImpactPercent: impact.abs().toFixed(4) },
+    );
+  }
 
   const grossTradeValue =
     parsed.side === "BUY"

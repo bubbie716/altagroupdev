@@ -129,6 +129,19 @@ export class UiLabDemonstrationTseClient {
     return state;
   }
 
+  /** Sync cash available for crypto preview — matches ticket buying power. */
+  getAvailableCash(portfolioId: string): number | null {
+    const state = this.portfolios.get(portfolioId);
+    return state ? state.cash : null;
+  }
+
+  /** Keep demo TSE cash in sync after UI Lab crypto fills. */
+  setAvailableCash(portfolioId: string, cashFlorins: number): void {
+    const state = this.portfolios.get(portfolioId);
+    if (!state) return;
+    state.cash = Number(cashFlorins.toFixed(2));
+  }
+
   async getMarketStatus(): Promise<MarketStatusSnapshot> {
     return { ...FIXTURE_MARKET_STATUS };
   }
