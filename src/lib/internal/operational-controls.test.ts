@@ -154,6 +154,21 @@ describe("notification retry queue", () => {
   });
 });
 
+describe("discord outbox worker", () => {
+  it("exports per-bot outbox processors used by operational-controls", async () => {
+    const {
+      processDiscordOutbox,
+      processDiscordOutboxForBot,
+      processDiscordOutboxAllBots,
+      isDiscordOutboxDualWriteEnabled,
+    } = await import("../../server/discord-outbox.service.ts");
+    assert.equal(typeof processDiscordOutbox, "function");
+    assert.equal(typeof processDiscordOutboxForBot, "function");
+    assert.equal(typeof processDiscordOutboxAllBots, "function");
+    assert.equal(typeof isDiscordOutboxDualWriteEnabled, "function");
+  });
+});
+
 describe("bot audit service", () => {
   it("exports bot audit helpers", async () => {
     const {

@@ -298,11 +298,36 @@ export const fetchTerminalSystemStatus = createServerFn({ method: "GET" }).handl
         },
         reconciliation: {
           available: false,
-          detail: "Demonstration crypto integrity only — production reconciliation is separate.",
+          detail: "TSE pooled-custody reconciliation is not implemented (blocked by Newport/TSE).",
           readiness: [
             "UI Lab fixtures are demonstration-only",
             "Operations disabled in UI Lab",
           ],
+        },
+        cryptoReconciliation: {
+          available: false,
+          statusLabel: "Demonstration only",
+          detail: "UI Lab shows demonstration integrity — no live reconciliation writes.",
+          lastSuccessfulAt: desk.lastSuccessfulReconciliationAt,
+          openCritical: desk.openCriticalIssueCount,
+          openWarning: desk.integrity.openWarningIssueCount,
+        },
+        candleRollup: {
+          available: false,
+          detail: "Demonstration only — candle rollup mutations are blocked in UI Lab.",
+        },
+        revenueSweep: {
+          available: false,
+          detail: "Revenue sweeps are disabled in UI Lab.",
+        },
+        configurationSecrets: {
+          quoteSecretConfigured: false,
+          revenuePortfolioConfigured: false,
+          detail: "UI Lab does not load production secrets.",
+        },
+        backupReadiness: {
+          available: false,
+          detail: "Backup freshness is not probed in UI Lab.",
         },
         jobs: {
           available: false,
@@ -321,6 +346,10 @@ export const fetchTerminalSystemStatus = createServerFn({ method: "GET" }).handl
           statusLabel: aggregate.statusLabel,
           detail: aggregate.detail,
           assetStatuses: desk.assets.map((a) => ({ symbol: a.symbol, status: a.status })),
+        },
+        newportLiveMarket: {
+          available: false,
+          detail: "Newport / live stock market is not available — demonstration mode only.",
         },
       };
     }

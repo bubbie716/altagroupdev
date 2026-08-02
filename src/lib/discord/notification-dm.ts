@@ -1,3 +1,4 @@
+import { brandFooterForEvent, brandLinkLabelForEvent } from "@/lib/discord/discord-branding";
 import { INVITE_COLORS, notificationColorForTitle } from "@/lib/discord/invitation-dm";
 
 /** Default absolute URL base for Discord notification link buttons. */
@@ -29,16 +30,19 @@ export function buildNotificationDmPayload(input: {
   linkUrl?: string | null;
   linkLabel?: string;
   embedImageUrl?: string | null;
+  /** Notification / event type for product-aware branding. */
+  eventType?: string | null;
 }): NotificationDmPayload {
   const absoluteLink = resolvePublicLinkUrl(input.linkUrl);
   const description = input.body.slice(0, 4096);
   const imageUrl = input.embedImageUrl?.trim();
+  const footer = brandFooterForEvent(input.eventType);
 
   const embed: Record<string, unknown> = {
     title: input.title.slice(0, 256),
     description,
     color: notificationColorForTitle(input.title),
-    footer: { text: "Alta Bank · Newport" },
+    footer: { text: footer },
   };
   if (absoluteLink) {
     embed.url = absoluteLink;
@@ -55,7 +59,7 @@ export function buildNotificationDmPayload(input: {
         {
           type: 2,
           style: 5,
-          label: (input.linkLabel ?? "View on Alta Bank").slice(0, 80),
+          label: brandLinkLabelForEvent(input.eventType, input.linkLabel),
           url: absoluteLink,
         },
       ],
@@ -80,7 +84,7 @@ export function buildDealRoomOpenedDmPayload(input: {
     description,
     url: input.discordChannelUrl,
     color: INVITE_COLORS.alta,
-    footer: { text: "Alta Bank · Newport" },
+    footer: { text: brandFooterForEvent("DEAL_ROOM_CREATED") },
   };
 
   const buttons: Record<string, unknown>[] = [
@@ -96,7 +100,7 @@ export function buildDealRoomOpenedDmPayload(input: {
     buttons.push({
       type: 2,
       style: 5,
-      label: "Open Alta Bank",
+      label: (input.websiteLinkLabel?.trim() || "Open Alta Bank").slice(0, 80),
       url: websiteUrl,
     });
   }

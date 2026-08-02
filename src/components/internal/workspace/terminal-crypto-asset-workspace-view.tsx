@@ -42,9 +42,12 @@ import {
 } from "@/lib/terminal/crypto/crypto-ops-ui";
 import {
   recordCryptoContributionFn,
+  reopenCryptoReconIssueFn,
+  resolveCryptoReconIssueFn,
   runCryptoReconciliationFn,
   sweepCryptoRevenueFn,
   transitionCryptoAssetStatusFn,
+  updateCryptoFeeConfigFn,
 } from "@/lib/terminal/crypto/crypto-ops.functions";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +61,8 @@ const ACTIVITY_FILTER_LABELS: Record<CryptoActivityFilter, string> = {
   fees: "Money moves",
   operator: "Operator",
 };
+
+type ProcessPhase = "idle" | "review" | "processing" | "success" | "error";
 
 function money(value: string): string {
   return formatCryptoMoney(value);
@@ -84,13 +89,19 @@ type ActionFormState = {
   confirmed: boolean;
   amount: string;
   typedSymbol: string;
+  totalFeeBps: string;
+  revenueFeeBps: string;
+  stabilizationFeeBps: string;
 };
 
-const emptyForm = (): ActionFormState => ({
+const emptyForm = (workspace?: CryptoOpsAssetWorkspace): ActionFormState => ({
   reason: "",
   confirmed: false,
   amount: "",
   typedSymbol: "",
+  totalFeeBps: workspace ? String(workspace.totalFeeBps) : "",
+  revenueFeeBps: workspace ? String(workspace.revenueFeeBps) : "",
+  stabilizationFeeBps: workspace ? String(workspace.stabilizationFeeBps) : "",
 });
 
 export function TerminalCryptoAssetWorkspaceView({
@@ -107,18 +118,22 @@ export function TerminalCryptoAssetWorkspaceView({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [form, setForm] = useState<ActionFormState>(emptyForm);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [processPhase, setProcessPhase] = useState<ProcessPhase>("idle");
+  const [form, setForm] = useState<ActionFormState>(() => emptyForm(workspace));
   const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [issueActionId, setIssueActionId] = useState<string | null>(null);
 
   const statusLabel = cryptoOpsStatusLabel(workspace.status);
+  const actionableIssues = workspace.openIssues.filter(
+    (i) => i.severity === "CRITICAL" || i.severity === "WARNING",
+  );
   const attention = [
-    ...workspace.openIssues
-      .filter((i) => i.severity === "CRITICAL" || i.severity === "WARNING")
-      .map((i) => ({
-        id: i.id,
-        label: cryptoOpsSeverityLabel(i.severity),
-        detail: i.summary,
-      })),
+    ...actionableIssues.map((i) => ({
+      id: i.id,
+      label: cryptoOpsSeverityLabel(i.severity),
+      detail: i.summary,
+    })),
     ...(workspace.status === "HALTED"
       ? [{ id: "halted", label: "Trading halted", detail: "New buys and sells are blocked." }]
       : []),
@@ -139,21 +154,33 @@ export function TerminalCryptoAssetWorkspaceView({
     [workspace.activity, activityFilter],
   );
 
-  async function runAction(run: () => Promise<{ ok: boolean; message?: string; code?: string }>) {
+  /** Prefer ops-safe sensitivity copy already loaded on the workspace (no Prisma client import). */
+  const impactLabel = workspace.sensitivityLabel;
+
+  async function runAction(
+    run: () => Promise<{ ok: boolean; message?: string; code?: string; successDetail?: string }>,
+  ) {
     if (capabilities.uiLab || pending) return;
     setPending(true);
+    setProcessPhase("processing");
     setActionError(null);
+    setActionSuccess(null);
     try {
       const result = await run();
       if (!result.ok) {
         setActionError(result.message ?? "Action failed");
+        setProcessPhase("error");
         return;
       }
-      setForm(emptyForm());
+      setActionSuccess(result.successDetail ?? "Action completed.");
+      setProcessPhase("success");
+      setForm(emptyForm(workspace));
       setActiveAction(null);
+      setIssueActionId(null);
       await router.invalidate();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Action failed");
+      setProcessPhase("error");
     } finally {
       setPending(false);
     }
@@ -263,7 +290,19 @@ export function TerminalCryptoAssetWorkspaceView({
     >
       {capabilities.uiLab ? (
         <p className="rounded border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-900 dark:text-amber-100">
-          UI Lab demonstration — all crypto market mutations are disabled.
+          UI Lab demonstration — all crypto market mutations are disabled. No financial writes,
+          activations, reserve moves, or reconciliation writes.
+        </p>
+      ) : null}
+
+      {processPhase === "processing" ? (
+        <p className="rounded border border-border/60 bg-surface-1/50 px-3 py-2 text-[12px]">
+          Processing… do not resubmit.
+        </p>
+      ) : null}
+      {processPhase === "success" && actionSuccess ? (
+        <p className="rounded border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-900 dark:text-emerald-100">
+          {actionSuccess}
         </p>
       ) : null}
 
@@ -538,9 +577,24 @@ export function TerminalCryptoAssetWorkspaceView({
         capabilities.canSweep &&
         workspace.revenueSweepConfigured ? (
           <>
-            <p className="text-[11px] text-muted-foreground">
-              Accrued revenue available: {money(workspace.accruedRevenue)}
-            </p>
+            <div className="rounded border border-border/60 bg-surface-1/40 p-2.5 text-[11px] text-muted-foreground">
+              <p className="font-medium text-foreground/90">Review summary</p>
+              <p className="mt-1">Accrued revenue before: {money(workspace.accruedRevenue)}</p>
+              <p>
+                After (if amount valid):{" "}
+                {form.amount.trim()
+                  ? money(
+                      String(
+                        Math.max(
+                          0,
+                          Number(workspace.accruedRevenue) - Number(form.amount || "0"),
+                        ).toFixed(2),
+                      ),
+                    )
+                  : "—"}
+              </p>
+              <p className="mt-1">Does not touch protected reserve, stabilization, or wallets.</p>
+            </div>
             <ActionConfirmFields showAmount />
             <button
               type="button"
@@ -558,7 +612,14 @@ export function TerminalCryptoAssetWorkspaceView({
                       expectedMarketStateVersion: workspace.marketStateVersion,
                     },
                   });
-                  return res.ok ? { ok: true } : { ok: false, message: res.message, code: res.code };
+                  return res.ok
+                    ? {
+                        ok: true,
+                        successDetail: res.result.replayed
+                          ? "Idempotent replay — sweep already recorded."
+                          : `Swept ${money(res.result.amount)}. Revenue after ${money(res.result.accruedRevenueAfter)}.`,
+                      }
+                    : { ok: false, message: res.message, code: res.code };
                 })
               }
             >
@@ -590,6 +651,26 @@ export function TerminalCryptoAssetWorkspaceView({
             />
             {activeAction === id && !capabilities.uiLab && capabilities.canContribute ? (
               <>
+                <div className="rounded border border-border/60 bg-surface-1/40 p-2.5 text-[11px] text-muted-foreground">
+                  <p className="font-medium text-foreground/90">Review summary</p>
+                  {kind === "PROTECTED_RESERVE" ? (
+                    <p className="mt-1">
+                      Protected reserve before: {money(workspace.protectedReserve)} → after +amount
+                    </p>
+                  ) : null}
+                  {kind === "STABILIZATION_FUND" ? (
+                    <p className="mt-1">
+                      Stabilization before: {money(workspace.stabilizationFund)} → after +amount
+                    </p>
+                  ) : null}
+                  {kind === "REVENUE_TO_STABILIZATION" ? (
+                    <>
+                      <p className="mt-1">Revenue before: {money(workspace.accruedRevenue)}</p>
+                      <p>Stabilization before: {money(workspace.stabilizationFund)}</p>
+                    </>
+                  ) : null}
+                  <p className="mt-1">Append-only ledger entry. No customer minting.</p>
+                </div>
                 <ActionConfirmFields showAmount />
                 <button
                   type="button"
@@ -609,7 +690,12 @@ export function TerminalCryptoAssetWorkspaceView({
                         },
                       });
                       return res.ok
-                        ? { ok: true }
+                        ? {
+                            ok: true,
+                            successDetail: res.result.replayed
+                              ? "Idempotent replay — contribution already recorded."
+                              : `${label} recorded for ${money(res.result.amount)}.`,
+                          }
                         : { ok: false, message: res.message, code: res.code };
                     })
                   }
@@ -620,6 +706,109 @@ export function TerminalCryptoAssetWorkspaceView({
             ) : null}
           </div>
         ))}
+      </RecordActionGroup>
+
+      <RecordActionGroup title="Fees (future orders)">
+        <ActionButton
+          id="fees"
+          label="Update fee configuration"
+          disabled={capabilities.uiLab || !capabilities.canConfigureFees}
+          disabledReason={
+            capabilities.uiLab
+              ? "Disabled in UI Lab"
+              : !capabilities.canConfigureFees
+                ? "Corporate admin only"
+                : undefined
+          }
+          onPick={() => {
+            setForm((f) => ({
+              ...f,
+              totalFeeBps: String(workspace.totalFeeBps),
+              revenueFeeBps: String(workspace.revenueFeeBps),
+              stabilizationFeeBps: String(workspace.stabilizationFeeBps),
+            }));
+            setProcessPhase("review");
+          }}
+        />
+        {activeAction === "fees" && !capabilities.uiLab && capabilities.canConfigureFees ? (
+          <>
+            <div className="rounded border border-border/60 bg-surface-1/40 p-2.5 text-[11px] text-muted-foreground">
+              <p className="font-medium text-foreground/90">Review summary</p>
+              <p className="mt-1">
+                Current: {workspace.totalFeeBps} bps (rev {workspace.revenueFeeBps} / stab{" "}
+                {workspace.stabilizationFeeBps})
+              </p>
+              <p>
+                Proposed: {form.totalFeeBps || "—"} bps (rev {form.revenueFeeBps || "—"} / stab{" "}
+                {form.stabilizationFeeBps || "—"})
+              </p>
+              <p className="mt-1">Effective immediately for future orders only. Historical fills unchanged.</p>
+            </div>
+            <div className="space-y-2 rounded border border-border/60 bg-surface-1/40 p-2.5">
+              <label className="block text-[11px] text-muted-foreground">
+                Total fee (bps)
+                <input
+                  className="mt-1 h-11 w-full rounded border border-border bg-background px-3 text-[13px] tabular-nums"
+                  value={form.totalFeeBps}
+                  onChange={(e) => setForm((f) => ({ ...f, totalFeeBps: e.target.value }))}
+                  inputMode="numeric"
+                />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Revenue fee (bps)
+                <input
+                  className="mt-1 h-11 w-full rounded border border-border bg-background px-3 text-[13px] tabular-nums"
+                  value={form.revenueFeeBps}
+                  onChange={(e) => setForm((f) => ({ ...f, revenueFeeBps: e.target.value }))}
+                  inputMode="numeric"
+                />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Stabilization fee (bps)
+                <input
+                  className="mt-1 h-11 w-full rounded border border-border bg-background px-3 text-[13px] tabular-nums"
+                  value={form.stabilizationFeeBps}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, stabilizationFeeBps: e.target.value }))
+                  }
+                  inputMode="numeric"
+                />
+              </label>
+            </div>
+            <ActionConfirmFields />
+            <button
+              type="button"
+              disabled={pending}
+              className="min-h-11 w-full rounded border border-border text-[13px] disabled:opacity-50"
+              onClick={() =>
+                void runAction(async () => {
+                  const res = await updateCryptoFeeConfigFn({
+                    data: {
+                      symbol: workspace.symbol,
+                      totalFeeBps: Number(form.totalFeeBps),
+                      revenueFeeBps: Number(form.revenueFeeBps),
+                      stabilizationFeeBps: Number(form.stabilizationFeeBps),
+                      reason: form.reason,
+                      confirmed: form.confirmed,
+                      idempotencyKey: newCryptoOpsIdempotencyKey("fees"),
+                      expectedAssetVersion: workspace.version,
+                    },
+                  });
+                  return res.ok
+                    ? {
+                        ok: true,
+                        successDetail: res.result.replayed
+                          ? "Idempotent replay — fee config already applied."
+                          : `Fee config v${res.result.configVersion} effective for future orders.`,
+                      }
+                    : { ok: false, message: res.message, code: res.code };
+                })
+              }
+            >
+              Confirm fee update
+            </button>
+          </>
+        ) : null}
       </RecordActionGroup>
 
       {actionError ? (
@@ -717,6 +906,161 @@ export function TerminalCryptoAssetWorkspaceView({
                 : "Not run yet"}
             </WorkspaceField>
           </WorkspaceFieldGrid>
+
+          {actionableIssues.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {actionableIssues.map((issue) => (
+                <li key={issue.id} className="rounded border border-border/60 px-3 py-2.5 text-[12px]">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-medium">
+                      {cryptoOpsSeverityLabel(issue.severity)} · {issue.checkKey}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {issue.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">{issue.summary}</p>
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    Fingerprint {issue.fingerprint.slice(0, 16)}…
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    First seen {formatActivityDateTime(issue.firstSeenAt)} · Last seen{" "}
+                    {formatActivityDateTime(issue.lastSeenAt)}
+                  </p>
+                  {issue.technicalDetails ? (
+                    <p className="mt-1 break-all font-mono text-[10px] text-muted-foreground">
+                      {issue.technicalDetails}
+                    </p>
+                  ) : null}
+                  {capabilities.uiLab ? (
+                    <p className="mt-2 text-[11px] text-amber-800 dark:text-amber-200">
+                      Resolve disabled in UI Lab
+                    </p>
+                  ) : capabilities.canResolveIssues ? (
+                    <div className="mt-2 space-y-2">
+                      <button
+                        type="button"
+                        className="min-h-11 rounded border border-border px-3 text-[12px]"
+                        onClick={() =>
+                          setIssueActionId(issueActionId === issue.id ? null : issue.id)
+                        }
+                      >
+                        Resolve issue
+                      </button>
+                      {issueActionId === issue.id ? (
+                        <>
+                          <ActionConfirmFields />
+                          <button
+                            type="button"
+                            disabled={pending}
+                            className="min-h-11 w-full rounded border border-border text-[12px] disabled:opacity-50"
+                            onClick={() =>
+                              void runAction(async () => {
+                                const res = await resolveCryptoReconIssueFn({
+                                  data: {
+                                    issueId: issue.id,
+                                    reason: form.reason,
+                                    confirmed: form.confirmed,
+                                    idempotencyKey: newCryptoOpsIdempotencyKey("resolve-issue"),
+                                  },
+                                });
+                                return res.ok
+                                  ? {
+                                      ok: true,
+                                      successDetail: res.result.replayed
+                                        ? "Idempotent replay — issue already resolved."
+                                        : "Issue marked resolved. Re-run reconciliation to confirm fingerprints stay clear.",
+                                    }
+                                  : { ok: false, message: res.message, code: res.code };
+                              })
+                            }
+                          >
+                            Confirm resolve
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Terminal admin required to resolve
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              No open critical or warning issues.
+            </p>
+          )}
+
+          {workspace.recentlyResolvedIssues.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Recently resolved
+              </p>
+              {workspace.recentlyResolvedIssues.map((issue) => (
+                <div
+                  key={issue.id}
+                  className="rounded border border-border/50 px-3 py-2 text-[12px] text-muted-foreground"
+                >
+                  <p className="text-foreground/90">
+                    {cryptoOpsSeverityLabel(issue.severity)} · {issue.checkKey}
+                  </p>
+                  <p className="mt-0.5">{issue.summary}</p>
+                  <p className="mt-1 font-mono text-[10px]">
+                    {issue.resolutionSource ?? "resolved"}
+                    {issue.resolvedAt ? ` · ${formatActivityDateTime(issue.resolvedAt)}` : ""}
+                  </p>
+                  {capabilities.canReopenIssues && !capabilities.uiLab ? (
+                    <button
+                      type="button"
+                      className="mt-2 min-h-11 rounded border border-border px-3 text-[12px]"
+                      disabled={pending}
+                      onClick={() => {
+                        setIssueActionId(`reopen-${issue.id}`);
+                        setActiveAction(null);
+                      }}
+                    >
+                      Reopen (Corporate)
+                    </button>
+                  ) : null}
+                  {issueActionId === `reopen-${issue.id}` && capabilities.canReopenIssues ? (
+                    <div className="mt-2 space-y-2">
+                      <ActionConfirmFields />
+                      <button
+                        type="button"
+                        disabled={pending}
+                        className="min-h-11 w-full rounded border border-border text-[12px] disabled:opacity-50"
+                        onClick={() =>
+                          void runAction(async () => {
+                            const res = await reopenCryptoReconIssueFn({
+                              data: {
+                                issueId: issue.id,
+                                reason: form.reason,
+                                confirmed: form.confirmed,
+                                idempotencyKey: newCryptoOpsIdempotencyKey("reopen-issue"),
+                              },
+                            });
+                            return res.ok
+                              ? {
+                                  ok: true,
+                                  successDetail: res.result.replayed
+                                    ? "Idempotent replay — issue already open."
+                                    : "Issue reopened.",
+                                }
+                              : { ok: false, message: res.message, code: res.code };
+                          })
+                        }
+                      >
+                        Confirm reopen
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </RecordSummaryCard>
       </div>
     ),
@@ -787,35 +1131,82 @@ export function TerminalCryptoAssetWorkspaceView({
           defaultOpen={search.section === "fees"}
         >
           <WorkspaceFieldGrid columns={2}>
-            <WorkspaceField label="Total fee">{workspace.totalFeeBps} bps</WorkspaceField>
-            <WorkspaceField label="Revenue fee">{workspace.revenueFeeBps} bps</WorkspaceField>
-            <WorkspaceField label="Stabilization fee">
+            <WorkspaceField label="Total fee (current)">
+              {workspace.totalFeeBps} bps
+            </WorkspaceField>
+            <WorkspaceField label="Revenue fee (current)">
+              {workspace.revenueFeeBps} bps
+            </WorkspaceField>
+            <WorkspaceField label="Stabilization fee (current)">
               {workspace.stabilizationFeeBps} bps
             </WorkspaceField>
-            <WorkspaceField label="Launch price">{price(workspace.pegOrStartingPrice)}</WorkspaceField>
+            <WorkspaceField label="Fee edits">
+              {capabilities.canConfigureFees && !capabilities.uiLab
+                ? "Corporate admin — Actions → Fees"
+                : capabilities.uiLab
+                  ? "Disabled in UI Lab"
+                  : "Read-only (Corporate admin required)"}
+            </WorkspaceField>
+            <WorkspaceField label="Launch / peg price">
+              {price(workspace.pegOrStartingPrice)}
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                Read-only — migration required
+              </span>
+            </WorkspaceField>
             <WorkspaceField label="Current price">{price(workspace.currentPrice)}</WorkspaceField>
-            <WorkspaceField label="Circulating">
-              <span className="font-mono text-[12px]">{workspace.circulatingSupply}</span>
+            <WorkspaceField label="Market-impact target">
+              {impactLabel ?? workspace.sensitivityLabel ?? "—"}
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                Read-only application constant
+              </span>
             </WorkspaceField>
-            <WorkspaceField label="Protected reserve">
-              <span className="font-mono text-[12px]">{workspace.protectedReserve}</span>
+            <WorkspaceField label="Curve rate">
+              <span className="break-all font-mono text-[11px]">{workspace.curveRate ?? "—"}</span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                Read-only — use curve recalibration migration
+              </span>
             </WorkspaceField>
-            <WorkspaceField label="Curve sensitivity">
-              {workspace.sensitivityLabel ?? "—"}
-            </WorkspaceField>
-            <WorkspaceField label="Status">{workspace.status}</WorkspaceField>
             <WorkspaceField label="Config match">
               {workspace.matchesAuthoritativeConfig
-                ? "Matches application config"
-                : "Drift from application config"}
+                ? "Matches application launch config"
+                : "Drift from application launch config"}
             </WorkspaceField>
             <WorkspaceField label="Max supply">
               <span className="font-mono text-[12px]">{workspace.maxSupply ?? "Variable"}</span>
             </WorkspaceField>
-            <WorkspaceField label="Curve rate">
-              <span className="break-all font-mono text-[11px]">{workspace.curveRate ?? "—"}</span>
-            </WorkspaceField>
           </WorkspaceFieldGrid>
+
+          {workspace.configHistory.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                Configuration versions
+              </p>
+              <ul className="space-y-2 text-[12px]">
+                {workspace.configHistory.map((row) => (
+                  <li key={row.id} className="rounded border border-border/50 px-3 py-2">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <span className="font-medium">v{row.configVersion}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {formatActivityDateTime(row.effectiveAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground">{row.changeSummary}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Previous {row.previousTotalFeeBps} → {row.nextTotalFeeBps} bps ·{" "}
+                      {row.reason}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                      Actor {row.actorUserId.slice(0, 12)}…
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-3 text-[12px] text-muted-foreground">
+              No fee configuration versions recorded yet. Launch values came from migrations.
+            </p>
+          )}
         </RecordMoreSection>
 
         <RecordMoreSection

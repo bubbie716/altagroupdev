@@ -69,7 +69,7 @@ describe("staff audit formatting", () => {
     assert.equal(sanitized, "From AB-1234-**90 to merchant");
   });
 
-  it("skips Discord delivery safely when channel is not configured", async () => {
+  it("skips Discord delivery safely in test mode (no network)", async () => {
     const result = await sendStaffAuditMessageAsync({
       product: "Alta Bank",
       action: "Transfer completed",
@@ -80,7 +80,8 @@ describe("staff audit formatting", () => {
     });
 
     assert.equal(result.sent, false);
-    assert.equal(result.reason, "channel_not_configured");
+    // Central delivery guard short-circuits before channel/credential checks in tests.
+    assert.equal(result.reason, "disabled_in_test");
   });
 
   it("deduplicates repeated messages within the TTL window", async () => {

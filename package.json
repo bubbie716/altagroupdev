@@ -41,8 +41,8 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:seed": "tsx tests/e2e/scripts/seed-e2e-data.ts",
     "test:e2e:auth": "tsx tests/e2e/scripts/run-global-setup.ts",
-    "test:unit": "find src -name '*.test.ts' ! -name '*.integration.test.ts' ! -name 'footer-links.test.ts' ! -name 'site-scoped-content.test.ts' ! -name 'audit-log-discord-bridge.test.ts' ! -name 'customer-operator-notification.test.ts' -print0 | xargs -0 npx tsx --test",
-    "test:unit:integration": "find src -name '*.integration.test.ts' -print0 | xargs -0 npx tsx --test"
+    "test:unit": "NODE_ENV=test STAFF_AUDIT_DISCORD_DISABLED=1 DISCORD_LIVE_DELIVERY_DISABLED=1 DISCORD_TEST_MODE=1 find src -name '*.test.ts' ! -name '*.integration.test.ts' ! -name 'footer-links.test.ts' ! -name 'site-scoped-content.test.ts' ! -name 'audit-log-discord-bridge.test.ts' ! -name 'customer-operator-notification.test.ts' -print0 | xargs -0 npx tsx --import ./scripts/disable-discord-delivery-for-tests.ts --test",
+    "test:unit:integration": "NODE_ENV=test STAFF_AUDIT_DISCORD_DISABLED=1 DISCORD_LIVE_DELIVERY_DISABLED=1 DISCORD_TEST_MODE=1 find src -name '*.integration.test.ts' -print0 | xargs -0 npx tsx --import ./scripts/disable-discord-delivery-for-tests.ts --test"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

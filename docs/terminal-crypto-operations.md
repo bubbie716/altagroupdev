@@ -30,19 +30,32 @@ Do not paste secrets into this document, tickets, chat, or screenshots.
 
 ## Permissions
 
+Mapped onto existing tags (no parallel admin system). Conceptual roles:
+
+| Conceptual role | Tag | Typical controls |
+|-----------------|-----|------------------|
+| Read-only Terminal operator | `terminal_admin` or `corporate_admin` (view) | Markets, integrity, activity — mutations still gated per row below |
+| Trading / market operator | `terminal_admin` | Halt, redemption-only, run reconciliation, resolve recon issues |
+| Finance / reserve operator | `corporate_admin` | Sweeps, contributions, fee config |
+| Senior administrator | `corporate_admin` | Activate, resume, close, reopen recon issues |
+
 | Action | Corporate admin (`requireAdmin`) | Terminal admin (`requireTerminalAdmin`) | Bank-only |
 |--------|----------------------------------|------------------------------------------|-----------|
 | View markets, assets, reconciliation, settlements | Yes | Yes | No |
 | Halt / redemption-only | Yes | Yes | No |
-| Run read-only reconciliation | Yes | Yes | No |
+| Run reconciliation | Yes | Yes | No |
+| Resolve recon issue (operator acknowledgment) | Yes | Yes | No |
+| Reopen recon issue | Yes | **No** | No |
 | DRAFT → ACTIVE (activate) | Yes | **No** | No |
 | Resume → ACTIVE | Yes | **No** | No |
 | Close asset | Yes | **No** | No |
+| Update fee configuration (future orders) | Yes | **No** | No |
 | Revenue sweep | Yes | **No** | No |
 | External reserve / stabilization contribution | Yes | **No** | No |
 | Revenue→stabilization reclassification | Yes | **No** | No |
+| Change peg / curve rate / impact targets | Migration only | Migration only | No |
 
-Server-side enforcement is the security boundary. UI visibility is not. Every mutation requires: nonempty operator reason, explicit confirmation, idempotency key, current version/status check, UI Lab mutation gate, audit event, and customer-safe errors (no raw DB leakage).
+Server-side enforcement is the security boundary. UI visibility is not. Every mutation requires: nonempty operator reason, explicit confirmation, idempotency key, current version/status check, UI Lab mutation gate, audit event, and customer-safe errors (no raw DB leakage). Separation of duties: Terminal admins may halt and resolve issues; only Corporate admins reopen issues, move money, change fees, or activate/close.
 
 ---
 
@@ -193,6 +206,9 @@ Apply forward-only, in order (do not rewrite completed migrations):
 4. `20260731200000_terminal_crypto_operations_phase4` (ops / reconciliation / lifecycle records)
 5. `20260731210000_terminal_crypto_go_live_activate` (DRAFT → ACTIVE for NPFC / NVA / VLT)
 6. `20260731220000_terminal_crypto_curve_recalibration` (NVA/VLT curve rates; nondestructive)
+7. `20260802200000_terminal_crypto_operations_phase5` (fee config history + recon issue review metadata)
+
+Disaster-recovery checklist: [terminal-crypto-disaster-recovery.md](./terminal-crypto-disaster-recovery.md).
 
 **Disposable prelaunch market reset** (never production):
 

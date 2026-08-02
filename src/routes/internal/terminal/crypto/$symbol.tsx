@@ -13,15 +13,24 @@ import type { ActivationReadinessResult } from "@/lib/terminal/crypto/crypto-act
 
 export const Route = createFileRoute("/internal/terminal/crypto/$symbol")({
   validateSearch: (search: Record<string, unknown>) => parseTerminalCryptoWorkspaceSearch(search),
-  loader: async ({ params }) => {
+  loader: async ({ params, location }) => {
     const symbol = params.symbol.trim().toUpperCase();
-    const result = await fetchCryptoOpsAssetWorkspaceFn({ data: symbol });
+    const cryptoOpsScenario =
+      typeof (location.search as { cryptoOpsScenario?: unknown }).cryptoOpsScenario === "string"
+        ? (location.search as { cryptoOpsScenario: string }).cryptoOpsScenario
+        : undefined;
+    const result = await fetchCryptoOpsAssetWorkspaceFn({
+      data: { symbol, cryptoOpsScenario },
+    });
     if (!result.ok) {
       throw redirect({
         to: "/internal/terminal/crypto",
         search: (prev: Record<string, unknown>) =>
           normalizeInternalSearch({
             site: typeof prev.site === "string" ? prev.site : "terminal",
+            ...(typeof prev.cryptoOpsScenario === "string"
+              ? { cryptoOpsScenario: prev.cryptoOpsScenario }
+              : {}),
           }),
       });
     }

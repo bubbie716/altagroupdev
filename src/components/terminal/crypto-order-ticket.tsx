@@ -332,21 +332,6 @@ export function CryptoOrderTicket({
           onSecondary={resetToEntry}
           secondaryLabel="Trade again"
           liveMessage={`${CRYPTO_FILLED_ORDER_TITLE}. ${filledSubtitle}.`}
-          details={
-            <details className="rounded-md border border-[var(--terminal-border)] px-3 py-2 text-[12px] text-[var(--terminal-muted)]">
-              <summary className="min-h-11 cursor-pointer list-none font-medium text-[var(--terminal-text)] [&::-webkit-details-marker]:hidden">
-                Order details
-              </summary>
-              <div className="mt-2 space-y-1.5 border-t border-[var(--terminal-border)] pt-2">
-                <p>
-                  <span className="text-[var(--terminal-muted)]">Full reference</span>
-                </p>
-                <p className="break-all font-mono text-[11px] text-[var(--terminal-text)]">
-                  {receipt.orderId}
-                </p>
-              </div>
-            </details>
-          }
         >
           <p className="text-[14px] font-medium text-[var(--terminal-text)]">{filledSubtitle}</p>
         </TerminalProcessResult>

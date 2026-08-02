@@ -3,11 +3,27 @@ import { describe, it } from "node:test";
 import {
   isAuditDiscordDisabled,
   notifyDiscordFromAuditLog,
+  productFor,
 } from "./audit-log-discord-bridge.ts";
 import { formatStaffAuditMessage } from "./staff-audit-format.ts";
 import { formatSilentNotificationAuditDetail } from "@/lib/internal/operator-notification-options.ts";
 
 describe("audit log Discord bridge", () => {
+  it("labels TERMINAL_* audit actions as Alta Terminal", () => {
+    assert.equal(
+      productFor({ action: "TERMINAL_CRYPTO_ORDER_FILLED", entityType: "TERMINAL_CRYPTO_ORDER" }),
+      "Alta Terminal",
+    );
+    assert.equal(
+      productFor({ action: "TERMINAL_ASSET_HALTED", entityType: "PLATFORM" }),
+      "Alta Terminal",
+    );
+    assert.equal(
+      productFor({ action: "BANK_DEPOSIT_REQUEST_SUBMITTED", entityType: "BANK_TRANSACTION" }),
+      "Alta Bank",
+    );
+  });
+
   it("does not throw for compliance events", () => {
     const prevStaff = process.env.STAFF_AUDIT_DISCORD_DISABLED;
     try {

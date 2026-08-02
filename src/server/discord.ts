@@ -57,8 +57,19 @@ function isDevOAuthOrigin(origin: string): boolean {
   }
 }
 
+/**
+ * Secretary Discord OAuth application client ID (same app as the Secretary bot).
+ * Prefer DISCORD_OAUTH_CLIENT_ID; fall back to legacy DISCORD_CLIENT_ID.
+ */
+export function resolveDiscordOAuthClientId(): string | null {
+  const preferred = process.env.DISCORD_OAUTH_CLIENT_ID?.trim();
+  if (preferred) return preferred;
+  const legacy = process.env.DISCORD_CLIENT_ID?.trim();
+  return legacy || null;
+}
+
 export function getDiscordConfig() {
-  const clientId = process.env.DISCORD_CLIENT_ID;
+  const clientId = resolveDiscordOAuthClientId();
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
   const redirectUri = process.env.DISCORD_REDIRECT_URI;
   if (!clientId || !clientSecret || !redirectUri) {

@@ -14,6 +14,8 @@ import {
   internalWithdrawalsQueueUrl,
 } from "@/lib/staff-audit/staff-audit-internal-urls";
 import { formatSilentNotificationAuditDetail } from "@/lib/internal/operator-notification-options";
+import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
+import { resolveStaffAuditProductLabel } from "@/lib/discord/discord-event-registry";
 import type { StaffAuditProduct, StaffAuditSeverity, StaffAuditSource } from "@/lib/staff-audit/staff-audit-types";
 import { sendStaffAuditMessage } from "@/server/staff-audit-notification.service";
 
@@ -239,8 +241,31 @@ function inferSeverity(action: string, metadata: Record<string, unknown> | undef
   return "INFO";
 }
 
-function productFor(input: WriteAuditLogInput): StaffAuditProduct {
+const STAFF_PRODUCT_LABELS = new Set<StaffAuditProduct>([
+  "Alta Bank",
+  "Alta Pay",
+  "Alta Ops",
+  "Alta Card",
+  "Alta Terminal",
+  "Companies",
+  "Deal Room",
+]);
+
+/** Exported for unit tests and outbox product mapping. */
+export function productFor(input: Pick<WriteAuditLogInput, "action" | "entityType">): StaffAuditProduct {
   const { action, entityType } = input;
+  // Terminal entity types win even when action is OPS_* (recon jobs).
+  if (entityType?.startsWith("TERMINAL_") || action.startsWith("TERMINAL_")) return "Alta Terminal";
+
+  try {
+    const label = resolveStaffAuditProductLabel(action);
+    if (STAFF_PRODUCT_LABELS.has(label as StaffAuditProduct)) {
+      return label as StaffAuditProduct;
+    }
+  } catch {
+    /* fall through to legacy mapping */
+  }
+
   if (action.startsWith("ALTA_CARD") || action.startsWith("ALTA_EMPLOYEE_CARD")) return "Alta Card";
   if (action.startsWith("COMPANY_") || action === "BUSINESS_ACCOUNT_OPENED") return "Companies";
   if (action.startsWith("ALTA_PAY") || action === "ALTA_CARD_ALTA_PAY_CHARGED") return "Alta Pay";
@@ -343,6 +368,7 @@ export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
   sendStaffAuditMessage({
     product: productFor(input),
     action: labelForAction(input.action),
+    eventType: input.action,
     actorUserId: input.actorUserId,
     details: buildDetails(input, metadata),
     internalUrl: resolveInternalUrl(input),
@@ -355,9 +381,7 @@ export function notifyDiscordFromAuditLog(input: WriteAuditLogInput): void {
 
 /** True when Discord staff-audit delivery must be skipped (tests / UI Lab / explicit disable). */
 export function isAuditDiscordDisabled(): boolean {
-  if (process.env.NODE_ENV === "test") return true;
-  if (process.env.STAFF_AUDIT_DISCORD_DISABLED === "1") return true;
-  if (process.env.VITEST === "true") return true;
+  if (isDiscordLiveDeliveryDisabled()) return true;
   // Explicit UI Lab gate — do not rely only on missing Discord env vars.
   if (isUiLabMode()) return true;
   if (process.env.VITE_UI_LAB_MODE === "true") return true;

@@ -246,15 +246,40 @@ describe("terminal crypto order concurrency (database)", { skip: skipSuite }, ()
     fixturePortfolioIds: string[],
     fn: () => Promise<T>,
   ): Promise<T> {
-    const snap = await snapshotLaunchAsset(symbol);
-    await prisma.terminalCryptoAsset.update({
-      where: { symbol },
-      data: { status: "ACTIVE" },
-    });
+    return withActiveAssets([symbol], fixturePortfolioIds, fn);
+  }
+
+  /**
+   * Activate multiple launch assets for one fixture body.
+   * Residue cleanup runs once (last restore) so nested multi-asset buys
+   * are not wiped mid-test by an inner restore.
+   */
+  async function withActiveAssets<T>(
+    symbols: Array<"NPFC" | "NVA" | "VLT">,
+    fixturePortfolioIds: string[],
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    const snaps = new Map<"NPFC" | "NVA" | "VLT", MarketSnapshot>();
+    for (const symbol of symbols) {
+      snaps.set(symbol, await snapshotLaunchAsset(symbol));
+      await prisma.terminalCryptoAsset.update({
+        where: { symbol },
+        data: { status: "ACTIVE" },
+      });
+    }
     try {
       return await fn();
     } finally {
-      await restoreLaunchAsset(symbol, snap, fixturePortfolioIds);
+      for (let i = symbols.length - 1; i >= 0; i -= 1) {
+        const symbol = symbols[i]!;
+        const snap = snaps.get(symbol)!;
+        // Only the final restore deletes fixture wallets/orders.
+        await restoreLaunchAsset(
+          symbol,
+          snap,
+          i === 0 ? fixturePortfolioIds : [],
+        );
+      }
     }
   }
 
@@ -304,7 +329,9 @@ describe("terminal crypto order concurrency (database)", { skip: skipSuite }, ()
       return;
     }
     const fixture = await createPortfolioFixture();
-    await withActiveAsset("NVA", [fixture.portfolio.id], async () => {
+    // Keep both assets ACTIVE in one scope — nested withActiveAsset previously
+    // wiped the shared wallet during the inner restore and amplified txn timeouts.
+    await withActiveAssets(["NVA", "VLT"], [fixture.portfolio.id], async () => {
       const preview = await previewTerminalCryptoOrder(fixture.altaUser, {
         portfolioId: fixture.portfolio.id,
         symbol: "NVA",
@@ -329,35 +356,32 @@ describe("terminal crypto order concurrency (database)", { skip: skipSuite }, ()
       assert.equal(wallets.length, 1);
       const walletId = wallets[0]!.id;
 
-      // Activate VLT briefly for second purchase (snapshot/restore via withActiveAsset).
-      await withActiveAsset("VLT", [fixture.portfolio.id], async () => {
-        const previewV = await previewTerminalCryptoOrder(fixture.altaUser, {
-          portfolioId: fixture.portfolio.id,
-          symbol: "VLT",
-          side: "BUY",
-          grossFlorins: "100",
-        });
-        const fillV = await submitTerminalCryptoOrder(fixture.altaUser, {
-          portfolioId: fixture.portfolio.id,
-          symbol: "VLT",
-          side: "BUY",
-          grossFlorins: "100",
-          clientKey: `ck-vlt-${fixture.tag}`,
-          expectedMarketStateVersion: previewV.marketStateVersion,
-          quoteExpiresAt: previewV.quoteExpiresAt,
-          quoteFingerprint: previewV.quoteFingerprint,
-        });
-        assert.equal(fillV.ok, true);
-        const walletsAfter = await prisma.terminalCryptoWallet.findMany({
-          where: { portfolioId: fixture.portfolio.id },
-        });
-        assert.equal(walletsAfter.length, 1);
-        assert.equal(walletsAfter[0]!.id, walletId);
-        const balances = await prisma.terminalCryptoWalletBalance.count({
-          where: { walletId },
-        });
-        assert.ok(balances >= 2);
+      const previewV = await previewTerminalCryptoOrder(fixture.altaUser, {
+        portfolioId: fixture.portfolio.id,
+        symbol: "VLT",
+        side: "BUY",
+        grossFlorins: "100",
       });
+      const fillV = await submitTerminalCryptoOrder(fixture.altaUser, {
+        portfolioId: fixture.portfolio.id,
+        symbol: "VLT",
+        side: "BUY",
+        grossFlorins: "100",
+        clientKey: `ck-vlt-${fixture.tag}`,
+        expectedMarketStateVersion: previewV.marketStateVersion,
+        quoteExpiresAt: previewV.quoteExpiresAt,
+        quoteFingerprint: previewV.quoteFingerprint,
+      });
+      assert.equal(fillV.ok, true);
+      const walletsAfter = await prisma.terminalCryptoWallet.findMany({
+        where: { portfolioId: fixture.portfolio.id },
+      });
+      assert.equal(walletsAfter.length, 1);
+      assert.equal(walletsAfter[0]!.id, walletId);
+      const balances = await prisma.terminalCryptoWalletBalance.count({
+        where: { walletId },
+      });
+      assert.ok(balances >= 2);
     });
   });
 

@@ -1,3 +1,8 @@
+import { staffAuditProductToSource } from "@/lib/discord/discord-event-envelope";
+import {
+  isDiscordProductAwareRoutingEnabled,
+  resolveDiscordEventDefinition,
+} from "@/lib/discord/discord-event-registry";
 import { formatStaffAuditMessage } from "@/lib/staff-audit/staff-audit-format";
 import type { SendStaffAuditMessageInput } from "@/lib/staff-audit/staff-audit-types";
 import { formatAltaUserHandle } from "@/lib/auth/user-display";
@@ -55,7 +60,50 @@ export async function sendStaffAuditMessageAsync(
 
   const actorLabel = await resolveStaffAuditActorName(input.actorUserId, input.actorName);
   const content = formatStaffAuditMessage({ ...input, actorLabel });
-  const result = await dispatchStaffAuditDiscordMessage(content);
+
+  const {
+    enqueueStaffAuditOutbox,
+    markDiscordOutboxSent,
+    markDiscordOutboxDead,
+  } = await import("@/server/discord-outbox.service");
+  const { buildStaffAuditIdempotencyKey } = await import("@/lib/discord/discord-event-envelope");
+  const outboxIdempotencyKey = buildStaffAuditIdempotencyKey(
+    input.dedupeKey,
+    `${input.action}:${input.actorUserId ?? "system"}`,
+  );
+  // Dual-write (feature-flagged): durable outbox beside unchanged Bank dispatch.
+  void enqueueStaffAuditOutbox({
+    product: input.product,
+    action: input.action,
+    eventType: input.eventType,
+    content,
+    actorUserId: input.actorUserId,
+    severity: input.severity,
+    dedupeKey: input.dedupeKey,
+    correlationId: input.dedupeKey,
+  }).catch(() => {});
+
+  const productSource = staffAuditProductToSource(input.product);
+  let channelClass: "staff_ops" | "security_audit" | "delivery_alert" = "staff_ops";
+  if (isDiscordProductAwareRoutingEnabled() && input.eventType) {
+    try {
+      const def = resolveDiscordEventDefinition(input.eventType);
+      if (
+        def.channelClass === "security_audit" ||
+        def.channelClass === "delivery_alert" ||
+        def.channelClass === "staff_ops"
+      ) {
+        channelClass = def.channelClass;
+      }
+    } catch {
+      /* keep staff_ops */
+    }
+  }
+
+  const result = await dispatchStaffAuditDiscordMessage(content, {
+    product: productSource,
+    channelClass,
+  });
 
   if (!result.sent) {
     logStaffAudit("Discord message not sent", {
@@ -73,9 +121,18 @@ export async function sendStaffAuditMessageAsync(
       reason: result.reason ?? "not_sent",
       metadata: { dedupeKey: input.dedupeKey ?? null },
     });
+    // Leave PENDING for outbox worker when channel/config may recover; permanent local skips go DEAD.
+    if (
+      result.reason === "duplicate" ||
+      result.reason === "disabled" ||
+      result.reason === "disabled_in_test"
+    ) {
+      void markDiscordOutboxDead(outboxIdempotencyKey, result.reason).catch(() => {});
+    }
     return { sent: false, reason: result.reason };
   }
 
+  void markDiscordOutboxSent(outboxIdempotencyKey).catch(() => {});
   logStaffAudit("Discord message sent", {
     product: input.product,
     action: input.action,

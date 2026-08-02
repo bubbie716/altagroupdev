@@ -18,8 +18,8 @@ export const DISCORD_NOTIFICATION_PRESET_LABELS: Record<DiscordNotificationPrese
 
 export const DISCORD_NOTIFICATION_PRESET_DESCRIPTIONS: Record<DiscordNotificationPreset, string> = {
   important: "Failed money movement plus approvals and declines.",
-  recommended: "Important alerts plus everyday transfers, Alta Pay, and deposits.",
-  all: "Every Alta Bank alert the Discord bot can send.",
+  recommended: "Important alerts plus everyday transfers, Alta Pay, deposits, and Terminal activity.",
+  all: "Every Alta alert Discord can send (Bank and Terminal).",
   custom: "Choose alerts category by category.",
 };
 
@@ -43,6 +43,10 @@ export const DISCORD_IMPORTANT_NOTIFICATION_TYPES: readonly UserNotificationType
   "ALTA_CARD_AUTOPAY_FAILED",
   "ALTA_CARD_FROZEN",
   "COMPANY_VERIFIED",
+  "TERMINAL_CRYPTO_ORDER_REJECTED",
+  "TERMINAL_CRYPTO_ORDER_FAILED",
+  "TERMINAL_FUNDING_FAILED",
+  "TERMINAL_SCHEDULED_TRADE_ATTEMPT_FAILED",
 ];
 
 /** Everyday receipts layered on top of the important set. */
@@ -63,6 +67,10 @@ const DISCORD_RECOMMENDED_ADDITIONS: readonly UserNotificationType[] = [
   "LOAN_PAYMENT_MADE",
   "LOAN_PAID_OFF",
   "DEAL_ROOM_MESSAGE_RECEIVED",
+  "TERMINAL_CRYPTO_ORDER_FILLED",
+  "TERMINAL_FUNDING_COMPLETED",
+  "TERMINAL_SCHEDULED_TRADE_ORDER_SUBMITTED",
+  "TERMINAL_SCHEDULED_TRADE_ATTEMPT_SKIPPED",
 ];
 
 export const DISCORD_RECOMMENDED_NOTIFICATION_TYPES: readonly UserNotificationType[] = [

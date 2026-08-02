@@ -78,6 +78,8 @@ export type RecordWorkspaceSearch = {
   from?: string;
   /** Localhost UI Lab / multi-site param — must survive validateSearch. */
   site?: string;
+  /** UI Lab only — crypto ops desk/workspace demonstration scenario. */
+  cryptoOpsScenario?: string;
 };
 
 /** Compact transaction record — no primary tabs; section anchors only. */
@@ -332,6 +334,9 @@ export function normalizeRecordWorkspaceSearch(
   if (filter && filter !== "all") result.filter = filter;
   if (isSafeInternalFrom(rawFrom)) result.from = rawFrom;
   if (typeof s.site === "string" && s.site.trim()) result.site = s.site.trim();
+  if (typeof s.cryptoOpsScenario === "string" && s.cryptoOpsScenario.trim()) {
+    result.cryptoOpsScenario = s.cryptoOpsScenario.trim();
+  }
   return result;
 }
 

@@ -1,7 +1,9 @@
+import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
+
 export type InvitationKind = "company";
 
 function logDispatch(message: string, meta?: Record<string, unknown>): void {
-  if (process.env.NODE_ENV === "test") return;
+  if (isDiscordLiveDeliveryDisabled()) return;
   console.info(`[invitation-dispatch] ${message}`, meta ?? {});
 }
 
@@ -67,6 +69,10 @@ export async function dispatchInvitationDm(
   kind: InvitationKind,
   invitationId: string,
 ): Promise<{ sent: boolean; via: "bot" | "direct" | "none"; reason?: string }> {
+  if (isDiscordLiveDeliveryDisabled()) {
+    return { sent: false, via: "none", reason: "disabled_in_test" };
+  }
+
   try {
     const direct = await directDelivery(invitationId);
     if (direct.sent) {

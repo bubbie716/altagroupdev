@@ -76,6 +76,32 @@ export async function deliverCustomerNotificationDm(
       return { sent: false, skipped: true, reason: "pref_disabled" };
     }
 
+    const { buildCustomerDmIdempotencyKey } = await import("@/lib/discord/discord-event-envelope");
+    const outboxIdempotencyKey = buildCustomerDmIdempotencyKey({
+      userId: input.userId,
+      type: input.type,
+      notificationId: input.notificationId,
+    });
+    const {
+      enqueueCustomerDmOutbox,
+      markDiscordOutboxSent,
+      markDiscordOutboxHandedOff,
+      markDiscordOutboxDead,
+    } = await import("@/server/discord-outbox.service");
+    // Dual-write (feature-flagged): durable outbox beside unchanged Bank dispatch.
+    void enqueueCustomerDmOutbox({
+      notificationId: input.notificationId,
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      linkLabel: input.linkLabel,
+      embedImageUrl: input.embedImageUrl,
+      actorUserId: input.actorUserId,
+      correlationId: input.notificationId,
+    }).catch(() => {});
+
     let result: { sent: boolean; reason?: string };
     if (input.customPayload) {
       result = await deliverCustomPayloadDm(input.userId, input.customPayload);
@@ -89,6 +115,7 @@ export async function deliverCustomerNotificationDm(
           body: input.body,
           linkUrl: input.linkUrl,
           linkLabel: input.linkLabel,
+          eventType: input.type,
         });
         result = { sent: fallback.sent, reason: fallback.reason };
       }
@@ -103,12 +130,14 @@ export async function deliverCustomerNotificationDm(
         linkUrl: input.linkUrl,
         linkLabel: input.linkLabel,
         embedImageUrl: input.embedImageUrl,
+        eventType: input.type,
       });
       result = { sent: dispatch.sent, reason: dispatch.reason };
     }
 
     if (result.sent) {
       await markDiscordDelivered(input.notificationId);
+      void markDiscordOutboxSent(outboxIdempotencyKey).catch(() => {});
       logDelivery("DM sent", {
         userId: input.userId,
         type: input.type,
@@ -163,6 +192,10 @@ export async function deliverCustomerNotificationDm(
         sourceEntityId: entityId,
         reason: result.reason,
       });
+      // Legacy retry queue owns redelivery — outbox worker must not double-send.
+      void markDiscordOutboxHandedOff(outboxIdempotencyKey, result.reason).catch(() => {});
+    } else {
+      void markDiscordOutboxDead(outboxIdempotencyKey, result.reason).catch(() => {});
     }
 
     return { sent: false, reason: result.reason };

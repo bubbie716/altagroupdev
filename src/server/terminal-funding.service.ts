@@ -480,6 +480,25 @@ async function executeTerminalFundingTransfer(
       occurredAt: new Date().toISOString(),
     });
 
+    try {
+      const { scheduleCreateUserNotification } = await import("@/server/notification.service");
+      scheduleCreateUserNotification({
+        userId: portfolioRecord.ownerUserId ?? user.id,
+        type: "TERMINAL_FUNDING_FAILED",
+        title: "Terminal funding failed",
+        body: safe.slice(0, 4096),
+        linkUrl: `/terminal/funding?portfolioId=${input.portfolioId}`,
+        linkLabel: "View on Alta Terminal",
+        metadata: {
+          direction: input.direction,
+          amount,
+          portfolioId: input.portfolioId,
+        },
+      });
+    } catch {
+      /* ignore */
+    }
+
     throw error;
   }
 
@@ -512,18 +531,27 @@ async function executeTerminalFundingTransfer(
   }
 
   try {
-    const { notifyTransferCompleted } = await import("@/server/banking-notification.service");
+    const { scheduleCreateUserNotification } = await import("@/server/notification.service");
     const fromName =
       input.direction === "BANK_TO_TERMINAL" ? bankAccount.accountName : portfolioRecord.name;
     const toName =
       input.direction === "BANK_TO_TERMINAL" ? portfolioRecord.name : bankAccount.accountName;
-    await notifyTransferCompleted(
-      user.id,
-      amount,
-      receipt.referenceCode,
-      fromName,
-      toName,
-    );
+    const directionLabel =
+      input.direction === "BANK_TO_TERMINAL" ? "Bank → Terminal" : "Terminal → Bank";
+    scheduleCreateUserNotification({
+      userId: portfolioRecord.ownerUserId ?? user.id,
+      type: "TERMINAL_FUNDING_COMPLETED",
+      title: "Terminal funding completed",
+      body: `${directionLabel}: ƒ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} from ${fromName} to ${toName} (${receipt.referenceCode}).`,
+      linkUrl: `/terminal/funding?portfolioId=${input.portfolioId}`,
+      linkLabel: "View on Alta Terminal",
+      metadata: {
+        direction: input.direction,
+        amount,
+        portfolioId: input.portfolioId,
+        referenceCode: receipt.referenceCode,
+      },
+    });
   } catch {
     /* ignore */
   }

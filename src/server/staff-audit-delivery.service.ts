@@ -7,8 +7,9 @@ function logDelivery(message: string, meta?: Record<string, unknown>): void {
 
 export async function deliverStaffAuditChannelMessage(
   content: string,
+  channelId?: string,
 ): Promise<{ sent: boolean; reason?: string }> {
-  const result = await deliverStaffAuditToDiscordChannel(content);
+  const result = await deliverStaffAuditToDiscordChannel(content, channelId);
   if (!result.sent) {
     logDelivery("staff audit channel message skipped", { reason: result.reason });
     return result;

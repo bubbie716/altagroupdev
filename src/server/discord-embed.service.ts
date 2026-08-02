@@ -1,5 +1,6 @@
 import { canAccessBankInternal } from "@/lib/auth/permissions";
 import type { AltaUser } from "@/lib/auth/types";
+import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
 import {
   DISCORD_SERVERS,
   type DiscordMessageDraft,
@@ -35,10 +36,15 @@ export type DiscordServerConfig = {
 function readCommunicationsBotToken(serverKey: DiscordServerKey): string | null {
   const server = DISCORD_SERVERS.find((item) => item.key === serverKey);
   if (!server) return null;
-  return process.env[server.envKey]?.trim() || null;
+  const preferred = process.env[server.envKey]?.trim();
+  if (preferred) return preferred;
+  if (server.legacyEnvKey) {
+    return process.env[server.legacyEnvKey]?.trim() || null;
+  }
+  return null;
 }
 
-/** Communications bots — Corporate / Terminal / Bank. */
+/** Communications bots — Secretary / Terminal / Bank. */
 export function listDiscordServers(): DiscordServerConfig[] {
   return DISCORD_SERVERS.map((server) => ({
     key: server.key,
@@ -113,6 +119,14 @@ export async function sendDiscordMessage(
   const botToken = readCommunicationsBotToken(serverKey);
   const serverLabel =
     DISCORD_SERVERS.find((server) => server.key === serverKey)?.label ?? serverKey;
+
+  if (isDiscordLiveDeliveryDisabled()) {
+    return {
+      ok: true,
+      mode: "simulated",
+      message: `Message validated. Discord live delivery disabled in test runtime.`,
+    };
+  }
 
   if (!botToken) {
     return {

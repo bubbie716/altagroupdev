@@ -694,13 +694,27 @@ export async function runCryptoReconciliation(
     const openByFp = new Map(openExisting.map((i) => [i.fingerprint, i.id]));
     const seenFp = new Set<string>();
     let newIssueCount = 0;
+    const now = new Date();
 
     for (const draft of drafts) {
       if (seenFp.has(draft.fingerprint)) continue;
       seenFp.add(draft.fingerprint);
-      if (openByFp.has(draft.fingerprint)) continue;
+      const existingId = openByFp.get(draft.fingerprint);
+      if (existingId) {
+        // Recurring finding: refresh last seen without duplicating the OPEN row.
+        await prisma.terminalCryptoReconciliationIssue.update({
+          where: { id: existingId },
+          data: {
+            lastSeenAt: now,
+            summary: draft.summary,
+            technicalDetails: draft.technicalDetails ?? null,
+            severity: draft.severity,
+          },
+        });
+        continue;
+      }
       try {
-        await prisma.terminalCryptoReconciliationIssue.create({
+        const created = await prisma.terminalCryptoReconciliationIssue.create({
           data: {
             runId: run.id,
             assetId: draft.assetId ?? null,
@@ -714,9 +728,35 @@ export async function runCryptoReconciliation(
             technicalDetails: draft.technicalDetails ?? null,
             status: "OPEN",
             fingerprint: draft.fingerprint,
+            lastSeenAt: now,
           },
         });
         newIssueCount += 1;
+        // Staff Discord — customer-safe summary only (never technicalDetails / reserve evidence).
+        if (draft.severity === "CRITICAL" || draft.severity === "WARNING") {
+          const eventType =
+            draft.severity === "CRITICAL"
+              ? "TERMINAL_CRYPTO_RECON_CRITICAL"
+              : "TERMINAL_CRYPTO_RECON_WARNING";
+          void import("@/server/staff-audit-notification.service")
+            .then(({ sendStaffAuditMessage }) => {
+              sendStaffAuditMessage({
+                product: "Alta Terminal",
+                action:
+                  draft.severity === "CRITICAL"
+                    ? "Crypto reconciliation critical issue"
+                    : "Crypto reconciliation warning",
+                eventType,
+                actorName: "System",
+                details: draft.summary.slice(0, 200),
+                severity: draft.severity === "CRITICAL" ? "CRITICAL" : "WARNING",
+                source: "cron",
+                dedupeKey: `audit-log:${eventType}:${created.id}`,
+                internalUrl: "/internal/terminal/crypto",
+              });
+            })
+            .catch(() => undefined);
+        }
       } catch {
         // Unique open-fingerprint race — ignore
       }
@@ -729,8 +769,10 @@ export async function runCryptoReconciliation(
         where: { id: existing.id },
         data: {
           status: "RESOLVED",
-          resolvedAt: new Date(),
+          resolvedAt: now,
           resolvedByRunId: run.id,
+          resolutionSource: "auto_reconcile",
+          resolutionNote: "Cleared when fingerprint was no longer detected.",
         },
       });
       resolvedIssueCount += 1;

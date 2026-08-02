@@ -28,17 +28,22 @@ import {
   formatCryptoPrice,
 } from "@/lib/terminal/crypto/crypto-format";
 
-export type TerminalCryptoDeskSearch = { site?: string };
+export type TerminalCryptoDeskSearch = { site?: string; cryptoOpsScenario?: string };
 
 export const Route = createFileRoute("/internal/terminal/crypto/")({
   validateSearch: (s: Record<string, unknown>): TerminalCryptoDeskSearch => ({
     site: validateDevSiteSearch(s).site,
+    cryptoOpsScenario:
+      typeof s.cryptoOpsScenario === "string" ? s.cryptoOpsScenario : undefined,
   }),
-  loader: async (): Promise<{
+  loader: async ({ location }): Promise<{
     summary: CryptoOpsDeskSummary;
     capabilities: CryptoOpsActorCapabilities;
   }> => {
-    const result = await fetchCryptoOpsDeskSummaryFn();
+    const search = location.search as TerminalCryptoDeskSearch;
+    const result = await fetchCryptoOpsDeskSummaryFn({
+      data: { cryptoOpsScenario: search.cryptoOpsScenario },
+    });
     if (!result.ok) {
       throw new Error(result.message || "Failed to load crypto markets");
     }

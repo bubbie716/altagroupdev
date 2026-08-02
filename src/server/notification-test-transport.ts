@@ -6,6 +6,8 @@
  * attempted under the test runtime marker.
  */
 
+import { isDiscordTestRuntime } from "@/lib/discord/discord-delivery-guard";
+
 export type RecordedNotificationMessage = {
   notificationId: string;
   userId: string;
@@ -43,14 +45,8 @@ export function disableTestNotificationTransport(): void {
 export function isTestNotificationTransportActive(): boolean {
   const g = globalMarker();
   if (g[TEST_RUNTIME_MARKER] === true) return true;
-  // Fail closed for common test runners even if the marker was not set explicitly.
-  if (process.env.NODE_ENV === "test") return true;
-  if (process.env.VITEST === "true") return true;
-  if (typeof process.env.npm_lifecycle_event === "string") {
-    const event = process.env.npm_lifecycle_event;
-    if (event.startsWith("test") || event.includes("test:")) return true;
-  }
-  return false;
+  // Fail closed for common test runners even if NODE_ENV was not set (tsx --test).
+  return isDiscordTestRuntime();
 }
 
 export function clearRecordedNotificationMessages(): void {

@@ -15,6 +15,8 @@ export type UserNotificationDmInput = {
   linkUrl?: string | null;
   linkLabel?: string;
   embedImageUrl?: string | null;
+  /** Used for product-aware Discord branding (footer / CTA). */
+  eventType?: string | null;
 };
 
 export async function deliverUserNotificationDm(
@@ -37,6 +39,7 @@ export async function deliverUserNotificationDm(
     linkUrl: input.linkUrl,
     linkLabel: input.linkLabel,
     embedImageUrl: input.embedImageUrl,
+    eventType: input.eventType,
   });
 
   try {

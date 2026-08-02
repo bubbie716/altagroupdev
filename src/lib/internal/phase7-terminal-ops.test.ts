@@ -209,25 +209,29 @@ describe("Phase 7 Terminal search and System", () => {
     assert.match(system, /Connection/);
     assert.match(system, /Readiness/);
     assert.match(system, /TSE adapter/);
-    assert.match(system, /Local Terminal database/);
-    assert.match(system, /Market data/);
-    assert.match(system, /Order execution/);
-    assert.match(system, /Portfolio sync/);
-    assert.match(system, /Reconciliation/);
+    assert.match(system, /Database/);
+    assert.match(system, /Newport \/ live market data/);
+    assert.match(system, /TSE order execution/);
+    assert.match(system, /TSE portfolio sync/);
+    assert.match(system, /Crypto reconciliation/);
+    assert.match(system, /TSE pooled-custody reconciliation/);
     assert.match(system, /Crypto markets/);
+    assert.match(system, /Blocked by Newport\/TSE/);
     assert.match(system, /terminalReadinessLabel/);
     assert.match(system, /Technical details/);
-    // TSE sync / pooled-custody recon remain not_implemented; crypto desk is separate.
-    assert.match(system, /not_implemented/);
+    // TSE sync / pooled-custody recon remain blocked; crypto desk is separate.
+    assert.match(system, /blocked_by_newport/);
     assert.doesNotMatch(system, /Fully reconciled/);
-    assert.doesNotMatch(system, /Run reconciliation/);
     assert.doesNotMatch(system, /Schedule recurring/);
     const status = await getTerminalOpsSystemStatus();
     assert.equal(status.synchronization.available, false);
     assert.equal(status.reconciliation.available, false);
     assert.equal(status.jobs.available, true);
     assert.equal(status.recurringTrades.available, true);
+    assert.ok(status.cryptoReconciliation);
+    assert.equal(status.newportLiveMarket.available, false);
     assert.equal(terminalReadinessLabel("not_implemented"), "Not implemented");
+    assert.equal(terminalReadinessLabel("ready"), "Available now");
   });
 
   it("keeps Terminal Settings scoped to Terminal maintenance only", () => {

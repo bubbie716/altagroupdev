@@ -12,7 +12,8 @@ export type FinancialIdempotencyScope =
   | "terminal_crypto_lifecycle"
   | "terminal_crypto_revenue_sweep"
   | "terminal_crypto_contribution"
-  | "terminal_crypto_reconciliation";
+  | "terminal_crypto_reconciliation"
+  | "terminal_crypto_fee_config";
 
 /** Insertion-order-independent JSON for financial request hashes. */
 function stableStringify(value: unknown): string {

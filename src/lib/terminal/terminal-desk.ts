@@ -125,18 +125,45 @@ export function sortOrdersForDirectory(
   });
 }
 
-export type TerminalReadinessStatus = "ready" | "not_configured" | "not_implemented" | "failed";
+export type TerminalReadinessStatus =
+  | "ready"
+  | "demonstration_only"
+  | "not_configured"
+  | "not_implemented"
+  | "blocked_by_newport"
+  | "failed";
 
 export type TerminalReadinessItem = {
   id: string;
   label: string;
   status: TerminalReadinessStatus;
   detail?: string;
+  /** Operator-facing grouping on System page. */
+  category?:
+    | "available_now"
+    | "demonstration_only"
+    | "not_configured"
+    | "not_implemented"
+    | "blocked_by_newport"
+    | "failed";
 };
 
 export function terminalReadinessLabel(status: TerminalReadinessStatus): string {
-  if (status === "ready") return "Ready";
+  if (status === "ready") return "Available now";
+  if (status === "demonstration_only") return "Demonstration only";
   if (status === "not_configured") return "Not configured";
+  if (status === "blocked_by_newport") return "Blocked by Newport/TSE";
   if (status === "failed") return "Failed";
   return "Not implemented";
+}
+
+export function terminalReadinessCategory(
+  status: TerminalReadinessStatus,
+): NonNullable<TerminalReadinessItem["category"]> {
+  if (status === "ready") return "available_now";
+  if (status === "demonstration_only") return "demonstration_only";
+  if (status === "not_configured") return "not_configured";
+  if (status === "blocked_by_newport") return "blocked_by_newport";
+  if (status === "failed") return "failed";
+  return "not_implemented";
 }

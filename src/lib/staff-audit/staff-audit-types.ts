@@ -7,12 +7,15 @@ export type StaffAuditProduct =
   | "Alta Pay"
   | "Alta Ops"
   | "Alta Card"
+  | "Alta Terminal"
   | "Companies"
   | "Deal Room";
 
 export type SendStaffAuditMessageInput = {
   product: StaffAuditProduct;
   action: string;
+  /** Raw audit action / event type for registry channel routing. */
+  eventType?: string;
   actorName?: string;
   actorUserId?: string;
   details?: string | string[];

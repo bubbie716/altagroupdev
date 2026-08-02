@@ -440,6 +440,32 @@ export type TerminalOpsSystemStatus = {
     detail: string;
     readiness: string[];
   };
+  /** Alta Crypto ledger reconciliation (self-managed) — distinct from TSE pooled custody. */
+  cryptoReconciliation: {
+    available: boolean;
+    statusLabel: string;
+    detail: string;
+    lastSuccessfulAt: string | null;
+    openCritical: number;
+    openWarning: number;
+  };
+  candleRollup: {
+    available: boolean;
+    detail: string;
+  };
+  revenueSweep: {
+    available: boolean;
+    detail: string;
+  };
+  configurationSecrets: {
+    quoteSecretConfigured: boolean;
+    revenuePortfolioConfigured: boolean;
+    detail: string;
+  };
+  backupReadiness: {
+    available: boolean;
+    detail: string;
+  };
   jobs: {
     available: boolean;
     detail: string;
@@ -457,6 +483,10 @@ export type TerminalOpsSystemStatus = {
     statusLabel: string;
     detail: string;
     assetStatuses: Array<{ symbol: string; status: string }>;
+  };
+  newportLiveMarket: {
+    available: boolean;
+    detail: string;
   };
 };
 
@@ -560,6 +590,65 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
     // Keep default Not configured when crypto tables are unavailable.
   }
 
+  let cryptoReconciliation: TerminalOpsSystemStatus["cryptoReconciliation"] = {
+    available: false,
+    statusLabel: "Not configured",
+    detail: "Crypto reconciliation tables are not available yet.",
+    lastSuccessfulAt: null,
+    openCritical: 0,
+    openWarning: 0,
+  };
+  try {
+    const { isDatabaseConfigured, prisma } = await import("@/server/db");
+    if (isDatabaseConfigured()) {
+      const [lastSuccess, openCritical, openWarning, lastRun] = await Promise.all([
+        prisma.terminalCryptoReconciliationRun.findFirst({
+          where: { status: "SUCCEEDED" },
+          orderBy: { completedAt: "desc" },
+          select: { completedAt: true },
+        }),
+        prisma.terminalCryptoReconciliationIssue.count({
+          where: { status: "OPEN", severity: "CRITICAL" },
+        }),
+        prisma.terminalCryptoReconciliationIssue.count({
+          where: { status: "OPEN", severity: "WARNING" },
+        }),
+        prisma.terminalCryptoReconciliationRun.findFirst({
+          where: { status: { in: ["SUCCEEDED", "PARTIAL", "FAILED"] } },
+          orderBy: { completedAt: "desc" },
+          select: { status: true, summary: true, completedAt: true },
+        }),
+      ]);
+      cryptoReconciliation = {
+        available: true,
+        statusLabel:
+          openCritical > 0
+            ? "Critical issues open"
+            : openWarning > 0
+              ? "Warnings open"
+              : lastSuccess
+                ? "Healthy"
+                : "Never succeeded",
+        detail: lastRun?.summary
+          ? lastRun.summary
+          : "No reconciliation runs recorded yet. Run from Crypto markets.",
+        lastSuccessfulAt: lastSuccess?.completedAt?.toISOString() ?? null,
+        openCritical,
+        openWarning,
+      };
+    }
+  } catch {
+    // Keep default when crypto recon tables missing.
+  }
+
+  const quoteSecretConfigured = Boolean(
+    process.env.TERMINAL_CRYPTO_QUOTE_SECRET &&
+      process.env.TERMINAL_CRYPTO_QUOTE_SECRET.trim().length >= 32,
+  );
+  const revenuePortfolioConfigured = Boolean(
+    process.env.TERMINAL_CRYPTO_REVENUE_PORTFOLIO_ID?.trim(),
+  );
+
   return {
     environment,
     localDatabase: {
@@ -572,7 +661,7 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
     },
     orderExecution: {
       available: false,
-      detail: "Order submission and cancellation require a live TSE adapter.",
+      detail: "Stock order submission and cancellation require a live TSE adapter.",
     },
     synchronization: {
       available: false,
@@ -590,14 +679,40 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
         "Add idempotent reconciliation job with mismatch cases for Inbox",
       ],
     },
+    cryptoReconciliation,
+    candleRollup: {
+      available: true,
+      detail:
+        "Candle rollup job is registered. Aggregates real crypto settlements only — never invents volatility.",
+    },
+    revenueSweep: {
+      available: revenuePortfolioConfigured,
+      detail: revenuePortfolioConfigured
+        ? "Revenue sweep destination portfolio is configured (Corporate admin)."
+        : "Set TERMINAL_CRYPTO_REVENUE_PORTFOLIO_ID to enable revenue sweeps.",
+    },
+    configurationSecrets: {
+      quoteSecretConfigured,
+      revenuePortfolioConfigured,
+      detail: quoteSecretConfigured
+        ? "Quote secret is configured (value never displayed). Revenue portfolio " +
+          (revenuePortfolioConfigured ? "configured." : "not configured.")
+        : "TERMINAL_CRYPTO_QUOTE_SECRET missing or too short — crypto trading fails closed.",
+    },
+    backupReadiness: {
+      available: false,
+      detail:
+        "No automated backup freshness probe is wired in-app. Operators must verify PostgreSQL logical backups covering Terminal + crypto tables before migrations (see docs/terminal-crypto-disaster-recovery.md).",
+    },
     jobs: {
       available: true,
       detail:
-        "Crypto reconciliation and candle-rollup jobs are registered in the ops catalog. Manual runs require Terminal admin; UI Lab blocks mutations.",
+        "Crypto reconciliation and candle-rollup jobs are registered in the ops catalog. Manual runs require Terminal admin; UI Lab blocks mutations. Terminal site has no embedded jobs table — use Corporate jobs if authorized.",
     },
     audit: {
-      available: false,
-      detail: "Terminal-specific audit aggregation is not implemented for this console.",
+      available: true,
+      detail:
+        "Crypto lifecycle, fee config, sweep, contribution, and recon-issue actions write audit logs. Terminal-scoped audit browser aggregation remains limited — review asset Activity and platform audit where available.",
     },
     recurringTrades: {
       available: true,
@@ -605,5 +720,10 @@ export async function getTerminalOpsSystemStatus(): Promise<TerminalOpsSystemSta
         "Scheduled/recurring Terminal stock trades are implemented. Crypto schedules use ALTA_CRYPTO execution with automated price-impact skip.",
     },
     cryptoMarkets,
+    newportLiveMarket: {
+      available: false,
+      detail:
+        "Newport / live stock market integration is not implemented. Alta Crypto (fictional florin markets) operates independently and must not be reported as TSE-healthy.",
+    },
   };
 }

@@ -1,4 +1,5 @@
 import { DEAL_ROOM_CHANNEL_CLOSED_NOTICE, buildDealRoomChannelWelcomeContent } from "@/lib/bank/secure-deal-room-discord-copy";
+import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
 import { buildNotificationDmPayload, resolvePublicLinkUrl } from "@/lib/discord/notification-dm";
 import { getDiscordBotConfig } from "@/server/discord-embed.service";
 import type {
@@ -38,6 +39,10 @@ async function discordApi<T>(
   path: string,
   init?: RequestInit,
 ): Promise<{ ok: boolean; data?: T; status: number; detail?: string }> {
+  if (isDiscordLiveDeliveryDisabled()) {
+    return { ok: false, status: 0, detail: "disabled_in_test" };
+  }
+
   const response = await fetch(`https://discord.com/api/v10${path}`, {
     ...init,
     headers: {

@@ -1,8 +1,41 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach, afterEach } from "node:test";
-import { isAllowedReturnOrigin, resolveOAuthCallbackUri, resolveOAuthReturnUrl } from "@/server/discord";
+import {
+  getDiscordConfig,
+  isAllowedReturnOrigin,
+  resolveDiscordOAuthClientId,
+  resolveOAuthCallbackUri,
+  resolveOAuthReturnUrl,
+} from "@/server/discord";
 
 const ORIGINAL_ENV = { ...process.env };
+
+describe("Discord OAuth client id separation", () => {
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
+  it("prefers DISCORD_OAUTH_CLIENT_ID over legacy DISCORD_CLIENT_ID", () => {
+    process.env.DISCORD_OAUTH_CLIENT_ID = "oauth-app";
+    process.env.DISCORD_CLIENT_ID = "legacy-or-bank";
+    assert.equal(resolveDiscordOAuthClientId(), "oauth-app");
+  });
+
+  it("falls back to DISCORD_CLIENT_ID when OAuth-specific id is unset", () => {
+    delete process.env.DISCORD_OAUTH_CLIENT_ID;
+    process.env.DISCORD_CLIENT_ID = "legacy-oauth";
+    assert.equal(resolveDiscordOAuthClientId(), "legacy-oauth");
+  });
+
+  it("getDiscordConfig uses the OAuth-preferred client id", () => {
+    process.env.DISCORD_OAUTH_CLIENT_ID = "oauth-app";
+    process.env.DISCORD_CLIENT_ID = "should-not-win";
+    process.env.DISCORD_CLIENT_SECRET = "secret";
+    process.env.DISCORD_REDIRECT_URI = "http://localhost:3000/api/auth/discord/callback";
+    const config = getDiscordConfig();
+    assert.equal(config?.clientId, "oauth-app");
+  });
+});
 
 describe("resolveOAuthCallbackUri", () => {
   beforeEach(() => {

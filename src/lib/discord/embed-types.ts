@@ -15,7 +15,7 @@ export const DISCORD_EMBED_LIMITS = {
   buttonLabel: 80,
 } as const;
 
-export type DiscordServerKey = "corporate" | "terminal" | "bank";
+export type DiscordServerKey = "secretary" | "terminal" | "bank";
 
 export type DiscordMessageDraft = {
   /** Which Discord bot / server to send through. */
@@ -36,11 +36,18 @@ export type DiscordServerOption = {
   key: DiscordServerKey;
   label: string;
   envKey: string;
+  /** Legacy env alias (Secretary was previously named Corporate). */
+  legacyEnvKey?: string;
 };
 
 /** Communications bots — one token per Discord server (not guild ID). */
 export const DISCORD_SERVERS: DiscordServerOption[] = [
-  { key: "corporate", label: "Corporate", envKey: "DISCORD_CORPORATE_BOT_TOKEN" },
+  {
+    key: "secretary",
+    label: "Secretary",
+    envKey: "DISCORD_SECRETARY_BOT_TOKEN",
+    legacyEnvKey: "DISCORD_CORPORATE_BOT_TOKEN",
+  },
   { key: "terminal", label: "Terminal", envKey: "DISCORD_TERMINAL_BOT_TOKEN" },
   { key: "bank", label: "Bank", envKey: "DISCORD_BANK_BOT_TOKEN" },
 ];

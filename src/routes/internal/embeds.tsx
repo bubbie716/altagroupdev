@@ -16,7 +16,7 @@ function InternalEmbedsPage() {
   return (
     <InternalPageShell
       title="Communications"
-      description="Send plain-text Discord messages through the Corporate, Terminal, or Bank bot."
+      description="Send plain-text Discord messages through the Secretary, Terminal, or Bank bot."
     >
       <DiscordEmbedBuilder sendingConfigured={sendingConfigured} servers={servers} />
     </InternalPageShell>

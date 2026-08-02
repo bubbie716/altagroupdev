@@ -131,7 +131,7 @@ export function DiscordEmbedBuilder({
         <div>
           <h2 className="type-section-title">Send message</h2>
           <p className="mt-2 text-[13px] text-muted-foreground">
-            Post plain text through the Corporate, Terminal, or Bank Discord bot.
+            Post plain text through the Secretary, Terminal, or Bank Discord bot.
           </p>
         </div>
         <CredentialStatus configured={sendingConfigured} />

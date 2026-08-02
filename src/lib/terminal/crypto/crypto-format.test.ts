@@ -254,10 +254,13 @@ describe("internal attention versus demonstration banner", () => {
       "utf8",
     );
     assert.match(src, /Demonstration context is a banner, not an attention incident/);
-    assert.doesNotMatch(
-      src,
-      /case "ready_to_activate"[\s\S]*?needsAttention\.push\(\{[\s\S]*?severity: "INFO"/,
+    // Isolate the ready_to_activate switch arm (not the type union / later cases).
+    const arm = src.match(
+      /case "ready_to_activate":\s*([\s\S]*?)break;\s*case "warning_issue":/,
     );
+    assert.ok(arm, "ready_to_activate switch arm present");
+    assert.doesNotMatch(arm[1]!, /needsAttention\.push/);
+    assert.doesNotMatch(arm[1]!, /severity:\s*"INFO"/);
   });
 
   it("keeps critical CTA wording for reconciliation attention", () => {

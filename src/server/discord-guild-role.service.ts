@@ -1,3 +1,4 @@
+import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
 import { getDiscordBotConfig } from "@/server/discord-embed.service";
 import { prisma } from "@/server/db";
 
@@ -6,7 +7,7 @@ export type GrantDiscordRoleResult =
   | { ok: false; reason: string };
 
 function logRoleGrant(message: string, meta?: Record<string, unknown>): void {
-  if (process.env.NODE_ENV === "test") return;
+  if (isDiscordLiveDeliveryDisabled()) return;
   console.info(`[discord-guild-role] ${message}`, meta ?? {});
 }
 
@@ -18,6 +19,10 @@ export async function grantDiscordGuildRole(
   discordUserId: string,
   roleId: string,
 ): Promise<GrantDiscordRoleResult> {
+  if (isDiscordLiveDeliveryDisabled()) {
+    return { ok: false, reason: "disabled_in_test" };
+  }
+
   const config = getDiscordBotConfig();
   if (!config) return { ok: false, reason: "discord_not_configured" };
 

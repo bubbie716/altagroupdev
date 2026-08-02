@@ -1600,6 +1600,10 @@ enum UserNotificationType {
   TERMINAL_SCHEDULED_TRADE_COMPLETED
   TERMINAL_SCHEDULED_TRADE_ENDED
   TERMINAL_CRYPTO_ORDER_FILLED
+  TERMINAL_CRYPTO_ORDER_REJECTED
+  TERMINAL_CRYPTO_ORDER_FAILED
+  TERMINAL_FUNDING_COMPLETED
+  TERMINAL_FUNDING_FAILED
 }
 
 enum DealRoomParticipantRole {
@@ -2011,6 +2015,8 @@ enum AuditEntityType {
   TERMINAL_CRYPTO_RECONCILIATION
   TERMINAL_CRYPTO_REVENUE_SWEEP
   TERMINAL_CRYPTO_CONTRIBUTION
+  TERMINAL_CRYPTO_CONFIG
+  TERMINAL_CRYPTO_RECON_ISSUE
   LEGAL_ACCEPTANCE
   ONBOARDING
 }
@@ -2116,6 +2122,49 @@ model NotificationDeliveryQueue {
 
   @@index([status, nextRetryAt])
   @@index([userId])
+}
+
+/// Durable Discord delivery outbox (Phase 1 multi-bot foundation).
+/// Dual-write beside the existing Bank dispatch path; worker delivers PENDING rows via Bank pipeline.
+enum DiscordOutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  /// Primary path handed retry to NotificationDeliveryQueue — outbox worker must not re-send.
+  HANDED_OFF
+  FAILED
+  DEAD
+}
+
+model DiscordOutbox {
+  id               String             @id @default(cuid())
+  eventId          String             @unique @default(cuid())
+  idempotencyKey   String             @unique
+  product          String
+  eventType        String
+  targetBot        String             @default("bank")
+  channelClass     String
+  severity         String?
+  correlationId    String?
+  actorJson        Json?
+  subjectJson      Json?
+  displayPayload   Json
+  internalRef      Json?
+  deliveryPolicy   String             @default("queued")
+  status           DiscordOutboxStatus @default(PENDING)
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(5)
+  nextAttemptAt    DateTime?
+  lastError        String?
+  deliveredAt      DateTime?
+  discordMessageId String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([targetBot, status])
+  @@index([product, eventType])
+  @@index([correlationId])
 }
 
 model InternalNote {
@@ -4118,6 +4167,7 @@ model TerminalCryptoAsset {
   marketLedger          TerminalCryptoMarketLedgerEntry[]
   priceCandles          TerminalCryptoPriceCandle[]
   statusChanges         TerminalCryptoAssetStatusChange[]
+  configChanges         TerminalCryptoAssetConfigChange[]
   revenueSweeps         TerminalCryptoRevenueSweep[]
   externalContributions TerminalCryptoExternalContribution[]
   reconciliationIssues  TerminalCryptoReconciliationIssue[]
@@ -4370,8 +4420,16 @@ model TerminalCryptoReconciliationIssue {
   technicalDetails String?
   status           TerminalCryptoReconciliationIssueStatus   @default(OPEN)
   fingerprint      String
+  /// First observation of this open fingerprint (immutable after create).
+  /// Recurring detections refresh lastSeenAt without opening a duplicate.
+  lastSeenAt       DateTime                                  @default(now())
   resolvedAt       DateTime?
   resolvedByRunId  String?
+  /// Operator who manually resolved or reopened (null when auto-resolved by recon).
+  resolvedByUserId String?
+  resolutionNote   String?
+  /// auto_reconcile | operator
+  resolutionSource String?
   createdAt        DateTime                                  @default(now())
   updatedAt        DateTime                                  @updatedAt
 
@@ -4383,6 +4441,42 @@ model TerminalCryptoReconciliationIssue {
   @@index([status, severity, createdAt])
   @@index([fingerprint])
   @@index([checkKey, status])
+  @@index([lastSeenAt])
+}
+
+/// Append-only fee/curve configuration versions. Future orders only — never rewrite historical fills.
+model TerminalCryptoAssetConfigChange {
+  id                          String    @id @default(cuid())
+  assetId                     String
+  /// Monotonic per-asset config version (1, 2, …).
+  configVersion               Int
+  previousTotalFeeBps         Int
+  previousRevenueFeeBps       Int
+  previousStabilizationFeeBps Int
+  previousCurveRate           Decimal?  @db.Decimal(36, 18)
+  previousPegOrStartingPrice  Decimal   @db.Decimal(28, 12)
+  nextTotalFeeBps             Int
+  nextRevenueFeeBps           Int
+  nextStabilizationFeeBps     Int
+  nextCurveRate               Decimal?  @db.Decimal(36, 18)
+  nextPegOrStartingPrice      Decimal   @db.Decimal(28, 12)
+  /// Human summary of what changed (fees only today; curve/peg reserved for migrations).
+  changeSummary               String
+  reason                      String
+  actorUserId                 String
+  idempotencyKey              String
+  expectedAssetVersion        Int
+  /// When this config became authoritative for new orders (usually createdAt).
+  effectiveAt                 DateTime  @default(now())
+  createdAt                   DateTime  @default(now())
+
+  asset TerminalCryptoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, idempotencyKey])
+  @@unique([assetId, configVersion])
+  @@index([assetId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([effectiveAt])
 }
 
 model TerminalCryptoRevenueSweep {

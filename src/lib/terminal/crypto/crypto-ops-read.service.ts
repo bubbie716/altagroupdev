@@ -97,7 +97,41 @@ export type CryptoOpsAssetWorkspace = CryptoOpsAssetOverview & {
     id: string;
     checkKey: string;
     severity: "INFO" | "WARNING" | "CRITICAL";
+    status: "OPEN" | "RESOLVED";
     summary: string;
+    fingerprint: string;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    technicalDetails: string | null;
+    href: string;
+  }>;
+  /** Recently resolved issues (operator or auto) for reopen workflows. */
+  recentlyResolvedIssues: Array<{
+    id: string;
+    checkKey: string;
+    severity: "INFO" | "WARNING" | "CRITICAL";
+    status: "OPEN" | "RESOLVED";
+    summary: string;
+    fingerprint: string;
+    firstSeenAt: string;
+    lastSeenAt: string;
+    resolvedAt: string | null;
+    resolutionSource: string | null;
+    resolutionNote: string | null;
+  }>;
+  configHistory: Array<{
+    id: string;
+    configVersion: number;
+    changeSummary: string;
+    reason: string;
+    actorUserId: string;
+    previousTotalFeeBps: number;
+    nextTotalFeeBps: number;
+    previousRevenueFeeBps: number;
+    nextRevenueFeeBps: number;
+    previousStabilizationFeeBps: number;
+    nextStabilizationFeeBps: number;
+    effectiveAt: string;
     createdAt: string;
   }>;
   activity: CryptoOpsActivityEvent[];
@@ -265,18 +299,7 @@ export async function getCryptoOpsDeskSummary(): Promise<CryptoOpsDeskSummary> {
         href: `/internal/terminal/crypto/${a.symbol}`,
       });
     }
-    if (
-      (a.status === "DRAFT" || a.status === "HALTED" || a.status === "REDEMPTION_ONLY") &&
-      a.activationReadinessAllPassed === false
-    ) {
-      needsAttention.push({
-        kind: "readiness",
-        symbol: a.symbol,
-        summary: `${a.symbol} is not ready to activate or resume.`,
-        severity: "INFO",
-        href: `/internal/terminal/crypto/${a.symbol}`,
-      });
-    }
+    // Readiness failures stay on the asset workspace — never INFO/demo noise in Needs attention.
   }
 
   const revenueConfigured = Boolean(resolveRevenueSweepDestinationPortfolioId());
@@ -476,12 +499,36 @@ export async function getCryptoOpsAssetWorkspace(
   });
   if (!asset?.marketState) return null;
 
-  const [openIssues, statusChanges, sweeps, contributions, settlements, ledger, volumeAgg, candleCount] =
-    await Promise.all([
+  const [
+    openIssues,
+    recentlyResolvedIssues,
+    configHistory,
+    statusChanges,
+    sweeps,
+    contributions,
+    settlements,
+    ledger,
+    volumeAgg,
+    candleCount,
+  ] = await Promise.all([
       prisma.terminalCryptoReconciliationIssue.findMany({
         where: { assetId: asset.id, status: "OPEN" },
-        orderBy: [{ severity: "asc" }, { createdAt: "desc" }],
-        take: 20,
+        orderBy: [{ severity: "asc" }, { lastSeenAt: "desc" }],
+        take: 40,
+      }),
+      prisma.terminalCryptoReconciliationIssue.findMany({
+        where: {
+          assetId: asset.id,
+          status: "RESOLVED",
+          severity: { in: ["CRITICAL", "WARNING"] },
+        },
+        orderBy: { resolvedAt: "desc" },
+        take: 12,
+      }),
+      prisma.terminalCryptoAssetConfigChange.findMany({
+        where: { assetId: asset.id },
+        orderBy: { configVersion: "desc" },
+        take: 12,
       }),
       prisma.terminalCryptoAssetStatusChange.findMany({
         where: { assetId: asset.id },
@@ -527,12 +574,23 @@ export async function getCryptoOpsAssetWorkspace(
     });
   }
   for (const row of openIssues) {
+    if (row.severity === "INFO") continue;
     activity.push({
       id: `issue-${row.id}`,
       kind: "reconciliation",
       symbol,
-      title: `${row.severity === "CRITICAL" ? "Critical" : row.severity === "WARNING" ? "Warning" : "Info"} recon issue`,
-      detail: row.summary,
+      title: `${row.severity === "CRITICAL" ? "Critical" : "Warning"} recon issue`,
+      detail: `${row.summary} · fingerprint ${row.fingerprint.slice(0, 12)}…`,
+      createdAt: row.lastSeenAt.toISOString(),
+    });
+  }
+  for (const row of configHistory) {
+    activity.push({
+      id: `config-${row.id}`,
+      kind: "operator",
+      symbol,
+      title: `Fee config v${row.configVersion}`,
+      detail: row.changeSummary,
       createdAt: row.createdAt.toISOString(),
     });
   }
@@ -602,8 +660,41 @@ export async function getCryptoOpsAssetWorkspace(
       id: issue.id,
       checkKey: issue.checkKey,
       severity: issue.severity,
+      status: issue.status,
       summary: issue.summary,
-      createdAt: issue.createdAt.toISOString(),
+      fingerprint: issue.fingerprint,
+      firstSeenAt: issue.createdAt.toISOString(),
+      lastSeenAt: issue.lastSeenAt.toISOString(),
+      technicalDetails: issue.technicalDetails,
+      href: `/internal/terminal/crypto/${symbol}`,
+    })),
+    recentlyResolvedIssues: recentlyResolvedIssues.map((issue) => ({
+      id: issue.id,
+      checkKey: issue.checkKey,
+      severity: issue.severity,
+      status: issue.status,
+      summary: issue.summary,
+      fingerprint: issue.fingerprint,
+      firstSeenAt: issue.createdAt.toISOString(),
+      lastSeenAt: issue.lastSeenAt.toISOString(),
+      resolvedAt: issue.resolvedAt?.toISOString() ?? null,
+      resolutionSource: issue.resolutionSource,
+      resolutionNote: issue.resolutionNote,
+    })),
+    configHistory: configHistory.map((row) => ({
+      id: row.id,
+      configVersion: row.configVersion,
+      changeSummary: row.changeSummary,
+      reason: row.reason,
+      actorUserId: row.actorUserId,
+      previousTotalFeeBps: row.previousTotalFeeBps,
+      nextTotalFeeBps: row.nextTotalFeeBps,
+      previousRevenueFeeBps: row.previousRevenueFeeBps,
+      nextRevenueFeeBps: row.nextRevenueFeeBps,
+      previousStabilizationFeeBps: row.previousStabilizationFeeBps,
+      nextStabilizationFeeBps: row.nextStabilizationFeeBps,
+      effectiveAt: row.effectiveAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
     })),
     activity: activity.slice(0, 80),
     recentSettlements: settlements.map((row) => ({

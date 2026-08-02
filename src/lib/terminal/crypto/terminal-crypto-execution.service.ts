@@ -47,6 +47,16 @@ import { previewTerminalCryptoOrder } from "./terminal-crypto-preview.service";
 
 type Tx = Prisma.TransactionClient;
 
+/**
+ * Interactive transaction budget for crypto fills.
+ * Settlement posts many locked rows + ledger/candle writes; the Prisma default
+ * (~5s) flakes against remote Postgres under concurrency / latency.
+ */
+export const CRYPTO_ORDER_TXN_OPTIONS = {
+  maxWait: 20_000,
+  timeout: 60_000,
+} as const;
+
 async function lockPortfolio(tx: Tx, portfolioId: string) {
   await tx.$queryRaw`SELECT id FROM "TerminalPortfolio" WHERE id = ${portfolioId} FOR UPDATE`;
 }
@@ -188,6 +198,20 @@ export async function submitTerminalCryptoOrder(
   } catch (error) {
     if (error instanceof IdempotencyConflictError) {
       throw new CryptoOrderError("IDEMPOTENCY_CONFLICT", customerMessageForCode("IDEMPOTENCY_CONFLICT"));
+    }
+    if (error instanceof CryptoOrderError) {
+      // Notify after financial path has aborted — never block / roll back settlement.
+      const { scheduleCryptoOrderFailureNotifications } = await import(
+        "@/server/terminal-crypto-notification.service"
+      );
+      scheduleCryptoOrderFailureNotifications({
+        userId: user.id,
+        portfolioId: parsed.portfolioId,
+        symbol: parsed.symbol,
+        side: parsed.side,
+        error,
+        actorUserId: user.id,
+      });
     }
     throw error;
   }
@@ -887,7 +911,7 @@ async function executeTerminalCryptoOrder(
         walletPublicId: wallet.publicWalletId,
         replayed: false,
       });
-    });
+    }, CRYPTO_ORDER_TXN_OPTIONS);
   } catch (error) {
     if (error instanceof CryptoOrderError && error.code === "REQUOTE_REQUIRED") {
       try {

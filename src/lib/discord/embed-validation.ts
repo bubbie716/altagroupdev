@@ -34,7 +34,7 @@ export function validateMessageDraft(draft: DiscordMessageDraft): MessageValidat
   const errors: string[] = [];
 
   if (!isDiscordServerKey(draft.serverKey)) {
-    errors.push("Select a Discord server (Corporate, Terminal, or Bank).");
+    errors.push("Select a Discord server (Secretary, Terminal, or Bank).");
   }
 
   if (!isValidDiscordChannelId(draft.channelId)) {

@@ -54,12 +54,23 @@ async function requireCorporateOps() {
   return requireAdmin();
 }
 
+/**
+ * Capability matrix mapped onto existing tags (no parallel role system):
+ * - terminal_admin → trading/market operator (halt, redemption-only, reconcile, resolve issues)
+ * - corporate_admin → senior + finance (activate/resume/close, sweep, contribute, fees, reopen)
+ * - UI Lab → demonstration read-only (all mutations blocked)
+ */
 export type CryptoOpsActorCapabilities = {
   canHalt: boolean;
   canActivate: boolean;
   canSweep: boolean;
   canContribute: boolean;
   canReconcile: boolean;
+  canConfigureFees: boolean;
+  canResolveIssues: boolean;
+  canReopenIssues: boolean;
+  /** trading_market | finance_senior | demonstration */
+  operatorRole: "trading_market" | "finance_senior" | "demonstration";
   isCorporateAdmin: boolean;
   uiLab: boolean;
 };
@@ -74,6 +85,10 @@ async function resolveCapabilities(): Promise<CryptoOpsActorCapabilities> {
       canSweep: false,
       canContribute: false,
       canReconcile: false,
+      canConfigureFees: false,
+      canResolveIssues: false,
+      canReopenIssues: false,
+      operatorRole: "demonstration",
       isCorporateAdmin: true,
       uiLab: true,
     };
@@ -87,6 +102,10 @@ async function resolveCapabilities(): Promise<CryptoOpsActorCapabilities> {
     canSweep: corporate,
     canContribute: corporate,
     canReconcile: true,
+    canConfigureFees: corporate,
+    canResolveIssues: true,
+    canReopenIssues: corporate,
+    operatorRole: corporate ? "finance_senior" : "trading_market",
     isCorporateAdmin: corporate,
     uiLab: false,
   };
@@ -96,16 +115,19 @@ export const fetchCryptoOpsCapabilitiesFn = createServerFn({ method: "GET" }).ha
   async (): Promise<CryptoOpsActorCapabilities> => resolveCapabilities(),
 );
 
-export const fetchCryptoOpsDeskSummaryFn = createServerFn({ method: "GET" }).handler(
-  async () => {
+export const fetchCryptoOpsDeskSummaryFn = createServerFn({ method: "GET" })
+  .inputValidator((input?: { cryptoOpsScenario?: string }) => input ?? {})
+  .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabCryptoOpsDeskSummary } = await import(
+      const { getUiLabCryptoOpsDeskSummary, parseUiLabCryptoOpsScenario } = await import(
         "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures"
       );
       return {
         ok: true as const,
-        summary: getUiLabCryptoOpsDeskSummary(),
+        summary: getUiLabCryptoOpsDeskSummary(
+          parseUiLabCryptoOpsScenario(data.cryptoOpsScenario),
+        ),
         capabilities: await resolveCapabilities(),
       };
     }
@@ -120,18 +142,20 @@ export const fetchCryptoOpsDeskSummaryFn = createServerFn({ method: "GET" }).han
     } catch (error) {
       return toClientError(error);
     }
-  },
-);
+  });
 
 export const fetchCryptoOpsAssetOverviewFn = createServerFn({ method: "GET" })
-  .inputValidator((symbol: string) => symbol)
-  .handler(async ({ data: symbol }) => {
+  .inputValidator((input: { symbol: string; cryptoOpsScenario?: string }) => input)
+  .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabCryptoOpsAssetWorkspace } = await import(
+      const { getUiLabCryptoOpsAssetWorkspace, parseUiLabCryptoOpsScenario } = await import(
         "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures"
       );
-      const overview = getUiLabCryptoOpsAssetWorkspace(symbol);
+      const overview = getUiLabCryptoOpsAssetWorkspace(
+        data.symbol,
+        parseUiLabCryptoOpsScenario(data.cryptoOpsScenario),
+      );
       if (!overview) {
         return {
           ok: false as const,
@@ -144,7 +168,7 @@ export const fetchCryptoOpsAssetOverviewFn = createServerFn({ method: "GET" })
     await requireTerminalOps();
     try {
       const { getCryptoOpsAssetOverview } = await import("./crypto-ops-read.service");
-      const overview = await getCryptoOpsAssetOverview(symbol);
+      const overview = await getCryptoOpsAssetOverview(data.symbol);
       if (!overview) {
         return {
           ok: false as const,
@@ -159,14 +183,17 @@ export const fetchCryptoOpsAssetOverviewFn = createServerFn({ method: "GET" })
   });
 
 export const fetchCryptoOpsAssetWorkspaceFn = createServerFn({ method: "GET" })
-  .inputValidator((symbol: string) => symbol)
-  .handler(async ({ data: symbol }) => {
+  .inputValidator((input: { symbol: string; cryptoOpsScenario?: string }) => input)
+  .handler(async ({ data }) => {
     const { isUiLabMode } = await import("@/lib/auth/ui-lab");
     if (isUiLabMode()) {
-      const { getUiLabCryptoOpsAssetWorkspace } = await import(
+      const { getUiLabCryptoOpsAssetWorkspace, parseUiLabCryptoOpsScenario } = await import(
         "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures"
       );
-      const workspace = getUiLabCryptoOpsAssetWorkspace(symbol);
+      const workspace = getUiLabCryptoOpsAssetWorkspace(
+        data.symbol,
+        parseUiLabCryptoOpsScenario(data.cryptoOpsScenario),
+      );
       if (!workspace) {
         return {
           ok: false as const,
@@ -179,7 +206,7 @@ export const fetchCryptoOpsAssetWorkspaceFn = createServerFn({ method: "GET" })
     try {
       await requireTerminalOps();
       const { getCryptoOpsAssetWorkspace } = await import("./crypto-ops-read.service");
-      const workspace = await getCryptoOpsAssetWorkspace(symbol);
+      const workspace = await getCryptoOpsAssetWorkspace(data.symbol);
       if (!workspace) {
         return {
           ok: false as const,
@@ -343,6 +370,129 @@ export const recordCryptoContributionFn = createServerFn({ method: "POST" })
     try {
       const { recordCryptoExternalContribution } = await import("./crypto-contribution.service");
       const result = await recordCryptoExternalContribution(actor, data);
+      return { ok: true as const, result };
+    } catch (error) {
+      return toClientError(error);
+    }
+  });
+
+export type UpdateCryptoFeeConfigFnInput = {
+  symbol: string;
+  totalFeeBps: number;
+  revenueFeeBps: number;
+  stabilizationFeeBps: number;
+  reason: string;
+  confirmed: boolean;
+  idempotencyKey: string;
+  expectedAssetVersion: number;
+};
+
+export const updateCryptoFeeConfigFn = createServerFn({ method: "POST" })
+  .inputValidator((input: UpdateCryptoFeeConfigFnInput) => input)
+  .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Terminal crypto fee configuration");
+
+    const actor = await requireCorporateOps();
+    try {
+      const { updateCryptoFeeConfig } = await import("./crypto-config.service");
+      const result = await updateCryptoFeeConfig(actor, {
+        symbol: data.symbol,
+        fees: {
+          totalFeeBps: data.totalFeeBps,
+          revenueFeeBps: data.revenueFeeBps,
+          stabilizationFeeBps: data.stabilizationFeeBps,
+        },
+        reason: data.reason,
+        confirmed: data.confirmed,
+        idempotencyKey: data.idempotencyKey,
+        expectedAssetVersion: data.expectedAssetVersion,
+      });
+      return { ok: true as const, result };
+    } catch (error) {
+      return toClientError(error);
+    }
+  });
+
+export const fetchCryptoConfigSurfaceFn = createServerFn({ method: "GET" })
+  .inputValidator((symbol: string) => symbol)
+  .handler(async ({ data: symbol }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabCryptoConfigSurface } = await import(
+        "@/lib/terminal/ui-lab/ui-lab-crypto-ops-fixtures"
+      );
+      const surface = getUiLabCryptoConfigSurface(symbol);
+      if (!surface) {
+        return {
+          ok: false as const,
+          code: "NOT_FOUND",
+          message: cryptoOpsCustomerMessage("NOT_FOUND"),
+        };
+      }
+      return { ok: true as const, surface, capabilities: await resolveCapabilities() };
+    }
+    try {
+      await requireTerminalOps();
+      const { getCryptoConfigSurface } = await import("./crypto-config.service");
+      const surface = await getCryptoConfigSurface(symbol);
+      if (!surface) {
+        return {
+          ok: false as const,
+          code: "NOT_FOUND",
+          message: cryptoOpsCustomerMessage("NOT_FOUND"),
+        };
+      }
+      return { ok: true as const, surface, capabilities: await resolveCapabilities() };
+    } catch (error) {
+      return toClientError(error);
+    }
+  });
+
+export type ResolveCryptoReconIssueFnInput = {
+  issueId: string;
+  reason: string;
+  confirmed: boolean;
+  idempotencyKey: string;
+};
+
+export const resolveCryptoReconIssueFn = createServerFn({ method: "POST" })
+  .inputValidator((input: ResolveCryptoReconIssueFnInput) => input)
+  .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Terminal crypto reconciliation issue resolve");
+
+    const actor = await requireTerminalOps();
+    try {
+      const { resolveCryptoReconciliationIssue } = await import(
+        "./crypto-reconciliation-issue.service"
+      );
+      const result = await resolveCryptoReconciliationIssue(actor, data);
+      return { ok: true as const, result };
+    } catch (error) {
+      return toClientError(error);
+    }
+  });
+
+export type ReopenCryptoReconIssueFnInput = {
+  issueId: string;
+  reason: string;
+  confirmed: boolean;
+  idempotencyKey: string;
+};
+
+export const reopenCryptoReconIssueFn = createServerFn({ method: "POST" })
+  .inputValidator((input: ReopenCryptoReconIssueFnInput) => input)
+  .handler(async ({ data }) => {
+    const { assertNotUiLabMutation } = await import("@/lib/internal/ui-lab-mutation-gate");
+    assertNotUiLabMutation("Terminal crypto reconciliation issue reopen");
+
+    const actor = await requireCorporateOps();
+    try {
+      const { reopenCryptoReconciliationIssue } = await import(
+        "./crypto-reconciliation-issue.service"
+      );
+      const result = await reopenCryptoReconciliationIssue(actor, data);
       return { ok: true as const, result };
     } catch (error) {
       return toClientError(error);

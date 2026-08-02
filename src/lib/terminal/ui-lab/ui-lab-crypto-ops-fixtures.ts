@@ -22,14 +22,72 @@ export type UiLabCryptoOpsScenario =
   | "wallet_ledger_mismatch"
   | "revenue_missing_destination"
   | "recon_success"
-  | "recon_failed";
+  | "recon_failed"
+  | "warning_issue"
+  | "permission_denied"
+  | "version_conflict"
+  | "insufficient_reserve"
+  | "server_failure"
+  | "idempotent_replay";
+
+export const UI_LAB_CRYPTO_OPS_SCENARIO_SESSION_KEY = "alta.terminal.cryptoOps.uiLabScenario";
 
 const DEMONSTRATION = "Demonstration data";
+
+const OPS_SCENARIOS = new Set<string>([
+  "ready_to_activate",
+  "active_healthy",
+  "halted",
+  "redemption_only",
+  "undercollateralized",
+  "supply_mismatch",
+  "wallet_ledger_mismatch",
+  "revenue_missing_destination",
+  "recon_success",
+  "recon_failed",
+  "warning_issue",
+  "permission_denied",
+  "version_conflict",
+  "insufficient_reserve",
+  "server_failure",
+  "idempotent_replay",
+]);
 
 function assertUiLab() {
   if (!isUiLabMode()) {
     throw new Error("UI Lab crypto ops fixtures require UI Lab mode");
   }
+}
+
+export function parseUiLabCryptoOpsScenario(
+  value: unknown,
+  fallback: UiLabCryptoOpsScenario = "active_healthy",
+): UiLabCryptoOpsScenario {
+  if (typeof value === "string" && OPS_SCENARIOS.has(value)) {
+    return value as UiLabCryptoOpsScenario;
+  }
+  return fallback;
+}
+
+/** Client-only: persist URL cryptoOpsScenario for subsequent navigations. */
+export function resolveUiLabCryptoOpsScenario(
+  fallback: UiLabCryptoOpsScenario = "active_healthy",
+): UiLabCryptoOpsScenario {
+  assertUiLab();
+  try {
+    if (typeof window !== "undefined") {
+      const fromUrl = new URLSearchParams(window.location.search).get("cryptoOpsScenario");
+      if (fromUrl && OPS_SCENARIOS.has(fromUrl)) {
+        window.sessionStorage.setItem(UI_LAB_CRYPTO_OPS_SCENARIO_SESSION_KEY, fromUrl);
+        return fromUrl as UiLabCryptoOpsScenario;
+      }
+      const stored = window.sessionStorage.getItem(UI_LAB_CRYPTO_OPS_SCENARIO_SESSION_KEY);
+      if (stored && OPS_SCENARIOS.has(stored)) return stored as UiLabCryptoOpsScenario;
+    }
+  } catch {
+    // ignore
+  }
+  return fallback;
 }
 
 function baseAsset(
@@ -72,9 +130,10 @@ function baseAsset(
 }
 
 export function getUiLabCryptoOpsDeskSummary(
-  scenario: UiLabCryptoOpsScenario = "active_healthy",
+  scenarioInput: UiLabCryptoOpsScenario = "active_healthy",
 ): CryptoOpsDeskSummary {
   assertUiLab();
+  const scenario = scenarioInput;
 
   let assets = LAUNCH_ASSET_SYMBOLS.map((s) =>
     baseAsset(s, "ACTIVE", {
@@ -185,6 +244,25 @@ export function getUiLabCryptoOpsDeskSummary(
       );
       // Demonstration context is a banner, not an attention incident.
       break;
+    case "warning_issue":
+      assets = LAUNCH_ASSET_SYMBOLS.map((s) =>
+        baseAsset(s, "ACTIVE", { openWarningIssues: s === "NVA" ? 1 : 0 }),
+      );
+      needsAttention.push({
+        kind: "reconciliation",
+        symbol: "NVA",
+        summary: `${DEMONSTRATION}: Fee allocation warning on NVA.`,
+        severity: "WARNING",
+        href: "/internal/terminal/crypto/NVA",
+      });
+      break;
+    case "permission_denied":
+    case "version_conflict":
+    case "insufficient_reserve":
+    case "server_failure":
+    case "idempotent_replay":
+      // Process-state demonstration scenarios — healthy markets; UI shows disabled receipts.
+      break;
     default:
       break;
   }
@@ -254,9 +332,10 @@ export function getUiLabCryptoOpsDeskSummary(
 
 export function getUiLabCryptoOpsAssetWorkspace(
   symbolInput: string,
-  scenario: UiLabCryptoOpsScenario = "active_healthy",
+  scenarioInput: UiLabCryptoOpsScenario = "active_healthy",
 ): CryptoOpsAssetWorkspace | null {
   assertUiLab();
+  const scenario = scenarioInput;
   const symbol = symbolInput.trim().toUpperCase();
   if (!LAUNCH_ASSET_SYMBOLS.includes(symbol as never)) return null;
   const desk = getUiLabCryptoOpsDeskSummary(scenario);
@@ -277,25 +356,161 @@ export function getUiLabCryptoOpsAssetWorkspace(
     displayPrecision: cfg.displayPrecision,
     sensitivityLabel: cfg.sensitivityLabel,
     matchesAuthoritativeConfig: true,
-    openIssues:
-      overview.openCriticalIssues > 0
+    openIssues: [
+      ...(overview.openCriticalIssues > 0
         ? [
             {
-              id: "demo-issue",
+              id: "demo-issue-critical",
               checkKey: "DEMO_CRITICAL",
               severity: "CRITICAL" as const,
+              status: "OPEN" as const,
               summary:
-                desk.needsAttention.find((n) => n.symbol === symbol)?.summary ?? "Critical issue",
-              createdAt: new Date().toISOString(),
+                desk.needsAttention.find((n) => n.symbol === symbol)?.summary ??
+                `${DEMONSTRATION}: Critical reconciliation issue`,
+              fingerprint: `demo_fp_critical_${symbol}`,
+              firstSeenAt: new Date(Date.now() - 86_400_000).toISOString(),
+              lastSeenAt: new Date().toISOString(),
+              technicalDetails: `${DEMONSTRATION} technical detail — not production.`,
+              href: `/internal/terminal/crypto/${symbol}`,
+            },
+          ]
+        : []),
+      ...(overview.openWarningIssues > 0
+        ? [
+            {
+              id: "demo-issue-warning",
+              checkKey: "DEMO_WARNING",
+              severity: "WARNING" as const,
+              status: "OPEN" as const,
+              summary: `${DEMONSTRATION}: Warning issue on ${symbol}`,
+              fingerprint: `demo_fp_warning_${symbol}`,
+              firstSeenAt: new Date(Date.now() - 43_200_000).toISOString(),
+              lastSeenAt: new Date().toISOString(),
+              technicalDetails: null,
+              href: `/internal/terminal/crypto/${symbol}`,
+            },
+          ]
+        : []),
+    ],
+    recentlyResolvedIssues:
+      scenario === "idempotent_replay"
+        ? [
+            {
+              id: "demo-resolved",
+              checkKey: "DEMO_RESOLVED",
+              severity: "WARNING" as const,
+              status: "RESOLVED" as const,
+              summary: `${DEMONSTRATION}: Previously resolved warning`,
+              fingerprint: `demo_fp_resolved_${symbol}`,
+              firstSeenAt: new Date(Date.now() - 172_800_000).toISOString(),
+              lastSeenAt: new Date(Date.now() - 86_400_000).toISOString(),
+              resolvedAt: new Date(Date.now() - 86_400_000).toISOString(),
+              resolutionSource: "operator",
+              resolutionNote: "Demonstration resolve",
             },
           ]
         : [],
+    configHistory: [
+      {
+        id: "demo-cfg-1",
+        configVersion: 1,
+        changeSummary: `${DEMONSTRATION}: Initial fee configuration`,
+        reason: "Launch baseline",
+        actorUserId: "uilab_actor",
+        previousTotalFeeBps: cfg.totalFeeBps,
+        nextTotalFeeBps: cfg.totalFeeBps,
+        previousRevenueFeeBps: cfg.revenueFeeBps,
+        nextRevenueFeeBps: cfg.revenueFeeBps,
+        previousStabilizationFeeBps: cfg.stabilizationFeeBps,
+        nextStabilizationFeeBps: cfg.stabilizationFeeBps,
+        effectiveAt: new Date(Date.now() - 604_800_000).toISOString(),
+        createdAt: new Date(Date.now() - 604_800_000).toISOString(),
+      },
+    ],
     activity: desk.recentActivity,
     recentSettlements: [],
     recentLedger: [],
     volumeFlorins: "0.00",
     candleCount: 0,
   };
+}
+
+export function getUiLabCryptoConfigSurface(symbolInput: string) {
+  assertUiLab();
+  const symbol = symbolInput.trim().toUpperCase();
+  if (!LAUNCH_ASSET_SYMBOLS.includes(symbol as never)) return null;
+  const cfg = CRYPTO_ASSET_CONFIGS[symbol as keyof typeof CRYPTO_ASSET_CONFIGS];
+  return {
+    symbol,
+    assetVersion: 0,
+    currentConfigVersion: 1,
+    fees: {
+      totalFeeBps: cfg.totalFeeBps,
+      revenueFeeBps: cfg.revenueFeeBps,
+      stabilizationFeeBps: cfg.stabilizationFeeBps,
+      mutable: true as const,
+      readiness: `${DEMONSTRATION} — fee edits disabled in UI Lab.`,
+    },
+    pegOrStartingPrice: {
+      value: cfg.pegOrStartingPrice.toFixed(12),
+      mutable: false as const,
+      readiness: "Peg / launch price changes require a reviewed migration.",
+    },
+    curveRate: {
+      value: cfg.curveRate?.toFixed(18) ?? null,
+      mutable: false as const,
+      readiness: "Bonding-curve rate is migration-only.",
+    },
+    marketImpactThreshold: {
+      value: cfg.sensitivityLabel,
+      mutable: false as const,
+      readiness: "Launch impact targets are application constants.",
+    },
+    stablecoinPeg: {
+      value: cfg.kind === "STABLE" ? cfg.pegOrStartingPrice.toFixed(12) : null,
+      mutable: false as const,
+      readiness:
+        cfg.kind === "STABLE"
+          ? "NPFC peg is foundational — migration only."
+          : "Not a stablecoin asset.",
+    },
+    recentChanges: [],
+  };
+}
+
+/** Demonstration process-state copy for UI Lab action receipts. */
+export function getUiLabCryptoOpsProcessDemo(
+  scenario: UiLabCryptoOpsScenario,
+): { title: string; detail: string } | null {
+  switch (scenario) {
+    case "permission_denied":
+      return {
+        title: "Permission denied",
+        detail: `${DEMONSTRATION}: Corporate admin required for this control.`,
+      };
+    case "version_conflict":
+      return {
+        title: "Version conflict",
+        detail: `${DEMONSTRATION}: Market state changed. Refresh and try again.`,
+      };
+    case "insufficient_reserve":
+      return {
+        title: "Insufficient reserve",
+        detail: `${DEMONSTRATION}: Protected reserve would fall below required liability.`,
+      };
+    case "server_failure":
+      return {
+        title: "Server failure",
+        detail: `${DEMONSTRATION}: Something went wrong. Try again later.`,
+      };
+    case "idempotent_replay":
+      return {
+        title: "Idempotent replay",
+        detail: `${DEMONSTRATION}: This request already completed — safe replay, no double effect.`,
+      };
+    default:
+      return null;
+  }
 }
 
 /** @deprecated Prefer getUiLabCryptoOpsAssetWorkspace */

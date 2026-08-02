@@ -17,16 +17,16 @@ Individual Discord User
 
 ## Discord Developer Portal Setup
 
-Website sign-in / sign-up uses the **Alta Corporate** Discord application (the same app that owns `DISCORD_CORPORATE_BOT_TOKEN`). Do not use the Bank bot application for OAuth.
+Website sign-in / sign-up uses the **Alta Secretary** Discord application (the same app that owns `DISCORD_SECRETARY_BOT_TOKEN`). Do not use the Bank bot application for OAuth.
 
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications).
-2. Open the **Corporate** application (or create it if needed).
+2. Open the **Secretary** application (or create it if needed).
 3. Open **OAuth2**:
    - Add redirect URIs (each must match exactly):
      - Local: `http://localhost:3000/api/auth/discord/callback`
      - LAN dev (optional): `http://YOUR_LAN_IP:3000/api/auth/discord/callback` — e.g. `http://192.168.1.10:3000/api/auth/discord/callback`
      - Production: `https://your-domain.com/api/auth/discord/callback`
-   - Copy **Client ID** and **Client Secret** into `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`.
+   - Copy **Client ID** and **Client Secret** into `DISCORD_OAUTH_CLIENT_ID` (or legacy `DISCORD_CLIENT_ID`) / `DISCORD_CLIENT_SECRET`.
 4. Under **OAuth2 → General**, scopes used by Alta:
    - `identify`
 
@@ -37,8 +37,9 @@ Copy `.env.example` to `.env` and fill in:
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string (required) |
-| `DISCORD_CLIENT_ID` | Corporate app OAuth2 client ID (must match Corporate bot application) |
-| `DISCORD_CLIENT_SECRET` | Corporate app OAuth2 secret — server-only, never bundled to the client |
+| `DISCORD_OAUTH_CLIENT_ID` | Preferred Secretary app OAuth2 client ID (must match Secretary bot application) |
+| `DISCORD_CLIENT_ID` | Legacy fallback for OAuth client ID (do not reuse Bank application ID) |
+| `DISCORD_CLIENT_SECRET` | Secretary app OAuth2 secret — server-only, never bundled to the client |
 | `DISCORD_REDIRECT_URI` | Must exactly match Discord portal. Comma-separate multiple dev callbacks. In development the app uses the host you browse from (localhost or LAN). |
 | `SESSION_SECRET` | Min 32 chars; signs OAuth state cookie |
 
