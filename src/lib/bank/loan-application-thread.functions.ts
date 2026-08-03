@@ -35,6 +35,14 @@ export const fetchLoanApplicationThread = createServerFn({ method: "GET" })
 export const fetchInternalLoanApplicationThread = createServerFn({ method: "GET" })
   .inputValidator((applicationId: string) => applicationId)
   .handler(async ({ data: applicationId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalLoanApplicationThread } = await import(
+        "@/lib/bank/ui-lab-lending-fixtures"
+      );
+      const fixture = getUiLabInternalLoanApplicationThread(applicationId);
+      if (fixture) return fixture;
+    }
     const { ensureThreadExists, getThreadContext, getThreadMessages } = await import(
       "@/server/loan-application-thread.service"
     );

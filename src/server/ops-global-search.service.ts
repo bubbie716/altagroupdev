@@ -278,6 +278,12 @@ export async function globalOpsSearch(
           { accountNumber: { contains: q, mode: "insensitive" } },
           { accountName: { contains: q, mode: "insensitive" } },
           ...(idMatch ? [{ id: idMatch }] : []),
+          // Person / company name lookups (e.g. “FTLCEO’s accounts”)
+          { user: { discordUsername: { contains: q, mode: "insensitive" } } },
+          { user: { minecraftUsername: { contains: q, mode: "insensitive" } } },
+          { user: { email: { contains: q, mode: "insensitive" } } },
+          { company: { name: { contains: q, mode: "insensitive" } } },
+          { company: { ticker: { contains: q, mode: "insensitive" } } },
         ],
       },
       include: { user: true, company: true },
@@ -290,6 +296,9 @@ export async function globalOpsSearch(
           { referenceCode: { contains: q, mode: "insensitive" } },
           { description: { contains: q, mode: "insensitive" } },
           ...(idMatch ? [{ id: idMatch }] : []),
+          { bankAccount: { user: { discordUsername: { contains: q, mode: "insensitive" } } } },
+          { bankAccount: { user: { minecraftUsername: { contains: q, mode: "insensitive" } } } },
+          { bankAccount: { company: { name: { contains: q, mode: "insensitive" } } } },
         ],
       },
       include: { bankAccount: { include: { user: true, company: true } } },
@@ -303,6 +312,7 @@ export async function globalOpsSearch(
             OR: [
               { id: { contains: q } },
               { borrowerUser: { discordUsername: { contains: q, mode: "insensitive" } } },
+              { borrowerUser: { minecraftUsername: { contains: q, mode: "insensitive" } } },
               { company: { name: { contains: q, mode: "insensitive" } } },
             ],
           },
@@ -315,6 +325,8 @@ export async function globalOpsSearch(
         OR: [
           { statementNumber: { contains: q, mode: "insensitive" } },
           ...(idMatch ? [{ id: idMatch }] : []),
+          { bankAccount: { user: { discordUsername: { contains: q, mode: "insensitive" } } } },
+          { bankAccount: { company: { name: { contains: q, mode: "insensitive" } } } },
         ],
       },
       include: { bankAccount: { include: { user: true, company: true } } },
@@ -326,6 +338,9 @@ export async function globalOpsSearch(
         OR: [
           { purpose: { contains: q, mode: "insensitive" } },
           ...(idMatch ? [{ id: idMatch }] : []),
+          { applicantUser: { discordUsername: { contains: q, mode: "insensitive" } } },
+          { applicantUser: { minecraftUsername: { contains: q, mode: "insensitive" } } },
+          { company: { name: { contains: q, mode: "insensitive" } } },
         ],
       },
       include: { applicantUser: true, company: true },
@@ -333,7 +348,15 @@ export async function globalOpsSearch(
       orderBy: { updatedAt: "desc" },
     }),
     prisma.dealRoom.findMany({
-      where: idMatch ? { id: idMatch } : { id: { contains: q } },
+      where: {
+        OR: [
+          ...(idMatch ? [{ id: idMatch }] : []),
+          { id: { contains: q } },
+          { borrowerUser: { discordUsername: { contains: q, mode: "insensitive" } } },
+          { borrowerUser: { minecraftUsername: { contains: q, mode: "insensitive" } } },
+          { company: { name: { contains: q, mode: "insensitive" } } },
+        ],
+      },
       include: { borrowerUser: true, company: true, loanApplication: true },
       take: perType,
       orderBy: { updatedAt: "desc" },

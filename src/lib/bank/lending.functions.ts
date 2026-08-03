@@ -180,6 +180,12 @@ export const fetchInternalLoansFiltered = createServerFn({ method: "GET" })
 export const fetchInternalLoanApplicationDetail = createServerFn({ method: "GET" })
   .inputValidator((applicationId: string) => applicationId)
   .handler(async ({ data: applicationId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalLoanApplication } = await import("@/lib/bank/ui-lab-lending-fixtures");
+      const fixture = getUiLabInternalLoanApplication(applicationId);
+      if (fixture) return fixture;
+    }
     const { requireOperator } = await import("@/server/permissions.service");
     const { getInternalLoanApplicationById } = await import("@/server/lending.service");
     await requireOperator();

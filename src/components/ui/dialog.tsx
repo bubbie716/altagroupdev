@@ -79,6 +79,8 @@ DialogOverlay.displayName = "DialogOverlay";
 interface DialogContentProps
   extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   overlayClassName?: string;
+  /** Hide the default absolute close control (use when the panel provides its own). */
+  hideCloseButton?: boolean;
 }
 
 const DialogContent = React.forwardRef<
@@ -90,6 +92,7 @@ const DialogContent = React.forwardRef<
       className,
       children,
       overlayClassName,
+      hideCloseButton = false,
       onOpenAutoFocus,
       onCloseAutoFocus,
       ...props
@@ -115,18 +118,20 @@ const DialogContent = React.forwardRef<
           {...props}
         >
           {children}
-          <DialogPrimitive.Close
-            data-dialog-close=""
-            className={cn(
-              "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
-              "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              "disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
-            )}
-          >
-            <X className="size-4 shrink-0" aria-hidden />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+          {hideCloseButton ? null : (
+            <DialogPrimitive.Close
+              data-dialog-close=""
+              className={cn(
+                "absolute right-2 top-2 inline-flex size-11 items-center justify-center rounded-md",
+                "opacity-80 ring-offset-background transition-opacity hover:opacity-100",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
+              )}
+            >
+              <X className="size-4 shrink-0" aria-hidden />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
         </DialogPrimitive.Content>
       </DialogPortal>
     );

@@ -6,6 +6,7 @@ import { useInternalShell } from "@/components/internal/console/internal-shell-c
 import { InternalBreadcrumbs } from "@/components/internal/console/internal-breadcrumbs";
 import { InternalGlobalSearch } from "@/components/internal/internal-global-search";
 import { InternalInboxShortcut } from "@/components/internal/internal-inbox-shortcut";
+import { AdminCopilotTrigger } from "@/components/internal/copilot/admin-copilot-panel";
 import { resolveInternalRouteTitle } from "@/lib/internal/internal-route-title";
 
 export function InternalHeader() {
@@ -43,6 +44,7 @@ export function InternalHeader() {
 
         <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto sm:min-w-[14rem] sm:max-w-xs lg:max-w-sm">
           <InternalGlobalSearch variant="header" />
+          <AdminCopilotTrigger />
           <InternalInboxShortcut />
         </div>
       </div>

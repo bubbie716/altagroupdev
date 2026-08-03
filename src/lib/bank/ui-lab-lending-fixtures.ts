@@ -2,7 +2,11 @@
  * Canonical UI Lab lending fixtures — list and detail share the same IDs.
  * Demonstration only; never writes to Prisma.
  */
-import type { InternalActiveLoanRow } from "@/lib/bank/lending-types";
+import type { InternalActiveLoanRow, InternalLoanApplicationRow } from "@/lib/bank/lending-types";
+import type {
+  LoanApplicationThreadContext,
+  LoanApplicationThreadMessageRow,
+} from "@/lib/bank/loan-application-thread-types";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
 
 export const UI_LAB_LOAN_ACTIVE_ID = "LN-LAB-ACTIVE";
@@ -104,4 +108,105 @@ export function listUiLabCanonicalLoanIds(): string[] {
 export function listUiLabCompanyLoanIds(companyId: string): string[] {
   if (companyId !== UI_LAB_CORE_COMPANY_ID) return [];
   return [UI_LAB_LOAN_COMPANY_ID];
+}
+
+/** Copilot / deal-room UI Lab application ids (read-only; never written to Prisma). */
+export const UI_LAB_APP_FTLCEO_1 = "ui-lab-app-ftlceo-1";
+export const UI_LAB_APP_FTLCEO_2 = "ui-lab-app-ftlceo-2";
+
+function uiLabApplication(
+  id: string,
+  patch: Partial<InternalLoanApplicationRow> = {},
+): InternalLoanApplicationRow {
+  return {
+    id,
+    productType: "personal_credit_line",
+    productLabel: "Personal Credit Line",
+    requestedAmount: 25_000,
+    termMonths: 12,
+    estimatedTotalOutstanding: 27_400,
+    estimatedTotalInterest: 2_400,
+    purpose: "Working capital",
+    repaymentPlan: "Monthly principal + interest",
+    collateralDescription: null,
+    notes: null,
+    status: "pending",
+    statusLabel: "Pending review",
+    reviewNote: null,
+    companyId: null,
+    companyName: null,
+    linkedBankAccountId: "BA-LAB-CHK",
+    linkedAccountLabel: "AB-2000-100002 · Checking",
+    linkedAccountNumber: "AB-2000-100002",
+    submittedAt: "2026-07-20T12:00:00.000Z",
+    reviewedAt: null,
+    threadId: `thread-${id}`,
+    threadStatus: "open",
+    applicantUserId: "ui-lab-user-ftlceo",
+    applicantLabel: "FTLCEO",
+    dealRoomId: id.replace("ui-lab-app-", "ui-lab-deal-"),
+    ...patch,
+  };
+}
+
+const UI_LAB_APPLICATION_CATALOG: InternalLoanApplicationRow[] = [
+  uiLabApplication(UI_LAB_APP_FTLCEO_1),
+  uiLabApplication(UI_LAB_APP_FTLCEO_2, {
+    productType: "business_credit_line",
+    productLabel: "Business Credit Line",
+    requestedAmount: 100_000,
+    status: "under_review",
+    statusLabel: "Underwriting",
+  }),
+];
+
+export function getUiLabInternalLoanApplication(
+  applicationId: string,
+): InternalLoanApplicationRow | null {
+  return UI_LAB_APPLICATION_CATALOG.find((row) => row.id === applicationId) ?? null;
+}
+
+export function getUiLabInternalLoanApplicationThread(applicationId: string): {
+  context: LoanApplicationThreadContext;
+  messages: LoanApplicationThreadMessageRow[];
+} | null {
+  const application = getUiLabInternalLoanApplication(applicationId);
+  if (!application) return null;
+  return {
+    context: {
+      threadId: application.threadId ?? `thread-${applicationId}`,
+      applicationId,
+      viewerUserId: "ui-lab-user",
+      status: "open",
+      statusLabel: "Waiting on Alta",
+      assignedStaffId: null,
+      assignedStaffName: null,
+      canSend: false,
+      applicantUserId: application.applicantUserId,
+      applicantName: application.applicantLabel,
+      applicantAvatarUrl: null,
+      companyId: application.companyId,
+      companyName: application.companyName,
+      productLabel: application.productLabel,
+      requestedAmount: application.requestedAmount,
+      applicationStatus: application.status,
+      applicationStatusLabel: application.statusLabel,
+      submittedAt: application.submittedAt,
+      submittedAtLabel: "Jul 20, 2026",
+    },
+    messages: [
+      {
+        id: `msg-${applicationId}-1`,
+        senderUserId: application.applicantUserId,
+        senderRole: "applicant",
+        senderName: application.applicantLabel,
+        senderAvatarUrl: null,
+        body: "UI Lab deal-room thread — read-only fixture.",
+        attachments: [],
+        source: "website",
+        createdAt: application.submittedAt,
+        createdAtLabel: "Jul 20, 2026",
+      },
+    ],
+  };
 }
