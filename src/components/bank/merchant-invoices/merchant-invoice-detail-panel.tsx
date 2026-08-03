@@ -22,6 +22,7 @@ import {
   BankRequestErrorCard,
 } from "@/components/bank/bank-request-submission-ui";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function MerchantInvoiceDetailPanel({
   invoice,
@@ -54,7 +55,7 @@ export function MerchantInvoiceDetailPanel({
         });
         return;
       }
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(formatCustomerActionError(err));
     } finally {
@@ -67,7 +68,7 @@ export function MerchantInvoiceDetailPanel({
     setError(null);
     try {
       await remindInvoice({ data: { companyId, invoiceId: invoice.id } });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(formatCustomerActionError(err));
     } finally {
@@ -80,7 +81,7 @@ export function MerchantInvoiceDetailPanel({
     setError(null);
     try {
       await sendInvoice({ data: { companyId, invoiceId: invoice.id } });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(formatCustomerActionError(err));
     } finally {

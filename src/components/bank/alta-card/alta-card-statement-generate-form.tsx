@@ -8,6 +8,7 @@ import type { AltaCardRow, AltaCardStatementDetail } from "@/lib/bank/alta-card-
 import { altaCardStatementDetailLink } from "@/lib/bank/alta-card-navigation";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
@@ -39,7 +40,7 @@ export function AltaCardStatementGenerateForm({
         data: { cardId, periodStart, periodEnd },
       })) as AltaCardStatementDetail;
       await onStatementGenerated?.(statement);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "alta-card");
       await router.navigate(altaCardStatementDetailLink(card, statement.id));
     } catch (err) {
       const message =

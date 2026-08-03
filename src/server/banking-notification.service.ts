@@ -802,6 +802,53 @@ export async function notifyCommercialBillingAccountChanged(input: {
   });
 }
 
+export function notifyBankAccountOpened(input: {
+  userId: string;
+  accountId: string;
+  accountName: string;
+  business?: boolean;
+}): void {
+  const title = input.business ? "Business account opened" : "Bank account opened";
+  const body = input.business
+    ? `Your business account "${input.accountName}" is ready on Alta Bank.`
+    : `Your account "${input.accountName}" is ready on Alta Bank.`;
+  scheduleCreateUserNotification({
+    userId: input.userId,
+    type: "BANK_ACCOUNT_OPENED",
+    title,
+    body,
+    linkUrl: `/bank/account/${input.accountId}`,
+    linkLabel: "View account",
+    metadata: {
+      accountId: input.accountId,
+      accountName: input.accountName,
+      business: Boolean(input.business),
+    },
+  });
+}
+
+export function notifyTerminalPortfolioCreated(input: {
+  userId: string;
+  portfolioId: string;
+  portfolioName: string;
+  ownerType: "personal" | "company";
+}): void {
+  const scope = input.ownerType === "company" ? "company" : "personal";
+  scheduleCreateUserNotification({
+    userId: input.userId,
+    type: "TERMINAL_PORTFOLIO_CREATED",
+    title: "Terminal portfolio created",
+    body: `Your ${scope} portfolio "${input.portfolioName}" is active on Alta Terminal.`,
+    linkUrl: `/terminal?portfolioId=${input.portfolioId}`,
+    linkLabel: "Open Terminal",
+    metadata: {
+      portfolioId: input.portfolioId,
+      portfolioName: input.portfolioName,
+      ownerType: input.ownerType,
+    },
+  });
+}
+
 export async function notifyCommercialProAdminGranted(input: {
   companyId: string;
   companyName: string;

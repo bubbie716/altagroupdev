@@ -37,6 +37,7 @@ import {
   plainOrderTypeLabel,
   type TerminalOpsOrderRow,
 } from "@/lib/terminal/terminal-ops-types";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function lifecycleStateClass(state: "complete" | "current" | "upcoming" | "skipped") {
   if (state === "current") return "border-gold/40 bg-gold/5";
@@ -88,7 +89,7 @@ export function TerminalOrderWorkspaceView({
     setActionError(null);
     try {
       await cancelTerminalOpsOrder({ data: order.id });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "terminal");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Cancel failed");
     } finally {

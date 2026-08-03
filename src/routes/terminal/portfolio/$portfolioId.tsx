@@ -24,10 +24,10 @@ import {
   fetchTerminalPortfolio,
   renameTerminalPortfolioFn,
 } from "@/lib/terminal/terminal.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import type { TerminalChartRange } from "@/lib/terminal/types";
 import type { CryptoPortfolioSummary } from "@/lib/terminal/crypto/crypto-market-read.service";
 import { buildPortfolioAllocation } from "@/lib/terminal/crypto/portfolio-allocation";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/terminal/portfolio/$portfolioId")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -429,7 +429,7 @@ function TerminalPortfolioDetailPage() {
                     })
                       .then(() => {
                         setSettingsOpen(false);
-                        return invalidateRouteData(router);
+                        return refreshMutationRouteData(router, "terminal");
                       })
                       .catch((err) =>
                         setError(err instanceof Error ? err.message : "Rename failed"),

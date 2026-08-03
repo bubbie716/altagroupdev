@@ -40,8 +40,7 @@ function isNavLinkActive(pathname: string, link: SiteNavLink): boolean {
   return path === normalizedPrefix || path.startsWith(`${normalizedPrefix}/`);
 }
 
-/** Match authenticated BankTopNav (`h-14` / 1120px). Other sites keep the taller marketing chrome. */
-const BANK_NAV_HEIGHT_CLASS = "h-14";
+/** Shared across Corporate / Bank / Terminal marketing headers. */
 const SITE_NAV_HEIGHT_CLASS = "h-14 sm:h-16";
 
 function SiteBrandCluster({
@@ -128,17 +127,17 @@ export const SiteNav = memo(function SiteNav() {
 
   const navLinks = site.key === "bank" ? bankNavLinks : resolveSiteNavLinks(site.key);
 
-  /** Bank marketing/login chrome mirrors authenticated BankTopNav size + spacing. */
+  /** Bank keeps pill active states; header height/width/padding match Corporate. */
   const matchBankChrome = site.key === "bank";
   const isDenseNav = site.key === "exchange" || site.key === "terminal";
-  const navHeightClass = matchBankChrome ? BANK_NAV_HEIGHT_CLASS : SITE_NAV_HEIGHT_CLASS;
+  const navHeightClass = SITE_NAV_HEIGHT_CLASS;
   const desktopNavClass = matchBankChrome ? "md:flex" : isDenseNav ? "xl:flex" : "lg:flex";
   const mobileMenuClass = matchBankChrome ? "md:hidden" : isDenseNav ? "xl:hidden" : "lg:hidden";
 
   const desktopLinkClass = (active: boolean) =>
     matchBankChrome
       ? cn(
-          "rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
+          "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
           active
             ? "bg-surface-2 text-foreground"
@@ -170,11 +169,9 @@ export const SiteNav = memo(function SiteNav() {
       >
         <div
           className={cn(
-            "mx-auto flex items-center",
+            "mx-auto flex max-w-[1400px] items-center gap-3 px-4 sm:px-6",
             navHeightClass,
-            matchBankChrome
-              ? "max-w-[1120px] gap-2 px-3 sm:gap-3 sm:px-6"
-              : "max-w-[1400px] justify-between gap-3 px-4 sm:px-6",
+            !matchBankChrome && "justify-between",
           )}
         >
           <SiteBrandCluster site={site} matchBankChrome={matchBankChrome} />
@@ -201,8 +198,8 @@ export const SiteNav = memo(function SiteNav() {
           </nav>
           <div
             className={cn(
-              "flex items-center",
-              matchBankChrome ? "ml-auto gap-1.5 sm:gap-2" : "gap-2",
+              "flex items-center gap-2",
+              matchBankChrome && "ml-auto",
             )}
           >
             {site.ctaLabel && site.ctaRoute ? (
@@ -212,7 +209,7 @@ export const SiteNav = memo(function SiteNav() {
                 className={cn(
                   "hidden font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex",
                   matchBankChrome
-                    ? "rounded-md bg-primary px-3 py-2 text-[13px]"
+                    ? "rounded-md bg-primary px-3 py-1.5 text-[13px]"
                     : "rounded-md bg-primary px-3 py-1.5 text-[12px]",
                 )}
               >

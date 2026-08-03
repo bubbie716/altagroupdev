@@ -12,6 +12,7 @@ import {
   generateCompanyRelationshipRecommendationsRecord,
   markCompanyRecommendationReviewedRecord,
 } from "@/lib/internal/company-relationship-intelligence.functions";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function formatAction(rec: CompanyRelationshipRecommendationRow): string {
   const parts: string[] = [];
@@ -41,7 +42,7 @@ export function CompanyRelationshipRecommendationsPanel({
     try {
       const rows = await generateCompanyRelationshipRecommendationsRecord({ data: companyId });
       setRecommendations(rows);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "internal");
     } finally {
       setBusy(null);
     }

@@ -432,11 +432,16 @@ export async function enqueueDiscordRoleSyncEvent(input: {
   const config = resolveProductRoleConfig(input.productRole);
   if (!config) return null;
 
-  const { enqueueDiscordOutboxEvent } = await import("@/server/discord-outbox.service");
+  const { enqueueDiscordFanout } = await import(
+    "@/server/discord-outbox.service"
+  );
   const {
     resolveOutboxTargetBot,
     buildStaffAuditIdempotencyKey,
   } = await import("@/lib/discord/discord-event-envelope");
+  const { buildSecretaryCentralAuditDisplayPayload } = await import(
+    "@/lib/discord/discord-secretary-audit-fanout"
+  );
 
   const eventType = roleEventTypeForAction(input.productRole, input.action);
   const baseKey = `role:${input.productRole}:${input.action}:${input.discordUserId}:${input.altaUserId ?? "na"}`;
@@ -447,42 +452,64 @@ export async function enqueueDiscordRoleSyncEvent(input: {
     eventType,
   );
 
-  return enqueueDiscordOutboxEvent({
-    envelope: {
-      idempotencyKey,
-      product: config.product,
-      eventType,
-      actor: input.actorUserId ? { userId: input.actorUserId } : undefined,
-      subject: {
-        userId: input.altaUserId ?? undefined,
-        entityType: "DISCORD_USER",
-        entityId: input.discordUserId,
-      },
-      severity: "ACTION",
-      displayPayload: {
-        kind: "role_mgmt",
-        action: input.action,
-        productRole: input.productRole,
-        discordUserId: input.discordUserId,
-        roleId: config.roleId,
-        altaUserId: input.altaUserId ?? undefined,
-        reason: input.reason,
-        expectedHasRole: input.expectedHasRole,
-      },
-      internalRef: {
-        entityType: "DISCORD_ROLE",
-        entityId: input.discordUserId,
-        auditAction: eventType,
-      },
-      targetBot: resolveOutboxTargetBot({
-        product: config.product,
-        channelClass: "role_mgmt",
-        eventType,
-      }),
-      channelClass: "role_mgmt",
-      deliveryPolicy: "queued",
-    },
+  const productTargetBot = resolveOutboxTargetBot({
+    product: config.product,
+    channelClass: "role_mgmt",
+    eventType,
   });
+
+  const displayPayload = {
+    kind: "role_mgmt" as const,
+    action: input.action,
+    productRole: input.productRole,
+    discordUserId: input.discordUserId,
+    roleId: config.roleId,
+    altaUserId: input.altaUserId ?? undefined,
+    reason: input.reason,
+    expectedHasRole: input.expectedHasRole,
+  };
+
+  const result = await enqueueDiscordFanout({
+    baseIdempotencyKey: idempotencyKey,
+    product: config.product,
+    eventType,
+    channelClass: "role_mgmt",
+    productTargetBot,
+    displayPayload,
+    secretaryAuditPayload: buildSecretaryCentralAuditDisplayPayload({
+      originalProduct: config.product,
+      eventType,
+      action: eventType,
+      severity: "ACTION",
+      actorLabel: input.actorUserId ?? undefined,
+      entityType: "DISCORD_USER",
+      entityId: input.discordUserId,
+      correlationId: idempotencyKey,
+      originalDestinationBot: productTargetBot,
+      originalChannelClass: "role_mgmt",
+      roleMgmt: {
+        productRole: input.productRole,
+        action: input.action,
+        reason: input.reason,
+      },
+    }),
+    severity: "ACTION",
+    actor: input.actorUserId ? { userId: input.actorUserId } : undefined,
+    subject: {
+      userId: input.altaUserId ?? undefined,
+      entityType: "DISCORD_USER",
+      entityId: input.discordUserId,
+    },
+    internalRef: {
+      entityType: "DISCORD_ROLE",
+      entityId: input.discordUserId,
+      auditAction: eventType,
+    },
+    deliveryPolicy: "queued",
+  });
+
+  // Keep return shape: product destination outbox id (legacy callers).
+  return result.destinations.find((d) => d.role === "product")?.outboxId ?? null;
 }
 
 /**
@@ -557,16 +584,18 @@ export async function enqueueTerminalInvestorRoleGrantAfterActivation(input: {
     });
     if (applyResult.ok && outboxId) {
       try {
-        const { markDiscordOutboxSent } = await import("@/server/discord-outbox.service");
+        const { markDiscordOutboxSent, resolveProductOutboxIdempotencyKey } = await import(
+          "@/server/discord-outbox.service"
+        );
         const { buildStaffAuditIdempotencyKey } = await import(
           "@/lib/discord/discord-event-envelope"
         );
         const eventType = roleEventTypeForAction("terminal_investor", "grant");
-        const idempotencyKey = buildStaffAuditIdempotencyKey(
+        const baseKey = buildStaffAuditIdempotencyKey(
           `role:terminal_investor:grant:${user.discordId}:${input.altaUserId}:portfolio:${input.portfolioId}:activation`,
           eventType,
         );
-        await markDiscordOutboxSent(idempotencyKey);
+        await markDiscordOutboxSent(resolveProductOutboxIdempotencyKey(baseKey, "terminal"));
       } catch {
         /* best-effort */
       }
@@ -645,16 +674,18 @@ export async function grantBankClientRoleBestEffort(discordUserId: string, altaU
     });
     if (result.ok && outboxId) {
       try {
-        const { markDiscordOutboxSent } = await import("@/server/discord-outbox.service");
+        const { markDiscordOutboxSent, resolveProductOutboxIdempotencyKey } = await import(
+          "@/server/discord-outbox.service"
+        );
         const { buildStaffAuditIdempotencyKey } = await import(
           "@/lib/discord/discord-event-envelope"
         );
         const eventType = roleEventTypeForAction("bank_client", "grant");
-        const idempotencyKey = buildStaffAuditIdempotencyKey(
+        const baseKey = buildStaffAuditIdempotencyKey(
           `role:bank_client:grant:${discordUserId}:${altaUserId ?? "na"}`,
           eventType,
         );
-        await markDiscordOutboxSent(idempotencyKey);
+        await markDiscordOutboxSent(resolveProductOutboxIdempotencyKey(baseKey, "bank"));
       } catch {
         /* best-effort */
       }

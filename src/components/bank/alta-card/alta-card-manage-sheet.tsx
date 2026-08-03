@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
 import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type ManageView = "menu" | "autopay";
 
@@ -176,7 +177,7 @@ export function AltaCardManageSheet({
                       return activateAltaCardRecord({ data: card.id });
                     }, consentAction);
                     closeSheet();
-                    void router.invalidate();
+                    void refreshMutationRouteData(router, "alta-card");
                   } catch (err) {
                     setActivateError(formatCustomerActionError(err, "card_apply"));
                   }

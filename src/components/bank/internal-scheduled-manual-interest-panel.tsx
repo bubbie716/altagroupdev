@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/internal/status-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function InternalScheduledManualInterestPanel({
   initialRows,
@@ -36,7 +37,7 @@ export function InternalScheduledManualInterestPanel({
     try {
       await cancelFn({ data: { id } });
       setRows((current) => current.filter((row) => row.id !== id));
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cancel failed");
     } finally {

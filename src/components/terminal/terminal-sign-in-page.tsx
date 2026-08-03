@@ -62,10 +62,10 @@ export function TerminalSignInPage({
       <TerminalSignInBackdrop />
 
       <div className="terminal-entrance-frame relative z-10 flex min-h-dvh flex-col">
-        <header className="flex items-center justify-between gap-4 py-6 sm:py-7">
+        <header className="flex h-14 w-full items-center justify-between gap-3 sm:h-16">
           <div className="flex items-center gap-2.5">
             <AltaLogo className="h-7 w-7" />
-            <span className="text-[15px] font-medium tracking-tight text-[var(--terminal-text)]">
+            <span className="text-[13px] font-medium tracking-tight text-[var(--terminal-text)] sm:text-[14px]">
               Alta Terminal
             </span>
           </div>

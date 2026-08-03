@@ -1,4 +1,4 @@
-import { Link, getRouteApi, useRouter } from "@tanstack/react-router";
+import { Link, getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { CustomerOnboardingSummary } from "@/lib/onboarding/onboarding-types";
 import { WorkspaceField, WorkspaceFieldGrid } from "@/components/internal/workspace/workspace-fields";
@@ -28,7 +28,6 @@ export function CustomerOnboardingSummaryPanel({
   summary: CustomerOnboardingSummary;
   userId: string;
 }) {
-  const router = useRouter();
   const { user: actor } = rootRoute.useRouteContext();
   const resetChallenge = useServerFn(operatorResetMinecraftChallengeFn);
   const requireReverify = useServerFn(operatorRequireMinecraftReverificationFn);
@@ -112,8 +111,8 @@ export function CustomerOnboardingSummaryPanel({
               description="Expires the pending challenge. Does not mark the user verified."
               impact="The customer must generate a new verification location on their next attempt."
               onConfirm={async (reason) => {
+                // OpsAction refreshes after confirm — do not invalidate here.
                 await resetChallenge({ data: { userId, reason } });
-                await router.invalidate();
               }}
             />
           ) : null}
@@ -125,8 +124,8 @@ export function CustomerOnboardingSummaryPanel({
               description="Clears verification status and full onboarding completion. The UUID reservation is retained."
               impact="The customer must complete Minecraft verification again on next authenticated access."
               onConfirm={async (reason) => {
+                // OpsAction refreshes after confirm — do not invalidate here.
                 await requireReverify({ data: { userId, reason } });
-                await router.invalidate();
               }}
             />
           ) : null}

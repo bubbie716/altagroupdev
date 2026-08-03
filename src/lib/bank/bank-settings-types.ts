@@ -54,6 +54,7 @@ export const BANK_DISCORD_NOTIFICATION_GROUPS: DiscordNotificationGroup[] = [
       { type: "TRANSFER_RECEIVED", label: "Transfer received" },
       { type: "TRANSFER_FAILED", label: "Transfer failed" },
       { type: "LARGE_MONEY_MOVEMENT_ALERT", label: "Large money movement alert" },
+      { type: "BANK_ACCOUNT_OPENED", label: "Bank account opened" },
     ],
   },
   {
@@ -78,6 +79,7 @@ export const BANK_DISCORD_NOTIFICATION_GROUPS: DiscordNotificationGroup[] = [
       { type: "TERMINAL_CRYPTO_ORDER_FAILED", label: "Crypto order failed" },
       { type: "TERMINAL_FUNDING_COMPLETED", label: "Bank ↔ Terminal funding completed" },
       { type: "TERMINAL_FUNDING_FAILED", label: "Bank ↔ Terminal funding failed" },
+      { type: "TERMINAL_PORTFOLIO_CREATED", label: "Terminal portfolio created" },
       { type: "TERMINAL_SCHEDULED_TRADE_CREATED", label: "Scheduled trade created" },
       { type: "TERMINAL_SCHEDULED_TRADE_PAUSED", label: "Scheduled trade paused" },
       { type: "TERMINAL_SCHEDULED_TRADE_RESUMED", label: "Scheduled trade resumed" },

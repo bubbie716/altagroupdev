@@ -188,7 +188,7 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
       className="sticky z-40 border-b border-[var(--terminal-border)] bg-[var(--terminal-bg)]/95 backdrop-blur-sm"
       style={{ top: "var(--ui-lab-banner-height, 0px)" }}
     >
-      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-2 px-3 sm:gap-3 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:h-16 sm:px-6">
         <EcosystemSwitcher siteKey={site.key} variant="branded" className="shrink-0" />
 
         <nav className="ml-1 hidden items-center gap-1 lg:flex" aria-label="Terminal">
@@ -199,7 +199,7 @@ export function TerminalTopNav({ marketStatus }: { marketStatus?: MarketStatusSn
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  "rounded-md px-2.5 py-1.5 text-[13px] transition-colors",
+                  "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
                   active
                     ? "text-[var(--terminal-green)]"
                     : "text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]",

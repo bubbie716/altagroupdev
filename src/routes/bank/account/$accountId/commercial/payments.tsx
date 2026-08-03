@@ -7,7 +7,7 @@ import { fetchBusinessAccountContextForModule } from "@/lib/bank/business-accoun
 import { fetchScheduledPayments } from "@/lib/bank/business-banking.functions";
 import { fetchCompanyAltaPayReceived } from "@/lib/bank/alta-pay.functions";
 import { fetchTransferContacts } from "@/lib/bank/bank.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/payments")({
   loader: async ({ params }) => {
@@ -49,7 +49,7 @@ function AccountCommercialPaymentsPage() {
           company={treasury}
           payments={payments}
           contacts={contacts}
-          onChanged={() => invalidateRouteData(router)}
+          onChanged={() => refreshMutationRouteData(router, "corporate")}
         />
       </Section>
       {altaPayReceived ? (

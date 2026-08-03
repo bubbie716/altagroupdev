@@ -17,6 +17,7 @@ import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { setMaintenanceModeOps } from "@/lib/platform/platform-settings.functions";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function MaintenanceModePanel({
   initial,
@@ -60,7 +61,7 @@ export function MaintenanceModePanel({
   }, [orderedScopes, selectedScope]);
 
   async function refreshSettings() {
-    await router.invalidate();
+    await refreshMutationRouteData(router, "internal");
   }
 
   async function saveMessageOnly() {

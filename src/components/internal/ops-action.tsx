@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
-import { refreshFinancialRouteData } from "@/lib/financial/post-financial-refresh";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export type OpsActionVariant = "default" | "primary" | "danger";
 
@@ -76,7 +76,7 @@ export function OpsAction({
         onConfirm={async (reason, options) => {
           await onConfirm(reason, options);
           // Soft: ops mutation already succeeded; refresh must not flip that.
-          await refreshFinancialRouteData(router, "all");
+          await refreshMutationRouteData(router, "internal");
         }}
       >
         {impact ? (

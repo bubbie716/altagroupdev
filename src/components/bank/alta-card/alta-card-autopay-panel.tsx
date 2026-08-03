@@ -31,6 +31,7 @@ import {
 import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { cn } from "@/lib/utils";
 import type { BankActionPhase } from "@/lib/bank/bank-action-flow";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
@@ -246,7 +247,7 @@ export function AltaCardAutopayPanel({
             ? { ...current, settings: updated }
             : { settings: updated, sourceAccounts: [] },
         );
-        await router.invalidate();
+        await refreshMutationRouteData(router, "alta-card");
       }
 
       initialSnapshotRef.current = {

@@ -9,6 +9,7 @@ import {
 } from "@/lib/company/company.functions";
 import type { CompanyInvitationSummary } from "@/lib/company/types";
 import { formatCompanyRole } from "@/lib/auth/tags";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function CompanyInvitationsPanel({
   invitations,
@@ -24,7 +25,7 @@ export function CompanyInvitationsPanel({
   if (invitations.length === 0) return null;
 
   async function refresh() {
-    await router.invalidate();
+    await refreshMutationRouteData(router, "corporate");
   }
 
   async function handleAccept(invitationId: string) {

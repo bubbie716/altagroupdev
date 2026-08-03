@@ -1,5 +1,10 @@
 import { brandFooterForEvent, brandLinkLabelForEvent } from "@/lib/discord/discord-branding";
 import { INVITE_COLORS, notificationColorForTitle } from "@/lib/discord/invitation-dm";
+import {
+  buildProductPremiumNotification,
+  isDiscordProductPremiumEmbedsEnabled,
+  productPremiumToDmPayload,
+} from "@/lib/discord/discord-product-notification-templates";
 
 /** Default absolute URL base for Discord notification link buttons. */
 export const DEFAULT_ALTA_WEB_BASE_URL = "https://altagroup.dev";
@@ -7,6 +12,8 @@ export const DEFAULT_ALTA_WEB_BASE_URL = "https://altagroup.dev";
 export type NotificationDmPayload = {
   embed: Record<string, unknown>;
   components: Record<string, unknown>[];
+  /** Present when Phase 7B premium path built the payload. */
+  plainTextFallback?: string;
 };
 
 export function resolveAltaWebBaseUrl(): string {
@@ -32,7 +39,30 @@ export function buildNotificationDmPayload(input: {
   embedImageUrl?: string | null;
   /** Notification / event type for product-aware branding. */
   eventType?: string | null;
+  metadata?: Record<string, unknown> | null;
+  correlationId?: string | null;
 }): NotificationDmPayload {
+  // Phase 7B — premium Bank/Terminal customer embeds when flag enabled.
+  if (isDiscordProductPremiumEmbedsEnabled() && input.eventType?.trim()) {
+    const premium = buildProductPremiumNotification({
+      eventType: input.eventType,
+      audience: "customer",
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      linkLabel: input.linkLabel,
+      embedImageUrl: input.embedImageUrl,
+      metadata: input.metadata,
+      correlationId: input.correlationId,
+    });
+    if (premium) {
+      return {
+        ...productPremiumToDmPayload(premium),
+        plainTextFallback: premium.plainText,
+      };
+    }
+  }
+
   const absoluteLink = resolvePublicLinkUrl(input.linkUrl);
   const description = input.body.slice(0, 4096);
   const imageUrl = input.embedImageUrl?.trim();

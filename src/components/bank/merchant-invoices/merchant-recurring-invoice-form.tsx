@@ -16,6 +16,7 @@ import { MerchantRecurringInvoiceScheduleList } from "@/components/bank/merchant
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { BankRequestErrorCard } from "@/components/bank/bank-request-submission-ui";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type FormView = "compose" | "success" | "error";
 
@@ -119,7 +120,7 @@ export function MerchantRecurringInvoiceForm({
       setCreatedAmount(parsedAmount);
       setCreatedFrequency(frequency);
       setView("success");
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setErrorReason(formatCustomerActionError(err));
       setView("error");

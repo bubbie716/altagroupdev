@@ -8,6 +8,7 @@ import { MockActionButton } from "@/components/internal/mock-action-button";
 import { updateCompanySettingsRecord } from "@/lib/company/company.functions";
 import type { CompanyDetail } from "@/lib/company/types";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
   const router = useRouter();
@@ -40,7 +41,7 @@ export function CompanySettingsForm({ company }: { company: CompanyDetail }) {
         },
       });
       setMessage("Company profile updated.");
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch {
       setError("Unable to save settings. Only owners may edit company profile.");
     } finally {

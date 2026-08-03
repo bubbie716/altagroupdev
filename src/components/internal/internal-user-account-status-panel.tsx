@@ -17,6 +17,7 @@ import type { AccountStatus } from "@/lib/auth/types";
 import { updateInternalUserAccountStatusRecord } from "@/lib/internal/user-management.functions";
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
@@ -43,7 +44,7 @@ export function InternalUserAccountStatusPanel({ user }: { user: InternalUserDet
       setSelected(status);
       setConfirmStatus(null);
       setMessage(`Account status updated to ${formatAccountStatus(status)}.`);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "internal");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Update failed.");
     } finally {

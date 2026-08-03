@@ -11,7 +11,7 @@ import {
 } from "@/lib/internal/internal-route-search";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { InternalUserTagPanel } from "@/components/internal/internal-user-tag-panel";
-import { InternalDiscordRolePanel } from "@/components/internal/internal-discord-role-panel";
+import { InternalDiscordOpsPanel } from "@/components/internal/internal-discord-ops-panel";
 import { InternalUserAccountStatusPanel } from "@/components/internal/internal-user-account-status-panel";
 import { OpsReviewFlagsPanel } from "@/components/internal/ops-review-flags-panel";
 import { InternalAuditTable } from "@/components/internal/internal-audit-table";
@@ -517,7 +517,7 @@ export function CustomerWorkspaceView({
           defaultOpen={search.section === "staff-access"}
         >
           <InternalUserTagPanel user={user} />
-          <InternalDiscordRolePanel userId={user.id} />
+          <InternalDiscordOpsPanel userId={user.id} />
         </RecordMoreSection>
         <RecordMoreSection
           id={recordSectionId("standing")}

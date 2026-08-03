@@ -26,6 +26,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { isAdmin } from "@/lib/auth/permissions";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -142,7 +143,7 @@ export function InternalManualInterestOps() {
         setResult(applyResult);
         setStep("result");
       }
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } catch (e) {
       setError(e instanceof Error ? e.message : isScheduling ? "Schedule failed" : "Apply failed");
     } finally {

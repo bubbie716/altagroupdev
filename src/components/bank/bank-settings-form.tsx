@@ -41,6 +41,7 @@ import { updateUserBankSettingsRecord } from "@/lib/bank/bank-settings.functions
 import * as SwitchPrimitives from "@radix-ui/react-switch";
 import { formatCustomerActionError } from "@/lib/bank/bank-action-errors";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -325,7 +326,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
   const suspendedPrefs = useRef<DiscordNotificationPrefs | null>(null);
   const appliedSettings = useRef(initialSettings);
 
-  // `router.invalidate()` after a save hands back a new object with identical
+  // Soft post-mutation refresh after a save hands back a new object with identical
   // values; resetting on that would clear the save confirmation, so only rebuild
   // the form when the server values themselves changed.
   useEffect(() => {
@@ -427,7 +428,7 @@ export function BankSettingsForm({ initialSettings }: { initialSettings: UserBan
       setEngineNotificationPrefs(nextBaseline.engineNotificationPrefs);
       setPresetChoice(null);
       setSaved(true);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } catch (err) {
       setError(formatCustomerActionError(err, "settings"));
     } finally {

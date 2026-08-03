@@ -22,6 +22,7 @@ import {
   shouldUseBankActionUiLabMock,
 } from "@/lib/bank/bank-action-ui-lab";
 import { applyUiLabAltaCardFreeze } from "@/lib/bank/ui-lab-alta-card-state";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function CardFreezeActionFlow({
   mode,
@@ -108,7 +109,7 @@ export function CardFreezeActionFlow({
         await unfreeze({ data: cardId });
         setStatusLabel("Active");
       }
-      await router.invalidate();
+      await refreshMutationRouteData(router, "alta-card");
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setPhase("success");
     } catch (err) {

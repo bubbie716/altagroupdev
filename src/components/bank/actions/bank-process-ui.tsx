@@ -12,6 +12,7 @@ import {
   type BankProcessOutcomeKind,
   type BankProcessSummaryRow,
 } from "@/lib/bank/bank-process";
+import { mutationRefreshCopy } from "@/lib/router/post-mutation-refresh";
 import { cn } from "@/lib/utils";
 
 export function BankProcessSummary({
@@ -177,18 +178,11 @@ export function BankProcessResult({
   secondaryLabel?: string;
   liveMessage?: string;
   graphicVariant?: "pulse" | "transfer" | "progress";
-  /** Soft post-commit balance refresh status — never implies transaction failure. */
+  /** Soft post-commit refresh status — never implies transaction failure. */
   refreshStatus?: "idle" | "refreshing" | "updated" | "failed";
   onRetryRefresh?: () => void;
 }) {
-  const refreshLive =
-    refreshStatus === "refreshing"
-      ? "Updating balances."
-      : refreshStatus === "updated"
-        ? "Balances updated."
-        : refreshStatus === "failed"
-          ? "Transfer completed. Updated balances may take a moment to appear."
-          : null;
+  const refreshCopy = mutationRefreshCopy(refreshStatus ?? "idle");
 
   return (
     <div className="space-y-5">
@@ -207,25 +201,17 @@ export function BankProcessResult({
       ) : null}
       {refreshStatus && refreshStatus !== "idle" ? (
         <div className="space-y-2" role="status" aria-live="polite">
-          {refreshStatus === "refreshing" ? (
-            <p className="text-[12px] text-muted-foreground">Updating balances…</p>
-          ) : null}
-          {refreshStatus === "updated" ? (
-            <p className="text-[12px] text-muted-foreground">Balances updated.</p>
-          ) : null}
-          {refreshStatus === "failed" ? (
+          {refreshCopy.visible ? (
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[12px] text-muted-foreground">
-                Transfer completed. Updated balances may take a moment to appear.
-              </p>
-              {onRetryRefresh ? (
+              <p className="text-[12px] text-muted-foreground">{refreshCopy.visible}</p>
+              {refreshStatus === "failed" && onRetryRefresh ? (
                 <BankActionSecondaryButton onClick={onRetryRefresh}>
                   Retry refresh
                 </BankActionSecondaryButton>
               ) : null}
             </div>
           ) : null}
-          {refreshLive ? <span className="sr-only">{refreshLive}</span> : null}
+          {refreshCopy.live ? <span className="sr-only">{refreshCopy.live}</span> : null}
         </div>
       ) : null}
       <BankActionFooter>

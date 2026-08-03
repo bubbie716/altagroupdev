@@ -6,6 +6,7 @@ import {
 } from "@/components/bank/bank-home-dashboard";
 import { fetchBankDashboardBundle } from "@/lib/bank/bank.functions";
 import { authBeforeLoad } from "@/lib/auth/guards";
+import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 
 export const Route = createFileRoute("/bank/")({
   beforeLoad: authBeforeLoad,
@@ -42,7 +43,7 @@ function BankDashboardErrorBoundary() {
       <BankPageMeta hideTitle title="Banking" />
       <BankHomeDashboardError
         onRetry={() => {
-          void router.invalidate();
+          void invalidateRouteData(router);
         }}
       />
     </>

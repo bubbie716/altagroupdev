@@ -17,6 +17,7 @@ import {
   runInternalScheduledTransferNowRecord,
 } from "@/lib/bank/scheduled-transfer-admin.functions";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function formatRunAt(value: string | null): string {
   if (!value) return "—";
@@ -42,7 +43,7 @@ function RunDueTransfersButton() {
           try {
             const summary = await runDueScheduledTransfersManual();
             setResult(summary);
-            await router.invalidate();
+            await refreshMutationRouteData(router, "bank");
           } finally {
             setPending(false);
           }
@@ -71,7 +72,7 @@ function ScheduledTransferActions({ row }: { row: InternalScheduledTransferRow }
     setPending(true);
     try {
       await fn();
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } finally {
       setPending(false);
     }

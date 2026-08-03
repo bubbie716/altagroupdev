@@ -10,6 +10,7 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { RecurringInvoiceScheduleRow } from "@/lib/bank/payments-engine-types";
 import { deactivateRecurringInvoiceScheduleFn } from "@/lib/bank/payments-engine.functions";
 import { SUBMITTING_COPY } from "@/lib/ui/route-loading";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const actionButtonClass =
   "text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
@@ -36,7 +37,7 @@ export function MerchantRecurringInvoiceScheduleList({
     setError(null);
     try {
       await deactivateSchedule({ data: { companyId, scheduleId: row.id } });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(formatCustomerActionError(err));
     } finally {

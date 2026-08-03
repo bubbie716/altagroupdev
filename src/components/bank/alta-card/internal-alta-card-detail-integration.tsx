@@ -8,6 +8,7 @@ import { InternalAltaCardAutopayPanel } from "@/components/bank/alta-card/intern
 import { InternalAltaCardDetailRelationshipIntegration } from "@/components/internal/relationship-integration-wrappers";
 import { useAltaCardSuggestedDefaults } from "@/components/internal/relationship-integration-blocks";
 import type { ResolvedRelationshipIntegration } from "@/lib/internal/resolved-relationship-integration.types";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type Props = {
   ops: React.ComponentProps<typeof InternalAltaCardOpsPanel>["ops"];
@@ -53,7 +54,7 @@ export function InternalAltaCardDetailIntegration(props: Props) {
         ops={props.ops}
         suggestedDefaults={merged}
         onRefresh={async () => {
-          await router.invalidate();
+          await refreshMutationRouteData(router, "alta-card");
         }}
       />
       <InternalAltaCardAutopayPanel
@@ -61,7 +62,7 @@ export function InternalAltaCardDetailIntegration(props: Props) {
         initialContext={props.autopay.context}
         initialAudit={props.autopay.audit}
         onRefresh={async () => {
-          await router.invalidate();
+          await refreshMutationRouteData(router, "alta-card");
         }}
       />
       <InternalAltaCardDetailPanel
@@ -69,7 +70,7 @@ export function InternalAltaCardDetailIntegration(props: Props) {
         statements={props.statements}
         fees={props.fees}
         onRefresh={async () => {
-          await router.invalidate();
+          await refreshMutationRouteData(router, "alta-card");
         }}
       />
     </>

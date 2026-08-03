@@ -85,10 +85,10 @@ export function EcosystemSwitcher({
       >
         {variant === "branded" ? (
           <>
-            <AltaLogo className="h-6 w-6 shrink-0" />
+            <AltaLogo className="h-7 w-7 shrink-0" />
             <span
               className={cn(
-                "hidden truncate text-[13px] font-medium tracking-tight sm:inline",
+                "hidden truncate text-[13px] font-medium tracking-tight sm:inline sm:text-[14px]",
                 isTerminal ? "text-[var(--terminal-text)]" : "text-foreground",
               )}
             >

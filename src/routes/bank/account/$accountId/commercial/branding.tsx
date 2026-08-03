@@ -6,8 +6,8 @@ import { CommercialBrandingPanel } from "@/components/bank/commercial/commercial
 import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { accountCommercialRoutes } from "@/lib/bank/account-commercial-path";
 import { fetchCompanyBrandingSettings } from "@/lib/bank/company-branding.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { Route as CommercialRoute } from "./route";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/branding")({
   loader: async ({ context }) => {
@@ -42,7 +42,7 @@ function CommercialBrandingSettingsPage() {
           settings={branding}
           accountId={accountId}
           onUpdated={() => {
-            void invalidateRouteData(router);
+            void refreshMutationRouteData(router, "corporate");
           }}
         />
       </Section>

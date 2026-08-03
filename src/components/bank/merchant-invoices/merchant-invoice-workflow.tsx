@@ -287,7 +287,7 @@ export function MerchantInvoiceWorkflow({
       setSavedReferenceCode(draft.referenceCode);
       setSuccessMode("draft");
       setPhase("success");
-      await refreshFinancialRouteData(router, "bank");
+      await refreshFinancialRouteData(router, "corporate");
     } catch (err) {
       setErrorReason(formatWorkflowError(err, "Unable to save draft."));
       setPhase("error");
@@ -312,7 +312,7 @@ export function MerchantInvoiceWorkflow({
       setSavedReferenceCode(draft.referenceCode);
       setSuccessMode("sent");
       setPhase("success");
-      await refreshFinancialRouteData(router, "bank");
+      await refreshFinancialRouteData(router, "corporate");
     } catch (err) {
       setErrorReason(formatWorkflowError(err, "Unable to send invoice."));
       setPhase("error");

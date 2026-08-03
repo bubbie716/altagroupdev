@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "@tanstack/react-router";
 import { OpsAction } from "@/components/internal/ops-action";
 import type { InboxItem, InboxSearch } from "@/lib/internal/inbox-types";
 import { buildInboxRecordHref } from "@/lib/internal/inbox-navigation";
@@ -34,12 +33,11 @@ export function InboxCaseActions({
   /** Current Inbox filters — preserved when opening a record. */
   inboxSearch?: InboxSearch;
 }) {
-  const router = useRouter();
   const { uiLab } = useUiLabMutationGate();
   const recordHref = buildInboxRecordHref(item, inboxSearch);
 
   async function after() {
-    await router.invalidate();
+    // OpsAction already runs soft post-mutation refresh after confirm.
     onDone?.();
   }
 

@@ -9,6 +9,7 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import type { CommercialPlatformSettingsView } from "@/lib/platform/commercial-plan-settings-types";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { setCommercialPlanPlatformSettingsOps } from "@/lib/platform/platform-settings.functions";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function CommercialPlanSettingsPanel({
   initial,
@@ -52,7 +53,7 @@ export function CommercialPlanSettingsPanel({
           reason,
         },
       });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Save failed.");
     }

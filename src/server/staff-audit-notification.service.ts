@@ -5,6 +5,10 @@ import {
 } from "@/lib/discord/discord-event-registry";
 import { buildEventPremiumEmbed } from "@/lib/discord/discord-premium-embed";
 import {
+  buildProductPremiumNotification,
+  isDiscordProductPremiumEmbedsEnabled,
+} from "@/lib/discord/discord-product-notification-templates";
+import {
   formatStaffAuditAction,
   formatStaffAuditMessage,
 } from "@/lib/staff-audit/staff-audit-format";
@@ -66,10 +70,45 @@ export function buildStaffAuditPremiumPayload(
   const content = formatStaffAuditMessage(input);
   const productSource = staffAuditProductToSource(input.product);
   const details = sanitizeStaffAuditDetails(input.details);
+  const eventType = input.eventType?.trim() || input.action;
+
+  // Phase 7B — prefer typed Bank/Terminal product templates when flag is on.
+  if (
+    isDiscordProductPremiumEmbedsEnabled() &&
+    (productSource === "bank" || productSource === "terminal")
+  ) {
+    const premium = buildProductPremiumNotification({
+      eventType,
+      audience: "staff",
+      title: formatStaffAuditAction(input.action, input.source),
+      body: details ?? content,
+      linkUrl: input.internalUrl,
+      correlationId: input.dedupeKey,
+      severity: input.severity,
+      metadata: {
+        status: input.severity ?? undefined,
+      },
+    });
+    if (premium) {
+      // Keep Actor field for staff operational context.
+      const fields = Array.isArray(premium.embed.fields)
+        ? [...(premium.embed.fields as Array<Record<string, unknown>>)]
+        : [];
+      fields.unshift(
+        { name: "Actor", value: input.actorLabel, inline: true },
+        { name: "Product", value: input.product, inline: true },
+      );
+      return {
+        content: premium.plainText.slice(0, 2000) || content,
+        embed: { ...premium.embed, fields: fields.slice(0, 25) },
+        components: premium.components,
+      };
+    }
+  }
 
   try {
     const built = buildEventPremiumEmbed({
-      eventType: input.eventType?.trim() || input.action,
+      eventType,
       product: productSource,
       severity: input.severity,
       title: formatStaffAuditAction(input.action, input.source),
@@ -109,13 +148,44 @@ export async function sendStaffAuditMessageAsync(
     enqueueStaffAuditOutbox,
     markDiscordOutboxSent,
     markDiscordOutboxDead,
+    resolveProductOutboxIdempotencyKey,
   } = await import("@/server/discord-outbox.service");
-  const { buildStaffAuditIdempotencyKey } = await import("@/lib/discord/discord-event-envelope");
-  const outboxIdempotencyKey = buildStaffAuditIdempotencyKey(
+  const {
+    buildStaffAuditIdempotencyKey,
+    resolveOutboxTargetBot,
+    staffAuditProductToSource,
+  } = await import("@/lib/discord/discord-event-envelope");
+  const baseOutboxIdempotencyKey = buildStaffAuditIdempotencyKey(
     input.dedupeKey,
     `${input.action}:${input.actorUserId ?? "system"}`,
   );
+  const productSourceEarly = staffAuditProductToSource(input.product);
+  let earlyChannel: "staff_ops" | "security_audit" | "delivery_alert" = "staff_ops";
+  if (isDiscordProductAwareRoutingEnabled() && input.eventType) {
+    try {
+      const def = resolveDiscordEventDefinition(input.eventType);
+      if (
+        def.channelClass === "security_audit" ||
+        def.channelClass === "delivery_alert" ||
+        def.channelClass === "staff_ops"
+      ) {
+        earlyChannel = def.channelClass;
+      }
+    } catch {
+      /* keep staff_ops */
+    }
+  }
+  const productTargetBot = resolveOutboxTargetBot({
+    product: productSourceEarly,
+    channelClass: earlyChannel,
+    eventType: input.eventType?.trim() || input.action,
+  });
+  const outboxIdempotencyKey = resolveProductOutboxIdempotencyKey(
+    baseOutboxIdempotencyKey,
+    productTargetBot,
+  );
   // Dual-write (feature-flagged): durable outbox beside unchanged Bank dispatch.
+  // Phase 7A may also enqueue a Secretary audit destination (separate idempotency key).
   void enqueueStaffAuditOutbox({
     product: input.product,
     action: input.action,
@@ -127,24 +197,12 @@ export async function sendStaffAuditMessageAsync(
     severity: input.severity,
     dedupeKey: input.dedupeKey,
     correlationId: input.dedupeKey,
+    actorLabel,
+    internalUrl: input.internalUrl,
   }).catch(() => {});
 
-  const productSource = staffAuditProductToSource(input.product);
-  let channelClass: "staff_ops" | "security_audit" | "delivery_alert" = "staff_ops";
-  if (isDiscordProductAwareRoutingEnabled() && input.eventType) {
-    try {
-      const def = resolveDiscordEventDefinition(input.eventType);
-      if (
-        def.channelClass === "security_audit" ||
-        def.channelClass === "delivery_alert" ||
-        def.channelClass === "staff_ops"
-      ) {
-        channelClass = def.channelClass;
-      }
-    } catch {
-      /* keep staff_ops */
-    }
-  }
+  const productSource = productSourceEarly;
+  const channelClass = earlyChannel;
 
   const result = await dispatchStaffAuditDiscordMessage(content, {
     product: productSource,

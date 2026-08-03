@@ -35,6 +35,16 @@ describe("discord event registry", () => {
     assert.equal(rejected.product, "terminal");
     assert.equal(resolveDiscordEventDefinition("TERMINAL_FUNDING_FAILED").product, "terminal");
 
+    const portfolioCreated = resolveDiscordEventDefinition("TERMINAL_PORTFOLIO_CREATED");
+    assert.equal(portfolioCreated.product, "terminal");
+    assert.equal(portfolioCreated.channelClass, "customer_dm");
+    assert.equal(portfolioCreated.deliveryBot, "bank");
+
+    const accountOpened = resolveDiscordEventDefinition("BANK_ACCOUNT_OPENED");
+    assert.equal(accountOpened.product, "bank");
+    assert.equal(accountOpened.channelClass, "customer_dm");
+    assert.equal(accountOpened.deliveryBot, "bank");
+
     const staffFee = resolveDiscordEventDefinition("TERMINAL_CRYPTO_FEE_CONFIG_UPDATED");
     assert.equal(staffFee.ownedByBot, "terminal");
     assert.equal(staffFee.deliveryBot, "terminal");

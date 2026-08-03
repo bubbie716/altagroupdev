@@ -7,7 +7,7 @@ import {
   fetchTerminalWatchlist,
   removeTerminalWatchlistSymbol,
 } from "@/lib/terminal/terminal.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/terminal/watchlist")({
   loader: async () => fetchTerminalWatchlist(),
@@ -77,7 +77,7 @@ function TerminalWatchlistPage() {
                       void addWatch({ data: s.symbol })
                         .then(() => {
                           setQuery("");
-                          return invalidateRouteData(router);
+                          return refreshMutationRouteData(router, "terminal");
                         })
                         .catch((err: unknown) => {
                           setError(err instanceof Error ? err.message : "Could not add symbol");
@@ -116,7 +116,7 @@ function TerminalWatchlistPage() {
           onRemove={(symbol) => {
             setBusy(symbol);
             void removeWatch({ data: symbol })
-              .then(() => invalidateRouteData(router))
+              .then(() => refreshMutationRouteData(router, "terminal"))
               .finally(() => setBusy(null));
           }}
         />

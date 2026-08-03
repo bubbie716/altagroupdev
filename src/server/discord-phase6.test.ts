@@ -261,7 +261,7 @@ describe("Phase 6 — premium embed migration", () => {
 
 describe("Phase 6 — operator role panel", () => {
   it("panel surfaces eligibility, owner bot, outbox, and live-unavailable state", () => {
-    const panel = readSrc("src/components/internal/internal-discord-role-panel.tsx");
+    const panel = readSrc("src/components/internal/internal-discord-ops-panel.tsx");
     assert.match(panel, /Eligibility/);
     assert.match(panel, /Owner bot/);
     assert.match(panel, /live member roles unavailable/);

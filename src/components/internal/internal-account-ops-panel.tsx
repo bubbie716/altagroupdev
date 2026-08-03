@@ -13,6 +13,7 @@ import {
 } from "@/lib/internal/ops-platform.functions";
 import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { florin } from "@/lib/bank/api";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldClass =
   "w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
@@ -139,7 +140,7 @@ export function InternalAccountOpsPanel({
           await reopenFn({
             data: { accountId, reason, silentNotification: options?.silentNotification },
           });
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       />
 
@@ -158,7 +159,7 @@ export function InternalAccountOpsPanel({
           await holdFn({
             data: { accountId, amount, reason, silentNotification: options?.silentNotification },
           });
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       >
         <label className="block text-sm">
@@ -195,7 +196,7 @@ export function InternalAccountOpsPanel({
               reason,
             },
           });
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       >
         <label className="block text-sm">
@@ -250,7 +251,7 @@ export function InternalAccountOpsPanel({
               silentNotification: options?.silentNotification,
             },
           });
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       >
         <div className="space-y-2 text-[13px]">
@@ -285,7 +286,7 @@ export function InternalAccountOpsPanel({
           await releaseFn({
             data: { holdId: releaseHoldId, reason, silentNotification: options?.silentNotification },
           });
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       />
     </div>

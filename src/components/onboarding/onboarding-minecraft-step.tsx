@@ -19,6 +19,7 @@ import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { getUiLabOnboardingScenario } from "@/lib/onboarding/ui-lab-onboarding";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type Challenge = NonNullable<OnboardingLoaderState["minecraftChallenge"]>;
 
@@ -112,7 +113,7 @@ export function OnboardingMinecraftStep({ initial, onVerified }: Props) {
         setSecondsRemaining(next.secondsRemaining);
         setPhase("coords");
         setStatusMessage(null);
-        await router.invalidate();
+        await refreshMutationRouteData(router, "all");
       } catch (error) {
         setErrorMessage(humanizeChallengeError(error));
         queueMicrotask(() => errorRef.current?.focus());
@@ -159,7 +160,7 @@ export function OnboardingMinecraftStep({ initial, onVerified }: Props) {
           window.setTimeout(() => {
             if (!abortRef.current) onVerified(result.verifiedUsername);
           }, 900);
-          void router.invalidate();
+          void refreshMutationRouteData(router, "all");
           return;
         }
 

@@ -23,6 +23,7 @@ import {
   BankRequestErrorCard,
 } from "@/components/bank/bank-request-submission-ui";
 import { absolutePaymentLinkCheckoutUrl } from "@/lib/bank/payment-link-checkout-url";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function PaymentLinkDetailPanel({
   link,
@@ -67,7 +68,7 @@ export function PaymentLinkDetailPanel({
     setError(null);
     try {
       await fn();
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(formatCustomerActionError(err));
     } finally {

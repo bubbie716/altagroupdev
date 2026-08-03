@@ -23,6 +23,7 @@ import {
 import { OpsAction } from "@/components/internal/ops-action";
 import { AdminDataTable } from "@/components/internal/admin-data-table";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground";
 
@@ -72,7 +73,7 @@ export function InternalAltaCardAutopayPanel({
     setType(loaded.context.settings.type ?? "minimum_payment");
     setFixedAmount(String(loaded.context.settings.fixedAmount ?? "100"));
     await onRefresh();
-    await router.invalidate();
+    await refreshMutationRouteData(router, "alta-card");
   }
 
   async function handleSave() {

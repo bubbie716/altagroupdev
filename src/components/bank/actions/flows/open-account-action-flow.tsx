@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   BankActionFooter,
   BankActionPrimaryButton,
@@ -54,6 +55,7 @@ export function OpenAccountActionFlow({
 }: BankActionFlowController & {
   initialAccountType?: BankAccountTypeCode;
 }) {
+  const navigate = useNavigate();
   const user = useCurrentUser();
   const seededType = initialAccountType ?? "alta_access";
   const seededOwnership =
@@ -173,6 +175,13 @@ export function OpenAccountActionFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, accountName, selectedAccountType, ownership, companyId, instant]);
 
+  async function goToOpenedAccount(accountId: string) {
+    await navigate({
+      to: "/bank/account/$accountId",
+      params: { accountId },
+    });
+  }
+
   async function submit() {
     if (submittingLockRef.current || phase === "submitting" || !selectedAccountType) return;
     submittingLockRef.current = true;
@@ -184,16 +193,18 @@ export function OpenAccountActionFlow({
       if (shouldUseBankActionUiLabMock()) {
         mockBankActionSubmission({ kind: "open", amount: 0, accountName });
         await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
-        setCreated({
-          accountId: "ui-lab-account",
+        const result: OpenBankAccountResult = {
+          accountId: "ui-lab-biz-core",
           accountNumber: "AB-5000-LAB001",
           routingNumber: "000000000",
           accountName,
           accountTypeLabel: selectedAccountType.label,
           statusLabel: instant ? "Active" : "Pending review",
           instant: Boolean(instant),
-        });
+        };
+        setCreated(result);
         setPhase("success");
+        await goToOpenedAccount(result.accountId);
         return;
       }
       const result = await openBankAccountRecord({
@@ -207,6 +218,7 @@ export function OpenAccountActionFlow({
       await waitBankProcessMin(startedAt, BANK_PROCESS_MOTION.minProcessingMs);
       setCreated(result);
       setPhase("success");
+      await goToOpenedAccount(result.accountId);
     } catch (err) {
       setError(
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Unable to open account.",
@@ -237,7 +249,13 @@ export function OpenAccountActionFlow({
             ? "Your account is open and ready to use."
             : "Your account application is pending review."
         }
-        onDone={onDone}
+        onDone={() => {
+          if (created?.accountId) {
+            void goToOpenedAccount(created.accountId);
+            return;
+          }
+          onDone();
+        }}
         summary={
           created
             ? [
@@ -249,11 +267,7 @@ export function OpenAccountActionFlow({
             : undefined
         }
       >
-        {created?.instant ? (
-          <p>You can fund it and start moving money right away.</p>
-        ) : (
-          <p>An Alta reviewer follows up once a decision is made.</p>
-        )}
+        <p>Taking you to your account…</p>
       </BankActionSuccess>
     );
   }

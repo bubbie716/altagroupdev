@@ -27,6 +27,7 @@ import {
   formatCryptoMoney,
   formatCryptoPrice,
 } from "@/lib/terminal/crypto/crypto-format";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export type TerminalCryptoDeskSearch = { site?: string; cryptoOpsScenario?: string };
 
@@ -124,7 +125,7 @@ function TerminalCryptoDeskPage() {
       setShowRecon(false);
       setReconReason("");
       setReconConfirmed(false);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "terminal");
     } catch (err) {
       setReconError(err instanceof Error ? err.message : "Reconciliation failed");
     } finally {

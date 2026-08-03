@@ -30,6 +30,7 @@ import {
 } from "@/lib/bank/commercial-banking.functions";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const DOWNGRADE_DESCRIPTION =
   "Return to Alta Commercial Core when your current Pro period ends, or downgrade immediately with explicit confirmation.";
@@ -176,7 +177,7 @@ export function CommercialProDowngradePanel({
 
   function handleOpenChange(next: boolean) {
     if (!next && phase === "success") {
-      void router.invalidate();
+      void refreshMutationRouteData(router, "corporate");
       onCompleted();
     }
     setOpen(next);

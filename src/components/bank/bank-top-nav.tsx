@@ -44,7 +44,7 @@ export function BankTopNav() {
       className="sticky z-40 border-b border-border/70 bg-background/95 backdrop-blur-md"
       style={{ top: "var(--ui-lab-banner-height, 0px)" }}
     >
-      <div className="mx-auto flex h-14 max-w-[1120px] items-center gap-2 px-3 sm:gap-3 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:h-16 sm:px-6">
         <EcosystemSwitcher siteKey={site.key} variant="branded" className="shrink-0" />
 
         <nav
@@ -60,7 +60,7 @@ export function BankTopNav() {
                 to={String(link.to)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
+                  "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                   active
                     ? "bg-surface-2 text-foreground"
@@ -73,7 +73,7 @@ export function BankTopNav() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {pathname !== "/bank" && pathname !== "/bank/" ? (
             <MoveMoneyChooser>
               <ArrowLeftRight className="size-3.5" aria-hidden />

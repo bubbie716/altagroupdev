@@ -19,7 +19,7 @@ import {
 } from "@/lib/bank/commercial-banking-types";
 import { florin } from "@/lib/bank/api";
 import { canAccessBusinessModule } from "@/lib/bank/business-account-access";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type PayrollLoaderData =
   | {
@@ -181,7 +181,7 @@ function AccountCommercialPayrollPage() {
           monthlyFee={data.monthlyFee}
           canPurchase={data.canPurchase}
           onUpgraded={() => {
-            void invalidateRouteData(router);
+            void refreshMutationRouteData(router, "corporate");
           }}
         />
       </Section>

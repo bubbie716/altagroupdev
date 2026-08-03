@@ -12,8 +12,18 @@ import type {
   DiscordProductSource,
   DiscordTargetBot,
 } from "@/lib/discord/discord-event-envelope";
+import { ALL_PHASE8_STAFF_EXACT } from "@/lib/discord/discord-event-registry-phase8-exact";
 
 export type DiscordEventAudience = "customer" | "staff" | "both";
+
+/** Phase 7A — explicit event class for Secretary fan-out (do not infer from prefixes alone). */
+export type DiscordEventClassification =
+  | "customer_notification"
+  | "product_staff_audit"
+  | "secretary_system_audit"
+  | "security_alert"
+  | "delivery_failure"
+  | "role_management";
 
 export type DiscordBrandProfile = {
   footer: string;
@@ -38,6 +48,8 @@ export type DiscordEventDefinition = {
   /** Bank settings Discord preference group id when customer-facing. */
   preferenceGroupId?: string;
   brand: DiscordBrandProfile;
+  /** Authoritative classification for fan-out / inventory (Phase 7A). */
+  classification: DiscordEventClassification;
 };
 
 export const DISCORD_BRANDS = {
@@ -68,10 +80,14 @@ export const DISCORD_BRANDS = {
   },
 } as const satisfies Record<DiscordProductSource, DiscordBrandProfile>;
 
-type DefInput = Omit<DiscordEventDefinition, "eventType" | "deliveryBot" | "brand" | "ownedByBot"> & {
+type DefInput = Omit<
+  DiscordEventDefinition,
+  "eventType" | "deliveryBot" | "brand" | "ownedByBot" | "classification"
+> & {
   ownedByBot?: DiscordTargetBot;
   deliveryBot?: DiscordTargetBot;
   brand?: DiscordBrandProfile;
+  classification?: DiscordEventClassification;
 };
 
 function resolveDefaultOwnedByBot(product: DiscordProductSource): DiscordTargetBot {
@@ -99,6 +115,20 @@ function resolveDefaultDeliveryBot(
   return "bank";
 }
 
+function resolveDefaultClassification(
+  channelClass: DiscordChannelClass,
+  ownedByBot: DiscordTargetBot,
+  override?: DiscordEventClassification,
+): DiscordEventClassification {
+  if (override) return override;
+  if (channelClass === "customer_dm") return "customer_notification";
+  if (channelClass === "security_audit") return "security_alert";
+  if (channelClass === "delivery_alert") return "delivery_failure";
+  if (channelClass === "role_mgmt") return "role_management";
+  if (ownedByBot === "secretary") return "secretary_system_audit";
+  return "product_staff_audit";
+}
+
 function def(eventType: string, input: DefInput): DiscordEventDefinition {
   const brand = input.brand ?? DISCORD_BRANDS[input.product];
   const ownedByBot = input.ownedByBot ?? resolveDefaultOwnedByBot(input.product);
@@ -113,6 +143,11 @@ function def(eventType: string, input: DefInput): DiscordEventDefinition {
     deliveryPolicy: input.deliveryPolicy,
     preferenceGroupId: input.preferenceGroupId,
     brand,
+    classification: resolveDefaultClassification(
+      input.channelClass,
+      ownedByBot,
+      input.classification,
+    ),
   };
 }
 
@@ -147,6 +182,7 @@ const EXACT_EVENTS: DiscordEventDefinition[] = [
   def("TRANSFER_RECEIVED", { product: "bank", ...CUSTOMER_QUEUED, severity: "INFO", preferenceGroupId: "banking" }),
   def("TRANSFER_FAILED", { product: "bank", ...CUSTOMER_QUEUED, severity: "WARNING", preferenceGroupId: "banking" }),
   def("LARGE_MONEY_MOVEMENT_ALERT", { product: "bank", ...CUSTOMER_QUEUED, severity: "WARNING", preferenceGroupId: "banking" }),
+  def("BANK_ACCOUNT_OPENED", { product: "bank", ...CUSTOMER_QUEUED, severity: "ACTION", preferenceGroupId: "banking" }),
   def("ALTA_PAY_SENT", { product: "bank", ...CUSTOMER_QUEUED, severity: "INFO", preferenceGroupId: "alta-pay" }),
   def("ALTA_PAY_RECEIVED", { product: "bank", ...CUSTOMER_QUEUED, severity: "INFO", preferenceGroupId: "alta-pay" }),
   def("ALTA_PAY_FAILED", { product: "bank", ...CUSTOMER_QUEUED, severity: "WARNING", preferenceGroupId: "alta-pay" }),
@@ -208,6 +244,7 @@ const EXACT_EVENTS: DiscordEventDefinition[] = [
   def("TERMINAL_CRYPTO_ORDER_FAILED", { product: "terminal", ...CUSTOMER_QUEUED, severity: "WARNING", preferenceGroupId: "terminal" }),
   def("TERMINAL_FUNDING_COMPLETED", { product: "terminal", ...CUSTOMER_QUEUED, severity: "ACTION", preferenceGroupId: "terminal" }),
   def("TERMINAL_FUNDING_FAILED", { product: "terminal", ...CUSTOMER_QUEUED, severity: "WARNING", preferenceGroupId: "terminal" }),
+  def("TERMINAL_PORTFOLIO_CREATED", { product: "terminal", ...CUSTOMER_QUEUED, severity: "ACTION", preferenceGroupId: "terminal" }),
 
   // —— Terminal / Bank staff audit actions (exact) ——
   def("TERMINAL_CRYPTO_ORDER_FILLED", { product: "terminal", ...STAFF_OPS, severity: "INFO" }),
@@ -293,7 +330,15 @@ const EXACT_EVENTS: DiscordEventDefinition[] = [
     deliveryBot: "secretary",
   }),
   def("OPS_JOB_FAILED", { product: "ops", ...STAFF_OPS, severity: "CRITICAL", ownedByBot: "secretary" }),
+  def("DISCORD_OUTBOX_RETRY", { product: "ops", ...STAFF_OPS, severity: "INFO", ownedByBot: "secretary" }),
+  def("DISCORD_OUTBOX_REPLAY", { product: "ops", ...STAFF_OPS, severity: "INFO", ownedByBot: "secretary" }),
+  def("DISCORD_ROLE_RECONCILE", { product: "ops", ...STAFF_OPS, severity: "ACTION", ownedByBot: "secretary" }),
 ];
+
+// Phase 8 — exact staff audit actions (fail closed; no silent Bank prefix default).
+for (const entry of ALL_PHASE8_STAFF_EXACT) {
+  EXACT_EVENTS.push(def(entry.eventType, entry.partial));
+}
 
 /** Prefix rules (longest match wins). */
 const PREFIX_RULES: Array<{ prefix: string; partial: DefInput }> = [
@@ -432,6 +477,11 @@ export function resolveStaffAuditProductLabel(eventType: string): string {
 
 export function listRegisteredDiscordEventTypes(): string[] {
   return [...EXACT_MAP.keys()].sort();
+}
+
+/** Exact registry definitions (Phase 7A inventory). */
+export function listRegisteredDiscordEventDefinitions(): DiscordEventDefinition[] {
+  return [...EXACT_MAP.values()].sort((a, b) => a.eventType.localeCompare(b.eventType));
 }
 
 export function listPrefixRules(): string[] {

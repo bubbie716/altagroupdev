@@ -35,6 +35,7 @@ import {
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { useOptionalProductConsentAction } from "@/components/legal/product-consent-action-controller";
 import { executeWithProductConsentResume } from "@/lib/legal/execute-with-product-consent";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -133,7 +134,7 @@ export function CommercialProUpgradePanel({
 
   function handleOpenChange(next: boolean) {
     if (!next && phase === "success") {
-      void router.invalidate();
+      void refreshMutationRouteData(router, "corporate");
       onCompleted();
     }
     setOpen(next);

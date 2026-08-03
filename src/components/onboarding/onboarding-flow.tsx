@@ -19,6 +19,7 @@ import { isUiLabMode } from "@/lib/auth/ui-lab";
 import { getUiLabOnboardingScenario } from "@/lib/onboarding/ui-lab-onboarding";
 import { invalidateRootSessionCache } from "@/lib/auth/root-session-cache";
 import type { SiteKey } from "@/config/sites";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type Props = {
   initial: OnboardingLoaderState;
@@ -128,7 +129,7 @@ export function OnboardingFlow({ initial, sourceSite, returnPath, returnOrigin }
         invalidateRootSessionCache();
         setStatusMessage("Core account setup complete.");
         setClientStep(result.step === "minecraft" ? "minecraft" : "confirmation");
-        await router.invalidate();
+        await refreshMutationRouteData(router, "all");
       } catch (error) {
         setStatusMessage(null);
         setErrorMessage(humanizeSubmitError(error));
@@ -140,7 +141,7 @@ export function OnboardingFlow({ initial, sourceSite, returnPath, returnOrigin }
   async function handleContinue() {
     const path = initial.destination.path || "/home";
     invalidateRootSessionCache();
-    await router.invalidate();
+    await refreshMutationRouteData(router, "all");
     await router.navigate({ href: path });
   }
 

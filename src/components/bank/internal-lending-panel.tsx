@@ -23,6 +23,7 @@ import { OPS_COPY } from "@/lib/internal/console/ops-copy";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 import { useSiteContext } from "@/hooks/use-site-context";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldLabel = "type-meta";
 const inputClass =
@@ -97,7 +98,7 @@ function LoanApplicationReviewActions({ row }: { row: InternalLoanApplicationRow
   }
 
   async function invalidate() {
-    await router.invalidate();
+    await refreshMutationRouteData(router, "lending");
   }
 
   return (

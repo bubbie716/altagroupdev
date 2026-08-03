@@ -454,6 +454,23 @@ export async function createTerminalPortfolio(
         }
       });
 
+    // Customer DM via Bank bot (in-app + Discord).
+    try {
+      const { notifyTerminalPortfolioCreated } = await import(
+        "@/server/banking-notification.service"
+      );
+      notifyTerminalPortfolioCreated({
+        userId: user.id,
+        portfolioId: row.id,
+        portfolioName: row.name,
+        ownerType: input.ownerType,
+      });
+    } catch (error) {
+      if (process.env.NODE_ENV !== "test") {
+        console.error("[terminal-portfolio] create notification failed", error);
+      }
+    }
+
     return toSummary(
       {
         id: row.id,

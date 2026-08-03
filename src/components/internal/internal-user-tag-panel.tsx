@@ -22,6 +22,7 @@ import {
 import type { InternalUserDetail } from "@/lib/internal/user-management.types";
 import { ALL_USER_TAGS } from "@/lib/internal/user-management.types";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type PendingAction = {
   kind: "grant" | "revoke";
@@ -60,7 +61,7 @@ export function InternalUserTagPanel({ user }: { user: InternalUserDetail }) {
         setMessage(`${formatUserTag(action.tag)} revoked.`);
       }
       setPending(null);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "internal");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Action failed.");
     } finally {

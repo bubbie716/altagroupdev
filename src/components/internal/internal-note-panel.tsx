@@ -11,6 +11,7 @@ import {
 } from "@/lib/internal/internal-note.functions";
 import type { InternalNoteRow } from "@/lib/internal/internal-note.types";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function InternalNotePanel({
   targetType,
@@ -44,7 +45,7 @@ export function InternalNotePanel({
       await createNote({ data: { targetType, targetId, note: text } });
       setText("");
       await refresh();
-      await router.invalidate();
+      await refreshMutationRouteData(router, "internal");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Failed to save note.");
     } finally {

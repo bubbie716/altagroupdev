@@ -16,6 +16,7 @@ import {
   isAltaCardCustomPeriodStatement,
   isAltaCardOfficialBillingStatement,
 } from "@/lib/bank/alta-card-types";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function sortStatementsNewestFirst(rows: AltaCardStatementRow[]): AltaCardStatementRow[] {
   return [...rows].sort((a, b) => b.statementNumber - a.statementNumber);
@@ -71,7 +72,7 @@ export function AltaCardStatementsPageContent({
   const handleStatementGenerated = useCallback(
     async (statement: AltaCardStatementDetail) => {
       setStatements((current) => mergeStatementRow(current, statement));
-      await router.invalidate();
+      await refreshMutationRouteData(router, "alta-card");
       await refreshStatements();
     },
     [refreshStatements, router],

@@ -832,6 +832,18 @@ export async function openBankAccount(
     } catch (error) {
       console.error("[bank] client role grant after first account failed", error);
     }
+
+    try {
+      const { notifyBankAccountOpened } = await import("@/server/banking-notification.service");
+      notifyBankAccountOpened({
+        userId,
+        accountId: account.id,
+        accountName,
+        business: Boolean(companyId),
+      });
+    } catch (error) {
+      console.error("[bank] account-open notification failed", error);
+    }
   })();
 
   const statusLabel = status === "ACTIVE" ? "Active" : "Pending Review";

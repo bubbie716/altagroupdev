@@ -17,6 +17,7 @@ import {
 import type { LoanRow } from "@/lib/bank/lending-types";
 import { type } from "@/lib/typography";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function LendingLoansPage({ loans }: { loans: LoanRow[] }) {
   const { active, previous } = useMemo(() => splitLoansByServicing(loans), [loans]);
@@ -214,7 +215,7 @@ function ActiveLoanCard({ loan }: { loan: LoanRow }) {
         open={payOpen}
         onOpenChange={setPayOpen}
         onPaid={async () => {
-          await router.invalidate();
+          await refreshMutationRouteData(router, "lending");
         }}
       />
     </article>

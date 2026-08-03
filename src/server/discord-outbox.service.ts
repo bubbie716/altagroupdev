@@ -17,6 +17,13 @@ import {
   isDiscordProductAwareRoutingEnabled,
   resolveDiscordEventDefinition,
 } from "@/lib/discord/discord-event-registry";
+import {
+  buildDestinationIdempotencyKey,
+  buildSecretaryCentralAuditDisplayPayload,
+  isDiscordSecretaryAuditFanoutEnabled,
+  planDiscordFanoutDestinations,
+  type FanoutDestinationPlan,
+} from "@/lib/discord/discord-secretary-audit-fanout";
 import { prisma } from "@/server/db";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
@@ -207,6 +214,108 @@ export async function enqueueDiscordOutboxEvent(
   }
 }
 
+export type EnqueueDiscordFanoutInput = {
+  baseIdempotencyKey: string;
+  product: DiscordEventEnvelope["product"];
+  eventType: string;
+  channelClass: DiscordEventEnvelope["channelClass"];
+  productTargetBot: DiscordTargetBot;
+  displayPayload: DiscordSafeDisplayPayload;
+  severity?: DiscordEventSeverity;
+  correlationId?: string;
+  actor?: DiscordEventEnvelope["actor"];
+  subject?: DiscordEventEnvelope["subject"];
+  internalRef?: DiscordEventEnvelope["internalRef"];
+  deliveryPolicy?: DiscordEventEnvelope["deliveryPolicy"];
+  /** Optional prebuilt Secretary audit payload (staff_audit only). */
+  secretaryAuditPayload?: DiscordStaffAuditDisplayPayload;
+  nextAttemptAt?: Date;
+  eventId?: string;
+};
+
+export type EnqueueDiscordFanoutResult = {
+  destinations: Array<{
+    targetBot: DiscordTargetBot;
+    role: FanoutDestinationPlan["role"];
+    idempotencyKey: string;
+    outboxId: string | null;
+  }>;
+};
+
+/**
+ * Phase 7A — enqueue one outbox row per destination bot.
+ * Destination failures are independent; never throws.
+ * When DISCORD_SECRETARY_AUDIT_FANOUT is off, creates a single legacy-keyed row.
+ */
+export async function enqueueDiscordFanout(
+  input: EnqueueDiscordFanoutInput,
+): Promise<EnqueueDiscordFanoutResult> {
+  const plans = planDiscordFanoutDestinations({
+    baseIdempotencyKey: input.baseIdempotencyKey,
+    product: input.product,
+    eventType: input.eventType,
+    channelClass: input.channelClass,
+    productTargetBot: input.productTargetBot,
+    displayPayload: input.displayPayload,
+    secretaryAuditPayload: input.secretaryAuditPayload,
+  });
+
+  const destinations: EnqueueDiscordFanoutResult["destinations"] = [];
+  const sharedEventId = input.eventId?.trim() || randomUUID();
+
+  for (const plan of plans) {
+    // Independent try — one destination failure must not block others.
+    let outboxId: string | null = null;
+    try {
+      outboxId = await enqueueDiscordOutboxEvent({
+        envelope: {
+          eventId:
+            plan.role === "product"
+              ? sharedEventId
+              : `${sharedEventId}:secretary-audit`,
+          idempotencyKey: plan.idempotencyKey,
+          product: plan.product,
+          eventType: input.eventType,
+          actor: input.actor,
+          subject: input.subject,
+          severity: input.severity,
+          correlationId: input.correlationId,
+          displayPayload: plan.displayPayload,
+          internalRef: input.internalRef,
+          targetBot: plan.targetBot,
+          channelClass: plan.channelClass,
+          deliveryPolicy: input.deliveryPolicy ?? "queued",
+        },
+        nextAttemptAt: input.nextAttemptAt,
+      });
+    } catch (error) {
+      logOutbox("fanout destination enqueue failed", {
+        targetBot: plan.targetBot,
+        idempotencyKey: plan.idempotencyKey,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      outboxId = null;
+    }
+    destinations.push({
+      targetBot: plan.targetBot,
+      role: plan.role,
+      idempotencyKey: plan.idempotencyKey,
+      outboxId,
+    });
+  }
+
+  return { destinations };
+}
+
+/** Product-destination idempotency key for primary-path mark SENT/DEAD. */
+export function resolveProductOutboxIdempotencyKey(
+  baseIdempotencyKey: string,
+  productTargetBot: DiscordTargetBot,
+): string {
+  if (!isDiscordSecretaryAuditFanoutEnabled()) return baseIdempotencyKey;
+  return buildDestinationIdempotencyKey(baseIdempotencyKey, productTargetBot);
+}
+
 export async function markDiscordOutboxSent(idempotencyKey: string): Promise<void> {
   if (!isDiscordOutboxDualWriteEnabled()) return;
   const key = idempotencyKey.trim();
@@ -336,31 +445,51 @@ export async function enqueueCustomerDmOutbox(
     eventType: input.type,
   };
 
-  return enqueueDiscordOutboxEvent({
-    envelope: {
-      idempotencyKey,
-      product,
+  // Phase 7B — attach optional premium embed onto outbox row when flag is on.
+  try {
+    const { buildNotificationDmPayload } = await import("@/lib/discord/notification-dm");
+    const built = buildNotificationDmPayload({
+      title: input.title,
+      body: input.body,
+      linkUrl: input.linkUrl,
+      linkLabel: input.linkLabel,
+      embedImageUrl: input.embedImageUrl,
       eventType: input.type,
-      actor: input.actorUserId ? { userId: input.actorUserId } : { userId: input.userId },
-      subject: { userId: input.userId, entityType: "USER_NOTIFICATION", entityId: input.notificationId },
-      severity,
-      correlationId: input.correlationId ?? input.notificationId,
-      displayPayload,
-      internalRef: {
-        notificationId: input.notificationId,
-        entityType: "USER_NOTIFICATION",
-        entityId: input.notificationId,
-      },
-      // Customer DMs always target Bank — never Secretary.
-      targetBot: resolveOutboxTargetBot({
-        product,
-        channelClass: "customer_dm",
-        eventType: input.type,
-      }),
+      correlationId: input.notificationId,
+    });
+    if (built.plainTextFallback) {
+      displayPayload.embed = built.embed;
+      displayPayload.components = built.components;
+    }
+  } catch {
+    /* keep title/body-only payload */
+  }
+
+  const result = await enqueueDiscordFanout({
+    baseIdempotencyKey: idempotencyKey,
+    product,
+    eventType: input.type,
+    channelClass: "customer_dm",
+    productTargetBot: resolveOutboxTargetBot({
+      product,
       channelClass: "customer_dm",
-      deliveryPolicy,
+      eventType: input.type,
+    }),
+    displayPayload,
+    severity,
+    correlationId: input.correlationId ?? input.notificationId,
+    actor: input.actorUserId ? { userId: input.actorUserId } : { userId: input.userId },
+    subject: { userId: input.userId, entityType: "USER_NOTIFICATION", entityId: input.notificationId },
+    internalRef: {
+      notificationId: input.notificationId,
+      entityType: "USER_NOTIFICATION",
+      entityId: input.notificationId,
     },
+    deliveryPolicy,
   });
+
+  const productDest = result.destinations.find((d) => d.role === "product");
+  return productDest?.outboxId ?? null;
 }
 
 export type EnqueueStaffAuditOutboxInput = {
@@ -376,6 +505,10 @@ export type EnqueueStaffAuditOutboxInput = {
   severity?: DiscordEventSeverity;
   dedupeKey?: string;
   correlationId?: string;
+  actorLabel?: string;
+  entityType?: string;
+  entityId?: string;
+  internalUrl?: string;
 };
 
 export async function enqueueStaffAuditOutbox(
@@ -410,28 +543,48 @@ export async function enqueueStaffAuditOutbox(
     components: input.components,
   };
 
-  return enqueueDiscordOutboxEvent({
-    envelope: {
-      idempotencyKey,
-      product,
-      eventType,
-      actor: input.actorUserId ? { userId: input.actorUserId } : undefined,
-      severity,
-      correlationId: input.correlationId ?? input.dedupeKey,
-      displayPayload,
-      internalRef: {
-        auditAction: input.action,
-        entityType: "STAFF_AUDIT",
-      },
-      targetBot: resolveOutboxTargetBot({
-        product,
-        channelClass,
-        eventType,
-      }),
-      channelClass,
-      deliveryPolicy,
-    },
+  const productTargetBot = resolveOutboxTargetBot({
+    product,
+    channelClass,
+    eventType,
   });
+
+  const secretaryAuditPayload = buildSecretaryCentralAuditDisplayPayload({
+    originalProduct: product,
+    eventType,
+    action: input.action,
+    severity,
+    actorLabel: input.actorLabel,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    correlationId: input.correlationId ?? input.dedupeKey,
+    internalUrl: input.internalUrl,
+    redactedContent: input.content,
+    originalDestinationBot: productTargetBot,
+    originalChannelClass: channelClass,
+  });
+
+  const result = await enqueueDiscordFanout({
+    baseIdempotencyKey: idempotencyKey,
+    product,
+    eventType,
+    channelClass,
+    productTargetBot,
+    displayPayload,
+    secretaryAuditPayload,
+    severity,
+    correlationId: input.correlationId ?? input.dedupeKey,
+    actor: input.actorUserId ? { userId: input.actorUserId } : undefined,
+    internalRef: {
+      auditAction: input.action,
+      entityType: input.entityType ?? "STAFF_AUDIT",
+      entityId: input.entityId,
+    },
+    deliveryPolicy,
+  });
+
+  const productDest = result.destinations.find((d) => d.role === "product");
+  return productDest?.outboxId ?? null;
 }
 
 function parseDisplayPayload(raw: unknown): DiscordSafeDisplayPayload | null {
@@ -448,6 +601,13 @@ function parseDisplayPayload(raw: unknown): DiscordSafeDisplayPayload | null {
       embedImageUrl: typeof obj.embedImageUrl === "string" ? obj.embedImageUrl : null,
       notificationId: typeof obj.notificationId === "string" ? obj.notificationId : undefined,
       eventType: typeof obj.eventType === "string" ? obj.eventType : undefined,
+      embed:
+        obj.embed && typeof obj.embed === "object" && !Array.isArray(obj.embed)
+          ? (obj.embed as Record<string, unknown>)
+          : undefined,
+      components: Array.isArray(obj.components)
+        ? (obj.components as Record<string, unknown>[])
+        : undefined,
     };
   }
   if (obj.kind === "staff_audit" && typeof obj.content === "string") {
@@ -899,13 +1059,18 @@ export async function processDiscordOutboxAllBots(
   bank: ProcessDiscordOutboxResult;
   secretary: ProcessDiscordOutboxResult;
   terminal: ProcessDiscordOutboxResult;
+  staleRecovered: number;
 }> {
+  const { recoverStaleDiscordOutboxProcessing } = await import(
+    "@/server/discord-outbox-ops.service"
+  );
+  const staleRecovered = await recoverStaleDiscordOutboxProcessing(now);
   const [bank, secretary, terminal] = await Promise.all([
     processDiscordOutboxForBot("bank", now),
     processDiscordOutboxForBot("secretary", now),
     processDiscordOutboxForBot("terminal", now),
   ]);
-  return { bank, secretary, terminal };
+  return { bank, secretary, terminal, staleRecovered };
 }
 
 export type DiscordOutboxHealthSnapshot = {
@@ -913,6 +1078,8 @@ export type DiscordOutboxHealthSnapshot = {
     DiscordTargetBot,
     OutboxHealthState & {
       pending: number | null;
+      processing: number | null;
+      sent: number | null;
       failed: number | null;
       dead: number | null;
     }
@@ -920,23 +1087,67 @@ export type DiscordOutboxHealthSnapshot = {
   /** Role-management outbox counts by owning bot (channelClass=role_mgmt). */
   roleMgmtByBot: Record<
     DiscordTargetBot,
-    { pending: number | null; failed: number | null; dead: number | null }
+    {
+      pending: number | null;
+      processing: number | null;
+      sent: number | null;
+      failed: number | null;
+      dead: number | null;
+    }
   >;
   secretaryConfigured: boolean;
   secretaryDeliveryEnabled: boolean;
   terminalConfigured: boolean;
   terminalDeliveryEnabled: boolean;
+  /** Phase 7A — central Secretary audit fan-out. */
+  secretaryAuditFanoutEnabled: boolean;
+  fanout: {
+    /** Outbox rows whose idempotency key includes `:destination:`. */
+    destinationSuffixedPending: number | null;
+    destinationSuffixedFailed: number | null;
+    destinationSuffixedDead: number | null;
+  };
 };
 
-function emptyBotCounts(): Record<
+type BotStatusCounts = {
+  pending: number;
+  processing: number;
+  sent: number;
+  failed: number;
+  dead: number;
+};
+
+function emptyBotCounts(): Record<DiscordTargetBot, BotStatusCounts> {
+  return {
+    bank: { pending: 0, processing: 0, sent: 0, failed: 0, dead: 0 },
+    secretary: { pending: 0, processing: 0, sent: 0, failed: 0, dead: 0 },
+    terminal: { pending: 0, processing: 0, sent: 0, failed: 0, dead: 0 },
+  };
+}
+
+function nullBotCounts(): Record<
   DiscordTargetBot,
-  { pending: number; failed: number; dead: number }
+  {
+    pending: null;
+    processing: null;
+    sent: null;
+    failed: null;
+    dead: null;
+  }
 > {
   return {
-    bank: { pending: 0, failed: 0, dead: 0 },
-    secretary: { pending: 0, failed: 0, dead: 0 },
-    terminal: { pending: 0, failed: 0, dead: 0 },
+    bank: { pending: null, processing: null, sent: null, failed: null, dead: null },
+    secretary: { pending: null, processing: null, sent: null, failed: null, dead: null },
+    terminal: { pending: null, processing: null, sent: null, failed: null, dead: null },
   };
+}
+
+function applyStatusCount(bucket: BotStatusCounts, status: string, n: number): void {
+  if (status === "PENDING") bucket.pending += n;
+  else if (status === "PROCESSING") bucket.processing += n;
+  else if (status === "SENT") bucket.sent += n;
+  else if (status === "FAILED") bucket.failed += n;
+  else if (status === "DEAD") bucket.dead += n;
 }
 
 export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHealthSnapshot> {
@@ -953,25 +1164,22 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
 
   const counts = emptyBotCounts();
   const roleMgmtCounts = emptyBotCounts();
+  const fanoutCounts = { pending: 0, failed: 0, dead: 0 };
+  const secretaryConfigured = isSecretaryDiscordConfigured();
+  const fanoutEnabled = isDiscordSecretaryAuditFanoutEnabled();
 
   try {
     const groups = await prisma.discordOutbox.groupBy({
       by: ["targetBot", "status"],
       _count: { _all: true },
-      where: { status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING"] } },
+      where: { status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING", "SENT"] } },
     });
     for (const group of groups) {
       const bot = VALID_TARGET_BOTS.has(group.targetBot as DiscordTargetBot)
         ? (group.targetBot as DiscordTargetBot)
         : null;
       if (!bot) continue;
-      if (group.status === "PENDING" || group.status === "PROCESSING") {
-        counts[bot].pending += group._count._all;
-      } else if (group.status === "FAILED") {
-        counts[bot].failed += group._count._all;
-      } else if (group.status === "DEAD") {
-        counts[bot].dead += group._count._all;
-      }
+      applyStatusCount(counts[bot], group.status, group._count._all);
     }
 
     const roleGroups = await prisma.discordOutbox.groupBy({
@@ -979,7 +1187,7 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
       _count: { _all: true },
       where: {
         channelClass: "role_mgmt",
-        status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING"] },
+        status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING", "SENT"] },
       },
     });
     for (const group of roleGroups) {
@@ -987,32 +1195,47 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
         ? (group.targetBot as DiscordTargetBot)
         : null;
       if (!bot) continue;
-      if (group.status === "PENDING" || group.status === "PROCESSING") {
-        roleMgmtCounts[bot].pending += group._count._all;
-      } else if (group.status === "FAILED") {
-        roleMgmtCounts[bot].failed += group._count._all;
-      } else if (group.status === "DEAD") {
-        roleMgmtCounts[bot].dead += group._count._all;
-      }
+      applyStatusCount(roleMgmtCounts[bot], group.status, group._count._all);
+    }
+
+    const fanoutRows = await prisma.discordOutbox.findMany({
+      where: {
+        idempotencyKey: { contains: ":destination:" },
+        status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING"] },
+      },
+      select: { status: true },
+      take: 5000,
+    });
+    for (const row of fanoutRows) {
+      if (row.status === "PENDING" || row.status === "PROCESSING") fanoutCounts.pending += 1;
+      else if (row.status === "FAILED") fanoutCounts.failed += 1;
+      else if (row.status === "DEAD") fanoutCounts.dead += 1;
     }
   } catch {
-    const nullCounts = {
-      bank: { pending: null, failed: null, dead: null },
-      secretary: { pending: null, failed: null, dead: null },
-      terminal: { pending: null, failed: null, dead: null },
-    };
+    const nullCounts = nullBotCounts();
     return {
       byBot: {
-        bank: { ...healthByBot.bank, pending: null, failed: null, dead: null },
-        secretary: { ...healthByBot.secretary, pending: null, failed: null, dead: null },
-        terminal: { ...healthByBot.terminal, pending: null, failed: null, dead: null },
+        bank: { ...healthByBot.bank, ...nullCounts.bank },
+        secretary: { ...healthByBot.secretary, ...nullCounts.secretary },
+        terminal: { ...healthByBot.terminal, ...nullCounts.terminal },
       },
       roleMgmtByBot: nullCounts,
-      secretaryConfigured: isSecretaryDiscordConfigured(),
+      secretaryConfigured,
       secretaryDeliveryEnabled: isDiscordSecretaryDeliveryEnabled(),
       terminalConfigured: isTerminalDiscordConfigured(),
       terminalDeliveryEnabled: isDiscordTerminalDeliveryEnabled(),
+      secretaryAuditFanoutEnabled: fanoutEnabled,
+      fanout: {
+        destinationSuffixedPending: null,
+        destinationSuffixedFailed: null,
+        destinationSuffixedDead: null,
+      },
     };
+  }
+
+  // Never report Secretary fan-out as healthy when unconfigured while the flag is on.
+  if (fanoutEnabled && !secretaryConfigured && healthByBot.secretary.lastError == null) {
+    healthByBot.secretary.lastError = "secretary_unconfigured_fanout_fail_closed";
   }
 
   return {
@@ -1022,10 +1245,16 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
       terminal: { ...healthByBot.terminal, ...counts.terminal },
     },
     roleMgmtByBot: roleMgmtCounts,
-    secretaryConfigured: isSecretaryDiscordConfigured(),
+    secretaryConfigured,
     secretaryDeliveryEnabled: isDiscordSecretaryDeliveryEnabled(),
     terminalConfigured: isTerminalDiscordConfigured(),
     terminalDeliveryEnabled: isDiscordTerminalDeliveryEnabled(),
+    secretaryAuditFanoutEnabled: fanoutEnabled,
+    fanout: {
+      destinationSuffixedPending: fanoutCounts.pending,
+      destinationSuffixedFailed: fanoutCounts.failed,
+      destinationSuffixedDead: fanoutCounts.dead,
+    },
   };
 }
 

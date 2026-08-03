@@ -30,9 +30,9 @@ import type { ScheduledTradeInstructionRow } from "@/lib/terminal/scheduled-trad
 import { scheduledTradeFrequencyLabel } from "@/lib/terminal/scheduled-trade-copy";
 import type { OrderRecord, OrderSide, OrderStatus } from "@/lib/terminal/types";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { cn } from "@/lib/utils";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const ORDER_STATUSES = ["all", "open", "filled", "cancelled", "rejected", "partial"] as const;
 const ORDER_SIDES = ["all", "buy", "sell"] as const;
@@ -214,7 +214,7 @@ function TerminalOrdersPage() {
                     if (!selectedPortfolio) return;
                     void cancelFn({
                       data: { portfolioId: selectedPortfolio.id, orderId },
-                    }).then(() => invalidateRouteData(router));
+                    }).then(() => refreshMutationRouteData(router, "terminal"));
                   }
             }
           />
@@ -223,9 +223,9 @@ function TerminalOrdersPage() {
         <ScheduledTradesList
           rows={scheduled}
           onSelect={(id) => updateSearch({ instructionId: id })}
-          onPause={(id) => void pauseFn({ data: id }).then(() => invalidateRouteData(router))}
-          onResume={(id) => void resumeFn({ data: id }).then(() => invalidateRouteData(router))}
-          onCancel={(id) => void cancelScheduleFn({ data: id }).then(() => invalidateRouteData(router))}
+          onPause={(id) => void pauseFn({ data: id }).then(() => refreshMutationRouteData(router, "terminal"))}
+          onResume={(id) => void resumeFn({ data: id }).then(() => refreshMutationRouteData(router, "terminal"))}
+          onCancel={(id) => void cancelScheduleFn({ data: id }).then(() => refreshMutationRouteData(router, "terminal"))}
         />
       )}
 
@@ -238,7 +238,7 @@ function TerminalOrdersPage() {
           symbol="ALTG"
           side="buy"
           allowSymbolEdit
-          onCreated={() => invalidateRouteData(router)}
+          onCreated={() => refreshMutationRouteData(router, "terminal")}
         />
       ) : null}
 

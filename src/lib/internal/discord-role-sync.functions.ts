@@ -54,6 +54,21 @@ export const reconcileDiscordProductRole = createServerFn({ method: "POST" })
       preferRevokeWhenIneligible: true,
     });
 
+    try {
+      const { writeAuditLog } = await import("@/server/audit.service");
+      await writeAuditLog({
+        actorUserId: user.id,
+        action: "DISCORD_ROLE_RECONCILE",
+        entityType: "USER",
+        entityId: data.userId,
+        targetUserId: data.userId,
+        description: `Reconcile Discord role ${data.productRole}`,
+        metadata: { reason: data.reason.trim(), productRole: data.productRole },
+      });
+    } catch {
+      /* best-effort */
+    }
+
     return {
       ok: true,
       reason: data.reason.trim(),
@@ -63,7 +78,7 @@ export const reconcileDiscordProductRole = createServerFn({ method: "POST" })
     };
   });
 
-/** Re-queue a failed/dead role_mgmt outbox row for the user's product role. */
+/** Re-queue a failed/dead/stuck-processing role_mgmt outbox row for the user's product role. */
 export const retryDiscordRoleSyncOutbox = createServerFn({ method: "POST" })
   .inputValidator(
     (input: {
@@ -103,7 +118,7 @@ export const retryDiscordRoleSyncOutbox = createServerFn({ method: "POST" })
         id: data.outboxId,
         channelClass: "role_mgmt",
         eventType: { startsWith: eventPrefix },
-        status: { in: ["FAILED", "DEAD"] },
+        status: { in: ["FAILED", "DEAD", "PROCESSING"] },
       },
       select: { id: true, status: true },
     });

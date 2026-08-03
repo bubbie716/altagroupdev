@@ -33,6 +33,7 @@ import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { MONEY_LIST_PAGE_SIZE } from "@/lib/internal/money-desk";
 import { cn } from "@/lib/utils";
 import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export type AltaPayView = "payments" | "invoices" | "links";
 
@@ -244,7 +245,7 @@ function AltaPayOpsPage() {
             },
           });
           setReverseRef(null);
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       />
     </InternalPageShell>

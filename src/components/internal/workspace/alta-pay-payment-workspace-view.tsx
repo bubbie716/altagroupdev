@@ -26,6 +26,7 @@ import type { AltaPayAdminRow } from "@/lib/internal/ops-types";
 import { recordSectionId, type CaseRecordSearch } from "@/lib/internal/record-workspace-search";
 import { parseReturnPath } from "@/lib/internal/record-return-context";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function buildAltaPayLifecycle(payment: AltaPayAdminRow): Array<{
   id: string;
@@ -363,7 +364,7 @@ export function AltaPayPaymentWorkspaceView({
             },
           });
           setReverseOpen(false);
-          await router.invalidate();
+          await refreshMutationRouteData(router, "bank");
         }}
       />
     </>

@@ -14,6 +14,7 @@ import {
 } from "@/lib/bank/account-interest.functions";
 import { OpsAction } from "@/components/internal/ops-action";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 /** Accrual / preview actions only — account attention lists live on the Interest page. */
 export function InternalAccountInterestOps({
@@ -68,7 +69,7 @@ export function InternalAccountInterestOps({
       } else {
         setActionResult(`${result.status}: ${result.reason ?? "No details"}.`);
       }
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } catch {
       setActionResult("Accrual failed — admin access required.");
     } finally {
@@ -84,7 +85,7 @@ export function InternalAccountInterestOps({
       setActionResult(
         `Processed ${batch.processedCount}, skipped ${batch.skippedCount}, failed ${batch.failedCount}. Total credited: ${florin(batch.totalInterestCredited)}.`,
       );
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } catch {
       setActionResult("Batch accrual failed — admin access required.");
     } finally {

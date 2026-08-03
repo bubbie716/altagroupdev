@@ -48,8 +48,8 @@ import type { OrderSide, PricePoint, TerminalChartRange } from "@/lib/terminal/t
 import { useOrderTicketDraft } from "@/hooks/use-order-ticket-draft";
 import { closeThenRun } from "@/lib/ui/close-then-run";
 import { focusDialogCloseButton } from "@/lib/ui/focus-dialog-close";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 type InstrumentSearch = "stocks" | "crypto" | undefined;
 
@@ -274,7 +274,7 @@ function StockSecurityPage({ data }: { data: StockSecurityLoaderData }) {
     onRequestPortfolioChange: openPicker,
     onSubmitted: () => {
       setOrderSheetOpen(false);
-      void invalidateRouteData(router);
+      void refreshMutationRouteData(router, "terminal");
     },
     draft,
   };
@@ -309,7 +309,7 @@ function StockSecurityPage({ data }: { data: StockSecurityLoaderData }) {
                     ? removeWatch({ data: security.symbol })
                     : addWatch({ data: security.symbol })
                 )
-                  .then(() => invalidateRouteData(router))
+                  .then(() => refreshMutationRouteData(router, "terminal"))
                   .finally(() => setWatchBusy(false));
               }}
               className="min-h-11 rounded-md border border-[var(--terminal-border)] px-3 text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-text)]"
@@ -444,7 +444,7 @@ function StockSecurityPage({ data }: { data: StockSecurityLoaderData }) {
           side={draft.side}
           allowSideEdit
           onCreated={() => {
-            void invalidateRouteData(router);
+            void refreshMutationRouteData(router, "terminal");
           }}
         />
       ) : null}
@@ -561,7 +561,7 @@ function CryptoSecurityPage({ data }: { data: CryptoSecurityLoaderData }) {
     onRequestPortfolioChange: openPicker,
     onSubmitted: () => {
       setOrderSheetOpen(false);
-      void invalidateRouteData(router);
+      void refreshMutationRouteData(router, "terminal");
     },
   };
 
@@ -704,7 +704,7 @@ function CryptoSecurityPage({ data }: { data: CryptoSecurityLoaderData }) {
           allowSideEdit
           instrumentKind="CRYPTO"
           onCreated={() => {
-            void invalidateRouteData(router);
+            void refreshMutationRouteData(router, "terminal");
           }}
         />
       ) : null}

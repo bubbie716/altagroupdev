@@ -25,6 +25,7 @@ import {
   canAssignCompanyRole,
   canManageCompanyMember,
 } from "@/lib/auth/permissions";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 function assignableRoleOptions(actorRole: CompanyRole) {
   const options =
@@ -49,7 +50,7 @@ export function CompanyMembersPanel({ company }: { company: CompanyDetail }) {
   const inviteRoleOptions = assignableRoleOptions(company.currentUserRole);
 
   async function refresh() {
-    await router.invalidate();
+    await refreshMutationRouteData(router, "corporate");
   }
 
   async function handleRoleChange(membershipId: string, role: CompanyRole) {

@@ -7,9 +7,9 @@ import {
   resumeScheduledTradeFn,
 } from "@/lib/terminal/scheduled-trade.functions";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 import { scheduledTradeFrequencyLabel } from "@/lib/terminal/scheduled-trade-copy";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/terminal/orders/scheduled/$instructionId")({
   loader: ({ params }) => fetchScheduledTradeDetailFn({ data: params.instructionId }),
@@ -69,7 +69,7 @@ function ScheduledTradeDetailPage() {
           <button
             type="button"
             className="rounded-md border px-3 py-2 text-[13px] min-h-11"
-            onClick={() => void pauseFn({ data: detail.id }).then(() => invalidateRouteData(router))}
+            onClick={() => void pauseFn({ data: detail.id }).then(() => refreshMutationRouteData(router, "terminal"))}
           >
             Pause
           </button>
@@ -78,7 +78,7 @@ function ScheduledTradeDetailPage() {
           <button
             type="button"
             className="rounded-md border px-3 py-2 text-[13px] min-h-11"
-            onClick={() => void resumeFn({ data: detail.id }).then(() => invalidateRouteData(router))}
+            onClick={() => void resumeFn({ data: detail.id }).then(() => refreshMutationRouteData(router, "terminal"))}
           >
             Resume
           </button>
@@ -87,7 +87,7 @@ function ScheduledTradeDetailPage() {
           <button
             type="button"
             className="rounded-md border px-3 py-2 text-[13px] min-h-11"
-            onClick={() => void cancelFn({ data: detail.id }).then(() => invalidateRouteData(router))}
+            onClick={() => void cancelFn({ data: detail.id }).then(() => refreshMutationRouteData(router, "terminal"))}
           >
             Cancel schedule
           </button>

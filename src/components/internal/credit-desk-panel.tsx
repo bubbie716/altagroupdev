@@ -11,6 +11,7 @@ import type { CreditDeskSettings, CreditDeskStatus } from "@/lib/platform/credit
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
 import { setCreditDeskStatusOps } from "@/lib/platform/platform-settings.functions";
 import { invalidateCreditDeskNavCache } from "@/hooks/use-credit-desk-nav";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
   const router = useRouter();
@@ -25,7 +26,7 @@ export function CreditDeskPanel({ initial }: { initial: CreditDeskSettings }) {
   }, [initial.status]);
 
   async function refreshSettings() {
-    await router.invalidate();
+    await refreshMutationRouteData(router, "internal");
   }
 
   const isClosed = status === "closed";

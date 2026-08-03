@@ -48,6 +48,7 @@ import {
 import { recordSectionId, type CaseRecordSearch } from "@/lib/internal/record-workspace-search";
 import { parseReturnPath } from "@/lib/internal/record-return-context";
 import { useUiLabMutationGate } from "@/lib/internal/ui-lab-mutation-gate";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const RESOLVED_STATUSES = new Set(["executed", "cancelled", "rejected"]);
 
@@ -142,7 +143,7 @@ export function ScheduledTransferWorkspaceView({
       else if (kind === "resume") await resumeInternalScheduledTransferRecord({ data: transfer.id });
       else if (kind === "cancel") await cancelInternalScheduledTransferRecord({ data: transfer.id });
       else await runInternalScheduledTransferNowRecord({ data: transfer.id });
-      await router.invalidate();
+      await refreshMutationRouteData(router, "bank");
     } finally {
       setPending(false);
     }

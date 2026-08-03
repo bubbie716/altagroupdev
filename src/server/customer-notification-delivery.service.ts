@@ -77,7 +77,7 @@ export async function deliverCustomerNotificationDm(
     }
 
     const { buildCustomerDmIdempotencyKey } = await import("@/lib/discord/discord-event-envelope");
-    const outboxIdempotencyKey = buildCustomerDmIdempotencyKey({
+    const baseOutboxIdempotencyKey = buildCustomerDmIdempotencyKey({
       userId: input.userId,
       type: input.type,
       notificationId: input.notificationId,
@@ -87,7 +87,12 @@ export async function deliverCustomerNotificationDm(
       markDiscordOutboxSent,
       markDiscordOutboxHandedOff,
       markDiscordOutboxDead,
+      resolveProductOutboxIdempotencyKey,
     } = await import("@/server/discord-outbox.service");
+    const outboxIdempotencyKey = resolveProductOutboxIdempotencyKey(
+      baseOutboxIdempotencyKey,
+      "bank",
+    );
     // Dual-write (feature-flagged): durable outbox beside unchanged Bank dispatch.
     void enqueueCustomerDmOutbox({
       notificationId: input.notificationId,
@@ -116,6 +121,8 @@ export async function deliverCustomerNotificationDm(
           linkUrl: input.linkUrl,
           linkLabel: input.linkLabel,
           eventType: input.type,
+          metadata: input.metadata,
+          correlationId: input.notificationId,
         });
         result = { sent: fallback.sent, reason: fallback.reason };
       }
@@ -131,6 +138,8 @@ export async function deliverCustomerNotificationDm(
         linkLabel: input.linkLabel,
         embedImageUrl: input.embedImageUrl,
         eventType: input.type,
+        metadata: input.metadata,
+        correlationId: input.notificationId,
       });
       result = { sent: dispatch.sent, reason: dispatch.reason };
     }

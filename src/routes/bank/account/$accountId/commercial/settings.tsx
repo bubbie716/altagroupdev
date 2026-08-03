@@ -4,8 +4,8 @@ import { AccountCommercialShell } from "@/components/bank/commercial/account-com
 import { CommercialSettingsPanel } from "@/components/bank/commercial/commercial-settings-panel";
 import { requireCommercialFromRouteContext } from "@/lib/bank/account-commercial-loader.functions";
 import { fetchCommercialSettings } from "@/lib/bank/commercial-banking.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
 import { Route as CommercialRoute } from "./route";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/bank/account/$accountId/commercial/settings")({
   loader: async ({ context }) => {
@@ -32,7 +32,7 @@ function AccountCommercialSettingsPage() {
           settings={settings}
           accountId={accountId}
           onUpdated={() => {
-            void invalidateRouteData(router);
+            void refreshMutationRouteData(router, "corporate");
           }}
         />
       </Section>

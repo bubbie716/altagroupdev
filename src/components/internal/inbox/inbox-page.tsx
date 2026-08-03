@@ -29,6 +29,7 @@ import {
 import { useMediaQueryMax } from "@/hooks/use-media-query-max";
 import { cn } from "@/lib/utils";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 /** Tailwind `lg` — mobile sheet only below this width; desktop uses the aside. */
 const INBOX_MOBILE_SHEET_MAX_PX = 1024;
@@ -361,7 +362,7 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
                 onBeginNavigate={beginOutboundNavigation}
                 onResolved={() => {
                   clearCase();
-                  void router.invalidate();
+                  void refreshMutationRouteData(router, "internal");
                 }}
               />
             ) : (

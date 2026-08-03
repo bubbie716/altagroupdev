@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 import { OpsAction } from "@/components/internal/ops-action";
 
 function formatActionError(error: unknown): string {
@@ -46,7 +46,7 @@ export function BankReviewButton({
       setLegacyError(null);
       try {
         await onAction("");
-        await invalidateRouteData(router);
+        await refreshMutationRouteData(router, "bank");
       } catch (err) {
         setLegacyError(formatActionError(err));
       } finally {
@@ -86,8 +86,8 @@ export function BankReviewButton({
       confirmLabel={confirmLabel ?? label}
       requireReason
       onConfirm={async (reason) => {
+        // OpsAction refreshes after confirm — do not invalidate here.
         await onAction(reason);
-        await invalidateRouteData(router);
       }}
     />
   );

@@ -9,6 +9,7 @@ import { fetchCompanyBillingSummaryRecord } from "@/lib/bank/alta-card-interest.
 import { fetchAltaCardAutopayContext } from "@/lib/bank/alta-card-autopay.functions";
 import { fetchAltaCardReviewEligibility } from "@/lib/bank/alta-card-review.functions";
 import { resolveCompanyDisplayName } from "@/lib/bank/ui-lab-alta-card-state";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/bank/alta-card/business/$companyId/")({
   beforeLoad: authBeforeLoad,
@@ -69,7 +70,7 @@ function BankAltaCardBusinessDetail() {
         canManageTreasury={canManageTreasury}
         hasMultipleBusinessCards={hasMultipleBusinessCards}
         onRefresh={async () => {
-          await router.invalidate();
+          await refreshMutationRouteData(router, "alta-card");
         }}
       />
     </>

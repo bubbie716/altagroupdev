@@ -48,6 +48,9 @@ export type DiscordCustomerDmDisplayPayload = {
   embedImageUrl?: string | null;
   notificationId?: string;
   eventType?: string;
+  /** Optional Phase 7B premium embed — existing rows without these remain valid. */
+  embed?: Record<string, unknown>;
+  components?: Record<string, unknown>[];
 };
 
 export type DiscordStaffAuditDisplayPayload = {
@@ -273,3 +276,9 @@ export function buildStaffAuditIdempotencyKey(dedupeKey: string | undefined, fal
   if (key) return key.startsWith("staff-audit:") ? key : `staff-audit:${key}`;
   return `staff-audit:${fallback}`;
 }
+
+export {
+  buildDestinationIdempotencyKey,
+  isDiscordSecretaryAuditFanoutEnabled,
+  stripDestinationIdempotencyKey,
+} from "@/lib/discord/discord-secretary-audit-fanout";

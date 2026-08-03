@@ -50,6 +50,7 @@ import {
   updateCryptoFeeConfigFn,
 } from "@/lib/terminal/crypto/crypto-ops.functions";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const ACTIVITY_FILTERS = ["all", "status", "orders", "fees", "operator"] as const;
 type CryptoActivityFilter = (typeof ACTIVITY_FILTERS)[number];
@@ -177,7 +178,7 @@ export function TerminalCryptoAssetWorkspaceView({
       setForm(emptyForm(workspace));
       setActiveAction(null);
       setIssueActionId(null);
-      await router.invalidate();
+      await refreshMutationRouteData(router, "terminal");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Action failed");
       setProcessPhase("error");

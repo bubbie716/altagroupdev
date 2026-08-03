@@ -2,6 +2,7 @@ import { useRouter } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { AltaCardApplicationDetailView } from "@/components/bank/alta-card/alta-card-application-detail";
 import { fetchAltaCardApplicationDetail } from "@/lib/bank/alta-card-application.functions";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export async function loadAltaCardApplicationPageData(applicationId: string) {
   const application = await fetchAltaCardApplicationDetail({ data: applicationId });
@@ -26,7 +27,7 @@ export function AltaCardApplicationPage({
             });
             return;
           }
-          await router.invalidate();
+          await refreshMutationRouteData(router, "alta-card");
         }}
       />
     </>

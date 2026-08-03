@@ -38,6 +38,7 @@ import {
   BankTableScroll,
 } from "@/components/bank/bank-scroll-contain";
 import { cn } from "@/lib/utils";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 const fieldClass =
   "mt-2 w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm shadow-none focus-visible:outline-none focus-visible:border-gold/60 focus-visible:ring-0 focus-visible:shadow-none";
@@ -222,7 +223,7 @@ function EmployeeRegistry({
                       await deactivate({
                         data: { companyId: company.companyId, employeeId: employee.id },
                       });
-                      await router.invalidate();
+                      await refreshMutationRouteData(router, "corporate");
                     }}
                   >
                     Deactivate
@@ -274,7 +275,7 @@ function EmployeeRegistry({
                             await deactivate({
                               data: { companyId: company.companyId, employeeId: employee.id },
                             });
-                            await router.invalidate();
+                            await refreshMutationRouteData(router, "corporate");
                           }}
                         >
                           Deactivate
@@ -372,7 +373,7 @@ function EmployeeActionSheet({
         await createEmployee({ data: payload });
       }
       setPhase("success");
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setPhase("error");
       setError(
@@ -640,7 +641,7 @@ function SchedulePayrollSheet({
         },
       });
       setPhase("success");
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setPhase("error");
       setError(

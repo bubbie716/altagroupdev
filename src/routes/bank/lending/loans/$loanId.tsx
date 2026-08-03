@@ -2,7 +2,7 @@ import { createFileRoute, notFound, useRouter } from "@tanstack/react-router";
 import { BankPageMeta } from "@/components/bank/bank-page-layout";
 import { LoanDetailView } from "@/components/bank/loan-detail-view";
 import { fetchLoanDetail } from "@/lib/bank/lending.functions";
-import { invalidateRouteData } from "@/lib/router/invalidate-route-data";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export const Route = createFileRoute("/bank/lending/loans/$loanId")({
   loader: async ({ params }) => {
@@ -43,7 +43,7 @@ function BankLendingLoanDetail() {
       <LoanDetailView
         loan={loan}
         onUpdated={async () => {
-          await invalidateRouteData(router);
+          await refreshMutationRouteData(router, "lending");
         }}
       />
     </>

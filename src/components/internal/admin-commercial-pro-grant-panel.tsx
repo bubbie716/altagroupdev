@@ -8,6 +8,7 @@ import { OpsConfirmDialog } from "@/components/internal/ops-confirm-dialog";
 import { StatusBadge } from "@/components/internal/status-badge";
 import { formatActivityDateTime } from "@/lib/format-datetime";
 import { adminDowngradeCommercialProOps, adminGrantCommercialProOps } from "@/lib/internal/commercial-admin.functions";
+import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
 
 export type AdminCommercialPlanSummary = {
   commercialPlan: string;
@@ -48,7 +49,7 @@ export function AdminCommercialProGrantPanel({
       setMessage(
         `Granted Pro for ${result.monthsGranted} month(s) through ${formatActivityDateTime(result.expiresAt)}. ${result.memberCount} member(s) notified.`,
       );
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Grant failed.");
     }
@@ -67,7 +68,7 @@ export function AdminCommercialProGrantPanel({
       setMessage(
         `${result.companyName} was downgraded to Alta Commercial Core. ${result.memberCount} billing contact(s) notified.`,
       );
-      await router.invalidate();
+      await refreshMutationRouteData(router, "corporate");
     } catch (err) {
       setError(
         err instanceof Error ? err.message.replace(/^BAD_REQUEST:/, "") : "Downgrade failed.",
