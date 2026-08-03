@@ -434,7 +434,7 @@ export async function createTerminalPortfolio(
       return created;
     });
 
-    // After commit: enqueue Terminal Investor grant (never sync Discord inside the tx).
+    // After commit: grant Terminal Investor (never sync Discord inside the tx).
     void import("@/server/discord-product-role.service")
       .then(({ enqueueTerminalInvestorRoleGrantAfterActivation }) =>
         enqueueTerminalInvestorRoleGrantAfterActivation({
@@ -442,9 +442,17 @@ export async function createTerminalPortfolio(
           portfolioId: row.id,
           actorUserId: user.id,
           reason: "terminal_portfolio_activated",
+        }).then((result) => {
+          if (!result.applied && process.env.NODE_ENV !== "test") {
+            console.info("[terminal-portfolio] investor role grant result", result);
+          }
         }),
       )
-      .catch(() => {});
+      .catch((error) => {
+        if (process.env.NODE_ENV !== "test") {
+          console.error("[terminal-portfolio] investor role grant failed", error);
+        }
+      });
 
     return toSummary(
       {

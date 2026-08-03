@@ -70,12 +70,7 @@ export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<Al
   await syncDevMemberships(user.id, profile.id);
   await syncDevTags(user.id, profile.id);
 
-  try {
-    const { grantDiscordClientRoleBestEffort } = await import("@/server/discord-guild-role.service");
-    await grantDiscordClientRoleBestEffort(profile.id);
-  } catch {
-    // Discord role sync must never block account creation.
-  }
+  // Bank Client Discord role is granted on first bank account open — not Discord signup.
 
   try {
     const { syncUndeliveredInvitationDmsForUser } = await import(

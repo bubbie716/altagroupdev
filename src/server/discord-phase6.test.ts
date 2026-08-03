@@ -22,8 +22,37 @@ function readSrc(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
+describe("Bank Client role — first bank account, not Discord signup", () => {
+  it("does not grant Client role on Discord user create", () => {
+    const src = readSrc("src/server/user.service.ts");
+    assert.doesNotMatch(src, /grantDiscordClientRoleBestEffort|grantBankClientRoleBestEffort/);
+    assert.match(src, /first bank account open/i);
+  });
+
+  it("grants Client role after first bank account open", () => {
+    const src = readSrc("src/server/bank.service.ts");
+    assert.match(src, /grantBankClientRoleBestEffort/);
+    assert.match(src, /accountCount === 1/);
+  });
+
+  it("eligibility requires an opened bank account", () => {
+    const src = readSrc("src/server/discord-product-role.service.ts");
+    const start = src.indexOf("isEligibleForBankClientRole");
+    const slice = src.slice(start, start + 800);
+    assert.match(slice, /bankAccount\.findFirst|prisma\.bankAccount/);
+    assert.match(slice, /userId: altaUserId/);
+  });
+
+  it("guild join sync only grants when eligible", () => {
+    const src = readSrc("src/server/discord-guild-role.service.ts");
+    assert.match(src, /isEligibleForBankClientRole/);
+    assert.match(src, /syncProductRoleForUserBestEffort/);
+    assert.match(src, /not eligible yet/);
+  });
+});
+
 describe("Phase 6 — Terminal Investor lifecycle wiring", () => {
-  it("portfolio create enqueues Investor grant after commit (not inside tx)", () => {
+  it("portfolio create grants Investor after commit (not inside tx)", () => {
     const src = readSrc("src/lib/terminal/terminal-portfolio.service.ts");
     assert.match(src, /enqueueTerminalInvestorRoleGrantAfterActivation/);
     assert.match(src, /terminal_portfolio_activated/);
@@ -31,6 +60,27 @@ describe("Phase 6 — Terminal Investor lifecycle wiring", () => {
     const txIdx = src.indexOf("prisma.$transaction");
     const enqueueIdx = src.indexOf("enqueueTerminalInvestorRoleGrantAfterActivation");
     assert.ok(txIdx >= 0 && enqueueIdx > txIdx);
+  });
+
+  it("activation path applies Discord role immediately (not cron-gated)", () => {
+    const src = readSrc("src/server/discord-product-role.service.ts");
+    const start = src.indexOf("enqueueTerminalInvestorRoleGrantAfterActivation");
+    const slice = src.slice(start, start + 2800);
+    assert.match(slice, /applyDiscordProductRole/);
+    assert.match(slice, /requiredTargetBot:\s*"terminal"/);
+    assert.match(slice, /Immediate grant on portfolio creation/);
+    // Apply must not be behind role_sync early-return.
+    assert.ok(slice.indexOf("applyDiscordProductRole") < slice.indexOf("isDiscordRoleSyncEnabled()"));
+  });
+
+  it("bank client grant applies immediately on account open", () => {
+    const bank = readSrc("src/server/bank.service.ts");
+    assert.match(bank, /grantBankClientRoleBestEffort/);
+    const role = readSrc("src/server/discord-product-role.service.ts");
+    const start = role.indexOf("grantBankClientRoleBestEffort");
+    const slice = role.slice(start, start + 1200);
+    assert.match(slice, /applyDiscordProductRole/);
+    assert.match(slice, /bank_account_opened/);
   });
 
   it("archive surfaces pending reconcile and does not auto-revoke", () => {

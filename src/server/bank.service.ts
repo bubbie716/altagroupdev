@@ -819,6 +819,19 @@ export async function openBankAccount(
     } catch (error) {
       console.error("[bank] account-open audit failed", error);
     }
+
+    // First Alta Bank account → Bank Client Discord role (not on Discord signup alone).
+    try {
+      const accountCount = await prisma.bankAccount.count({ where: { userId } });
+      if (accountCount === 1 && userRecord.discordId?.trim()) {
+        const { grantBankClientRoleBestEffort } = await import(
+          "@/server/discord-product-role.service"
+        );
+        await grantBankClientRoleBestEffort(userRecord.discordId, userId);
+      }
+    } catch (error) {
+      console.error("[bank] client role grant after first account failed", error);
+    }
   })();
 
   const statusLabel = status === "ACTIVE" ? "Active" : "Pending Review";

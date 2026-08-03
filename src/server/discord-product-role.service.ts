@@ -73,15 +73,23 @@ async function writeRoleAudit(input: {
   }
 }
 
-/** Bank client: linked Discord + account not frozen. */
+/**
+ * Bank client: linked Discord + not frozen + has opened at least one Alta Bank account.
+ * Signup alone is not enough — Client role is granted on first bank account open.
+ */
 export async function isEligibleForBankClientRole(altaUserId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: altaUserId },
-    select: { discordId: true, accountStatus: true, coreOnboardingCompletedAt: true },
+    select: { discordId: true, accountStatus: true },
   });
   if (!user?.discordId?.trim()) return false;
   if (String(user.accountStatus).toUpperCase() === "FROZEN") return false;
-  return true;
+
+  const bankAccount = await prisma.bankAccount.findFirst({
+    where: { userId: altaUserId },
+    select: { id: true },
+  });
+  return Boolean(bankAccount);
 }
 
 /** Terminal investor: owns or created an ACTIVE Terminal portfolio. */
@@ -478,28 +486,30 @@ export async function enqueueDiscordRoleSyncEvent(input: {
 }
 
 /**
- * After a Terminal portfolio becomes ACTIVE: enqueue one Investor grant (outbox only).
- * Never mutates Discord inside the portfolio transaction — call after commit.
+ * After a Terminal portfolio becomes ACTIVE: grant Investor immediately.
+ * Does not depend on cron. Optional outbox row is marked SENT when apply succeeds.
+ * Never mutates Discord inside the financial transaction — call after commit.
  */
 export async function enqueueTerminalInvestorRoleGrantAfterActivation(input: {
   altaUserId: string;
   portfolioId: string;
   actorUserId?: string | null;
   reason?: string;
-}): Promise<{ enqueued: boolean; reason: string; outboxId?: string | null }> {
-  if (!isDiscordRoleSyncEnabled()) {
-    return { enqueued: false, reason: "role_sync_disabled" };
-  }
-
+}): Promise<{
+  enqueued: boolean;
+  applied: boolean;
+  reason: string;
+  outboxId?: string | null;
+}> {
   const user = await prisma.user.findUnique({
     where: { id: input.altaUserId },
     select: { id: true, discordId: true, accountStatus: true },
   });
   if (!user?.discordId?.trim()) {
-    return { enqueued: false, reason: "discord_identity_missing" };
+    return { enqueued: false, applied: false, reason: "discord_identity_missing" };
   }
   if (String(user.accountStatus).toUpperCase() === "FROZEN") {
-    return { enqueued: false, reason: "account_frozen" };
+    return { enqueued: false, applied: false, reason: "account_frozen" };
   }
 
   const portfolio = await prisma.terminalPortfolio.findFirst({
@@ -511,28 +521,70 @@ export async function enqueueTerminalInvestorRoleGrantAfterActivation(input: {
     select: { id: true, status: true },
   });
   if (!portfolio) {
-    return { enqueued: false, reason: "portfolio_not_active_or_unauthorized" };
+    return { enqueued: false, applied: false, reason: "portfolio_not_active_or_unauthorized" };
   }
 
   const eligible = await isEligibleForTerminalInvestorRole(input.altaUserId);
   if (!eligible) {
-    return { enqueued: false, reason: "not_eligible" };
+    return { enqueued: false, applied: false, reason: "not_eligible" };
   }
 
-  const outboxId = await enqueueDiscordRoleSyncEvent({
+  const reason = input.reason ?? "terminal_portfolio_activated";
+
+  // Immediate grant on portfolio creation — not queued behind cron.
+  const applyResult = await applyDiscordProductRole({
     productRole: "terminal_investor",
     action: "grant",
     discordUserId: user.discordId,
     altaUserId: input.altaUserId,
     actorUserId: input.actorUserId ?? input.altaUserId,
-    reason: input.reason ?? "terminal_portfolio_activated",
+    reason,
+    requiredTargetBot: "terminal",
     expectedHasRole: true,
-    idempotencyKeySuffix: `portfolio:${input.portfolioId}:activation`,
   });
+
+  let outboxId: string | null = null;
+  if (isDiscordRoleSyncEnabled()) {
+    outboxId = await enqueueDiscordRoleSyncEvent({
+      productRole: "terminal_investor",
+      action: "grant",
+      discordUserId: user.discordId,
+      altaUserId: input.altaUserId,
+      actorUserId: input.actorUserId ?? input.altaUserId,
+      reason,
+      expectedHasRole: true,
+      idempotencyKeySuffix: `portfolio:${input.portfolioId}:activation`,
+    });
+    if (applyResult.ok && outboxId) {
+      try {
+        const { markDiscordOutboxSent } = await import("@/server/discord-outbox.service");
+        const { buildStaffAuditIdempotencyKey } = await import(
+          "@/lib/discord/discord-event-envelope"
+        );
+        const eventType = roleEventTypeForAction("terminal_investor", "grant");
+        const idempotencyKey = buildStaffAuditIdempotencyKey(
+          `role:terminal_investor:grant:${user.discordId}:${input.altaUserId}:portfolio:${input.portfolioId}:activation`,
+          eventType,
+        );
+        await markDiscordOutboxSent(idempotencyKey);
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
+
+  if (!applyResult.ok) {
+    logRole("terminal investor grant after activation failed", {
+      reason: applyResult.reason,
+      altaUserId: input.altaUserId,
+      portfolioId: input.portfolioId,
+    });
+  }
 
   return {
     enqueued: Boolean(outboxId),
-    reason: outboxId ? "enqueued" : "enqueue_skipped_or_duplicate",
+    applied: applyResult.ok,
+    reason: applyResult.ok ? "applied" : applyResult.reason,
     outboxId,
   };
 }
@@ -569,8 +621,8 @@ export async function surfaceTerminalInvestorIneligibilityPendingReconcile(input
 }
 
 /**
- * Best-effort grant for Bank client (backward compatible with Phase 1–4 join/signup).
- * When role sync is enabled, also enqueues a durable outbox row.
+ * Best-effort grant for Bank client — immediate Discord apply (not cron).
+ * Optional outbox row is recorded then marked SENT when apply already succeeded.
  */
 export async function grantBankClientRoleBestEffort(discordUserId: string, altaUserId?: string): Promise<void> {
   const result = await applyDiscordProductRole({
@@ -578,19 +630,35 @@ export async function grantBankClientRoleBestEffort(discordUserId: string, altaU
     action: "grant",
     discordUserId,
     altaUserId,
-    reason: "bank_client_grant",
+    reason: "bank_account_opened",
     requiredTargetBot: "bank",
     skipEligibilityCheck: !altaUserId,
   });
   if (isDiscordRoleSyncEnabled()) {
-    await enqueueDiscordRoleSyncEvent({
+    const outboxId = await enqueueDiscordRoleSyncEvent({
       productRole: "bank_client",
       action: "grant",
       discordUserId,
       altaUserId,
-      reason: "bank_client_grant",
+      reason: "bank_account_opened",
       expectedHasRole: true,
     });
+    if (result.ok && outboxId) {
+      try {
+        const { markDiscordOutboxSent } = await import("@/server/discord-outbox.service");
+        const { buildStaffAuditIdempotencyKey } = await import(
+          "@/lib/discord/discord-event-envelope"
+        );
+        const eventType = roleEventTypeForAction("bank_client", "grant");
+        const idempotencyKey = buildStaffAuditIdempotencyKey(
+          `role:bank_client:grant:${discordUserId}:${altaUserId ?? "na"}`,
+          eventType,
+        );
+        await markDiscordOutboxSent(idempotencyKey);
+      } catch {
+        /* best-effort */
+      }
+    }
   }
   if (!result.ok && result.reason !== "role_or_guild_not_configured" && result.reason !== "disabled_in_test") {
     logRole("bank client grant failed", { reason: result.reason });

@@ -70,7 +70,10 @@ export type DiscordGuildRoleJoinSyncResult =
       clientSkipped?: boolean;
     };
 
-/** Grant Discord guild roles when a member joins — based on linked Alta account. */
+/**
+ * Grant Discord guild roles when a member joins — only when eligible.
+ * Bank Client requires an opened Alta Bank account (not Discord signup alone).
+ */
 export async function syncDiscordGuildRolesForJoin(
   discordUserId: string,
 ): Promise<DiscordGuildRoleJoinSyncResult> {
@@ -86,12 +89,23 @@ export async function syncDiscordGuildRolesForJoin(
   let clientGranted = false;
   const clientSkipped = resolveBankClientRoleId() == null;
 
-  const clientResult = await grantDiscordClientRole(discordUserId);
-  if (clientResult.ok) {
+  const { syncProductRoleForUserBestEffort, isEligibleForBankClientRole } = await import(
+    "@/server/discord-product-role.service"
+  );
+  const eligible = await isEligibleForBankClientRole(user.id);
+  if (eligible) {
+    await syncProductRoleForUserBestEffort({
+      productRole: "bank_client",
+      altaUserId: user.id,
+      preferRevokeWhenIneligible: false,
+    });
     clientGranted = true;
     logRoleGrant("join sync granted client role", { discordUserId, userId: user.id });
-  } else if (clientResult.reason !== "client_role_not_configured") {
-    logRoleGrant("join sync client role failed", { discordUserId, reason: clientResult.reason });
+  } else {
+    logRoleGrant("join sync skipped client role — not eligible yet", {
+      discordUserId,
+      userId: user.id,
+    });
   }
 
   return {
