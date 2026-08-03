@@ -131,7 +131,22 @@ export function staffBotMayDeliverPayload(
 ): { ok: true } | { ok: false; reason: string } {
   const secretary = secretaryMayDeliverPayload(targetBot, payload);
   if (!secretary.ok) return secretary;
-  return terminalMayDeliverPayload(targetBot, payload);
+  const terminal = terminalMayDeliverPayload(targetBot, payload);
+  if (!terminal.ok) return terminal;
+
+  // Role management: each bot only processes its own product roles.
+  if (payload.kind === "role_mgmt") {
+    if (targetBot === "bank" && payload.productRole !== "bank_client") {
+      return { ok: false, reason: "bank_refuses_foreign_role" };
+    }
+    if (targetBot === "terminal" && payload.productRole !== "terminal_investor") {
+      return { ok: false, reason: "terminal_refuses_foreign_role" };
+    }
+    if (targetBot === "secretary" && payload.productRole !== "secretary_staff") {
+      return { ok: false, reason: "secretary_refuses_foreign_role" };
+    }
+  }
+  return { ok: true };
 }
 
 export type EnqueueDiscordOutboxInput = {
@@ -354,6 +369,9 @@ export type EnqueueStaffAuditOutboxInput = {
   /** Raw audit action for registry lookup (e.g. TERMINAL_CRYPTO_ORDER_FILLED). */
   eventType?: string;
   content: string;
+  /** Optional premium embed — single message with plain-text fallback, never a second send. */
+  embed?: Record<string, unknown>;
+  components?: Record<string, unknown>[];
   actorUserId?: string;
   severity?: DiscordEventSeverity;
   dedupeKey?: string;
@@ -388,6 +406,8 @@ export async function enqueueStaffAuditOutbox(
     content: input.content.slice(0, 2000),
     product: input.product,
     action: input.action,
+    embed: input.embed,
+    components: input.components,
   };
 
   return enqueueDiscordOutboxEvent({
@@ -436,6 +456,41 @@ function parseDisplayPayload(raw: unknown): DiscordSafeDisplayPayload | null {
       content: obj.content,
       product: typeof obj.product === "string" ? obj.product : undefined,
       action: typeof obj.action === "string" ? obj.action : undefined,
+      embed:
+        obj.embed && typeof obj.embed === "object" && !Array.isArray(obj.embed)
+          ? (obj.embed as Record<string, unknown>)
+          : undefined,
+      components: Array.isArray(obj.components)
+        ? (obj.components as Record<string, unknown>[])
+        : undefined,
+    };
+  }
+  if (
+    obj.kind === "role_mgmt" &&
+    typeof obj.discordUserId === "string" &&
+    typeof obj.roleId === "string" &&
+    typeof obj.productRole === "string" &&
+    typeof obj.action === "string"
+  ) {
+    const productRole = obj.productRole;
+    const action = obj.action;
+    if (
+      productRole !== "bank_client" &&
+      productRole !== "terminal_investor" &&
+      productRole !== "secretary_staff"
+    ) {
+      return null;
+    }
+    if (action !== "grant" && action !== "revoke" && action !== "reconcile") return null;
+    return {
+      kind: "role_mgmt",
+      action,
+      productRole,
+      discordUserId: obj.discordUserId,
+      roleId: obj.roleId,
+      altaUserId: typeof obj.altaUserId === "string" ? obj.altaUserId : undefined,
+      reason: typeof obj.reason === "string" ? obj.reason : undefined,
+      expectedHasRole: typeof obj.expectedHasRole === "boolean" ? obj.expectedHasRole : undefined,
     };
   }
   return null;
@@ -453,9 +508,39 @@ export type DiscordOutboxDeliveryDeps = {
   }) => Promise<{ sent: boolean; reason?: string }>;
   dispatchStaffAudit: (
     content: string,
-    options?: { product?: string; channelClass?: string },
+    options?: {
+      product?: string;
+      channelClass?: string;
+      embed?: Record<string, unknown>;
+      components?: Record<string, unknown>[];
+    },
+  ) => Promise<{ sent: boolean; reason?: string }>;
+  dispatchRoleMgmt?: (
+    payload: Extract<DiscordSafeDisplayPayload, { kind: "role_mgmt" }>,
   ) => Promise<{ sent: boolean; reason?: string }>;
 };
+
+function roleMgmtDispatcher(requiredTargetBot: DiscordTargetBot) {
+  return async (
+    payload: Extract<DiscordSafeDisplayPayload, { kind: "role_mgmt" }>,
+  ): Promise<{ sent: boolean; reason?: string }> => {
+    const { applyDiscordProductRole } = await import("@/server/discord-product-role.service");
+    const result = await applyDiscordProductRole({
+      productRole: payload.productRole,
+      action: payload.action,
+      discordUserId: payload.discordUserId,
+      altaUserId: payload.altaUserId,
+      reason: payload.reason,
+      expectedHasRole: payload.expectedHasRole,
+      requiredTargetBot,
+    });
+    if (result.ok) return { sent: true, reason: result.reason };
+    return {
+      sent: false,
+      reason: result.retryable ? `retryable:${result.reason}` : result.reason,
+    };
+  };
+}
 
 async function bankDeliveryDeps(): Promise<DiscordOutboxDeliveryDeps> {
   const { dispatchNotificationDm } = await import("@/server/notification-discord-dispatch.service");
@@ -472,11 +557,15 @@ async function bankDeliveryDeps(): Promise<DiscordOutboxDeliveryDeps> {
         channelClass:
           options?.channelClass === "security_audit" ||
           options?.channelClass === "delivery_alert" ||
-          options?.channelClass === "staff_ops"
+          options?.channelClass === "staff_ops" ||
+          options?.channelClass === "role_mgmt"
             ? options.channelClass
             : "staff_ops",
+        embed: options?.embed,
+        components: options?.components,
       });
     },
+    dispatchRoleMgmt: roleMgmtDispatcher("bank"),
   };
 }
 
@@ -498,8 +587,14 @@ async function secretaryDeliveryDeps(): Promise<DiscordOutboxDeliveryDeps> {
         options?.channelClass === "staff_ops"
           ? options.channelClass
           : "staff_ops";
-      return dispatchSecretaryStaffMessage(content, { product, channelClass });
+      return dispatchSecretaryStaffMessage(content, {
+        product,
+        channelClass,
+        embed: options?.embed,
+        components: options?.components,
+      });
     },
+    dispatchRoleMgmt: roleMgmtDispatcher("secretary"),
   };
 }
 
@@ -521,8 +616,14 @@ async function terminalDeliveryDeps(): Promise<DiscordOutboxDeliveryDeps> {
         options?.channelClass === "staff_ops"
           ? options.channelClass
           : "staff_ops";
-      return dispatchTerminalStaffMessage(content, { product, channelClass });
+      return dispatchTerminalStaffMessage(content, {
+        product,
+        channelClass,
+        embed: options?.embed,
+        components: options?.components,
+      });
     },
+    dispatchRoleMgmt: roleMgmtDispatcher("terminal"),
   };
 }
 
@@ -549,9 +650,17 @@ export async function deliverDiscordOutboxPayload(
       eventType: payload.eventType,
     });
   }
+  if (payload.kind === "role_mgmt") {
+    if (!deps.dispatchRoleMgmt) {
+      return { sent: false, reason: "role_mgmt_not_supported" };
+    }
+    return deps.dispatchRoleMgmt(payload);
+  }
   return deps.dispatchStaffAudit(payload.content, {
     product: options?.product ?? payload.product,
     channelClass: options?.channelClass,
+    embed: payload.kind === "staff_audit" ? payload.embed : undefined,
+    components: payload.kind === "staff_audit" ? payload.components : undefined,
   });
 }
 
@@ -808,11 +917,27 @@ export type DiscordOutboxHealthSnapshot = {
       dead: number | null;
     }
   >;
+  /** Role-management outbox counts by owning bot (channelClass=role_mgmt). */
+  roleMgmtByBot: Record<
+    DiscordTargetBot,
+    { pending: number | null; failed: number | null; dead: number | null }
+  >;
   secretaryConfigured: boolean;
   secretaryDeliveryEnabled: boolean;
   terminalConfigured: boolean;
   terminalDeliveryEnabled: boolean;
 };
+
+function emptyBotCounts(): Record<
+  DiscordTargetBot,
+  { pending: number; failed: number; dead: number }
+> {
+  return {
+    bank: { pending: 0, failed: 0, dead: 0 },
+    secretary: { pending: 0, failed: 0, dead: 0 },
+    terminal: { pending: 0, failed: 0, dead: 0 },
+  };
+}
 
 export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHealthSnapshot> {
   const {
@@ -826,11 +951,8 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
     "@/server/terminal-discord-dispatch.service"
   );
 
-  const counts: Record<DiscordTargetBot, { pending: number; failed: number; dead: number }> = {
-    bank: { pending: 0, failed: 0, dead: 0 },
-    secretary: { pending: 0, failed: 0, dead: 0 },
-    terminal: { pending: 0, failed: 0, dead: 0 },
-  };
+  const counts = emptyBotCounts();
+  const roleMgmtCounts = emptyBotCounts();
 
   try {
     const groups = await prisma.discordOutbox.groupBy({
@@ -851,13 +973,41 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
         counts[bot].dead += group._count._all;
       }
     }
+
+    const roleGroups = await prisma.discordOutbox.groupBy({
+      by: ["targetBot", "status"],
+      _count: { _all: true },
+      where: {
+        channelClass: "role_mgmt",
+        status: { in: ["PENDING", "FAILED", "DEAD", "PROCESSING"] },
+      },
+    });
+    for (const group of roleGroups) {
+      const bot = VALID_TARGET_BOTS.has(group.targetBot as DiscordTargetBot)
+        ? (group.targetBot as DiscordTargetBot)
+        : null;
+      if (!bot) continue;
+      if (group.status === "PENDING" || group.status === "PROCESSING") {
+        roleMgmtCounts[bot].pending += group._count._all;
+      } else if (group.status === "FAILED") {
+        roleMgmtCounts[bot].failed += group._count._all;
+      } else if (group.status === "DEAD") {
+        roleMgmtCounts[bot].dead += group._count._all;
+      }
+    }
   } catch {
+    const nullCounts = {
+      bank: { pending: null, failed: null, dead: null },
+      secretary: { pending: null, failed: null, dead: null },
+      terminal: { pending: null, failed: null, dead: null },
+    };
     return {
       byBot: {
         bank: { ...healthByBot.bank, pending: null, failed: null, dead: null },
         secretary: { ...healthByBot.secretary, pending: null, failed: null, dead: null },
         terminal: { ...healthByBot.terminal, pending: null, failed: null, dead: null },
       },
+      roleMgmtByBot: nullCounts,
       secretaryConfigured: isSecretaryDiscordConfigured(),
       secretaryDeliveryEnabled: isDiscordSecretaryDeliveryEnabled(),
       terminalConfigured: isTerminalDiscordConfigured(),
@@ -871,6 +1021,7 @@ export async function getDiscordOutboxHealthSnapshot(): Promise<DiscordOutboxHea
       secretary: { ...healthByBot.secretary, ...counts.secretary },
       terminal: { ...healthByBot.terminal, ...counts.terminal },
     },
+    roleMgmtByBot: roleMgmtCounts,
     secretaryConfigured: isSecretaryDiscordConfigured(),
     secretaryDeliveryEnabled: isDiscordSecretaryDeliveryEnabled(),
     terminalConfigured: isTerminalDiscordConfigured(),

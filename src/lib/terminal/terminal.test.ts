@@ -331,12 +331,24 @@ describe("UI Lab fixture isolation", () => {
 });
 
 describe("public Terminal truthful copy", () => {
-  it("home identifies the cash-only value while market data is unavailable", () => {
+  it("home stays usable while market data is unavailable", () => {
     const home = readFileSync(join(process.cwd(), "src/routes/terminal/index.tsx"), "utf8");
-    assert.match(home, /Cash value|marketDataAvailable/);
+    assert.match(home, /marketDataAvailable/);
     assert.doesNotMatch(home, /Valuation unavailable/);
     assert.doesNotMatch(home, /TerminalUnavailableState/);
     assert.match(home, /Create your first portfolio|Create portfolio/);
+  });
+
+  it("home portfolio cards surface market value, buying power, and day change", () => {
+    const card = readFileSync(
+      join(process.cwd(), "src/components/terminal/portfolio-switcher.tsx"),
+      "utf8",
+    );
+    assert.match(card, /Market value/);
+    assert.match(card, /Buying power/);
+    assert.match(card, /PriceChange/);
+    assert.doesNotMatch(card, /Cash value/);
+    assert.doesNotMatch(card, /Markets offline/);
   });
 
   it("portfolio detail does not block on unavailable TSE mode", () => {

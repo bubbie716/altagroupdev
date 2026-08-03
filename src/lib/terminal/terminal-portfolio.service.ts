@@ -434,6 +434,18 @@ export async function createTerminalPortfolio(
       return created;
     });
 
+    // After commit: enqueue Terminal Investor grant (never sync Discord inside the tx).
+    void import("@/server/discord-product-role.service")
+      .then(({ enqueueTerminalInvestorRoleGrantAfterActivation }) =>
+        enqueueTerminalInvestorRoleGrantAfterActivation({
+          altaUserId: user.id,
+          portfolioId: row.id,
+          actorUserId: user.id,
+          reason: "terminal_portfolio_activated",
+        }),
+      )
+      .catch(() => {});
+
     return toSummary(
       {
         id: row.id,
@@ -547,6 +559,24 @@ export async function archiveTerminalPortfolio(
 
       return archived;
     });
+
+    // Conservative: never auto-revoke Investor on archive — pending reconcile only.
+    const affectedUserIds = new Set<string>();
+    if (row.ownerUserId) affectedUserIds.add(row.ownerUserId);
+    if (row.createdByUserId) affectedUserIds.add(row.createdByUserId);
+    affectedUserIds.add(user.id);
+    void import("@/server/discord-product-role.service")
+      .then(async ({ surfaceTerminalInvestorIneligibilityPendingReconcile }) => {
+        for (const altaUserId of affectedUserIds) {
+          await surfaceTerminalInvestorIneligibilityPendingReconcile({
+            altaUserId,
+            portfolioId: portfolioId,
+            actorUserId: user.id,
+            reason: "terminal_portfolio_archived_pending_reconcile",
+          });
+        }
+      })
+      .catch(() => {});
 
     return toSummary(
       {

@@ -470,6 +470,8 @@ export function getUiLabPortfolioCrypto(input: {
       walletStatus: null,
       balances: [],
       totalMarkedValue: serializeCryptoMoney("0"),
+      dayChange: null,
+      dayChangePercent: null,
       hasWallet: false,
     };
   }
@@ -486,7 +488,15 @@ export function getUiLabPortfolioCrypto(input: {
     NVA: "4.75000000",
     VLT: "0.11000000",
   };
+  // Match listVisibleCryptoAssets demo day moves (NPFC has no 24h history).
+  const DEMO_UNIT_DAY_CHANGE: Record<CryptoAssetSymbol, string | null> = {
+    NPFC: null,
+    NVA: "0.01",
+    VLT: "-0.002",
+  };
   let total = d("0");
+  let totalDayChange = d("0");
+  let hasDayChange = false;
   const balances = LAUNCH_ASSET_SYMBOLS.map((symbol) => {
     const qty = d(wallet.quantities[symbol] ?? "0");
     const price = d(currentMarginalPrice(markets[symbol]));
@@ -495,6 +505,11 @@ export function getUiLabPortfolioCrypto(input: {
     const costBasis = qty.mul(avgCost);
     const ret = marked.minus(costBasis);
     total = total.plus(marked);
+    const unitDay = DEMO_UNIT_DAY_CHANGE[symbol];
+    if (qty.greaterThan(0) && unitDay != null) {
+      hasDayChange = true;
+      totalDayChange = totalDayChange.plus(qty.mul(d(unitDay)));
+    }
     const cfg = CRYPTO_ASSET_CONFIGS[symbol];
     return {
       symbol,
@@ -510,12 +525,24 @@ export function getUiLabPortfolioCrypto(input: {
     };
   }).filter((b) => d(b.quantity).greaterThan(0));
 
+  let dayChange: string | null = null;
+  let dayChangePercent: string | null = null;
+  if (hasDayChange) {
+    dayChange = serializeCryptoMoney(totalDayChange);
+    const prior = total.minus(totalDayChange);
+    dayChangePercent = prior.abs().greaterThan(d("0.005"))
+      ? totalDayChange.div(prior.abs()).mul(100).toFixed(2)
+      : "0.00";
+  }
+
   return {
     portfolioId: input.portfolioId,
     walletPublicId: wallet.publicWalletId,
     walletStatus: wallet.status,
     balances,
     totalMarkedValue: serializeCryptoMoney(total),
+    dayChange,
+    dayChangePercent,
     hasWallet: true,
   };
 }

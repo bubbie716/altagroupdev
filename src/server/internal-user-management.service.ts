@@ -367,6 +367,18 @@ export async function grantInternalUserTag(
     metadata: { tag },
   });
 
+  // Phase 5: Secretary staff Discord role — grant when admin tags are present.
+  if (tag === "corporate_admin" || tag === "bank_admin" || tag === "terminal_admin") {
+    void import("@/server/discord-product-role.service").then(({ syncProductRoleForUserBestEffort }) =>
+      syncProductRoleForUserBestEffort({
+        productRole: "secretary_staff",
+        altaUserId: targetUserId,
+        actorUserId,
+        preferRevokeWhenIneligible: false,
+      }),
+    );
+  }
+
   return getInternalUserDetail(targetUserId);
 }
 
@@ -405,6 +417,18 @@ export async function revokeInternalUserTag(
     description: `Revoked ${formatUserTag(tag)} tag`,
     metadata: { tag },
   });
+
+  // Phase 5: revoke Secretary staff Discord role only when no admin tags remain.
+  if (tag === "corporate_admin" || tag === "bank_admin" || tag === "terminal_admin") {
+    void import("@/server/discord-product-role.service").then(({ syncProductRoleForUserBestEffort }) =>
+      syncProductRoleForUserBestEffort({
+        productRole: "secretary_staff",
+        altaUserId: targetUserId,
+        actorUserId,
+        preferRevokeWhenIneligible: true,
+      }),
+    );
+  }
 
   return getInternalUserDetail(targetUserId);
 }
@@ -446,6 +470,27 @@ export async function updateInternalUserAccountStatus(
     description: `Changed account status to ${accountStatus}`,
     metadata: { accountStatus, source: "website" },
   });
+
+  // Phase 5: frozen accounts lose Bank client Discord role (explicit eligibility loss).
+  if (accountStatus === "frozen") {
+    void import("@/server/discord-product-role.service").then(({ syncProductRoleForUserBestEffort }) =>
+      syncProductRoleForUserBestEffort({
+        productRole: "bank_client",
+        altaUserId: targetUserId,
+        actorUserId,
+        preferRevokeWhenIneligible: true,
+      }),
+    );
+  } else if (accountStatus === "active") {
+    void import("@/server/discord-product-role.service").then(({ syncProductRoleForUserBestEffort }) =>
+      syncProductRoleForUserBestEffort({
+        productRole: "bank_client",
+        altaUserId: targetUserId,
+        actorUserId,
+        preferRevokeWhenIneligible: false,
+      }),
+    );
+  }
 
   return getInternalUserDetail(targetUserId);
 }

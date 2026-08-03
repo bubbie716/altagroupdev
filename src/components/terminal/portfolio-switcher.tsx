@@ -546,7 +546,8 @@ export function PortfolioOwnerBadge({
 }
 
 export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioSummary }) {
-  const showValue = portfolio.totalValue != null;
+  const marketValue = portfolio.totalValue ?? portfolio.cashBalance;
+  const buyingPower = portfolio.cashBalance ?? portfolio.totalValue;
   return (
     <Link
       to="/terminal/portfolio/$portfolioId"
@@ -562,25 +563,25 @@ export function HomePortfolioCard({ portfolio }: { portfolio: TerminalPortfolioS
         <PortfolioOwnerBadge portfolio={portfolio} decorative />
       </div>
       <div className="mt-3 flex items-end justify-between gap-2">
-        {showValue ? (
-          <>
-            <div>
-              {!portfolio.valuationAvailable ? (
-                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
-                  Cash value
-                </p>
-              ) : null}
-              <MoneyValue value={portfolio.totalValue} size="md" />
-            </div>
-            {portfolio.valuationAvailable ? (
-              <PriceChange amount={portfolio.dayChange} percent={portfolio.dayChangePercent} />
-            ) : (
-              <span className="text-[11px] text-[var(--terminal-muted)]">Markets offline</span>
-            )}
-          </>
-        ) : (
-          <MoneyValue value={portfolio.cashBalance} size="md" />
-        )}
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
+            Market value
+          </p>
+          <MoneyValue value={marketValue} size="md" />
+          <div className="mt-1">
+            <PriceChange
+              amount={portfolio.dayChange}
+              percent={portfolio.dayChangePercent}
+              compact
+            />
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--terminal-muted)]">
+            Buying power
+          </p>
+          <MoneyValue value={buyingPower} size="sm" />
+        </div>
       </div>
     </Link>
   );

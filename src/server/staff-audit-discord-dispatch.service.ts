@@ -38,20 +38,34 @@ export type StaffAuditDispatchOptions = {
   channelClass?: DiscordChannelClass;
   /** Explicit channel override (bot bridge). */
   channelId?: string;
+  /** Premium embed — sent with content in one message (never a second send). */
+  embed?: Record<string, unknown>;
+  components?: Record<string, unknown>[];
 };
 
 async function postChannelTextMessage(
   botToken: string,
   channelId: string,
   content: string,
+  options?: { embed?: Record<string, unknown>; components?: Record<string, unknown>[] },
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    content: content.slice(0, 2000),
+  };
+  if (options?.embed && Object.keys(options.embed).length > 0) {
+    body.embeds = [options.embed];
+  }
+  if (options?.components && options.components.length > 0) {
+    body.components = options.components;
+  }
+
   const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ content: content.slice(0, 2000) }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(8_000),
   });
 
@@ -64,7 +78,11 @@ async function postChannelTextMessage(
   return data.id ?? "unknown";
 }
 
-async function tryBotDelivery(content: string, channelId: string): Promise<boolean> {
+async function tryBotDelivery(
+  content: string,
+  channelId: string,
+  options?: { embed?: Record<string, unknown>; components?: Record<string, unknown>[] },
+): Promise<boolean> {
   const secret = botApiSecret();
   if (!secret) {
     logDispatch("bot delivery skipped — BOT_API_SECRET not set");
@@ -78,7 +96,12 @@ async function tryBotDelivery(content: string, channelId: string): Promise<boole
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ content, channelId }),
+      body: JSON.stringify({
+        content,
+        channelId,
+        embed: options?.embed,
+        components: options?.components,
+      }),
       signal: AbortSignal.timeout(5000),
     });
 
@@ -142,6 +165,8 @@ export async function dispatchStaffAuditDiscordMessage(
       product,
       channelClass,
       channelId: options?.channelId,
+      embed: options?.embed,
+      components: options?.components,
     });
   }
 
@@ -154,6 +179,8 @@ export async function dispatchStaffAuditDiscordMessage(
       product,
       channelClass,
       channelId: options?.channelId,
+      embed: options?.embed,
+      components: options?.components,
     });
   }
 
@@ -165,7 +192,10 @@ export async function dispatchStaffAuditDiscordMessage(
   const config = getDiscordBotConfig();
   if (config) {
     try {
-      const messageId = await postChannelTextMessage(config.botToken, resolved.channelId, content);
+      const messageId = await postChannelTextMessage(config.botToken, resolved.channelId, content, {
+        embed: options?.embed,
+        components: options?.components,
+      });
       logDispatch("direct delivery sent", {
         messageId,
         channelId: resolved.channelId,
@@ -180,7 +210,10 @@ export async function dispatchStaffAuditDiscordMessage(
     logDispatch("direct delivery skipped — Discord bot not configured");
   }
 
-  const viaBot = await tryBotDelivery(content, resolved.channelId);
+  const viaBot = await tryBotDelivery(content, resolved.channelId, {
+    embed: options?.embed,
+    components: options?.components,
+  });
   if (viaBot) return { sent: true, via: "bot" };
 
   return { sent: false, via: "none", reason: "delivery_failed" };

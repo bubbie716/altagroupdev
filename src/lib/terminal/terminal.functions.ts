@@ -66,22 +66,55 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
       portfolios.map(async (portfolio) => {
         try {
           const summary = await getPortfolioCryptoSummary(portfolio.id);
-          return { portfolioId: portfolio.id, marked: parseCryptoMarkedValue(summary.totalMarkedValue) };
+          const marked = parseCryptoMarkedValue(summary.totalMarkedValue);
+          const dayChange =
+            summary.dayChange != null ? parseCryptoMarkedValue(summary.dayChange) : null;
+          const dayChangePercent =
+            summary.dayChangePercent != null && summary.dayChangePercent !== ""
+              ? Number(summary.dayChangePercent)
+              : null;
+          return {
+            portfolioId: portfolio.id,
+            marked,
+            dayChange: dayChange != null && Number.isFinite(dayChange) ? dayChange : null,
+            dayChangePercent:
+              dayChangePercent != null && Number.isFinite(dayChangePercent)
+                ? dayChangePercent
+                : null,
+          };
         } catch {
-          return { portfolioId: portfolio.id, marked: 0 };
+          return {
+            portfolioId: portfolio.id,
+            marked: 0,
+            dayChange: null,
+            dayChangePercent: null,
+          };
         }
       }),
     );
-    const cryptoMarkedById = new Map(cryptoByPortfolio.map((row) => [row.portfolioId, row.marked]));
+    const cryptoById = new Map(cryptoByPortfolio.map((row) => [row.portfolioId, row]));
 
-    const portfoliosWithCrypto = portfolios.map((portfolio) => {
-      const cryptoMarked = cryptoMarkedById.get(portfolio.id) ?? 0;
+    const portfoliosWithCrypto: TerminalPortfolioSummary[] = portfolios.map((portfolio) => {
+      const crypto = cryptoById.get(portfolio.id);
+      const cryptoMarked = crypto?.marked ?? 0;
       const cash = portfolio.cashBalance ?? 0;
       const baseTotal = portfolio.totalValue ?? cash;
+      const totalValue = baseTotal + cryptoMarked;
+      const dayChange = crypto?.dayChange ?? portfolio.dayChange;
+      // Percent is vs full portfolio value (cash + crypto), not crypto sleeve alone.
+      const prior = dayChange != null ? totalValue - dayChange : null;
+      const dayChangePercent =
+        dayChange == null
+          ? portfolio.dayChangePercent
+          : prior != null && Math.abs(prior) > 0.005
+            ? (dayChange / Math.abs(prior)) * 100
+            : 0;
       return {
         ...portfolio,
         // Merge crypto marked value; do not leak wallet details across portfolios.
-        totalValue: baseTotal + cryptoMarked,
+        totalValue,
+        dayChange,
+        dayChangePercent,
       };
     });
 
@@ -89,6 +122,19 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
       (total, portfolio) => total + (portfolio.totalValue ?? 0),
       0,
     );
+    let combinedDayChange: number | null = null;
+    for (const portfolio of portfoliosWithCrypto) {
+      if (portfolio.dayChange == null) continue;
+      combinedDayChange = (combinedDayChange ?? 0) + portfolio.dayChange;
+    }
+    const priorCombined =
+      combinedDayChange != null ? combinedValue - combinedDayChange : null;
+    const combinedDayChangePercent =
+      combinedDayChange == null
+        ? null
+        : priorCombined != null && Math.abs(priorCombined) > 0.005
+          ? (combinedDayChange / Math.abs(priorCombined)) * 100
+          : 0;
 
     return {
       mode: client.mode,
@@ -96,8 +142,8 @@ export const fetchTerminalHome = createServerFn({ method: "GET" }).handler(async
         marketStatus,
         marketDataAvailable: false,
         combinedValue,
-        combinedDayChange: null,
-        combinedDayChangePercent: null,
+        combinedDayChange,
+        combinedDayChangePercent,
         portfolios: portfoliosWithCrypto,
         watchlistPreview,
         movers: { gainers: [], losers: [] },

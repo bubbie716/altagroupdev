@@ -51,6 +51,8 @@ export type TerminalDispatchOptions = {
   product?: DiscordProductSource;
   channelClass?: DiscordChannelClass;
   channelId?: string;
+  embed?: Record<string, unknown>;
+  components?: Record<string, unknown>[];
 };
 
 const REJECTED_ROUTE_KEYS = new Set([
@@ -113,14 +115,22 @@ async function postChannelTextMessage(
   botToken: string,
   channelId: string,
   content: string,
+  options?: { embed?: Record<string, unknown>; components?: Record<string, unknown>[] },
 ): Promise<string> {
+  const body: Record<string, unknown> = { content: redactTerminalContent(content) };
+  if (options?.embed && Object.keys(options.embed).length > 0) {
+    body.embeds = [options.embed];
+  }
+  if (options?.components && options.components.length > 0) {
+    body.components = options.components;
+  }
   const response = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bot ${botToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ content: redactTerminalContent(content) }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(8_000),
   });
 
@@ -133,7 +143,11 @@ async function postChannelTextMessage(
   return data.id ?? "unknown";
 }
 
-async function tryTerminalBotDelivery(content: string, channelId: string): Promise<boolean> {
+async function tryTerminalBotDelivery(
+  content: string,
+  channelId: string,
+  options?: { embed?: Record<string, unknown>; components?: Record<string, unknown>[] },
+): Promise<boolean> {
   const secret = terminalBotApiSecret();
   if (!secret) {
     logDispatch("bot delivery skipped — TERMINAL_BOT_API_SECRET/BOT_API_SECRET not set");
@@ -147,7 +161,12 @@ async function tryTerminalBotDelivery(content: string, channelId: string): Promi
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ content: redactTerminalContent(content), channelId }),
+      body: JSON.stringify({
+        content: redactTerminalContent(content),
+        channelId,
+        embed: options?.embed,
+        components: options?.components,
+      }),
       signal: AbortSignal.timeout(5000),
     });
 
@@ -191,7 +210,10 @@ export async function dispatchTerminalStaffMessage(
   const config = getTerminalDiscordBotConfig();
   if (config) {
     try {
-      const messageId = await postChannelTextMessage(config.botToken, resolved.channelId, content);
+      const messageId = await postChannelTextMessage(config.botToken, resolved.channelId, content, {
+        embed: options?.embed,
+        components: options?.components,
+      });
       logDispatch("direct delivery sent", {
         messageId,
         channelId: resolved.channelId,
@@ -206,7 +228,10 @@ export async function dispatchTerminalStaffMessage(
     logDispatch("direct delivery skipped — Terminal bot not configured");
   }
 
-  const viaBot = await tryTerminalBotDelivery(content, resolved.channelId);
+  const viaBot = await tryTerminalBotDelivery(content, resolved.channelId, {
+    embed: options?.embed,
+    components: options?.components,
+  });
   if (viaBot) return { sent: true, via: "bot" };
 
   return {

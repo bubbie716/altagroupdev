@@ -3,7 +3,12 @@ import {
   isDiscordProductAwareRoutingEnabled,
   resolveDiscordEventDefinition,
 } from "@/lib/discord/discord-event-registry";
-import { formatStaffAuditMessage } from "@/lib/staff-audit/staff-audit-format";
+import { buildEventPremiumEmbed } from "@/lib/discord/discord-premium-embed";
+import {
+  formatStaffAuditAction,
+  formatStaffAuditMessage,
+} from "@/lib/staff-audit/staff-audit-format";
+import { sanitizeStaffAuditDetails } from "@/lib/staff-audit/staff-audit-privacy";
 import type { SendStaffAuditMessageInput } from "@/lib/staff-audit/staff-audit-types";
 import { formatAltaUserHandle } from "@/lib/auth/user-display";
 import { prisma } from "@/server/db";
@@ -50,6 +55,43 @@ export async function resolveStaffAuditActorName(
   return formatAltaUserHandle(user).slice(0, 100);
 }
 
+/** Build premium staff embed + plain-text fallback (single delivery payload). */
+export function buildStaffAuditPremiumPayload(
+  input: SendStaffAuditMessageInput & { actorLabel: string },
+): {
+  content: string;
+  embed: Record<string, unknown>;
+  components: Record<string, unknown>[];
+} {
+  const content = formatStaffAuditMessage(input);
+  const productSource = staffAuditProductToSource(input.product);
+  const details = sanitizeStaffAuditDetails(input.details);
+
+  try {
+    const built = buildEventPremiumEmbed({
+      eventType: input.eventType?.trim() || input.action,
+      product: productSource,
+      severity: input.severity,
+      title: formatStaffAuditAction(input.action, input.source),
+      description: details ?? undefined,
+      fields: [
+        { name: "Actor", value: input.actorLabel, inline: true },
+        { name: "Product", value: input.product, inline: true },
+      ],
+      linkUrl: input.internalUrl,
+      correlationId: input.dedupeKey,
+    });
+    return {
+      // Plain-text fallback for legacy paths; same message — never a second send.
+      content: built.plainText.slice(0, 2000) || content,
+      embed: built.embed,
+      components: built.components,
+    };
+  } catch {
+    return { content, embed: {}, components: [] };
+  }
+}
+
 export async function sendStaffAuditMessageAsync(
   input: SendStaffAuditMessageInput,
 ): Promise<{ sent: boolean; reason?: string }> {
@@ -59,7 +101,9 @@ export async function sendStaffAuditMessageAsync(
   }
 
   const actorLabel = await resolveStaffAuditActorName(input.actorUserId, input.actorName);
-  const content = formatStaffAuditMessage({ ...input, actorLabel });
+  const premium = buildStaffAuditPremiumPayload({ ...input, actorLabel });
+  const content = premium.content;
+  const hasEmbed = Boolean(premium.embed && Object.keys(premium.embed).length > 0);
 
   const {
     enqueueStaffAuditOutbox,
@@ -77,6 +121,8 @@ export async function sendStaffAuditMessageAsync(
     action: input.action,
     eventType: input.eventType,
     content,
+    embed: hasEmbed ? premium.embed : undefined,
+    components: hasEmbed ? premium.components : undefined,
     actorUserId: input.actorUserId,
     severity: input.severity,
     dedupeKey: input.dedupeKey,
@@ -103,6 +149,8 @@ export async function sendStaffAuditMessageAsync(
   const result = await dispatchStaffAuditDiscordMessage(content, {
     product: productSource,
     channelClass,
+    embed: hasEmbed ? premium.embed : undefined,
+    components: hasEmbed ? premium.components : undefined,
   });
 
   if (!result.sent) {

@@ -66,6 +66,12 @@ export type CryptoPortfolioSummary = {
   walletStatus: "ACTIVE" | "FROZEN" | "CLOSED" | null;
   balances: CryptoPortfolioBalance[];
   totalMarkedValue: string;
+  /**
+   * Florin day P&L on held crypto (qty × unit day change). Null when no balance
+   * has usable 24h candle history — never fabricate zero.
+   */
+  dayChange: string | null;
+  dayChangePercent: string | null;
   hasWallet: boolean;
 };
 
@@ -442,6 +448,8 @@ export async function getPortfolioCryptoSummary(
       walletStatus: null,
       balances: [],
       totalMarkedValue: serializeCryptoMoney("0"),
+      dayChange: null,
+      dayChangePercent: null,
       hasWallet: false,
     };
   }
@@ -469,11 +477,15 @@ async function getPortfolioCryptoSummaryUnsafe(
       balances: [],
       // Decimal helpers reject JS numbers in authoritative math — use a decimal string.
       totalMarkedValue: serializeCryptoMoney("0"),
+      dayChange: null,
+      dayChangePercent: null,
       hasWallet: false,
     };
   }
 
   let totalMarked = d("0");
+  let totalDayChange = d("0");
+  let hasDayChange = false;
   const balances: CryptoPortfolioBalance[] = [];
 
   for (const balance of wallet.balances) {
@@ -494,6 +506,15 @@ async function getPortfolioCryptoSummaryUnsafe(
 
     const markedValue = roundDownMoney(qty.mul(d(currentPrice)));
     totalMarked = totalMarked.plus(markedValue);
+
+    const dayMetrics = await computeDayChange({
+      assetId: asset.id,
+      currentPrice,
+    });
+    if (dayMetrics.dayChange != null) {
+      hasDayChange = true;
+      totalDayChange = totalDayChange.plus(qty.mul(d(dayMetrics.dayChange)));
+    }
 
     const avgCost = d(balance.averageCost.toString());
     let totalReturn: string | null = null;
@@ -521,12 +542,25 @@ async function getPortfolioCryptoSummaryUnsafe(
 
   balances.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
+  let dayChange: string | null = null;
+  let dayChangePercent: string | null = null;
+  if (hasDayChange) {
+    dayChange = serializeCryptoMoney(totalDayChange);
+    const prior = totalMarked.minus(totalDayChange);
+    dayChangePercent =
+      prior.abs().greaterThan(d("0.005"))
+        ? totalDayChange.div(prior.abs()).mul(100).toFixed(2)
+        : "0.00";
+  }
+
   return {
     portfolioId,
     walletPublicId: wallet.publicWalletId,
     walletStatus: wallet.status,
     balances,
     totalMarkedValue: serializeCryptoMoney(totalMarked),
+    dayChange,
+    dayChangePercent,
     hasWallet: true,
   };
 }

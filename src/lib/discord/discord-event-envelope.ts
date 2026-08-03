@@ -55,11 +55,26 @@ export type DiscordStaffAuditDisplayPayload = {
   content: string;
   product?: string;
   action?: string;
+  /** Optional premium embed (API-shaped). Plain content remains the fallback. */
+  embed?: Record<string, unknown>;
+  components?: Record<string, unknown>[];
+};
+
+export type DiscordRoleMgmtDisplayPayload = {
+  kind: "role_mgmt";
+  action: "grant" | "revoke" | "reconcile";
+  productRole: "bank_client" | "terminal_investor" | "secretary_staff";
+  discordUserId: string;
+  roleId: string;
+  altaUserId?: string;
+  reason?: string;
+  expectedHasRole?: boolean;
 };
 
 export type DiscordSafeDisplayPayload =
   | DiscordCustomerDmDisplayPayload
-  | DiscordStaffAuditDisplayPayload;
+  | DiscordStaffAuditDisplayPayload
+  | DiscordRoleMgmtDisplayPayload;
 
 export type DiscordInternalRef = {
   entityType?: string;
@@ -147,10 +162,11 @@ export type ResolveOutboxTargetBotInput = {
 };
 
 /**
- * Resolve which outbox worker may claim this row (Phase 4).
+ * Resolve which outbox worker may claim this row (Phase 4/5).
  *
  * Rules:
  * - customer_dm → always bank (Terminal/Secretary never send customer DMs)
+ * - role_mgmt → owning product bot (bank / terminal / secretary)
  * - Terminal staff when DISCORD_TERMINAL_DELIVERY on → terminal (fail closed; no Bank fallback)
  * - Secretary staff when DISCORD_SECRETARY_DELIVERY on → secretary
  * - otherwise → bank (legacy / rollback)
@@ -159,6 +175,15 @@ export function resolveOutboxTargetBot(input: ResolveOutboxTargetBotInput): Disc
   // Customer DMs always Bank — Terminal/Secretary never send customer financial DMs.
   if (input.channelClass === "customer_dm") return "bank";
   if (input.explicitTerminalBot) return "terminal";
+
+  // Phase 5 role management — route by product ownership (never cross-product).
+  if (input.channelClass === "role_mgmt") {
+    if (input.product === "terminal") return "terminal";
+    if (input.product === "secretary" || input.product === "ops" || input.product === "corporate") {
+      return isDiscordSecretaryDeliveryEnabled() ? "secretary" : "bank";
+    }
+    return "bank";
+  }
 
   // Terminal staff cutover — no Bank/Secretary fallback when the flag is on.
   if (isDiscordTerminalDeliveryEnabled() && input.product === "terminal") {

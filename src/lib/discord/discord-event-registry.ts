@@ -57,12 +57,12 @@ export const DISCORD_BRANDS = {
     linkLabelDefault: "View on Alta",
   },
   secretary: {
-    footer: "Alta Group · Newport",
-    productLabel: "Alta Ops",
+    footer: "Alta Secretary · Newport",
+    productLabel: "Alta Secretary",
     linkLabelDefault: "View internal",
   },
   ops: {
-    footer: "Alta Group · Newport",
+    footer: "Alta operations · Newport",
     productLabel: "Alta Ops",
     linkLabelDefault: "View internal",
   },
@@ -93,6 +93,7 @@ function resolveDefaultDeliveryBot(
 ): DiscordTargetBot {
   if (override) return override;
   if (channelClass === "customer_dm") return "bank";
+  // role_mgmt and staff streams follow ownership.
   if (ownedByBot === "secretary") return "secretary";
   if (ownedByBot === "terminal") return "terminal";
   return "bank";
@@ -124,6 +125,12 @@ const CUSTOMER_QUEUED = {
 const STAFF_OPS = {
   audience: "staff" as const,
   channelClass: "staff_ops" as const,
+  deliveryPolicy: "queued" as const,
+};
+
+const ROLE_MGMT = {
+  audience: "staff" as const,
+  channelClass: "role_mgmt" as const,
   deliveryPolicy: "queued" as const,
 };
 
@@ -238,6 +245,54 @@ const EXACT_EVENTS: DiscordEventDefinition[] = [
   }),
   def("INTERNAL_NOTE_ADDED", { product: "ops", ...STAFF_OPS, severity: "INFO", ownedByBot: "secretary" }),
   def("BUSINESS_ACCOUNT_OPENED", { product: "corporate", ...STAFF_OPS, severity: "ACTION", ownedByBot: "secretary" }),
+
+  // —— Phase 5 product role management ——
+  def("BANK_CLIENT_ROLE_GRANTED", { product: "bank", ...ROLE_MGMT, severity: "ACTION", ownedByBot: "bank", deliveryBot: "bank" }),
+  def("BANK_CLIENT_ROLE_REVOKED", { product: "bank", ...ROLE_MGMT, severity: "ACTION", ownedByBot: "bank", deliveryBot: "bank" }),
+  def("BANK_CLIENT_ROLE_RECONCILED", { product: "bank", ...ROLE_MGMT, severity: "INFO", ownedByBot: "bank", deliveryBot: "bank" }),
+  def("TERMINAL_INVESTOR_ROLE_GRANTED", {
+    product: "terminal",
+    ...ROLE_MGMT,
+    severity: "ACTION",
+    ownedByBot: "terminal",
+    deliveryBot: "terminal",
+  }),
+  def("TERMINAL_INVESTOR_ROLE_REVOKED", {
+    product: "terminal",
+    ...ROLE_MGMT,
+    severity: "ACTION",
+    ownedByBot: "terminal",
+    deliveryBot: "terminal",
+  }),
+  def("TERMINAL_INVESTOR_ROLE_RECONCILED", {
+    product: "terminal",
+    ...ROLE_MGMT,
+    severity: "INFO",
+    ownedByBot: "terminal",
+    deliveryBot: "terminal",
+  }),
+  def("SECRETARY_STAFF_ROLE_GRANTED", {
+    product: "secretary",
+    ...ROLE_MGMT,
+    severity: "ACTION",
+    ownedByBot: "secretary",
+    deliveryBot: "secretary",
+  }),
+  def("SECRETARY_STAFF_ROLE_REVOKED", {
+    product: "secretary",
+    ...ROLE_MGMT,
+    severity: "ACTION",
+    ownedByBot: "secretary",
+    deliveryBot: "secretary",
+  }),
+  def("SECRETARY_STAFF_ROLE_RECONCILED", {
+    product: "secretary",
+    ...ROLE_MGMT,
+    severity: "INFO",
+    ownedByBot: "secretary",
+    deliveryBot: "secretary",
+  }),
+  def("OPS_JOB_FAILED", { product: "ops", ...STAFF_OPS, severity: "CRITICAL", ownedByBot: "secretary" }),
 ];
 
 /** Prefix rules (longest match wins). */

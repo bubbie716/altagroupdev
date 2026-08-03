@@ -1,5 +1,10 @@
+/**
+ * Bank client Discord guild role helpers.
+ * Phase 5: delegates to shared product-role service; keeps legacy API names.
+ */
+
 import { isDiscordLiveDeliveryDisabled } from "@/lib/discord/discord-delivery-guard";
-import { getDiscordBotConfig } from "@/server/discord-embed.service";
+import { resolveBankClientRoleId } from "@/lib/discord/discord-product-role";
 import { prisma } from "@/server/db";
 
 export type GrantDiscordRoleResult =
@@ -11,55 +16,50 @@ function logRoleGrant(message: string, meta?: Record<string, unknown>): void {
   console.info(`[discord-guild-role] ${message}`, meta ?? {});
 }
 
+/** @deprecated Prefer resolveBankClientRoleId — kept for existing call sites. */
 export function resolveDiscordClientRoleId(): string | undefined {
-  return process.env.DISCORD_CLIENT_ROLE_ID?.trim() || undefined;
+  return resolveBankClientRoleId() ?? undefined;
 }
 
 export async function grantDiscordGuildRole(
   discordUserId: string,
   roleId: string,
 ): Promise<GrantDiscordRoleResult> {
-  if (isDiscordLiveDeliveryDisabled()) {
-    return { ok: false, reason: "disabled_in_test" };
+  const expected = resolveBankClientRoleId();
+  if (!expected || expected !== roleId) {
+    // Hard rule: Bank helper only touches the Bank client role ID.
+    return { ok: false, reason: "cross_product_role_refused" };
   }
 
-  const config = getDiscordBotConfig();
-  if (!config) return { ok: false, reason: "discord_not_configured" };
-
-  const response = await fetch(
-    `https://discord.com/api/v10/guilds/${config.guildId}/members/${discordUserId}/roles/${roleId}`,
-    {
-      method: "PUT",
-      headers: { Authorization: `Bot ${config.botToken}` },
-    },
-  );
-
-  if (response.ok) return { ok: true };
-  if (response.status === 404) return { ok: false, reason: "member_not_in_guild" };
-
-  const detail = await response.text();
-  return {
-    ok: false,
-    reason: detail.slice(0, 200) || `discord_api_${response.status}`,
-  };
+  const { applyDiscordProductRole } = await import("@/server/discord-product-role.service");
+  const result = await applyDiscordProductRole({
+    productRole: "bank_client",
+    action: "grant",
+    discordUserId,
+    reason: "legacy_grantDiscordGuildRole",
+    requiredTargetBot: "bank",
+    skipEligibilityCheck: true,
+  });
+  return result.ok ? { ok: true } : { ok: false, reason: result.reason };
 }
 
 export async function grantDiscordClientRole(
   discordUserId: string,
 ): Promise<GrantDiscordRoleResult> {
-  const roleId = resolveDiscordClientRoleId();
+  const roleId = resolveBankClientRoleId();
   if (!roleId) return { ok: false, reason: "client_role_not_configured" };
   return grantDiscordGuildRole(discordUserId, roleId);
 }
 
 export async function grantDiscordClientRoleBestEffort(discordUserId: string): Promise<void> {
-  const result = await grantDiscordClientRole(discordUserId);
-  if (result.ok) {
-    logRoleGrant("client role granted", { discordUserId });
-    return;
-  }
-  if (result.reason === "client_role_not_configured") return;
-  logRoleGrant("client role grant failed", { discordUserId, reason: result.reason });
+  const { grantBankClientRoleBestEffort } = await import(
+    "@/server/discord-product-role.service"
+  );
+  const user = await prisma.user.findUnique({
+    where: { discordId: discordUserId },
+    select: { id: true },
+  });
+  await grantBankClientRoleBestEffort(discordUserId, user?.id);
 }
 
 export type DiscordGuildRoleJoinSyncResult =
@@ -70,7 +70,7 @@ export type DiscordGuildRoleJoinSyncResult =
       clientSkipped?: boolean;
     };
 
-/** Grant Discord guild roles when a member joins — based on linked Alta account + tags. */
+/** Grant Discord guild roles when a member joins — based on linked Alta account. */
 export async function syncDiscordGuildRolesForJoin(
   discordUserId: string,
 ): Promise<DiscordGuildRoleJoinSyncResult> {
@@ -84,7 +84,7 @@ export async function syncDiscordGuildRolesForJoin(
   }
 
   let clientGranted = false;
-  const clientSkipped = resolveDiscordClientRoleId() == null;
+  const clientSkipped = resolveBankClientRoleId() == null;
 
   const clientResult = await grantDiscordClientRole(discordUserId);
   if (clientResult.ok) {

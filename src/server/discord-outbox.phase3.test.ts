@@ -100,12 +100,15 @@ function memoryStore(rows: DiscordOutbox[]): DiscordOutboxWorkerStore {
 describe("Phase 3 outbox target bot resolution", () => {
   const originalSecretary = process.env.DISCORD_SECRETARY_DELIVERY;
   const originalAware = process.env.DISCORD_PRODUCT_AWARE_ROUTING;
+  const originalTerminal = process.env.DISCORD_TERMINAL_DELIVERY;
 
   afterEach(() => {
     if (originalSecretary === undefined) delete process.env.DISCORD_SECRETARY_DELIVERY;
     else process.env.DISCORD_SECRETARY_DELIVERY = originalSecretary;
     if (originalAware === undefined) delete process.env.DISCORD_PRODUCT_AWARE_ROUTING;
     else process.env.DISCORD_PRODUCT_AWARE_ROUTING = originalAware;
+    if (originalTerminal === undefined) delete process.env.DISCORD_TERMINAL_DELIVERY;
+    else process.env.DISCORD_TERMINAL_DELIVERY = originalTerminal;
   });
 
   it("keeps Phase 2 bank targeting when Secretary delivery is off", () => {
@@ -145,8 +148,9 @@ describe("Phase 3 outbox target bot resolution", () => {
     );
   });
 
-  it("keeps Terminal events on Bank delivery path by default", () => {
+  it("keeps Terminal events on Bank delivery path when Terminal delivery is off", () => {
     process.env.DISCORD_SECRETARY_DELIVERY = "true";
+    delete process.env.DISCORD_TERMINAL_DELIVERY;
     assert.equal(
       resolveOutboxTargetBot({
         product: "terminal",
@@ -169,6 +173,7 @@ describe("Phase 3 outbox target bot resolution", () => {
 
   it("records explicit Terminal bot target only when requested", () => {
     process.env.DISCORD_SECRETARY_DELIVERY = "true";
+    delete process.env.DISCORD_TERMINAL_DELIVERY;
     assert.equal(
       resolveOutboxTargetBot({
         product: "terminal",

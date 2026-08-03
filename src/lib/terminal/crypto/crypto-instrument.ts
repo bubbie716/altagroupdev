@@ -38,16 +38,37 @@ export function mergePortfolioSnapshotWithCrypto(
   crypto: CryptoPortfolioSummary | null | undefined,
 ): PortfolioSnapshot {
   const cryptoMarked = parseCryptoMarkedValue(crypto?.totalMarkedValue);
-  if (cryptoMarked <= 0) return snapshot;
+  const cryptoDayChange =
+    crypto?.dayChange != null ? parseCryptoMarkedValue(crypto.dayChange) : null;
+  if (cryptoMarked <= 0 && cryptoDayChange == null) return snapshot;
 
   const baseTotal = snapshot.totalValue ?? snapshot.cashBalance;
   const baseEquity = snapshot.equityValue;
+  const totalValue = baseTotal + cryptoMarked;
+  const dayChange =
+    snapshot.dayChange != null || cryptoDayChange != null
+      ? (snapshot.dayChange ?? 0) + (cryptoDayChange ?? 0)
+      : null;
+  const prior = dayChange != null ? totalValue - dayChange : null;
+  const dayChangePercent =
+    dayChange == null
+      ? snapshot.dayChangePercent
+      : prior != null && Math.abs(prior) > 0.005
+        ? (dayChange / Math.abs(prior)) * 100
+        : 0;
+
   return {
     ...snapshot,
     // Cash stays authoritative; equity adds crypto marked value when stock equity exists,
     // otherwise crypto alone is the non-cash component.
     equityValue:
-      baseEquity != null ? baseEquity + cryptoMarked : cryptoMarked > 0 ? cryptoMarked : null,
-    totalValue: baseTotal + cryptoMarked,
+      baseEquity != null
+        ? baseEquity + cryptoMarked
+        : cryptoMarked > 0
+          ? cryptoMarked
+          : null,
+    totalValue,
+    dayChange,
+    dayChangePercent,
   };
 }

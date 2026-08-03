@@ -102,7 +102,7 @@ function TerminalHomePage() {
           ) : (
             <>
               <MoneyValue value={combinedValue} size="lg" className="mt-1" animateOnChange />
-              {marketDataAvailable ? (
+              {marketDataAvailable || combinedDayChange != null ? (
                 <div className="mt-1 flex justify-end">
                   <PriceChange amount={combinedDayChange} percent={combinedDayChangePercent} />
                 </div>
