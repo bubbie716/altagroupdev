@@ -128,8 +128,7 @@ export const executiveLeadership: LeadershipCard[] = [
   },
   {
     title: "Chief Financial Officer",
-    name: "Inceee",
-    status: "Appointed",
+    status: "Vacant",
     responsibility: "Financial planning, treasury oversight, and institutional reporting.",
   },
 ];
