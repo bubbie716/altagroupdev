@@ -9,9 +9,10 @@ import { EntityInternalHome } from "@/components/internal/entity-internal-home";
 import { TerminalInternalHome } from "@/components/internal/terminal-internal-home";
 import { useSiteContext } from "@/hooks/use-site-context";
 import { siteFromRouteContext } from "@/lib/site/site-context";
+import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
 import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
 import { internalDocumentTitle } from "@/lib/internal/internal-document-title";
-import { readDevSiteFromSearch, siteSearchPatch } from "@/lib/site/preserve-dev-site-search";
+import { readDevSiteFromLocation, siteSearchPatch } from "@/lib/site/preserve-dev-site-search";
 import { withInternalSiteSearch } from "@/lib/internal/internal-route-search";
 import { fetchTerminalOpsHomeSummary } from "@/lib/terminal/terminal-ops.functions";
 import {
@@ -26,18 +27,31 @@ import {
 
 export const Route = createFileRoute("/internal/")({
   beforeLoad: ({ context, location }) => {
-    const siteKey = siteFromRouteContext(context).key;
+    // The root route context is intentionally stable across query-only
+    // navigation. Resolve the localhost site override from the current
+    // location so `/internal?site=bank` cannot render the corporate home.
+    const requestedSite = readDevSiteFromLocation(location);
+    const currentSearch = requestedSite ? { site: requestedSite } : (typeof location.searchStr === "string" ? location.searchStr : location.search as Record<string, unknown>);
+    const siteKey = resolveSiteContextFromRequest(
+      currentSearch,
+      location.pathname,
+    ).key ?? siteFromRouteContext(context).key;
     if (siteKey === "bank") {
       throw redirect({
         to: "/internal/bank",
         search: normalizeInternalSearch(
-          siteSearchPatch(readDevSiteFromSearch(location.search as Record<string, unknown>)),
+          siteSearchPatch(requestedSite),
         ),
       });
     }
   },
-  loader: ({ context }) => {
-    const siteKey = siteFromRouteContext(context).key;
+  loader: ({ context, location }) => {
+    const requestedSite = readDevSiteFromLocation(location);
+    const currentSearch = requestedSite ? { site: requestedSite } : (typeof location.searchStr === "string" ? location.searchStr : location.search as Record<string, unknown>);
+    const siteKey = resolveSiteContextFromRequest(
+      currentSearch,
+      location.pathname,
+    ).key ?? siteFromRouteContext(context).key;
     if (siteKey === "terminal") {
       return fetchTerminalOpsHomeSummary().then((summary) => ({ kind: "terminal" as const, summary }));
     }

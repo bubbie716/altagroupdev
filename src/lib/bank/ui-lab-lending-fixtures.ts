@@ -2,12 +2,20 @@
  * Canonical UI Lab lending fixtures — list and detail share the same IDs.
  * Demonstration only; never writes to Prisma.
  */
-import type { InternalActiveLoanRow, InternalLoanApplicationRow } from "@/lib/bank/lending-types";
+import type {
+  CompanyLendingOption,
+  InternalActiveLoanRow,
+  InternalLoanApplicationRow,
+  LendingAccountOption,
+  LoanApplicationRow,
+  LoanRow,
+} from "@/lib/bank/lending-types";
 import type {
   LoanApplicationThreadContext,
   LoanApplicationThreadMessageRow,
 } from "@/lib/bank/loan-application-thread-types";
 import { UI_LAB_CORE_COMPANY_ID } from "@/lib/bank/ui-lab-commercial-fixtures";
+import { normalizeLoanStatus } from "@/lib/bank/lending-loans-display";
 
 export const UI_LAB_LOAN_ACTIVE_ID = "LN-LAB-ACTIVE";
 export const UI_LAB_LOAN_PAID_ID = "LN-LAB-PAID";
@@ -101,6 +109,130 @@ export function getUiLabInternalLoanDetail(loanId: string): InternalActiveLoanRo
   return UI_LAB_LOAN_CATALOG.find((loan) => loan.id === loanId) ?? null;
 }
 
+/** Customer-facing loan rows use the same canonical records as the internal desk. */
+export function listUiLabUserLoans(): LoanRow[] {
+  return UI_LAB_LOAN_CATALOG.map((loan) => {
+    const status = normalizeLoanStatus(loan.status);
+    return {
+    id: loan.id,
+    productType: loan.productType,
+    productLabel: loan.productLabel,
+    principalAmount: loan.principalAmount,
+    principalOutstanding: loan.principalOutstanding,
+    guaranteedInterestOwed: loan.guaranteedInterestOwed,
+    accruedInterest: loan.accruedInterest,
+    currentPayoffAmount: loan.currentPayoffAmount,
+    outstandingBalance: loan.outstandingBalance,
+    remainingPotentialInterest: loan.remainingPotentialInterest,
+    projectedFullTermCost: loan.projectedFullTermCost,
+    estimatedFutureInterest: loan.remainingPotentialInterest,
+    principalRepaid: loan.principalRepaid,
+    principalPercentRepaid: loan.principalPercentRepaid,
+    estimatedScheduleRemaining: loan.paymentSchedule.reduce(
+      (sum, installment) => sum + installment.remainingAmount,
+      0,
+    ),
+    amountRepaid: loan.amountRepaid,
+    percentRepaid: loan.percentRepaid,
+    totalRepaymentObligation: loan.totalRepaymentObligation,
+    nextPaymentDueLabel: "—",
+    nextPaymentDueAmount: null,
+    interestRate: Number.parseFloat(loan.interestRateLabel) || 0,
+    interestRateType: "MONTHLY_PERCENT",
+    interestRateLabel: loan.interestRateLabel,
+    status,
+    statusLabel: loan.statusLabel,
+    borrowerLabel: loan.borrowerLabel,
+    companyId: loan.companyName ? UI_LAB_CORE_COMPANY_ID : null,
+    companyName: loan.companyName,
+    linkedBankAccountId: loan.linkedBankAccountId,
+    linkedAccountLabel: loan.linkedAccountNumber,
+    approvedAt: loan.updatedAt,
+    includesAccruedInterest: loan.includesAccruedInterest,
+    nextInterestAccrualAt: loan.nextInterestAccrualAt,
+    nextInterestGuaranteeDate: loan.nextInterestGuaranteeDate,
+    lastInterestAccrualAt: loan.lastPaymentAt,
+    accruedInterestAmount: loan.accruedInterest,
+    canMakePayment: status === "active" && loan.currentPayoffAmount > 0,
+    termMonths: loan.termMonths,
+    monthlyPrincipalPercent: loan.monthlyPrincipalPercent,
+    paymentSchedule: loan.paymentSchedule,
+    interestGuaranteeSchedule: loan.interestGuaranteeSchedule,
+    autoPay: {
+      enabled: false,
+      sourceBankAccountId: null,
+      sourceAccountLabel: null,
+    },
+    recentPayments: [],
+    };
+  });
+}
+
+export function getUiLabUserLoan(loanId: string): LoanRow | null {
+  return listUiLabUserLoans().find((loan) => loan.id === loanId) ?? null;
+}
+
+export function listUiLabUserLoanApplications(): LoanApplicationRow[] {
+  return [UI_LAB_APP_FTLCEO_1, UI_LAB_APP_FTLCEO_2].map((id) => {
+    const application = getUiLabInternalLoanApplication(id)!;
+    return {
+      id: application.id,
+      productType: application.productType,
+      productLabel: application.productLabel,
+      requestedAmount: application.requestedAmount,
+      termMonths: application.termMonths,
+      estimatedTotalOutstanding: application.estimatedTotalOutstanding,
+      estimatedTotalInterest: application.estimatedTotalInterest,
+      purpose: application.purpose,
+      repaymentPlan: application.repaymentPlan,
+      collateralDescription: application.collateralDescription,
+      notes: application.notes,
+      status: application.status,
+      statusLabel: application.statusLabel,
+      reviewNote: application.reviewNote,
+      companyId: application.companyId,
+      companyName: application.companyName,
+      linkedBankAccountId: application.linkedBankAccountId,
+      linkedAccountLabel: application.linkedAccountLabel,
+      submittedAt: application.submittedAt,
+      reviewedAt: application.reviewedAt,
+      threadId: application.threadId,
+      threadStatus: application.threadStatus,
+    };
+  });
+}
+
+export function getUiLabLendingFormContext(): {
+  accounts: LendingAccountOption[];
+  companies: CompanyLendingOption[];
+} {
+  return {
+    accounts: [
+      {
+        id: "BA-LAB-CHK",
+        label: "Carter — Everyday Checking",
+        accountNumber: "AB-2000-100002",
+        companyId: null,
+        companyName: null,
+      },
+      {
+        id: "BA-LAB-ALTG-OP",
+        label: "Alta Group — Operating",
+        accountNumber: "AB-5000-100020",
+        companyId: UI_LAB_CORE_COMPANY_ID,
+        companyName: "Alta Group N.V.",
+      },
+    ],
+    companies: [
+      {
+        companyId: UI_LAB_CORE_COMPANY_ID,
+        companyName: "Alta Group N.V.",
+        operatingAccountId: "BA-LAB-ALTG-OP",
+      },
+    ],
+  };
+}
+
 export function listUiLabCanonicalLoanIds(): string[] {
   return UI_LAB_LOAN_CATALOG.map((loan) => loan.id);
 }
@@ -157,6 +289,11 @@ const UI_LAB_APPLICATION_CATALOG: InternalLoanApplicationRow[] = [
     requestedAmount: 100_000,
     status: "under_review",
     statusLabel: "Underwriting",
+    companyId: UI_LAB_CORE_COMPANY_ID,
+    companyName: "Alta Group N.V.",
+    linkedBankAccountId: "BA-LAB-ALTG-OP",
+    linkedAccountLabel: "AB-5000-100020 · Operating",
+    linkedAccountNumber: "AB-5000-100020",
   }),
 ];
 

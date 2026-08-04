@@ -10,8 +10,12 @@ import { formatActivityDateTime } from "@/lib/format-datetime";
 import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 import { scheduledTradeFrequencyLabel } from "@/lib/terminal/scheduled-trade-copy";
 import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 
 export const Route = createFileRoute("/terminal/orders/scheduled/$instructionId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    site: readDevSiteFromSearch(search) ?? "terminal",
+  }),
   loader: ({ params }) => fetchScheduledTradeDetailFn({ data: params.instructionId }),
   pendingComponent: () => <RoutePendingFallback label="Loading scheduled trade" />,
   head: () => ({ meta: [{ title: "Scheduled trade — Alta Terminal" }] }),
@@ -30,7 +34,7 @@ function ScheduledTradeDetailPage() {
       <div>
         <Link
           to="/terminal/orders"
-          search={{ tab: "scheduled", status: "all", side: "all" }}
+          search={{ tab: "scheduled", status: "all", side: "all", site: "terminal" }}
           className="text-[13px] text-[var(--terminal-muted)]"
         >
           ← Scheduled trades

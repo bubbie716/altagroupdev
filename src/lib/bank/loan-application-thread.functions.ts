@@ -20,6 +20,19 @@ async function requireInternalActorId(): Promise<string> {
 export const fetchLoanApplicationThread = createServerFn({ method: "GET" })
   .inputValidator((applicationId: string) => applicationId)
   .handler(async ({ data: applicationId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabInternalLoanApplicationThread } = await import(
+        "@/lib/bank/ui-lab-lending-fixtures"
+      );
+      const fixture = getUiLabInternalLoanApplicationThread(applicationId);
+      if (fixture) {
+        return {
+          context: { ...fixture.context, viewerUserId: "ui-lab-user", canSend: false },
+          messages: fixture.messages,
+        };
+      }
+    }
     const { ensureThreadExists, getThreadContext, getThreadMessages } = await import(
       "@/server/loan-application-thread.service"
     );

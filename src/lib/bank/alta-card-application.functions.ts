@@ -18,6 +18,8 @@ export const fetchAltaCardApplicationDetail = createServerFn({ method: "GET" })
   });
 
 export const fetchUserPendingAltaCardApplication = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) return null;
   const { requireAuth } = await import("@/server/auth.service");
   const { getUserPendingAltaCardApplication } = await import("@/server/alta-card-application.service");
   const user = await requireAuth();

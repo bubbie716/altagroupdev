@@ -7,7 +7,8 @@ export const Route = createFileRoute("/internal/exceptions")({
   beforeLoad: ({ search }) => {
     throw redirect({
       to: "/internal/queues/exceptions",
-      search: normalizeInternalSearch(siteSearchPatch(search.site)),
+      search: normalizeInternalSearch(siteSearchPatch(search.site ?? "corporate")),
+      replace: true,
     });
   },
 });

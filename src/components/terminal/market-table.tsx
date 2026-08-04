@@ -103,14 +103,14 @@ export function MarketTable({
         </table>
       </div>
 
-      <ul className={cn("space-y-0 md:hidden", className)} aria-label="Markets">
+      <ul className={cn("w-full min-w-0 space-y-0 overflow-hidden md:hidden", className)} aria-label="Markets">
         {rows.map((row) => (
-          <li key={row.symbol} className="border-b border-[var(--terminal-border)]">
+          <li key={row.symbol} className="min-w-0 max-w-full overflow-hidden border-b border-[var(--terminal-border)]">
             <Link
               to="/terminal/security/$symbol"
               params={{ symbol: row.symbol }}
               search={{ range: "1D", portfolioId: undefined, instrument: undefined }}
-              className="flex items-center gap-3 py-3.5"
+              className="flex min-w-0 w-full items-center gap-2 py-3.5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -121,13 +121,15 @@ export function MarketTable({
                   {row.name}
                 </p>
               </div>
-              <Sparkline
-                data={row.sparkline}
-                positive={row.dayChange >= 0}
-                width={56}
-                height={24}
-              />
-              <div className="text-right">
+              <span className="shrink-0">
+                <Sparkline
+                  data={row.sparkline}
+                  positive={row.dayChange >= 0}
+                  width={56}
+                  height={24}
+                />
+              </span>
+              <div className="min-w-0 shrink-0 text-right">
                 <MoneyValue value={row.lastPrice} asPrice size="sm" />
                 <div className="mt-0.5">
                   <PriceChange amount={row.dayChange} percent={row.dayChangePercent} compact />

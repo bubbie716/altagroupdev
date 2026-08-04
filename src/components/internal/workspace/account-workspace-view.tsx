@@ -53,6 +53,7 @@ import {
 } from "@/lib/internal/record-workspace-search";
 import { parseReturnPath } from "@/lib/internal/record-return-context";
 import { plainTransactionTypeTitle } from "@/lib/internal/transaction-record-copy";
+import { mergeRecentAccountTransactions } from "@/lib/internal/account-activity";
 
 type AccountWorkspaceData = {
   account: Awaited<ReturnType<typeof import("@/lib/bank/bank.functions").fetchInternalBankAccountDetail>>;
@@ -80,9 +81,10 @@ export function AccountWorkspaceView({
     /withdraw/i.test(t.type),
   );
   const attention = buildAccountAttention({ account, ops, pendingIn, pendingOut });
-  const recentEvents = [...account.pendingTransactions, ...account.recentTransactions]
-    .sort((a, b) => b.submitted.localeCompare(a.submitted))
-    .slice(0, 5);
+  const recentEvents = mergeRecentAccountTransactions(
+    account.pendingTransactions,
+    account.recentTransactions,
+  );
 
   const returnCtx = parseReturnPath(search.from);
   const breadcrumbs =

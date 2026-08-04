@@ -205,6 +205,21 @@ export const INTERNAL_ROUTE_INVENTORY: InternalRouteInventoryEntry[] = [
     note: "→ queues/exceptions → Inbox",
   },
   {
+    file: "deposits.tsx",
+    classification: "compatibility_redirect",
+    note: "→ Inbox money/deposit",
+  },
+  {
+    file: "withdrawals.tsx",
+    classification: "compatibility_redirect",
+    note: "→ Inbox money/withdrawal",
+  },
+  {
+    file: "scheduled.tsx",
+    classification: "compatibility_redirect",
+    note: "→ Transfers scheduled",
+  },
+  {
     file: "listings.tsx",
     classification: "intentionally_unavailable",
     note: "Redirects home — Exchange listings retired",

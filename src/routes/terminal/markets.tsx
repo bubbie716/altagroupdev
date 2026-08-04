@@ -13,6 +13,7 @@ import {
 } from "@/lib/terminal/market-filters";
 import { cn } from "@/lib/utils";
 import { isUiLabMode } from "@/lib/auth/ui-lab";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 export const Route = createFileRoute("/terminal/markets")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/terminal/markets")({
     return { kind: "stocks" as const, stocks, crypto: null };
   },
   head: () => ({ meta: [{ title: "Markets — Alta Terminal" }] }),
+  pendingComponent: () => <RoutePendingFallback label="Loading markets" />,
   component: TerminalMarketsPage,
 });
 

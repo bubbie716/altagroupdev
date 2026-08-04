@@ -179,7 +179,8 @@ describe("product catalog", () => {
     assert.match(business, /AltaCardApplyWorkflow/);
     assert.match(business, /kind="business"/);
     assert.match(applyRedirect, /redirect/);
-    assert.match(applyRedirect, /search: \{ apply: "1" \}/);
+    assert.match(applyRedirect, /normalizeInternalSearch/);
+    assert.match(applyRedirect, /apply: "1"/);
     assert.doesNotMatch(applyRedirect, /AltaCardTierComparison/);
     assert.match(businessApplyRedirect, /redirect/);
     assert.doesNotMatch(businessApplyRedirect, /AltaCardApplyWorkflow/);

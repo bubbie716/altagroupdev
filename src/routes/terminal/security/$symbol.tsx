@@ -50,6 +50,7 @@ import { closeThenRun } from "@/lib/ui/close-then-run";
 import { focusDialogCloseButton } from "@/lib/ui/focus-dialog-close";
 import { cn } from "@/lib/utils";
 import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 type InstrumentSearch = "stocks" | "crypto" | undefined;
 
@@ -143,6 +144,7 @@ export const Route = createFileRoute("/terminal/security/$symbol")({
       meta: [{ title: `${titleSymbol} — Alta Terminal` }],
     };
   },
+  pendingComponent: () => <RoutePendingFallback label="Loading security" />,
   component: TerminalSecurityPage,
 });
 

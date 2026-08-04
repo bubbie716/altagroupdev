@@ -149,4 +149,6 @@ export type InboxPayload = {
   filtered: InboxItem[];
   summary: InboxSummary;
   search: InboxSearch;
+  /** Labels for sources that failed while the rest of the inbox loaded. */
+  sourceErrors?: string[];
 };

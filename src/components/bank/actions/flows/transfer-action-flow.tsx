@@ -521,25 +521,34 @@ export function TransferActionFlow({
 
       <label className="block">
         <span className={fieldLabel}>To</span>
-        <Select value={toAccountId} onValueChange={setToAccountId}>
-          <SelectTrigger className={inputClass} aria-label="To account">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[var(--menu-surface)]">
-            {destinations.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                <span className="block min-w-0">
-                  <span className="block truncate font-medium">
-                    {formatAccountOptionPrimary(account)}
+        {destinations.length === 0 ? (
+          <p
+            role="status"
+            className="rounded-md border border-dashed border-border px-3 py-3 text-[13px] text-muted-foreground"
+          >
+            No eligible destination accounts are available for this transfer.
+          </p>
+        ) : (
+          <Select value={toAccountId} onValueChange={setToAccountId}>
+            <SelectTrigger className={inputClass} aria-label="To account">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[var(--menu-surface)]">
+              {destinations.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  <span className="block min-w-0">
+                    <span className="block truncate font-medium">
+                      {formatAccountOptionPrimary(account)}
+                    </span>
+                    <span className="block truncate text-[12px] text-muted-foreground">
+                      {formatAccountOptionSecondary(account)}
+                    </span>
                   </span>
-                  <span className="block truncate text-[12px] text-muted-foreground">
-                    {formatAccountOptionSecondary(account)}
-                  </span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </label>
 
       <label className="block">

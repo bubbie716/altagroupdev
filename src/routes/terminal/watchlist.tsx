@@ -8,10 +8,12 @@ import {
   removeTerminalWatchlistSymbol,
 } from "@/lib/terminal/terminal.functions";
 import { refreshMutationRouteData } from "@/lib/router/post-mutation-refresh";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 export const Route = createFileRoute("/terminal/watchlist")({
   loader: async () => fetchTerminalWatchlist(),
   head: () => ({ meta: [{ title: "Watchlist — Alta Terminal" }] }),
+  pendingComponent: () => <RoutePendingFallback label="Loading watchlist" />,
   component: TerminalWatchlistPage,
 });
 

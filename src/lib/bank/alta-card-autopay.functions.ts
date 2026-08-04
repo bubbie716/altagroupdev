@@ -27,6 +27,12 @@ function parseServiceError(error: unknown): never {
 export const fetchAltaCardAutopayContext = createServerFn({ method: "GET" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }): Promise<AltaCardAutopayContext> => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabAltaCardAutopayContext } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+      if (cardId !== "AC-LAB-GOLD") throw new Error("NOT_FOUND");
+      return getUiLabAltaCardAutopayContext();
+    }
     const { getAutopayContext } = await import("@/server/alta-card-autopay.service");
     const userId = await actorId();
     try {

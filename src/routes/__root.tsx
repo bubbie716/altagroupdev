@@ -28,6 +28,7 @@ import {
   readRequestHost,
   siteFromRouteContext,
 } from "@/lib/site/site-context";
+import { readDevSiteFromLocation } from "@/lib/site/preserve-dev-site-search";
 import {
   resolveCrossSitePathRedirect,
   resolveLegacyEntityHostRedirect,
@@ -147,10 +148,13 @@ export const Route = createRootRouteWithContext<{
       throw redirect({ href: crossSiteRedirect, replace: true });
     }
 
-    const site = resolveSiteContextFromRequest(
-      location.search as Record<string, unknown>,
-      location.pathname,
-    );
+    const siteOverride = readDevSiteFromLocation(location);
+    const site = siteOverride
+      ? resolveSiteContextFromRequest({ site: siteOverride }, location.pathname)
+      : resolveSiteContextFromRequest(
+          typeof location.searchStr === "string" ? location.searchStr : location.search as Record<string, unknown>,
+          location.pathname,
+        );
 
     // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
     const labUser = getUiLabUserIfEnabled();

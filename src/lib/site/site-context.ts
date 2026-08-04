@@ -116,12 +116,16 @@ export const readRequestHost = createIsomorphicFn()
   .client(() => window.location.host);
 
 export function resolveSiteContextFromRequest(
-  search?: Record<string, unknown>,
+  search?: Record<string, unknown> | string,
   pathname?: string,
 ): SiteConfig {
+  const parsedSearch =
+    typeof search === "string"
+      ? Object.fromEntries(new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).entries())
+      : search;
   return resolveSiteConfig({
     host: readRequestHost(),
-    search,
+    search: parsedSearch,
     pathname,
     allowDevOverride: true,
   });

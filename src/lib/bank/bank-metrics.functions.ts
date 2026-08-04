@@ -17,6 +17,11 @@ const emptyBankMetrics: BankMetrics = {
 };
 
 export const fetchBankMetrics = createServerFn({ method: "GET" }).handler(async () => {
+  // This aggregate endpoint is retained for internal callers. Authenticate
+  // before checking configuration so an unconfigured database never becomes
+  // an unauthenticated metrics oracle.
+  const { requireOperator } = await import("@/server/permissions.service");
+  await requireOperator();
   const { isDatabaseConfigured } = await import("@/server/db");
   if (!isDatabaseConfigured()) return emptyBankMetrics;
 

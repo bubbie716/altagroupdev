@@ -34,6 +34,11 @@ export const fetchLendingDeskStats = createServerFn({ method: "GET" }).handler(a
 });
 
 export const fetchLendingFormContext = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabLendingFormContext } = await import("@/lib/bank/ui-lab-lending-fixtures");
+    return getUiLabLendingFormContext();
+  }
   const { getLendingFormContext } = await import("@/server/lending.service");
   const userId = await actorId();
   return getLendingFormContext(userId);
@@ -51,12 +56,22 @@ export const submitLoanApplication = createServerFn({ method: "POST" })
   });
 
 export const fetchUserLoanApplications = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { listUiLabUserLoanApplications } = await import("@/lib/bank/ui-lab-lending-fixtures");
+    return listUiLabUserLoanApplications();
+  }
   const { listUserLoanApplications } = await import("@/server/lending.service");
   const userId = await actorId();
   return listUserLoanApplications(userId);
 });
 
 export const fetchUserLoans = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { listUiLabUserLoans } = await import("@/lib/bank/ui-lab-lending-fixtures");
+    return listUiLabUserLoans();
+  }
   const { getUserLoans } = await import("@/server/loan.service");
   const userId = await actorId();
   return getUserLoans(userId);
@@ -65,6 +80,13 @@ export const fetchUserLoans = createServerFn({ method: "GET" }).handler(async ()
 export const fetchLoanDetail = createServerFn({ method: "GET" })
   .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabUserLoan } = await import("@/lib/bank/ui-lab-lending-fixtures");
+      const loan = getUiLabUserLoan(loanId);
+      if (!loan) throw new Error("NOT_FOUND");
+      return loan;
+    }
     const { ensureLoanPaymentSchedule, getLoanDetail } = await import("@/server/loan.service");
     const userId = await actorId();
     const loan = await getLoanDetail(userId, loanId);
@@ -76,6 +98,19 @@ export const fetchLoanDetail = createServerFn({ method: "GET" })
 export const fetchLoanPaymentContext = createServerFn({ method: "GET" })
   .inputValidator((loanId: string) => loanId)
   .handler(async ({ data: loanId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabUserLoan, getUiLabLendingFormContext } = await import(
+        "@/lib/bank/ui-lab-lending-fixtures"
+      );
+      const loan = getUiLabUserLoan(loanId);
+      if (!loan) throw new Error("NOT_FOUND");
+      return {
+        loan,
+        sourceAccounts: getUiLabLendingFormContext().accounts,
+        canMakePayment: loan.canMakePayment,
+      };
+    }
     const { getLoanPaymentContext } = await import("@/server/loan.service");
     const userId = await actorId();
     return getLoanPaymentContext(userId, loanId);

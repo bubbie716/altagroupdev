@@ -12,6 +12,37 @@ async function actorId(): Promise<string> {
 export const fetchCompanyBrandingSettings = createServerFn({ method: "GET" })
   .inputValidator((companyId: string) => companyId)
   .handler(async ({ data: companyId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { UI_LAB_CORE_COMPANY_ID, UI_LAB_PRO_COMPANY_ID } = await import(
+        "@/lib/bank/ui-lab-commercial-fixtures"
+      );
+      if (![UI_LAB_CORE_COMPANY_ID, UI_LAB_PRO_COMPANY_ID].includes(companyId)) {
+        throw new Error("FORBIDDEN");
+      }
+      const companyName = companyId === UI_LAB_PRO_COMPANY_ID ? "Newport Petroleum Corp." : "Alta Group N.V.";
+      return {
+        companyId,
+        companyName,
+        logoUrl: null,
+        brandColor: "#0f1729",
+        accentColor: "#c9a227",
+        invoiceFooterText: null,
+        paymentLinkFooterText: null,
+        supportEmail: null,
+        supportDiscord: null,
+        websiteUrl: null,
+        displayNameOverride: null,
+        showPoweredByAlta: true as const,
+        rejectedAt: null,
+        rejectedReason: null,
+        updatedAt: "2026-07-01T00:00:00.000Z",
+        canPublish: true,
+        canPreview: true,
+        isPro: companyId === UI_LAB_PRO_COMPANY_ID,
+        isCustomAppliedPublicly: false,
+      };
+    }
     const { getCompanyBrandingSettings } = await import("@/server/company-branding.service");
     const userId = await actorId();
     return getCompanyBrandingSettings(userId, companyId);

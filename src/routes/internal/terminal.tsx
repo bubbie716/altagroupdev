@@ -7,6 +7,9 @@ import { readDevSiteFromSearch, siteSearchPatch } from "@/lib/site/preserve-dev-
  * redirects home. Child routes (e.g. settings) must still load.
  */
 export const Route = createFileRoute("/internal/terminal")({
+  validateSearch: (search: Record<string, unknown>): { site?: string } => ({
+    site: typeof search.site === "string" ? search.site : undefined,
+  }),
   beforeLoad: ({ location }) => {
     const path = location.pathname.replace(/\/$/, "") || "/";
     if (path === "/internal/terminal") {

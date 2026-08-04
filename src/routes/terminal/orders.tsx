@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -109,11 +109,15 @@ function TerminalOrdersPage() {
   const cancelScheduleFn = useServerFn(cancelScheduledTradeFn);
   const [selected, setSelected] = useState<OrderRecord | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-
+  const dedicatedScheduledDetail = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/terminal/orders/scheduled/"),
+  });
   const tab = search.tab ?? "orders";
   const status = search.status;
   const side = search.side;
   const filtered = useMemo(() => filterOrders(orders, { status, side }), [orders, status, side]);
+
+  if (dedicatedScheduledDetail) return <Outlet />;
 
   function updateSearch(patch: Partial<TerminalOrdersSearch>) {
     void navigate({

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Settings2 } from "lucide-react";
+import { ChevronDown, Settings2 } from "lucide-react";
 import { PortfolioChart } from "@/components/terminal/portfolio-chart";
 import { MoneyValue, PriceChange } from "@/components/terminal/money-value";
 import { AllocationBars, HoldingsTable } from "@/components/terminal/holdings-table";
@@ -133,6 +133,9 @@ function TerminalPortfolioDetailPage() {
   const hasCryptoHoldings = cryptoBalances.length > 0;
   const empty = !hasStockHoldings && !hasCryptoHoldings;
   const showWallet = Boolean(crypto?.hasWallet && crypto.walletPublicId);
+  const showUnrealized =
+    portfolio.unrealizedReturn !== portfolio.totalReturn ||
+    portfolio.unrealizedReturnPercent !== portfolio.totalReturnPercent;
   const allocation = buildPortfolioAllocation({
     holdings: portfolio.holdings,
     cryptoBalances,
@@ -253,22 +256,24 @@ function TerminalPortfolioDetailPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={showUnrealized ? "grid gap-3 sm:grid-cols-2" : "max-w-md"}>
         <SummaryCard
           label="Total return"
           value={
             <PriceChange amount={portfolio.totalReturn} percent={portfolio.totalReturnPercent} />
           }
         />
-        <SummaryCard
-          label="Unrealized"
-          value={
-            <PriceChange
-              amount={portfolio.unrealizedReturn}
-              percent={portfolio.unrealizedReturnPercent}
-            />
-          }
-        />
+        {showUnrealized ? (
+          <SummaryCard
+            label="Unrealized"
+            value={
+              <PriceChange
+                amount={portfolio.unrealizedReturn}
+                percent={portfolio.unrealizedReturnPercent}
+              />
+            }
+          />
+        ) : null}
       </div>
 
       <section className="space-y-6">
@@ -319,36 +324,56 @@ function TerminalPortfolioDetailPage() {
         </section>
       ) : null}
 
-      <section>
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[15px] font-medium">Orders</h2>
-          <Link
-            to="/terminal/orders"
-            search={{ portfolioId: selectedPortfolio.id, status: "all", side: "all" }}
-            className="text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-green)]"
-          >
-            View all
-          </Link>
-        </div>
-        {orders.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[var(--terminal-border)] px-4 py-8 text-center">
-            <p className="text-[14px] font-medium">No orders yet</p>
-            <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
-              Place a trade from Markets to see order history here.
-            </p>
+      <details className="group border-t border-[var(--terminal-border)] pt-5">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 outline-none focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40 [&::-webkit-details-marker]:hidden">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="text-[15px] font-medium">Orders</span>
+            <span className="text-[12px] text-[var(--terminal-muted)]">
+              {orders.length} {orders.length === 1 ? "order" : "orders"}
+            </span>
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-[var(--terminal-muted)] transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="mt-4">
+          <div className="mb-3 flex justify-end">
+            <Link
+              to="/terminal/orders"
+              search={{ portfolioId: selectedPortfolio.id, status: "all", side: "all" }}
+              className="text-[12px] text-[var(--terminal-muted)] hover:text-[var(--terminal-green)]"
+            >
+              View all orders
+            </Link>
           </div>
-        ) : (
-          <OrdersList orders={orders} />
-        )}
-      </section>
+          {orders.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-[var(--terminal-border)] px-4 py-8 text-center">
+              <p className="text-[14px] font-medium">No orders yet</p>
+              <p className="mt-1 text-[13px] text-[var(--terminal-muted)]">
+                Place a trade from Markets to see order history here.
+              </p>
+            </div>
+          ) : (
+            <OrdersList orders={orders} />
+          )}
+        </div>
+      </details>
 
-      <section>
-        <h2 className="mb-3 text-[15px] font-medium">Activity</h2>
-        <ActivityList
-          activity={activity ?? []}
-          emptyMessage="Deposits, fills, dividends, and fees will appear here."
-        />
-      </section>
+      <details className="group border-t border-[var(--terminal-border)] pt-5">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 outline-none focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40 [&::-webkit-details-marker]:hidden">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="text-[15px] font-medium">Activity</span>
+            <span className="text-[12px] text-[var(--terminal-muted)]">
+              {(activity ?? []).length} {(activity ?? []).length === 1 ? "entry" : "entries"}
+            </span>
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-[var(--terminal-muted)] transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="mt-4">
+          <ActivityList
+            activity={activity ?? []}
+            emptyMessage="Deposits, fills, dividends, and fees will appear here."
+          />
+        </div>
+      </details>
 
       <Dialog
         open={settingsOpen}

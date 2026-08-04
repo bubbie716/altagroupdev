@@ -11,6 +11,7 @@ import {
   fetchEligibleTerminalCompanies,
 } from "@/lib/terminal/terminal.functions";
 import { MarketStatusBadge } from "@/components/terminal/market-status";
+import { RoutePendingFallback } from "@/components/ui/route-pending-fallback";
 
 export const Route = createFileRoute("/terminal/")({
   loader: async () => {
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/terminal/")({
   head: () => ({
     meta: [{ title: "Home — Alta Terminal" }],
   }),
+  pendingComponent: () => <RoutePendingFallback label="Loading Terminal home" />,
   component: TerminalHomePage,
 });
 
@@ -64,7 +66,7 @@ function TerminalHomePage() {
   const emptyPortfolios = portfolios.length === 0;
 
   return (
-    <div className="space-y-10">
+    <div className="min-w-0 space-y-10 overflow-x-clip">
       {!marketDataAvailable ? (
         <div
           role="status"
@@ -112,7 +114,7 @@ function TerminalHomePage() {
         </div>
       </section>
 
-      <section className="flex flex-wrap gap-2">
+      <section className="flex flex-wrap items-center gap-2">
         <button
           ref={tradeButtonRef}
           type="button"
@@ -121,30 +123,37 @@ function TerminalHomePage() {
         >
           Trade
         </button>
-        <Link
-          to={scheduleHref.to}
-          search={scheduleHref.search}
-          className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
-        >
-          Schedule trade
-        </Link>
-        {portfolios[0] ? (
-          <Link
-            to="/bank"
-            search={{ action: "terminal-funding", portfolioId: portfolios[0].id }}
-            className="inline-flex min-h-11 items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
-          >
-            Transfer money
-          </Link>
-        ) : null}
-        <QuickAction href="/terminal/markets" label="View markets" />
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="min-h-11 rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] hover:border-[var(--terminal-green)]/40"
-        >
-          Create portfolio
-        </button>
+        <details className="relative">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-md border border-[var(--terminal-border)] px-3.5 py-2 text-[13px] text-[var(--terminal-text)] outline-none hover:border-[var(--terminal-green)]/40 focus-visible:ring-1 focus-visible:ring-[var(--terminal-green)]/40 [&::-webkit-details-marker]:hidden">
+            More actions
+          </summary>
+          <div className="absolute left-0 top-[calc(100%+0.5rem)] z-20 flex min-w-52 flex-col gap-1 rounded-lg border border-[var(--terminal-border)] bg-[var(--terminal-surface)] p-2 shadow-xl">
+            <Link
+              to={scheduleHref.to}
+              search={scheduleHref.search}
+              className="inline-flex min-h-10 items-center rounded-md px-3 text-[13px] text-[var(--terminal-text)] hover:bg-[var(--terminal-surface-2)]"
+            >
+              Schedule trade
+            </Link>
+            {portfolios[0] ? (
+              <Link
+                to="/bank"
+                search={{ action: "terminal-funding", portfolioId: portfolios[0].id }}
+                className="inline-flex min-h-10 items-center rounded-md px-3 text-[13px] text-[var(--terminal-text)] hover:bg-[var(--terminal-surface-2)]"
+              >
+                Transfer money
+              </Link>
+            ) : null}
+            <QuickAction href="/terminal/markets" label="View markets" />
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="inline-flex min-h-10 items-center rounded-md px-3 text-left text-[13px] text-[var(--terminal-text)] hover:bg-[var(--terminal-surface-2)]"
+            >
+              Create portfolio
+            </button>
+          </div>
+        </details>
       </section>
 
       <section>

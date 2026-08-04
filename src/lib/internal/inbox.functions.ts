@@ -41,22 +41,32 @@ async function loadInboxSources() {
     import("@/lib/internal/ops-platform.functions"),
   ]);
 
+  const sourceErrors: string[] = [];
+  async function safeLoad<T>(label: string, load: () => Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await load();
+    } catch {
+      sourceErrors.push(label);
+      return fallback;
+    }
+  }
+
   const [deposits, withdrawals, openings, companies, lendingOps, cardApps, cardReviews, exceptions] =
     await Promise.all([
-      fetchPendingDepositsQueue().catch(() => []),
-      fetchPendingWithdrawalsQueue().catch(() => []),
-      fetchPendingAccountOpeningsQueue().catch(() => []),
-      fetchInternalCompaniesFromDb().catch(() => []),
-      fetchInternalLendingOps().catch(() => ({
+      safeLoad("deposits", () => fetchPendingDepositsQueue(), []),
+      safeLoad("withdrawals", () => fetchPendingWithdrawalsQueue(), []),
+      safeLoad("account openings", () => fetchPendingAccountOpeningsQueue(), []),
+      safeLoad("companies", () => fetchInternalCompaniesFromDb(), []),
+      safeLoad("lending", () => fetchInternalLendingOps(), {
         applications: [] as never[],
         activeLoans: [] as never[],
         paidOffLoans: [] as never[],
         frozenLoans: [] as never[],
         defaultedLoans: [] as never[],
-      })),
-      fetchInternalAltaCardApplicationsFiltered({ data: {} }).catch(() => []),
-      fetchInternalAltaCardReviewQueue().catch(() => []),
-      fetchExceptionCenter().catch(() => []),
+      }),
+      safeLoad("card applications", () => fetchInternalAltaCardApplicationsFiltered({ data: {} }), []),
+      safeLoad("card reviews", () => fetchInternalAltaCardReviewQueue(), []),
+      safeLoad("risk", () => fetchExceptionCenter(), []),
     ]);
 
   return {
@@ -68,6 +78,7 @@ async function loadInboxSources() {
     cardApps,
     cardReviews,
     exceptions,
+    sourceErrors,
   };
 }
 
@@ -136,5 +147,5 @@ export const fetchInternalInbox = createServerFn({ method: "GET" })
         : assembleInboxItems(sources).filter((i) => i.caseType !== "deal_room"),
     );
     const filtered = filterAndSortInboxItems(items, search);
-    return { items, filtered, summary, search };
+    return { items, filtered, summary, search, sourceErrors: sources.sourceErrors };
   });

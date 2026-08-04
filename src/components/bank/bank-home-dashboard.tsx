@@ -214,7 +214,7 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
       <section className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-muted-foreground">{greeting}</p>
+            <h1 className="text-[13px] font-medium text-muted-foreground">{greeting}</h1>
             <p className="mt-1 text-[12px] text-muted-foreground">Available balance</p>
             <p className="mt-1 font-serif text-[2.15rem] font-medium tracking-tight sm:text-[2.5rem]">
               <BalanceValue value={available} />
@@ -255,17 +255,19 @@ export function BankHomeDashboard({ data }: { data: BankHomeDashboardData }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <MoveMoneyChooser
-            disabled={!canTransact}
-            accountId={preferredAccountId}
-            companyId={actionCompanyId}
-            scope={actionScope}
-            triggerClassName="h-12 w-full justify-center"
-          >
-            <ArrowUpRight className="size-4" aria-hidden />
-            Move money
-          </MoveMoneyChooser>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="col-span-2 sm:col-span-1">
+            <MoveMoneyChooser
+              disabled={!canTransact}
+              accountId={preferredAccountId}
+              companyId={actionCompanyId}
+              scope={actionScope}
+              triggerClassName="h-12 w-full justify-center"
+            >
+              <ArrowUpRight className="size-4" aria-hidden />
+              Move money
+            </MoveMoneyChooser>
+          </div>
           <BankActionLauncher
             action="deposit"
             accountId={preferredAccountId}

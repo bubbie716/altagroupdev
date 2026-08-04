@@ -50,7 +50,7 @@ function hasActiveFilters(search: InboxSearch, query: string): boolean {
 export function InboxPage({ payload }: { payload: InboxPayload }) {
   const navigate = useNavigate();
   const router = useRouter();
-  const { filtered, summary, search } = payload;
+  const { filtered, summary, search, sourceErrors = [] } = payload;
   const [query, setQuery] = useState(search.q ?? "");
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(search.caseId ?? null);
@@ -148,6 +148,16 @@ export function InboxPage({ payload }: { payload: InboxPayload }) {
         <Stat label="Over 24h" value={String(summary.olderThan24Hours)} warn={summary.olderThan24Hours > 0} />
         <Stat label="Over 72h" value={String(summary.olderThan72Hours)} warn={summary.olderThan72Hours > 0} />
       </div>
+
+      {sourceErrors.length > 0 ? (
+        <div
+          role="status"
+          className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200"
+        >
+          Some work sources are temporarily unavailable. The items shown below may be incomplete;
+          retry to refresh the inbox.
+        </div>
+      ) : null}
 
       <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Inbox categories">
         {visibleCategories.map((cat) => {

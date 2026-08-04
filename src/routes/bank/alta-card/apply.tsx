@@ -1,6 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authBeforeLoad } from "@/lib/auth/guards";
 import { creditDeskApplicationBeforeLoad } from "@/lib/auth/credit-desk-guards";
+import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
+import { readDevSiteFromSearch } from "@/lib/site/preserve-dev-site-search";
 
 /** Legacy deep link — apply opens as a modal on the Alta Card page. */
 export const Route = createFileRoute("/bank/alta-card/apply")({
@@ -9,7 +11,10 @@ export const Route = createFileRoute("/bank/alta-card/apply")({
     await creditDeskApplicationBeforeLoad(ctx);
     throw redirect({
       to: "/bank/alta-card",
-      search: { apply: "1" },
+      search: normalizeInternalSearch({
+        apply: "1",
+        site: readDevSiteFromSearch(ctx.location.search) ?? "bank",
+      }),
       replace: true,
     });
   },

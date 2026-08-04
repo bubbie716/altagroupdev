@@ -7,11 +7,36 @@ import { DEV_SITE_SEARCH_KEY } from "@/lib/site/local-dev-site";
 import { normalizeInternalSearch } from "@/lib/internal/normalize-internal-search";
 
 export function readDevSiteFromSearch(
-  search: Record<string, unknown> | undefined | null,
+  search: unknown,
 ): string | undefined {
-  if (!search || typeof search !== "object") return undefined;
-  const raw = search[DEV_SITE_SEARCH_KEY];
+  let record: Record<string, unknown> | null = null;
+  if (typeof search === "string") {
+    const query = search.startsWith("?") ? search.slice(1) : search;
+    record = Object.fromEntries(new URLSearchParams(query).entries());
+  } else if (search && typeof search === "object") {
+    record = search as Record<string, unknown>;
+  }
+  if (!record) return undefined;
+  const raw = record[DEV_SITE_SEARCH_KEY];
   return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
+}
+
+/** Read the localhost site override from any TanStack location shape. */
+export function readDevSiteFromLocation(location: {
+  search?: unknown;
+  searchStr?: string;
+  href?: string;
+}): string | undefined {
+  const direct = readDevSiteFromSearch(location.searchStr ?? location.search);
+  if (direct) return direct;
+  if (typeof location.href === "string") {
+    try {
+      return readDevSiteFromSearch(new URL(location.href).search);
+    } catch {
+      // Relative hrefs are handled by the search/searchStr branch above.
+    }
+  }
+  return undefined;
 }
 
 /**

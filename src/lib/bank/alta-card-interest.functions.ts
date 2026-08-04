@@ -62,6 +62,12 @@ export const runAltaCardBillingProcessRecord = createServerFn({ method: "POST" }
 export const fetchCardBillingSummaryRecord = createServerFn({ method: "GET" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabAltaCardBillingSummary } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+      if (cardId !== "AC-LAB-GOLD") throw new Error("NOT_FOUND");
+      return getUiLabAltaCardBillingSummary();
+    }
     const { requireAuth } = await import("@/server/auth.service");
     const { getCardBillingSummary } = await import("@/server/alta-card-billing.service");
     const user = await requireAuth();

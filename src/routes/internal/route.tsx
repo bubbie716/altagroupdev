@@ -1,10 +1,20 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { internalBeforeLoad } from "@/lib/auth/guards";
 import { InternalShell } from "@/components/internal/console";
 import { CreditDeskBanner } from "@/components/internal/credit-desk-banner";
 import { fetchCreditDeskSettings } from "@/lib/platform/platform-settings.functions";
 import { assertEntityInternalRouteAccess } from "@/lib/internal/entity-internal-scope";
-import { siteFromRouteContext } from "@/lib/site/site-context";
+import {
+  normalizeInternalSearch,
+  serializeInternalSearch,
+} from "@/lib/internal/normalize-internal-search";
+import { resolveSiteContextFromRequest } from "@/lib/site/site-context";
+import { readDevSiteFromLocation } from "@/lib/site/preserve-dev-site-search";
+
+function internalRedirectHref(pathname: string, search: Record<string, unknown>): string {
+  const query = serializeInternalSearch(normalizeInternalSearch(search));
+  return query ? `${pathname}?${query}` : pathname;
+}
 
 function InternalNotFound() {
   return (
@@ -27,9 +37,60 @@ function InternalNotFound() {
 }
 
 export const Route = createFileRoute("/internal")({
+  // Keep the localhost multi-site override on the shared parent route. TanStack
+  // otherwise normalizes unknown parent search keys away before child guards run.
+  validateSearch: (search: Record<string, unknown>): { site?: string } => ({
+    site: typeof search.site === "string" ? search.site : undefined,
+  }),
   beforeLoad: async (ctx) => {
     await internalBeforeLoad(ctx);
-    const site = siteFromRouteContext(ctx.context);
+    // The root `/internal` child can be reached with a query-only site override.
+    // Use the raw href here as a final guard because the parent route may not
+    // have a validated search object yet during SSR.
+    const rawSite = /(?:\?|&)site=([^&]+)/.exec(ctx.location.href)?.[1];
+    const rawPath = ctx.location.pathname.replace(/\/$/, "") || "/";
+    if (rawPath === "/internal" && rawSite === "bank") {
+      throw redirect({
+        href: internalRedirectHref("/internal/bank", { site: "bank" }),
+        replace: true,
+      });
+    }
+    const legacyRedirects: Record<string, { pathname: string; search: Record<string, unknown> }> = {
+      "/internal/exceptions": {
+        pathname: "/internal/inbox",
+        search: { site: "bank", category: "risk", type: "exception" },
+      },
+      "/internal/deposits": {
+        pathname: "/internal/inbox",
+        search: { site: "bank", category: "money", type: "deposit" },
+      },
+      "/internal/withdrawals": {
+        pathname: "/internal/inbox",
+        search: { site: "bank", category: "money", type: "withdrawal" },
+      },
+      "/internal/scheduled": {
+        pathname: "/internal/bank/transfers",
+        search: { site: "bank", status: "scheduled" },
+      },
+    };
+    const legacyRedirect = legacyRedirects[rawPath];
+    if (legacyRedirect) {
+      throw redirect({
+        href: internalRedirectHref(legacyRedirect.pathname, legacyRedirect.search),
+        replace: true,
+      });
+    }
+    // Query overrides are not guaranteed to remount the root route context.
+    // Resolve from the current location before applying site-scoped guards.
+    const requestedSite = readDevSiteFromLocation(ctx.location);
+    const site = resolveSiteContextFromRequest(
+      requestedSite
+        ? { site: requestedSite }
+        : typeof ctx.location.searchStr === "string"
+          ? ctx.location.searchStr
+          : (ctx.location as { search?: Record<string, unknown> }).search,
+      ctx.location.pathname,
+    );
     assertEntityInternalRouteAccess(site.key, ctx.location.pathname, ctx.context.user);
   },
   staleTime: 60_000,

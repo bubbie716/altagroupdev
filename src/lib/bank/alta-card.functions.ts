@@ -19,6 +19,11 @@ async function actorId(): Promise<string> {
 }
 
 export const fetchUserAltaCard = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabPersonalAltaCard } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+    return getUiLabPersonalAltaCard();
+  }
   const { getUserAltaCard } = await import("@/server/alta-card.service");
   const userId = await actorId();
   return getUserAltaCard(userId);
@@ -27,6 +32,12 @@ export const fetchUserAltaCard = createServerFn({ method: "GET" }).handler(async
 export const fetchAltaCardDetail = createServerFn({ method: "GET" })
   .inputValidator((cardId: string) => cardId)
   .handler(async ({ data: cardId }) => {
+    const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+    if (isUiLabMode()) {
+      const { getUiLabPersonalAltaCardDetail } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+      if (cardId !== "AC-LAB-GOLD") throw new Error("NOT_FOUND");
+      return getUiLabPersonalAltaCardDetail();
+    }
     const { getAltaCardDetail } = await import("@/server/alta-card.service");
     const userId = await actorId();
     return getAltaCardDetail(userId, cardId);
@@ -41,6 +52,11 @@ export const fetchCompanyAltaCards = createServerFn({ method: "GET" })
   });
 
 export const fetchAltaCardApplyContext = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabAltaCardApplyContext } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+    return getUiLabAltaCardApplyContext();
+  }
   const { getAltaCardApplyContext } = await import("@/server/alta-card.service");
   const userId = await actorId();
   return getAltaCardApplyContext(userId);
@@ -53,6 +69,11 @@ export const fetchUserBusinessAltaCardCompanies = createServerFn({ method: "GET"
 });
 
 export const fetchBusinessAltaCardHub = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    const { getUiLabBusinessAltaCardHub } = await import("@/lib/bank/ui-lab-alta-card-fixtures");
+    return getUiLabBusinessAltaCardHub();
+  }
   const { listUserBusinessAltaCardCompanies, listUserEmployeeAltaCards } = await import(
     "@/server/alta-card.service"
   );

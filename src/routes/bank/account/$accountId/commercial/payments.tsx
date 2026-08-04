@@ -44,7 +44,7 @@ function AccountCommercialPaymentsPage() {
 
   return (
     <div className="space-y-8">
-      <Section title="Payments">
+      <Section title="Scheduled transfers">
         <BusinessAccountPaymentsCenter
           company={treasury}
           payments={payments}
@@ -53,7 +53,7 @@ function AccountCommercialPaymentsPage() {
         />
       </Section>
       {altaPayReceived ? (
-        <Section title="Alta Pay received">
+        <Section title="Payments received">
           <AltaPayReceivedPanel summary={altaPayReceived} />
         </Section>
       ) : null}

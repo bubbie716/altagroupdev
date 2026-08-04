@@ -2,12 +2,36 @@ import { findNextDueInstallment } from "@/lib/bank/loan-payment-schedule";
 import type { LoanRow, LoanStatusCode } from "@/lib/bank/lending-types";
 import { formatInNewYork } from "@/lib/format-datetime";
 
-export function isActiveLoan(status: LoanStatusCode): boolean {
-  return status === "active" || status === "frozen";
+/** Normalize persisted/UI-Lab status casing at the customer presentation boundary. */
+export function normalizeLoanStatus(status: LoanStatusCode | string): LoanStatusCode {
+  switch (String(status).trim().toLowerCase()) {
+    case "active":
+      return "active";
+    case "frozen":
+      return "frozen";
+    case "paid_off":
+    case "paid-off":
+      return "paid_off";
+    case "defaulted":
+      return "defaulted";
+    case "cancelled":
+    case "canceled":
+      return "cancelled";
+    default:
+      // Unknown states are safest in history until the server supplies a
+      // supported servicing state; never present them as payable.
+      return "cancelled";
+  }
 }
 
-export function isPreviousLoan(status: LoanStatusCode): boolean {
-  return status === "paid_off" || status === "cancelled" || status === "defaulted";
+export function isActiveLoan(status: LoanStatusCode | string): boolean {
+  const normalized = normalizeLoanStatus(status);
+  return normalized === "active" || normalized === "frozen";
+}
+
+export function isPreviousLoan(status: LoanStatusCode | string): boolean {
+  const normalized = normalizeLoanStatus(status);
+  return normalized === "paid_off" || normalized === "cancelled" || normalized === "defaulted";
 }
 
 export function splitLoansByServicing(loans: LoanRow[]): {
@@ -24,7 +48,8 @@ export function splitLoansByServicing(loans: LoanRow[]): {
 }
 
 export function resolveLoanNextDue(loan: LoanRow): { date: string; amount: number } | null {
-  if (loan.status === "paid_off" || loan.status === "cancelled" || loan.currentPayoffAmount <= 0.005) {
+  const status = normalizeLoanStatus(loan.status);
+  if (status === "paid_off" || status === "cancelled" || loan.currentPayoffAmount <= 0.005) {
     return null;
   }
   const next = findNextDueInstallment(loan.paymentSchedule);

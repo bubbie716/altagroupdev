@@ -50,8 +50,10 @@ import { Route as TerminalIpoRouteImport } from './routes/terminal/ipo'
 import { Route as PaySlugRouteImport } from './routes/pay/$slug'
 import { Route as LegalDocIdRouteImport } from './routes/legal/$docId'
 import { Route as LegalSplatRouteImport } from './routes/legal/$'
+import { Route as InternalWithdrawalsRouteImport } from './routes/internal/withdrawals'
 import { Route as InternalTerminalRouteImport } from './routes/internal/terminal'
 import { Route as InternalSettingsRouteImport } from './routes/internal/settings'
+import { Route as InternalScheduledRouteImport } from './routes/internal/scheduled'
 import { Route as InternalReportsRouteImport } from './routes/internal/reports'
 import { Route as InternalListingsRouteImport } from './routes/internal/listings'
 import { Route as InternalJobsRouteImport } from './routes/internal/jobs'
@@ -60,6 +62,7 @@ import { Route as InternalInboxRouteImport } from './routes/internal/inbox'
 import { Route as InternalExchangeRouteImport } from './routes/internal/exchange'
 import { Route as InternalExceptionsRouteImport } from './routes/internal/exceptions'
 import { Route as InternalEmbedsRouteImport } from './routes/internal/embeds'
+import { Route as InternalDepositsRouteImport } from './routes/internal/deposits'
 import { Route as InternalComplianceRouteImport } from './routes/internal/compliance'
 import { Route as InternalAuditRouteImport } from './routes/internal/audit'
 import { Route as GovernanceLeadershipRouteImport } from './routes/governance/leadership'
@@ -502,6 +505,11 @@ const LegalSplatRoute = LegalSplatRouteImport.update({
   path: '/legal/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalWithdrawalsRoute = InternalWithdrawalsRouteImport.update({
+  id: '/withdrawals',
+  path: '/withdrawals',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
 const InternalTerminalRoute = InternalTerminalRouteImport.update({
   id: '/terminal',
   path: '/terminal',
@@ -510,6 +518,11 @@ const InternalTerminalRoute = InternalTerminalRouteImport.update({
 const InternalSettingsRoute = InternalSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalScheduledRoute = InternalScheduledRouteImport.update({
+  id: '/scheduled',
+  path: '/scheduled',
   getParentRoute: () => InternalRouteRoute,
 } as any)
 const InternalReportsRoute = InternalReportsRouteImport.update({
@@ -550,6 +563,11 @@ const InternalExceptionsRoute = InternalExceptionsRouteImport.update({
 const InternalEmbedsRoute = InternalEmbedsRouteImport.update({
   id: '/embeds',
   path: '/embeds',
+  getParentRoute: () => InternalRouteRoute,
+} as any)
+const InternalDepositsRoute = InternalDepositsRouteImport.update({
+  id: '/deposits',
+  path: '/deposits',
   getParentRoute: () => InternalRouteRoute,
 } as any)
 const InternalComplianceRoute = InternalComplianceRouteImport.update({
@@ -1932,6 +1950,7 @@ export interface FileRoutesByFullPath {
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/deposits': typeof InternalDepositsRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRouteWithChildren
@@ -1940,8 +1959,10 @@ export interface FileRoutesByFullPath {
   '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
+  '/internal/scheduled': typeof InternalScheduledRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
+  '/internal/withdrawals': typeof InternalWithdrawalsRoute
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
@@ -2207,6 +2228,7 @@ export interface FileRoutesByTo {
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/deposits': typeof InternalDepositsRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRouteWithChildren
@@ -2215,8 +2237,10 @@ export interface FileRoutesByTo {
   '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
+  '/internal/scheduled': typeof InternalScheduledRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
+  '/internal/withdrawals': typeof InternalWithdrawalsRoute
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
@@ -2483,6 +2507,7 @@ export interface FileRoutesById {
   '/governance/leadership': typeof GovernanceLeadershipRoute
   '/internal/audit': typeof InternalAuditRoute
   '/internal/compliance': typeof InternalComplianceRoute
+  '/internal/deposits': typeof InternalDepositsRoute
   '/internal/embeds': typeof InternalEmbedsRoute
   '/internal/exceptions': typeof InternalExceptionsRoute
   '/internal/exchange': typeof InternalExchangeRouteWithChildren
@@ -2491,8 +2516,10 @@ export interface FileRoutesById {
   '/internal/jobs': typeof InternalJobsRoute
   '/internal/listings': typeof InternalListingsRoute
   '/internal/reports': typeof InternalReportsRoute
+  '/internal/scheduled': typeof InternalScheduledRoute
   '/internal/settings': typeof InternalSettingsRoute
   '/internal/terminal': typeof InternalTerminalRouteWithChildren
+  '/internal/withdrawals': typeof InternalWithdrawalsRoute
   '/legal/$': typeof LegalSplatRoute
   '/legal/$docId': typeof LegalDocIdRoute
   '/pay/$slug': typeof PaySlugRoute
@@ -2774,6 +2801,7 @@ export interface FileRouteTypes {
     | '/governance/leadership'
     | '/internal/audit'
     | '/internal/compliance'
+    | '/internal/deposits'
     | '/internal/embeds'
     | '/internal/exceptions'
     | '/internal/exchange'
@@ -2782,8 +2810,10 @@ export interface FileRouteTypes {
     | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
+    | '/internal/scheduled'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/internal/withdrawals'
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
@@ -3049,6 +3079,7 @@ export interface FileRouteTypes {
     | '/governance/leadership'
     | '/internal/audit'
     | '/internal/compliance'
+    | '/internal/deposits'
     | '/internal/embeds'
     | '/internal/exceptions'
     | '/internal/exchange'
@@ -3057,8 +3088,10 @@ export interface FileRouteTypes {
     | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
+    | '/internal/scheduled'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/internal/withdrawals'
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
@@ -3324,6 +3357,7 @@ export interface FileRouteTypes {
     | '/governance/leadership'
     | '/internal/audit'
     | '/internal/compliance'
+    | '/internal/deposits'
     | '/internal/embeds'
     | '/internal/exceptions'
     | '/internal/exchange'
@@ -3332,8 +3366,10 @@ export interface FileRouteTypes {
     | '/internal/jobs'
     | '/internal/listings'
     | '/internal/reports'
+    | '/internal/scheduled'
     | '/internal/settings'
     | '/internal/terminal'
+    | '/internal/withdrawals'
     | '/legal/$'
     | '/legal/$docId'
     | '/pay/$slug'
@@ -3910,6 +3946,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/withdrawals': {
+      id: '/internal/withdrawals'
+      path: '/withdrawals'
+      fullPath: '/internal/withdrawals'
+      preLoaderRoute: typeof InternalWithdrawalsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
     '/internal/terminal': {
       id: '/internal/terminal'
       path: '/terminal'
@@ -3922,6 +3965,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/internal/settings'
       preLoaderRoute: typeof InternalSettingsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/scheduled': {
+      id: '/internal/scheduled'
+      path: '/scheduled'
+      fullPath: '/internal/scheduled'
+      preLoaderRoute: typeof InternalScheduledRouteImport
       parentRoute: typeof InternalRouteRoute
     }
     '/internal/reports': {
@@ -3978,6 +4028,13 @@ declare module '@tanstack/react-router' {
       path: '/embeds'
       fullPath: '/internal/embeds'
       preLoaderRoute: typeof InternalEmbedsRouteImport
+      parentRoute: typeof InternalRouteRoute
+    }
+    '/internal/deposits': {
+      id: '/internal/deposits'
+      path: '/deposits'
+      fullPath: '/internal/deposits'
+      preLoaderRoute: typeof InternalDepositsRouteImport
       parentRoute: typeof InternalRouteRoute
     }
     '/internal/compliance': {
@@ -6371,6 +6428,7 @@ interface InternalRouteRouteChildren {
   InternalLendingRouteRoute: typeof InternalLendingRouteRouteWithChildren
   InternalAuditRoute: typeof InternalAuditRoute
   InternalComplianceRoute: typeof InternalComplianceRoute
+  InternalDepositsRoute: typeof InternalDepositsRoute
   InternalEmbedsRoute: typeof InternalEmbedsRoute
   InternalExceptionsRoute: typeof InternalExceptionsRoute
   InternalExchangeRoute: typeof InternalExchangeRouteWithChildren
@@ -6379,8 +6437,10 @@ interface InternalRouteRouteChildren {
   InternalJobsRoute: typeof InternalJobsRoute
   InternalListingsRoute: typeof InternalListingsRoute
   InternalReportsRoute: typeof InternalReportsRoute
+  InternalScheduledRoute: typeof InternalScheduledRoute
   InternalSettingsRoute: typeof InternalSettingsRoute
   InternalTerminalRoute: typeof InternalTerminalRouteWithChildren
+  InternalWithdrawalsRoute: typeof InternalWithdrawalsRoute
   InternalIndexRoute: typeof InternalIndexRoute
   InternalAltaCardCardIdRoute: typeof InternalAltaCardCardIdRoute
   InternalCompaniesCompanyIdRoute: typeof InternalCompaniesCompanyIdRouteWithChildren
@@ -6412,6 +6472,7 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalLendingRouteRoute: InternalLendingRouteRouteWithChildren,
   InternalAuditRoute: InternalAuditRoute,
   InternalComplianceRoute: InternalComplianceRoute,
+  InternalDepositsRoute: InternalDepositsRoute,
   InternalEmbedsRoute: InternalEmbedsRoute,
   InternalExceptionsRoute: InternalExceptionsRoute,
   InternalExchangeRoute: InternalExchangeRouteWithChildren,
@@ -6420,8 +6481,10 @@ const InternalRouteRouteChildren: InternalRouteRouteChildren = {
   InternalJobsRoute: InternalJobsRoute,
   InternalListingsRoute: InternalListingsRoute,
   InternalReportsRoute: InternalReportsRoute,
+  InternalScheduledRoute: InternalScheduledRoute,
   InternalSettingsRoute: InternalSettingsRoute,
   InternalTerminalRoute: InternalTerminalRouteWithChildren,
+  InternalWithdrawalsRoute: InternalWithdrawalsRoute,
   InternalIndexRoute: InternalIndexRoute,
   InternalAltaCardCardIdRoute: InternalAltaCardCardIdRoute,
   InternalCompaniesCompanyIdRoute: InternalCompaniesCompanyIdRouteWithChildren,

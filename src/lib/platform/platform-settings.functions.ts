@@ -35,6 +35,15 @@ export const fetchCreditDeskSettings = createServerFn({ method: "GET" }).handler
 });
 
 export const fetchCreditDeskCustomerNav = createServerFn({ method: "GET" }).handler(async () => {
+  const { isUiLabMode } = await import("@/lib/auth/ui-lab");
+  if (isUiLabMode()) {
+    return {
+      creditDeskClosed: false,
+      showLendingNav: true,
+      showAltaCardNav: true,
+      showApplyEntryPoints: true,
+    };
+  }
   const { requireAuth } = await import("@/server/auth.service");
   const { getCreditDeskCustomerNav } = await import("@/server/platform-settings.service");
   const user = await requireAuth();
