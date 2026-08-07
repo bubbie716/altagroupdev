@@ -9,6 +9,8 @@ import {
   setAccountingOrgFn,
 } from "@/lib/accounting/accounting.functions";
 import type { AccountingWorkspaceDto } from "@/lib/accounting/types";
+import { accountingSelectClassName } from "@/lib/accounting/ui";
+import { cn } from "@/lib/utils";
 
 const NAV: Array<{ label: string; to: string; exact?: boolean }> = [
   { label: "Dashboard", to: "/accounting", exact: true },
@@ -70,7 +72,7 @@ export function AccountingShell({
           <div className="flex flex-wrap items-center gap-4">
             {workspace.orgs.length > 0 ? (
               <select
-                className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+                className={cn(accountingSelectClassName, "max-w-[14rem]")}
                 disabled={pending}
                 value={workspace.orgId ?? ""}
                 onChange={(e) => onOrgChange(e.target.value)}

@@ -10,6 +10,7 @@ import {
 } from "@/lib/accounting/accounting.functions";
 import { centsToFlorins } from "@/lib/accounting/format";
 import type { AccountingLedgerEntryDto } from "@/lib/accounting/types";
+import { accountingSelectClassName } from "@/lib/accounting/ui";
 
 function getDefaultMonth() {
   const d = new Date();
@@ -116,7 +117,7 @@ function AccountingDashboardPage() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-3">
           <select
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm"
+            className={accountingSelectClassName}
             value={period}
             onChange={(e) => setPeriod(e.target.value as "all" | "month")}
           >

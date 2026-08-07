@@ -11,6 +11,8 @@ import {
 import { ACCOUNTING_ENTRY_TYPES, ACCOUNTING_PAYMENT_METHODS } from "@/lib/accounting/defaults";
 import { florinsToCents } from "@/lib/accounting/format";
 import type { AccountingCategoryDto, AccountingCounterpartyDto } from "@/lib/accounting/types";
+import { accountingSelectClassName } from "@/lib/accounting/ui";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/accounting/entries/new")({
   component: NewAccountingEntryPage,
@@ -127,7 +129,7 @@ function NewAccountingEntryPage() {
           <select
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "w-full py-2")}
           >
             {ACCOUNTING_ENTRY_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -152,7 +154,7 @@ function NewAccountingEntryPage() {
             required
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "w-full py-2")}
           >
             <option value="">Select…</option>
             {filteredCategories.map((c) => (
@@ -166,7 +168,7 @@ function NewAccountingEntryPage() {
           <select
             value={counterpartyId}
             onChange={(e) => setCounterpartyId(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "w-full py-2")}
           >
             <option value="">None</option>
             {counterparties.map((c) => (
@@ -180,7 +182,7 @@ function NewAccountingEntryPage() {
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "w-full py-2")}
           >
             {ACCOUNTING_PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>

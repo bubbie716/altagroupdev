@@ -11,6 +11,8 @@ import {
 } from "@/lib/accounting/accounting.functions";
 import { ACCOUNTING_COUNTERPARTY_KINDS } from "@/lib/accounting/defaults";
 import type { AccountingCounterpartyDto } from "@/lib/accounting/types";
+import { accountingSelectClassName } from "@/lib/accounting/ui";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/accounting/counterparties")({
   component: AccountingCounterpartiesPage,
@@ -86,7 +88,7 @@ function AccountingCounterpartiesPage() {
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as typeof kind)}
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "py-2")}
           >
             {ACCOUNTING_COUNTERPARTY_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -131,7 +133,7 @@ function AccountingCounterpartiesPage() {
               }}
             />
             <select
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className={accountingSelectClassName}
               value={row.kind}
               onChange={(e) => {
                 const nextKind = e.target.value;

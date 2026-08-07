@@ -12,6 +12,8 @@ import {
 } from "@/lib/accounting/accounting.functions";
 import { ACCOUNTING_CATEGORY_KINDS } from "@/lib/accounting/defaults";
 import type { AccountingCategoryDto } from "@/lib/accounting/types";
+import { accountingSelectClassName } from "@/lib/accounting/ui";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/accounting/categories")({
   component: AccountingCategoriesPage,
@@ -107,7 +109,7 @@ function AccountingCategoriesPage() {
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as typeof kind)}
-            className="rounded border border-gray-300 px-3 py-2 text-sm"
+            className={cn(accountingSelectClassName, "py-2")}
           >
             {ACCOUNTING_CATEGORY_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -148,7 +150,7 @@ function AccountingCategoriesPage() {
               }}
             />
             <select
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className={accountingSelectClassName}
               value={row.kind}
               onChange={(e) => {
                 const nextKind = e.target.value;
