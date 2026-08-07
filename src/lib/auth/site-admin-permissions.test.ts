@@ -80,5 +80,6 @@ describe("site admin permissions", () => {
     assert.equal(canAccessInternalForSite(user, "bank"), true);
     assert.equal(canAccessInternalForSite(user, "terminal"), true);
     assert.equal(canAccessInternalForSite(user, "exchange"), true);
+    assert.equal(canAccessInternalForSite(user, "accounting"), true);
   });
 });

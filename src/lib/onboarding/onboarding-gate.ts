@@ -56,6 +56,7 @@ const AUTHENTICATED_ONBOARDING_EXEMPT_PREFIXES = [
   "/status",
   "/maintenance",
   "/access-restricted",
+  "/accounting",
 ] as const;
 
 function normalizePathname(pathname: string): string {

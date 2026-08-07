@@ -63,6 +63,11 @@ export function resolveFooterVariant(pathname: string): FooterVariant {
     return "dashboard";
   }
 
+  // Private accounting workspace — compact copyright footer only (no ecosystem column).
+  if (pathname === "/accounting" || pathname.startsWith("/accounting/")) {
+    return "auth";
+  }
+
   return "marketing";
 }
 

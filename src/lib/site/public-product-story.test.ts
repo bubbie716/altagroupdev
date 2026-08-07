@@ -48,6 +48,11 @@ describe("public product story excludes Alta Exchange and NCC", () => {
       ECOSYSTEM_ENTRIES.map((e) => e.name),
       ["Alta Group", "Alta Bank", "Alta Terminal"],
     );
+    assert.equal(
+      ECOSYSTEM_ENTRIES.some((e) => e.key === "accounting"),
+      false,
+      "accounting must stay private (not in ecosystem)",
+    );
   });
 
   it("governance lists, hierarchy, overview, leadership, and metrics omit Exchange and NCC", () => {

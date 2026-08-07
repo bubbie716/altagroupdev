@@ -18,6 +18,7 @@ export const SITE_FOOTER_EMPHASIS: Record<SiteKey, string> = {
   bank: "Retail + Commercial Banking",
   exchange: "Brokerage",
   terminal: "Brokerage",
+  accounting: "Internal Accounting",
 };
 
 export type FooterEcosystemLink =
@@ -59,6 +60,7 @@ export function getFooterEntitySectionTitle(siteKey: SiteKey): string {
     bank: "Alta Bank",
     exchange: "Alta Terminal",
     terminal: "Alta Terminal",
+    accounting: "Alta Accounting",
   };
   return titles[siteKey];
 }
@@ -89,6 +91,7 @@ export const FOOTER_COPYRIGHT_ENTITY: Record<SiteKey, FooterCopyrightEntity> = {
   bank: { legalName: "Alta Bank N.V.", shortName: "Alta Bank" },
   exchange: { legalName: "Alta Terminal", shortName: "Alta Terminal" },
   terminal: { legalName: "Alta Terminal LLC", shortName: "Alta Terminal" },
+  accounting: { legalName: "Alta Group N.V.", shortName: "Alta Accounting" },
 };
 
 export function getFooterCopyrightLines(siteKey: SiteKey): { copyright: string; disclaimer: string } {

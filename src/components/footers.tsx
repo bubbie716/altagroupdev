@@ -82,6 +82,8 @@ function FooterLegalCenterLink({
 }
 
 function FooterEcosystemColumn({ siteKey }: { siteKey: SiteKey }) {
+  // Private sites must not surface the public ecosystem product list.
+  if (siteKey === "accounting") return null;
   const links = getFooterEcosystemLinks(siteKey, readRequestHost());
 
   return (

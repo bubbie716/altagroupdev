@@ -50,6 +50,20 @@ function SiteBrandCluster({
   site: SiteConfig;
   matchBankChrome: boolean;
 }) {
+  // Private staff sites: no public ecosystem switcher.
+  if (site.key === "accounting") {
+    return (
+      <SiteInternalLink
+        siteKey={site.key}
+        to="/"
+        className="flex min-w-0 items-center rounded-md p-0.5"
+        aria-label={`${site.displayName} home`}
+      >
+        <AltaWordmark suffix={site.wordmarkSuffix} />
+      </SiteInternalLink>
+    );
+  }
+
   if (matchBankChrome) {
     return (
       <EcosystemSwitcher
@@ -248,10 +262,12 @@ export const SiteNav = memo(function SiteNav() {
                     <AltaWordmark suffix={site.wordmarkSuffix} />
                   </SheetTitle>
                 </SheetHeader>
-                <EcosystemSwitcherMobileSection
-                  siteKey={site.key}
-                  onNavigate={() => setMobileOpen(false)}
-                />
+                {site.key === "accounting" ? null : (
+                  <EcosystemSwitcherMobileSection
+                    siteKey={site.key}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                )}
                 <nav className="flex flex-col gap-1 p-4">
                   {navLinks.map((link) => {
                     const active = isNavLinkActive(pathname, link);

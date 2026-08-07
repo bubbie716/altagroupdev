@@ -5,6 +5,7 @@ import type { SiteKey } from "@/config/sites";
  * nested entity paths win over parent prefixes.
  */
 const SITE_PATH_ROUTES: ReadonlyArray<{ prefix: string; siteKey: SiteKey }> = [
+  { prefix: "/accounting", siteKey: "accounting" },
   { prefix: "/bank", siteKey: "bank" },
   // /exchange product paths are retired — handled by resolveRetiredExchangeRedirect,
   // not cross-site ownership (ownership caused Exchange ↔ Terminal host loops).

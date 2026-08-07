@@ -356,6 +356,7 @@ const SITE_ENTITY_SECTION_DOC_IDS: Record<SiteKey, string[]> = {
     "AT-LEGAL-005",
     "AT-LEGAL-006",
   ],
+  accounting: [],
 };
 
 /** Entity-specific footer section documents for the current site (excludes archived). */

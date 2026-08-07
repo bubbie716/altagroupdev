@@ -91,7 +91,7 @@ export function getActiveMaintenanceScopes(scopes: MaintenanceScopeFlags): Maint
 
 export function isMaintenanceActiveForSite(siteKey: SiteKey, scopes: MaintenanceScopeFlags): boolean {
   if (scopes.sitewide) return true;
-  if (siteKey === "corporate") return scopes.corporate;
+  if (siteKey === "corporate" || siteKey === "accounting") return scopes.corporate;
   if (siteKey === "bank") return scopes.bank;
   if (siteKey === "exchange") return scopes.exchange;
   if (siteKey === "terminal") return scopes.terminal;
@@ -103,7 +103,7 @@ export function getMaintenanceScopeForSite(
   scopes: MaintenanceScopeFlags,
 ): MaintenanceScope | null {
   if (scopes.sitewide) return "sitewide";
-  if (siteKey === "corporate" && scopes.corporate) return "corporate";
+  if ((siteKey === "corporate" || siteKey === "accounting") && scopes.corporate) return "corporate";
   if (siteKey === "bank" && scopes.bank) return "bank";
   if (siteKey === "exchange" && scopes.exchange) return "exchange";
   if (siteKey === "terminal" && scopes.terminal) return "terminal";
@@ -123,6 +123,8 @@ export function maintenanceScopesForInternalSettings(siteKey: SiteKey): Maintena
       return ["exchange"];
     case "terminal":
       return ["terminal"];
+    case "accounting":
+      return [];
     default:
       return [];
   }
@@ -134,5 +136,6 @@ export function maintenanceTitleForSite(siteKey: SiteKey, scope: MaintenanceScop
   if (siteKey === "bank") return "Bank Maintenance";
   if (siteKey === "exchange") return "Legacy Host Maintenance";
   if (siteKey === "terminal") return "Terminal Maintenance";
+  if (siteKey === "accounting") return "Corporate Maintenance";
   return "Corporate Maintenance";
 }

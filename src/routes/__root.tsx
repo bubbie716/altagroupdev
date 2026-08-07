@@ -237,6 +237,9 @@ export const Route = createRootRouteWithContext<{
         { property: "og:description", content: site.seo.ogDescription ?? site.seo.description },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary" },
+        ...(site.key === "accounting"
+          ? [{ name: "robots", content: "noindex, nofollow" }]
+          : []),
       ],
       links: [
         { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },

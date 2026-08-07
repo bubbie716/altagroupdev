@@ -109,6 +109,7 @@ export function canAccessInternal(user: AltaUser): boolean {
 export function canAccessInternalForSite(user: AltaUser, siteKey: SiteKey): boolean {
   switch (siteKey) {
     case "corporate":
+    case "accounting":
       return isCorporateAdmin(user);
     case "bank":
       return canAccessBankInternal(user);

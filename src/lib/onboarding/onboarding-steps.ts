@@ -123,6 +123,8 @@ export function continueButtonLabel(siteKey: SiteKey): string {
       return "Continue to Alta Terminal";
     case "exchange":
       return "Continue to Alta Terminal";
+    case "accounting":
+      return "Continue to Alta Accounting";
     case "corporate":
     default:
       return "Continue to Alta Group";

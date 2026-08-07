@@ -167,6 +167,7 @@ export const EXCHANGE_INTERNAL_NAV_GROUPS: InternalNavGroup[] = [
 export function getInternalPrimaryNav(siteKey: SiteKey): InternalNavLink[] {
   switch (siteKey) {
     case "corporate":
+    case "accounting":
       return CORPORATE_PRIMARY_NAV;
     case "bank":
       return BANK_PRIMARY_NAV;
@@ -180,6 +181,7 @@ export function getInternalPrimaryNav(siteKey: SiteKey): InternalNavLink[] {
 export function getInternalNavGroupsForSite(siteKey: SiteKey): InternalNavGroup[] | null {
   switch (siteKey) {
     case "corporate":
+    case "accounting":
       return INTERNAL_NAV_GROUPS;
     case "bank":
       return BANK_INTERNAL_NAV_GROUPS;

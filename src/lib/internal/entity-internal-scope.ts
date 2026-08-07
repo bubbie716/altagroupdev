@@ -94,6 +94,11 @@ export function assertEntityInternalRouteAccess(
     if (!isTerminalPanelPath(path, "terminal")) {
       throw redirect({ to: "/internal" });
     }
+  } else if (siteKey === "accounting") {
+    if (!user || !isCorporateAdmin(user)) {
+      throw redirect({ to: "/access-restricted" });
+    }
+    throw redirect({ to: "/accounting" });
   }
 
   if (!user) return;
@@ -138,6 +143,10 @@ export function isInternalPathAllowedForUser(
 ): boolean {
   const path = normalizePathname(pathname);
 
+  if (siteKey === "accounting") {
+    return Boolean(user && isCorporateAdmin(user));
+  }
+
   if (siteKey === "corporate" && !isCorporatePanelPath(path)) {
     return false;
   }
@@ -160,8 +169,7 @@ export function isInternalPathAllowedForUser(
   }
 
   if (isTerminalAdmin(user)) {
-    if (siteKey !== "terminal" && siteKey !== "exchange") return false;
-    return isTerminalPanelPath(path, siteKey);
+    return false;
   }
 
   return true;

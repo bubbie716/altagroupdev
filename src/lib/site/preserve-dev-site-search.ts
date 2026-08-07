@@ -67,7 +67,13 @@ export function siteSearchPatch(site: string | undefined | null): { site?: strin
 }
 
 export function isKnownDevSiteKey(value: string | undefined | null): value is SiteKey {
-  return value === "corporate" || value === "bank" || value === "terminal" || value === "exchange";
+  return (
+    value === "corporate" ||
+    value === "bank" ||
+    value === "terminal" ||
+    value === "exchange" ||
+    value === "accounting"
+  );
 }
 
 /** Shared validateSearch for legacy redirect routes that only carry `site`. */

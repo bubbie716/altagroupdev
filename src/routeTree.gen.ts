@@ -22,6 +22,7 @@ import { Route as GovernanceRouteRouteImport } from './routes/governance/route'
 import { Route as ExchangeRouteRouteImport } from './routes/exchange/route'
 import { Route as CompaniesRouteRouteImport } from './routes/companies/route'
 import { Route as BankRouteRouteImport } from './routes/bank/route'
+import { Route as AccountingRouteRouteImport } from './routes/accounting/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TerminalIndexRouteImport } from './routes/terminal/index'
 import { Route as SupportIndexRouteImport } from './routes/support/index'
@@ -38,6 +39,7 @@ import { Route as ContactIndexRouteImport } from './routes/contact/index'
 import { Route as CompanyIndexRouteImport } from './routes/company/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as BankIndexRouteImport } from './routes/bank/index'
+import { Route as AccountingIndexRouteImport } from './routes/accounting/index'
 import { Route as TerminalWatchlistRouteImport } from './routes/terminal/watchlist'
 import { Route as TerminalTradeRouteImport } from './routes/terminal/trade'
 import { Route as TerminalResearchRouteImport } from './routes/terminal/research'
@@ -88,6 +90,8 @@ import { Route as BankDashboardRouteImport } from './routes/bank/dashboard'
 import { Route as BankCreditDeskClosedRouteImport } from './routes/bank/credit-desk-closed'
 import { Route as BankActivityRouteImport } from './routes/bank/activity'
 import { Route as BankAccountsRouteImport } from './routes/bank/accounts'
+import { Route as AccountingCounterpartiesRouteImport } from './routes/accounting/counterparties'
+import { Route as AccountingCategoriesRouteImport } from './routes/accounting/categories'
 import { Route as InternalLendingRouteRouteImport } from './routes/internal/lending/route'
 import { Route as InternalBankRouteRouteImport } from './routes/internal/bank/route'
 import { Route as CompaniesCompanyIdRouteRouteImport } from './routes/companies/$companyId/route'
@@ -171,6 +175,7 @@ import { Route as ApiCronAltaCardBillingRouteImport } from './routes/api/cron/al
 import { Route as ApiBankWithdrawalRequestRouteImport } from './routes/api/bank/withdrawal-request'
 import { Route as ApiBankDepositRequestRouteImport } from './routes/api/bank/deposit-request'
 import { Route as ApiAuthDiscordRouteImport } from './routes/api/auth/discord'
+import { Route as AccountingEntriesNewRouteImport } from './routes/accounting/entries/new'
 import { Route as InternalLendingDealRoomsRouteRouteImport } from './routes/internal/lending/deal-rooms/route'
 import { Route as ExchangeCompanyTickerRouteRouteImport } from './routes/exchange/company/$ticker/route'
 import { Route as BankLendingLoansRouteRouteImport } from './routes/bank/lending/loans/route'
@@ -365,6 +370,11 @@ const BankRouteRoute = BankRouteRouteImport.update({
   path: '/bank',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountingRouteRoute = AccountingRouteRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -444,6 +454,11 @@ const BankIndexRoute = BankIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => BankRouteRoute,
+} as any)
+const AccountingIndexRoute = AccountingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AccountingRouteRoute,
 } as any)
 const TerminalWatchlistRoute = TerminalWatchlistRouteImport.update({
   id: '/watchlist',
@@ -694,6 +709,17 @@ const BankAccountsRoute = BankAccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
   getParentRoute: () => BankRouteRoute,
+} as any)
+const AccountingCounterpartiesRoute =
+  AccountingCounterpartiesRouteImport.update({
+    id: '/counterparties',
+    path: '/counterparties',
+    getParentRoute: () => AccountingRouteRoute,
+  } as any)
+const AccountingCategoriesRoute = AccountingCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AccountingRouteRoute,
 } as any)
 const InternalLendingRouteRoute = InternalLendingRouteRouteImport.update({
   id: '/lending',
@@ -1136,6 +1162,11 @@ const ApiAuthDiscordRoute = ApiAuthDiscordRouteImport.update({
   id: '/api/auth/discord',
   path: '/api/auth/discord',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AccountingEntriesNewRoute = AccountingEntriesNewRouteImport.update({
+  id: '/entries/new',
+  path: '/entries/new',
+  getParentRoute: () => AccountingRouteRoute,
 } as any)
 const InternalLendingDealRoomsRouteRoute =
   InternalLendingDealRoomsRouteRouteImport.update({
@@ -1905,6 +1936,7 @@ const BankAccountAccountIdCommercialInvoicesInvoiceIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRouteRouteWithChildren
   '/bank': typeof BankRouteRouteWithChildren
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
@@ -1925,6 +1957,8 @@ export interface FileRoutesByFullPath {
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/internal/lending': typeof InternalLendingRouteRouteWithChildren
+  '/accounting/categories': typeof AccountingCategoriesRoute
+  '/accounting/counterparties': typeof AccountingCounterpartiesRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -1975,6 +2009,7 @@ export interface FileRoutesByFullPath {
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
+  '/accounting/': typeof AccountingIndexRoute
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/company/': typeof CompanyIndexRoute
@@ -1998,6 +2033,7 @@ export interface FileRoutesByFullPath {
   '/bank/lending/loans': typeof BankLendingLoansRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRouteRouteWithChildren
+  '/accounting/entries/new': typeof AccountingEntriesNewRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
   '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
@@ -2203,6 +2239,8 @@ export interface FileRoutesByTo {
   '/maintenance': typeof MaintenanceRoute
   '/markets': typeof MarketsRoute
   '/onboarding': typeof OnboardingRoute
+  '/accounting/categories': typeof AccountingCategoriesRoute
+  '/accounting/counterparties': typeof AccountingCounterpartiesRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -2252,6 +2290,7 @@ export interface FileRoutesByTo {
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
+  '/accounting': typeof AccountingIndexRoute
   '/bank': typeof BankIndexRoute
   '/companies': typeof CompaniesIndexRoute
   '/company': typeof CompanyIndexRoute
@@ -2267,6 +2306,7 @@ export interface FileRoutesByTo {
   '/structure': typeof StructureIndexRoute
   '/support': typeof SupportIndexRoute
   '/terminal': typeof TerminalIndexRoute
+  '/accounting/entries/new': typeof AccountingEntriesNewRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
   '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
@@ -2462,6 +2502,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRouteRouteWithChildren
   '/bank': typeof BankRouteRouteWithChildren
   '/companies': typeof CompaniesRouteRouteWithChildren
   '/exchange': typeof ExchangeRouteRouteWithChildren
@@ -2482,6 +2523,8 @@ export interface FileRoutesById {
   '/companies/$companyId': typeof CompaniesCompanyIdRouteRouteWithChildren
   '/internal/bank': typeof InternalBankRouteRouteWithChildren
   '/internal/lending': typeof InternalLendingRouteRouteWithChildren
+  '/accounting/categories': typeof AccountingCategoriesRoute
+  '/accounting/counterparties': typeof AccountingCounterpartiesRoute
   '/bank/accounts': typeof BankAccountsRouteWithChildren
   '/bank/activity': typeof BankActivityRoute
   '/bank/credit-desk-closed': typeof BankCreditDeskClosedRoute
@@ -2532,6 +2575,7 @@ export interface FileRoutesById {
   '/terminal/research': typeof TerminalResearchRoute
   '/terminal/trade': typeof TerminalTradeRoute
   '/terminal/watchlist': typeof TerminalWatchlistRoute
+  '/accounting/': typeof AccountingIndexRoute
   '/bank/': typeof BankIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/company/': typeof CompanyIndexRoute
@@ -2555,6 +2599,7 @@ export interface FileRoutesById {
   '/bank/lending/loans': typeof BankLendingLoansRouteRouteWithChildren
   '/exchange/company/$ticker': typeof ExchangeCompanyTickerRouteRouteWithChildren
   '/internal/lending/deal-rooms': typeof InternalLendingDealRoomsRouteRouteWithChildren
+  '/accounting/entries/new': typeof AccountingEntriesNewRoute
   '/api/auth/discord': typeof ApiAuthDiscordRouteWithChildren
   '/api/bank/deposit-request': typeof ApiBankDepositRequestRoute
   '/api/bank/withdrawal-request': typeof ApiBankWithdrawalRequestRoute
@@ -2756,6 +2801,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounting'
     | '/bank'
     | '/companies'
     | '/exchange'
@@ -2776,6 +2822,8 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/internal/bank'
     | '/internal/lending'
+    | '/accounting/categories'
+    | '/accounting/counterparties'
     | '/bank/accounts'
     | '/bank/activity'
     | '/bank/credit-desk-closed'
@@ -2826,6 +2874,7 @@ export interface FileRouteTypes {
     | '/terminal/research'
     | '/terminal/trade'
     | '/terminal/watchlist'
+    | '/accounting/'
     | '/bank/'
     | '/companies/'
     | '/company/'
@@ -2849,6 +2898,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/internal/lending/deal-rooms'
+    | '/accounting/entries/new'
     | '/api/auth/discord'
     | '/api/bank/deposit-request'
     | '/api/bank/withdrawal-request'
@@ -3054,6 +3104,8 @@ export interface FileRouteTypes {
     | '/maintenance'
     | '/markets'
     | '/onboarding'
+    | '/accounting/categories'
+    | '/accounting/counterparties'
     | '/bank/accounts'
     | '/bank/activity'
     | '/bank/credit-desk-closed'
@@ -3103,6 +3155,7 @@ export interface FileRouteTypes {
     | '/terminal/research'
     | '/terminal/trade'
     | '/terminal/watchlist'
+    | '/accounting'
     | '/bank'
     | '/companies'
     | '/company'
@@ -3118,6 +3171,7 @@ export interface FileRouteTypes {
     | '/structure'
     | '/support'
     | '/terminal'
+    | '/accounting/entries/new'
     | '/api/auth/discord'
     | '/api/bank/deposit-request'
     | '/api/bank/withdrawal-request'
@@ -3312,6 +3366,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accounting'
     | '/bank'
     | '/companies'
     | '/exchange'
@@ -3332,6 +3387,8 @@ export interface FileRouteTypes {
     | '/companies/$companyId'
     | '/internal/bank'
     | '/internal/lending'
+    | '/accounting/categories'
+    | '/accounting/counterparties'
     | '/bank/accounts'
     | '/bank/activity'
     | '/bank/credit-desk-closed'
@@ -3382,6 +3439,7 @@ export interface FileRouteTypes {
     | '/terminal/research'
     | '/terminal/trade'
     | '/terminal/watchlist'
+    | '/accounting/'
     | '/bank/'
     | '/companies/'
     | '/company/'
@@ -3405,6 +3463,7 @@ export interface FileRouteTypes {
     | '/bank/lending/loans'
     | '/exchange/company/$ticker'
     | '/internal/lending/deal-rooms'
+    | '/accounting/entries/new'
     | '/api/auth/discord'
     | '/api/bank/deposit-request'
     | '/api/bank/withdrawal-request'
@@ -3605,6 +3664,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountingRouteRoute: typeof AccountingRouteRouteWithChildren
   BankRouteRoute: typeof BankRouteRouteWithChildren
   CompaniesRouteRoute: typeof CompaniesRouteRouteWithChildren
   ExchangeRouteRoute: typeof ExchangeRouteRouteWithChildren
@@ -3750,6 +3810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BankRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accounting': {
+      id: '/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AccountingRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -3861,6 +3928,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/'
       preLoaderRoute: typeof BankIndexRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/accounting/': {
+      id: '/accounting/'
+      path: '/'
+      fullPath: '/accounting/'
+      preLoaderRoute: typeof AccountingIndexRouteImport
+      parentRoute: typeof AccountingRouteRoute
     }
     '/terminal/watchlist': {
       id: '/terminal/watchlist'
@@ -4211,6 +4285,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/bank/accounts'
       preLoaderRoute: typeof BankAccountsRouteImport
       parentRoute: typeof BankRouteRoute
+    }
+    '/accounting/counterparties': {
+      id: '/accounting/counterparties'
+      path: '/counterparties'
+      fullPath: '/accounting/counterparties'
+      preLoaderRoute: typeof AccountingCounterpartiesRouteImport
+      parentRoute: typeof AccountingRouteRoute
+    }
+    '/accounting/categories': {
+      id: '/accounting/categories'
+      path: '/categories'
+      fullPath: '/accounting/categories'
+      preLoaderRoute: typeof AccountingCategoriesRouteImport
+      parentRoute: typeof AccountingRouteRoute
     }
     '/internal/lending': {
       id: '/internal/lending'
@@ -4792,6 +4880,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/discord'
       preLoaderRoute: typeof ApiAuthDiscordRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/accounting/entries/new': {
+      id: '/accounting/entries/new'
+      path: '/entries/new'
+      fullPath: '/accounting/entries/new'
+      preLoaderRoute: typeof AccountingEntriesNewRouteImport
+      parentRoute: typeof AccountingRouteRoute
     }
     '/internal/lending/deal-rooms': {
       id: '/internal/lending/deal-rooms'
@@ -5691,6 +5786,24 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AccountingRouteRouteChildren {
+  AccountingCategoriesRoute: typeof AccountingCategoriesRoute
+  AccountingCounterpartiesRoute: typeof AccountingCounterpartiesRoute
+  AccountingIndexRoute: typeof AccountingIndexRoute
+  AccountingEntriesNewRoute: typeof AccountingEntriesNewRoute
+}
+
+const AccountingRouteRouteChildren: AccountingRouteRouteChildren = {
+  AccountingCategoriesRoute: AccountingCategoriesRoute,
+  AccountingCounterpartiesRoute: AccountingCounterpartiesRoute,
+  AccountingIndexRoute: AccountingIndexRoute,
+  AccountingEntriesNewRoute: AccountingEntriesNewRoute,
+}
+
+const AccountingRouteRouteWithChildren = AccountingRouteRoute._addFileChildren(
+  AccountingRouteRouteChildren,
+)
 
 interface BankBusinessRouteRouteChildren {
   BankBusinessInvoicesRoute: typeof BankBusinessInvoicesRoute
@@ -6664,6 +6777,7 @@ const ApiLoanThreadsApplicationIdAttachmentsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountingRouteRoute: AccountingRouteRouteWithChildren,
   BankRouteRoute: BankRouteRouteWithChildren,
   CompaniesRouteRoute: CompaniesRouteRouteWithChildren,
   ExchangeRouteRoute: ExchangeRouteRouteWithChildren,

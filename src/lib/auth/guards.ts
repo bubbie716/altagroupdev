@@ -38,6 +38,20 @@ export function authBeforeLoad({ context, location }: GuardContext) {
   throw signInRedirect(siteForLocation({ context, location }), location.pathname);
 }
 
+/** Alta Accounting — Discord session + corporate_admin only. */
+export async function accountingBeforeLoad(context: GuardContext) {
+  if (isUiLabMode()) return;
+  const user = context.context.user ?? (await fetchCurrentUser());
+  const site = siteForLocation({ context: context.context, location: context.location });
+  if (!user) {
+    throw signInRedirect(site, context.location.pathname);
+  }
+  const { isCorporateAdmin } = await import("@/lib/auth/permissions");
+  if (!isCorporateAdmin(user)) {
+    throw redirect({ to: "/access-restricted" });
+  }
+}
+
 export async function internalBeforeLoad(context: GuardContext) {
   // UI LAB ONLY — DO NOT ENABLE IN PRODUCTION
   if (isUiLabMode()) return;

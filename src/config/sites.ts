@@ -1,6 +1,6 @@
 import { TERMINAL_PRIMARY_NAV_LINKS } from "@/lib/terminal/terminal-primary-nav";
 
-export type SiteKey = "corporate" | "bank" | "exchange" | "terminal";
+export type SiteKey = "corporate" | "bank" | "exchange" | "terminal" | "accounting";
 
 export type SiteNavLink = {
   label: string;
@@ -12,7 +12,7 @@ export type SiteNavLink = {
   activePaths?: string[];
 };
 
-export type SiteCategory = "corporate" | "banking" | "markets" | "terminal";
+export type SiteCategory = "corporate" | "banking" | "markets" | "terminal" | "accounting";
 
 export type SiteSeo = {
   title: string;
@@ -82,6 +82,17 @@ const BANK_NAV: SiteNavLink[] = [
 ];
 
 const TERMINAL_NAV: SiteNavLink[] = TERMINAL_PRIMARY_NAV_LINKS;
+
+const ACCOUNTING_NAV: SiteNavLink[] = [
+  { label: "Dashboard", to: "/accounting", exact: true, match: "/accounting" },
+  { label: "New entry", to: "/accounting/entries/new", match: "/accounting/entries" },
+  { label: "Categories", to: "/accounting/categories", match: "/accounting/categories" },
+  {
+    label: "Counterparties",
+    to: "/accounting/counterparties",
+    match: "/accounting/counterparties",
+  },
+];
 
 export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
   corporate: {
@@ -231,6 +242,44 @@ export const SITE_CONFIGS: Record<SiteKey, SiteConfig> = {
     },
     productionHosts: ["terminal.altagroup.dev"],
     localSubdomain: "terminal",
+  },
+  // Private staff books — never add to ECOSYSTEM_ENTRIES / public marketing.
+  accounting: {
+    key: "accounting",
+    category: "accounting",
+    entityName: "Alta Group N.V.",
+    displayName: "Alta Accounting",
+    shortName: "Accounting",
+    description: "Private cash-basis books for Alta Group corporate administrators.",
+    tagline: "Internal accounting",
+    primaryRoute: "/",
+    homeRoute: "/",
+    dashboardRoute: "/accounting",
+    defaultAuthenticatedRoute: "/accounting",
+    loginEyebrow: "Alta Accounting · Staff",
+    loginHome: {
+      panelTitle: "Private accounting for Alta Group staff.",
+      panelDescription:
+        "Cash-basis ledgers by company. Access is limited to corporate administrators.",
+      panelTags: ["Staff only", "Cash-basis", "Company books"],
+      signInEyebrow: "Staff sign-in",
+      signInTitle: "Sign in to Alta Accounting",
+      signInDescription:
+        "Sign in with Discord. Only corporate administrators can open this workspace.",
+      accessTitle: "Alta Accounting Access",
+      accessSubtitle: "Corporate admin · Discord OAuth",
+      accessFooter: "Not a public product · Staff only",
+    },
+    wordmarkSuffix: "ACCOUNTING",
+    navLinks: ACCOUNTING_NAV,
+    seo: {
+      title: "Alta Accounting",
+      description: "Private accounting workspace for Alta Group corporate administrators.",
+      ogTitle: "Alta Accounting",
+      ogDescription: "Staff-only cash-basis accounting.",
+    },
+    productionHosts: ["accounting.altagroup.dev"],
+    localSubdomain: "accounting",
   },
 };
 
