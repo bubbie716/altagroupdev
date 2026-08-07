@@ -1,7 +1,6 @@
-export type AccountingCompanyOption = {
+export type AccountingOrgOption = {
   id: string;
   name: string;
-  status: string;
 };
 
 export type AccountingCategoryDto = {
@@ -28,7 +27,7 @@ export type AccountingLedgerEntryDto = {
 };
 
 export type AccountingWorkspaceDto = {
-  companyId: string | null;
-  companyName: string | null;
-  companies: AccountingCompanyOption[];
+  orgId: string | null;
+  orgName: string | null;
+  orgs: AccountingOrgOption[];
 };

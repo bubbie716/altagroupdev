@@ -45,9 +45,7 @@ function NewAccountingEntryPage() {
         const [cats, cps] = await Promise.all([listCategories(), listCounterparties()]);
         setCategories(cats);
         setCounterparties(cps);
-        const matching = cats.filter(
-          (c) => c.kind === type || c.kind === "both",
-        );
+        const matching = cats.filter((c) => c.kind === type || c.kind === "both");
         if (matching[0]) setCategoryId(matching[0].id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load form data");
@@ -102,33 +100,34 @@ function NewAccountingEntryPage() {
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div>
-        <h2 className="font-serif text-2xl tracking-tight">New ledger entry</h2>
-        <p className="text-[13px] text-muted-foreground">
-          Record income or expense in florins for the selected company.
-        </p>
+        <h1 className="text-2xl font-semibold">Add Transaction</h1>
+        <p className="mt-1 text-sm text-gray-600">Amounts are in florins (ƒ).</p>
       </div>
 
       {error ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
-        </p>
+        </div>
       ) : null}
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-border/70 bg-surface-1 p-4">
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+      >
         <Field label="Date">
           <input
             type="date"
             required
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Type">
           <select
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           >
             {ACCOUNTING_ENTRY_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -145,7 +144,7 @@ function NewAccountingEntryPage() {
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </Field>
         <Field label="Category">
@@ -153,7 +152,7 @@ function NewAccountingEntryPage() {
             required
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">Select…</option>
             {filteredCategories.map((c) => (
@@ -167,7 +166,7 @@ function NewAccountingEntryPage() {
           <select
             value={counterpartyId}
             onChange={(e) => setCounterpartyId(e.target.value)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="">None</option>
             {counterparties.map((c) => (
@@ -181,7 +180,7 @@ function NewAccountingEntryPage() {
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
-            className="min-h-10 w-full rounded-md border border-border bg-background px-3 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           >
             {ACCOUNTING_PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>
@@ -195,15 +194,15 @@ function NewAccountingEntryPage() {
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px]"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </Field>
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-foreground text-[13px] font-medium text-background disabled:opacity-60"
+          className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {pending ? "Saving…" : "Save entry"}
+          {pending ? "Saving…" : "Save transaction"}
         </button>
       </form>
     </div>
@@ -212,10 +211,8 @@ function NewAccountingEntryPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </span>
+    <label className="block space-y-1">
+      <span className="text-sm font-medium text-gray-700">{label}</span>
       {children}
     </label>
   );

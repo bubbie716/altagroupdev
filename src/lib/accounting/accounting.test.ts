@@ -44,7 +44,8 @@ describe("alta accounting private site", () => {
     assert.equal(siteKeyForOwnedPath("/accounting/categories"), "accounting");
     assert.ok(isKnownDevSiteKey("accounting"));
     assert.equal(getSiteConfig("accounting").productionHosts[0], "accounting.altagroup.dev");
-    assert.equal(SITE_CONFIGS.accounting.wordmarkSuffix, "ACCOUNTING");
+    assert.equal(SITE_CONFIGS.accounting.displayName, "Accounting Tracker");
+    assert.equal(SITE_CONFIGS.accounting.wordmarkSuffix, "TRACKER");
   });
 
   it("is never listed in the public ecosystem switcher/footer entries", () => {

@@ -61,13 +61,8 @@ function AccountingCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="font-serif text-2xl tracking-tight">Categories</h2>
-          <p className="text-[13px] text-muted-foreground">
-            Income and expense categories for the selected company.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Categories</h1>
         <button
           type="button"
           disabled={pending}
@@ -82,41 +77,37 @@ function AccountingCategoriesPage() {
               }
             });
           }}
-          className="min-h-10 rounded-md border border-border px-3 text-[13px] hover:bg-surface-2"
+          className="rounded bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-300 disabled:opacity-50"
         >
           Seed defaults
         </button>
       </div>
 
       {error ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
-        </p>
+        </div>
       ) : null}
 
       <form
         onSubmit={onCreate}
-        className="flex flex-wrap items-end gap-2 rounded-lg border border-border/70 bg-surface-1 p-4"
+        className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
       >
         <label className="space-y-1">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Name
-          </span>
+          <span className="text-sm font-medium text-gray-700">Name</span>
           <input
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="min-h-10 rounded-md border border-border bg-background px-3 text-[13px]"
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </label>
         <label className="space-y-1">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Kind
-          </span>
+          <span className="text-sm font-medium text-gray-700">Kind</span>
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as typeof kind)}
-            className="min-h-10 rounded-md border border-border bg-background px-3 text-[13px]"
+            className="rounded border border-gray-300 px-3 py-2 text-sm"
           >
             {ACCOUNTING_CATEGORY_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -128,22 +119,20 @@ function AccountingCategoriesPage() {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-10 rounded-md bg-foreground px-3 text-[13px] font-medium text-background"
+          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           Add
         </button>
       </form>
 
-      <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
+      <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         {rows.length === 0 ? (
-          <li className="px-4 py-8 text-center text-[13px] text-muted-foreground">
-            No categories yet.
-          </li>
+          <li className="px-4 py-8 text-center text-sm text-gray-500">No categories yet.</li>
         ) : null}
         {rows.map((row) => (
-          <li key={row.id} className="flex flex-wrap items-center gap-2 bg-surface-1 px-4 py-3">
+          <li key={row.id} className="flex flex-wrap items-center gap-2 px-4 py-3">
             <input
-              className="min-h-9 flex-1 rounded-md border border-border bg-background px-2 text-[13px]"
+              className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm"
               defaultValue={row.name}
               onBlur={(e) => {
                 const next = e.target.value.trim();
@@ -159,7 +148,7 @@ function AccountingCategoriesPage() {
               }}
             />
             <select
-              className="min-h-9 rounded-md border border-border bg-background px-2 text-[13px]"
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
               value={row.kind}
               onChange={(e) => {
                 const nextKind = e.target.value;
@@ -183,7 +172,7 @@ function AccountingCategoriesPage() {
             </select>
             <button
               type="button"
-              className="text-[12px] text-destructive hover:underline"
+              className="text-sm text-red-600 hover:underline"
               onClick={() => {
                 if (!confirm(`Delete category “${row.name}”?`)) return;
                 startTransition(async () => {

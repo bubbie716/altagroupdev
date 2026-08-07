@@ -17,14 +17,23 @@ export const fetchAccountingWorkspace = createServerFn({ method: "GET" }).handle
   }
 });
 
-export const setAccountingCompanyFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { companyId: string }) => data)
+export const setAccountingOrgFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { orgId: string }) => data)
   .handler(async ({ data }) => {
-    const { setActiveAccountingCompany } = await import(
-      "@/server/accounting/accounting.service"
-    );
+    const { setActiveAccountingOrg } = await import("@/server/accounting/accounting.service");
     try {
-      return await setActiveAccountingCompany(data.companyId);
+      return await setActiveAccountingOrg(data.orgId);
+    } catch (error) {
+      mapError(error);
+    }
+  });
+
+export const createAccountingOrgFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { name: string }) => data)
+  .handler(async ({ data }) => {
+    const { createAccountingOrg } = await import("@/server/accounting/accounting.service");
+    try {
+      return await createAccountingOrg(data.name);
     } catch (error) {
       mapError(error);
     }

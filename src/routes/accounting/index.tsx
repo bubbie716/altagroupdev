@@ -71,8 +71,18 @@ function AccountingDashboardPage() {
     return { rows, max };
   }, [entries]);
 
+  const incomeBars = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of entries.filter((x) => x.type === "income")) {
+      map[e.category.name] = (map[e.category.name] ?? 0) + e.amountCents;
+    }
+    const rows = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(...rows.map(([, v]) => v), 1);
+    return { rows, max };
+  }, [entries]);
+
   const onDelete = (id: string) => {
-    if (!confirm("Delete this ledger entry?")) return;
+    if (!confirm("Delete this transaction?")) return;
     startTransition(async () => {
       try {
         await deleteEntry({ data: { id } });
@@ -102,24 +112,21 @@ function AccountingDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="font-serif text-2xl tracking-tight">Dashboard</h2>
-          <p className="text-[13px] text-muted-foreground">Cash-basis totals in Alta florins.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <div className="flex flex-wrap items-center gap-3">
           <select
-            className="min-h-10 rounded-md border border-border bg-background px-3 text-[13px]"
+            className="rounded border border-gray-300 px-3 py-1.5 text-sm"
             value={period}
             onChange={(e) => setPeriod(e.target.value as "all" | "month")}
           >
-            <option value="month">By month</option>
             <option value="all">All time</option>
+            <option value="month">By month</option>
           </select>
           {period === "month" ? (
             <input
               type="month"
-              className="min-h-10 rounded-md border border-border bg-background px-3 text-[13px]"
+              className="rounded border border-gray-300 px-3 py-1.5 text-sm"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
             />
@@ -128,123 +135,161 @@ function AccountingDashboardPage() {
             type="button"
             onClick={onExport}
             disabled={pending}
-            className="min-h-10 rounded-md border border-border px-3 text-[13px] hover:bg-surface-2"
+            className="rounded bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-300 disabled:opacity-50"
           >
             Export CSV
           </button>
           <Link
             to="/accounting/entries/new"
-            className="inline-flex min-h-10 items-center rounded-md bg-foreground px-3 text-[13px] font-medium text-background"
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            New entry
+            Add Transaction
           </Link>
         </div>
       </div>
 
       {error ? (
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
-        </p>
+        </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Income" value={centsToFlorins(totals.income)} />
-        <StatCard label="Expenses" value={centsToFlorins(totals.expenses)} />
-        <StatCard label="Net" value={centsToFlorins(totals.net)} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">Total Income</p>
+          <p className="text-xl font-semibold text-green-700">{centsToFlorins(totals.income)}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">Total Expenses</p>
+          <p className="text-xl font-semibold text-red-700">{centsToFlorins(totals.expenses)}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-gray-500">Net</p>
+          <p
+            className={`text-xl font-semibold ${
+              totals.net >= 0 ? "text-green-700" : "text-red-700"
+            }`}
+          >
+            {centsToFlorins(totals.net)}
+          </p>
+        </div>
       </div>
 
-      {expenseBars.rows.length > 0 ? (
-        <section className="rounded-lg border border-border/70 bg-surface-1 p-4">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Expenses by category
-          </h3>
-          <ul className="mt-3 space-y-2">
-            {expenseBars.rows.map(([name, cents]) => (
-              <li key={name}>
-                <div className="mb-1 flex justify-between text-[12px]">
-                  <span>{name}</span>
-                  <span className="font-mono">{centsToFlorins(cents)}</span>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-medium text-gray-700">Expenses by category</h2>
+          {expenseBars.rows.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No expenses{period === "month" ? " this month" : ""}.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {expenseBars.rows.map(([name, cents]) => (
+                <div key={name} className="flex items-center gap-2">
                   <div
-                    className="h-full bg-gold/80"
-                    style={{ width: `${Math.round((cents / expenseBars.max) * 100)}%` }}
+                    className="h-6 rounded bg-red-100"
+                    style={{
+                      width: `${Math.max(4, (cents / expenseBars.max) * 100)}%`,
+                    }}
                   />
+                  <span className="min-w-[120px] text-sm">{name}</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {centsToFlorins(cents)}
+                  </span>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section className="overflow-hidden rounded-lg border border-border/70">
-        <div className="border-b border-border/70 bg-surface-1 px-4 py-3">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Ledger · {pending ? "Loading…" : `${entries.length} entries`}
-          </h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-[13px]">
-            <thead className="bg-surface-2/40 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Amount</th>
-                <th className="px-3 py-2">Category</th>
-                <th className="px-3 py-2">Counterparty</th>
-                <th className="px-3 py-2">Method</th>
-                <th className="px-3 py-2">Note</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {entries.length === 0 && !pending ? (
-                <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
-                    No entries for this period.
-                  </td>
-                </tr>
-              ) : null}
-              {entries.map((e) => (
-                <tr key={e.id} className="border-t border-border/50">
-                  <td className="px-3 py-2 font-mono text-[12px]">{e.date}</td>
-                  <td className="px-3 py-2 capitalize">{e.type}</td>
-                  <td className="px-3 py-2 font-mono">{centsToFlorins(e.amountCents)}</td>
-                  <td className="px-3 py-2">{e.category.name}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {e.counterparty?.name ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 capitalize">{e.paymentMethod}</td>
-                  <td className="max-w-[12rem] truncate px-3 py-2 text-muted-foreground">
-                    {e.note ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      type="button"
-                      className="text-[12px] text-destructive hover:underline"
-                      onClick={() => onDelete(e.id)}
-                      disabled={pending}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
-      </section>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/70 bg-surface-1 px-4 py-3">
-      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-medium text-gray-700">Income by category</h2>
+          {incomeBars.rows.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No income{period === "month" ? " this month" : ""}.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {incomeBars.rows.map(([name, cents]) => (
+                <div key={name} className="flex items-center gap-2">
+                  <div
+                    className="h-6 rounded bg-green-100"
+                    style={{
+                      width: `${Math.max(4, (cents / incomeBars.max) * 100)}%`,
+                    }}
+                  />
+                  <span className="min-w-[120px] text-sm">{name}</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    {centsToFlorins(cents)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="mt-2 font-serif text-2xl tracking-tight">{value}</div>
+
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <h2 className="border-b border-gray-200 px-4 py-3 text-sm font-medium text-gray-700">
+          Transactions{pending ? " · Loading…" : ` · ${entries.length}`}
+        </h2>
+        {entries.length === 0 && !pending ? (
+          <p className="p-4 text-sm text-gray-500">
+            No transactions{period === "month" ? " this month" : ""}.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-left">
+                  <th className="px-4 py-2 font-medium">Date</th>
+                  <th className="px-4 py-2 font-medium">Type</th>
+                  <th className="px-4 py-2 font-medium">Amount</th>
+                  <th className="px-4 py-2 font-medium">Category</th>
+                  <th className="px-4 py-2 font-medium">Counterparty</th>
+                  <th className="px-4 py-2 font-medium">Payment</th>
+                  <th className="px-4 py-2 font-medium">Note</th>
+                  <th className="w-20 px-4 py-2 font-medium" />
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr key={e.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-2">{e.date}</td>
+                    <td className="px-4 py-2 capitalize">{e.type}</td>
+                    <td
+                      className={`px-4 py-2 font-medium ${
+                        e.type === "income" ? "text-green-700" : "text-red-700"
+                      }`}
+                    >
+                      {e.type === "income" ? "+" : "-"}
+                      {centsToFlorins(e.amountCents)}
+                    </td>
+                    <td className="px-4 py-2">{e.category.name}</td>
+                    <td className="px-4 py-2">{e.counterparty?.name ?? "—"}</td>
+                    <td className="px-4 py-2 capitalize">{e.paymentMethod}</td>
+                    <td
+                      className="max-w-[200px] truncate px-4 py-2 text-gray-600"
+                      title={e.note ?? undefined}
+                    >
+                      {e.note ?? "—"}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={() => onDelete(e.id)}
+                        disabled={pending}
+                        className="text-red-600 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

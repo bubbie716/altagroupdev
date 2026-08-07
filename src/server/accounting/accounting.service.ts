@@ -1,5 +1,6 @@
 /**
- * Alta Accounting — corporate-admin-only cash-basis books (company-scoped).
+ * Accounting Tracker — corporate-admin-only cash-basis books.
+ * Orgs are local AccountingOrg records (not Alta Company).
  */
 import type { AltaUser } from "@/lib/auth/types";
 import { isCorporateAdmin } from "@/lib/auth/permissions";
@@ -17,17 +18,17 @@ import {
 } from "@/lib/accounting/defaults";
 import type {
   AccountingCategoryDto,
-  AccountingCompanyOption,
   AccountingCounterpartyDto,
   AccountingLedgerEntryDto,
+  AccountingOrgOption,
   AccountingWorkspaceDto,
 } from "@/lib/accounting/types";
 import { prisma } from "@/server/db";
 import { requireAuth } from "@/server/auth.service";
 import {
-  clearAccountingCompanyCookie,
-  readAccountingCompanyIdFromRequest,
-  setAccountingCompanyCookie,
+  clearAccountingOrgCookie,
+  readAccountingOrgIdFromRequest,
+  setAccountingOrgCookie,
 } from "@/server/accounting/company-context";
 
 export class AccountingAccessError extends Error {
@@ -43,79 +44,97 @@ export async function requireAccountingAdmin(): Promise<AltaUser> {
   const user = await requireAuth();
   if (!isCorporateAdmin(user)) {
     throw new AccountingAccessError(
-      "Alta Accounting is limited to corporate administrators.",
+      "Accounting Tracker is limited to corporate administrators.",
       403,
     );
   }
   return user;
 }
 
-export async function listAccountingCompanies(): Promise<AccountingCompanyOption[]> {
+export async function listAccountingOrgs(): Promise<AccountingOrgOption[]> {
   await requireAccountingAdmin();
-  const rows = await prisma.company.findMany({
+  const rows = await prisma.accountingOrg.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, status: true },
+    select: { id: true, name: true },
     take: 500,
   });
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    status: r.status,
-  }));
+  return rows;
 }
 
 export async function getAccountingWorkspace(): Promise<AccountingWorkspaceDto> {
-  const companies = await listAccountingCompanies();
-  let companyId = readAccountingCompanyIdFromRequest();
-  if (companyId && !companies.some((c) => c.id === companyId)) {
-    clearAccountingCompanyCookie();
-    companyId = null;
+  const orgs = await listAccountingOrgs();
+  let orgId = readAccountingOrgIdFromRequest();
+  if (orgId && !orgs.some((o) => o.id === orgId)) {
+    clearAccountingOrgCookie();
+    orgId = null;
   }
-  if (!companyId && companies.length === 1) {
-    companyId = companies[0]!.id;
-    setAccountingCompanyCookie(companyId);
+  if (!orgId && orgs.length === 1) {
+    orgId = orgs[0]!.id;
+    setAccountingOrgCookie(orgId);
   }
-  const company = companies.find((c) => c.id === companyId) ?? null;
+  const org = orgs.find((o) => o.id === orgId) ?? null;
   return {
-    companyId: company?.id ?? null,
-    companyName: company?.name ?? null,
-    companies,
+    orgId: org?.id ?? null,
+    orgName: org?.name ?? null,
+    orgs,
   };
 }
 
-export async function setActiveAccountingCompany(companyId: string): Promise<AccountingWorkspaceDto> {
+export async function setActiveAccountingOrg(orgId: string): Promise<AccountingWorkspaceDto> {
   await requireAccountingAdmin();
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
+  const org = await prisma.accountingOrg.findUnique({
+    where: { id: orgId },
     select: { id: true, name: true },
   });
-  if (!company) {
-    throw new AccountingAccessError("Company not found.", 404);
+  if (!org) {
+    throw new AccountingAccessError("Organization not found.", 404);
   }
-  setAccountingCompanyCookie(company.id);
-  const companies = await listAccountingCompanies();
+  setAccountingOrgCookie(org.id);
+  const orgs = await listAccountingOrgs();
   return {
-    companyId: company.id,
-    companyName: company.name,
-    companies,
+    orgId: org.id,
+    orgName: org.name,
+    orgs,
   };
 }
 
-async function requireActiveCompanyId(): Promise<string> {
-  await requireAccountingAdmin();
-  const companyId = readAccountingCompanyIdFromRequest();
-  if (!companyId) {
-    throw new AccountingAccessError("Select a company to manage books.", 400);
+export async function createAccountingOrg(name: string): Promise<AccountingWorkspaceDto> {
+  const user = await requireAccountingAdmin();
+  const trimmed = name.trim();
+  if (trimmed.length < 2) {
+    throw new AccountingAccessError("Organization name must be at least 2 characters.", 400);
   }
-  const exists = await prisma.company.findUnique({
-    where: { id: companyId },
+  const org = await prisma.accountingOrg.create({
+    data: {
+      name: trimmed.slice(0, 120),
+      createdByUserId: user.id,
+    },
+    select: { id: true, name: true },
+  });
+  setAccountingOrgCookie(org.id);
+  const orgs = await listAccountingOrgs();
+  return {
+    orgId: org.id,
+    orgName: org.name,
+    orgs,
+  };
+}
+
+async function requireActiveOrgId(): Promise<string> {
+  await requireAccountingAdmin();
+  const orgId = readAccountingOrgIdFromRequest();
+  if (!orgId) {
+    throw new AccountingAccessError("Select or create an organization first.", 400);
+  }
+  const exists = await prisma.accountingOrg.findUnique({
+    where: { id: orgId },
     select: { id: true },
   });
   if (!exists) {
-    clearAccountingCompanyCookie();
-    throw new AccountingAccessError("Selected company is no longer available.", 400);
+    clearAccountingOrgCookie();
+    throw new AccountingAccessError("Selected organization is no longer available.", 400);
   }
-  return companyId;
+  return orgId;
 }
 
 function mapEntry(row: {
@@ -141,20 +160,20 @@ function mapEntry(row: {
 }
 
 export async function listLedgerEntries(month: string): Promise<AccountingLedgerEntryDto[]> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   if (month !== "all" && !/^\d{4}-\d{2}$/.test(month)) {
     throw new AccountingAccessError("month must be YYYY-MM or 'all'", 400);
   }
 
   const where =
     month === "all"
-      ? { companyId }
+      ? { orgId }
       : (() => {
           const [year, m] = month.split("-").map(Number);
           const start = new Date(year!, m! - 1, 1);
           const end = new Date(year!, m!, 0);
           return {
-            companyId,
+            orgId,
             date: {
               gte: start.toISOString().slice(0, 10),
               lte: end.toISOString().slice(0, 10),
@@ -182,7 +201,7 @@ export async function createLedgerEntry(input: {
   paymentMethod: string;
   note?: string | null;
 }): Promise<AccountingLedgerEntryDto> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
     throw new AccountingAccessError("date must be YYYY-MM-DD", 400);
   }
@@ -199,21 +218,21 @@ export async function createLedgerEntry(input: {
   }
 
   const category = await prisma.accountingCategory.findFirst({
-    where: { id: input.categoryId, companyId },
+    where: { id: input.categoryId, orgId },
   });
   if (!category) throw new AccountingAccessError("Category not found", 404);
 
   let counterpartyId: string | null = input.counterpartyId?.trim() || null;
   if (counterpartyId) {
     const cp = await prisma.accountingCounterparty.findFirst({
-      where: { id: counterpartyId, companyId },
+      where: { id: counterpartyId, orgId },
     });
     if (!cp) throw new AccountingAccessError("Counterparty not found", 404);
   }
 
   const row = await prisma.accountingLedgerEntry.create({
     data: {
-      companyId,
+      orgId,
       date: input.date,
       type: input.type,
       amountCents: Math.round(input.amountCents),
@@ -231,9 +250,9 @@ export async function createLedgerEntry(input: {
 }
 
 export async function deleteLedgerEntry(id: string): Promise<{ ok: true }> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const existing = await prisma.accountingLedgerEntry.findFirst({
-    where: { id, companyId },
+    where: { id, orgId },
     select: { id: true },
   });
   if (!existing) throw new AccountingAccessError("Entry not found", 404);
@@ -242,20 +261,19 @@ export async function deleteLedgerEntry(id: string): Promise<{ ok: true }> {
 }
 
 export async function listCategories(): Promise<AccountingCategoryDto[]> {
-  const companyId = await requireActiveCompanyId();
-  const rows = await prisma.accountingCategory.findMany({
-    where: { companyId },
+  const orgId = await requireActiveOrgId();
+  return prisma.accountingCategory.findMany({
+    where: { orgId },
     orderBy: { name: "asc" },
     select: { id: true, name: true, kind: true },
   });
-  return rows;
 }
 
 export async function createCategory(input: {
   name: string;
   kind: string;
 }): Promise<AccountingCategoryDto> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const name = input.name.trim();
   if (!name) throw new AccountingAccessError("Name required", 400);
   if (!ACCOUNTING_CATEGORY_KINDS.includes(input.kind as AccountingCategoryKind)) {
@@ -263,7 +281,7 @@ export async function createCategory(input: {
   }
   try {
     return await prisma.accountingCategory.create({
-      data: { companyId, name, kind: input.kind },
+      data: { orgId, name, kind: input.kind },
       select: { id: true, name: true, kind: true },
     });
   } catch {
@@ -276,14 +294,14 @@ export async function updateCategory(input: {
   name: string;
   kind: string;
 }): Promise<AccountingCategoryDto> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const name = input.name.trim();
   if (!name) throw new AccountingAccessError("Name required", 400);
   if (!ACCOUNTING_CATEGORY_KINDS.includes(input.kind as AccountingCategoryKind)) {
     throw new AccountingAccessError("Invalid kind", 400);
   }
   const existing = await prisma.accountingCategory.findFirst({
-    where: { id: input.id, companyId },
+    where: { id: input.id, orgId },
   });
   if (!existing) throw new AccountingAccessError("Category not found", 404);
   try {
@@ -298,9 +316,9 @@ export async function updateCategory(input: {
 }
 
 export async function deleteCategory(id: string): Promise<{ ok: true }> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const existing = await prisma.accountingCategory.findFirst({
-    where: { id, companyId },
+    where: { id, orgId },
     select: { id: true },
   });
   if (!existing) throw new AccountingAccessError("Category not found", 404);
@@ -313,9 +331,9 @@ export async function deleteCategory(id: string): Promise<{ ok: true }> {
 }
 
 export async function listCounterparties(): Promise<AccountingCounterpartyDto[]> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   return prisma.accountingCounterparty.findMany({
-    where: { companyId },
+    where: { orgId },
     orderBy: { name: "asc" },
     select: { id: true, name: true, kind: true },
   });
@@ -325,7 +343,7 @@ export async function createCounterparty(input: {
   name: string;
   kind: string;
 }): Promise<AccountingCounterpartyDto> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const name = input.name.trim();
   if (!name) throw new AccountingAccessError("Name required", 400);
   if (!ACCOUNTING_COUNTERPARTY_KINDS.includes(input.kind as AccountingCounterpartyKind)) {
@@ -333,7 +351,7 @@ export async function createCounterparty(input: {
   }
   try {
     return await prisma.accountingCounterparty.create({
-      data: { companyId, name, kind: input.kind },
+      data: { orgId, name, kind: input.kind },
       select: { id: true, name: true, kind: true },
     });
   } catch {
@@ -346,14 +364,14 @@ export async function updateCounterparty(input: {
   name: string;
   kind: string;
 }): Promise<AccountingCounterpartyDto> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const name = input.name.trim();
   if (!name) throw new AccountingAccessError("Name required", 400);
   if (!ACCOUNTING_COUNTERPARTY_KINDS.includes(input.kind as AccountingCounterpartyKind)) {
     throw new AccountingAccessError("Invalid kind", 400);
   }
   const existing = await prisma.accountingCounterparty.findFirst({
-    where: { id: input.id, companyId },
+    where: { id: input.id, orgId },
   });
   if (!existing) throw new AccountingAccessError("Counterparty not found", 404);
   try {
@@ -368,9 +386,9 @@ export async function updateCounterparty(input: {
 }
 
 export async function deleteCounterparty(id: string): Promise<{ ok: true }> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   const existing = await prisma.accountingCounterparty.findFirst({
-    where: { id, companyId },
+    where: { id, orgId },
     select: { id: true },
   });
   if (!existing) throw new AccountingAccessError("Counterparty not found", 404);
@@ -379,21 +397,21 @@ export async function deleteCounterparty(id: string): Promise<{ ok: true }> {
 }
 
 export async function seedDefaultCategories(): Promise<{ ok: true; created: number }> {
-  const companyId = await requireActiveCompanyId();
+  const orgId = await requireActiveOrgId();
   let created = 0;
   for (const name of DEFAULT_EXPENSE_CATEGORIES) {
-    const result = await prisma.accountingCategory.upsert({
-      where: { companyId_name: { companyId, name } },
+    await prisma.accountingCategory.upsert({
+      where: { orgId_name: { orgId, name } },
       update: {},
-      create: { companyId, name, kind: "expense" },
+      create: { orgId, name, kind: "expense" },
     });
-    if (result) created += 1;
+    created += 1;
   }
   for (const name of DEFAULT_INCOME_CATEGORIES) {
     await prisma.accountingCategory.upsert({
-      where: { companyId_name: { companyId, name } },
+      where: { orgId_name: { orgId, name } },
       update: {},
-      create: { companyId, name, kind: "income" },
+      create: { orgId, name, kind: "income" },
     });
     created += 1;
   }
@@ -429,7 +447,7 @@ export async function buildLedgerCsv(month: string): Promise<{
     ),
   ];
   const filename =
-    month === "all" ? "alta-accounting-all.csv" : `alta-accounting-${month}.csv`;
+    month === "all" ? "accounting-tracker-all.csv" : `accounting-tracker-${month}.csv`;
   return { filename, csv: lines.join("\n") };
 }
 

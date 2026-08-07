@@ -405,9 +405,6 @@ model Company {
   terminalPortfolios             TerminalPortfolio[]
   terminalFundingTransfers       TerminalFundingTransfer[]            @relation("TerminalFundingOwnerCompany")
   terminalScheduledTrades        TerminalScheduledTradeInstruction[]
-  accountingCategories           AccountingCategory[]
-  accountingCounterparties       AccountingCounterparty[]
-  accountingLedgerEntries        AccountingLedgerEntry[]
 
   @@index([verificationStatus])
   @@index([commercialDowngradeScheduledAt])
@@ -4524,42 +4521,58 @@ model TerminalCryptoExternalContribution {
 }
 
 // =============================================================================
-// Alta Accounting (private corporate-admin books — cash-basis)
+// Accounting Tracker (private corporate-admin books — cash-basis, florins)
+// Orgs are local to accounting — not Alta Company records.
 // =============================================================================
+
+model AccountingOrg {
+  id              String   @id @default(cuid())
+  name            String
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categories     AccountingCategory[]
+  counterparties AccountingCounterparty[]
+  entries        AccountingLedgerEntry[]
+
+  @@index([name])
+  @@index([createdByUserId])
+}
 
 model AccountingCategory {
   id        String   @id @default(cuid())
-  companyId String
+  orgId     String
   name      String
   kind      String // income | expense | both
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  company    Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  entries    AccountingLedgerEntry[]
+  org     AccountingOrg           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  entries AccountingLedgerEntry[]
 
-  @@unique([companyId, name])
-  @@index([companyId])
+  @@unique([orgId, name])
+  @@index([orgId])
 }
 
 model AccountingCounterparty {
   id        String   @id @default(cuid())
-  companyId String
+  orgId     String
   name      String
   kind      String // customer | vendor | both
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  company Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  org     AccountingOrg           @relation(fields: [orgId], references: [id], onDelete: Cascade)
   entries AccountingLedgerEntry[]
 
-  @@unique([companyId, name])
-  @@index([companyId])
+  @@unique([orgId, name])
+  @@index([orgId])
 }
 
 model AccountingLedgerEntry {
   id             String   @id @default(cuid())
-  companyId      String
+  orgId          String
   date           String // YYYY-MM-DD
   type           String // income | expense
   amountCents    Int
@@ -4569,11 +4582,11 @@ model AccountingLedgerEntry {
   note           String?
   createdAt      DateTime @default(now())
 
-  company      Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  org          AccountingOrg           @relation(fields: [orgId], references: [id], onDelete: Cascade)
   category     AccountingCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   counterparty AccountingCounterparty? @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
 
-  @@index([companyId, date])
+  @@index([orgId, date])
   @@index([categoryId])
   @@index([counterpartyId])
 }
